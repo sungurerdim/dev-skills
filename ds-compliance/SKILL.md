@@ -1,0 +1,138 @@
+# /ds-compliance
+
+**Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and accessibility enforcement.
+
+## Triggers
+
+- User runs `/ds-compliance`
+- User asks about GDPR, KVKK, CCPA, HIPAA, or other regulatory compliance
+- User asks to check for security vulnerabilities, secrets, or injection risks
+- User asks about privacy, data protection, or consent requirements
+- User asks about CSP, CORS, XSS, CSRF, or web security
+- User asks about accessibility (a11y) or internationalization compliance
+
+Covers 100+ rules across 6 compliance domains.
+
+## Contract
+
+- Every finding cites file and line — never infer or assume
+- Unverifiable rules are skipped, not guessed
+- Only audits compliance — code fixes are CAT-1 (auto) or CAT-2 (user approval)
+- Fully functional standalone — uses `.findings.md` for optimization when available
+
+## Arguments
+
+| Flag | Effect |
+|------|--------|
+| `--mode=<mode>` | `audit`, `audit+fix`, `quick-fix` |
+| `--scope=<domains>` | Comma-separated: security, privacy, regulatory, web, network, i18n, or `all` |
+| `--type=<type>` | Override auto-detection: `web`, `api`, `cli`, `library` |
+
+Without flags: present mode selection to the user.
+
+## Execution Flow
+
+Detect -> Configure -> Scan -> Report -> [Fix] -> Summary
+
+### Phase 1: Detect
+
+1. **Project detection.** Search for config files to identify project type:
+   - **Web frontend:** `package.json` with react/next/vue/nuxt/angular/svelte/astro
+   - **API/backend:** express/fastify/nestjs, fastapi/django/flask, go.mod with gin/echo, Cargo.toml with actix/axum, spring-boot
+   - **CLI/library:** bin field, commander/yargs/click/cobra/clap, or library exports without bin
+   - Override with `--type` flag if auto-detection is wrong
+
+2. **Stack detection.** Identify framework, language, architecture pattern, auth, database, ORM, API style, testing, CI/CD, i18n, deployment.
+
+3. **Mode selection.** If no `--mode` flag, ask the user:
+   - **Audit Only** — scan all domains, report only
+   - **Audit & Fix** — scan, review findings, then fix
+   - **Quick Fix** — scan and auto-fix, minimal review
+
+4. **Scope selection.** If no `--scope` flag, ask which domains to audit (default: all applicable).
+   - For regulatory scope: detect frameworks (GDPR, KVKK, CCPA, etc.) from codebase patterns, confirm with user
+
+### Phase 2: Architecture Discovery
+
+**When:** Scope includes 3+ domains or `all`. Skip for narrow scans.
+
+1. Analyze codebase architecture (pattern, auth, database, ORM, API style, testing, CI/CD, i18n, deployment)
+2. Present detected architecture to user for confirmation
+3. Classify rules as:
+   - **CAT-1 Conformance:** Universal best practices, existing patterns used incorrectly, bugs, security flaws — auto-fixable
+   - **CAT-2 Enhancement:** New layers/patterns not in current architecture — requires explicit approval
+4. Present enhancement opportunities, ask which to include (default: none)
+
+### Phase 3: Rule Loading
+
+Load reference files matching scope:
+
+| Scope | Reference File |
+|-------|---------------|
+| security, privacy, regulatory | [rules-compliance.md](references/rules-compliance.md) |
+| web (frontend only) | [rules-web.md](references/rules-web.md) (includes WEB-13: sensitive data cache exclusion) |
+| security (CLI/library only) | [rules-security.md](references/rules-security.md) |
+| i18n | [rules-i18n.md](references/rules-i18n.md) |
+
+### Phase 4: Scan
+
+For each domain in scope, scan the codebase:
+
+1. Search for relevant files
+2. Search contents for violation patterns
+3. Read files to verify findings in context
+4. Skip rules that cannot be verified
+
+**Confidence:** HIGH = specific grep match + context verified, MEDIUM = pattern match, ambiguous context, LOW = heuristic only.
+
+**False positive prevention:** Check surrounding context. Never flag: `// noqa`, `// intentional`, `// safe:`, `_` prefix, `TYPE_CHECKING` blocks, test fixtures.
+
+**Large scope (3+ domains):** Track progress with a numbered checklist. Create `.findings.md` in project root (add to .gitignore). After each domain scan, append findings. This enables recovery if context is lost.
+
+### Phase 5: Report
+
+```
+## Audit Report -- [project_name]
+Stack: [stack] | Scanned: [domains] | Date: [today]
+Architecture: [detected summary]
+
+### Conformance Issues (CAT-1)
+| # | Rule | Sev | File:Line | Issue | Impact | Fix | Conf |
+
+### Enhancement Opportunities (CAT-2) -- pre-approved
+| # | Rule | Sev | File:Line | Issue | Impact | Fix | Conf |
+
+### Potential Issues (LOW confidence)
+| # | Rule | File:Line | Issue | Suggested Fix |
+
+### Summary
+| Category | CRITICAL | HIGH | MEDIUM | LOW | Total |
+```
+
+**Severity order:** CRITICAL > HIGH > MEDIUM > LOW. When uncertain, choose lower severity.
+
+### Phase 6: Fix (skip if audit-only)
+
+1. Present fix plan grouped by category (CAT-1 auto-fixable, CAT-2 pre-approved)
+2. Confirmation:
+   - `quick-fix`: Apply all, summary only
+   - `audit+fix`: Show plan, ask proceed/cancel
+   - `audit`: Ask which severities to fix
+3. Apply fixes grouped by file. Different files can be fixed in parallel, same file sequentially.
+4. Present fix summary: applied, failed, skipped
+
+## Quality Gates
+
+1. No cascading breakage after fixes
+2. Format preservation (indentation, code style)
+3. Scope boundary (only touch required lines)
+4. Stack consistency (use correct framework APIs)
+
+## Edge Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| No source code files | Report empty scan, suggest checking path |
+| Mixed project types | Detect all types, apply union of applicable rules |
+| Generated code only | Skip generated files, warn if no scannable code remains |
+

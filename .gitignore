@@ -1,0 +1,6 @@
+.findings.md
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.claude/

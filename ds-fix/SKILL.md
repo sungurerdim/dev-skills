@@ -1,0 +1,243 @@
+# /ds-fix
+
+**Universal Code Quality Fix** — Format, lint, type-check, l10n, and security scan for any stack.
+
+## Triggers
+
+- User runs `/ds-fix`
+- User asks to format code, run linters, fix lint errors, or fix code quality issues
+- User asks to run type checker, check types, or fix type errors
+- User asks to scan for secrets or audit dependencies
+
+## Contract
+
+- Runs automated fixers in a safe, deterministic order: l10n → format → typecheck → lint → security
+- Format always runs before lint so auto-formatting does not introduce new lint issues
+- Never modifies files in `--check` mode
+- Missing tools are skipped with a warning — never fails due to absent optional tooling
+- Re-validates after fix to confirm the fix worked
+- Reports counts, not verbose output
+- Does NOT perform manual code review, architecture analysis, or refactoring
+
+## Arguments
+
+| Flag | Effect |
+|------|--------|
+| (none) | Fix all scopes |
+| `--check` | Report only, no modifications |
+| `--scope=X,Y` | Specific scope(s), comma-separated |
+
+## Scopes
+
+| Scope | What It Does |
+|-------|-------------|
+| `format` | Apply code formatter |
+| `lint` | Run linter with auto-fix |
+| `typecheck` | Run static type checker |
+| `l10n` | Generate/validate localization files |
+| `security` | Secret pattern scan + dependency audit |
+
+Default: all five scopes in order.
+
+## Execution Flow
+
+Detection → [L10n] → [Format] → [Typecheck] → [Lint] → [Security] → Summary
+
+### Phase 1: Stack Detection
+
+Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
+
+**Tier 1 — Primary stacks** (full toolchain: format + lint + typecheck + security):
+
+| Manifest | Stack | Confidence |
+|----------|-------|------------|
+| `pubspec.yaml` | flutter | High — unique to Dart/Flutter |
+| `package.json` | node | High — unique to Node ecosystem |
+| `pyproject.toml` / `setup.py` / `requirements.txt` | python | High — unique to Python |
+| `go.mod` | go | High — unique to Go |
+| `Cargo.toml` | rust | High — unique to Rust |
+| `build.gradle` / `build.gradle.kts` / `pom.xml` | jvm | High — unique to JVM |
+| `Package.swift` / `*.xcodeproj` | swift | High — unique to Apple |
+| `*.csproj` / `*.sln` | dotnet | High — unique to .NET |
+| `Gemfile` | ruby | High — unique to Ruby |
+| `composer.json` | php | High — unique to PHP |
+| `mix.exs` | elixir | High — unique to Elixir |
+| `build.sbt` | scala | High — unique to Scala |
+
+**Tier 2 — Supplementary stacks** (run only applicable tools, never the sole detected stack):
+
+| Signal | Stack | Condition to activate |
+|--------|-------|----------------------|
+| `CMakeLists.txt` or `Makefile` | c-cpp | **Only if** `.c`, `.cpp`, `.cc`, or `.h` source files exist in `src/` or project root. A `Makefile` without C/C++ sources is just a task runner — skip. |
+| `*.sh` files | shell | **Only if** 3+ `.sh` files exist, or a `scripts/` directory with `.sh` files. A single `setup.sh` does not make this a shell project. |
+| `*.tf` files | terraform | High confidence — `.tf` extension is unique to Terraform. Treat as primary if no other stack detected. |
+| `Dockerfile` / `docker-compose.yml` | docker | **Always supplementary.** Run hadolint/trivy alongside the primary stack, never as sole stack. |
+
+**Disambiguation rules:**
+- If only Tier 2 stacks detected (e.g., just Dockerfile + shell scripts): run security scope universally, run Tier 2 tools for their specific files only.
+- If Tier 1 + Tier 2 detected: run full toolchain for Tier 1, supplementary tools for Tier 2.
+- Terraform exception: if `*.tf` is the only manifest, treat as primary (iac project).
+
+For each detected stack, load the matching toolchain from `references/toolchains.md`.
+
+**Gate:** At least one stack detected or security-only mode.
+
+### Phase 2: L10n [scope: l10n]
+
+Stack-specific localization generation and validation.
+
+1. Detect l10n framework from project config and dependencies
+2. Generate localization files if the stack supports it (e.g., `flutter gen-l10n`)
+3. Cross-check translation keys: all locale files must have the same keys as the base locale
+4. Check placeholder consistency: `{name}` in base must exist in all translations
+5. Check for encoding issues (mojibake patterns from cp1252→UTF-8 double-encoding)
+6. **Fix mode:** generate files, stage generated output
+7. **Check mode:** report mismatches only
+
+Example l10n frameworks per stack:
+
+| Stack | Framework | Key files |
+|-------|-----------|-----------|
+| flutter | flutter_localizations / gen-l10n | `lib/l10n/*.arb` |
+| node | i18next / react-intl / next-intl | `locales/*.json`, `messages/*.json` |
+| python | gettext / babel | `*.po`, `babel.cfg` |
+| jvm | Android resources / Spring messages | `res/values-*/strings.xml`, `messages_*.properties` |
+| swift | NSLocalizedString / String Catalogs | `*.lproj/*.strings`, `*.xcstrings` |
+| dotnet | resx | `Resources/*.resx` |
+| ruby | rails-i18n | `config/locales/*.yml` |
+| php | Laravel lang / Symfony translations | `lang/*.php`, `translations/*.yaml` |
+| c-cpp | gettext | `*.po`, `*.pot` |
+| elixir | Gettext | `priv/gettext/*.po` |
+| scala | Play i18n / Java ResourceBundle | `conf/messages.*`, `*.properties` |
+
+Skip silently if no l10n framework detected.
+
+### Phase 3: Format [scope: format]
+
+For each detected stack, run the canonical formatter.
+
+1. Look up the format tool from `references/toolchains.md`
+2. Check if the tool is available. If not, warn and skip.
+3. **Fix mode:** run the fix command
+4. **Check mode:** run the check command, report exit code
+5. If the project uses a non-default formatter (e.g., Biome instead of Prettier for Node), detect from config files and use that instead
+
+**Gate:** Format clean before proceeding to lint.
+
+### Phase 4: Typecheck [scope: typecheck]
+
+For each detected stack, run the static type checker if one is configured.
+
+1. Look up the typecheck tool from `references/toolchains.md`
+2. Detect if type checking is configured (e.g., `tsconfig.json` for Node, type hints in Python)
+3. If no type checker configured, skip silently
+4. Run the type checker. Type checkers are read-only — they report but don't auto-fix.
+5. Report error count and top issues
+
+Example: Python project with `pyproject.toml` containing `[tool.mypy]` or `[tool.pyright]` → run the configured checker. No config → skip.
+
+### Phase 5: Lint [scope: lint]
+
+For each detected stack, run the canonical linter with auto-fix.
+
+1. Look up the lint tool from `references/toolchains.md`
+2. Check if the tool is available. If not, warn and skip.
+3. **Fix mode:** run fix command, then re-run check to verify
+4. **Check mode:** run check command only, report issues
+5. If the project uses a non-default linter (e.g., Biome instead of ESLint), detect from config and use that
+
+Stack-specific extra checks (search file contents, not tool-dependent):
+
+| Stack | Pattern | Location | Suggestion |
+|-------|---------|----------|------------|
+| flutter | `print(` | outside test files | Use structured logger (e.g., `AppLogger`) |
+| node | `console.log` | in `src/` | Use structured logger |
+| python | `print(` | in `src/` | Use `logging` module |
+| go | `fmt.Println` | in non-main packages | Use structured logger (e.g., `slog`) |
+| ruby | `puts` / `p ` | in `app/` / `lib/` | Use `Rails.logger` or structured logger |
+| php | `var_dump` / `dd(` | in `src/` / `app/` | Use structured logger |
+| c-cpp | `printf(` / `cout <<` | in `src/` (not main) | Use structured logger (e.g., `spdlog`) |
+| elixir | `IO.inspect` / `IO.puts` | in `lib/` | Use `Logger` module |
+| scala | `println` | in `src/main/` | Use structured logger (e.g., `slf4j`) |
+
+### Phase 6: Security [scope: security]
+
+Two sub-phases: universal secret scan + stack-specific dependency audit.
+
+**6a. Secret Scan (all stacks):**
+
+Search project files for these patterns, excluding `.git/`, `node_modules/`, `build/`, `.dart_tool/`, `vendor/`, `__pycache__/`, `bin/`, `obj/`, `_build/`, `deps/`, `.terraform/`, `target/`:
+
+| Pattern | Description |
+|---------|-------------|
+| `AKIA[0-9A-Z]{16}` | AWS access key |
+| `(api_key\|api_secret\|secret_key\|access_token\|auth_token\|password)\s*[=:]\s*["'][^"']{8,}` | Generic secrets |
+| `-----BEGIN.*PRIVATE KEY-----` | Private keys |
+| `sk-[a-zA-Z0-9]{20,}` | OpenAI/Stripe key |
+| `ghp_[a-zA-Z0-9]{36}` | GitHub PAT |
+| `xox[baprs]-[a-zA-Z0-9-]+` | Slack token |
+
+**6b. Dependency Audit (per stack):**
+
+Look up the audit command from `references/toolchains.md`. If tool not installed, skip with warning.
+
+### Phase 7: Summary
+
+Print a markdown table:
+
+```
+| Scope     | Status | Details          |
+|-----------|--------|------------------|
+| L10n      | ✓/✗/⊘  | count or message |
+| Format    | ✓/✗/⊘  | files fixed      |
+| Typecheck | ✓/✗/⊘  | errors found     |
+| Lint      | ✓/✗/⊘  | issues found     |
+| Security  | ✓/✗/⊘  | findings         |
+```
+
+Legend: ✓ = pass, ✗ = issues found, ⊘ = skipped
+
+Output summary line:
+
+```
+ds-fix: {OK|WARN|FAIL} | Fixed: N | Issues: N | Skipped: N
+```
+
+## Quality Gates
+
+- Format runs before lint — never reverse this order
+- After fix, re-run check to verify the fix worked. If re-check fails, report as unresolved.
+- Never modify files in `--check` mode — verify diff is empty after check run
+- Secret findings are always CRITICAL — never auto-fix, always report
+- Scope boundary: only run scopes the user requested (or all if none specified)
+
+## Severity
+
+| Level | Meaning |
+|-------|---------|
+| CRITICAL | Exposed secrets, known vulnerable dependencies |
+| HIGH | Type errors, lint errors that affect correctness |
+| MEDIUM | Format violations, lint warnings |
+| LOW | Style suggestions, outdated dependencies without CVEs |
+
+## Edge Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| Unknown stack | Run security scope only (universal), skip others |
+| Multiple stacks in monorepo | Detect all, run each stack's tools in its subdirectory |
+| Tool not installed | Warn once per tool, skip, continue with next |
+| Formatter and linter conflict | Formatter wins (runs first), linter adapts |
+| No l10n framework detected | Skip l10n silently |
+| No type checker configured | Skip typecheck silently |
+| `--check` with `--scope=format` | Run format check only, exit code indicates pass/fail |
+| Large repo (>10K files) | Run tools with default file filtering, don't override excludes |
+| Pre-existing config (`.eslintrc`, `ruff.toml`, etc.) | Respect project config — never override with defaults |
+
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| Tool not installed (e.g., formatter, linter) | Skip that scope, warn in summary |
+| Lock file conflict | Warn, skip dependency operations |
+| Formatter and linter disagree | Run formatter first, then linter |
