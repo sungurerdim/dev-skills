@@ -8,7 +8,7 @@ Conditional rules loaded only for web frontend projects. Each rule: ID, severity
 |---------|-------|------|
 | **Web Security** | WEB-01–04 (1 BLOCKER, 3 CRITICAL) | ~12 |
 | **Web Quality** | WEB-05–08 (4 MAJOR) | ~55 |
-| **Web Performance** | WEB-09–12 (1 CRITICAL, 3 MAJOR) | ~105 |
+| **Web Performance** | WEB-09–13 (2 CRITICAL, 3 MAJOR) | ~105 |
 
 ---
 

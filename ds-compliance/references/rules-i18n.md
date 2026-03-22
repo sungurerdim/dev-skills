@@ -6,7 +6,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Internationalization & Logging** | I18N-01–07 (7 MAJOR) | ~10 |
+| **Internationalization & Logging** | I18N-01–07 (6 MAJOR, 1 MEDIUM) | ~10 |
 
 ---
 

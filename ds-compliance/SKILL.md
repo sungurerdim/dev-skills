@@ -1,6 +1,6 @@
 # /ds-compliance
 
-**Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and accessibility enforcement.
+**Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and internationalization.
 
 ## Triggers
 
@@ -9,9 +9,9 @@
 - User asks to check for security vulnerabilities, secrets, or injection risks
 - User asks about privacy, data protection, or consent requirements
 - User asks about CSP, CORS, XSS, CSRF, or web security
-- User asks about accessibility (a11y) or internationalization compliance
+- User asks about internationalization compliance
 
-Covers 100+ rules across 6 compliance domains.
+Covers 80+ rules across 8 compliance domains.
 
 ## Contract
 
@@ -25,7 +25,7 @@ Covers 100+ rules across 6 compliance domains.
 | Flag | Effect |
 |------|--------|
 | `--mode=<mode>` | `audit`, `audit+fix`, `quick-fix` |
-| `--scope=<domains>` | Comma-separated: security, privacy, regulatory, web, network, i18n, or `all` |
+| `--scope=<domains>` | Comma-separated: security, privacy, regulatory, web, network, arch, perf, i18n, or `all` |
 | `--type=<type>` | Override auto-detection: `web`, `api`, `cli`, `library` |
 
 Without flags: present mode selection to the user.
@@ -70,8 +70,11 @@ Load reference files matching scope:
 | Scope | Reference File |
 |-------|---------------|
 | security, privacy, regulatory | [rules-compliance.md](references/rules-compliance.md) |
-| web (frontend only) | [rules-web.md](references/rules-web.md) (includes WEB-13: sensitive data cache exclusion) |
+| web (frontend only) | [rules-web.md](references/rules-web.md) |
 | security (CLI/library only) | [rules-security.md](references/rules-security.md) |
+| network | [rules-network.md](references/rules-network.md) |
+| arch | [rules-arch.md](references/rules-arch.md) |
+| perf | [rules-perf.md](references/rules-perf.md) |
 | i18n | [rules-i18n.md](references/rules-i18n.md) |
 
 ### Phase 4: Scan

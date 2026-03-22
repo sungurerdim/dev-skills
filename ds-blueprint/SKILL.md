@@ -193,7 +193,22 @@ Build from Discovery + Assess results. Generated from directory structure, entry
 ### Phase 4: Consolidate
 
 1. Apply dimension score aggregation and weight matrix from [references/weights.md](references/weights.md). Run score calibration checks.
-2. Write `.findings.md` with ALL findings in standard format. Every finding must include file:line so fix skills can act on it directly. Include `git_hash`, `timestamp`, `source: ds-blueprint`, and list all scopes in the meta header.
+2. Write `.findings.md` in this format:
+   ```
+   <!-- findings-meta
+   git_hash: {HEAD}
+   timestamp: {ISO 8601}
+   source: ds-blueprint
+   scopes: security, code-quality, architecture, performance, resilience, testing, stack, dx, docs
+   -->
+
+   ## Findings
+
+   | ID | Severity | File | Line | Scope | Title |
+   |----|----------|------|------|-------|-------|
+   | F001 | CRITICAL | src/auth.ts | 42 | security | Hardcoded API secret |
+   ```
+   Every finding must include file:line so fix skills can act on it directly.
 3. Verify completeness: every dimension must have its findings written. A missing scope in `.findings.md` means fix skills will skip their own detection for that scope — resulting in missed issues.
 
 ### Phase 5: Dashboard

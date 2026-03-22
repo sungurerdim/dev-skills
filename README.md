@@ -39,7 +39,7 @@ Most AI coding "skills" are static rule snippets (30-100 lines) or link collecti
 
 | Skill | What It Does |
 |-------|-------------|
-| [ds-compliance](ds-compliance) | Security & regulatory compliance — OWASP, GDPR, CCPA, KVKK, HIPAA, web security, privacy, a11y. 100+ rules. |
+| [ds-compliance](ds-compliance) | Security & regulatory compliance — OWASP, GDPR, CCPA, KVKK, HIPAA, web security, network, architecture, privacy, i18n. 80+ rules. |
 | [ds-mobile](ds-mobile) | Audit mobile apps against 145+ rules across 13 domains. Release readiness scoring, manual gates, live policy fetch. Flutter, SwiftUI, Kotlin, React Native. |
 | [ds-devops](ds-devops) | Audit CI/CD pipelines, code signing, dependency management for any project type. 14 rules. |
 | [ds-repo](ds-repo) | Repository audit — settings, branch protection, hygiene, metadata, team, structure. 6 scopes. |

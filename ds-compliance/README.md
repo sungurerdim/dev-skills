@@ -1,6 +1,6 @@
 # ds-compliance
 
-Audit web, API, CLI, and library projects against 160+ rules. Security, architecture, performance, a11y, i18n.
+Audit web, API, CLI, and library projects against 80+ rules. Security, privacy, regulatory, web security, network, architecture, performance, i18n.
 
 Auto-detects project type and loads the appropriate rule set.
 
@@ -19,11 +19,10 @@ Run `/ds-compliance`, or ask to audit your project.
 | security | Secrets, injection, TLS, crypto, auth |
 | privacy | Data minimization, consent, erasure |
 | regulatory | GDPR, KVKK, CCPA, and 6 more frameworks |
-| arch | Architecture patterns, coupling, DI |
-| testing | Coverage, test quality |
-| perf | N+1 queries, caching, resource management |
-| network | API design, rate limiting |
-| web | CSP, CORS, XSS, CSRF (frontend only) |
+| web | CSP, CORS, XSS, CSRF, WCAG (frontend only) |
+| network | TLS enforcement, rate limiting, timeouts, cert pinning |
+| arch | Audit logging, input validation, error leakage, dependency security |
+| perf | Resource exhaustion, N+1 queries, memory leaks, graceful shutdown |
 | i18n | Internationalization, hardcoded strings |
 
 ## Modes

@@ -19,7 +19,7 @@ Run `/ds-devops`, or ask to review your CI/CD setup.
 | ci | Pipeline presence, quality gates, CI/local parity, required checks |
 | signing | Code signing automation, credential security (mobile/desktop) |
 | deps | Dependency policy, outdated detection, compatibility, vulnerability audit |
-| deploy | Crash reporting, conventional commits, changelog automation |
+| release-pipeline | Release automation, version bump workflow |
 
 ## Modes
 
