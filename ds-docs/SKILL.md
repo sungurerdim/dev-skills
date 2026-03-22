@@ -133,10 +133,7 @@ The verify scope is the most critical — it finds lies in documentation. For ev
 ```
 | # | Type  | Doc File:Line | Claim | Actual | Severity |
 |---|-------|---------------|-------|--------|----------|
-| 1 | Drift | README.md:42  | `--port 3000` | Code defaults to 8080 | HIGH |
-| 2 | Stale | API.md:15     | `GET /users/:id` | Endpoint removed in v2 | CRITICAL |
-| 3 | Gap   | (missing)     | — | `POST /webhooks` undocumented | MEDIUM |
-| 4 | Broken| README.md:88  | Link to wiki page | Returns 404 | HIGH |
+| {n} | {Drift/Stale/Gap/Broken} | {file}:{line} | {claim} | {actual} | {severity} |
 ```
 
 **Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are the highest-drift-risk elements.

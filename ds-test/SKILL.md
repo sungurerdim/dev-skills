@@ -189,9 +189,7 @@ When analyzing existing tests, flag tests that provide no concrete value:
    ```
    | # | Test | File:Line | Reason | Action |
    |---|------|-----------|--------|--------|
-   | 1 | "should create instance" | user.test.ts:5 | Tests constructor only — no logic | Delete |
-   | 2 | "should return name" | user.test.ts:12 | Tests getter — trivial | Delete |
-   | 3 | "should format date" | utils.test.ts:8 | Tests library wrapper — no custom logic | Delete |
+   | {n} | {test name} | {file}:{line} | {reason} | Delete |
    ```
 3. Ask user: **Delete all** / **Review each** / **Keep all**
 4. In `--auto` mode: delete silently, report count in summary

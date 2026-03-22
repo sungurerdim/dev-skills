@@ -27,7 +27,7 @@ Production-grade AI skills for the full software lifecycle — from scaffolding 
 Most AI coding "skills" are static rule snippets (30-100 lines) or link collections. dev-skills are **orchestrated execution systems**:
 
 - **Multi-phase workflows** with quality gates and error recovery — not "do X, then Y" instructions
-- **8 AI weaknesses systematically addressed** — hallucination, scope creep, confidence bias, tunnel vision, memory decay, skip tendency, redundancy blindness, injection risk
+- **8 AI weaknesses systematically addressed** — hallucination, scope creep, confidence bias, tunnel vision, memory decay, skip tendency, redundancy blindness, injection risk. Output templates use `{placeholder}` syntax to prevent AI from copying example data as real findings
 - **Inter-skill coordination** via `.findings.md` — skills share analysis results to avoid duplicate work
 - **Token-efficient** — 10K token budget per skill, references loaded on demand
 - **Full lifecycle coverage** — the only skill set covering scaffold → launch → analytics in one system

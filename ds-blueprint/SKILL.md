@@ -206,7 +206,7 @@ Build from Discovery + Assess results. Generated from directory structure, entry
 
    | ID | Severity | File | Line | Scope | Title |
    |----|----------|------|------|-------|-------|
-   | F001 | CRITICAL | src/auth.ts | 42 | security | Hardcoded API secret |
+   | {id} | {severity} | {file} | {line} | {scope} | {title} |
    ```
    Every finding must include file:line so fix skills can act on it directly.
 3. Verify completeness: every dimension must have its findings written. A missing scope in `.findings.md` means fix skills will skip their own detection for that scope — resulting in missed issues.
@@ -220,13 +220,11 @@ Project: {name} | Type: {type} | Stack: {stack} | Target: {quality}
 
 | Dimension          | Score | Target | Gap  | Status |
 |--------------------|-------|--------|------|--------|
-| Security & Privacy |  65   |   85   | -20  | ALERT  |
-| Code Quality       |  80   |   85   |  -5  | WARN   |
-| Architecture       |  75   |   80   |  -5  | WARN   |
+| {dimension}        | {n}   | {target}| {gap}| {status}|
 | ...                |       |        |      |        |
-| Overall            |  72   |   82   | -10  | WARN   |
+| Overall            | {n}   | {n}    | {n}  | {status}|
 
-Findings written to .findings.md (38 signals across 9 dimensions)
+Findings written to .findings.md ({n} signals across {n} dimensions)
 ```
 
 ### Phase 6: Suggest (skip if --preview)
@@ -236,9 +234,9 @@ List dimensions below target with signal counts. No skill-specific commands — 
 ```
 Dimensions below target:
 
-1. Security & Privacy (score: 65, target: 85) — 12 signals
-2. Code Quality (score: 80, target: 85) — 8 signals
-3. Documentation (score: 70, target: 80) — 5 signals
+1. {dimension} (score: {n}, target: {n}) — {n} signals
+2. ...
+
 
 → .findings.md written with 38 signals. Run your preferred fix tool/skill to resolve.
 ```

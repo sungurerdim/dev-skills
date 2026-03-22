@@ -498,19 +498,17 @@ Communication happens through two well-known file locations:
 
 ```markdown
 <!-- findings-meta
-git_hash: abc1234
-timestamp: 2025-01-15T10:30:00Z
-source: ds-blueprint
-scopes: security, code-quality, architecture, performance, resilience, testing, stack, dx, docs
+git_hash: {HEAD}
+timestamp: {ISO 8601}
+source: {skill-name}
+scopes: {comma-separated list of analyzed scopes}
 -->
 
 ## Findings
 
 | ID | Severity | File | Line | Scope | Title |
 |----|----------|------|------|-------|-------|
-| F001 | CRITICAL | src/auth.ts | 42 | security | Hardcoded API secret |
-| F002 | HIGH | src/db.ts | 15 | performance | SQL query inside loop |
-| F003 | MEDIUM | src/utils.ts | 0 | code-quality | 3 unused imports |
+| {id} | {severity} | {file} | {line} | {scope} | {title} |
 ```
 
 #### Findings File Rules

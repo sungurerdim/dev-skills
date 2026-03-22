@@ -196,17 +196,15 @@ refactor complete (strategic)
 =============================
 | Metric     | Current | Ideal | Gap  |
 |------------|---------|-------|------|
-| Coupling   |   55%   |  50%  | -5%  |
-| Cohesion   |   68%   |  70%  | +2%  |
-| Complexity |   14    |  12   | -2   |
-| Coverage   |   82%   |  80%  |  OK  |
+| {metric}   | {n}     | {n}   | {n}  |
+| ...        |         |       |      |
 
 Recommendations by effort:
-  Quick Win:  [PAT-05] Inconsistent error handling
-  Moderate:   [ARC-03] Circular dependency
-  Complex:    [TST-07] Missing integration tests
+  Quick Win:  [{id}] {title}
+  Moderate:   [{id}] {title}
+  Complex:    [{id}] {title}
 
-Applied: 4 | Failed: 0 | Needs Approval: 2 | Total: 6
+Applied: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
 ```
 
 **Auto output:** `refactor: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N`
