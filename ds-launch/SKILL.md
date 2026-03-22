@@ -26,11 +26,12 @@
 | `--listing` | Store listing metadata: description, keywords, screenshots |
 | `--privacy` | Privacy label and data safety declarations |
 | `--review` | Pre-review checklist: common rejection prevention |
+| `--aso` | App Store Optimization — keyword research and search ranking |
 | `--release` | Release management: version, notes, staged rollout |
 | `--post-launch` | Post-launch monitoring checklist |
 | `--auto` | All modes, no questions, single-line summary |
 
-Without flags: present interactive mode selection.
+Without flags: present interactive mode selection (setup, listing, aso, privacy, review, release, post-launch).
 
 ## Scopes
 
@@ -49,6 +50,17 @@ Verify store account setup is complete. Check: developer account active, app ID 
 | Icon | Platform requirements, design guidelines |
 | Category | Primary/secondary category selection |
 | Age rating | Rating questionnaire guidance |
+
+### ASO Scope
+
+| Check | What It Covers |
+|-------|---------------|
+| Keyword research | Competitor keyword analysis, search volume estimation, keyword difficulty |
+| Title optimization | Primary keyword in title, character limit compliance, localized titles |
+| Subtitle/short description | Secondary keywords, value proposition, character limits |
+| Category selection | Primary vs secondary category, competition density analysis |
+| Search ranking factors | Download velocity, ratings, update frequency, engagement signals |
+| A/B test recommendations | Title variants, screenshot order, icon alternatives |
 
 ### Privacy Scope
 
@@ -108,7 +120,7 @@ Setup → Detect → Analyze → Generate → Verify → Summary
 
 **Gate:** Inventory complete.
 
-### Phase 3: Generate [setup, listing, privacy, review]
+### Phase 3: Generate [setup, listing, aso, privacy, review]
 
 **Goal:** Create store preparation artifacts.
 
@@ -122,6 +134,11 @@ Setup → Detect → Analyze → Generate → Verify → Summary
 2. Generate keyword research framework
 3. Generate screenshot size requirements per platform
 4. Generate localization checklist
+
+**ASO mode:**
+1. Analyze competitor keywords, optimize title/subtitle for search ranking
+2. Recommend category placement based on competition density
+3. Suggest A/B test variants for title, screenshots, and icon
 
 **Privacy labels:**
 1. Scan codebase for data collection patterns (analytics, auth, storage, networking)

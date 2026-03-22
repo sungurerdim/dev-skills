@@ -116,6 +116,8 @@ Wait for all batches before proceeding.
 
 **Gate:** If findings = 0 -> skip to summary.
 
+**CRITICAL escalation:** If any CRITICAL finding detected, re-read the full file section (±20 lines around the finding) and verify it's a genuine CRITICAL issue — not a false positive from pattern matching. If evidence is insufficient, downgrade to HIGH. Only confirmed CRITICALs proceed to the fix plan.
+
 ### Phase 3: Gap Analysis (strategic only)
 
 Calculate gaps: current vs ideal metrics for coupling, cohesion, complexity, coverage. Use project-type defaults:
@@ -152,6 +154,12 @@ Apply fixes grouped by file:
 - Cross-module change: report as `needs_approval`
 
 After all fixes: run available lint/type/test checks. If fixes introduce new errors, repeat fix-verify (max 3 iterations).
+
+**Loop mode (`--loop`):** After applying fixes:
+1. Re-read all modified files + their direct dependents (importers, callers)
+2. Re-analyze for new findings caused by the fixes (cascade breakage)
+3. If new findings found, apply fixes for the new findings
+4. Max 3 iterations. If still finding issues after 3 loops, report remaining and stop.
 
 For each fix, include education: why (impact if unfixed), avoid (anti-pattern), prefer (correct pattern).
 

@@ -42,6 +42,7 @@ Pre-checks → Analyze → Execute → Verify → Summary
 **1.2 Branch management:**
 
 **On main/master:** Suggest creating a feature branch. Show: 1 suggested name (`{type}/{short-description}`), option to commit on main.
+If `release-please-config.json` or `.release-please-manifest.json` exists in project root, add note to the commit-on-main option: "Not recommended — bypasses changelog pipeline".
 
 **On feature branch:** If changes don't match branch scope, ask: continue here (recommended) or create new branch.
 

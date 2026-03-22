@@ -186,6 +186,14 @@ Before counting any pattern match as a signal, verify it passes ALL applicable c
 
 Scoring formula from [references/scopes.md](references/scopes.md), dimension weights from [references/weights.md](references/weights.md). For user-facing types (web, mobile, desktop): also check i18n setup and a11y basics.
 
+**User-facing project gate:** If project type is web, mobile, desktop, or game — additionally check:
+- i18n setup present (framework-native catalog, at least 1 locale file)
+- Default locales configured (minimum: en + project owner's locale)
+- a11y basics (semantic labels on interactive elements, contrast ratio, screen reader support)
+- Responsive layout (breakpoints or adaptive layout)
+
+Flag missing items as HIGH severity. Skip this gate for cli, library, api, iac, devtool project types.
+
 ### Phase 3.1: Project Map
 
 Build from Discovery + Assess results. Generated from directory structure, entry points, import patterns, dependency files, toolchain.
@@ -193,7 +201,13 @@ Build from Discovery + Assess results. Generated from directory structure, entry
 ### Phase 4: Consolidate
 
 1. Apply dimension score aggregation and weight matrix from [references/weights.md](references/weights.md). Run score calibration checks.
-2. Write `.findings.md` in this format:
+2. **Score calibration checks** — verify scoring sanity before presenting:
+   - Overall score range 20-95 for real projects (0 or 100 is suspicious — re-verify)
+   - No individual dimension at 100 (re-check for missed signals)
+   - CRITICAL finding present → overall must be < 80 (if not, scoring error)
+   - Adjacent dimension delta < 30 (e.g., architecture 90 but code quality 50 → investigate)
+   - If any check fails, re-read the flagged dimension's signals and adjust
+3. Write `.findings.md` in this format:
    ```
    <!-- findings-meta
    git_hash: {HEAD}
@@ -209,7 +223,7 @@ Build from Discovery + Assess results. Generated from directory structure, entry
    | {id} | {severity} | {file} | {line} | {scope} | {title} |
    ```
    Every finding must include file:line so fix skills can act on it directly.
-3. Verify completeness: every dimension must have its findings written. A missing scope in `.findings.md` means fix skills will skip their own detection for that scope — resulting in missed issues.
+4. Verify completeness: every dimension must have its findings written. A missing scope in `.findings.md` means fix skills will skip their own detection for that scope — resulting in missed issues.
 
 ### Phase 5: Dashboard
 

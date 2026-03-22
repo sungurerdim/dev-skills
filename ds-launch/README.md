@@ -1,6 +1,6 @@
 # ds-launch
 
-Store submission, listing optimization, release management, and post-launch monitoring.
+Store submission, ASO (App Store Optimization), release management, and post-launch monitoring.
 
 ## Install
 
@@ -18,6 +18,7 @@ Run `/ds-launch`, or ask to prepare your app for store submission.
 | **Listing** | Store metadata, description, keywords, screenshots |
 | **Privacy** | Privacy label and data safety declarations |
 | **Review** | Pre-review checklist (rejection prevention) |
+| **ASO** | Keyword research, search ranking optimization, A/B testing |
 | **Release** | Version management, release notes, staged rollout |
 | **Post-Launch** | Monitoring and update strategy |
 

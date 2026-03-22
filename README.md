@@ -73,7 +73,7 @@ Most AI coding "skills" are static rule snippets (30-100 lines) or link collecti
 |-------|-------------|
 | [ds-init](ds-init) | Project scaffolding — generate production-ready structure for any stack. CI, Docker, testing, env templates. |
 | [ds-deploy](ds-deploy) | Deployment & infrastructure — Dockerfile audit/gen, VPS hardening, SSL, monitoring, incident response, cost analysis. |
-| [ds-launch](ds-launch) | Store & release management — listing metadata, privacy labels, review preparation, staged rollout. |
+| [ds-launch](ds-launch) | Store & release management — ASO, listing metadata, privacy labels, review preparation, staged rollout. |
 
 ## Design Skills
 
