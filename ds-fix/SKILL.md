@@ -49,20 +49,20 @@ Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 
 **Tier 1 — Primary stacks** (full toolchain: format + lint + typecheck + security):
 
-| Manifest | Stack | Confidence |
-|----------|-------|------------|
-| `pubspec.yaml` | flutter | High — unique to Dart/Flutter |
-| `package.json` | node | High — unique to Node ecosystem |
-| `pyproject.toml` / `setup.py` / `requirements.txt` | python | High — unique to Python |
-| `go.mod` | go | High — unique to Go |
-| `Cargo.toml` | rust | High — unique to Rust |
-| `build.gradle` / `build.gradle.kts` / `pom.xml` | jvm | High — unique to JVM |
-| `Package.swift` / `*.xcodeproj` | swift | High — unique to Apple |
-| `*.csproj` / `*.sln` | dotnet | High — unique to .NET |
-| `Gemfile` | ruby | High — unique to Ruby |
-| `composer.json` | php | High — unique to PHP |
-| `mix.exs` | elixir | High — unique to Elixir |
-| `build.sbt` | scala | High — unique to Scala |
+| Manifest | Stack |
+|----------|-------|
+| `pubspec.yaml` | flutter |
+| `package.json` | node |
+| `pyproject.toml` / `setup.py` / `requirements.txt` | python |
+| `go.mod` | go |
+| `Cargo.toml` | rust |
+| `build.gradle` / `build.gradle.kts` / `pom.xml` | jvm |
+| `Package.swift` / `*.xcodeproj` | swift |
+| `*.csproj` / `*.sln` | dotnet |
+| `Gemfile` | ruby |
+| `composer.json` | php |
+| `mix.exs` | elixir |
+| `build.sbt` | scala |
 
 **Tier 2 — Supplementary stacks** (run only applicable tools, never the sole detected stack):
 

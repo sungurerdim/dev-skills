@@ -30,19 +30,7 @@
 | `--post-launch` | Post-launch monitoring checklist |
 | `--auto` | All modes, no questions, single-line summary |
 
-Without flags: present interactive menu to the user.
-
-**Interactive menu (no flags):**
-```
-What launch area do you need help with?
-- [Setup] — store account setup checklists
-- [Listing] — store metadata, description, keywords, screenshots
-- [Privacy] — privacy labels and data safety declarations
-- [Review] — pre-review checklist (rejection prevention)
-- [Release] — version management, release notes, staged rollout
-- [Post-Launch] — monitoring and update strategy
-- [Full Launch] — complete launch preparation (all modes)
-```
+Without flags: present interactive mode selection.
 
 ## Scopes
 
@@ -163,13 +151,7 @@ Setup → Detect → Analyze → Generate → Verify → Summary
 4. Generate staged rollout strategy (1% → 5% → 20% → 50% → 100%)
 
 **Post-launch monitoring:**
-1. Generate monitoring checklist:
-   - Crash-free rate > 99%
-   - Store rating monitoring
-   - Review response strategy
-   - Download/revenue tracking
-2. Generate update cadence recommendation
-3. Generate force-update threshold guidelines
+Generate post-launch monitoring checklist: crash-free rate targets, store rating tracking, review response process, download monitoring, update cadence, and force-update threshold recommendations.
 
 **Gate:** Release artifacts generated.
 

@@ -66,13 +66,13 @@ Deep performance analysis beyond the tactical `performance` scope. Checks areas 
 
 | Group | Checks |
 |-------|--------|
-| Bundle | Bundle size analysis, tree-shaking effectiveness, unused dependencies, dynamic imports (web); unused packages, APK/IPA size analysis (mobile) |
-| Startup | Cold start time, critical rendering path, lazy initialization, deferred loading; TTID <2s / TTFD <4s targets (mobile) |
-| Runtime | Memory leaks, event listener cleanup, DOM thrashing, layout thrashing, jank detection (web); unnecessary widget rebuilds, `saveLayer()` overhead (mobile) |
-| Caching | HTTP caching headers, service worker caching, API response caching, memoization (web); local DB cache-then-network, stream-based repository pattern (mobile) |
+| Bundle | Bundle size analysis, tree-shaking, unused dependencies, dynamic imports |
+| Startup | Cold start time, critical rendering path, lazy initialization, deferred loading |
+| Runtime | Memory leaks, event listener cleanup, layout thrashing, jank detection |
+| Caching | HTTP caching headers, service worker caching, API response caching, memoization |
 | Network | Request waterfall, redundant requests, payload size, compression, prefetching |
-| Web Vitals | LCP (preload check, `fetchpriority="high"`, render-blocking CSS), INP (long task detection, `scheduler.yield()`, `content-visibility: auto`), CLS (missing `width`/`height` on images/videos, missing `min-height` on dynamic slots) — web projects |
-| Mobile | Widget rebuild optimization (Riverpod `select()`), const constructors, `Opacity` widget anti-pattern, `AnimatedBuilder` with `child` parameter, image sizing, list virtualization — mobile projects |
+| Web Vitals | LCP, INP, and CLS optimization checks for web projects |
+| Mobile | Widget rebuild optimization, const constructors, image sizing, list virtualization |
 | Database | Query performance, N+1 detection, connection pooling, index usage |
 
 **Scope boundary:** Performance-specific deep dive. Produces optimization recommendations with estimated impact. Fixes only low-risk optimizations (const constructors, unused imports, memoization). High-impact changes (architecture, caching strategy) report as `needs_approval`.

@@ -31,18 +31,7 @@
 | `--cost` | Analyze infrastructure costs: identify over-provisioned resources, suggest right-sizing, calculate cost at 1x/10x/100x scale |
 | `--auto` | All modes, no questions, single-line summary |
 
-Without flags: present interactive menu to the user.
-
-**Interactive menu (no flags):**
-```
-What deployment area do you need help with?
-- [Audit] — review existing Docker/infra setup
-- [Generate] — create Dockerfile, compose, deploy configs
-- [Checklist] — pre-production readiness check
-- [Monitor] — set up logging, alerting, crash reporting
-- [Incident] — incident response procedure
-- [Cost] — infrastructure cost analysis
-```
+Without flags: present interactive mode selection.
 
 ## Scopes
 

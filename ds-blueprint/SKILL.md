@@ -234,13 +234,7 @@ In `--auto` mode: print as part of summary, no interaction.
 
 Update Current Scores in the instruction file's blueprint section (between markers).
 
-**Score History:** If profile already has scores, calculate and display delta:
-
-| Dimension | Previous | Current | Delta | Trend |
-|-----------|----------|---------|-------|-------|
-| Security  | 85       | 90      | +5    | up    |
-
-Trend: up (delta > +3), stable (-3 to +3), down (delta < -3).
+**Score History:** If profile has previous scores, display delta table with trend (up/stable/down based on +/-3 threshold).
 
 ### Phase 8: Summary
 

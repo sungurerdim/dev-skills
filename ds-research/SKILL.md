@@ -93,10 +93,6 @@ Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
 - Contradictory sources noted explicitly with confidence assessment
 - No fabricated URLs or references — only cite actually retrieved sources
 
-## CRAAP+ Reference
-
-Full methodology including source tiers, scoring dimensions, verification rules, confidence levels, deep mode, and dependency mode is in [references/craap.md](references/craap.md).
-
 ## Edge Cases
 
 | Scenario | Behavior |

@@ -30,16 +30,7 @@
 | `--scope=<scope>` | Specific scope: api, db, auth (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary |
 
-Without flags: present interactive menu to the user.
-
-**Interactive menu (no flags):**
-```
-What backend area do you need help with?
-- [API Design] — endpoint design, naming, status codes, pagination, OpenAPI
-- [Database] — schema review, migrations, indexing, query optimization
-- [Auth] — authentication flow, JWT/session, RBAC, social login
-- [Full Audit] — review all three areas
-```
+Without flags: present interactive mode selection.
 
 ## Scopes
 

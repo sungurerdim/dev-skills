@@ -27,16 +27,7 @@
 | `--audit` | Audit existing analytics for gaps, privacy issues, noise |
 | `--auto` | All modes, no questions, single-line summary |
 
-Without flags: present interactive menu to the user.
-
-**Interactive menu (no flags):**
-```
-What analytics area do you need help with?
-- [Design] — event taxonomy, funnels, metrics definition
-- [Setup] — analytics tool integration guide
-- [Audit] — review existing analytics for gaps and privacy issues
-- [Full Setup] — design + setup (recommended for new projects)
-```
+Without flags: present interactive mode selection.
 
 ## Scopes
 

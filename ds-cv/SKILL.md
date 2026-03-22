@@ -95,7 +95,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> Deploy
 
 **Clickable links:** Project URLs use `<a target="_blank">` with underline. Header links (LinkedIn, GitHub) also `target="_blank"`. ATS reads links as plain text - no compatibility risk.
 
-**Date badges:** All experience date boxes must be same width. Use `width: 18ch; box-sizing: content-box; text-align: center` - based on longest date string character count.
+**Date badges:** All date badges must have uniform width (see `references/css-design-system.md`).
 
 **Gate:** All content follows rules, no filler, no jargon. Proceed to generate.
 
@@ -111,12 +111,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> Deploy
 6. **OG meta tags:** Add `og:title`, `og:description`, `og:type` for link preview. Plain hyphen in all meta content.
 7. **Final scan:** Execute character scan - search for any non-ASCII characters. If found, replace before delivering.
 
-8. **Single-page auto-fit [CRITICAL]:** Use CSS flex auto-spacing to fill the page evenly:
-   - `.page` in print: `height: 297mm; display: flex; flex-direction: column`
-   - `.section` and `.header`: `margin-bottom: auto` (space distributes evenly)
-   - `.section:last-child`: `margin-bottom: 0`
-   - If content still overflows, incrementally reduce print font-size (body 9pt -> 8.5pt -> 8pt), then padding/gaps
-   - Never deliver a CV that overflows. This is a hard requirement.
+8. **Single-page auto-fit [CRITICAL]:** Use CSS flex auto-spacing for single-page A4 fit (see `references/css-design-system.md`). If overflow, reduce print font-size incrementally (9pt -> 8.5pt -> 8pt). Never deliver a CV that overflows.
 
 **Gate:** Zero non-ASCII characters. Print preview fits single A4. All section headings standard.
 

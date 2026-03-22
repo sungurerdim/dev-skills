@@ -99,28 +99,20 @@ The verify scope is the most critical — it finds lies in documentation. For ev
 
 **What to verify (exhaustive checklist):**
 
-| Claim type | How to verify | Example mismatch |
-|-----------|--------------|------------------|
-| CLI flags / arguments | Search source for flag definitions (argparse, cobra, clap, commander) | Doc says `--verbose`, code only has `--debug` |
-| Function signatures | Search for function/method definition, compare params and return type | Doc shows `createUser(name, email)`, code has `createUser(name, email, role)` |
-| API endpoints | Search route definitions (express routes, FastAPI paths, controller annotations) | Doc says `POST /api/users`, code has `POST /api/v2/users` |
-| Config keys / env vars | Search for config reads (`process.env`, `os.environ`, config file parsers) | Doc says `DATABASE_URL`, code reads `DB_CONNECTION_STRING` |
-| File paths / directory structure | Verify directories and files actually exist | Doc says "see `src/utils/`", directory doesn't exist |
-| Import paths / package names | Verify package exists in manifest and export exists | Doc says `import { foo } from 'bar'`, package not in deps |
-| Code examples | Verify function names, params, return values match actual source | Doc example uses old API that was refactored |
-| Default values | Search for default assignments in code | Doc says "defaults to 3000", code defaults to 8080 |
-| Version numbers | Compare doc versions with manifest/lockfile versions | Doc says "requires Node 16+", package.json says `>=18` |
-| Step counts / numbered lists | Verify each step is still accurate and in correct order | "Step 3: Run migrate" — migrate command was renamed |
-| Links (internal) | Verify target file/heading exists | `[See API docs](docs/api.md)` — file was deleted |
-| Links (external) | Check URL accessibility (HEAD request, check for 404) | Link to deprecated library docs returns 404 |
-| Feature descriptions | Search for feature implementation in code | Doc describes "real-time sync" but feature was removed |
-| Error messages | Search for error strings in code | Doc says "Error: Invalid token", code says "Error: Token expired" |
-| Dependency versions | Compare versions in docs vs manifest/lockfile | Doc says "requires React 18", package.json has `"react": "^19.0"` |
-| Architecture claims | Verify patterns described match actual code structure | Doc says "Clean Architecture with 3 layers", code has no layer separation |
-| Technology choices | Verify stated tech stack matches actual dependencies | Doc says "Built with Express", code uses Fastify |
-| Setup/install steps | Verify each command works (check referenced scripts/commands exist) | Doc says `npm run setup`, script doesn't exist in package.json |
-| Performance claims | Verify benchmarks or metrics against actual implementation | Doc claims "sub-100ms response", no caching or optimization in code |
-| Security claims | Verify stated security features exist in code | Doc says "end-to-end encryption", no encryption implementation found |
+| Claim type | How to verify |
+|-----------|--------------|
+| CLI flags / arguments | Search source for flag definitions (argparse, cobra, clap, commander) |
+| Function signatures | Search for function/method definition, compare params and return type |
+| API endpoints | Search route definitions (express routes, FastAPI paths, controller annotations) |
+| Config keys / env vars | Search for config reads (`process.env`, `os.environ`, config file parsers) |
+| Code examples | Verify function names, params, return values match actual source |
+| Default values | Search for default assignments in code |
+| Version numbers | Compare doc versions with manifest/lockfile versions |
+| Setup/install steps | Verify each command works (check referenced scripts/commands exist) |
+| Feature descriptions | Search for feature implementation in code |
+| Architecture claims | Verify patterns described match actual code structure |
+| Performance claims | Verify benchmarks or metrics against actual implementation |
+| Security claims | Verify stated security features exist in code |
 
 **Verification process:**
 

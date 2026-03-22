@@ -27,16 +27,7 @@
 | `--growth` | Growth tactics: referral, organic, community, content |
 | `--auto` | Run strategy + copy + growth sequentially |
 
-Without flags: present interactive menu to the user.
-
-**Interactive menu (no flags):**
-```
-What marketing area do you need help with?
-- [Strategy] — full marketing plan with positioning and channels
-- [Copy] — generate marketing text (taglines, social posts, landing page)
-- [Growth] — growth tactics (referral, organic, community)
-- [Full Plan] — strategy + copy + growth sequentially
-```
+Without flags: present interactive mode selection.
 
 ## Scopes
 
