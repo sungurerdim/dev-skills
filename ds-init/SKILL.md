@@ -158,6 +158,8 @@ Next steps:
 4. Start development: {command}
 ```
 
+**Gate:** Summary printed with generated file list and next steps.
+
 ## Quality Gates
 
 - Every generated config file is syntactically valid

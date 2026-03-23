@@ -42,11 +42,15 @@ Recovery check: if progress artifact exists from prior deep run, ask: Resume / S
 2. **Scope selection.** Ask what areas to search:
    - Local codebase, Security/CVE, Changelog/releases, Dependencies
 
+**Gate:** Depth and search scope selected.
+
 ### Phase 2: Parse Query
 
 Extract from arguments: concepts, tech domain, comparison mode, search mode (troubleshoot/changelog/security).
 
 **Date handling:** Resolve current date from system context. Include it explicitly in every search query to prevent stale results (e.g., "React 19 migration guide 2026").
+
+**Gate:** Query parsed into concepts, domain, and search mode with current date resolved.
 
 ### Phase 3: Research
 
@@ -68,11 +72,15 @@ For each source found:
 3. Calculate CRAAP+ score (Currency 20%, Relevance 25%, Authority 25%, Accuracy 20%, Purpose 10%)
 4. Discard sources scoring <50
 
+**Gate:** At least one source with CRAAP+ score >=50 found per search track.
+
 ### Phase 4: Synthesize
 
 Validate outputs: verify all claims cite sources, check for contradictions, remove unsupported assertions. T1-T2 sources: resolve conflicts. T3+: aggregate.
 
 **Mandatory saturation gate:** After each batch, if 3+ T1/T2 sources agree, skip remaining lower-tier searches.
+
+**Gate:** All claims cite sources and contradictions resolved.
 
 ### Phase 5: Output
 
@@ -88,6 +96,8 @@ Sources:
 ```
 
 Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
+
+**Gate:** Output includes executive summary, evidence hierarchy, and source list with tier/score.
 
 ## Quality Gates
 

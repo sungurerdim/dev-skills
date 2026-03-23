@@ -54,6 +54,8 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → Summary
    - **Scoped** — pick specific scope(s) to audit
 4. **Scope selection.** If Scoped mode or no `--scope` flag with Audit & Fix, ask which scopes to audit.
 
+**Gate:** Repo info retrieved via API and mode/scopes selected.
+
 ### Phase 2: Audit
 
 Run scope-specific checks:
@@ -72,15 +74,21 @@ Run scope-specific checks:
 - **team:** CODEOWNERS for team repos (>1 contributor), CONTRIBUTING.md for public repos.
 - **structure:** .gitignore completeness (IDE, OS, language-specific entries), config file sprawl (multiple competing configs for same tool).
 
+**Gate:** All selected scopes audited with current-state data collected.
+
 ### Phase 3: Gap Analysis
 
 Display findings table: scope, severity, issue, current state, recommended state.
 
 **Severity:** CRITICAL > HIGH > MEDIUM > LOW.
 
+**Gate:** Findings table produced with severity-classified issues.
+
 ### Phase 4: Plan Review [SKIP if --auto]
 
 Ask user: Fix All / By Severity / Review Each / Report Only.
+
+**Gate:** User selected action plan or --auto mode active.
 
 ### Phase 5: Apply [SKIP if --preview]
 
@@ -88,11 +96,15 @@ Apply fixes via GitHub API (settings, protection), git commands (hygiene), file 
 
 **Needs-approval items:** Protection changes that affect other contributors, CODEOWNERS modifications, visibility changes.
 
+**Gate:** All fixes applied and verified via API read-back or file check.
+
 ### Phase 6: Summary
 
 ```
 repo: {OK|WARN|FAIL} | Applied: N | Failed: N | Needs Approval: N | Total: N
 ```
+
+**Gate:** Summary line rendered with applied/failed/needs-approval/total counts.
 
 ## Quality Gates
 

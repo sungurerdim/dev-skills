@@ -126,6 +126,8 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 3. No profile AND --init: Phase 2 (create profile, stop)
 4. No profile AND not --init: Phase 2 (create profile, ask to continue)
 
+**Gate:** Mode selected, project type detected, instruction file located or creation path determined.
+
 ### Phase 2: Init Flow (no profile OR --init/--refresh)
 
 Ask the user two sets of questions:
@@ -153,6 +155,8 @@ Ask the user two sets of questions:
 | Deployment | Auto-detect from Docker/cloud/serverless signals |
 
 Write profile to the detected instruction file (see Profile Storage). Calculate ideal metrics from `references/weights.md` based on detected project type. Quality-level descriptions in [references/quality-levels.md](references/quality-levels.md).
+
+**Gate:** Profile written to instruction file with all sections populated.
 
 ### Phase 3: Assess (scan, record, score — don't fix)
 
@@ -196,9 +200,13 @@ Scoring formula from [references/scopes.md](references/scopes.md), dimension wei
 
 Flag missing items as HIGH severity. Skip this gate for cli, library, api, iac, devtool project types.
 
+**Gate:** All 9 dimensions scanned. Every signal has file:line evidence. False positive checks applied.
+
 ### Phase 3.1: Project Map
 
 Build from Discovery + Assess results. Generated from directory structure, entry points, import patterns, dependency files, toolchain.
+
+**Gate:** Project map generated with entry points, modules, and external dependencies.
 
 ### Phase 4: Consolidate
 
@@ -227,6 +235,8 @@ Build from Discovery + Assess results. Generated from directory structure, entry
    Every finding must include file:line so fix skills can act on it directly.
 4. Verify completeness: every dimension must have its findings written. A missing scope in `.findings.md` means fix skills will skip their own detection for that scope — resulting in missed issues.
 
+**Gate:** All 9 dimension scores calculated. Calibration checks passed. `.findings.md` written with all scopes.
+
 ### Phase 5: Dashboard
 
 Display blueprint dashboard:
@@ -242,6 +252,8 @@ Project: {name} | Type: {type} | Stack: {stack} | Target: {quality}
 
 Findings written to .findings.md ({n} signals across {n} dimensions)
 ```
+
+**Gate:** Dashboard displayed with all dimensions, scores, and gap analysis.
 
 ### Phase 6: Suggest (skip if --preview)
 
@@ -259,11 +271,15 @@ Dimensions below target:
 
 In `--auto` mode: print as part of summary, no interaction.
 
+**Gate:** Suggestions generated for all below-target dimensions.
+
 ### Phase 7: Update Profile
 
 Update Current Scores in the instruction file's blueprint section (between markers).
 
 **Score History:** If profile has previous scores, display delta table with trend (up/stable/down based on +/-3 threshold).
+
+**Gate:** Profile updated with current scores. Score history preserved.
 
 ### Phase 8: Summary
 
@@ -272,6 +288,8 @@ Before/After delta table (9 dimensions), next steps.
 `blueprint: {OK|WARN|FAIL} | Health: {before}->{after}/{target} | Findings: {n} | Score: {n}/100`
 
 Status: OK (overall >= target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression).
+
+**Gate:** Summary printed with before/after scores and next steps.
 
 ## Quality Gates
 

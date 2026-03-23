@@ -87,7 +87,7 @@ Each check scans the codebase and produces PASS/FAIL with severity and file:line
 | Privacy manifests & SDK compliance | Scan for PrivacyInfo.xcprivacy, flag SDKs without manifests | HIGH |
 | AI data consent | Check for consent modal if external AI services detected | HIGH |
 | Data deletion | Search for account deletion UI flow | HIGH |
-| Platform cross-references | Grep listing text for competing platform mentions | MEDIUM |
+| Platform cross-references | Search listing text for competing platform mentions | MEDIUM |
 | Crash-prone patterns | Scan entry points for force-unwraps, unhandled exceptions | MEDIUM |
 | Age rating | Verify age questionnaire completeness, new 13+/16+/18+ tiers | MEDIUM |
 | SDK & build requirements | Check minimum SDK version (iOS 26 SDK required from April 2026) | MEDIUM |
@@ -165,14 +165,14 @@ Scan the project for the top rejection triggers. Each check produces PASS/FAIL w
 2. **Metadata completeness [CRITICAL]:** Scan store metadata directories (fastlane/metadata, app store connect export, Play Console drafts). Flag: empty description, missing screenshots, placeholder text ("Lorem ipsum", "TODO", "Coming soon"). Guideline 2.1 (App Completeness) accounts for 40%+ of unresolved rejections.
 3. **Permission descriptions [HIGH]:** Scan `Info.plist` (iOS) for `NS*UsageDescription` keys, `AndroidManifest.xml` for permissions. Every permission must have a user-facing description. Missing → FAIL.
 4. **Privacy manifest & SDK compliance [HIGH]:** Scan for `PrivacyInfo.xcprivacy` (iOS). Verify all third-party SDKs have privacy manifests. Flag SDKs that track users without disclosure.
-5. **Platform cross-references [MEDIUM]:** Grep store listing text for references to other platforms ("available on Android" in iOS listing, "App Store" in Play listing). Flag as rejection risk.
+5. **Platform cross-references [MEDIUM]:** Search store listing text for references to other platforms ("available on Android" in iOS listing, "App Store" in Play listing). Flag as rejection risk.
 6. **Crash-prone patterns [MEDIUM]:** Scan for force-unwraps (Swift `!`), unhandled exceptions at app entry, missing null checks on launch-critical paths. Flag as "Performance — crash on launch review risk."
 7. **AI data consent [HIGH — new 2025]:** If app uses external AI services, check for consent modal implementation. Apple requires provider name + data types disclosure before personal data sharing.
 8. **Age rating compliance [MEDIUM]:** Check if age rating questionnaire is complete. New 13+/16+/18+ tiers (July 2025). Deadline: January 31, 2026 for updated questionnaire.
 9. **Data deletion [HIGH]:** Search for account deletion UI flow. Both stores require in-app account deletion mechanism. Missing → FAIL.
 10. **SDK & build requirements [MEDIUM]:** Check minimum SDK version. Starting April 2026: all iOS submissions must use iOS 26 SDK.
 
-**Gate:** All requested artifacts generated.
+**Gate:** All listing, ASO, and review artifacts generated.
 
 ### Phase 4: Release Management [release, post-launch]
 
@@ -196,6 +196,8 @@ ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|All} | Ready: N/N checks 
 ```
 
 Include checklist of remaining items before submission.
+
+**Gate:** Summary printed with submission readiness status.
 
 ## Quality Gates
 

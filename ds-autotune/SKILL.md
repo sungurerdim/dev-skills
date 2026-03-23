@@ -124,8 +124,10 @@ Requirements: cd to project root, redirect ALL output to `auto/run.log`, output 
 
 **auto/results.tsv** — Initialize with header:
 ```
-commit	<metric>	<secondary>	status	duration_sec	timestamp	description
+timestamp	commit	status	<metric>	<secondary>	duration	description
 ```
+
+Column notes: `timestamp` is ISO 8601. `duration` is `HH:MM:SS` format (wall-clock time for the experiment).
 
 **auto/program.md** — Agent instructions generated from the template below with all project-specific values filled in.
 
@@ -161,7 +163,7 @@ Execute the loop defined in auto/program.md. Follow it exactly:
 4. Commit: `git add <target_file> && git commit -m "description of change"`
 5. Run: `bash auto/bench.sh`
 6. Read results: search for `<metric>:` in `auto/run.log`
-7. Append to auto/results.tsv (tab-separated): `<commit_7char>\t<metric>\t<secondary>\t<status>\t<duration_sec>\t<ISO8601_timestamp>\t<description>`
+7. Append to auto/results.tsv (tab-separated): `<ISO8601_timestamp>\t<commit_7char>\t<status>\t<metric>\t<secondary>\t<HH:MM:SS>\t<description>`
 8. Decision:
    - Metric improved → KEEP. Branch advances.
    - Metric same or worse → DISCARD. Run: `git reset HEAD~1 --hard`
@@ -208,7 +210,7 @@ Repeat forever:
 5. Run: bash auto/bench.sh
 6. Read results: grep "^<metric>:" auto/run.log
 7. Append to auto/results.tsv (tab-separated):
-   <commit_7char>\t<metric_value>\t<secondary_value>\t<status>\t<duration_sec>\t<ISO8601_timestamp>\t<description>
+   <ISO8601_timestamp>\t<commit_7char>\t<status>\t<metric_value>\t<secondary_value>\t<HH:MM:SS>\t<description>
 8. Decision:
    - <metric> improved (<direction>) -> KEEP. Branch advances.
    - <metric> same or worse -> DISCARD. Run: git reset HEAD~1 --hard
@@ -256,8 +258,8 @@ Baseline:           [first keep metric]
 Best:               [best metric]
 Improvement:        [improvement]%
 
-Total time:         [sum of duration_sec, formatted as Xh Ym]
-Avg per experiment: [avg duration_sec]s
+Total time:         [sum of durations, formatted as HH:MM:SS]
+Avg per experiment: [avg duration as HH:MM:SS]
 First experiment:   [earliest timestamp]
 Last experiment:    [latest timestamp]
 

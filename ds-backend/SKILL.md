@@ -168,6 +168,8 @@ ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Tot
 
 **Spec output:** Generated specification files with locations.
 
+**Gate:** Summary printed with all design artifacts listed.
+
 ## Quality Gates
 
 - Every API finding cites specific endpoint and HTTP method

@@ -50,6 +50,8 @@ Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Cre
 5. No commits ahead → stop. Behind base → ask rebase (--auto: rebase automatically)
 6. Check existing PR → show URL, ask: Update / Skip
 
+**Gate:** All pre-checks passed. Branch has commits ahead of base and is ready for PR.
+
 ### Phase 1.5: History Tidy (skip if --no-tidy or --preview)
 
 If >3 unpushed commits, offer to tidy: squash into logical commits based on net diff.
@@ -59,6 +61,8 @@ If >3 unpushed commits, offer to tidy: squash into logical commits based on net 
 - On failure: `git reset --hard $ORIG_HEAD`
 - Push: `git push -u origin {branch}`
 
+**Gate:** Commits are tidied (or skipped) and pushed to remote.
+
 ### Phase 2: Quality Gates (entire project)
 
 Run format, lint, and test across the entire project. Auto-fix all fixable issues. Detect toolchain from config files. Skip silently if tool unavailable.
@@ -66,6 +70,8 @@ Run format, lint, and test across the entire project. Auto-fix all fixable issue
 Run in order (stop on failure): Format -> Lint -> Test.
 If format/lint changed files -> commit as `chore: format and lint fixes`.
 If tests fail -> stop. Do NOT create PR with failing tests.
+
+**Gate:** Format, lint, and tests all pass. No uncommitted fixes remain.
 
 ### Phase 3: Analyze
 
@@ -85,6 +91,8 @@ If tests fail -> stop. Do NOT create PR with failing tests.
 
 **Body:** Summary (1-3 bullets), Changes (grouped, max 5), Breaking Changes (if any). Max 20 lines.
 
+**Gate:** Net diff analyzed and PR title generated in conventional commit format.
+
 ### Phase 4: Review (skip if --auto)
 
 Display: branch, title, body preview, version annotation.
@@ -102,9 +110,13 @@ Ask the user:
 - **Create as draft** — draft PR for further work
 - **Cancel**
 
+**Gate:** User confirmed PR creation option. Title, body, and merge strategy decided.
+
 ### Phase 5: Create
 
 `gh pr create --title "{title}" --body "{body}" [--draft]`
+
+**Gate:** PR created successfully. `gh pr create` returned a PR URL.
 
 ### Phase 6: Merge Setup (default, skip if --no-auto-merge, --draft, or manual)
 
@@ -112,6 +124,8 @@ Ask the user:
 - Without branch protection: check CI status, then `gh pr merge {number} --squash`
 
 After merge: `git checkout {base} && git pull origin {base} && git branch -d {branch}`
+
+**Gate:** Auto-merge enabled or merge completed. Local branch switched to base.
 
 ### Phase 6.1: Branch Cleanup [AFTER MERGE ONLY]
 
@@ -123,11 +137,15 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
    - Ask: Delete all (recommended) / Skip (--auto: delete all silently)
    - Delete local: `git branch -d {branch}`. Delete remote-only: `git push origin --delete {branch}`. On error: warn and continue.
 
+**Gate:** All merged branches deleted locally and remotely, or cleanup skipped by user.
+
 ### Phase 7: Summary
 
 PR URL, title, type -> bump effect, auto-merge status.
 
 `pr: {OK|FAIL} | {url} | {type} -> {bump} | auto-merge: {on|off}`
+
+**Gate:** Summary line printed. PR URL returned to user.
 
 ## Edge Cases
 

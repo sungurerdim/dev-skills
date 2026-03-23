@@ -16,7 +16,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 ## Contract
 
 - Generates tests that follow the project's existing test patterns and conventions
-- Never overwrites existing passing tests without confirmation
+- Preserves existing passing tests — only overwrites with explicit confirmation
 - Always runs generated tests to verify they pass before declaring done
 - Uses the project's existing test framework — never introduces a new framework unless none exists
 - Test files go in the project's established test directory (auto-detected)
@@ -96,6 +96,8 @@ For each uncovered source file (or scoped path):
 | "rejects login with expired token" | "test authentication" |
 | "creates order with correct total when discount applied" | "test createOrder" |
 
+**Gate:** Test files generated covering happy path, edge cases, and error cases for each target.
+
 ### Phase 2b: Update [--update]
 
 When source code changed and tests need updating:
@@ -110,6 +112,8 @@ When source code changed and tests need updating:
    - Removed function → remove tests (with confirmation) or mark as skipped with TODO
    - New function → generate new tests (as in Phase 2a)
 5. Run updated tests to verify they pass
+
+**Gate:** Updated tests pass and no previously passing tests regressed.
 
 ### Phase 2c: Run + Fix [--run]
 
@@ -129,6 +133,8 @@ When source code changed and tests need updating:
 
 **Critical rule:** If a test was passing before and now fails after source change, the SOURCE is likely wrong (regression), not the test. Do NOT weaken assertions to make a test pass.
 
+**Gate:** Test-side fixes verified passing or app bugs written to .findings.md.
+
 ### Phase 2d: Framework Setup [--setup]
 
 If no test framework exists:
@@ -143,6 +149,8 @@ If no test framework exists:
    - Add test script to manifest (e.g., `"test": "vitest"` in package.json)
    - Add test step to CI config if it exists
 5. Run example test to verify setup works
+
+**Gate:** Example test passes with the installed framework.
 
 ### Phase 3: Verify
 
@@ -167,6 +175,8 @@ ds-test: {OK|WARN|FAIL} | Generated: N | Updated: N | Fixed: N | Failing: N
 | Fixed     |    5  | 4 assertion, 1 mock  |
 | Failing   |    2  | app bugs (see .findings.md) |
 ```
+
+**Gate:** Summary table rendered with generated/updated/fixed/failing counts.
 
 ## Quality Gates
 
@@ -201,7 +211,7 @@ When analyzing existing tests, flag tests that provide no concrete value:
 ### Other Gates
 
 - Generated tests must pass before declaring done — never commit failing tests
-- Never weaken assertions to make a test pass — fix the test logic or report the app bug
+- Keep assertions at full strength — fix the test logic or report the app bug instead of weakening checks
 - Test names describe behavior, not implementation
 - No test should depend on execution order — each test must be independently runnable
 - Mocks must be minimal — only mock external dependencies (network, filesystem, time), not internal modules

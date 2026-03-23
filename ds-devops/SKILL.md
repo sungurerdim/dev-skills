@@ -70,9 +70,13 @@ Detect → Configure → Scan → Report → [Fix] → Summary
 
 5. **Scope selection.** If no `--scope` flag, ask which scopes to audit (default: all).
 
+**Gate:** Project type identified, CI platform detected, mode and scope confirmed.
+
 ### Phase 2: Rule Loading
 
 Load [rules-devops.md](references/rules-devops.md). Rules are project-type-aware — skip rules that don't apply to the detected stack.
+
+**Gate:** Rules file loaded and filtered to detected project type; inapplicable rules excluded.
 
 ### Phase 3: Scan
 
@@ -92,6 +96,8 @@ For each scope, scan the codebase:
 - MEDIUM: present for review
 - LOW: shown as potential issues
 
+**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
+
 ### Phase 4: Report
 
 ```
@@ -110,6 +116,8 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 
 **Severity:** CRITICAL > HIGH > MEDIUM > LOW. When uncertain, choose lower.
 
+**Gate:** Report presented to user with all findings, severities, and summary table.
+
 ### Phase 5: Post-Report
 
 | Mode | Behavior |
@@ -117,6 +125,8 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 | `audit` | Ask: Fix all / CRITICAL+HIGH only / Review each / Report only |
 | `audit+fix` | Auto-transition to fix |
 | `quick-fix` | Auto-apply all, summary only |
+
+**Gate:** User selected post-report action; mode-specific next step determined.
 
 ### Phase 6: Fix [SKIP if audit-only or --preview]
 
@@ -128,6 +138,8 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 ```
 ds-devops: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N
 ```
+
+**Gate:** Applied + failed + skipped = total findings; every modified file re-read and verified.
 
 ## Quality Gates
 

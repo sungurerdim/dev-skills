@@ -172,6 +172,8 @@ ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: N defined | 
 
 **Audit output:** Coverage map, privacy findings, noise findings.
 
+**Gate:** Summary printed with all metrics and recommendations.
+
 ## Quality Gates
 
 - Zero PII in event properties (no emails, names, IPs, device IDs)

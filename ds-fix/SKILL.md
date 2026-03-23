@@ -15,7 +15,7 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 
 - Runs automated fixers in a safe, deterministic order: l10n → format → typecheck → lint → security
 - Format always runs before lint so auto-formatting does not introduce new lint issues
-- Never modifies files in `--check` mode
+- Only reports findings in `--check` mode — zero file modifications
 - Missing tools are skipped with a warning — never fails due to absent optional tooling
 - Re-validates after fix to confirm the fix worked
 - Reports counts, not verbose output
@@ -114,6 +114,8 @@ Example l10n frameworks per stack:
 
 Skip silently if no l10n framework detected.
 
+**Gate:** L10n files generated/validated or no l10n framework detected.
+
 ### Phase 3: Format [scope: format]
 
 For each detected stack, run the canonical formatter.
@@ -137,6 +139,8 @@ For each detected stack, run the static type checker if one is configured.
 5. Report error count and top issues
 
 Example: Python project with `pyproject.toml` containing `[tool.mypy]` or `[tool.pyright]` → run the configured checker. No config → skip.
+
+**Gate:** Type checker reports zero errors or no type checker configured.
 
 ### Phase 5: Lint [scope: lint]
 
@@ -162,6 +166,8 @@ Stack-specific extra checks (search file contents, not tool-dependent):
 | elixir | `IO.inspect` / `IO.puts` | in `lib/` | Use `Logger` module |
 | scala | `println` | in `src/main/` | Use structured logger (e.g., `slf4j`) |
 
+**Gate:** Lint re-check passes after auto-fix or check-mode issues reported.
+
 ### Phase 6: Security [scope: security]
 
 Two sub-phases: universal secret scan + stack-specific dependency audit.
@@ -182,6 +188,8 @@ Search project files for these patterns, excluding `.git/`, `node_modules/`, `bu
 **6b. Dependency Audit (per stack):**
 
 Look up the audit command from `references/toolchains.md`. If tool not installed, skip with warning.
+
+**Gate:** Secret scan and dependency audit completed with findings classified.
 
 ### Phase 7: Summary
 
@@ -205,11 +213,13 @@ Output summary line:
 ds-fix: {OK|WARN|FAIL} | Fixed: N | Issues: N | Skipped: N
 ```
 
+**Gate:** Summary table rendered with status per scope and totals.
+
 ## Quality Gates
 
 - Format runs before lint — never reverse this order
 - After fix, re-run check to verify the fix worked. If re-check fails, report as unresolved.
-- Never modify files in `--check` mode — verify diff is empty after check run
+- Only report findings in `--check` mode — verify diff is empty after check run
 - Secret findings are always CRITICAL — never auto-fix, always report
 - Scope boundary: only run scopes the user requested (or all if none specified)
 

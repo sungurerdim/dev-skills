@@ -62,6 +62,8 @@ Recovery check: if progress artifact exists from prior run, ask: Resume / Start 
    - Which documentation areas to cover (Core: readme+changelog, Technical: api+dev, User-facing: user+ops)
    - How to handle existing docs (Fill gaps, Refine existing, Verify claims, Update all)
 
+**Gate:** Mode and scope selected or flags parsed.
+
 ### Phase 2: Analysis
 
 Scan existing docs, detect project type, assess completeness:
@@ -69,6 +71,8 @@ Scan existing docs, detect project type, assess completeness:
 2. For each found doc: read and assess completeness (0-100%)
 3. Detect project type from config files
 4. Check for doc-sync issues: README drift, API signature mismatch, deprecated refs, broken links
+
+**Gate:** Project type detected and existing docs inventoried with completeness scores.
 
 ### Phase 3: Gap Analysis (ideal vs current)
 
@@ -140,9 +144,13 @@ The verify scope is the most critical — it finds lies in documentation. For ev
 
 **Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are the highest-drift-risk elements.
 
+**Gate:** Gap analysis complete with severity-classified findings table.
+
 ### Phase 4: Plan Review (skip if --auto)
 
 Display plan (target files, sections, sources). Ask: Generate All / High Priority Only / Abort.
+
+**Gate:** User approved generation plan or --auto mode active.
 
 ### Phase 5: Generate Documentation (skip if --preview)
 
@@ -153,6 +161,8 @@ Generate missing docs following these principles:
 4. Action-oriented — focus on what reader needs to do
 
 Source mandate: every documented flag, endpoint, or config value MUST be verified by searching the source before inclusion.
+
+**Gate:** Every generated claim verified against source code with file:line evidence.
 
 ### Phase 6: Summary
 
@@ -168,6 +178,8 @@ Applied: 2 | Failed: 0 | Total: 2
 ```
 
 `docs: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N`
+
+**Gate:** Summary table rendered with applied/failed/total counts.
 
 ## Quality Gates
 

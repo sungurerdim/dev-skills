@@ -94,6 +94,8 @@ Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] �
 4. **Scope selection.** If no `--scope` flag, ask which scopes to check (default: all for selected mode)
 5. If uncommitted changes detected, ask: continue / stash first / cancel
 
+**Gate:** Mode and scope selection confirmed (explicitly or via flags).
+
 ### Phase 2: Analyze
 
 **Findings file check:** If `.findings.md` exists and its `git_hash` matches current HEAD, filter findings by the active scopes. For each matching finding:
@@ -137,6 +139,8 @@ Display Current vs Ideal table. Technology assessment: evaluate key decisions as
 
 Categorize recommendations by effort/impact: Quick Win -> Moderate -> Complex -> Major.
 
+**Gate:** Current vs Ideal table and categorized recommendations produced.
+
 ### Phase 4: Plan Review (skip if --auto)
 
 Present findings table (ID, severity, title, file:line). Ask the user:
@@ -145,6 +149,8 @@ Present findings table (ID, severity, title, file:line). Ask the user:
 - **By Severity** — choose which severities to fix
 - **Review Each** — approve each finding individually
 - **Report Only** — no fixes, just the report
+
+**Gate:** User selected a plan action (Fix All / By Severity / Review Each / Report Only).
 
 ### Phase 5: Apply [SKIP if --preview]
 
@@ -165,6 +171,8 @@ After all fixes: run available lint/type/test checks. If fixes introduce new err
 
 For each fix, include education: why (impact if unfixed), avoid (anti-pattern), prefer (correct pattern).
 
+**Gate:** All approved fixes applied and lint/type/test checks pass (or max 3 fix-verify iterations exhausted).
+
 ### Phase 5a: Needs-Approval Review [CONDITIONAL]
 
 Items flagged `needs_approval` (cross-module changes, architectural decisions):
@@ -172,9 +180,13 @@ Items flagged `needs_approval` (cross-module changes, architectural decisions):
 - **--force-approve:** Apply all needs_approval items without asking
 - **Interactive:** Present needs_approval items. Ask: Apply All / Review Each / Skip All
 
+**Gate:** All needs_approval items resolved (applied, skipped, or deferred).
+
 ### Phase 5b: CRITICAL Escalation
 
 If any CRITICAL finding is detected: flag for manual review before auto-fixing. In interactive mode, show the finding with full context and ask for explicit confirmation. CRITICAL findings should be verified with extra scrutiny — re-read the file section and surrounding context.
+
+**Gate:** Every CRITICAL finding explicitly confirmed or downgraded before fix.
 
 ### Phase 6: Loop (--loop flag, tactical only)
 
@@ -184,6 +196,8 @@ If applied > 0:
 3. Re-apply for new findings
 
 Max 3 iterations. Summary shows per-iteration breakdown.
+
+**Gate:** Zero new findings on re-analysis, or max 3 iterations reached.
 
 ### Phase 7: Summary
 
@@ -220,6 +234,8 @@ Applied: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
 **Auto output:** `refactor: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N`
 
 Status: OK (failed=0), WARN (failed>0 no CRITICAL), FAIL (CRITICAL unfixed or error).
+
+**Gate:** Summary table printed and applied + failed + needs_approval = total verified.
 
 ## Score Calculation
 

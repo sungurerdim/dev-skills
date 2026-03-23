@@ -189,6 +189,8 @@ Next steps:
 3. {third action}
 ```
 
+**Gate:** Summary printed with all generated artifact list and next steps.
+
 ## Quality Gates
 
 - No false claims about features the app doesn't have

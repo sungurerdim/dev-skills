@@ -59,6 +59,8 @@ If `release-please-config.json` or `.release-please-manifest.json` exists in pro
 - If format/lint modified files: include those changes in the commit
 - On failure: ask "Fix first (recommended)" or "Commit anyway"
 
+**Gate:** No merge conflicts, quality gates passed or user chose to proceed.
+
 ### Phase 2: Analyze
 
 Run `git diff` (or `git diff --cached` for `--staged-only`). This is the **only input** for building the commit message.
@@ -116,6 +118,8 @@ Check unpushed commits: `git log @{upstream}..HEAD` (no upstream → all local c
 ```
 
 If amending: show `(amend → {short-hash})` next to the entry.
+
+**Gate:** Commit plan table displayed with type, title, and file count per commit.
 
 ### Phase 3: Execute (skip if --preview)
 
@@ -198,13 +202,19 @@ on large datasets. Requires running migration 20240115_add_search_index.
 - Breaking changes: `BREAKING CHANGE: description` footer (in addition to `!` in title)
 - References: `Closes #123`, `Fixes #456` when applicable
 
+**Gate:** All commits created with valid conventional commit format and Co-Authored-By trailer.
+
 ### Phase 4: Verify
 
 `git log` to confirm. Verify working tree clean (unless `--staged-only`).
 
+**Gate:** git log confirms commit(s) and working tree is clean.
+
 ### Phase 5: Summary
 
 Commit count, file count, branch, commit hashes. Next step: push or create a pull request.
+
+**Gate:** Summary includes commit count, file count, branch, and hashes.
 
 ## Edge Cases
 

@@ -54,6 +54,8 @@ Detect -> Configure -> Scan -> Report -> [Fix] -> Summary
 4. **Scope selection.** If no `--scope` flag, ask which domains to audit (default: all applicable).
    - For regulatory scope: detect frameworks (GDPR, KVKK, CCPA, etc.) from codebase patterns, confirm with user
 
+**Gate:** Project type identified, mode and scope confirmed, regulatory frameworks resolved.
+
 ### Phase 2: Architecture Discovery
 
 **When:** Scope includes 3+ domains or `all`. Skip for narrow scans.
@@ -64,6 +66,8 @@ Detect -> Configure -> Scan -> Report -> [Fix] -> Summary
    - **CAT-1 Conformance:** Universal best practices, existing patterns used incorrectly, bugs, security flaws — auto-fixable
    - **CAT-2 Enhancement:** New layers/patterns not in current architecture — requires explicit approval
 4. Present enhancement opportunities, ask which to include (default: none)
+
+**Gate:** Architecture confirmed by user, every rule classified as CAT-1 or CAT-2, approved enhancements finalized.
 
 ### Phase 3: Rule Loading
 
@@ -79,6 +83,8 @@ Load reference files matching scope:
 | perf | [rules-perf.md](references/rules-perf.md) |
 | i18n | [rules-i18n.md](references/rules-i18n.md) |
 
+**Gate:** All reference files for in-scope domains loaded successfully; unloadable domains marked N/A.
+
 ### Phase 4: Scan
 
 For each domain in scope, scan the codebase:
@@ -93,6 +99,8 @@ For each domain in scope, scan the codebase:
 **False positive prevention:** Check surrounding context. Never flag: `// noqa`, `// intentional`, `// safe:`, `_` prefix, `TYPE_CHECKING` blocks, test fixtures.
 
 **Large scope (3+ domains):** Track progress with a numbered checklist. Create `.findings.md` in project root (add to .gitignore). After each domain scan, append findings. This enables recovery if context is lost.
+
+**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
 
 ### Phase 5: Report
 
@@ -116,6 +124,8 @@ Architecture: [detected summary]
 
 **Severity order:** CRITICAL > HIGH > MEDIUM > LOW. When uncertain, choose lower severity.
 
+**Gate:** Report presented to user with all findings, severities, and summary table.
+
 ### Phase 6: Fix (skip if audit-only)
 
 1. Present fix plan grouped by category (CAT-1 auto-fixable, CAT-2 pre-approved)
@@ -125,6 +135,8 @@ Architecture: [detected summary]
    - `audit`: Ask which severities to fix
 3. Apply fixes grouped by file. Different files can be fixed in parallel, same file sequentially.
 4. Present fix summary: applied, failed, skipped
+
+**Gate:** Applied + failed + skipped = total findings; every modified file re-read and verified.
 
 ## Quality Gates
 

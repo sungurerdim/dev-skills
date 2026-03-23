@@ -134,7 +134,7 @@ Setup → Discover → Analyze → [Generate] → Report → Summary
 3. Suggest free tier alternatives where applicable
 4. Calculate cost at different scale points
 
-**Gate:** Findings collected.
+**Gate:** All applicable checks completed with file:line findings.
 
 ### Phase 4: Generate [--generate]
 
@@ -178,6 +178,8 @@ Present generated files for review before writing.
 ```
 ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | Findings: N | Generated: N
 ```
+
+**Gate:** Summary printed with applied/failed/total counts.
 
 ## Quality Gates
 

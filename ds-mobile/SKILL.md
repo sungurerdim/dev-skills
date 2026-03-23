@@ -85,6 +85,8 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
    - Load previous reports for diff comparison
    - Fetch live policy data (see references/scoring.md)
 
+**Gate:** Platform identified, mode and scope confirmed, regulatory frameworks resolved.
+
 ---
 
 ### Phase 2: Architecture Discovery [SKIP if 1-2 domains]
@@ -109,6 +111,8 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 **Critical rule:** CAT-2 fixes are NEVER applied without user approval.
 
+**Gate:** Architecture confirmed by user, every rule classified as CAT-1 or CAT-2, scope finalized with approved enhancements.
+
 ---
 
 ### Phase 3: Rule Loading
@@ -122,6 +126,8 @@ Load only reference files matching scope:
 | arch, testing, perf, network, i18n | [rules-engineering.md](references/rules-engineering.md) |
 | release (release-ready mode) | [rules-release.md](references/rules-release.md) |
 | release-ready scoring | [scoring.md](references/scoring.md) |
+
+**Gate:** All reference files for in-scope domains loaded successfully; unloadable domains marked N/A.
 
 ---
 
@@ -152,6 +158,8 @@ Load only reference files matching scope:
 2. Read `.findings.md` to restore completed findings
 3. Resume from first incomplete domain
 4. Never re-scan a completed domain
+
+**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
 
 ---
 
@@ -185,6 +193,8 @@ Per references/scoring.md: 100-point dynamic scoring across 7 dimensions, manual
 
 Include: policy values used (fetched vs fallback), dimension breakdown with bar chart, findings by severity, manual gate status, and "if you publish now" consequence table for CRITICAL+HIGH.
 
+**Gate:** Report presented to user with all findings, severities, and summary table.
+
 ---
 
 ### Phase 6: Post-Report
@@ -195,6 +205,8 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 | `audit+fix` | Auto-transition to fix phase |
 | `quick-fix` | Auto-transition, auto-apply all |
 | `release-ready` | Ask: Fix plan / Save report only / Guidance for key findings |
+
+**Gate:** User selected post-report action; mode-specific next step determined.
 
 ---
 
@@ -217,6 +229,8 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
    ```
 
 **Cleanup:** Delete `.findings.md` after fix summary.
+
+**Gate:** Applied + failed + skipped = total findings; every modified file re-read and verified; `.findings.md` deleted.
 
 ---
 
