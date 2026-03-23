@@ -4,159 +4,122 @@
 [![Skills](https://img.shields.io/badge/skills-19-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
 
-Production-grade AI skills for the full software lifecycle — from scaffolding to store launch. Self-contained, tool-agnostic, token-efficient. Built for solo developers with AI assistance.
+Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
 
-> **scaffold → code → test → review → commit → PR → deploy → launch → marketing → analytics**
->
-> 19 orchestrated skills. One system. Any AI coding tool.
+dev-skills are multi-phase execution systems — with quality gates, error recovery, and systematic mitigation of 8 known AI weaknesses — covering the entire software lifecycle from project scaffolding to store launch.
 
-> [!TIP]
-> **Quick start:** Clone the repo, copy any skill folder to your AI tool's instructions directory (see Install below), and invoke the skill name (e.g. `/ds-cv`). That's it.
+<!-- TODO: Add demo GIF/video here — 30-60s silent demo of ds-cv or ds-review -->
 
-## Core Principles
+> **Quick start:** `git clone https://github.com/sungurerdim/dev-skills.git /tmp/ds && cp -r /tmp/ds/ds-review ~/.claude/skills/ds-review && rm -rf /tmp/ds`
+> Then: `/ds-review`
 
-1. **Minimal liability** — legal/regulatory exposure minimized at every step
-2. **Maximum privacy** — privacy-by-design, data minimization, zero unnecessary collection
-3. **Maximum efficiency & automation** — automate everything automatable, no manual repetitive work
-4. **Maximum performance** — fast builds, fast deploys, fast apps, fast feedback loops
-5. **Minimum external dependencies** — fewer deps = fewer risks, fewer costs, fewer breakages
-6. **Solo-dev optimal** — every decision optimized for one-person teams with AI assistance
+## What we believe
 
-## Why dev-skills
+- **Every dependency is a future breaking change.** Fewer deps = fewer risks, fewer costs, fewer breakages.
+- **Collect nothing you don't need.** Privacy-by-design, data minimization, zero unnecessary collection.
+- **If a human is doing it repeatedly, it should be automated.** No manual repetitive work.
+- **Every decision minimizes YOUR legal exposure.** Not the vendor's.
+- **One developer + AI should ship what a team of five ships.** Every skill optimized for solo devs with AI.
 
-Most AI coding "skills" are static rule snippets (30-100 lines) or link collections. dev-skills are **orchestrated execution systems**:
+## The skills
 
-- **Multi-phase workflows** with quality gates and error recovery — not "do X, then Y" instructions
-- **8 AI weaknesses systematically addressed** — hallucination, scope creep, confidence bias, tunnel vision, memory decay, skip tendency, redundancy blindness, injection risk. Output templates use `{placeholder}` syntax to prevent AI from copying example data as real findings
-- **Inter-skill coordination** via `.findings.md` — skills share analysis results to avoid duplicate work
+> scaffold → code → test → review → commit → PR → deploy → launch → analytics
+
+| Skill | What it does |
+|-------|-------------|
+| [ds-init](ds-init) | Scaffold production-ready projects — CI, Docker, testing, env templates. Any stack. |
+| [ds-fix](ds-fix) | Format, lint, type-check, l10n, secret scan. 16 stacks, 5 scopes. |
+| [ds-test](ds-test) | Generate, update, run, and fix tests. Unit, integration, E2E. 13 stacks. |
+| [ds-review](ds-review) | Tactical fixes + strategic architecture + deep performance profiling. 25+ scopes. |
+| [ds-blueprint](ds-blueprint) | Project health scoring — 9 dimensions, 14 project types. |
+| [ds-docs](ds-docs) | Documentation gap analysis + doc↔code verification. |
+| [ds-commit](ds-commit) | Smart commits — quality gates, atomic grouping, conventional format. |
+| [ds-pr](ds-pr) | Smart PRs — history tidy, net diff analysis, auto-merge setup. |
+| [ds-deploy](ds-deploy) | Dockerfile audit/gen, VPS hardening, SSL, monitoring, cost analysis. |
+| [ds-launch](ds-launch) | ~40% of store submissions fail for preventable errors. Scans your project and flags them. |
+| [ds-compliance](ds-compliance) | Security & regulatory audit — OWASP, GDPR, CCPA, KVKK, HIPAA. 80+ rules. |
+| [ds-mobile](ds-mobile) | Mobile app audit — 145+ rules across 13 domains. Flutter, SwiftUI, Kotlin, RN. |
+| [ds-devops](ds-devops) | CI/CD pipelines, code signing, dependency management. |
+| [ds-repo](ds-repo) | Repository audit — settings, branch protection, hygiene, structure. |
+| [ds-backend](ds-backend) | API design + database schema + auth architecture. |
+| [ds-research](ds-research) | Multi-source research with CRAAP+ reliability scoring. |
+| [ds-market](ds-market) | Solo devs build great products but can't get noticed. Generates positioning, copy, and growth playbook. |
+| [ds-analytics](ds-analytics) | Privacy-first analytics — event taxonomy, funnels, metrics. |
+| [ds-cv](ds-cv) | ATS rejects most CVs before a human sees them. Generates ones that pass. |
+
+Each skill is self-contained. No dependencies between them. Install one or all.
+
+## Recommended workflow
+
+```
+1. /ds-blueprint        Score your project health, generate .findings.md
+2. /ds-review --tactical  Fix code issues (uses .findings.md if available)
+3. /ds-fix              Format, lint, type-check
+4. /ds-test             Generate missing tests, fix failing ones
+5. /ds-commit           Commit with quality gates
+6. /ds-pr               Create PR with net diff analysis
+```
+
+Start with `/ds-blueprint` — it scans your entire codebase and produces a `.findings.md` that other skills consume, so they skip redundant analysis and jump straight to fixes.
+
+For new projects: `/ds-init` → then the workflow above.
+For deployment: `/ds-deploy` → `/ds-launch`.
+For audits: `/ds-compliance` or `/ds-mobile`.
+
+## Why these are different
+
+Most AI coding "skills" are static rule snippets (30-100 lines). dev-skills are **orchestrated execution systems**:
+
+- **Multi-phase workflows** with quality gates and error recovery
+- **8 AI weaknesses systematically addressed** — hallucination, scope creep, tunnel vision, confidence bias, memory decay, skip tendency, redundancy blindness, injection risk
+- **Inter-skill coordination** via `.findings.md` — share analysis results, avoid duplicate work
 - **Token-efficient** — 10K token budget per skill, references loaded on demand
-- **Full lifecycle coverage** — the only skill set covering scaffold → launch → analytics in one system
-- **Tool-agnostic** — works with Claude Code, Cursor, GitHub Copilot, Windsurf, Aider, and any tool that accepts markdown instructions
-
-19 deep skills cover more of the software lifecycle than 1,000 shallow playbooks.
-
-## Audit Skills
-
-| Skill | What It Does |
-|-------|-------------|
-| [ds-compliance](ds-compliance) | Security & regulatory compliance — OWASP, GDPR, CCPA, KVKK, HIPAA, web security, network, architecture, privacy, i18n. 80+ rules. |
-| [ds-mobile](ds-mobile) | Audit mobile apps against 145+ rules across 13 domains. Release readiness scoring, manual gates, live policy fetch. Flutter, SwiftUI, Kotlin, React Native. |
-| [ds-devops](ds-devops) | Audit CI/CD pipelines, code signing, dependency management for any project type. 14 rules. |
-| [ds-repo](ds-repo) | Repository audit — settings, branch protection, hygiene, metadata, team, structure. 6 scopes. |
-
-## Development Skills
-
-| Skill | What It Does |
-|-------|-------------|
-| [ds-fix](ds-fix) | Universal code quality fixer — format, lint, type-check, l10n, security scan. 16 stacks, 5 scopes. |
-| [ds-test](ds-test) | Universal test skill — generate, update, run, and fix tests. Unit, integration, E2E. 13 stacks. |
-| [ds-review](ds-review) | Tactical fixes + strategic architecture + deep performance profiling. 25+ scopes. `--tactical`, `--strategic`, `--perf` modes. |
-| [ds-docs](ds-docs) | Documentation gap analysis + doc↔code verification. 14 project types, 8 scopes. |
-| [ds-blueprint](ds-blueprint) | Project health scoring — 9 dimensions, 14 project types. Produces `.findings.md` for other skills. |
-
-## Git Workflow Skills
-
-| Skill | What It Does |
-|-------|-------------|
-| [ds-commit](ds-commit) | Smart git commits — quality gates, atomic grouping, fixup into unpushed commits, conventional format. |
-| [ds-pr](ds-pr) | Smart pull requests — history tidy, net diff analysis, quality gates, auto-merge setup, branch cleanup. |
-
-## Research
-
-| Skill | What It Does |
-|-------|-------------|
-| [ds-research](ds-research) | Multi-source research with CRAAP+ reliability scoring, source tiers, triangulation, deep mode. |
-
-## Lifecycle Skills
-
-| Skill | What It Does |
-|-------|-------------|
-| [ds-init](ds-init) | Project scaffolding — generate production-ready structure for any stack. CI, Docker, testing, env templates. |
-| [ds-deploy](ds-deploy) | Deployment & infrastructure — Dockerfile audit/gen, VPS hardening, SSL, monitoring, incident response, cost analysis. |
-| [ds-launch](ds-launch) | Store & release management — ASO, listing metadata, privacy labels, review preparation, staged rollout. |
-
-## Design Skills
-
-| Skill | What It Does |
-|-------|-------------|
-| [ds-backend](ds-backend) | API design + database schema + auth architecture. Audit, design, spec generation, migrations. |
-
-## Business & Career Skills
-
-| Skill | What It Does |
-|-------|-------------|
-| [ds-cv](ds-cv) | Professional CV generator — ATS-compatible HTML, metric verification, LinkedIn alignment, privacy by default. |
-| [ds-market](ds-market) | Marketing & growth — strategy, copy generation, growth tactics. |
-| [ds-analytics](ds-analytics) | Privacy-first analytics — event taxonomy, funnel design, metrics, tool integration, privacy audit. |
-
-## Documentation
-
-Universal reference docs in [`docs/`](docs/) — templates, guides, and research for the full dev lifecycle:
-
-| Category | Docs |
-|----------|------|
-| **Compliance** | DPIA template, privacy policy template, breach notification, processor registry, privacy labels, legal checklist |
-| **Backend** | API architecture patterns, database design guide, auth implementation guide |
-| **Frontend** | UX design guidelines, web UX patterns |
-| **Mobile** | Flutter architecture patterns |
-| **Infrastructure** | Deployment patterns, cost optimization |
-| **DevOps** | CI/CD setup guide |
-| **Business** | Monetization patterns, marketing strategy, privacy-first analytics |
-| **Methodology** | AI-assisted development, solo dev workflow |
+- **Tool-agnostic** — works with any AI tool that accepts markdown instructions
 
 ## Install
 
-Clone, then copy the skill folder to your AI tool's skill/rules directory:
+Copy any skill folder to your AI tool's instructions directory:
 
 ```bash
 git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 ```
 
-| Tool | Global install | Project-level install |
-|------|---------------|---------------------|
-| **Claude Code** | `cp -r /tmp/dev-skills/<skill> ~/.claude/skills/<skill>` | `cp -r /tmp/dev-skills/<skill> .claude/skills/<skill>` |
-| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` | Same, or paste `SKILL.md` into project rules |
-| **GitHub Copilot** | N/A | Append `SKILL.md` content to `.github/copilot-instructions.md` |
-| **Windsurf** | N/A | Append `SKILL.md` content to `.windsurfrules` |
-| **Aider** | Reference `SKILL.md` via `--read` flag | Add to `.aider.conf.yml` conventions |
-| **Other tools** | Copy `SKILL.md` + `references/` into the tool's custom instructions location | Same |
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/<skill> ~/.claude/skills/<skill>` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
 
 ```bash
 rm -rf /tmp/dev-skills
 ```
 
-## How Skills Work
-
-Each skill is self-contained:
+## How skills work
 
 ```
 skill-name/
-  SKILL.md        <- Instructions and execution flow
-  README.md       <- What it does, how to use it
-  references/     <- Detailed rules (loaded on demand)
+  SKILL.md        ← Instructions and execution flow
+  README.md       ← What it does, how to use it
+  references/     ← Detailed rules (loaded on demand)
 ```
 
-No dependencies between skills. Each skill works fully standalone. When multiple skills are used together, they share analysis results via `.findings.md` to avoid duplicate work.
+Each skill is a multi-phase execution system. Phases have explicit entry conditions, quality gates, and error recovery. The `references/` files contain detailed rules loaded on demand — total skill overhead stays within 10K tokens.
 
-Each skill is a multi-phase execution system (not a static rule snippet). Phases have explicit entry conditions, quality gates, and error recovery — ensuring the AI follows a structured workflow rather than free-form interpretation.
+## Build your own
 
-The `references/*.md` files contain detailed rules loaded on demand to minimize token usage. Total skill overhead stays within a 10K token budget, leaving maximum context for the actual codebase.
+All skills follow [SKILL-SPEC.md](SKILL-SPEC.md) — a universal specification for building tool-agnostic, token-efficient AI coding skills.
 
-## Skill Specification
-
-All skills follow [SKILL-SPEC.md](SKILL-SPEC.md) — a universal specification for building tool-agnostic, token-efficient AI coding skills. Use it to create your own skills.
-
-## References
-
-- [AI Instruction Patterns](references/ai-instruction-patterns.md) — Research-backed best practices for writing effective AI agent instructions (2025-2026 sources)
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding skills, reporting issues, and submitting pull requests.
+See also: [AI Instruction Patterns](references/ai-instruction-patterns.md) — research-backed best practices for writing effective AI agent instructions.
 
 ## Companion: dev-rules
 
-For universal development guardrails (scope control, complexity limits, commit classification) that work with any AI tool, see [dev-rules](https://github.com/sungurerdim/dev-rules).
+Always-on behavioral guardrails that prevent mistakes between skill invocations — scope control, complexity limits, security gates, operational awareness. One file, any AI tool: [dev-rules](https://github.com/sungurerdim/dev-rules).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

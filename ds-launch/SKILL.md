@@ -1,5 +1,7 @@
 # /ds-launch
 
+~40% of iOS submissions get delayed or rejected for preventable errors. This skill scans your project and flags them before you submit.
+
 **Store & Release Management** — Store submission, listing optimization, release strategy, and post-launch monitoring.
 
 ## Triggers
@@ -44,9 +46,10 @@ Verify store account setup is complete. Check: developer account active, app ID 
 | Element | What It Covers |
 |---------|---------------|
 | App name | Character limits, keyword inclusion, localization |
-| Description | Short/long description, feature highlights, formatting |
+| Description | Short/long description with pain-first opening sentence — see voice guide in [references/aso-2026-updates.md](references/aso-2026-updates.md). First line must state the problem solved or the outcome delivered — never open with a feature list. Benefit-driven highlights, not feature highlights |
 | Keywords | Keyword research, competitor analysis, localization |
-| Screenshots | Required sizes per device, layout guidance, A/B testing |
+| Screenshots | First 3 screenshots decide the install — must follow problem → solution → delight narrative. Text overlay captions with benefit-driven copy (captions now index in Apple search as of June 2025). Platform-specific: do not reuse iOS screenshots on Play. Required sizes per device, layout guidance, A/B testing |
+| Video preview | Portrait video: +7% watch time, +5% conversion vs landscape (Google Play). 15-30 seconds, no audio dependency, demonstrate core value proposition |
 | Icon | Platform requirements, design guidelines |
 | Category | Primary/secondary category selection |
 | Age rating | Rating questionnaire guidance |
@@ -58,9 +61,11 @@ Verify store account setup is complete. Check: developer account active, app ID 
 | Keyword research | Competitor keyword analysis, search volume estimation, keyword difficulty |
 | Title optimization | Primary keyword in title, character limit compliance, localized titles |
 | Subtitle/short description | Secondary keywords, value proposition, character limits |
+| Screenshot caption indexing | Apple (June 2025): text overlays on screenshots now index in search. Captions must contain target keywords with benefit-driven copy. See screenshot narrative in [references/aso-2026-updates.md](references/aso-2026-updates.md) |
+| Custom Product Pages | Apple: 70 CPPs per app (expanded from 35), each keyword-linkable for organic search. Create CPPs for different audience segments and keyword clusters |
 | Category selection | Primary vs secondary category, competition density analysis |
-| Search ranking factors | Download velocity, ratings, update frequency, engagement signals |
-| A/B test recommendations | Title variants, screenshot order, icon alternatives |
+| Search ranking factors | Both stores shifting from keyword-matching to intent-driven semantic discovery. Apple: download velocity, ratings, update frequency, engagement signals. Google Play: engagement/retention signals outweigh raw downloads (2:1 redownload ratio), battery optimization as core vital (5% threshold — non-compliant apps excluded from discovery, March 2026) |
+| A/B test recommendations | Title variants, screenshot order, icon alternatives. Google Play: portrait video variants. Apple PPO: up to 3 treatment variants |
 
 ### Privacy Scope
 
@@ -70,18 +75,24 @@ Verify store account setup is complete. Check: developer account active, app ID 
 | Google Data Safety | Data safety section, ephemeral data, deletion support |
 | Web privacy | Cookie consent, privacy policy, GDPR/CCPA compliance |
 
-### Review Scope
+### Review Scope (Active Detection)
 
-| Check | What It Covers |
-|-------|---------------|
-| Common rejections | Missing privacy policy, crash on launch, incomplete metadata |
-| Platform rules | App Store Review Guidelines, Play Store policies |
-| Content compliance | Age-appropriate content, restricted categories |
-| Technical | 64-bit support, permissions usage, background modes |
-| ATT & Privacy Manifests | App Tracking Transparency prompt, SDK PrivacyInfo.xcprivacy validation |
-| Age compliance | Declared Age Range API (iOS), Play Age Signals API (Android), COPPA if applicable |
-| Data deletion | In-app account deletion mechanism required by both stores |
-| Review timing | Apple: 24-48h typical. Google: 1-7 days (first app longer) |
+Each check scans the codebase and produces PASS/FAIL with severity and file:line references — not a manual checklist.
+
+| Check | Detection Method | Severity |
+|-------|-----------------|----------|
+| Privacy policy | Scan configs + metadata for URL, verify HTTP 200 | CRITICAL |
+| Metadata completeness | Scan store metadata dirs for empty/placeholder content | CRITICAL |
+| Permission descriptions | Parse Info.plist / AndroidManifest.xml for missing descriptions | HIGH |
+| Privacy manifests & SDK compliance | Scan for PrivacyInfo.xcprivacy, flag SDKs without manifests | HIGH |
+| AI data consent | Check for consent modal if external AI services detected | HIGH |
+| Data deletion | Search for account deletion UI flow | HIGH |
+| Platform cross-references | Grep listing text for competing platform mentions | MEDIUM |
+| Crash-prone patterns | Scan entry points for force-unwraps, unhandled exceptions | MEDIUM |
+| Age rating | Verify age questionnaire completeness, new 13+/16+/18+ tiers | MEDIUM |
+| SDK & build requirements | Check minimum SDK version (iOS 26 SDK required from April 2026) | MEDIUM |
+| ATT & Privacy Manifests | App Tracking Transparency prompt, SDK PrivacyInfo.xcprivacy validation | HIGH |
+| Review timing | Apple: 24-48h typical. Google: 1-7 days (first app longer) | INFO |
 
 ### Release Scope
 
@@ -146,14 +157,20 @@ Setup → Detect → Analyze → Generate → Verify → Summary
 3. Generate privacy label declaration guide with your app's specific data types
 4. Flag discrepancies between code behavior and declared privacy labels
 
-**Review preparation:**
-1. Run pre-review checklist:
-   - Privacy policy URL accessible?
-   - All required metadata filled?
-   - App does not crash on cold start?
-   - Permissions have usage descriptions?
-   - No references to other platforms ("available on Android" in iOS listing)?
-2. Flag common rejection reasons for the detected platform
+**Review preparation (active scan — not just a checklist):**
+
+Scan the project for the top rejection triggers. Each check produces PASS/FAIL with file:line references.
+
+1. **Privacy policy [CRITICAL]:** Search for privacy policy URL in project config, metadata files, and store listing drafts. Verify URL is accessible (HTTP 200). If missing → FAIL with "Missing privacy policy URL — will cause rejection."
+2. **Metadata completeness [CRITICAL]:** Scan store metadata directories (fastlane/metadata, app store connect export, Play Console drafts). Flag: empty description, missing screenshots, placeholder text ("Lorem ipsum", "TODO", "Coming soon"). Guideline 2.1 (App Completeness) accounts for 40%+ of unresolved rejections.
+3. **Permission descriptions [HIGH]:** Scan `Info.plist` (iOS) for `NS*UsageDescription` keys, `AndroidManifest.xml` for permissions. Every permission must have a user-facing description. Missing → FAIL.
+4. **Privacy manifest & SDK compliance [HIGH]:** Scan for `PrivacyInfo.xcprivacy` (iOS). Verify all third-party SDKs have privacy manifests. Flag SDKs that track users without disclosure.
+5. **Platform cross-references [MEDIUM]:** Grep store listing text for references to other platforms ("available on Android" in iOS listing, "App Store" in Play listing). Flag as rejection risk.
+6. **Crash-prone patterns [MEDIUM]:** Scan for force-unwraps (Swift `!`), unhandled exceptions at app entry, missing null checks on launch-critical paths. Flag as "Performance — crash on launch review risk."
+7. **AI data consent [HIGH — new 2025]:** If app uses external AI services, check for consent modal implementation. Apple requires provider name + data types disclosure before personal data sharing.
+8. **Age rating compliance [MEDIUM]:** Check if age rating questionnaire is complete. New 13+/16+/18+ tiers (July 2025). Deadline: January 31, 2026 for updated questionnaire.
+9. **Data deletion [HIGH]:** Search for account deletion UI flow. Both stores require in-app account deletion mechanism. Missing → FAIL.
+10. **SDK & build requirements [MEDIUM]:** Check minimum SDK version. Starting April 2026: all iOS submissions must use iOS 26 SDK.
 
 **Gate:** All requested artifacts generated.
 

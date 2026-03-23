@@ -17,6 +17,16 @@ Solo-dev optimized, budget-conscious, privacy-respectful marketing playbook for 
 
 Rules: no keyword stuffing, use digits not spelled numbers, singular vs. plural tested individually, no prepositions wasting character budget. Placing a keyword in the title alone improves ranking for that term by roughly 10%.
 
+**2025-2026 Algorithm Updates:**
+- **Apple — Screenshot caption indexing** (June 2025): text overlays on screenshots now index in search. Include target keywords in screenshot captions.
+- **Apple — Custom Product Pages expanded**: 35 → 70 CPPs per app; each is keyword-linkable for organic search. Create CPPs for different audience segments.
+- **Apple — Search result diversity**: algorithm now shows intent variety instead of clustering 10-15 results on single intent.
+- **Apple — Additional search ads**: phased rollout starting March 2026 (UK→Japan→Global Q2).
+- **Google Play — Battery optimization core vital** (March 2026): 5% threshold; non-compliant apps excluded from discovery.
+- **Google Play — Engagement priority**: usage/retention metrics outweigh raw downloads (2:1 redownload ratio).
+- **Google Play — AI chatbot**: "Ask Play" Gemini integration for guided search (rolling out 2026).
+- **Cross-platform shift**: both stores moving from keyword-matching to semantic/intent-driven discovery. User intent matters more than exact keyword density.
+
 ### Keyword Research Process
 
 1. Seed list: brainstorm 30+ terms from your value proposition and competitor names.
@@ -128,6 +138,20 @@ Go beyond translation. Adapt keywords, screenshot captions, and value propositio
 
 ## 4. Content Marketing
 
+### Content Format ROI (2026)
+
+| Format | ROI | Best For | Production Effort |
+|--------|-----|----------|-------------------|
+| Short-form video | Highest; 2.5x more engagement than long-form | Demos, tutorials, quick wins (YouTube Shorts, TikTok, Reels) | Medium |
+| Technical blogs | 67% more leads; 434% more indexed pages | SEO, authority, depth | Medium-High |
+| Code samples/templates | Direct activation; reduces time-to-value | Integration guides, copy-paste snippets | Low-Medium |
+| Infographics | High shareability; 51% of marketers report good results | Architecture diagrams, comparisons | Medium |
+| Documentation | Essential credibility signal; missing = deal-breaker | Official guides, error troubleshooting | High |
+
+91% of content marketers use video; 78% are increasing production. Short-form generates highest engagement. As AI makes content cheaper, human-created original content becomes more valuable.
+
+Strategy: build content clusters (topic ownership through 5-10 related articles) rather than isolated posts. AI search engines prefer sources that comprehensively cover a topic.
+
 ### Dev Blog Strategy
 
 Publish 2-4 posts per month on your domain (/blog path for SEO value). Content pillars:
@@ -144,12 +168,23 @@ Publish 2-4 posts per month on your domain (/blog path for SEO value). Content p
 
 ### Answer Engine Optimization (AEO)
 
-AI search (ChatGPT, Perplexity, Google AI Overviews) drives significant discovery. Zero-click searches reached 69% in 2025. Optimize to be cited:
+AI search referral traffic grew 357% YoY (1.13B visits in June 2025 alone). Zero-click searches reached 65-69%; mobile reaches 77%. 25%+ of Google searches now show AI Overviews. By end of 2026, Gartner predicts 25% of organic search traffic shifts to AI chatbots. Being the cited source = the new SEO.
 
-- **Structure for extraction**: one idea per paragraph, clear H2/H3 hierarchy, self-contained sections.
-- **Q&A and listicle formats**: listicles = 32% of all AI citations (SEOMator). Implement Schema.org (FAQ, HowTo).
-- **Freshness + E-E-A-T**: update quarterly, include current year in titles, author bios with credentials.
-- **Platform-specific**: Reddit dominates Perplexity citations (46.7% of top sources). Maintain genuine Reddit presence.
+**AI search platform split (developer usage):**
+- ChatGPT: ~55-60% dominant (code generation preferred)
+- Perplexity: ~18-22% (technical research preferred — better citation quality)
+- Google Gemini: ~10-14%
+- Microsoft Copilot: ~6-9%
+
+**Optimization tactics:**
+- **Answer-first content**: lead each section with a 40-60 word direct answer, then expand. AI engines extract the first concise answer.
+- **Citation density**: include a stat or linked source every 150-200 words. AI engines favor content that cites authoritative data.
+- **Semantic structure**: clear H2/H3 hierarchy, self-contained sections. One idea per paragraph.
+- **Q&A and listicle formats**: listicles = 32% of all AI citations (SEOMator). Implement Schema.org (FAQ, HowTo, Article).
+- **Content freshness**: AI engines favor sources 25.7% fresher than traditional search. Update quarterly, include current year in titles.
+- **E-E-A-T signals**: author bios with credentials, expert quotes, original data.
+- **Reddit presence**: Reddit dominates Perplexity citations (46.7% of top sources). Maintain genuine, helpful Reddit presence in relevant subreddits.
+- **Topic clusters**: comprehensive coverage across related articles demonstrates expertise. AI engines prefer sources that own a topic, not one-off posts.
 
 ---
 
@@ -272,6 +307,9 @@ Contact: [name], [email]
 - **Direct**: "[Action verb] your [noun] with [App Name]"
 - **Problem-agitate**: "Tired of [pain point]? [App Name] [solution]."
 - **Outcome**: "[Desired outcome] without [common frustration]"
+- **Contrarian**: "[Status quo] is broken/dead. [Product] is what actually works." — Highest virality for developer tools. Appeals to early adopters, creates belonging. Used by Linear ("one right way" vs Jira), Tailwind ("utility-first" vs BEM), Zara Zhang ("code > PowerPoint").
+- **Philosophy**: "We believe [sharp belief]. That's why [Product] [specific design decision]." — Strongest long-term positioning. Can't be commoditized. Used by Rails ("convention over configuration"), Linear ("The Linear Method"), Basecamp ("Shape Up").
+- **Metric proof**: "[Before number] → [After number]. [Implication]." — Highest credibility. Quantification validates claims. Example: "1,625 lines → 183 lines. Same functionality, 89% less bloat."
 
 ### CTA Patterns
 
@@ -498,3 +536,14 @@ Freemium: calculate LTV on paying users, multiply by free-to-paid rate for blend
 - [Viral Coefficient Formula - Wall Street Prep](https://www.wallstreetprep.com/knowledge/viral-coefficient/)
 - [AEO Guide 2025 - Profound](https://www.tryprofound.com/resources/articles/answer-engine-optimization-aeo-guide-for-marketers-2025)
 - [AEO Comprehensive Guide 2026 - CXL](https://cxl.com/blog/answer-engine-optimization-aeo-the-comprehensive-guide/)
+- [AEO Getting Cited by AI - Frase.io](https://www.frase.io/blog/what-is-answer-engine-optimization-the-complete-guide-to-getting-cited-by-ai)
+- [AI Traffic Share Report 2026 - upGrowth](https://upgrowth.in/ai-traffic-share-report-2026/)
+- [ASO Trends 2026 - Phiture](https://phiture.com/blog/aso-trends-in-2026/)
+- [ASO News & Updates 2026 - AppTweak](https://www.apptweak.com/en/aso-blog/app-store-optimization-news-app-store-updates)
+- [Content Marketing 2026 - Idealogic](https://idealogic.dev/blog/future-content-marketing-2026-guide)
+- [Content Marketing Trends 2026 - WordStream](https://www.wordstream.com/blog/2026-content-marketing-trends)
+- [Demo Conversion Rates 2025 - RevenueHero](https://www.revenuehero.io/blog/the-state-of-demo-conversion-rates-in-2025/)
+- [Product Hunt Developer Launch 2026 - HackMamba](https://hackmamba.io/developer-marketing/how-to-launch-on-product-hunt/)
+- [Linear Growth Strategy - Aakash Gupta](https://www.news.aakashg.com/p/how-linear-grows)
+- [GitHub Stars Guide 2026 - ToolJet](https://blog.tooljet.com/github-stars-guide/)
+- [State of Open Source 2025 - Linux Foundation](https://www.linuxfoundation.org/blog/the-state-of-open-source-software-in-2025)

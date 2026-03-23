@@ -1,5 +1,7 @@
 # /ds-cv
 
+ATS rejects most CVs before a human ever sees them. This skill generates ones that pass.
+
 **CV Generator** — Professional, ATS-compatible HTML CV with LinkedIn companion guide.
 
 ## Triggers
