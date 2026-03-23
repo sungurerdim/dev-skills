@@ -87,7 +87,9 @@ Skills should include only the types they act on — not the full table.
 ```markdown
 # skill-name
 
-One-sentence description of what this skill does.
+{Pain point or problem this skill addresses.}
+
+One-sentence description framed as outcome.
 
 ## Install
 {copy instructions}
@@ -144,6 +146,23 @@ Example — bad:
 - **Positive framing** — "Only modify required lines" instead of "Don't touch unrelated code". Negative constraints fail 40-60% of the time.
 - **Gates over prose** — every phase ends with an explicit pass/fail condition + recovery action
 - **3-5 examples per rule** — more is diminishing returns. Place the most relevant example last (recency bias).
+
+### Skill Voice
+
+**Pain-first opening:** Every SKILL.md opens with the problem it solves, not the feature it provides. First line = pain or status-quo challenge. Second line = how the skill addresses it.
+
+| Pattern | Example |
+|---------|---------|
+| Good | "AI commits are vague and bundle unrelated changes. This skill reads the diff, groups logically, writes precisely." |
+| Bad | "Smart Commits — Quality gates + atomic grouping + conventional commit format." |
+
+Every claim in the opening must be verifiable against the skill's actual scope. If the skill generates plans but doesn't execute them, say "generates the playbook" not "fixes the problem."
+
+**Allowed words:** prevents, eliminates, enforces, catches, verifies, reduces, automates, replaces, ships, generates, detects, flags.
+
+**Forbidden words:** leverage, empower, unlock, seamlessly, cutting-edge, next-generation, world-class, innovative, holistic, synergy. These signal marketing-speak and reduce trust with developer audiences.
+
+**Tone:** Confident, opinionated, technically precise. Not salesy, not humble, not academic. Short sentences. Active voice. Imperative mood.
 
 ### Constraint Enforcement
 
@@ -730,7 +749,9 @@ Before releasing any skill, verify:
 ```markdown
 # /skill-name
 
-**Skill Name** — One-line description of what this skill does.
+{Pain point or problem statement in one sentence — what currently goes wrong.}
+
+**Skill Name** — One-line description framed as outcome.
 
 ## Triggers
 
