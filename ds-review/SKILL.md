@@ -1,5 +1,7 @@
 # /ds-review
 
+Code review catches what tests miss — security holes, dead code, wrong abstractions, and performance traps hiding in plain sight. This skill scans for all of them with file:line precision.
+
 **Code Improvement** — Tactical fixes and strategic architecture alignment in a single skill.
 
 ## Triggers

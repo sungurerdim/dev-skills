@@ -1,5 +1,7 @@
 # /ds-init
 
+New projects start with no CI, no test setup, no linting, and inconsistent structure. This skill scaffolds all of it from day one.
+
 **Project Scaffolding** — Generate production-ready project structure for any stack.
 
 ## Triggers

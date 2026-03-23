@@ -1,5 +1,7 @@
 # /ds-analytics
 
+Most apps either track everything (privacy violation) or nothing (flying blind). This skill designs the minimum event taxonomy that gives you maximum insight — privacy-first.
+
 **Analytics & Metrics** — Privacy-first analytics setup, event taxonomy, funnel design, and user insights.
 
 ## Triggers

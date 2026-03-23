@@ -1,5 +1,7 @@
 # /ds-repo
 
+Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no branch policies — most repos are misconfigured from day one. This skill audits and fixes it.
+
 **Repository Health** — Audit and configure repo settings, branch policies, hygiene, metadata, team, and structure.
 
 ## Triggers

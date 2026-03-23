@@ -1,5 +1,7 @@
 # /ds-deploy
 
+First deploy often means bloated Docker images, no health checks, no SSL, and no monitoring. This skill audits and generates production-ready infrastructure configs.
+
 **Deployment & Infrastructure** — Containerization, deployment, monitoring, and incident response.
 
 ## Triggers

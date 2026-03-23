@@ -1,5 +1,7 @@
 # /ds-commit
 
+AI commits are vague ("update code"), bundle unrelated changes, and skip pre-commit checks. This skill reads the diff, groups changes logically, and writes precise conventional commit messages.
+
 **Smart Commits** — Quality gates + atomic grouping + conventional commit format.
 
 ## Triggers

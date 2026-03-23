@@ -1,5 +1,7 @@
 # /ds-backend
 
+AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, and schemas that don't survive the first migration. This skill designs all three layers correctly from the start.
+
 **Backend Design** — API design, database schema, and authentication architecture in a single skill.
 
 ## Triggers

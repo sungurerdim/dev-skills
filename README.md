@@ -27,24 +27,24 @@ dev-skills are multi-phase execution systems — with quality gates, error recov
 
 | Skill | What it does |
 |-------|-------------|
-| [ds-init](ds-init) | Scaffold production-ready projects — CI, Docker, testing, env templates. Any stack. |
-| [ds-fix](ds-fix) | Format, lint, type-check, l10n, secret scan. 16 stacks, 5 scopes. |
-| [ds-test](ds-test) | Generate, update, run, and fix tests. Unit, integration, E2E. 13 stacks. |
-| [ds-review](ds-review) | Tactical fixes + strategic architecture + deep performance profiling. 25+ scopes. |
-| [ds-blueprint](ds-blueprint) | Project health scoring — 9 dimensions, 14 project types. |
-| [ds-docs](ds-docs) | Documentation gap analysis + doc↔code verification. |
-| [ds-commit](ds-commit) | Smart commits — quality gates, atomic grouping, conventional format. |
-| [ds-pr](ds-pr) | Smart PRs — history tidy, net diff analysis, auto-merge setup. |
-| [ds-deploy](ds-deploy) | Dockerfile audit/gen, VPS hardening, SSL, monitoring, cost analysis. |
+| [ds-init](ds-init) | New projects start with no CI, no tests, no linting. Scaffolds all of it from day one. |
+| [ds-fix](ds-fix) | AI skips formatting and ignores lint. Runs all 5 quality passes in the correct order. |
+| [ds-test](ds-test) | AI tests mock everything and assert nothing. Generates tests that follow your patterns and pass. |
+| [ds-review](ds-review) | Catches what tests miss — security holes, dead code, wrong abstractions. File:line precision. |
+| [ds-blueprint](ds-blueprint) | Can't improve what you don't measure. Scores your project across 9 dimensions. |
+| [ds-docs](ds-docs) | Docs drift from code the moment they're written. Detects gaps and verifies claims against source. |
+| [ds-commit](ds-commit) | AI commits are vague and bundle unrelated changes. Reads the diff, groups logically, writes precisely. |
+| [ds-pr](ds-pr) | PRs that list every commit create noise. Describes the net diff, not the journey. |
+| [ds-deploy](ds-deploy) | First deploy means bloated images, no health checks, no SSL. Generates production-ready configs. |
 | [ds-launch](ds-launch) | ~40% of store submissions fail for preventable errors. Scans your project and flags them. |
-| [ds-compliance](ds-compliance) | Security & regulatory audit — OWASP, GDPR, CCPA, KVKK, HIPAA. 80+ rules. |
-| [ds-mobile](ds-mobile) | Mobile app audit — 145+ rules across 13 domains. Flutter, SwiftUI, Kotlin, RN. |
-| [ds-devops](ds-devops) | CI/CD pipelines, code signing, dependency management. |
-| [ds-repo](ds-repo) | Repository audit — settings, branch protection, hygiene, structure. |
-| [ds-backend](ds-backend) | API design + database schema + auth architecture. |
-| [ds-research](ds-research) | Multi-source research with CRAAP+ reliability scoring. |
+| [ds-compliance](ds-compliance) | One missing privacy policy or unpatched XSS means fines or rejection. 80+ rules, file:line precision. |
+| [ds-mobile](ds-mobile) | Permission abuse, missing a11y, hardcoded keys surface during review. 145+ rules catch them first. |
+| [ds-devops](ds-devops) | Broken CI, unsigned builds, outdated deps erode release quality. Audits your entire DevOps setup. |
+| [ds-repo](ds-repo) | Unprotected branches, stale PRs, no CODEOWNERS — most repos are misconfigured. Audits and fixes. |
+| [ds-backend](ds-backend) | AI APIs ship with inconsistent naming and no auth strategy. Designs all three layers correctly. |
+| [ds-research](ds-research) | AI hallucinates sources and cites outdated data. Searches, scores reliability, cites everything. |
 | [ds-market](ds-market) | Solo devs build great products but can't get noticed. Generates positioning, copy, and growth playbook. |
-| [ds-analytics](ds-analytics) | Privacy-first analytics — event taxonomy, funnels, metrics. |
+| [ds-analytics](ds-analytics) | Most apps track everything (privacy risk) or nothing (blind). Designs minimum taxonomy, maximum insight. |
 | [ds-cv](ds-cv) | ATS rejects most CVs before a human sees them. Generates ones that pass. |
 
 Each skill is self-contained. No dependencies between them. Install one or all.

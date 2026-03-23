@@ -1,5 +1,7 @@
 # /ds-blueprint
 
+You can't improve what you don't measure. This skill scores your project across 9 dimensions and tells you exactly where to focus next.
+
 **Project Health System** — Profile-based assessment, transformation, and progress tracking.
 
 ## Triggers

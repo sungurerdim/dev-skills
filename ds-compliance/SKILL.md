@@ -1,5 +1,7 @@
 # /ds-compliance
 
+A single missing privacy policy or an unpatched XSS can mean fines, data breaches, or store rejection. This skill audits 80+ rules across 8 compliance domains with file:line precision.
+
 **Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and internationalization.
 
 ## Triggers

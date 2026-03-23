@@ -1,5 +1,7 @@
 # /ds-pr
 
+PR descriptions that list every commit instead of the net change create noise, confuse reviewers, and break changelogs. This skill describes what the diff actually shows.
+
 **Smart Pull Requests** — Conventional commit title + clean body for release-please.
 
 ## Triggers

@@ -1,5 +1,7 @@
 # /ds-docs
 
+Documentation drifts from code the moment it's written. This skill detects the gaps, verifies claims against source code, and generates what's missing.
+
 **Documentation Gap Analysis** — Identify missing docs, generate what's needed.
 
 ## Triggers

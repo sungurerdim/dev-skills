@@ -1,5 +1,7 @@
 # /ds-research
 
+AI models hallucinate sources, cite outdated data, and can't distinguish a blog post from a peer-reviewed study. This skill searches, scores source reliability, and synthesizes with citations.
+
 **Smart Research** — Parallel search, tier sources, synthesize, recommend.
 
 ## Triggers

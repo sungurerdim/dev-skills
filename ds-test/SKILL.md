@@ -1,5 +1,7 @@
 # /ds-test
 
+AI-generated tests often mock everything, assert nothing useful, and break on the first refactor. This skill generates tests that follow your project's patterns and verifies they actually pass.
+
 **Universal Test Skill** — Generate, update, run, and fix tests for any stack.
 
 ## Triggers

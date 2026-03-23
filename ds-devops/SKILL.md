@@ -1,5 +1,7 @@
 # /ds-devops
 
+Broken CI pipelines, unsigned builds, and outdated dependencies silently erode release quality. This skill audits your entire DevOps setup and flags what needs fixing.
+
 **DevOps Audit** — CI/CD pipelines, code signing, dependency management, and deployment configuration for any project type.
 
 ## Triggers

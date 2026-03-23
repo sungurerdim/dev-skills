@@ -1,5 +1,7 @@
 # /ds-fix
 
+AI assistants skip formatting, ignore lint errors, and never run type checks. This skill runs all five quality passes in the correct order and verifies the result.
+
 **Universal Code Quality Fix** — Format, lint, type-check, l10n, and security scan for any stack.
 
 ## Triggers
