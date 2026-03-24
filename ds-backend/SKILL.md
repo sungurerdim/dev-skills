@@ -14,7 +14,8 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 ## Contract
 
 - Covers three scopes: API design, database design, and authentication
-- Fully functional standalone. Uses `.findings.md` for optimization when available
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams
 - Only suggests well-established patterns — no experimental or untested approaches
 - **Minimal liability:** auth recommendations prioritize managed services over DIY
@@ -86,8 +87,13 @@ Setup → Discover → Analyze → [Design/Spec] → Report → Summary
 
 1. If flags provided, proceed directly
 2. If no flags, present interactive menu
-3. Detect project stack (framework, ORM, auth library) by scanning config files and dependencies
-4. Load relevant reference docs based on detected scope
+3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Project Map.Modules** → know API structure, skip architecture discovery
+   - **Config.data** → know auth and data protection requirements
+   - **Project Map.External** → know existing DB, cache, queue, auth providers
+   - **Type + Stack** → skip own project detection
+4. Detect project stack (framework, ORM, auth library) by scanning config files and dependencies
+5. Load relevant reference docs based on detected scope
 
 **Gate:** Scope and mode confirmed.
 
@@ -95,7 +101,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → Summary
 
 **Goal:** Map existing backend architecture.
 
-1. **Findings file check:** If `.findings.md` exists with fresh `git_hash`, use relevant findings
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use relevant findings
 2. Search for route/endpoint definitions, controller files, middleware
 3. Search for database schema files (migrations, models, entity definitions)
 4. Search for auth configuration (JWT secret usage, session config, OAuth setup)
@@ -159,7 +165,7 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity.
 ### Phase 6: Summary
 
 ```
-ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Total: N
+ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
 **Audit output:** Findings table grouped by scope (API / DB / Auth).
@@ -167,6 +173,8 @@ ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Tot
 **Design output:** Generated artifacts list with locations.
 
 **Spec output:** Generated specification files with locations.
+
+**FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
 **Gate:** Summary printed with all design artifacts listed.
 
@@ -178,6 +186,7 @@ ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Tot
 - OpenAPI spec validates against OpenAPI 3.0+ schema
 - Migration files include both `up` and `down` operations
 - Auth flows use current best practices (PKCE for public clients, not implicit flow)
+- Every finding gets a disposition in the summary — zero silent drops (FRC)
 
 ## Error Recovery
 

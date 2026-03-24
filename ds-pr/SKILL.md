@@ -25,6 +25,8 @@ The PR title IS the changelog entry. The PR body becomes the squash commit body.
 
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
+- Fully standalone — zero dependency on other skills
+
 ## Arguments
 
 | Flag | Effect |

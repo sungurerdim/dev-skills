@@ -14,7 +14,8 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 ## Contract
 
 - Covers deployment, infrastructure hardening, monitoring, and incident response
-- Fully functional standalone. Uses `.findings.md` for optimization when available
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 - Generates configuration files and checklists — does NOT execute deployment commands
 - **Minimal liability:** generates configs for review, never auto-deploys to production
 - **Maximum performance:** optimizes Docker images, enables caching, configures health checks
@@ -84,10 +85,15 @@ Setup → Discover → Analyze → [Generate] → Report → Summary
 
 **Goal:** Determine mode and deployment context.
 
-1. If flags provided, proceed directly
-2. If no flags, present interactive menu
-3. Detect deployment signals: Dockerfile, docker-compose.yml, Procfile, serverless.yml, fly.toml, vercel.json
-4. Detect target: VPS, PaaS, serverless, container orchestration
+1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Config.deploy** → skip deployment target detection, use stated method (Docker, VPS, PaaS)
+   - **Project Map.External** → know dependencies to configure (Redis, DB, queue, etc.)
+   - **Config.constraints** → respect stated infrastructure constraints
+   - **Type + Stack** → skip own project detection
+2. If flags provided, proceed directly
+3. If no flags, present interactive menu
+4. Detect deployment signals: Dockerfile, docker-compose.yml, Procfile, serverless.yml, fly.toml, vercel.json
+5. Detect target: VPS, PaaS, serverless, container orchestration
 
 **Gate:** Mode and context confirmed.
 
@@ -95,7 +101,7 @@ Setup → Discover → Analyze → [Generate] → Report → Summary
 
 **Goal:** Map existing infrastructure.
 
-1. **Findings file check:** If `.findings.md` exists with fresh `git_hash`, use relevant findings
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use relevant findings
 2. Search for deployment configs (Dockerfile, compose, CI deploy steps)
 3. Search for monitoring configs (Sentry DSN, logging config, health endpoints)
 4. Search for environment variables and secrets management
@@ -176,10 +182,10 @@ Present generated files for review before writing.
 ### Phase 7: Summary
 
 ```
-ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | Findings: N | Generated: N
+ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | Findings: N | Generated: N | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Gate:** Summary printed with applied/failed/total counts.
+**Gate:** Summary printed with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
 
 ## Quality Gates
 
@@ -189,6 +195,7 @@ ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | 
 - Monitoring setup includes PII redaction
 - SSL configuration targets A+ rating
 - Backup strategy includes verification and offsite storage
+- Every finding gets a disposition in the summary — zero silent drops (FRC)
 
 ## Error Recovery
 

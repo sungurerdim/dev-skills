@@ -20,6 +20,8 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 - Re-validates after fix to confirm the fix worked
 - Reports counts, not verbose output
 - Does NOT perform manual code review, architecture analysis, or refactoring
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ## Arguments
 
@@ -46,6 +48,10 @@ Default: all five scopes in order.
 Detection → [L10n] → [Format] → [Typecheck] → [Lint] → [Security] → Summary
 
 ### Phase 1: Stack Detection
+
+1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Project Map.Toolchain** → skip tool detection, use stated formatter/linter/typechecker directly
+   - **Type + Stack** → select correct toolchain from references
 
 Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 
@@ -210,10 +216,12 @@ Legend: ✓ = pass, ✗ = issues found, ⊘ = skipped
 Output summary line:
 
 ```
-ds-fix: {OK|WARN|FAIL} | Fixed: N | Issues: N | Skipped: N
+ds-fix: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Gate:** Summary table rendered with status per scope and totals.
+**FRC accounting:** Every finding from the audit/analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
+
+**Gate:** Summary table rendered with status per scope and totals. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
 ## Quality Gates
 

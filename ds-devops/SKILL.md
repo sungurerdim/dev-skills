@@ -15,7 +15,8 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 
 - Every finding cites file and line — never infer or assume
 - Only audits CI/CD, signing, dependencies, and release pipelines
-- Fully functional standalone — uses `.findings.md` for optimization when available
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ## Arguments
 
@@ -45,7 +46,11 @@ Detect → Configure → Scan → Report → [Fix] → Summary
 
 ### Phase 1: Detect
 
-1. **Project type detection.** Search for config files:
+1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Project Map.Toolchain** → skip CI detection, use stated CI platform and tools
+   - **Type + Stack** → select correct pipeline templates
+   - **Config.deploy** → know deployment context for pipeline design
+2. **Project type detection.** Search for config files:
 
 | Type | Detection |
 |------|-----------|
@@ -59,16 +64,16 @@ Detect → Configure → Scan → Report → [Fix] → Summary
 | Android | `build.gradle` with `android {}` |
 | Monorepo | `lerna.json`, `nx.json`, `turbo.json`, workspace config |
 
-2. **CI detection.** Search for CI config files: `.github/workflows/`, `.gitlab-ci.yml`, `bitrise.yml`, `Jenkinsfile`, `.circleci/`, `azure-pipelines.yml`, `codemagic.yaml`.
+3. **CI detection.** Search for CI config files: `.github/workflows/`, `.gitlab-ci.yml`, `bitrise.yml`, `Jenkinsfile`, `.circleci/`, `azure-pipelines.yml`, `codemagic.yaml`.
 
-3. **Dependency tooling.** Detect: `dependabot.yml`, `renovate.json`, lockfiles, `.nvmrc`, `.tool-versions`.
+4. **Dependency tooling.** Detect: `dependabot.yml`, `renovate.json`, lockfiles, `.nvmrc`, `.tool-versions`.
 
-4. **Mode selection.** If no `--mode` flag, ask the user:
+5. **Mode selection.** If no `--mode` flag, ask the user:
    - **Full Audit** — scan all scopes, report findings
    - **Audit & Fix** — scan, review findings, then fix
    - **Quick Fix** — scan and auto-fix, minimal review
 
-5. **Scope selection.** If no `--scope` flag, ask which scopes to audit (default: all).
+6. **Scope selection.** If no `--scope` flag, ask which scopes to audit (default: all).
 
 **Gate:** Project type identified, CI platform detected, mode and scope confirmed.
 
@@ -80,12 +85,14 @@ Load [rules-devops.md](references/rules-devops.md). Rules are project-type-aware
 
 ### Phase 3: Scan
 
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (ci, signing, deps, release-pipeline). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
+
 For each scope, scan the codebase:
 
-1. Search for relevant config and build files
-2. Search contents for violation patterns
-3. Read files to verify findings in context
-4. Skip rules that cannot be verified
+2. Search for relevant config and build files
+3. Search contents for violation patterns
+4. Read files to verify findings in context
+5. Skip rules that cannot be verified
 
 **Confidence:** HIGH = match + context verified. MEDIUM = pattern match, ambiguous. LOW = heuristic.
 
@@ -136,10 +143,10 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 4. Present fix summary
 
 ```
-ds-devops: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N
+ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Gate:** Applied + failed + skipped = total findings; every modified file re-read and verified.
+**Gate:** Fixed + skipped + failed = total findings; every modified file re-read and verified. Every finding/action has a disposition. Accounting verified.
 
 ## Quality Gates
 
@@ -147,6 +154,7 @@ ds-devops: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N
 2. Format preservation (indentation, config style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (correct CI syntax, valid config)
+5. Every finding gets a disposition in the summary — zero silent drops (FRC)
 
 ## Edge Cases
 

@@ -14,7 +14,8 @@ Solo developers build great products but can't get anyone to notice. This skill 
 ## Contract
 
 - Strategic guidance skill — produces plans, copy, and checklists, not code
-- Fully standalone — no dependency on other skills
+- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project type, audience, and stack to tailor marketing strategy. When absent, asks user for context.
+- Every deliverable (strategy, copy, checklist) is accounted for in the summary — zero silent drops
 - **Minimal liability:** recommends established marketing patterns, no dark patterns
 - **Maximum privacy:** no invasive tracking recommendations, no manipulative UX
 - **Maximum efficiency:** automation-first tactics, time-efficient for solo devs
@@ -72,7 +73,7 @@ Example: "We believe every dependency is a future breaking change. That's why de
 
 **Formula 4 — Metric Proof** (highest credibility):
 `"[Before number] → [After number]. [Implication]."`
-Example: "1,625 lines → 183 lines. Same functionality, 89% less context bloat."
+Example: "{before_metric} → {after_metric}. {benefit statement}."
 
 Rules: Every tagline set must include at least 1 contrarian and 1 metric-proof option. Store descriptions must open with pain or outcome, never with feature list.
 

@@ -20,7 +20,8 @@ Covers 80+ rules across 8 compliance domains.
 - Every finding cites file and line — never infer or assume
 - Unverifiable rules are skipped, not guessed
 - Only audits compliance — code fixes are CAT-1 (auto) or CAT-2 (user approval)
-- Fully functional standalone — uses `.findings.md` for optimization when available
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ## Arguments
 
@@ -38,20 +39,26 @@ Detect -> Configure -> Scan -> Report -> [Fix] -> Summary
 
 ### Phase 1: Detect
 
-1. **Project detection.** Search for config files to identify project type:
+1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Config.regulations** → skip regulation detection, use stated frameworks (GDPR, KVKK, CCPA) directly
+   - **Config.data** → know data types to scan for (PII, credentials, sensitive data)
+   - **Config.audience** → public users: stricter compliance requirements
+   - **Type + Stack** → skip own project detection
+
+2. **Project detection.** Search for config files to identify project type:
    - **Web frontend:** `package.json` with react/next/vue/nuxt/angular/svelte/astro
    - **API/backend:** express/fastify/nestjs, fastapi/django/flask, go.mod with gin/echo, Cargo.toml with actix/axum, spring-boot
    - **CLI/library:** bin field, commander/yargs/click/cobra/clap, or library exports without bin
    - Override with `--type` flag if auto-detection is wrong
 
-2. **Stack detection.** Identify framework, language, architecture pattern, auth, database, ORM, API style, testing, CI/CD, i18n, deployment.
+3. **Stack detection.** Identify framework, language, architecture pattern, auth, database, ORM, API style, testing, CI/CD, i18n, deployment.
 
-3. **Mode selection.** If no `--mode` flag, ask the user:
+4. **Mode selection.** If no `--mode` flag, ask the user:
    - **Audit Only** — scan all domains, report only
    - **Audit & Fix** — scan, review findings, then fix
    - **Quick Fix** — scan and auto-fix, minimal review
 
-4. **Scope selection.** If no `--scope` flag, ask which domains to audit (default: all applicable).
+5. **Scope selection.** If no `--scope` flag, ask which domains to audit (default: all applicable).
    - For regulatory scope: detect frameworks (GDPR, KVKK, CCPA, etc.) from codebase patterns, confirm with user
 
 **Gate:** Project type identified, mode and scope confirmed, regulatory frameworks resolved.
@@ -87,18 +94,20 @@ Load reference files matching scope:
 
 ### Phase 4: Scan
 
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (security, privacy, regulatory, web, network, arch, perf, i18n). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
+
 For each domain in scope, scan the codebase:
 
-1. Search for relevant files
-2. Search contents for violation patterns
-3. Read files to verify findings in context
-4. Skip rules that cannot be verified
+2. Search for relevant files
+3. Search contents for violation patterns
+4. Read files to verify findings in context
+5. Skip rules that cannot be verified
 
 **Confidence:** HIGH = specific grep match + context verified, MEDIUM = pattern match, ambiguous context, LOW = heuristic only.
 
 **False positive prevention:** Check surrounding context. Never flag: `// noqa`, `// intentional`, `// safe:`, `_` prefix, `TYPE_CHECKING` blocks, test fixtures.
 
-**Large scope (3+ domains):** Track progress with a numbered checklist. Create `.findings.md` in project root (add to .gitignore). After each domain scan, append findings. This enables recovery if context is lost.
+**Large scope (3+ domains):** Track progress with a numbered checklist. Append findings to `.ds-findings.md` in project root (add to .gitignore) — if the file exists with a fresh `git_hash`, preserve findings from other scopes and append only your own. After each domain scan, append findings. This enables recovery if context is lost.
 
 **Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
 
@@ -134,9 +143,11 @@ Architecture: [detected summary]
    - `audit+fix`: Show plan, ask proceed/cancel
    - `audit`: Ask which severities to fix
 3. Apply fixes grouped by file. Different files can be fixed in parallel, same file sequentially.
-4. Present fix summary: applied, failed, skipped
+4. Present fix summary: Fixed: N | Skipped: N | Failed: N | Total: N
 
-**Gate:** Applied + failed + skipped = total findings; every modified file re-read and verified.
+**FRC accounting:** Every finding from the audit/analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
+
+**Gate:** `fixed + failed + skipped + needs_approval + not_applicable = total`; every modified file re-read and verified.
 
 ## Quality Gates
 

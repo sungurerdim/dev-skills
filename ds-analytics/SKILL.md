@@ -14,7 +14,8 @@ Most apps either track everything (privacy violation) or nothing (flying blind).
 ## Contract
 
 - Privacy-first: maximum insights with minimum data collection
-- Fully standalone — no dependency on other skills
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 - Generates event taxonomies, tracking plans, and dashboard specs — not tracking code
 - **Maximum privacy:** recommends privacy-respecting tools, no invasive tracking
 - **Minimum dependencies:** prefer self-hosted or minimal analytics over heavyweight SDKs
@@ -86,9 +87,14 @@ Setup → Discover → Design/Audit → Generate → Summary
 
 1. If flags provided, proceed directly
 2. If no flags, present interactive menu
-3. Detect platform (web, mobile, API) from project signals
-4. Detect existing analytics (search for analytics SDKs in dependencies)
-5. Ask: Which decisions will analytics inform? Options: feature prioritization, monetization, quality improvement, user retention
+3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Config.data** → know privacy constraints for tracking design
+   - **Config.audience** → context for event taxonomy (public vs internal)
+   - **Config.regulations** → compliance requirements affecting analytics (GDPR consent, etc.)
+   - **Type + Stack** → skip own project detection
+4. Detect platform (web, mobile, API) from project signals
+5. Detect existing analytics (search for analytics SDKs in dependencies)
+6. Ask: Which decisions will analytics inform? Options: feature prioritization, monetization, quality improvement, user retention
 
 **Gate:** Platform and goals confirmed.
 
@@ -143,17 +149,18 @@ Setup → Discover → Design/Audit → Generate → Summary
 
 **Goal:** Review existing analytics.
 
-1. **Coverage check:** Map tracked events to user journeys — identify gaps
-2. **Privacy check:**
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (privacy, coverage, noise, quality). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
+2. **Coverage check:** Map tracked events to user journeys — identify gaps
+3. **Privacy check:**
    - PII in event properties? (emails, names, IPs, precise location)
    - Consent mechanism present?
    - Data retention configured?
    - Third-party sharing documented?
-3. **Noise check:**
+4. **Noise check:**
    - Events tracked but never used in dashboards?
    - Duplicate events?
    - Events with >10 properties (too complex)?
-4. **Quality check:**
+5. **Quality check:**
    - Naming consistency?
    - Missing required properties?
    - Events without clear business purpose?
@@ -163,7 +170,7 @@ Setup → Discover → Design/Audit → Generate → Summary
 ### Phase 6: Summary
 
 ```
-ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: N defined | Gaps: N | Privacy: {OK|WARN}
+ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: N defined | Gaps: N | Privacy: {OK|WARN} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
 **Design output:** Event taxonomy table + funnel definitions + dashboard spec.
@@ -171,6 +178,8 @@ ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: N defined | 
 **Setup output:** Integration guide with code patterns.
 
 **Audit output:** Coverage map, privacy findings, noise findings.
+
+**FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
 **Gate:** Summary printed with all metrics and recommendations.
 
@@ -181,6 +190,7 @@ ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: N defined | 
 - Every tracked event has a documented business purpose
 - Event naming follows consistent convention
 - Funnels have defined conversion targets
+- Every finding gets a disposition in the summary — zero silent drops (FRC)
 
 ## Error Recovery
 

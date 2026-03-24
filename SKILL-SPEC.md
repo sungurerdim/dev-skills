@@ -51,6 +51,23 @@ Annotations:
 - `[SKIP if ...]` — conditional step bypass
 - `[PARALLEL]` — steps that can run concurrently
 - `[CONDITION]` — phase-level entry condition (e.g., `[--auto]`, `[findings > 0]`)
+- No annotation — **mandatory phase, always executes**
+
+### Mandatory vs Conditional Phases
+
+Phases without a `[CONDITION]` annotation are **mandatory** — they execute on every run, regardless of mode or flags. Skipping a mandatory phase is a skill execution bug.
+
+In the execution flow overview, the convention is:
+- `Phase` (no brackets) = mandatory, always runs
+- `[Phase]` (square brackets) = conditional, runs only when condition is met
+
+**Example:** `Assess → Consolidate → Dashboard → [Suggest] → Update Profile → Summary`
+- Assess, Consolidate, Dashboard, Update Profile, Summary = mandatory
+- Suggest = conditional (skip if --preview)
+
+**Mandatory phase outputs:** Every mandatory phase MUST produce visible output. If a mandatory phase completes but produces no user-visible output (no table, no summary line, no status), the skill has a bug. Mandatory phases exist because their output is essential for the user to understand the skill's results.
+
+**Enforcement:** When a phase has no `[SKIP if ...]` or `[CONDITION]` annotation, the execution engine treats it as a hard requirement. The summary phase MUST verify that all mandatory phases produced output.
 
 ### Reference File Format
 
@@ -439,12 +456,92 @@ Skills that audit code should offer a consistent mode pattern:
 
 Skills may add domain-specific modes (e.g., `release-ready`, `design`). Mode selection is presented as an interactive menu when no flag is provided.
 
+### Finding Resolution Completeness (FRC)
+
+Every finding produced by an audit phase MUST appear in the summary with exactly one disposition. No finding may be silently dropped.
+
+**Standard dispositions:**
+
+| Disposition | Meaning | When to use |
+|-------------|---------|-------------|
+| `fixed` | Applied successfully, verified | Fix confirmed via re-read or API check |
+| `failed` | Fix attempted, did not succeed | Tool error, API rejection, or verification failed |
+| `skipped` | Intentionally not fixed, reason stated | Platform limitation, plan scope, user declined |
+| `needs-input` | Requires information from user | URL, credential, preference, or decision the skill cannot infer |
+| `needs-approval` | Risky or cross-module, awaiting confirmation | Destructive action, multi-contributor impact, architectural change |
+| `not-applicable` | Re-verified and dismissed | Context changed, false positive on re-check, already resolved |
+
+**Rules:**
+
+1. Every finding gets exactly one disposition — `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total`
+2. `needs-input` findings MUST trigger a question to the user before the summary phase. Present the finding context and ask for the required input. If the user provides input → attempt fix → `fixed` or `failed`. If the user declines → `skipped`.
+3. `skipped` findings MUST include a parenthetical reason: `Skipped: 2 (1 platform limit, 1 user declined)`
+4. The summary table lists every finding with its disposition — no finding appears only in the audit phase and disappears from the summary.
+
+**Example — correct:**
+```
+| # | Finding              | Disposition                        |
+|---|----------------------|------------------------------------|
+| 1 | Stale branch         | fixed ✅                           |
+| 2 | Auto-merge disabled  | skipped (free plan limitation)     |
+| 3 | Homepage URL empty   | needs-input → user provided → fixed ✅ |
+| 4 | Branch protection    | skipped (free plan limitation)     |
+```
+
+**Example — incorrect (finding #3 silently dropped):**
+```
+| # | Finding              | Disposition                   |
+|---|----------------------|-------------------------------|
+| 1 | Stale branch         | fixed ✅                      |
+| 2 | Auto-merge disabled  | skipped (free plan limitation) |
+```
+
+### Deterministic Scope Checklist (DSC)
+
+Every scope that performs auditing MUST define an explicit, enumerated checklist of checks. Each check produces exactly one outcome per run.
+
+**Check outcomes:**
+
+| Outcome | Symbol | Meaning |
+|---------|--------|---------|
+| Finding | severity tag | Issue detected, added to findings list |
+| Pass | ✅ | Check executed, no issue found |
+| Not applicable | N/A | Check cannot apply to this project (with reason) |
+
+**Rules:**
+
+1. Each scope section in SKILL.md lists its checks as a numbered or bulleted list with a short name for each check
+2. Every listed check MUST be evaluated on every run — no check is silently omitted based on context
+3. If a check cannot apply (e.g., "social preview" on private repo), report as N/A with reason — never silently skip
+4. The "clean scopes" or "healthy" section in the summary explicitly lists which checks passed, confirming they were evaluated
+5. Two runs of the same skill on the same repo at the same commit MUST evaluate the same checklist — the checks are deterministic, only the outcomes may differ
+
+**Example scope definition:**
+```markdown
+**settings scope checks:**
+1. Merge strategy — squash-only enabled
+2. Commit title format — PR_TITLE
+3. Commit message format — PR_BODY
+4. Delete branch on merge — enabled
+5. Auto-merge — enabled
+```
+
+**Example scope result (all checks accounted):**
+```
+settings: 3 findings, 2 pass
+  1. Merge strategy     → ✅ squash-only
+  2. Commit title       → MEDIUM: COMMIT_OR_PR_TITLE (expected PR_TITLE)
+  3. Commit message     → MEDIUM: COMMIT_MESSAGES (expected PR_BODY)
+  4. Delete on merge    → MEDIUM: false (expected true)
+  5. Auto-merge         → N/A (requires branch protection, free plan)
+```
+
 ### Summary Format
 
 All skills produce a summary line:
 
 ```
-{skill-name}: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N
+{skill-name}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
 Status codes:
@@ -452,15 +549,17 @@ Status codes:
 - **WARN** — some failures but no CRITICAL findings unresolved
 - **FAIL** — CRITICAL finding unresolved, or execution error
 
+**Accounting gate:** The summary MUST satisfy `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total`. If the equation does not balance, the skill has a bug.
+
 ---
 
 ## 6. Inter-Skill Boundaries
 
 ### Ownership & Independence
 
-Each skill is **fully functional standalone**. Skills are self-contained: no skill references SKILL-SPEC, other skills, or files outside its own directory at runtime. The only shared artifacts are `.findings.md` (project root) and the blueprint profile section in the AI instruction file — both are optional optimizations.
+Each skill is **fully functional standalone**. Skills are self-contained: no skill references SKILL-SPEC, other skills, or files outside its own directory at runtime. The only shared artifacts are `.ds-findings.md` (project root) and the blueprint profile section in the AI instruction file — both are optional optimizations.
 
-The boundaries below define **primary ownership** — which skill provides the deepest, most authoritative analysis for each concern. When `.findings.md` exists, skills consume pre-analyzed data to avoid duplicate work. When it doesn't, every skill runs its own complete analysis.
+The boundaries below define **primary ownership** — which skill provides the deepest, most authoritative analysis for each concern. When `.ds-findings.md` exists, skills consume pre-analyzed data to avoid duplicate work. When it doesn't, every skill runs its own complete analysis.
 
 | Skill | Primary ownership | Standalone capability |
 |-------|-------------------|---------------------|
@@ -486,7 +585,7 @@ The boundaries below define **primary ownership** — which skill provides the d
 
 ### Overlap Resolution
 
-Where scopes overlap between skills, each skill handles the full scope independently when standalone. When multiple skills run together, `.findings.md` prevents duplicate analysis.
+Where scopes overlap between skills, each skill handles the full scope independently when standalone. When multiple skills run together, `.ds-findings.md` prevents duplicate analysis.
 
 | Overlapping concern | Skills involved | Resolution |
 |--------------------|-----------------|------------|
@@ -511,7 +610,9 @@ Communication happens through two well-known file locations:
 
 **1. Blueprint profile** — between `## Blueprint Profile` and `## End Blueprint Profile` heading markers in the AI instruction file. Markdown headings are universally preserved by every tool. Read-only for all skills except ds-blueprint.
 
-**2. Findings file** — `.findings.md` in project root. Universal format for passing analysis results between skills (or between any analyzer and any fixer).
+**Marker detection:** Consumer skills search for `## Blueprint Profile` heading first, then legacy markers (HTML comment pairs or variant headings containing "Blueprint Profile") as fallback. ds-blueprint writes a new standard profile alongside legacy blocks without touching them, then reports coverage comparison so the user can decide when to remove the legacy block.
+
+**2. Findings file** — `.ds-findings.md` in project root. Universal format for passing analysis results between skills (or between any analyzer and any fixer).
 
 #### Findings File Format
 
@@ -532,16 +633,40 @@ scopes: {comma-separated list of analyzed scopes}
 
 #### Findings File Rules
 
+**Single file, always.** There is exactly ONE `.ds-findings.md` per project. All producers write to the same file. All consumers read from the same file. No skill creates its own separate findings file.
+
 | Rule | Detail |
 |------|--------|
-| **Location** | `.findings.md` in project root. Add to `.gitignore` — this is a transient artifact, not committed. |
+| **Location** | `.ds-findings.md` in project root. Add to `.gitignore` — this is a transient artifact, not committed. |
 | **Freshness** | Compare `git_hash` with current HEAD. If different, findings are stale — skill must re-analyze. |
 | **Scopes** | Lists which scopes were analyzed. A fix skill checks: is my scope listed? If yes → use findings. If no → run own analysis for that scope. |
 | **Consumption** | After a fix skill processes findings, it removes the fixed entries. When all entries are resolved, delete the file. |
-| **Partial analysis** | Any skill can write findings for its scopes only. Multiple skills can append (respecting the meta header — update scopes list). |
 | **Source agnostic** | The `source` field is informational. Any tool, skill, or manual analysis can produce this file. A fix skill treats all findings equally regardless of source. |
 | **Line 0** | `Line: 0` means file-level finding (not a specific line). |
 | **Detail level** | Findings are signals, not detailed analyses. The title is a short description (e.g., "Hardcoded API secret"). The consuming skill reads the actual file:line to understand context, verify the finding, and determine the fix. |
+
+#### Write Semantics
+
+Multiple skills produce findings. They all write to the same `.ds-findings.md` with these rules:
+
+| Scenario | Behavior |
+|----------|----------|
+| File doesn't exist | Create new file with your scopes in the meta header |
+| File exists, same `git_hash` | **Append**: add your findings rows, add your scopes to the `scopes` list in meta header. Dedup: if a finding at the same file:line already exists, keep the one with higher severity. |
+| File exists, different `git_hash` | File is stale. If you are a full-codebase analyzer (ds-blueprint): overwrite entirely. If you are a partial analyzer (ds-compliance, ds-mobile, ds-test): overwrite only YOUR scopes — preserve findings from other scopes that are still valid. |
+| After consuming/fixing | Remove fixed entries from the file. Update scopes list if a scope is now fully resolved. Delete file when zero entries remain. |
+
+**Producer priority:** When ds-blueprint and another skill both write the same scope, ds-blueprint's findings take precedence (it scans the entire codebase). The other skill's findings are merged only for scopes ds-blueprint didn't cover.
+
+**Meta header after multi-producer append:**
+```
+<!-- findings-meta
+git_hash: {HEAD}
+timestamp: {latest write timestamp}
+source: ds-blueprint, ds-compliance, ds-test
+scopes: security, privacy, hygiene, types, ..., regulatory, web, testing
+-->
+```
 
 #### Scope Coverage
 
@@ -549,13 +674,17 @@ All scopes from all skills can appear in findings. The analyzer does not need to
 
 | Scope | Typical producer | Typical consumer |
 |-------|-----------------|-----------------|
-| security, privacy, robustness | ds-blueprint, ds-compliance | ds-review (tactical) |
+| security, privacy | ds-blueprint, ds-compliance | ds-review (tactical) |
 | hygiene, types, simplify | ds-blueprint, ds-compliance | ds-review (tactical) |
+| ai-hygiene, doc-sync | ds-blueprint | ds-review (tactical) |
 | performance | ds-blueprint, ds-compliance | ds-review (tactical) |
+| robustness, production-readiness | ds-blueprint | ds-review (tactical) |
 | architecture, patterns, cross-cutting | ds-blueprint | ds-review (strategic) |
-| testing (assessment) | ds-blueprint, ds-review | ds-test (generates/updates tests based on findings) |
+| maintainability, ai-architecture | ds-blueprint | ds-review (strategic) |
+| testing, functional-completeness | ds-blueprint, ds-review | ds-test (generates/updates tests based on findings) |
 | testing (run+fix) | ds-test (own execution) | ds-test (fixes test-side issues) |
-| maintainability | ds-blueprint | ds-review (strategic) |
+| stack | ds-blueprint | ds-review, ds-fix, ds-devops |
+| dx | ds-blueprint | ds-review |
 | docs | ds-blueprint | ds-docs |
 | format, lint, typecheck | ds-fix (own analysis) | ds-fix (own tools) |
 | ci, signing, deps, deploy | ds-devops | ds-devops (own fix) |
@@ -575,14 +704,96 @@ Note: ds-fix and ds-devops primarily run external tools (formatters, linters, CI
 ```
 Analyzer (any)              Fixer (any)
 ──────────────              ───────────
-Scan codebase        →      Check: .findings.md exists?
+Scan codebase        →      Check: .ds-findings.md exists?
 Classify by scope    →        Yes + fresh → read findings for my scopes
-Write .findings.md              → verify each finding (re-read file:line)
+Write .ds-findings.md              → verify each finding (re-read file:line)
                                 → fix verified findings
-                                → remove fixed entries from .findings.md
+                                → remove fixed entries from .ds-findings.md
                               Yes + stale → re-analyze, overwrite
                               No → run own full analysis
 ```
+
+### Inter-Skill Data Utilization (IDU)
+
+Skills are standalone, but when upstream artifacts exist they MUST be fully utilized — not partially read or ignored.
+
+**Three shared artifacts:**
+
+| Artifact | Location | Producer | Consumers |
+|----------|----------|----------|-----------|
+| Blueprint profile | AI instruction file (`## Blueprint Profile`) | ds-blueprint | All skills that analyze or fix code |
+| Findings file | `.ds-findings.md` in project root | ds-blueprint, ds-compliance, ds-mobile, ds-review | All skills that fix code or generate assets |
+| Repo metadata | GitHub API (live query) | ds-repo (also cached in findings when relevant) | Skills that need repo context (visibility, plan, settings) |
+
+#### Producer Requirements
+
+Producer skills MUST ensure their output is maximally useful for downstream consumers:
+
+1. **Blueprint profile completeness:** When ds-blueprint writes the profile, ALL sections must be populated — every field exists because specific consumers depend on it:
+   - **Header** (Type, Stack, Target): used by all consumers for detection skip and severity calibration
+   - **Config.priorities**: ds-review (scope ordering), ds-docs (generation priority)
+   - **Config.constraints**: ds-deploy (infra limits), ds-repo (settings), ds-compliance (scope)
+   - **Config.data + regulations**: ds-compliance (regulation framework + PII types), ds-analytics (privacy), ds-backend (auth), ds-mobile (store compliance)
+   - **Config.audience + deploy**: ds-docs (tone), ds-launch (store requirements), ds-deploy (target), ds-devops (pipeline)
+   - **Project Map.Toolchain**: ds-fix (formatter/linter), ds-test (test framework), ds-devops (CI platform)
+   - **Project Map.Modules + External**: ds-backend (API structure), ds-docs (what to document), ds-deploy (dependencies)
+   - **Ideal Metrics.Coverage**: ds-test (threshold target)
+   - **Current Scores**: ds-review (focus low dimensions), ds-mobile (focus low dimensions)
+   An incomplete profile forces consumers to re-detect what blueprint already discovered.
+
+2. **Findings file scope coverage:** When writing `.ds-findings.md`, the `scopes` field in the meta header MUST list every scope that was analyzed — even if zero findings were found for that scope. This tells consumers "this scope was checked and is clean" vs "this scope was never analyzed." Example:
+   ```
+   scopes: security, code-quality, architecture, performance, resilience, testing, stack, dx, docs
+   ```
+   A consumer checking for `testing` findings and seeing `testing` in the scopes list with zero matching rows knows testing is clean. If `testing` is absent from scopes, the consumer must run its own testing analysis.
+
+3. **Finding actionability:** Every finding in `.ds-findings.md` must include enough context for a consumer to act:
+   - `File` and `Line` must be precise (not approximate or file-level when line-level is possible)
+   - `Title` must describe the issue, not just name the check (e.g., "Hardcoded API key in config" not "SEC-01 violation")
+   - `Scope` must use standard scope names from the Scope Coverage table
+
+#### Consumer Requirements
+
+Every skill is **fully standalone** — zero dependency on any other skill. Upstream artifacts are **performance optimizations**, not functional requirements. A skill with no blueprint profile and no findings file MUST produce identical quality output by running its own complete analysis. The only difference: with upstream data, it skips redundant work.
+
+Consumer skills MUST check for and fully utilize upstream artifacts before running their own analysis:
+
+1. **Blueprint profile utilization:** Before starting, search for `## Blueprint Profile` in known instruction files. If found, read and use:
+   - **Project type + stack** → skip own detection, use profile values
+   - **Quality target** → calibrate severity thresholds (prototype: lenient, enterprise: strict)
+   - **Priorities** → order scope execution by user priorities
+   - **Constraints** → respect stated constraints (e.g., "keep framework" = flag framework changes as needs_approval)
+   - **Current scores** → focus effort on lowest-scoring dimensions
+
+2. **Findings file utilization:** Before scanning a scope, check if `.ds-findings.md` covers that scope:
+   - Scope listed + findings present → verify each finding (re-read file:line), use verified ones, skip own scan
+   - Scope listed + zero findings → trust the clean result, skip own scan for that scope
+   - Scope NOT listed → run own full analysis for that scope
+   - Stale git_hash → ignore findings file entirely, run own analysis
+
+3. **Cross-skill context:** When a skill needs information another skill produces:
+   - Repo visibility/plan (needed by ds-review, ds-compliance for severity calibration) → query GitHub API directly if ds-repo hasn't run, or read from blueprint profile constraints if available
+   - Project type (needed by almost all skills) → prefer blueprint profile, fall back to own detection
+
+#### Utilization Matrix
+
+Each cell specifies WHAT to read and HOW it changes behavior — not just field names.
+
+| Consumer | Profile Field → Behavioral Change | Findings Scopes |
+|----------|----------------------------------|-----------------|
+| ds-review | **Config.priorities** → order scope execution by priority. **Config.quality** → prototype: skip LOW findings, enterprise: flag all. **Current Scores** → start with lowest-scoring dimensions. **Project Map.Toolchain** → know existing patterns, avoid suggesting incompatible tools. | security, hygiene, types, performance, architecture, patterns |
+| ds-fix | **Project Map.Toolchain** → skip tool detection, use stated formatter/linter/typechecker directly. **Type + Stack** → select correct toolchain from references. | — (runs external tools) |
+| ds-test | **Ideal Metrics.Coverage** → set coverage threshold. **Project Map.Toolchain** → skip test framework detection. **Current Scores.Testing** → if low, prioritize coverage gaps. | testing |
+| ds-docs | **Config.audience** → tailor doc tone (public: user-friendly, developers: technical). **Project Map** → know modules/entry points to document. **Type** → select ideal doc set per project type. | docs |
+| ds-compliance | **Config.regulations** → skip regulation detection, use stated frameworks (GDPR, KVKK, etc.) directly. **Config.data** → know data types to scan for (PII, credentials). **Config.audience** → public: stricter compliance. | security, privacy, regulatory |
+| ds-deploy | **Config.deploy** → skip target detection, use stated method (Docker, VPS, PaaS). **Project Map.External** → know dependencies to configure (Redis, DB, etc.). **Config.constraints** → respect infra constraints. | deployment, infra, monitoring |
+| ds-devops | **Project Map.Toolchain** → skip CI detection, use stated CI platform. **Type + Stack** → select correct pipeline templates. | ci, signing, deps |
+| ds-mobile | **Config.data** → know privacy requirements for store compliance. **Config.deploy** → know build pipeline (CI, signing). **Current Scores** → focus on lowest dimensions. | mobile-specific scopes |
+| ds-backend | **Project Map.Modules** → know API structure, skip architecture discovery. **Config.data** → know auth/data requirements. **Project Map.External** → know existing DB/cache/queue. | api, db, auth |
+| ds-analytics | **Config.data** → know privacy constraints for tracking design. **Config.audience** → context for event taxonomy. **Config.regulations** → compliance requirements for analytics. | analytics, privacy |
+| ds-launch | **Config.audience** → know store requirements. **Config.deploy** → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
+| ds-repo | — (producer only) | — |
+| ds-blueprint | — (producer only, reads own profile for incremental updates) | — (producer only) |
 
 ### Vocabulary
 
@@ -739,8 +950,10 @@ Before releasing any skill, verify:
 | **Token Efficiency** | SKILL.md ≤300 lines, references externalized | ≤400 lines, partial externalization | ≤500 lines, minimal externalization | >500 lines or no references |
 | **Completeness** | All applicable sections present, edge cases covered | Most sections present, basic edge cases | Key sections missing | Incomplete specification |
 | **User Isolation** | Defaults documented, conflicts handled, validation present | Most defaults, basic conflict handling | Some defaults, no conflict handling | No user isolation |
+| **FRC+DSC** | Every finding gets disposition, every scope check enumerated | Most findings tracked, most checks listed | Some findings dropped or checks unlisted | No finding tracking |
+| **IDU** | Fully standalone + reads all upstream artifacts when available | Standalone + partial upstream usage | Depends on upstream or ignores it entirely | No inter-skill awareness |
 
-**Score:** 0-18. Target: ≥14 for production skills, ≥10 for MVP skills.
+**Score:** 0-24. Target: ≥18 for production skills, ≥14 for MVP skills.
 
 ---
 
@@ -763,7 +976,8 @@ Before releasing any skill, verify:
 
 - [Positive guarantee]: "Always [behavior]"
 - [Boundary]: "Only [scope] — [other skill] handles [excluded scope]"
-- [Independence]: "Fully functional standalone. Uses .findings.md for optimization when available."
+- [Independence]: "Fully functional standalone — zero dependency on other skills. When blueprint profile or .ds-findings.md exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality."
+- [FRC]: "Every finding receives a disposition in the summary — zero silent drops"
 
 ## Arguments
 
@@ -785,7 +999,7 @@ Phase1 → Phase2 → [Phase3] → Phase4 → Summary
 
 **Goal:** [1-line success metric for this phase]
 
-1. **Findings file check:** If `.findings.md` exists with fresh `git_hash`, use relevant findings. Otherwise, run own analysis.
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use relevant findings. Otherwise, run own analysis.
 2. Step description [SKIP if condition]
 3. Step description [PARALLEL]
 
@@ -802,13 +1016,23 @@ Phase1 → Phase2 → [Phase3] → Phase4 → Summary
 
 ### Phase N: Summary
 
+**Mandatory.** Always execute, always produce output — never skip regardless of mode or flags.
+
+**FRC accounting:** Every finding from audit phase appears with a disposition (see Finding Resolution Completeness).
+
+**DSC verification:** Every scope lists which checks passed, failed, or were N/A (see Deterministic Scope Checklist).
+
 Output format:
-{skill}: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N
+```
+{skill}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
+```
 
 ## Quality Gates
 
-- [Positive framing]: "Every finding cites file:line" (not "Don't report without evidence")
-- [Positive framing]: "Only modify lines required by the task" (not "Don't touch unrelated code")
+- Every finding cites file:line (not "Don't report without evidence")
+- Only modify lines required by the task (not "Don't touch unrelated code")
+- Every finding gets a disposition in the summary — zero silent drops (FRC)
+- Every scope check is evaluated and accounted for — zero silent omissions (DSC)
 
 ## Error Recovery
 

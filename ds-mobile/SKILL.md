@@ -16,7 +16,8 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Every finding cites file path and line number — never fabricate
 - Only audits mobile app quality — does not modify non-mobile code
 - Platform-specific rules only apply to detected platforms
-- Fully functional standalone — uses `.findings.md` for optimization when available
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ---
 
@@ -62,23 +63,29 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 2. **Platform confirmation.** If ambiguous, ask the user to confirm.
 
-3. **Mode selection.** Ask the user or use flags:
+3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Config.data** → know privacy requirements for store compliance checks
+   - **Config.deploy** → know build pipeline (CI platform, signing config)
+   - **Current Scores** → focus audit on lowest-scoring dimensions
+   - **Type + Stack** → skip own project detection
+
+4. **Mode selection.** Ask the user or use flags:
    - Audit Only (default) — scan all domains, report only
    - Audit & Fix — scan, review, then fix
    - Quick Fix — scan and auto-fix, minimal review
    - Release Ready — 100-point scoring with manual gates
    - Custom — pick specific domains and mode
 
-4. **Scope parsing.** Map selection to domains and mode. Default: `audit` mode, `all` domains.
+5. **Scope parsing.** Map selection to domains and mode. Default: `audit` mode, `all` domains.
 
-5. **Custom scope** (only if Custom selected): Ask for domains and mode.
+6. **Custom scope** (only if Custom selected): Ask for domains and mode.
 
-6. **Regulatory framework detection** (when scope includes security, regulatory, store, or all):
+7. **Regulatory framework detection** (when scope includes security, regulatory, store, or all):
    - Auto-detect by searching codebase for framework indicators (GDPR, KVKK, CCPA, LGPD, PIPL, etc.)
    - Confirm detected frameworks with user, or ask which apply
    - Rules tagged `[FRAMEWORK: X,Y]` only checked if at least one framework is active
 
-7. **Release-ready setup** (only if release-ready mode):
+8. **Release-ready setup** (only if release-ready mode):
    - Detect available platforms (android/ and ios/ directories)
    - If both available, ask which to audit
    - Set report directory: `{project_root}/.mobileaudit/`
@@ -133,11 +140,13 @@ Load only reference files matching scope:
 
 ### Phase 4: Scan
 
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (experience, engineering, compliance, release). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
+
 **Large scope (3+ domains):** Use progress tracking to survive context loss:
-1. Create numbered progress checklist with all domains in scope
-2. Create `.findings.md` in project root (add to .gitignore)
-3. After each domain scan, append findings to the file
-4. Maximum 2 parallel domain scans
+2. Create numbered progress checklist with all domains in scope
+3. Append findings to `.ds-findings.md` in project root (add to .gitignore) — if file exists with fresh `git_hash`, preserve findings from other scopes
+4. After each domain scan, append findings to the file
+5. Maximum 2 parallel domain scans
 
 **Per domain:**
 1. Search for relevant files
@@ -155,7 +164,7 @@ Load only reference files matching scope:
 
 **Recovery (if context lost mid-audit):**
 1. Don't restart — check progress checklist
-2. Read `.findings.md` to restore completed findings
+2. Read `.ds-findings.md` to restore completed findings
 3. Resume from first incomplete domain
 4. Never re-scan a completed domain
 
@@ -212,7 +221,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 
-1. **Plan.** Read findings (from `.findings.md` for large scopes). Apply severity filter. Group by file. Identify fix dependencies. Present grouped fix plan:
+1. **Plan.** Read findings (from `.ds-findings.md` for large scopes). Apply severity filter. Group by file. Identify fix dependencies. Present grouped fix plan:
    - CAT-1 Conformance (auto-fixable)
    - CAT-2 Enhancement (pre-approved)
 
@@ -225,12 +234,14 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 4. **Summary.**
    ```
-   Applied: N | Failed: N | Skipped: N | Total: N
+   Fixed: N | Skipped: N | Failed: N | Total: N
    ```
 
-**Cleanup:** Delete `.findings.md` after fix summary.
+**Cleanup:** Delete `.ds-findings.md` after fix summary.
 
-**Gate:** Applied + failed + skipped = total findings; every modified file re-read and verified; `.findings.md` deleted.
+**FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+
+**Gate:** Fixed + failed + skipped = total findings; every modified file re-read and verified; `.ds-findings.md` deleted.
 
 ---
 
@@ -241,6 +252,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 3. **Scope boundary** — only touch lines the task requires
 4. **Platform consistency** — fixes use correct platform API
 5. **Artifact-first recovery** — re-read files before and after editing
+6. **Every finding gets a disposition in the summary — zero silent drops (FRC)**
 
 ---
 

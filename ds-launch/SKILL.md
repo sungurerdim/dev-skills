@@ -14,7 +14,8 @@
 ## Contract
 
 - Covers store account setup, listing metadata, review preparation, release management
-- Fully functional standalone. Uses `.findings.md` for optimization when available
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 - Generates checklists and metadata — does NOT submit to stores directly
 - **Minimal liability:** generates store-compliant metadata, flags common rejection reasons
 - **Maximum privacy:** privacy label generation with minimal data collection focus
@@ -114,8 +115,13 @@ Setup → Detect → Analyze → Generate → Verify → Summary
 
 1. If flags provided, proceed directly
 2. If no flags, present interactive menu
-3. Detect platform from project signals (pubspec.yaml → mobile, package.json → web, etc.)
-4. Detect current launch stage: pre-submission, in-review, post-launch
+3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Config.audience** → know store requirements (public: full store listing)
+   - **Config.deploy** → know release pipeline and CI setup
+   - **Type** → select store-specific checklists (mobile vs desktop)
+   - **Stack** → know platform (Flutter/RN/Swift/Kotlin) for store-specific guidance
+4. Detect platform from project signals (pubspec.yaml → mobile, package.json → web, etc.)
+5. Detect current launch stage: pre-submission, in-review, post-launch
 
 **Gate:** Platform and mode confirmed.
 
@@ -161,16 +167,17 @@ Setup → Detect → Analyze → Generate → Verify → Summary
 
 Scan the project for the top rejection triggers. Each check produces PASS/FAIL with file:line references.
 
-1. **Privacy policy [CRITICAL]:** Search for privacy policy URL in project config, metadata files, and store listing drafts. Verify URL is accessible (HTTP 200). If missing → FAIL with "Missing privacy policy URL — will cause rejection."
-2. **Metadata completeness [CRITICAL]:** Scan store metadata directories (fastlane/metadata, app store connect export, Play Console drafts). Flag: empty description, missing screenshots, placeholder text ("Lorem ipsum", "TODO", "Coming soon"). Guideline 2.1 (App Completeness) accounts for 40%+ of unresolved rejections.
-3. **Permission descriptions [HIGH]:** Scan `Info.plist` (iOS) for `NS*UsageDescription` keys, `AndroidManifest.xml` for permissions. Every permission must have a user-facing description. Missing → FAIL.
-4. **Privacy manifest & SDK compliance [HIGH]:** Scan for `PrivacyInfo.xcprivacy` (iOS). Verify all third-party SDKs have privacy manifests. Flag SDKs that track users without disclosure.
-5. **Platform cross-references [MEDIUM]:** Search store listing text for references to other platforms ("available on Android" in iOS listing, "App Store" in Play listing). Flag as rejection risk.
-6. **Crash-prone patterns [MEDIUM]:** Scan for force-unwraps (Swift `!`), unhandled exceptions at app entry, missing null checks on launch-critical paths. Flag as "Performance — crash on launch review risk."
-7. **AI data consent [HIGH — new 2025]:** If app uses external AI services, check for consent modal implementation. Apple requires provider name + data types disclosure before personal data sharing.
-8. **Age rating compliance [MEDIUM]:** Check if age rating questionnaire is complete. New 13+/16+/18+ tiers (July 2025). Deadline: January 31, 2026 for updated questionnaire.
-9. **Data deletion [HIGH]:** Search for account deletion UI flow. Both stores require in-app account deletion mechanism. Missing → FAIL.
-10. **SDK & build requirements [MEDIUM]:** Check minimum SDK version. Starting April 2026: all iOS submissions must use iOS 26 SDK.
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (store, review, privacy-labels, release). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
+2. **Privacy policy [CRITICAL]:** Search for privacy policy URL in project config, metadata files, and store listing drafts. Verify URL is accessible (HTTP 200). If missing → FAIL with "Missing privacy policy URL — will cause rejection."
+3. **Metadata completeness [CRITICAL]:** Scan store metadata directories (fastlane/metadata, app store connect export, Play Console drafts). Flag: empty description, missing screenshots, placeholder text ("Lorem ipsum", "TODO", "Coming soon"). Guideline 2.1 (App Completeness) accounts for 40%+ of unresolved rejections.
+4. **Permission descriptions [HIGH]:** Scan `Info.plist` (iOS) for `NS*UsageDescription` keys, `AndroidManifest.xml` for permissions. Every permission must have a user-facing description. Missing → FAIL.
+5. **Privacy manifest & SDK compliance [HIGH]:** Scan for `PrivacyInfo.xcprivacy` (iOS). Verify all third-party SDKs have privacy manifests. Flag SDKs that track users without disclosure.
+6. **Platform cross-references [MEDIUM]:** Search store listing text for references to other platforms ("available on Android" in iOS listing, "App Store" in Play listing). Flag as rejection risk.
+7. **Crash-prone patterns [MEDIUM]:** Scan for force-unwraps (Swift `!`), unhandled exceptions at app entry, missing null checks on launch-critical paths. Flag as "Performance — crash on launch review risk."
+8. **AI data consent [HIGH — new 2025]:** If app uses external AI services, check for consent modal implementation. Apple requires provider name + data types disclosure before personal data sharing.
+9. **Age rating compliance [MEDIUM]:** Check if age rating questionnaire is complete. New 13+/16+/18+ tiers (July 2025). Deadline: January 31, 2026 for updated questionnaire.
+10. **Data deletion [HIGH]:** Search for account deletion UI flow. Both stores require in-app account deletion mechanism. Missing → FAIL.
+11. **SDK & build requirements [MEDIUM]:** Check minimum SDK version. Starting April 2026: all iOS submissions must use iOS 26 SDK.
 
 **Gate:** All listing, ASO, and review artifacts generated.
 
@@ -192,10 +199,12 @@ Generate post-launch monitoring checklist: crash-free rate targets, store rating
 ### Phase 5: Summary
 
 ```
-ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|All} | Ready: N/N checks | Missing: N items
+ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|All} | Ready: N/N checks | Missing: N items | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
 Include checklist of remaining items before submission.
+
+**FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
 **Gate:** Summary printed with submission readiness status.
 
@@ -206,6 +215,7 @@ Include checklist of remaining items before submission.
 - Pre-review checklist has zero CRITICAL items
 - Version numbers are valid semver with incrementing build numbers
 - Release notes are user-friendly (not developer jargon)
+- Every finding gets a disposition in the summary — zero silent drops (FRC)
 
 ## Error Recovery
 

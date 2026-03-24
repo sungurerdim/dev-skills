@@ -15,6 +15,8 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 
 ## Contract
 
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 - Generates tests that follow the project's existing test patterns and conventions
 - Preserves existing passing tests — only overwrites with explicit confirmation
 - Always runs generated tests to verify they pass before declaring done
@@ -55,19 +57,24 @@ Setup → [Generate / Update / Run+Fix] → Verify → Summary
 
 ### Phase 1: Setup
 
-1. **Findings file check:** If `.findings.md` exists with fresh `git_hash`, read findings with `testing` scope. Use them to prioritize which modules need tests (skip own coverage analysis for covered scopes). If no findings file or stale, run own full analysis.
-2. **Detect test framework** from project config and dependencies. See `references/frameworks.md` for the detection table.
-2. **Detect test conventions:**
+1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings with `testing` scope. Use them to prioritize which modules need tests (skip own coverage analysis for covered scopes). If no findings file or stale, run own full analysis.
+2. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Ideal Metrics.Coverage** → set coverage threshold target
+   - **Project Map.Toolchain** → skip test framework detection, use stated framework
+   - **Current Scores.Testing** → if low, prioritize coverage gaps over new features
+   - **Type + Stack** → skip own project detection
+3. **Detect test framework** from project config and dependencies. See `references/frameworks.md` for the detection table.
+4. **Detect test conventions:**
    - Test directory: `test/`, `tests/`, `__tests__/`, `spec/`, `src/**/*.test.*`
    - Naming pattern: `*_test.go`, `*.test.ts`, `*.spec.rb`, `test_*.py`
    - Helper/fixture locations: `fixtures/`, `factories/`, `support/`, `conftest.py`
    - Mock patterns: what mocking library is used, how are mocks structured
-3. **Read 2-3 existing test files** to learn the project's test style:
+5. **Read 2-3 existing test files** to learn the project's test style:
    - Import conventions, assertion style (expect vs assert), describe/it vs test()
    - How mocks and fixtures are used
    - Setup/teardown patterns (beforeEach, setUp, etc.)
-4. If no test framework found and `--setup` flag: proceed to Framework Setup (see below).
-5. If no test framework found and no `--setup` flag: suggest running with `--setup` first.
+6. If no test framework found and `--setup` flag: proceed to Framework Setup (see below).
+7. If no test framework found and no `--setup` flag: suggest running with `--setup` first.
 
 **Gate:** Test framework detected or `--setup` mode.
 
@@ -128,12 +135,12 @@ When source code changed and tests need updating:
 | **Environment issue** (missing dep, config, database not running) | Report with setup instructions |
 | **Flaky test** (passes sometimes, fails others — timing, ordering) | Flag as flaky, suggest fix approach |
 
-4. Fix test-side issues automatically. For app bugs, write a finding to `.findings.md` with scope `testing`.
+4. Fix test-side issues automatically. For app bugs, write a finding to `.ds-findings.md` with scope `testing`.
 5. Re-run to verify fixes. Max 3 fix-run iterations.
 
 **Critical rule:** If a test was passing before and now fails after source change, the SOURCE is likely wrong (regression), not the test. Do NOT weaken assertions to make a test pass.
 
-**Gate:** Test-side fixes verified passing or app bugs written to .findings.md.
+**Gate:** Test-side fixes verified passing or app bugs written to .ds-findings.md.
 
 ### Phase 2d: Framework Setup [--setup]
 
@@ -166,17 +173,17 @@ After any generate/update/fix operation:
 ### Phase 4: Summary
 
 ```
-ds-test: {OK|WARN|FAIL} | Generated: N | Updated: N | Fixed: N | Failing: N
+ds-test: {OK|WARN|FAIL} | Generated: N | Updated: N | Fixed: N | Skipped: N | Failing: N
 
 | Action    | Count | Details              |
 |-----------|-------|----------------------|
-| Generated |   12  | 8 unit, 4 integration|
-| Updated   |    3  | matched source changes|
-| Fixed     |    5  | 4 assertion, 1 mock  |
-| Failing   |    2  | app bugs (see .findings.md) |
+| Generated |  {n}  | {n} unit, {n} integration|
+| Updated   |  {n}  | matched source changes|
+| Fixed     |  {n}  | {n} assertion, {n} mock|
+| Failing   |  {n}  | app bugs (see .ds-findings.md) |
 ```
 
-**Gate:** Summary table rendered with generated/updated/fixed/failing counts.
+**Gate:** Summary table rendered with generated/updated/fixed/failing counts. Every finding/action has a disposition. Accounting verified.
 
 ## Quality Gates
 
@@ -216,6 +223,7 @@ When analyzing existing tests, flag tests that provide no concrete value:
 - No test should depend on execution order — each test must be independently runnable
 - Mocks must be minimal — only mock external dependencies (network, filesystem, time), not internal modules
 - Generated test matches project's existing style — no style drift
+- Every finding gets a disposition in the summary — zero silent drops (FRC)
 
 ## Edge Cases
 
@@ -228,4 +236,4 @@ When analyzing existing tests, flag tests that provide no concrete value:
 | Monorepo with multiple test frameworks | Detect per-package, run each package's framework |
 | E2E requires running server | Check for dev server script, start it, run tests, stop it |
 | Coverage tool not configured | Skip coverage analysis, suggest setup |
-| `--auto` mode with failing app tests | Write findings to `.findings.md`, do not fix source |
+| `--auto` mode with failing app tests | Write findings to `.ds-findings.md`, do not fix source |

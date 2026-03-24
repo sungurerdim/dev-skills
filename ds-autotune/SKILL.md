@@ -18,7 +18,7 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 - Every experiment is committed before evaluation — full audit trail
 - Evaluation is mechanical (deterministic assertions or benchmarks), not subjective
 - The skill generates the optimization infrastructure (auto/ folder), then runs the loop
-- Fully standalone — no dependency on other skills
+- Fully standalone — zero dependency on other skills
 
 ## Arguments
 

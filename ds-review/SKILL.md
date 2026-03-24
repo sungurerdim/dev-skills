@@ -17,7 +17,8 @@ Three modes: `--tactical` for file-level quality fixes, `--strategic` for archit
 
 - Every fix cites file:line with before/after — no blind modifications
 - Only modifies lines required by the finding — no scope creep
-- Fully functional standalone — uses `.findings.md` for optimization when available
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ## Arguments
 
@@ -86,19 +87,25 @@ Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] �
 ### Phase 1: Setup [SKIP if --auto]
 
 1. Pre-flight: check if git repo (optional, warn if not)
-2. Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh
-3. **Mode selection.** If no `--tactical`/`--strategic`/`--perf` flag, ask the user:
+2. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Config.priorities** → order scope execution by user priorities
+   - **Config.quality** → calibrate severity (prototype: skip LOW, enterprise: flag all)
+   - **Current Scores** → start analysis with lowest-scoring dimensions
+   - **Project Map.Toolchain** → know existing patterns, avoid incompatible suggestions
+   - **Type + Stack** → skip own project detection
+3. Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh
+4. **Mode selection.** If no `--tactical`/`--strategic`/`--perf` flag, ask the user:
    - **Tactical** — file-level fixes: security, hygiene, types, performance, privacy (9 scopes)
    - **Strategic** — architecture-level: patterns, coupling, testing, production readiness (8 scopes)
    - **Performance** — deep profiling: bundle size, startup time, memory, caching, Core Web Vitals
-4. **Scope selection.** If no `--scope` flag, ask which scopes to check (default: all for selected mode)
-5. If uncommitted changes detected, ask: continue / stash first / cancel
+5. **Scope selection.** If no `--scope` flag, ask which scopes to check (default: all for selected mode)
+6. If uncommitted changes detected, ask: continue / stash first / cancel
 
 **Gate:** Mode and scope selection confirmed (explicitly or via flags).
 
 ### Phase 2: Analyze
 
-**Findings file check:** If `.findings.md` exists and its `git_hash` matches current HEAD, filter findings by the active scopes. For each matching finding:
+**Findings file check:** If `.ds-findings.md` exists and its `git_hash` matches current HEAD, filter findings by the active scopes. For each matching finding:
 1. Read the file:line and surrounding context (±10 lines)
 2. Verify the finding is still valid (code may have changed since analysis)
 3. If confirmed → add to fix list. If false positive or already resolved → discard silently.
@@ -205,14 +212,18 @@ Max 3 iterations. Summary shows per-iteration breakdown.
 ```
 refactor complete (tactical)
 ============================
-| Scope          | Findings | Fixed | Failed |
-|----------------|----------|-------|--------|
-| security       |     3    |   3   |   0    |
-| hygiene        |     5    |   4   |   1    |
-| Total          |     8    |   7   |   1    |
+| Scope          | Findings | Fixed | Skipped | Failed |
+|----------------|----------|-------|---------|--------|
+| {scope}        |   {n}    |  {n}  |   {n}   |  {n}   |
+| ...            |          |       |         |        |
+| Total          |   {n}    |  {n}  |   {n}   |  {n}   |
 
-Applied: 7 | Failed: 1 | Needs Approval: 0 | Total: 8
+Fixed: {n} | Skipped: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
 ```
+
+**FRC accounting:** Every finding from the Analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
+
+**DSC verification:** Each scope reports how many checks were evaluated vs how many produced findings. Scopes with zero findings listed as clean.
 
 **Strategic output:**
 ```
@@ -228,14 +239,14 @@ Recommendations by effort:
   Moderate:   [{id}] {title}
   Complex:    [{id}] {title}
 
-Applied: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
+Fixed: {n} | Skipped: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
 ```
 
-**Auto output:** `refactor: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N`
+**Auto output:** `refactor: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N`
 
 Status: OK (failed=0), WARN (failed>0 no CRITICAL), FAIL (CRITICAL unfixed or error).
 
-**Gate:** Summary table printed and applied + failed + needs_approval = total verified.
+**Gate:** Summary table printed and `fixed + failed + skipped + needs_approval + not_applicable = total` verified. Every finding has a disposition.
 
 ## Score Calculation
 

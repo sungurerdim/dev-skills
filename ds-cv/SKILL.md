@@ -18,7 +18,7 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 - Output is a single HTML file with inline CSS. No external dependencies except Google Fonts.
 - All content is ATS-safe: zero non-ASCII characters in output, zero special HTML entities except `&amp;`.
 - Privacy by default: no email, phone, address, birth date, or photo in public HTML.
-- Fully functional standalone — no dependency on other skills or external specs.
+- Fully functional standalone — zero dependency on other skills or external specs.
 
 ## Arguments
 

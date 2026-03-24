@@ -13,7 +13,8 @@ Documentation drifts from code the moment it's written. This skill detects the g
 
 ## Contract
 
-- Fully functional standalone. When `.findings.md` exists with fresh data, uses it to skip redundant analysis.
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 - Every generated sentence must earn its place — no filler, marketing language, or obvious statements
 - Only generates/modifies documentation files — never touches source code
 - Verifies claims against actual source code before writing
@@ -49,16 +50,21 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → Summary
 
 ### Phase 1: Setup [SKIP if --auto]
 
-**Findings file check:** If `.findings.md` exists with fresh `git_hash`, read findings with `docs` scope. Use them to target specific documentation gaps (skip own gap analysis for covered areas). If no findings file or stale, run own full analysis.
+**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings with `docs` scope. Use them to target specific documentation gaps (skip own gap analysis for covered areas). If no findings file or stale, run own full analysis.
 
 Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh.
 
-1. **Mode selection.** If no flags provided, ask the user:
+1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Config.audience** → tailor doc tone (public users: user-friendly, developers: technical)
+   - **Project Map** → know entry points, modules, and external deps to document
+   - **Type** → select ideal doc set per project type table
+   - **Config.priorities** → order doc generation by priority areas
+2. **Mode selection.** If no flags provided, ask the user:
    - **Auto** — detect project type, analyze gaps, generate all missing docs
    - **Preview** — analyze gaps only, no generation
    - **Scoped** — pick specific scope(s): readme, api, dev, user, ops, changelog, refine, verify
 
-2. **Scope selection.** If mode is not Auto/Preview, ask:
+3. **Scope selection.** If mode is not Auto/Preview, ask:
    - Which documentation areas to cover (Core: readme+changelog, Technical: api+dev, User-facing: user+ops)
    - How to handle existing docs (Fill gaps, Refine existing, Verify claims, Update all)
 
@@ -171,21 +177,22 @@ docs complete
 =============
 | Scope     | Status   | File            | Lines |
 |-----------|----------|-----------------|-------|
-| readme    | Updated  | README.md       |   +12 |
-| api       | Created  | docs/api.md     |    85 |
+| {scope}   | {status} | {file}          |   {n} |
+| {scope}   | {status} | {file}          |   {n} |
 
-Applied: 2 | Failed: 0 | Total: 2
+Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-`docs: {OK|WARN|FAIL} | Applied: N | Failed: N | Total: N`
+`docs: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-**Gate:** Summary table rendered with applied/failed/total counts.
+**Gate:** Summary table rendered with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
 
 ## Quality Gates
 
 - Every generated doc verified against source code — no claims without file:line evidence
 - Only modify documentation files — never touch source code
 - Generated docs match project's existing documentation style
+- Every finding gets a disposition in the summary — zero silent drops (FRC)
 
 ## Edge Cases
 

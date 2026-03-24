@@ -17,7 +17,7 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 - Detects intent (web app, mobile app, API, CLI, library, monorepo) from user input or codebase signals
 - Generates only files relevant to the detected project type — no unnecessary boilerplate
 - Respects existing files — never overwrites without confirmation
-- Fully standalone — no dependency on other skills
+- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project type and stack to select scaffold template. When absent, asks user.
 - **Minimal liability:** only generates standard, well-known config patterns — no custom security code
 - **Minimum dependencies:** scaffolded projects start with minimal deps, documented rationale for each
 - **Maximum automation:** CI, linting, formatting, testing configured from the start

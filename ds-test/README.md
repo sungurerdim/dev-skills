@@ -29,5 +29,5 @@ Node.js (Vitest/Jest/Playwright), Python (pytest/Playwright), Go, Rust, Flutter,
 - **Convention-first** — reads existing tests to learn your style, then generates matching tests
 - **Behavioral naming** — test names describe what the behavior is, not how it's implemented
 - **Smart classification** — distinguishes test bugs from app bugs, never weakens assertions
-- **Findings integration** — app bugs found during test runs written to `.findings.md` for ds-review
+- **Findings integration** — app bugs found during test runs written to `.ds-findings.md` for ds-review
 - **Run-fix loop** — runs, fixes, re-runs until green (max 3 iterations)

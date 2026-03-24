@@ -53,15 +53,15 @@ Each skill is self-contained. No dependencies between them. Install one or all.
 ## Recommended workflow
 
 ```
-1. /ds-blueprint        Score your project health, generate .findings.md
-2. /ds-review --tactical  Fix code issues (uses .findings.md if available)
+1. /ds-blueprint        Score your project health, generate .ds-findings.md
+2. /ds-review --tactical  Fix code issues (uses .ds-findings.md if available)
 3. /ds-fix              Format, lint, type-check
 4. /ds-test             Generate missing tests, fix failing ones
 5. /ds-commit           Commit with quality gates
 6. /ds-pr               Create PR with net diff analysis
 ```
 
-Start with `/ds-blueprint` — it scans your entire codebase and produces a `.findings.md` that other skills consume, so they skip redundant analysis and jump straight to fixes.
+Start with `/ds-blueprint` — it scans your entire codebase and produces a `.ds-findings.md` that other skills consume, so they skip redundant analysis and jump straight to fixes.
 
 For new projects: `/ds-init` → then the workflow above.
 For deployment: `/ds-deploy` → `/ds-launch`.
@@ -71,9 +71,10 @@ For audits: `/ds-compliance` or `/ds-mobile`.
 
 Most AI coding "skills" are static rule snippets (30-100 lines). dev-skills are **orchestrated execution systems**:
 
-- **Multi-phase workflows** with quality gates and error recovery
+- **Multi-phase workflows** with quality gates, mandatory phase enforcement, and error recovery
 - **8 AI weaknesses systematically addressed** — hallucination, scope creep, tunnel vision, confidence bias, memory decay, skip tendency, redundancy blindness, injection risk
-- **Inter-skill coordination** via `.findings.md` — share analysis results, avoid duplicate work
+- **Finding Resolution Completeness (FRC)** — every finding gets a disposition (fixed/skipped/failed), zero silent drops
+- **Inter-skill coordination** via `.ds-findings.md` + blueprint profile — share analysis results and project context, avoid duplicate work
 - **Token-efficient** — 10K token budget per skill, references loaded on demand
 - **Tool-agnostic** — works with any AI tool that accepts markdown instructions
 

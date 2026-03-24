@@ -15,6 +15,8 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 
 **The commit message describes what `git diff` shows — nothing else.** Not what you discussed in the session, not what you tried and reverted, not what you planned. Read the diff, describe the diff.
 
+- Fully standalone — zero dependency on other skills
+
 ## Arguments
 
 | Flag | Effect |
@@ -112,9 +114,9 @@ Check unpushed commits: `git log @{upstream}..HEAD` (no upstream → all local c
 ```
 | # | Type     | Title                              | Files |
 |---|----------|------------------------------------|-------|
-| 1 | feat     | add user avatar upload endpoint     | 4     |
-| 2 | test     | add avatar upload integration tests | 2     |
-| 3 | docs     | document avatar API in README       | 1     |
+| 1 | {type}   | {commit description}                | {n}   |
+| 2 | {type}   | {commit description}                | {n}   |
+| 3 | {type}   | {commit description}                | {n}   |
 ```
 
 If amending: show `(amend → {short-hash})` next to the entry.

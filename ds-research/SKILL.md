@@ -14,6 +14,7 @@ AI models hallucinate sources, cite outdated data, and can't distinguish a blog 
 ## Contract
 
 - Searches both local codebase files and web sources.
+- Fully standalone — zero dependency on other skills
 
 ## Arguments
 
@@ -89,10 +90,9 @@ Executive summary, evidence hierarchy (primary T1-T2, supporting T3-T4), contrad
 **Source format (compact):**
 ```
 Sources:
-  [A] T1|92|docs.example.dev|LibX v5 Migration Guide
-  [A] T2|88|github.com/org/libx|v5.0.0 Release Notes
-  [B] T3|74|devblog.example.com|Practical LibX v5 Patterns
-  [C] T4|62|stackoverflow.com|LibX v5 SSR gotchas
+  [{tier}] {Tn}|{score}|{domain}|{title}
+  [{tier}] {Tn}|{score}|{domain}|{title}
+  ...
 ```
 
 Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
