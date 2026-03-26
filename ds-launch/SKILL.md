@@ -107,7 +107,7 @@ Each check scans the codebase and produces PASS/FAIL with severity and file:line
 
 ## Execution Flow
 
-Setup → Detect → Analyze → Generate → Verify → Summary
+Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
@@ -212,7 +212,16 @@ Generate post-launch monitoring checklist: crash-free rate targets, store rating
 
 **Gate:** Release artifacts generated.
 
-### Phase 5: Summary
+### Phase 5: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 6: Summary
 
 ```
 ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|All} | Ready: N/N checks | Missing: N items | Fixed: N | Skipped: N | Failed: N | Total: N

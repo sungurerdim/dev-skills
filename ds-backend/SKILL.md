@@ -79,7 +79,7 @@ Without flags: present interactive mode selection.
 
 ## Execution Flow
 
-Setup → Discover → Analyze → [Design/Spec] → Report → Summary
+Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
@@ -162,7 +162,16 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity.
 
 **Gate:** Spec files generated and syntactically valid.
 
-### Phase 6: Summary
+### Phase 6: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 7: Summary
 
 ```
 ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Skipped: N | Failed: N | Total: N

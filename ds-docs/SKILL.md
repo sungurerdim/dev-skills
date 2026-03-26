@@ -47,7 +47,7 @@ Without flags: present mode selection to the user.
 
 ## Execution Flow
 
-Setup → Analysis → Gap Analysis → [Plan] → Generate → Summary
+Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval] → Summary
 
 ### Phase 1: Setup [SKIP if --auto]
 
@@ -180,7 +180,16 @@ Generate compliance documents by scanning codebase for data flows, third-party S
 
 **Gate:** Every generated claim verified against source code with file:line evidence.
 
-### Phase 6: Summary
+### Phase 6: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 7: Summary
 
 ```
 docs complete

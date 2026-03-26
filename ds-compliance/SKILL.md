@@ -46,7 +46,7 @@ Without flags: present mode selection to the user.
 
 ## Execution Flow
 
-Detect -> Configure -> Scan -> Report -> [Fix] -> Summary
+Detect -> Configure -> Scan -> Report -> [Fix] -> [Needs-Approval] -> Summary
 
 ### Phase 1: Detect
 
@@ -154,7 +154,23 @@ Architecture: [detected summary]
    - `audit+fix`: Show plan, ask proceed/cancel
    - `audit`: Ask which severities to fix
 3. Apply fixes grouped by file. Different files can be fixed in parallel, same file sequentially.
-4. Present fix summary: `ds-compliance: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N`
+
+**Gate:** All standard fixes attempted; each recorded as applied, failed, or skipped.
+
+### Phase 7: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 8: Summary
+
+```
+ds-compliance: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
+```
 
 **FRC accounting:** Every finding from the audit/analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
 

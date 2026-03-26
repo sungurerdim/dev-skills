@@ -79,7 +79,7 @@ Recommend analytics tool based on privacy requirements — see `references/tool-
 
 ## Execution Flow
 
-Setup → Discover → Design/Audit → Generate → Summary
+Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
@@ -167,7 +167,16 @@ Setup → Discover → Design/Audit → Generate → Summary
 
 **Gate:** Findings collected.
 
-### Phase 6: Summary
+### Phase 6: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 7: Summary
 
 ```
 ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: N defined | Gaps: N | Privacy: {OK|WARN} | Fixed: N | Skipped: N | Failed: N | Total: N

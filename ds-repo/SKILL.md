@@ -77,7 +77,7 @@ Each scope defines an explicit checklist. Every check is evaluated on every run 
 
 ## Execution Flow
 
-Setup → Audit → Gap Analysis → Plan Review → Apply → Summary
+Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
@@ -142,7 +142,16 @@ For each finding, assign a disposition:
 
 **Gate:** Every finding has a disposition. `fixed + failed + skipped + needs_approval = total`.
 
-### Phase 6: Summary
+### Phase 6: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 7: Summary
 
 ```
 repo: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N

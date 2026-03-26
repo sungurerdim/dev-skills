@@ -475,8 +475,9 @@ Every finding produced by an audit phase MUST appear in the summary with exactly
 
 1. Every finding gets exactly one disposition — `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total`
 2. `needs-input` findings MUST trigger a question to the user before the summary phase. Present the finding context and ask for the required input. If the user provides input → attempt fix → `fixed` or `failed`. If the user declines → `skipped`.
-3. `skipped` findings MUST include a parenthetical reason: `Skipped: 2 (1 platform limit, 1 user declined)`
-4. The summary table lists every finding with its disposition — no finding appears only in the audit phase and disappears from the summary.
+3. `needs-approval` findings MUST trigger a review step before the summary phase. Present all needs-approval items with context (why they are risky: cross-module, destructive, architectural). Ask: Apply All / Review Each / Skip All. `--auto` without `--force-approve` → list and skip. `--force-approve` → apply all without asking. If the user approves → attempt fix → `fixed` or `failed`. If the user skips → `skipped (user declined)`.
+4. `skipped` findings MUST include a parenthetical reason: `Skipped: 2 (1 platform limit, 1 user declined)`
+5. The summary table lists every finding with its disposition — no finding appears only in the audit phase and disappears from the summary.
 
 **Example — correct:**
 ```
@@ -486,6 +487,7 @@ Every finding produced by an audit phase MUST appear in the summary with exactly
 | 2 | Auto-merge disabled  | skipped (free plan limitation)     |
 | 3 | Homepage URL empty   | needs-input → user provided → fixed ✅ |
 | 4 | Branch protection    | skipped (free plan limitation)     |
+| 5 | CODEOWNERS rewrite   | needs-approval → user approved → fixed ✅ |
 ```
 
 **Example — incorrect (finding #3 silently dropped):**
@@ -833,6 +835,7 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 |----------|----------|
 | Required tool unavailable | Stop with clear error message |
 | Optional tool unavailable | Skip silently, note in summary |
+| Installable tool unavailable | Offer to install: show install command, ask "Install and continue?" If accepted → install, re-run. If declined → skip scope, warn in summary. For system-level tools requiring manual install → show instructions, skip scope. |
 | API/network failure | Retry once, then skip with warning |
 | Partial results | Report what completed, list what failed |
 
@@ -1014,6 +1017,15 @@ Phase1 → Phase2 → [Phase3] → Phase4 → Summary
 
 **Gate:** [Condition to proceed].
 
+### Phase N-1: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → `fixed`/`failed`, declined → `skipped`).
+
 ### Phase N: Summary
 
 **Mandatory.** Always execute, always produce output — never skip regardless of mode or flags.
@@ -1038,7 +1050,9 @@ Output format:
 
 | Situation | Action |
 |-----------|--------|
-| Tool unavailable | Skip with warning, continue with next phase |
+| Required tool unavailable | Stop with clear error message |
+| Installable tool unavailable | Offer to install (show command), ask user. Accepted → install + re-run. Declined → skip scope. |
+| Optional tool unavailable | Skip with warning, continue with next phase |
 | Ambiguous input | List 2-3 interpretations, ask user to choose |
 | Same action fails twice | Stop retrying, report error, propose alternative |
 | Context limit approaching | Save progress to artifact, summarize state |

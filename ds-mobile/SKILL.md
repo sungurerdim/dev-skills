@@ -45,7 +45,7 @@ Without flags: present mode selection to the user.
 
 ## Execution Flow
 
-Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/Score] → Summary
+Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/Score] → [Needs-Approval] → Summary
 
 ### Phase 1: Detect
 
@@ -220,16 +220,28 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 3. **Execute.** Apply fixes grouped by file. Re-read each file before editing. Re-read after editing to verify. Record: applied, failed, skipped.
 
-4. **Summary.**
-   ```
-   ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fixed: N | Skipped: N | Failed: N | Total: N
-   ```
+**Gate:** All standard fixes attempted; each recorded as applied, failed, or skipped.
 
-**Cleanup:** Delete `.ds-findings.md` after fix summary.
+### Phase 8: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 9: Summary
+
+```
+ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fixed: N | Skipped: N | Failed: N | Total: N
+```
+
+**Cleanup:** Delete `.ds-findings.md` after summary.
 
 **FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
-**Gate:** Fixed + failed + skipped = total findings; every modified file re-read and verified; `.ds-findings.md` deleted.
+**Gate:** Fixed + failed + skipped + needs_approval + not_applicable = total findings; every modified file re-read and verified; `.ds-findings.md` deleted.
 
 ## Quality Gates
 

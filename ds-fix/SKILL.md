@@ -45,7 +45,7 @@ Default: all five scopes in order.
 
 ## Execution Flow
 
-Detection → [L10n] → [Format] → [Typecheck] → [Lint] → [Security] → Summary
+Detection → [L10n] → [Format] → [Typecheck] → [Lint] → [Security] → [Needs-Approval] → Summary
 
 ### Phase 1: Stack Detection
 
@@ -127,7 +127,7 @@ Skip silently if no l10n framework detected.
 For each detected stack, run the canonical formatter.
 
 1. Look up the format tool from `references/toolchains.md`
-2. Check if the tool is available. If not, warn and skip.
+2. Check if the tool is available. If not → offer to install (see Error Recovery). If user declines or system-level tool → skip scope.
 3. **Fix mode:** run the fix command
 4. **Check mode:** run the check command, report exit code
 5. If the project uses a non-default formatter (e.g., Biome instead of Prettier for Node), detect from config files and use that instead
@@ -153,7 +153,7 @@ Example: Python project with `pyproject.toml` containing `[tool.mypy]` or `[tool
 For each detected stack, run the canonical linter with auto-fix.
 
 1. Look up the lint tool from `references/toolchains.md`
-2. Check if the tool is available. If not, warn and skip.
+2. Check if the tool is available. If not → offer to install (see Error Recovery). If user declines or system-level tool → skip scope.
 3. **Fix mode:** run fix command, then re-run check to verify
 4. **Check mode:** run check command only, report issues
 5. If the project uses a non-default linter (e.g., Biome instead of ESLint), detect from config and use that
@@ -197,7 +197,18 @@ Look up the audit command from `references/toolchains.md`. If tool not installed
 
 **Gate:** Secret scan and dependency audit completed with findings classified.
 
-### Phase 7: Summary
+### Phase 7: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+Security findings (secrets) are always CRITICAL and may require needs_approval when remediation involves cross-module credential rotation or infrastructure changes.
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 8: Summary
 
 Print a markdown table:
 
@@ -258,6 +269,6 @@ ds-fix: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 
 | Situation | Action |
 |-----------|--------|
-| Tool not installed (e.g., formatter, linter) | Skip that scope, warn in summary |
+| Tool not installed (e.g., formatter, linter) | Offer to install: show the install command (e.g., `pip install ruff`, `npm install -D eslint`), ask "Install and continue?" If user accepts → install, re-run scope. If user declines → skip scope, warn in summary. For system-level tools (e.g., `go`, `rustfmt`) that require manual install → show install instructions, skip scope. |
 | Lock file conflict | Warn, skip dependency operations |
 | Formatter and linter disagree | Run formatter first, then linter |

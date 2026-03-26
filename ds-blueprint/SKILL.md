@@ -147,7 +147,7 @@ Deduplicate findings by file:line — same issue within 10 lines → merge, keep
 
 ## Execution Flow
 
-Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest] → Update Profile → Summary
+Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest] → Update Profile → [Needs-Approval] → Summary
 
 **Mandatory phases** (no brackets — always execute, always produce output):
 - **Assess** — scan codebase, record findings
@@ -374,7 +374,16 @@ In `--auto` mode: print as part of summary, no interaction.
 
 **Gate:** Profile updated with current scores. Run History entry appended. Score history preserved.
 
-### Phase 8: Summary
+### Phase 8: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 9: Summary
 
 **Mandatory.** Always print the summary line — never skip.
 

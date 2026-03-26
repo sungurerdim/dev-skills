@@ -134,10 +134,10 @@ Stage files -> build message -> commit.
 
 | Part | Rule | Limit |
 |------|------|-------|
-| Full title | `type(scope): description` | 72 chars max (GitHub truncates at 72) |
+| Full title | `type(scope): description` | 50 chars max (GitHub Desktop truncates beyond 50) |
 | `type` | Conventional commit type (see below) | — |
 | `scope` | Module/directory with >50% of changes. Omit if no clear majority. | Optional |
-| `description` | Imperative mood, lowercase after colon, no period | Aim for 50 chars, max 72 total |
+| `description` | Imperative mood, lowercase after colon, no period | Fit within 50 total |
 
 **Conventional commit types:**
 
