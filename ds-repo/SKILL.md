@@ -174,6 +174,15 @@ Clean: settings (5/5 ✅), structure (2/2 ✅)
 4. Every scope check is evaluated and accounted for — zero silent omissions (DSC)
 5. Destructive changes (branch deletion, permission changes) require confirmation unless `--auto`
 
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| GitHub API rate limited | Wait and retry once, then report partial results |
+| Repository settings require admin access | Flag as needs-approval, list required permission changes |
+| Branch protection rules conflict with workflow | Explain conflict, ask which takes priority |
+| Stale branch detection ambiguous (active but old) | Ask user for staleness threshold |
+
 ## Edge Cases
 
 | Scenario | Behavior |

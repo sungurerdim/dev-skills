@@ -152,6 +152,22 @@ Setup → Detect → Analyze → Generate → Verify → Summary
 3. Generate screenshot size requirements per platform
 4. Generate localization checklist
 
+**Listing template structure:**
+- **Short description** (80 chars max) per supported language — per-locale keyword optimization, not literal translation
+- **Full description** with consistent section structure across all languages:
+  - How it works (3-5 steps)
+  - Key features (bullet list, benefit-first phrasing: "Get X" not "Has X")
+  - Privacy/security highlights (if applicable to app category)
+  - Pricing/plans (if applicable)
+- **Privacy highlight table** (maps directly to Apple Privacy Labels + Google Data Safety):
+
+  | Data Type | Collected | Shared with 3rd Party | Purpose |
+  |-----------|-----------|----------------------|---------|
+  | {type} | Yes/No | Yes/No | {purpose} |
+
+- **Review notes** for store review teams: special permission justifications, demo account credentials (if needed), features requiring network, consumable vs subscription IAP model
+- **Screenshot narrative** (6 recommended screens covering the full user journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
+
 **ASO mode:**
 1. Analyze competitor keywords, optimize title/subtitle for search ranking
 2. Recommend category placement based on competition density

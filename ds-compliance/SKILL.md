@@ -33,6 +33,17 @@ Covers 80+ rules across 8 compliance domains.
 
 Without flags: present mode selection to the user.
 
+## Scopes
+
+| Scope | What It Covers |
+|-------|---------------|
+| security | OWASP Top 10, secrets, TLS, input validation |
+| privacy | Data collection, consent, retention, PII handling |
+| regulatory | GDPR, CCPA, KVKK, LGPD, PIPL, UK GDPR, HIPAA, and framework-specific rules |
+| web | CSP, CORS, XSS, CSRF prevention |
+| a11y | WCAG 2.2 AA, semantic labels, contrast, keyboard navigation |
+| i18n | Locale support, RTL, number/date formatting |
+
 ## Execution Flow
 
 Detect -> Configure -> Scan -> Report -> [Fix] -> Summary
@@ -44,6 +55,8 @@ Detect -> Configure -> Scan -> Report -> [Fix] -> Summary
    - **Config.data** → know data types to scan for (PII, credentials, sensitive data)
    - **Config.audience** → public users: stricter compliance requirements
    - **Type + Stack** → skip own project detection
+
+   **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching compliance scopes. Use verified findings to skip redundant analysis. If stale or absent, run own full analysis.
 
 2. **Project detection.** Search for config files to identify project type:
    - **Web frontend:** `package.json` with react/next/vue/nuxt/angular/svelte/astro
@@ -94,14 +107,12 @@ Load reference files matching scope:
 
 ### Phase 4: Scan
 
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (security, privacy, regulatory, web, network, arch, perf, i18n). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
-
 For each domain in scope, scan the codebase:
 
-2. Search for relevant files
-3. Search contents for violation patterns
-4. Read files to verify findings in context
-5. Skip rules that cannot be verified
+1. Search for relevant files
+2. Search contents for violation patterns
+3. Read files to verify findings in context
+4. Skip rules that cannot be verified
 
 **Confidence:** HIGH = specific grep match + context verified, MEDIUM = pattern match, ambiguous context, LOW = heuristic only.
 
@@ -143,7 +154,7 @@ Architecture: [detected summary]
    - `audit+fix`: Show plan, ask proceed/cancel
    - `audit`: Ask which severities to fix
 3. Apply fixes grouped by file. Different files can be fixed in parallel, same file sequentially.
-4. Present fix summary: Fixed: N | Skipped: N | Failed: N | Total: N
+4. Present fix summary: `ds-compliance: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N`
 
 **FRC accounting:** Every finding from the audit/analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
@@ -155,6 +166,15 @@ Architecture: [detected summary]
 2. Format preservation (indentation, code style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (use correct framework APIs)
+
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| Regulatory framework ambiguous | List detected signals, ask user to confirm applicable frameworks |
+| Rule references external policy that changed | Flag as needs-verification, use last known version |
+| Fix requires architectural change | Classify as needs-approval, present to user |
+| Compliance doc template generation fails | Generate partial template, list missing sections |
 
 ## Edge Cases
 

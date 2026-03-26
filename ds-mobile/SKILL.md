@@ -19,8 +19,6 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
 - Every finding receives a disposition in the summary — zero silent drops (FRC)
 
----
-
 ## Arguments
 
 | Flag | Effect |
@@ -63,7 +61,9 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 2. **Platform confirmation.** If ambiguous, ask the user to confirm.
 
-3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+3. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching mobile scopes. Use verified findings to skip redundant analysis. If stale or absent, run own full analysis.
+
+4. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
    - **Config.data** → know privacy requirements for store compliance checks
    - **Config.deploy** → know build pipeline (CI platform, signing config)
    - **Current Scores** → focus audit on lowest-scoring dimensions
@@ -94,8 +94,6 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 **Gate:** Platform identified, mode and scope confirmed, regulatory frameworks resolved.
 
----
-
 ### Phase 2: Architecture Discovery [SKIP if 1-2 domains]
 
 **When:** Scope includes 3+ domains or `all`.
@@ -120,8 +118,6 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 **Gate:** Architecture confirmed by user, every rule classified as CAT-1 or CAT-2, scope finalized with approved enhancements.
 
----
-
 ### Phase 3: Rule Loading
 
 Load only reference files matching scope:
@@ -135,8 +131,6 @@ Load only reference files matching scope:
 | release-ready scoring | [scoring.md](references/scoring.md) |
 
 **Gate:** All reference files for in-scope domains loaded successfully; unloadable domains marked N/A.
-
----
 
 ### Phase 4: Scan
 
@@ -163,14 +157,12 @@ Load only reference files matching scope:
 - CAT-2: Only report if in approved enhancements
 
 **Recovery (if context lost mid-audit):**
-1. Don't restart — check progress checklist
+1. Resume from progress checklist — check completed domains first
 2. Read `.ds-findings.md` to restore completed findings
 3. Resume from first incomplete domain
 4. Never re-scan a completed domain
 
 **Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
-
----
 
 ### Phase 5: Report
 
@@ -204,8 +196,6 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 **Gate:** Report presented to user with all findings, severities, and summary table.
 
----
-
 ### Phase 6: Post-Report
 
 | Mode | Behavior |
@@ -216,8 +206,6 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 | `release-ready` | Ask: Fix plan / Save report only / Guidance for key findings |
 
 **Gate:** User selected post-report action; mode-specific next step determined.
-
----
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 
@@ -234,7 +222,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 4. **Summary.**
    ```
-   Fixed: N | Skipped: N | Failed: N | Total: N
+   ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fixed: N | Skipped: N | Failed: N | Total: N
    ```
 
 **Cleanup:** Delete `.ds-findings.md` after fix summary.
@@ -242,8 +230,6 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 **FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
 **Gate:** Fixed + failed + skipped = total findings; every modified file re-read and verified; `.ds-findings.md` deleted.
-
----
 
 ## Quality Gates
 
@@ -254,7 +240,14 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 5. **Artifact-first recovery** — re-read files before and after editing
 6. **Every finding gets a disposition in the summary — zero silent drops (FRC)**
 
----
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| Platform detection fails | Ask user to specify platform manually |
+| Reference file fails to load | Skip affected domain, mark findings as N/A |
+| Fix breaks another file | Revert fix, flag as failed, continue with next finding |
+| Context lost mid-audit (large scope) | Resume from progress checklist + `.ds-findings.md` |
 
 ## Edge Cases
 

@@ -11,21 +11,16 @@ PR descriptions that list every commit instead of the net change create noise, c
 - User says "create PR", "open PR", or "submit for review"
 - After a successful commit, suggest PR creation if on a feature branch
 
-## Pipeline
-
-```
-PR title  ->  squash merge on main  ->  release-please reads title  ->  changelog + version bump
-```
-
-The PR title IS the changelog entry. The PR body becomes the squash commit body. Everything must be accurate and minimal.
-
 ## Contract
 
 **The PR describes the net diff between main and HEAD — nothing else.** Not the journey of individual commits, not session decisions, not what was tried and reverted. If commit A added something and commit B removed it, the net effect is zero — do not mention it.
 
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
-- Fully standalone — zero dependency on other skills
+- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses toolchain info to skip detection. When absent, runs own complete detection with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
+
+**Pipeline:** `PR title → squash merge on main → release-please reads title → changelog + version bump`. The PR title IS the changelog entry. The PR body becomes the squash commit body. Everything must be accurate and minimal.
 
 ## Arguments
 
@@ -42,6 +37,12 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Create -> [Merge Setup] -> [Cleanup] -> Summary
 
 ### Phase 1: Validate
+
+**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, note relevant findings for PR body context. If stale, ignore.
+
+**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Project Map.Toolchain** → skip tool detection for quality gates, use stated formatter/linter
+   - **Type + Stack** → skip own project detection
 
 **Steps 1-4 are independent — run in parallel:**
 
@@ -71,7 +72,7 @@ Run format, lint, and test across the entire project. Auto-fix all fixable issue
 
 Run in order (stop on failure): Format -> Lint -> Test.
 If format/lint changed files -> commit as `chore: format and lint fixes`.
-If tests fail -> stop. Do NOT create PR with failing tests.
+If tests fail -> stop. Only create PR when all tests pass.
 
 **Gate:** Format, lint, and tests all pass. No uncommitted fixes remain.
 
@@ -148,6 +149,15 @@ PR URL, title, type -> bump effect, auto-merge status.
 `pr: {OK|FAIL} | {url} | {type} -> {bump} | auto-merge: {on|off}`
 
 **Gate:** Summary line printed. PR URL returned to user.
+
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| `gh` CLI not authenticated | Stop with clear error: "Run `gh auth login` first" |
+| Rebase conflict during history tidy | Abort rebase (`git reset --hard $ORIG_HEAD`), push as-is, warn user |
+| CI checks failing after PR creation | Warn user, skip auto-merge setup, suggest fixing and re-running |
+| Remote branch already deleted | Create fresh remote branch from local, continue |
 
 ## Edge Cases
 

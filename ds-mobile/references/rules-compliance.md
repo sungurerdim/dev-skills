@@ -9,7 +9,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect (search
 | **Security** | SEC-01–11 (4 CRITICAL, 7 CRITICAL, 1 HIGH) | ~12 |
 | **Privacy** | PRV-01–05 (2 CRITICAL, 2 CRITICAL) | ~111 |
 | **Regulatory Compliance** | PRV-06–18 (8 CRITICAL, 5 CRITICAL) | ~152 |
-| **Store Compliance** | STO-01–20 (12 CRITICAL, 7 HIGH, 1 MEDIUM) | ~340 |
+| **Store Compliance** | STO-01–21 (12 CRITICAL, 8 HIGH, 1 MEDIUM) | ~340 |
 
 ---
 
@@ -596,3 +596,18 @@ Play Billing Library must meet minimum version requirement. Outdated versions ar
   - Missing migration from deprecated APIs (e.g., `querySkuDetailsAsync` → `queryProductDetailsAsync`)
 - **Fix:** Update Play Billing Library to >= `POLICY.min_billing_lib`. Migrate deprecated API calls. Test purchase flow end-to-end after upgrade
 - **Source:** Play Billing Library Release Notes, Play Store Billing Policy
+
+### STO-21 [HIGH] IAP Purchase Experience Quality
+Every in-app purchase flow must provide clear product info, loading state, success confirmation, and specific error guidance.
+- **Detect:**
+  - Purchase buttons without clear product description (icon-only or vague label without explaining what user gets)
+  - No loading/processing state during purchase transaction
+  - No visual confirmation after successful purchase (no animation, badge, or success message)
+  - Generic error messages on IAP failure ("Something went wrong" instead of specific guidance)
+  - Platform purchase states not fully handled:
+    - iOS: `SKPaymentTransactionObserver` missing handlers for purchasing/purchased/failed/restored/deferred
+    - Android: `BillingResult` response codes not mapped to user-friendly messages
+    - Flutter: `PurchaseDetails.status` enum not exhaustively handled
+    - RN: `react-native-iap` error codes not mapped to user messages
+- **Fix:** Each IAP product: clear description of what user receives (quantity, duration, features). Purchase flow: loading state ("Processing purchase...") → success confirmation (visual feedback + updated balance/status) OR specific error message + retry guidance. Handle all platform transaction states exhaustively. Deferred state (Ask to Buy) must show appropriate pending message
+- **Source:** Apple HIG Purchasing, Google Play Billing UX Guidelines, Amazon IAP Design Guidelines

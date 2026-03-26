@@ -16,11 +16,12 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 - Generates project structure, CI config, test setup, Docker stubs, editor config, env templates
 - Detects intent (web app, mobile app, API, CLI, library, monorepo) from user input or codebase signals
 - Generates only files relevant to the detected project type — no unnecessary boilerplate
-- Respects existing files — never overwrites without confirmation
+- Respects existing files — only overwrites with explicit user confirmation
 - Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project type and stack to select scaffold template. When absent, asks user.
 - **Minimal liability:** only generates standard, well-known config patterns — no custom security code
 - **Minimum dependencies:** scaffolded projects start with minimal deps, documented rationale for each
 - **Maximum automation:** CI, linting, formatting, testing configured from the start
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 - Minimize external dependencies — prefer stdlib and well-established minimal libraries.
 
 ## Arguments
@@ -46,7 +47,7 @@ What type of project are you scaffolding?
 - [Monorepo] — Multi-package workspace
 ```
 
-## Project Type Templates
+## Scopes
 
 | Type | Core Structure | CI | Docker | Test Setup |
 |------|---------------|----|----|-----------|
@@ -64,6 +65,12 @@ Setup → Detect → Configure → Generate → Verify → Summary
 ### Phase 1: Setup
 
 **Goal:** Determine project type and stack.
+
+**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings for context on existing project state. If absent, proceed with fresh scaffolding.
+
+**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Type + Stack** → use as default project type suggestion
+   - **Project Map.Toolchain** → pre-configure detected tools in generated configs
 
 1. If `--type` and `--stack` provided, proceed directly
 2. If working directory has existing files, scan for signals (package.json, pubspec.yaml, go.mod, Cargo.toml)

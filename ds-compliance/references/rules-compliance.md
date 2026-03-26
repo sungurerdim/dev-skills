@@ -162,7 +162,18 @@ No PII in logs, error reports, or analytics.
   - Search: logging statements containing `email`, `password`, `token`, `ssn`, `phone` variables
   - User input logged without sanitization
   - Full request/response bodies logged including auth headers
-- **Fix:** Sanitize logs. Redact PII fields. Never log auth tokens or passwords. Use structured logging with field-level redaction
+  - **Common PII patterns to scan for in log/error output:**
+
+    | Pattern | Target | Regex |
+    |---------|--------|-------|
+    | Email | user@domain.com | `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}` |
+    | Phone | +901234567890 | `\+?[0-9]{10,15}` |
+    | IPv4 | 192.168.1.1 | `\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b` |
+    | File path | /home/user/... | `[/\\][a-zA-Z].*[/\\]` |
+    | Auth token | Bearer xxx | `(Bearer\|token)\s+[A-Za-z0-9\-_.]+` |
+    | UUID | 550e8400-... | `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}` |
+
+- **Fix:** Sanitize logs. Redact PII fields. Never log auth tokens or passwords. Use structured logging with field-level redaction. Implement redaction filter in logging/error-reporting pipeline — apply before data leaves the process (e.g., Sentry `beforeSend`, Winston transport, Python `logging.Filter`, Go middleware, Java `LoggingFilter`). Test redaction with sample PII strings to verify patterns catch real-world formats
 - **Source:** OWASP Logging Cheat Sheet
 
 ---
@@ -266,6 +277,22 @@ Written DPA with all data processors.
   - Third-party services processing personal data without documented DPA
   - No processor list maintained
 - **Fix:** Execute DPA with every processor. Maintain processor registry. Review annually
+- **Processor registry entry must include:**
+  - Service name and legal entity
+  - Location (country/region)
+  - Data categories processed and explicitly NOT processed
+  - Legal basis per applicable framework (GDPR, KVKK, CCPA, etc.)
+  - User control mechanism (opt-out toggle, consent, uninstall)
+  - DPA/SCC status and expiry date
+  - Transfer mechanism (adequacy decision, SCCs, DPF)
+  - Data retention policy
+- **Annual review checklist:**
+  1. All listed processors still in active use
+  2. DPA/SCC agreements current (not expired)
+  3. Transfer mechanisms still legally valid (check adequacy decisions)
+  4. Data minimization verified (no scope creep since last review)
+  5. User opt-out/control mechanisms functional
+  6. Retention policies aligned with stated periods
 - **Source:** GDPR Art. 28
 
 ### PRV-16 [CRITICAL] Data Protection Impact Assessment [FRAMEWORK: GDPR,UK_GDPR,LGPD,PIPL]
@@ -273,7 +300,12 @@ DPIA required for high-risk processing.
 - **Detect:**
   - Large-scale processing of sensitive data without documented DPIA
   - Automated decision-making with legal effects
-- **Fix:** Conduct DPIA: describe processing, assess necessity, identify risks, define mitigations. Consult DPA if high residual risk
+- **Fix:** Conduct DPIA following this structure (GDPR Art. 35 compliant):
+  1. **Processing Description:** Nature, scope, context, purpose. Data category table (data type, source, storage location, retention period)
+  2. **Necessity & Proportionality:** Lawful basis per processing activity per applicable framework. Data subject rights implementation (access, rectification, erasure, portability, objection)
+  3. **Risk Assessment:** Risk matrix (Risk ID, description, likelihood [Low/Medium/High], severity [Low/Medium/High], inherent risk level). Mitigation table (Risk ID, control measure, implementation status, residual risk)
+  4. **Consultation:** DPO/legal review record. Data subject notification plan
+  5. **Decision:** Approved/Rejected. Residual risk summary. Review date (max 12 months). Consult DPA if high residual risk remains after mitigations
 - **Source:** GDPR Art. 35
 
 ### PRV-17 [CRITICAL] Breach Notification [FRAMEWORK: GDPR,CCPA,LGPD,PIPL,UK_GDPR,KVKK,PIPA,PDPA]
@@ -281,7 +313,23 @@ Timely notification upon data breach.
 - **Detect:**
   - No breach notification procedure documented
   - No incident response plan
-- **Fix:** GDPR/UK: 72h to authority. CCPA: AG if 500+ CA residents. KVKK: as soon as possible to Board. Implement detection + response plan
+  - No severity classification for incidents
+- **Fix:** GDPR/UK: 72h to authority. CCPA: AG if 500+ CA residents. KVKK: as soon as possible to Board. LGPD: reasonable timeframe. PIPA: without delay. PDPA: 72h (Singapore) / without delay (Thailand). Implement detection + response plan
+- **Severity classification:**
+
+  | Level | Criteria | Containment | Notification |
+  |-------|----------|-------------|--------------|
+  | P1 Critical | Active exfiltration, auth bypass, unencrypted PII exposed | Immediate | 24h to authority, same-day to users |
+  | P2 High | Potential data access, encrypted data exposed | 4h | 48h to authority |
+  | P3 Medium | Limited exposure, no evidence of access | 24h | 72h to authority |
+  | P4 Low | No personal data involved (service outage, non-PII config) | Document only | No external notification |
+
+- **Response phases:**
+  1. **Detection & Triage (0–1h):** Assign severity, assemble incident team, begin documentation
+  2. **Containment (1–4h):** Isolate affected systems, preserve evidence/logs, assess scope, apply immediate mitigations
+  3. **Authority Notification (per framework timelines above):** File with relevant authority using framework-specific forms/systems
+  4. **User Notification (when required):** In-app + email, plain language, user's preferred language, recommended protective actions
+  5. **Remediation (1–4 weeks):** Root cause analysis, permanent fix, update security controls, post-incident report
 - **Source:** GDPR Art. 33-34
 
 ### PRV-18 [CRITICAL] Data Portability [FRAMEWORK: GDPR,CCPA,UK_GDPR,LGPD,PIPA]

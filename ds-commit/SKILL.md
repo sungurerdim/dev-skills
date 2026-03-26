@@ -9,13 +9,14 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 - User runs `/ds-commit`
 - User asks to commit changes, stage and commit, or create a commit
 - User says "commit this", "commit my changes", or "save my work"
-- Do NOT trigger when user only asks to stage files without committing
+- Only trigger when user explicitly asks to commit — staging alone is not a commit request
 
 ## Contract
 
 **The commit message describes what `git diff` shows — nothing else.** Not what you discussed in the session, not what you tried and reverted, not what you planned. Read the diff, describe the diff.
 
-- Fully standalone — zero dependency on other skills
+- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses toolchain info to skip detection. When absent, runs own complete detection with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ## Arguments
 
@@ -216,7 +217,24 @@ on large datasets. Requires running migration 20240115_add_search_index.
 
 Commit count, file count, branch, commit hashes. Next step: push or create a pull request.
 
+`ds-commit: {OK|WARN|FAIL} | Commits: N | Files: N | Fixed: N | Skipped: N | Failed: N | Total: N`
+
 **Gate:** Summary includes commit count, file count, branch, and hashes.
+
+## Quality Gates
+
+- Commit message describes only what `git diff` shows — verified by re-reading diff
+- Every quality gate check (format, lint, secret scan) gets a disposition in the summary (FRC)
+- Conventional commit type matches the litmus test classification
+
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| Pre-commit hook fails | Show hook output, ask: fix and retry or skip hook (explain risk) |
+| Rebase conflict during fixup | Abort rebase, fall back to new commit, warn user |
+| Formatter/linter unavailable | Skip silently, proceed with commit |
+| Detached HEAD state | Stop, suggest creating a branch first |
 
 ## Edge Cases
 

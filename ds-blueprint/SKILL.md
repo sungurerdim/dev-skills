@@ -192,7 +192,7 @@ Ask the user two sets of questions:
 
 **Strategy:**
 - Focus areas for improvement? (Security, Code Quality, Architecture, Documentation)
-- Constraints? (Keep framework, Don't break public APIs, No new dependencies, No restrictions)
+- Constraints? (Keep framework, Preserve public APIs, Minimize new dependencies, No restrictions)
 - Who uses this project? (Public users, Internal team, Other developers, Local/undecided)
 
 **--auto Mode Defaults:**
@@ -391,6 +391,15 @@ Status: OK (overall >= target), WARN (gap exists but progress), FAIL (CRITICAL u
 - Every signal cites file:line — skip signals without evidence
 - Only count signals from source code — exclude test, generated, vendored files
 - Score reflects verified signals only — uncertain signals reduce to 0.5 weight
+
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| Codebase too large for full scan | Apply saturation gate after 3 dimensions, extrapolate remaining |
+| Blueprint profile write fails | Save to temporary file, warn user, suggest manual placement |
+| Previous profile format incompatible | Write new profile alongside, let user decide when to remove old |
+| Scoring dimension has zero signals | Score as N/A, exclude from overall calculation |
 
 ## Edge Cases
 

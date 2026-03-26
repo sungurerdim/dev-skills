@@ -156,6 +156,15 @@ ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 4. Stack consistency (correct CI syntax, valid config)
 5. Every finding gets a disposition in the summary — zero silent drops (FRC)
 
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| CI platform not detected | Ask user which CI platform they use |
+| Signing certificate expired or missing | Flag as CRITICAL, generate renewal checklist |
+| Dependency audit tool unavailable | Skip dependency scope, warn in summary |
+| Pipeline config syntax varies by CI platform | Detect platform first, generate platform-specific config |
+
 ## Edge Cases
 
 | Scenario | Behavior |

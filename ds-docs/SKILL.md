@@ -25,7 +25,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 |------|--------|
 | `--auto` | Detect, analyze, generate all missing docs |
 | `--preview` | Analyze gaps only, no generation |
-| `--scope=X` | Single scope: readme, api, dev, user, ops, changelog, refine, verify |
+| `--scope=X` | Single scope: readme, api, dev, user, ops, changelog, compliance, refine, verify |
 | `--update` | Regenerate even if docs exist |
 | `--force-approve` | Auto-apply needs_approval items (structural changes) |
 
@@ -41,6 +41,7 @@ Without flags: present mode selection to the user.
 | user | docs/user/, USAGE.md | End-user guides |
 | ops | docs/ops/, DEPLOY.md | Deployment, operations |
 | changelog | CHANGELOG.md | Version history |
+| compliance | docs/compliance/ | Privacy policy, DPIA, breach plan, processor registry |
 | refine | Existing docs | UX/DX quality improvement |
 | verify | Existing docs | Verify claims against source code |
 
@@ -84,22 +85,22 @@ Scan existing docs, detect project type, assess completeness:
 
 Ideal docs by project type:
 
-| Type | README | API | Dev | User | Ops | Changelog |
-|------|--------|-----|-----|------|-----|-----------|
-| cli | Full | - | Basic | Full (man/help) | - | Yes |
-| library | Full | Full | Full | Guides | Publish | Yes |
-| api | Full | Full | Full | Full | Full | Yes |
-| web | Full | Components | Full | Basic | Full | Yes |
-| mobile | Full | - | Full | Store listing | Full | Yes |
-| desktop | Full | - | Full | Full | Full | Yes |
-| monorepo | Full | Per-package | Full | Per-package | Full | Yes |
-| iac | Full | - | Full | Runbook | Full | Yes |
-| devtool | Full | Full | Full | Full | - | Yes |
-| data | Full | Schema | Full | Pipeline guide | Full | Yes |
-| ml | Full | Model card | Full | Inference guide | Full | Yes |
-| embedded | Full | HW interface | Full | Setup guide | Flash guide | Yes |
-| game | Full | - | Full | Player guide | - | Yes |
-| extension | Full | API/hooks | Full | Marketplace | Publish | Yes |
+| Type | README | API | Dev | User | Ops | Changelog | Compliance |
+|------|--------|-----|-----|------|-----|-----------|------------|
+| cli | Full | - | Basic | Full (man/help) | - | Yes | - |
+| library | Full | Full | Full | Guides | Publish | Yes | - |
+| api | Full | Full | Full | Full | Full | Yes | Privacy, DPIA, Breach plan |
+| web | Full | Components | Full | Basic | Full | Yes | Privacy, Cookie policy, DPIA |
+| mobile | Full | - | Full | Store listing | Full | Yes | Privacy, DPIA, Breach plan, Processor registry |
+| desktop | Full | - | Full | Full | Full | Yes | Privacy, DPIA |
+| monorepo | Full | Per-package | Full | Per-package | Full | Yes | Per-package if user-facing |
+| iac | Full | - | Full | Runbook | Full | Yes | - |
+| devtool | Full | Full | Full | Full | - | Yes | - |
+| data | Full | Schema | Full | Pipeline guide | Full | Yes | Privacy, DPIA, Model card privacy |
+| ml | Full | Model card | Full | Inference guide | Full | Yes | Privacy, DPIA, Model card privacy |
+| embedded | Full | HW interface | Full | Setup guide | Flash guide | Yes | - |
+| game | Full | - | Full | Player guide | - | Yes | Privacy (if online/IAP) |
+| extension | Full | API/hooks | Full | Marketplace | Publish | Yes | Privacy (if data collected) |
 
 Missing docs = HIGH, incomplete (<70%) = MEDIUM.
 
@@ -168,6 +169,15 @@ Generate missing docs following these principles:
 
 Source mandate: every documented flag, endpoint, or config value MUST be verified by searching the source before inclusion.
 
+**Compliance scope templates (when scope = compliance):**
+
+Generate compliance documents by scanning codebase for data flows, third-party SDKs, privacy configurations, and API patterns. Use these template structures:
+
+1. **Privacy Policy** — Sections: Who we are, Data collected (table: data type / source / purpose), Data NOT collected, How data is used, Local storage, Server-side processing, Authentication, Third-party services (table: service / entity / data shared / purpose), Data retention (table: data type / retention period / deletion trigger), User rights (access, delete, export, revoke, portability), Children's privacy, International transfers, Security measures, Changes to policy, Contact
+2. **DPIA** — Sections: Processing description + data category table, Necessity & proportionality + legal basis table per framework, Risk assessment matrix (ID / description / likelihood / severity / inherent risk) + mitigation table (risk ID / control / status / residual risk), Consultation record, Decision (approved/rejected + residual risk summary + review date max 12 months)
+3. **Breach Notification Plan** — Sections: Scope, Regulatory timelines table (GDPR / KVKK / CCPA / LGPD / UK GDPR / PIPL / PIPA / PDPA with authority + user deadlines), Severity classification (P1 Critical / P2 High / P3 Medium / P4 Low with criteria + containment + notification timelines), 5-phase response procedure (Detection & Triage → Containment → Authority Notification → User Notification → Remediation), Contact information, Review log
+4. **Processor Registry** — Per-processor entry: service name, legal entity, location, data processed, data NOT processed, legal basis per framework, user control mechanism, DPA/SCC status + expiry, transfer mechanism, retention policy. Annual review checklist (processors active, DPA current, transfers valid, minimization verified, opt-out functional, retention aligned)
+
 **Gate:** Every generated claim verified against source code with file:line evidence.
 
 ### Phase 6: Summary
@@ -193,6 +203,15 @@ Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 - Only modify documentation files — never touch source code
 - Generated docs match project's existing documentation style
 - Every finding gets a disposition in the summary — zero silent drops (FRC)
+
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| Source code contradicts existing documentation | Flag as drift, update doc to match code |
+| Referenced file or function no longer exists | Flag as stale, suggest removal |
+| Doc generation exceeds reasonable size | Split into multiple files, ask user for structure preference |
+| Verify scope finds broken internal links | List all broken links with suggested fixes |
 
 ## Edge Cases
 

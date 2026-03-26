@@ -12,13 +12,14 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 
 ## Contract
 
-- Always ask before assuming. Never fabricate experience, metrics, or skills.
+- Always ask before assuming. Only include verified experience, metrics, and skills.
 - Every metric is verified: cross-check math (e.g., if "Xh to Yh" then multiplier = X/Y). Confirm with user.
 - Every achievement is attributed to the correct role. Ask explicitly.
-- Output is a single HTML file with inline CSS. No external dependencies except Google Fonts.
+- Output is a single HTML file with inline CSS. Only Google Fonts as external dependency.
 - All content is ATS-safe: zero non-ASCII characters in output, zero special HTML entities except `&amp;`.
-- Privacy by default: no email, phone, address, birth date, or photo in public HTML.
-- Fully functional standalone — zero dependency on other skills or external specs.
+- Privacy by default: omit email, phone, address, birth date, and photo from public HTML.
+- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project context for metric verification. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ## Arguments
 
@@ -36,7 +37,11 @@ Gather -> Verify -> Write -> Generate -> Audit -> Deploy
 
 ### Phase 1: Gather [generate]
 
-**Goal:** Collect all career data through structured questions. Never guess.
+**Goal:** Collect all career data through structured questions. Only use confirmed data.
+
+**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Type + Stack** → context for technical skills section
+   - **Project Map** → real project contributions for experience verification
 
 1. **Identity:** Name (ask about middle name - PII consideration), title, LinkedIn URL, GitHub URL, location + timezone, email preference (omit from public HTML - spam risk).
 2. **Experience:** List all roles chronologically first, then detail each:
@@ -44,7 +49,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> Deploy
    - Technical or non-technical? (determines bullet depth)
    - Management: "Did you manage a team, or work independently?"
    - 1-4 bullet points per role with quantified results
-3. **Skills:** Ask by CATEGORY after experience (informed by actual work). Filter: only defensible in interview. No filler (Git, Agile), no redundancy (GitHub Actions + CI/CD), no legacy signals (VBA), no commoditized terms (Prompt Engineering).
+3. **Skills:** Ask by CATEGORY after experience (informed by actual work). Filter: only defensible in interview. Exclude filler (Git, Agile), redundancy (GitHub Actions + CI/CD), legacy signals (VBA), commoditized terms (Prompt Engineering).
 4. **Education:** Degrees reverse-chronological, graduation year only. GPA only if >= 3.5/4. Expired certs with honest date range. Remove unfinished courses ("Present" on incomplete education = bad signal).
 5. **Gap analysis:** Map full timeline after collecting roles. Flag gaps > 6 months. Ask about same-company resignation/rehire scenarios.
 6. **Privacy review:** Anonymize family businesses (generic descriptor), ask about middle name, verify no sensitive company names exposed.
@@ -56,7 +61,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> Deploy
 **Goal:** Catch every factual error before generating.
 
 1. **Metric math:** For every number, verify the calculation. Example: "Xh to Yh" must equal X/Y multiplier. If user rounds ("~700x" when exact is 630x), confirm intentional.
-2. **Role-achievement attribution:** Ask "Which achievement belongs to which role?" for each. Never assume by role title.
+2. **Role-achievement attribution:** Ask "Which achievement belongs to which role?" for each. Verify before including — confirm by role title match.
 3. **Role chronology:** Verify progression direction. "BAS to PM" or "PM to BAS"? Check actual dates.
 4. **Combined role dates:** If combining roles at same company, end date = actual departure date. If user resigned and returned, split into separate entries.
 5. **Unverifiable claims:** "20+ repos" - are they public? If not verifiable, remove specific number.
@@ -83,7 +88,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> Deploy
 - Leadership verbs: Owned, Led, Established, Founded, Managed
 - Scope verbs: Owned end-to-end, Delivered independently
 - Every role: min 1 bullet with a number. Max line: 1-2 printed lines.
-- No speculation ("likely still in use"), no jargon ("cross-functional synergies"), no generic duties ("led optimization initiatives")
+- Use concrete facts only — avoid speculation ("likely still in use"), jargon ("cross-functional synergies"), and generic duties ("led optimization initiatives")
 - Management role without team: "Owned end-to-end" not "Led team"
 - Non-technical roles: 1 bullet showing transferable impact
 
@@ -106,14 +111,14 @@ Gather -> Verify -> Write -> Generate -> Audit -> Deploy
 **Goal:** Produce ATS-safe, single-page A4 HTML.
 
 1. **Character safety [CRITICAL]:** Zero non-ASCII in output. No `&mdash;` `&ndash;` `&rarr;` - use `-` and `to`. Title tag uses plain hyphen. Only `&amp;` is allowed.
-2. **Structure:** Single column, semantic HTML (h1, header, section, ul/li, span). No images, SVG, icons, canvas, JavaScript.
+2. **Structure:** Single column, semantic HTML (h1, header, section, ul/li, span). Only text-based elements — exclude images, SVG, icons, canvas, JavaScript.
 3. **Section headings:** Professional Summary, Technical Skills, Experience, Education - standard names ATS recognizes.
 4. **Design system:** Load from `references/css-design-system.md`. Gestalt color-coding: role names (navy), company (slate italic), dates (blue badge), bullets (gray), skills (pill tags).
 5. **Print CSS:** Compressed spacing for A4 single page. `page-break-inside: avoid` on sections and entries. `width: 100%; margin: 0` for print.
 6. **OG meta tags:** Add `og:title`, `og:description`, `og:type` for link preview. Plain hyphen in all meta content.
 7. **Final scan:** Execute character scan - search for any non-ASCII characters. If found, replace before delivering.
 
-8. **Single-page auto-fit [CRITICAL]:** Use CSS flex auto-spacing for single-page A4 fit (see `references/css-design-system.md`). If overflow, reduce print font-size incrementally (9pt -> 8.5pt -> 8pt). Never deliver a CV that overflows.
+8. **Single-page auto-fit [CRITICAL]:** Use CSS flex auto-spacing for single-page A4 fit (see `references/css-design-system.md`). If overflow, reduce print font-size incrementally (9pt -> 8.5pt -> 8pt). Ensure every delivered CV fits within page bounds.
 
 **Gate:** Zero non-ASCII characters. Print preview fits single A4. All section headings standard.
 
@@ -144,6 +149,11 @@ Load audit rules from `references/audit-rules.md`. Key checks:
 3. **LinkedIn guide [SKIP if user declines]:** Generate from `references/linkedin-fields.md`. Map every LinkedIn form field. Achievement-based descriptions, not "Responsibilities:" style. Verify all metrics match CV.
 4. **Reference file:** Generate private career reference with all excluded details, attribution mapping, metric proofs, gap explanations.
 
+**Summary format:**
+```
+ds-cv: {OK|WARN|FAIL} | Sections: N | Metrics: N verified | ATS: {score} | Fixed: N | Skipped: N | Failed: N | Total: N
+```
+
 **Gate:** PDF renders single page. GitHub Pages live. LinkedIn guide metrics match CV.
 
 ## Quality Gates
@@ -162,7 +172,7 @@ Load audit rules from `references/audit-rules.md`. Key checks:
 
 | Situation | Action |
 |-----------|--------|
-| User unsure which role an achievement belongs to | Mark as "unverified", ask again with context. Do not guess. |
+| User unsure which role an achievement belongs to | Mark as "unverified", ask again with context. Only use confirmed data. |
 | Metric math doesn't check out | Show the calculation, ask user for correct numbers |
 | Print overflows 1 page | Reduce print CSS spacing incrementally. If still overflows, inform user: "Content requires 2 pages. Expand to fill page 2 meaningfully or cut a role." |
 | GitHub Pages creation fails | Provide manual instructions |
@@ -174,10 +184,10 @@ Load audit rules from `references/audit-rules.md`. Key checks:
 |----------|----------|
 | User has 15+ roles | Combine older/shorter roles. Keep detailed bullets only for recent 5-7 roles. |
 | Career changer (non-tech to tech) | Lead with tech experience. Older non-tech roles: 1 line each, no bullets. |
-| Family business | Anonymize with generic descriptor (e.g., "Consulting Firm"). Never say "family business" on CV. |
+| Family business | Anonymize with generic descriptor (e.g., "Consulting Firm"). Use neutral company descriptor on CV. |
 | Concurrent roles (2x "Present") | Acceptable. Use "Part-time" for secondary role to explain overlap. |
-| Resignation and rehire at same company | Split into separate entries with real dates. Do not merge to hide gap. |
+| Resignation and rehire at same company | Split into separate entries with real dates. Keep each entry separate to show accurate timeline. |
 | User claims experience from hobby/student era | Challenge: "What professional work did you do in that period?" If no paid role, use "for over a decade" or count from first professional role. |
-| GPA below 3.5/4 | Omit from CV and LinkedIn. Do not display. |
+| GPA below 3.5/4 | Omit from CV and LinkedIn. Only display GPA >= 3.5/4. |
 | Unfinished course with "Present" | Remove. "Present" on incomplete education signals abandonment. |
-| 3+ orphan lines on page 2 | Either compress content or expand to fill half of page 2 meaningfully. Never leave 3 orphan lines. |
+| 3+ orphan lines on page 2 | Either compress content or expand to fill half of page 2 meaningfully. Ensure page 2 is either empty or meaningfully filled. |

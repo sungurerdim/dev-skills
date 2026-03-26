@@ -6,9 +6,9 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **User Experience** | UX-01–26 (1 CRITICAL, 3 CRITICAL, 19 HIGH, 3 LOW) | ~15 |
-| **Visual Design** | VIS-01–24 (3 CRITICAL, 16 HIGH, 5 LOW) | ~185 |
-| **Accessibility** | A11Y-01–12 (5 CRITICAL, 7 HIGH) | ~354 |
+| **User Experience** | UX-01–27 (1 CRITICAL, 3 CRITICAL, 20 HIGH, 3 LOW) | ~15 |
+| **Visual Design** | VIS-01–25 (3 CRITICAL, 17 HIGH, 5 LOW) | ~185 |
+| **Accessibility** | A11Y-01–12 (5 CRITICAL, 7 HIGH) | ~370 |
 
 ---
 
@@ -180,6 +180,13 @@ No deceptive UI patterns that trick users into unintended actions.
 - **Impact:** EAA/GDPR fines up to EUR 100K+. App store rejection. User trust destruction
 - **Source:** EU Consumer Rights Directive, FTC Dark Patterns Report, EAA 2019/882
 
+### UX-27 [HIGH] Privacy Trust Indicators
+Apps handling sensitive data must show visible trust indicators on relevant screens.
+- **Detect:** App handles sensitive data (auth, health, finance, encrypted storage, PII) but shows no visual trust indicators on relevant screens. No encryption/security status near sensitive operations. No data handling disclosure before permission prompts
+- **Fix:** Add contextual trust indicators: encryption badge on auth/data-entry screens. Data handling micro-text near sensitive operations (e.g., "Processed in memory only", "End-to-end encrypted"). Privacy transparency panel in settings showing what data is collected. Just-in-time disclosure before permission prompts (increases opt-in 12-19%)
+- **Conditional:** Only for apps with privacy/security/health/finance focus — detect via manifest permissions, API patterns, or compliance docs
+- **Source:** Signal, Ente, Bitwarden UX patterns; NNG Trust Design research
+
 ---
 
 ## Visual Design
@@ -195,7 +202,14 @@ Support system font scaling. iOS: Dynamic Type. Android: sp (never dp for text).
   - iOS: UIFontMetrics, Dynamic Type categories
   - Android: sp units for all text
   - Flutter: Theme.of(context).textTheme, test at 200% scale
-- **Source:** WCAG, Apple HIG, Material 3
+  - **Interim safety (all platforms):** While building full WCAG 1.4.4 200% support, clamp text scaling to 0.8–1.3× range via platform text scale API to prevent layout breakage. Document the cap and plan its removal:
+    - Flutter: `MediaQuery.textScaler.clamp(minScaleFactor: 0.8, maxScaleFactor: 1.3)` in `MaterialApp.builder`
+    - iOS: `adjustsFontForContentSizeCategory` with maximum category limit
+    - Android: `Configuration.fontScale` bounded in Application subclass
+    - RN: `Text.defaultProps.maxFontSizeMultiplier = 1.3`
+    - Web: `clamp(0.8rem, 1em, 1.3rem)` in CSS font-size
+  - **Target:** Remove cap once all screens pass layout test at 200% scale
+- **Source:** WCAG 1.4.4, Apple HIG, Material 3
 
 ### VIS-02 [CRITICAL] Minimum Text Size
 Body >= 16sp/17pt. Never below 11sp/12pt for any text.
@@ -247,6 +261,19 @@ Respect notch, Dynamic Island (44-58px), punch-hole, system bars.
 Phone, tablet, foldable support via window size classes.
 - **Detect:** Fixed layouts breaking on tablet/foldable. Single column on large screens
 - **Fix:** Compact (<600dp), Medium (600-840dp), Expanded (840dp+). Canonical layouts: list-detail, feed, supporting panel
+- **Test matrix (covers 99%+ of devices):**
+
+  | Profile | Width | Class | Notes |
+  |---------|-------|-------|-------|
+  | Ultra-narrow | 240dp | Narrow | Extreme edge case (small wearable) |
+  | Small phone | 320dp | Compact | iPhone SE, low-end Android |
+  | Standard phone | 375dp | Compact | Most common phone baseline |
+  | Large phone | 412dp | Compact | Most common Android (Pixel) |
+  | Phablet | 428dp | Compact | Upper phone bound |
+  | Small tablet | 744dp | Medium | iPad Mini, Android tablet |
+  | Large tablet | 1024dp | Expanded | iPad Pro, desktop window |
+
+  Also test: landscape orientation, font scale 1.3×, dark mode, RTL layout (if i18n supported)
 - **Source:** Material 3 Adaptive Design
 
 ### VIS-10 [HIGH] Typography Scale
@@ -348,6 +375,26 @@ All interactive elements show pressed, disabled, focused, and loading states.
 - **Fix:** Define states for every interactive component: default, pressed, focused, disabled, loading, error. Disabled = reduced opacity (38%). Loading = spinner replacing label. Focus = visible ring/outline
 - **Impact:** Missing interactive states make the UI feel unresponsive and confuse users about what's actionable
 - **Source:** Material 3 State Layers, Apple HIG Interactive Elements
+
+### VIS-25 [HIGH] Overflow Prevention Patterns
+Constrained layouts must protect against text/content overflow across all viewport sizes.
+- **Detect:**
+  - Text in constrained horizontal parent (Row/HStack/LinearLayout/flexbox) without overflow protection (maxLines, ellipsis, line clamp)
+  - Multiple text elements in horizontal layout without flexible sizing (Flexible/Expanded, flexShrink, layout weight, flex-shrink)
+  - Vertical content with spacers/padding but no scroll wrapper — will overflow on small screens or large font
+  - Hardcoded pixel widths > 200dp on elements that should be responsive
+  - Screen size query triggering unnecessary full-tree rebuilds instead of targeted size reads
+- **Fix:**
+  - Every horizontal layout with text needs at least one flexible child:
+    - Flutter: `Flexible`/`Expanded` + `Text(maxLines, overflow: TextOverflow.ellipsis)`
+    - iOS: `compressionResistance` priority + `numberOfLines` + `lineBreakMode`
+    - Android: `0dp` with `layout_weight` + `ellipsize`; Compose: `Modifier.weight()` + `maxLines`
+    - RN: `flexShrink: 1` + `numberOfLines`
+    - Web: `flex-shrink: 1` + `text-overflow: ellipsis` + `overflow: hidden`
+  - Content that might exceed viewport height: wrap in scrollable container with min-height constraint
+  - Replace hardcoded widths with responsive values (percentage, flex, weight)
+  - Use targeted size queries (Flutter: `MediaQuery.sizeOf` not `.of`; Web: container queries not window resize; iOS: trait collections)
+- **Source:** Platform layout overflow prevention guides
 
 ---
 

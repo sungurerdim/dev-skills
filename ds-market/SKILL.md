@@ -15,6 +15,8 @@ Solo developers build great products but can't get anyone to notice. This skill 
 
 - Strategic guidance skill — produces plans, copy, and checklists, not code
 - Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project type, audience, and stack to tailor marketing strategy. When absent, asks user for context.
+- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 - Every deliverable (strategy, copy, checklist) is accounted for in the summary — zero silent drops
 - **Minimal liability:** recommends established marketing patterns, no dark patterns
 - **Maximum privacy:** no invasive tracking recommendations, no manipulative UX
@@ -111,6 +113,10 @@ Setup → Research → Generate → Review → Summary
 
 **Goal:** Understand the product and market.
 
+**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Config.audience** → know target audience for positioning and copy tone
+   - **Type + Stack** → context for marketing channel selection
+
 1. If flags provided, proceed directly
 2. If no flags, present interactive menu
 3. Gather context:
@@ -178,7 +184,7 @@ Setup → Research → Generate → Review → Summary
 ### Phase 5: Summary
 
 ```
-ds-market: OK | Mode: {strategy|copy|growth} | Generated: N artifacts
+ds-market: {OK|WARN|FAIL} | Mode: {strategy|copy|growth} | Generated: N artifacts | Fixed: N | Skipped: N | Failed: N | Total: N
 
 Artifacts:
 - {artifact 1}: {brief description}

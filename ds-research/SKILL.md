@@ -14,7 +14,8 @@ AI models hallucinate sources, cite outdated data, and can't distinguish a blog 
 ## Contract
 
 - Searches both local codebase files and web sources.
-- Fully standalone — zero dependency on other skills
+- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project context. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ## Arguments
 
@@ -25,7 +26,7 @@ AI models hallucinate sources, cite outdated data, and can't distinguish a blog 
 
 Without flags: present depth selection to the user.
 
-**Do NOT:** Fabricate sources or URLs, present T5/T6 sources without confidence caveat, skip contradiction resolution when sources disagree, or synthesize without citing specific source tiers.
+Only include verified, accessible sources and URLs. Present T5/T6 sources with confidence caveat. Resolve contradictions when sources disagree. Cite specific source tiers in every synthesis.
 
 ## Execution Flow
 
@@ -46,6 +47,10 @@ Recovery check: if progress artifact exists from prior deep run, ask: Resume / S
 **Gate:** Depth and search scope selected.
 
 ### Phase 2: Parse Query
+
+**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Type + Stack** → context for technology-specific research queries
+   - **Config.constraints** → know project constraints affecting research scope
 
 Extract from arguments: concepts, tech domain, comparison mode, search mode (troubleshoot/changelog/security).
 
@@ -85,7 +90,7 @@ Validate outputs: verify all claims cite sources, check for contradictions, remo
 
 ### Phase 5: Output
 
-Executive summary, evidence hierarchy (primary T1-T2, supporting T3-T4), contradictions resolved, knowledge gaps, recommendation (DO/DON'T/CONSIDER).
+Executive summary, evidence hierarchy (primary T1-T2, supporting T3-T4), contradictions resolved, knowledge gaps, recommendation (DO/AVOID/CONSIDER).
 
 **Source format (compact):**
 ```
@@ -97,13 +102,27 @@ Sources:
 
 Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
 
+**Summary format:**
+```
+ds-research: {OK|WARN|FAIL} | Sources: N | CRAAP+ avg: {score} | Claims: N verified | Fixed: N | Skipped: N | Failed: N | Total: N
+```
+
 **Gate:** Output includes executive summary, evidence hierarchy, and source list with tier/score.
 
 ## Quality Gates
 
 - Every claim cites at least one source with CRAAP+ score ≥50
 - Contradictory sources noted explicitly with confidence assessment
-- No fabricated URLs or references — only cite actually retrieved sources
+- Only cite actually retrieved and verified sources and URLs
+
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| No web search results | Fall back to local codebase and documentation search |
+| All sources score below CRAAP+ threshold | Report as low-confidence, recommend manual verification |
+| Source URL returns 404 or is inaccessible | Mark source as unverified, note in output |
+| Contradictory high-tier sources | Present both positions with confidence assessment, let user decide |
 
 ## Edge Cases
 

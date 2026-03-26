@@ -7,7 +7,8 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | Section | Rules | Line |
 |---------|-------|------|
 | **Performance** | PRF-01–07 (1 CRITICAL, 6 MAJOR) | ~12 |
-| **Network & API** | NET-01–05, NET-07 (6 MAJOR) | ~80 |
+| **Client-Side Performance** | PRF-08–10 (3 MAJOR) | ~78 |
+| **Network & API** | NET-01–05, NET-07 (6 MAJOR) | ~115 |
 
 ---
 
@@ -74,6 +75,58 @@ Bounded concurrency, connection pooling, file handle limits.
   - No timeout on HTTP client requests
 - **Fix:** Limit concurrency (p-limit, semaphore). Use connection pools (pg pool, SQLAlchemy pool). Set timeouts on all I/O operations. Close resources in finally/defer/with blocks
 - **Source:** Resource management best practices
+
+---
+
+## Client-Side Performance
+
+### PRF-08 [MAJOR] Unnecessary UI Rebuilds
+UI components with unchanged inputs must not rebuild on every state change.
+- **Detect:**
+  - UI component eligible for immutability/memoization but not marked as such
+  - State observation triggering full-tree rebuild instead of targeted update (watching entire state object instead of specific fields)
+  - Leaf components (spacers, padding, icons, static text) recreated every render cycle
+- **Fix:**
+  - Mark immutable components: `const` (Flutter), `React.memo` (React/RN), `@Stable`/`@Immutable` (Compose), `EquatableView` (SwiftUI), `v-once` (Vue)
+  - Use selective state observation: watch only needed fields, not entire state objects (Riverpod `select()`, Redux `useSelector`, Compose `derivedStateOf`, SwiftUI `@Observable` with access tracking)
+  - Move expensive computations outside render/build cycle into memoized values or computed properties
+- **Source:** Platform rendering optimization guides
+
+### PRF-09 [MAJOR] Animation Layer Promotion
+Animations must not trigger expensive layout recalculations or rebuild entire subtrees.
+- **Detect:**
+  - Animating layout-triggering properties (width, height, margin, padding) instead of compositor-only properties (transform, opacity)
+  - Opacity/transparency changes wrapping complex subtrees (forces full-layer recomposite)
+  - Animation callbacks rebuilding expensive children every frame instead of extracting static children
+  - Animation lifecycle not synced with display refresh
+- **Fix:**
+  - Animate compositor-only properties via platform GPU path:
+    - Flutter: `FadeTransition` instead of `Opacity`; `AnimatedBuilder(child:)` to build child once
+    - iOS: animate `CALayer` properties (opacity, transform) instead of view layout
+    - Android/Compose: `Modifier.graphicsLayer { alpha }` instead of `Modifier.alpha()` on complex subtrees
+    - RN: `useNativeDriver: true`; `Reanimated` worklets for gesture-driven animations
+    - Web: animate `transform`/`opacity` only; `will-change` hint for known targets; `requestAnimationFrame` for frame sync
+  - Extract static children outside animation scope
+  - Sync animation lifecycle with display refresh (vsync, CADisplayLink, Choreographer, requestAnimationFrame)
+- **Source:** Platform animation performance guides
+
+### PRF-10 [MAJOR] Cold Start Optimization
+First meaningful frame must render within 2 seconds on target devices.
+- **Detect:**
+  - Heavy initialization (analytics, crash reporting, non-critical services) blocking first frame
+  - Synchronous database migration or large file reads on main thread at startup
+  - All feature modules loaded eagerly instead of on-demand
+- **Fix:**
+  - Defer non-critical init to after first frame:
+    - Flutter: `WidgetsBinding.instance.addPostFrameCallback()`
+    - iOS: `DispatchQueue.main.async` after `viewDidAppear`
+    - Android: `Handler(Looper.getMainLooper()).post {}`; Compose: `LaunchedEffect`
+    - RN: `InteractionManager.runAfterInteractions()`
+    - Web: `requestIdleCallback()` or `setTimeout(fn, 0)`
+  - Lazy-load feature modules
+  - Run database migrations on background thread
+- **Impact:** 49% of users expect <2s, 53% abandon >3s
+- **Source:** Platform startup optimization guides
 
 ---
 

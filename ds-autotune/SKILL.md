@@ -19,6 +19,8 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 - Evaluation is mechanical (deterministic assertions or benchmarks), not subjective
 - The skill generates the optimization infrastructure (auto/ folder), then runs the loop
 - Fully standalone — zero dependency on other skills
+- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses metric context. When absent, runs own complete analysis with identical quality.
+- Every finding receives a disposition in the summary — zero silent drops (FRC)
 
 ## Arguments
 
@@ -36,11 +38,15 @@ Discovery → Analysis → Plan → Generate → Baseline → Loop
 
 **Goal:** Understand what the user wants to optimize.
 
+**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
+   - **Ideal Metrics** → use as baseline target for optimization
+   - **Type + Stack** → context for experiment constraints
+
 Ask the user ONE question:
 
 > What do you want to improve in this project? No technical detail needed — describe the goal in your own words.
 
-Wait for answer. Do not proceed without it.
+Wait for answer. Only proceed after receiving it.
 
 **Gate:** User has stated an optimization goal.
 
@@ -167,7 +173,7 @@ Execute the loop defined in auto/program.md. Follow it exactly:
 8. Decision:
    - Metric improved → KEEP. Branch advances.
    - Metric same or worse → DISCARD. Run: `git reset HEAD~1 --hard`
-9. Go to step 1. Do not stop.
+9. Go to step 1. Continue without interruption.
 
 **Gate:** Loop runs until user interrupts or context limit approaches.
 
@@ -193,7 +199,7 @@ Generated in Phase 4 with all placeholders filled:
 | auto/eval script | read-only | Metric extraction |
 | auto/.autotune.json | read-only | Configuration |
 | auto/results.tsv | append-only | Experiment log |
-| All other files | read-only | Do not touch |
+| All other files | read-only | Keep unchanged |
 
 ## Baseline
 - <metric>: <baseline_value>
@@ -214,23 +220,23 @@ Repeat forever:
 8. Decision:
    - <metric> improved (<direction>) -> KEEP. Branch advances.
    - <metric> same or worse -> DISCARD. Run: git reset HEAD~1 --hard
-9. Go to step 1. NEVER STOP.
+9. Go to step 1. Continue without interruption.
 
 ## Rules
 
 1. ONLY modify <target_file>. Everything else is read-only.
-2. Do NOT install new packages or add dependencies.
+2. Only use packages and dependencies already in the project.
 3. Each experiment must complete within <budget_sec> seconds.
    If exceeded, kill and treat as crash.
 4. Simplicity criterion: a small improvement that adds ugly complexity is NOT worth it.
 5. Crash handling:
-   - Simple bug (typo, import) -> fix and retry. Do not log as crash.
+   - Simple bug (typo, import) -> fix and retry. Log only as retry, keep crash for fundamental failures.
    - Fundamental problem -> skip, log as crash, move on.
    - For crashes: <metric>=0.000000, status=crash in results.tsv
-6. NEVER STOP. Do not pause to ask the human. Keep experimenting.
+6. Continue without interruption. Keep experimenting autonomously.
    If stuck, re-read the target file for new angles, combine previous ideas,
    or try more radical approaches.
-7. Do NOT repeat a previously discarded experiment.
+7. Only attempt experiments with new hypotheses — skip previously discarded approaches.
    Read results.tsv descriptions to avoid duplicates.
 ```
 
@@ -265,6 +271,11 @@ Last experiment:    [latest timestamp]
 
 Last 5 experiments:
 [last 5 rows from results.tsv as table]
+```
+
+Summary line:
+```
+ds-autotune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {delta} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
 3. Show git log of kept improvements: `git log --oneline autotune/<tag> | head -10`

@@ -8,7 +8,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 |---------|-------|------|
 | **Architecture & Code Quality** | ARC-01–10 (3 CRITICAL, 6 HIGH, 1 LOW) | ~12 |
 | **Testing** | TST-01–06 (1 CRITICAL, 5 HIGH) | ~100 |
-| **Performance** | PRF-01–07 (1 CRITICAL, 6 HIGH) | ~160 |
+| **Performance** | PRF-01–09 (1 CRITICAL, 8 HIGH) | ~160 |
 | **Network & Data** | NET-01–07 (2 CRITICAL, 5 HIGH) | ~214 |
 | **Internationalization & Logging** | DEV-04–06, DEV-09 (4 HIGH) | ~262 |
 
@@ -208,6 +208,29 @@ No unnecessary background activity that drains battery.
 - **Fix:** Use push notifications instead of polling. Significant location change monitoring instead of continuous GPS. Release wake locks promptly. Use platform background task APIs with constraints (charging, wifi). Batch network requests
 - **Impact:** Excessive battery drain is the #1 reason users uninstall apps
 - **Source:** Android Battery Optimization, iOS Energy Efficiency Guide
+
+### PRF-08 [HIGH] Immutable / Static UI Component Optimization
+UI components with unchanging inputs must be marked immutable to skip unnecessary rebuilds.
+- **Detect:** UI component with all-final/immutable fields not marked as compile-time constant or memoized. Leaf components (spacers, padding, icons, static text) recreated every render cycle without immutability hint
+- **Fix:**
+  - Flutter: `const` constructor on all eligible widgets (leaf widgets first: SizedBox, Padding, EdgeInsets, Icon, Text with literal)
+  - SwiftUI: struct-based views are immutable by default; use `EquatableView` for expensive body computations
+  - Compose: `@Stable` / `@Immutable` annotations on data classes passed to composables
+  - RN: `React.memo()` wrapper on functional components with stable props
+  - Web React: `React.memo()` / `useMemo()` for expensive render subtrees; Vue: `v-once` for static content
+- **Impact:** Lowest-cost, highest-impact rebuild optimization across all platforms. Non-immutable leaf widgets rebuild even when inputs are unchanged
+- **Source:** Platform rendering optimization guides
+
+### PRF-09 [HIGH] Animation Performance Anti-Patterns
+Animations must not trigger expensive layout recalculations or rebuild entire subtrees.
+- **Detect:** Opacity/transparency change wrapping complex subtree (triggers full-layer composite / `saveLayer()`). Animation builder/callback rebuilding expensive child every frame. Animation controller without lifecycle sync (vsync / CADisplayLink / Choreographer / requestAnimationFrame). Animating layout-triggering properties (width, height, margin, padding) instead of compositor-only properties (transform, opacity)
+- **Fix:**
+  - Flutter: `FadeTransition` instead of `Opacity` on complex children. `AnimatedBuilder(child: const ExpensiveWidget(), builder: (_, child) => ...)` to build child once. `TickerProviderStateMixin` for vsync
+  - iOS: Animate `CALayer` properties (opacity, transform) instead of view layout. Use `UIView.animate` with `.allowUserInteraction`
+  - Android/Compose: `Modifier.graphicsLayer { alpha = ... }` instead of `Modifier.alpha()` on complex subtrees. `RenderEffect` for GPU-side effects
+  - RN: `useNativeDriver: true` in Animated API. `Reanimated` worklets for complex gesture-driven animations
+  - Web: Animate `transform`/`opacity` only (compositor-only properties). `will-change` hint for known animation targets. `requestAnimationFrame` for frame sync
+- **Source:** Platform animation performance guides
 
 ---
 

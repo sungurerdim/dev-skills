@@ -103,6 +103,37 @@ For each uncovered source file (or scoped path):
 | "rejects login with expired token" | "test authentication" |
 | "creates order with correct total when discount applied" | "test createOrder" |
 
+**Client-side test scenarios (when platform = mobile, web SPA, or desktop):**
+
+When generating tests for client-side projects, include these additional scenario categories:
+
+**Responsive layout tests:**
+- Test at viewport profiles: 320dp, 375dp, 412dp, 744dp, 1024dp (minimum)
+- Verify no layout overflow errors at each profile
+- Test both portrait and landscape orientations
+
+**Font scaling tests:**
+- Test at 0.8×, 1.0×, 1.3× system font scale
+- Verify text remains readable and layouts stay intact
+
+**Theme tests:**
+- All screens render correctly in both light and dark mode
+- No hardcoded colors bypassing theme system
+
+**Accessibility tests:**
+- Screen reader (TalkBack / VoiceOver / Narrator / NVDA) traversal of all interactive elements
+- All interactive elements have accessibility labels
+- Error states announced to screen readers
+
+**Test ratio targets (by project type):**
+
+| Type | Unit | Component/Integration | E2E |
+|------|------|-----------------------|-----|
+| Mobile | 70%+ | 20%+ | 10%+ |
+| Web SPA | 60%+ | 25%+ | 15%+ |
+| API | 60%+ | 30%+ | 10%+ |
+| Library | 80%+ | 15%+ | 5%+ |
+
 **Gate:** Test files generated covering happy path, edge cases, and error cases for each target.
 
 ### Phase 2b: Update [--update]
@@ -131,14 +162,14 @@ When source code changed and tests need updating:
 | Classification | Action |
 |---------------|--------|
 | **Test is wrong** (assertion outdated, mock stale, fixture missing) | Fix the test |
-| **App is wrong** (source code bug causing test failure) | Report as app bug — do NOT fix source code |
+| **App is wrong** (source code bug causing test failure) | Report as app bug — fix the test, not the source code |
 | **Environment issue** (missing dep, config, database not running) | Report with setup instructions |
 | **Flaky test** (passes sometimes, fails others — timing, ordering) | Flag as flaky, suggest fix approach |
 
 4. Fix test-side issues automatically. For app bugs, write a finding to `.ds-findings.md` with scope `testing`.
 5. Re-run to verify fixes. Max 3 fix-run iterations.
 
-**Critical rule:** If a test was passing before and now fails after source change, the SOURCE is likely wrong (regression), not the test. Do NOT weaken assertions to make a test pass.
+**Critical rule:** If a test was passing before and now fails after source change, the SOURCE is likely wrong (regression), not the test. Keep assertions at full strength — fix the test logic or report the app bug.
 
 **Gate:** Test-side fixes verified passing or app bugs written to .ds-findings.md.
 
@@ -189,9 +220,9 @@ ds-test: {OK|WARN|FAIL} | Generated: N | Updated: N | Fixed: N | Skipped: N | Fa
 
 ### Value Rule (most important)
 
-Every test must justify its existence by addressing a **concrete, specific risk**. Before writing any test, answer: "What bug would this catch?" If the answer is vague or "none really", do NOT write the test.
+Every test must justify its existence by addressing a **concrete, specific risk**. Before writing any test, answer: "What bug would this catch?" If the answer is vague or "none really", skip the test.
 
-| Write this test | Do NOT write this test |
+| Write this test | Skip — this test validates... |
 |----------------|----------------------|
 | "Catches division by zero when quantity is 0" | "Tests that constructor sets properties" |
 | "Verifies auth rejects expired JWT tokens" | "Tests that getter returns the field value" |
@@ -225,6 +256,15 @@ When analyzing existing tests, flag tests that provide no concrete value:
 - Generated test matches project's existing style — no style drift
 - Every finding gets a disposition in the summary — zero silent drops (FRC)
 
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| Test framework not detected | Ask user which framework to use |
+| Generated test fails on first run | Read error, fix test logic (fix the test, not the source) |
+| Source file has no testable public interface | Skip with note: "No public API to test" |
+| Coverage tool unavailable | Skip coverage report, generate tests based on source analysis |
+
 ## Edge Cases
 
 | Scenario | Behavior |
@@ -236,4 +276,4 @@ When analyzing existing tests, flag tests that provide no concrete value:
 | Monorepo with multiple test frameworks | Detect per-package, run each package's framework |
 | E2E requires running server | Check for dev server script, start it, run tests, stop it |
 | Coverage tool not configured | Skip coverage analysis, suggest setup |
-| `--auto` mode with failing app tests | Write findings to `.ds-findings.md`, do not fix source |
+| `--auto` mode with failing app tests | Write findings to `.ds-findings.md`, fix the test, not the source code |

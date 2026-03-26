@@ -269,6 +269,15 @@ Cap: any CRITICAL -> max 40, 3+ HIGH -> max 60.
 
 When uncertain, choose lower severity.
 
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| Finding references deleted or moved file | Mark as not-applicable, continue |
+| Fix breaks dependent file | Revert, flag as failed, search consumers before retrying |
+| Scope too large (>50 files with findings) | Apply saturation gate, ask user to narrow scope |
+| Strategic mode: architecture assessment unclear | Ask user for system context and constraints |
+
 ## Edge Cases
 
 | Scenario | Behavior |
