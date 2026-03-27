@@ -107,7 +107,7 @@ Full copy formulas, voice rules, anti-patterns, landing page structure, growth p
 
 ## Execution Flow
 
-Setup → Research → Generate → Review → Summary
+Setup → Research → Generate → Review → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
@@ -181,7 +181,16 @@ Setup → Research → Generate → Review → Summary
 
 **Gate:** All content passes review.
 
-### Phase 5: Summary
+### Phase 5: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 6: Summary
 
 ```
 ds-market: {OK|WARN|FAIL} | Mode: {strategy|copy|growth} | Generated: N artifacts | Fixed: N | Skipped: N | Failed: N | Total: N

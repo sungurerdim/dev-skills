@@ -93,3 +93,79 @@ Registry endpoints for version/CVE checking:
 | Go | `pkg.go.dev/{pkg}?tab=versions` |
 
 **Flow:** Fetch latest → SemVer compare → Changelog for major → CVE check → Deprecation check. Batch by ecosystem, parallel fetch same registry, sequential changelog for major only.
+
+---
+
+## Answer Engine Optimization (AEO)
+
+AI-powered search engines are a growing traffic source and citation channel. Sources that perform well in AI search results demonstrate higher findability and structured authority.
+
+### AI Search Landscape (2025-2026)
+
+| Metric | Value |
+|--------|-------|
+| AI search traffic growth | 357% YoY (1.13B visits, June 2025) |
+| ChatGPT search share | 55-60% of AI search traffic |
+| Perplexity share | 18-22% |
+| Gemini share | 10-14% |
+| Other (Copilot, You.com, etc.) | 6-15% |
+
+### AEO Optimization Tactics
+
+Sources optimized for AI citation tend to score higher on CRAAP+ dimensions (structured, authoritative, current).
+
+| Tactic | Description | CRAAP+ Impact |
+|--------|-------------|---------------|
+| Answer-first content | Lead with direct answers, then expand with detail | +Relevance (parseable) |
+| Semantic structure | Use clear headings, lists, tables; machine-readable layout | +Authority (structured) |
+| Citation density | Reference primary sources, link to data | +Accuracy (verifiable) |
+| Schema markup | Implement FAQ, HowTo, Article structured data | +Relevance (discoverable) |
+| Freshness signals | Regular updates with visible dates | +Currency (timestamped) |
+| Topical authority | Deep coverage of a subject area across multiple pages | +Authority (expertise) |
+
+### CRAAP+ Scoring Adjustment for AI-Cited Sources
+
+Sources that are actively cited by AI search engines demonstrate verified findability and structured quality.
+
+| Condition | Effect |
+|-----------|--------|
+| Cited by 1+ AI search engine (ChatGPT, Perplexity, Gemini) | +10 |
+| Cited by 2+ AI search engines independently | +15 |
+| Appears in AI-generated answer with direct attribution | +5 |
+
+Apply this modifier in the same phase as other CRAAP+ modifiers. AI citation is a signal of structured quality, not a guarantee of accuracy — standard triangulation rules still apply.
+
+**Source:** CXL AEO Guide (2026), Frase.io AEO Guide, Ahrefs AI Search Traffic Study (2025)
+
+---
+
+## AI-Assisted Research Verification
+
+When using AI tools (LLM assistants, code generators, AI search) as part of the research or development workflow, apply these additional verification gates. AI output is T6 by default until verified.
+
+### Verification Rules for AI-Generated Content
+
+| Rule | Detect | Fix |
+|------|--------|-----|
+| Never trust AI output without review | AI-generated code, claims, or citations accepted without human verification | Review all AI output as if from an unknown junior contributor. Verify every claim against primary sources |
+| Cross-model verification | Single AI model used for both generation and review | Use a secondary AI model or manual review for verification. Generator must not review itself |
+| Hallucinated references | AI cites packages, APIs, papers, or URLs that do not exist | Verify every AI-cited source exists before inclusion. Check package registries, resolve URLs, search for papers |
+| Security audit for AI code | AI-generated code deployed without security review (Veracode 2025: 45% of AI code has vulnerabilities; CodeRabbit: 2.74x higher vulnerability rate) | Run SAST + DAST on all AI-generated code. Secrets scanning in pre-commit + CI. Never let AI handle auth/payment/encryption without domain expert review |
+| Specification before generation | AI prompted without upfront specification, leading to architectural drift | Write detailed specs before invoking AI. Break work into small, chunked tasks (one function/feature). Provide existing code examples for pattern matching |
+
+### CRAAP+ Scoring for AI-Generated Sources
+
+| Condition | Effect |
+|-----------|--------|
+| AI-generated content without human review | -20 (already in Modifiers) |
+| AI-generated content with expert verification and source triangulation | -5 (reduced penalty) |
+| AI-hallucinated package or API (confirmed non-existent) | Discard immediately |
+
+### The 70/30 Delegation Rule
+
+When using AI assistants for research or development, delegate appropriately:
+
+- **AI handles (70%):** Boilerplate, CRUD, test generation, documentation, refactoring, initial source discovery
+- **Human handles (30%):** Architecture decisions, security-sensitive code, novel algorithms, source triangulation, final claim verification
+
+**Source:** Addy Osmani (LLM Coding Workflow 2026), Veracode 2025 AI Code Security Report, CodeRabbit Dec 2025 AI Code Analysis, Simon Willison (AI-assisted engineering distinction)

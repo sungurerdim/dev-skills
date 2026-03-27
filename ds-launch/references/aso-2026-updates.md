@@ -27,6 +27,41 @@ Research-backed App Store Optimization updates and listing copy guidance. Update
 
 Sources: [Apple App Store Transparency Report 2024](https://developer.apple.com/app-store/review/), [Twinr — Apple Rejection Reasons 2025](https://twinr.dev/blogs/apple-app-store-rejection-reasons-2025/), [PrimeTestLab — Google Play Rejection 2026](https://primetestlab.com/blog/google-play-app-rejection-rate-2026)
 
+### Rejection Prevention Checklist
+
+Top Apple rejection reasons and how to prevent each:
+
+| Reason | % of Rejections | Prevention |
+|--------|----------------|------------|
+| Guideline 2.1 — App Completeness | ~40% | Test every flow end-to-end. No placeholder content. No broken links. |
+| Performance — crashes | High | Test on real devices. Check memory/CPU. Include crash-free rate metrics. |
+| Missing Privacy Policy URL | Common | Host live, accessible privacy policy before submission. |
+| Non-IAP payment links | Common | Remove all external payment references unless using approved external purchase entitlement. |
+| Incomplete metadata | Common | Fill all required fields: screenshots, description, keywords, categories, support URL. |
+| AI disclosure missing | New (2025) | AI services require consent modal with provider name and data types. |
+
+**Google Play top triggers:** Crashes, thin content, permission abuse, broken privacy links, failed closed testing requirement.
+
+Source: [Apple App Store Transparency Report 2024](https://developer.apple.com/app-store/review/), [Twinr — Apple Rejection Reasons 2025](https://twinr.dev/blogs/apple-app-store-rejection-reasons-2025/)
+
+### Store Submission Timeline
+
+| Phase | Apple | Google Play |
+|-------|-------|-------------|
+| Internal testing setup | Same day (no review) | Same day (no review) |
+| External/Beta review | 24-48 hours (TestFlight) | 1-7 days (first app longer) |
+| Production review | 24-48 hours (usually 24h) | 1-7 days |
+| Post-approval visibility | 2-24 hours after release | 2-24 hours after release |
+| Rejection → resubmit | New full review cycle | New full review cycle |
+
+**60-day pre-launch timeline (recommended):**
+- Day 1-30: Internal testing, fix all bugs, prepare metadata
+- Day 30-45: External/beta testing, gather feedback, finalize screenshots
+- Day 45-55: Submit for review, handle rejections, iterate
+- Day 55-60: Approved → manual release on chosen launch day
+
+Source: [Apple App Store Review](https://developer.apple.com/app-store/review/), [Google Play Launch Checklist](https://developer.android.com/distribute/best-practices/launch)
+
 ---
 
 ## 1. Algorithm Changes (2025-2026)
@@ -104,6 +139,45 @@ Structure:
 | Screenshot captions | Target keywords in benefit copy (NOW INDEXED on Apple) |
 | Long description (Google) | Natural keyword density; Google indexes from description |
 | Keyword field (Apple, 100 chars) | Comma-separated, no spaces after commas, no duplicates from title/subtitle |
+
+### Store Listing Structure Template
+
+Based on high-converting dev tool listings (SafeScribeAI pattern):
+
+**Short description (80 chars max):**
+```
+[Pain verb] [problem]. [App name] [outcome] - [differentiator].
+```
+Example: "Stop losing data to bad exports. SafeScribe converts everything, preserves everything."
+
+**Long description structure:**
+```
+Line 1-3:   Pain or outcome hook (visible before "Read More")
+Line 4-8:   3-5 benefit-first bullets (outcomes, not features)
+            - "Save 2 hours per week on [task]" not "Advanced analytics dashboard"
+            - "Zero data loss on export" not "Export functionality included"
+Line 9-12:  Privacy highlights (trust signal, especially for productivity tools)
+            | Data Type    | Collected | Shared | Purpose        |
+            | Usage stats  | Yes       | No     | App improvement |
+            | File content | No        | No     | N/A            |
+Line 13-18: Feature details (reader is already interested at this point)
+Line 19+:   Technical specs, compatibility, version history
+```
+
+**Privacy highlights table:** Apple and Google both require data safety/privacy declarations. Surfacing a simplified version in the description builds trust and differentiates from competitors who bury privacy information.
+
+### Localization Impact
+
+- 5 strategically chosen languages can double the addressable market
+- Per-locale keyword optimization (not literal translation) is required — search terms differ by culture
+- Korean users search differently than Japanese users even for the same app category
+- App Store Connect supports 40+ localizations; Google Play supports 75+
+- Minimum viable localization: English, Spanish, Portuguese, Japanese, Korean (covers ~60% of app store spending)
+- Screenshot captions must be localized separately (now indexed in Apple search)
+
+**Common mistake:** Running store description through machine translation. Instead, research local search terms per market and adapt the description around those terms.
+
+Source: [AppTweak — ASO Trends 2026](https://www.apptweak.com/en/aso-blog/aso-trends-to-watch-in-2026), [Phiture — ASO Trends 2026](https://phiture.com/blog/aso-trends-in-2026/)
 
 ---
 

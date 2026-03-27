@@ -1,4 +1,4 @@
-# /ds-autotune
+# /ds-tune
 
 Manual optimization is slow — 8-10 experiments per day, subjective judgment, no audit trail. This skill runs 100+ experiments autonomously, keeping only what measurably improves.
 
@@ -6,7 +6,7 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 
 ## Triggers
 
-- User runs `/ds-autotune`
+- User runs `/ds-tune`
 - User asks to optimize, tune, or improve a measurable aspect of their project
 - User asks "make this faster", "improve accuracy", "reduce bundle size", or similar
 - User asks to set up a self-improving loop
@@ -32,11 +32,13 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 
 ## Execution Flow
 
-Discovery → Analysis → Plan → Generate → Baseline → Loop
+Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] → Loop
 
 ### Phase 1: Discovery
 
 **Goal:** Understand what the user wants to optimize.
+
+**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize.
 
 **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
    - **Ideal Metrics** → use as baseline target for optimization
@@ -157,7 +159,16 @@ Branch:    autotune/[tag]
 
 **Gate:** Baseline measured and committed.
 
-### Phase 6: Loop
+### Phase 6: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 7: Loop
 
 **Goal:** Autonomous optimization — keep/discard experiments until interrupted.
 
@@ -240,7 +251,7 @@ Repeat forever:
    Read results.tsv descriptions to avoid duplicates.
 ```
 
-## `/ds-autotune run` — Resume
+## `/ds-tune run` — Resume
 
 1. Verify `auto/` folder exists, read `auto/.autotune.json`
 2. Read `auto/program.md`
@@ -248,7 +259,7 @@ Repeat forever:
 4. Check current git branch — if not on `autotune/*`, checkout the branch
 5. Resume the experiment loop from auto/program.md
 
-## `/ds-autotune status` — Results
+## `/ds-tune status` — Results
 
 1. Read `auto/results.tsv`
 2. Display summary:
@@ -275,7 +286,7 @@ Last 5 experiments:
 
 Summary line:
 ```
-ds-autotune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {delta} | Fixed: N | Skipped: N | Failed: N | Total: N
+ds-tune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {delta} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
 3. Show git log of kept improvements: `git log --oneline autotune/<tag> | head -10`

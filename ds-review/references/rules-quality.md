@@ -48,7 +48,7 @@ Data models use immutable patterns. No in-place mutation.
   - Python: `@dataclass(frozen=True)` or Pydantic `model_config = ConfigDict(frozen=True)`
   - Go: return new structs instead of mutating
   - Rust: ownership model (default immutable)
-- **Source:** Functional programming best practices
+- **Source:** Eric Evans — Domain-Driven Design (Value Objects), Effective Java (Item 17: Minimize Mutability)
 
 ### ARC-04 [MAJOR] Dependency Injection
 Constructor injection preferred. DI container for lifecycle management.
@@ -76,7 +76,7 @@ Single error handling pattern across the codebase. Errors categorized and handle
   - Error types not categorized (validation vs business vs infrastructure)
   - Search: empty catch blocks, `catch (e) {}`, `except: pass`, `_ = err`
 - **Fix:** Define error hierarchy (ValidationError, NotFoundError, AuthError, InternalError). Global error handler middleware. Map errors to HTTP status codes. Log infrastructure errors, return safe messages to clients
-- **Source:** Error handling best practices
+- **Source:** Microsoft Error Handling Guidelines, Go Error Handling (Effective Go), Node.js Error Handling Best Practices
 
 ### ARC-07 [MAJOR] Feature Modularization
 Feature modules with clear boundaries. No circular dependencies.
@@ -92,7 +92,7 @@ Typed results for recoverable errors. Exceptions for exceptional cases only.
   - Python: Result pattern or explicit exception types
   - Go: `(value, error)` return pattern (idiomatic)
   - Rust: `Result<T, E>` (built-in)
-- **Source:** Error handling best practices
+- **Source:** Rust Error Handling (The Rust Programming Language), TypeScript Discriminated Unions, Go (value, error) Pattern
 
 ### ARC-09 [MAJOR] Defensive External Data Parsing
 Validate all external data at boundaries. No trust for API responses, user input, or file contents.
@@ -119,14 +119,14 @@ Cyclomatic complexity <= 15. Function <= 50 lines. Nesting <= 3. Parameters <= 4
   - Python: pytest (unit+integration), Playwright (E2E)
   - Go: testing package (unit), testcontainers (integration)
 - **Impact:** 4x faster releases with proper pyramid
-- **Source:** Testing Strategies
+- **Source:** Martin Fowler — Test Pyramid, Google Testing Blog — Testing on the Toilet
 
 ### TST-02 [MAJOR] >= 80% Meaningful Coverage
 Quality over quantity. Branch coverage for critical paths.
 - **Detect:** Coverage < 80%. Tests without assertions. Happy-path-only tests
 - **Fix:** CI coverage gate. Test edge cases and error paths. Branch coverage for business logic
 - **Note:** 80% meaningful > 95% superficial
-- **Source:** Testing best practices
+- **Source:** Martin Fowler — Test Coverage, Google Testing Blog — Code Coverage Best Practices
 
 ### TST-03 [MAJOR] Fakes Over Mocks
 Deterministic fake implementations. Mocks only for interaction verification.
@@ -149,7 +149,7 @@ Test with real databases and services using containers.
 Never skip, mock away, or relax assertions to make tests pass.
 - **Detect:** `skip` on failing tests. Assertions changed to match bugs. Mocks replacing the tested unit
 - **Fix:** Fix code or fix test to validate correct behavior. Every bug fix = regression test
-- **Source:** Test integrity
+- **Source:** Kent Beck — Test-Driven Development: By Example, Google Testing Blog
 
 ### TST-06 [MAJOR] Static Analysis
 Linter + type checker must pass.
@@ -159,4 +159,4 @@ Linter + type checker must pass.
   - Python: mypy strict + ruff/flake8
   - Go: `go vet` + `golangci-lint`
   - Rust: `clippy` (default)
-- **Source:** Static analysis best practices
+- **Source:** TypeScript Strict Mode Documentation, mypy Documentation, golangci-lint, Rust Clippy

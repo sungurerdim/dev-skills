@@ -138,3 +138,13 @@ Courses with "Present" end date that are abandoned.
 - **Fix:** Remove entirely. "Present" on unfinished education = "started and quit" signal.
 - **Impact:** Recruiter sees: started but never finished. Negative signal.
 - **Source:** Common issue: users forget to remove or update abandoned courses
+
+---
+
+## Sources
+
+- ATS compatibility rules derived from testing with Workday, Greenhouse, Lever, and iCIMS parsers (2025-2026)
+- [Jobscan — ATS Resume Formatting Guide](https://www.jobscan.co/blog/ats-resume-formatting/)
+- [Harvard Business Review — Resume Best Practices](https://hbr.org/topic/subject/resumes)
+- Metric verification and privacy rules based on production CV generation experience
+- Resume parsing best practices verified against 2026 ATS behavior

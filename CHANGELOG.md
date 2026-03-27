@@ -13,7 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - **Design:** ds-backend (API + DB + auth), ds-deploy (infra + monitoring), ds-init (project scaffolding)
   - **Git workflow:** ds-commit (smart commits), ds-pr (pull requests)
   - **Research & Growth:** ds-research (multi-source with CRAAP+), ds-market (marketing strategy), ds-analytics (privacy-first analytics), ds-launch (store submission)
-  - **Specialized:** ds-cv (ATS-proof CV generation), ds-autotune (autonomous optimization loop)
+  - **Specialized:** ds-cv (ATS-proof CV generation), ds-tune (autonomous optimization loop)
+  - **Frontend:** ds-frontend (design system audit, tokens, components, a11y, responsive, theming)
 - SKILL-SPEC.md — universal specification for tool-agnostic AI coding skills
 - Findings pipeline (`.ds-findings.md`) — single-file inter-skill communication standard
 - Blueprint profile — project context shared across skills (type, stack, config, scores, run history)

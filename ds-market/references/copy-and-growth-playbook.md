@@ -20,6 +20,8 @@ Research-backed copy formulas, voice rules, and growth tactics for developer too
 
 **When to use:** Developer tools, opinionated products, products challenging established tools.
 
+Source: [Aakash Gupta — Linear Growth](https://www.news.aakashg.com/p/how-linear-grows), [FastSaaS — Pieter Levels](https://www.fast-saas.com/blog/pieter-levels-success-story/), [Mux — Tailwind](https://www.mux.com/blog/tailwind-is-the-worst-form-of-css-except-for-all-the-others)
+
 ### Formula 2: Pain-First (PAS — Problem-Agitate-Solve)
 
 **Template:** `"You've tried [common approach]. It [specific failure]. [Product] [specific fix]."`
@@ -29,6 +31,8 @@ Research-backed copy formulas, voice rules, and growth tactics for developer too
 **Nuance for dev tools:** Developers already know the pain — don't dwell on agitation. State pain → prove solution fast. Consider hybrid PAS+FAB (Features-Advantages-Benefits) for technical audiences.
 
 **When to use:** Landing pages, store descriptions, email subject lines.
+
+Source: [SaaS Funnel Lab — PAS Framework](https://www.saasfunnellab.com/essay/pas-copywriting-framework/), [Medium — Copywriting Trends 2026](https://medium.com/@dragualin/5-copywriting-trends-predictions-for-2026-must-know-41141d51b507)
 
 ### Formula 3: Philosophy Statement
 
@@ -48,6 +52,8 @@ Research-backed copy formulas, voice rules, and growth tactics for developer too
 
 **When to use:** README opening, About page, brand positioning, first-contact copy.
 
+Source: [Aakash Gupta — Linear Growth](https://www.news.aakashg.com/p/how-linear-grows), [Mux — Tailwind](https://www.mux.com/blog/tailwind-is-the-worst-form-of-css-except-for-all-the-others), [DEV — Emerging Dev Tools 2026](https://dev.to/thebitforge/top-5-emerging-developer-tools-to-watch-in-2026-12pl)
+
 ### Formula 4: Metric Proof
 
 **Template:** `"[Before number] → [After number]. [Implication]."`
@@ -60,6 +66,42 @@ Research-backed copy formulas, voice rules, and growth tactics for developer too
 - Pair with context ("Same functionality" to clarify nothing was lost)
 
 **When to use:** Feature highlights, taglines, social posts, PR.
+
+### Formula 5: Progressive Disclosure
+
+**Template:** Start with the simplest version, then reveal complexity incrementally.
+
+**Why it works:** Users (and readers) absorb information better when complexity is layered. First contact = simple hook. Second contact = deeper understanding. Third = full picture.
+
+**Verified examples:**
+- Zara Zhang (frontend-slides): Reduced prompt from 1,625 lines to 183 lines (89% reduction) while keeping the same functionality. Shared the metric publicly as an iteration story. ([X milestone post](https://x.com/zarazhangrui/status/2029092514435932647))
+- Linear: Onboarding shows one workflow, then progressively reveals keyboard shortcuts, integrations, and advanced features
+
+**Rules:**
+- README: Hook → one-liner → proof → quick start → philosophy → curated overview → full docs (below fold)
+- Store listing: First 3 lines visible before "Read More" — they decide the install
+- Feature set: 12 curated presets (not infinite customization) reduces choice paralysis, signals taste
+
+**When to use:** README structure, onboarding flows, store descriptions, documentation architecture.
+
+### Formula 6: Milestone Transparency
+
+**Template:** `"[N] [milestone]. Here's what changed since [previous milestone]."`
+
+**Why it works:** Builds parasocial connection. Shows the product is alive and improving. Creates recurring engagement moments.
+
+**Verified examples:**
+- Zara Zhang: "1K stars" → "7.8K stars — here's what I changed" → "10K stars" — each milestone post drove a new wave of engagement ([X milestone posts](https://x.com/zarazhangrui/status/2034331675363279338))
+- AFFiNE: Publicly documented 0→6K→15K→33K star growth phases
+
+**Rules:**
+- Share what changed between milestones, not just the number
+- Include a specific learning or improvement ("We refactored X and it cut Y by Z%")
+- Post at natural thresholds (1K, 5K, 10K) — not arbitrary intervals
+
+**When to use:** Social posts, changelog entries, community updates.
+
+Source: [Zara Zhang X milestone posts](https://x.com/zarazhangrui), [AFFiNE Star Growth — DEV](https://dev.to/iris1031/github-star-growth-a-battle-tested-open-source-launch-playbook-35a0)
 
 ---
 
@@ -128,7 +170,7 @@ Demo/proof must come before quick start. Data:
 - Captions on video: +41% watch time, +89% social shares
 - Speed-ramped demos: 63% higher retention
 
-Source: [RevenueHero](https://www.revenuehero.io/blog/the-state-of-demo-conversion-rates-in-2025/) (1M+ form submissions dataset)
+Source: [RevenueHero — Demo Conversion Rates 2025](https://www.revenuehero.io/blog/the-state-of-demo-conversion-rates-in-2025/) (1M+ form submissions dataset)
 
 ### README Optimization
 
@@ -138,6 +180,8 @@ Source: [RevenueHero](https://www.revenuehero.io/blog/the-state-of-demo-conversi
 - 4-7 badges max (build, coverage, version, license); >7 = cluttered
 - GitHub auto-generates TOC from headings; no manual TOC needed
 - File truncation at 500 KiB
+
+Source: [River Editor — README Best Practices](https://rivereditor.com/blogs/write-perfect-readme-github-repo), [Hatica — README Best Practices](https://www.hatica.io/blog/best-practices-for-github-readme/)
 
 ### Anti-Patterns
 
@@ -160,7 +204,9 @@ Source: [RevenueHero](https://www.revenuehero.io/blog/the-state-of-demo-conversi
 
 **What doesn't work:** Daily noise, unstructured updates, sharing without context.
 
-**Data:** Open source participation ROI: 2-5x across all engagement forms; code contributions yield 3.6x ROI ([Linux Foundation](https://www.linuxfoundation.org/blog/the-state-of-open-source-software-in-2025)).
+**Data:** Open source participation ROI: 2-5x across all engagement forms; code contributions yield 3.6x ROI.
+
+Source: [Linux Foundation — State of Open Source 2025](https://www.linuxfoundation.org/blog/the-state-of-open-source-software-in-2025), [FastSaaS — Pieter Levels](https://www.fast-saas.com/blog/pieter-levels-success-story/)
 
 ### GitHub Stars Growth Playbook
 
@@ -183,6 +229,8 @@ Stars = credibility lever for humans, not a search ranking signal. 36K+ signals 
 
 **Caveat:** Artificial/bought stars = zero impact on package downloads.
 
+Source: [ToolJet — GitHub Stars Guide 2026](https://blog.tooljet.com/github-stars-guide/), [DEV — Star Growth Playbook](https://dev.to/iris1031/github-star-growth-a-battle-tested-open-source-launch-playbook-35a0)
+
 ### Product Hunt (2026)
 
 Still effective: 2.7M monthly unique visitors. Top-4 ranking = ~1,500 daily visitors.
@@ -196,6 +244,8 @@ Still effective: 2.7M monthly unique visitors. Top-4 ranking = ~1,500 daily visi
 6. Multi-launch strategy compounds: Supabase 16x in 4 years, Cursor 5x in 2025
 
 **Key insight:** Optimize for conversion rate, not ranking position. Ranking does not correlate with revenue.
+
+Source: [HackMamba — Product Hunt Developer Launch](https://hackmamba.io/developer-marketing/how-to-launch-on-product-hunt/), [RocketDevs — Product Hunt Strategy](https://rocketdevs.com/blog/how-to-launch-on-product-hunt)
 
 ### AEO (Answer Engine Optimization)
 
@@ -215,6 +265,8 @@ AI search referrals grew 357% YoY. 25%+ of Google searches show AI Overviews.
 5. Reddit presence: 46.7% of Perplexity top sources come from Reddit
 6. Topic clusters: comprehensive coverage > isolated posts
 
+Source: [CXL — AEO Guide 2026](https://cxl.com/blog/answer-engine-optimization-aeo-the-comprehensive-guide/), [Frase.io — Getting Cited by AI](https://www.frase.io/blog/what-is-answer-engine-optimization-the-complete-guide-to-getting-cited-by-ai), [upGrowth — AI Traffic Share 2026](https://upgrowth.in/ai-traffic-share-report-2026/)
+
 ### Content Format ROI (2026)
 
 | Format | ROI | Best For |
@@ -222,12 +274,64 @@ AI search referrals grew 357% YoY. 25%+ of Google searches show AI Overviews.
 | Short-form video | Highest; 2.5x engagement | Demos, tutorials, quick wins |
 | Technical blogs | 67% more leads; 434% more indexed pages | SEO, authority |
 | Code samples | Direct activation | Integration guides |
-| Infographics | High shareability | Architecture diagrams |
-| Documentation | Credibility signal | Official guides |
+| Infographics | High shareability; 51% report good results | Architecture diagrams, comparisons |
+| Documentation | Credibility signal; missing = deal-breaker | Official guides, troubleshooting |
+
+**2026 shift:** Content clusters (topic ownership) outperform random blog posts. AI makes content cheaper, which makes human-created content more valuable (not less). 91% of content marketers use video; 78% are increasing production.
+
+Source: [Idealogic Content Marketing 2026](https://idealogic.dev/blog/future-content-marketing-2026-guide), [WordStream Content Marketing Trends 2026](https://www.wordstream.com/blog/2026-content-marketing-trends), [Backlinko Content Marketing](https://backlinko.com/content-marketing-this-year)
 
 ---
 
-## 5. Opinionated Positioning (Why It Wins)
+## 5. Monetization Messaging (Data-Driven)
+
+When positioning pricing, trials, and paywall decisions in marketing copy, use these verified benchmarks.
+
+### Model Performance
+
+| Model | Conversion Rate | Revenue Per Install (D14) |
+|-------|----------------|--------------------------|
+| Hard Paywall | 10.7% median (top 10%: 38.7%) | $2.32 |
+| Freemium | 2.1% median (top 10%: 8.2%) | $0.27 |
+| Subscription (trial) | 3-8% trial-to-paid | Varies |
+
+**Key insight:** Hard paywall generates 8-9x higher RPI than freemium. Retention at 12 months is nearly identical between models — freemium does not retain better, it converts worse.
+
+### Trial Length ROI
+
+| Trial Length | Median Trial-to-Paid |
+|-------------|---------------------|
+| 3 days | 55-65% |
+| 7 days | 45-55% |
+| 14 days | 35-45% |
+| 30 days | 25-35% |
+
+Shorter trials create urgency. Longer trials build engagement but leak conversions. 7 days is the most common balance point.
+
+### Trial Type: Feature-Limited vs Time-Limited
+
+| Trial Type | Conversion | Support Load | Best For |
+|------------|-----------|--------------|----------|
+| Feature-limited (freemium gate) | Higher | Lower (users self-serve within limits) | SaaS, developer tools, productivity apps |
+| Time-limited (full access, clock ticking) | Lower | Higher (users need help exploring before expiry) | Consumer apps, media, games |
+
+Feature-limited trials let users build habits around core features, creating switching cost. Time-limited trials create urgency but risk users not discovering value before expiry.
+
+### IAP Implementation Note
+
+Platform handles payment processing -- your server receives a receipt token only. Never process payment details directly. Validate receipts server-side (Apple App Store Server API v2, Google Play Developer API) to prevent receipt fraud. Store the transaction record, not the payment method.
+
+### Hybrid Model Adoption
+
+35% of subscription apps now mix subscriptions with consumables or lifetime purchases (2025 data). AI apps drive this trend — variable per-unit costs that pure subscriptions cannot absorb. Gaming (61.7%) and social/lifestyle (39.4%) lead adoption.
+
+**Copy implication:** When marketing a hybrid model, lead with the subscription value ("Pro plan includes X"), then present consumables as add-ons ("Need more? Add credits anytime").
+
+Source: [RevenueCat State of Subscription Apps 2026](https://www.revenuecat.com/state-of-subscription-apps/), [RevenueCat SOSA 2025](https://www.revenuecat.com/state-of-subscription-apps-2025/)
+
+---
+
+## 6. Opinionated Positioning (Why It Wins)
 
 Opinionated tools outcompete flexible alternatives when defaults match 70%+ of user needs.
 

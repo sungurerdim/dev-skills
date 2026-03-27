@@ -79,7 +79,7 @@ Without flags: present interactive mode selection.
 
 ## Execution Flow
 
-Setup → Discover → Analyze → [Generate] → Report → Summary
+Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
@@ -179,7 +179,16 @@ Present generated files for review before writing.
 
 **Gate:** Procedure covers all severity levels.
 
-### Phase 7: Summary
+### Phase 7: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 8: Summary
 
 ```
 ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | Findings: N | Generated: N | Fixed: N | Skipped: N | Failed: N | Total: N

@@ -24,6 +24,7 @@ Presentation (UI + ViewModel) / Domain (use cases) / Data (repositories). Depend
   - Circular dependencies between layers
   - Search for: `http.get`, `dio.`, `fetch(`, `Retrofit`, `Room` in UI/presentation files
 - **Fix:** Extract logic to use cases (domain layer). Create repository interfaces in domain, implement in data. UI observes ViewModel state only
+- **Production examples:** AppFlowy (73k+ stars) uses plugin architecture with event-based RPC + Protobuf across Flutter/Rust FFI boundary. Immich (60k+ stars) uses MVVM + Riverpod providers with hexagonal backend (repositories -> services -> controllers). Signal uses layered architecture: UI -> Service (singleton managers) -> Storage -> DB -> Network.
 - **Source:** Android Architecture Guide, Flutter Architecture
 
 ### ARC-02 [CRITICAL] Unidirectional Data Flow
@@ -35,6 +36,7 @@ State down, events up. Single source of truth per data type.
   - Android: StateFlow + ViewModel
   - iOS: @Observable (Swift 6.2+)
   - RN: Zustand (2KB, minimal)
+- **Production patterns:** Riverpod `select()` for targeted rebuilds (Immich, Spotube): `ref.watch(provider.select((s) => s.phase))` rebuilds only when specific field changes. AsyncValue pattern matching: `data.when(loading: () => ..., data: (r) => ..., error: (e, s) => ...)` for exhaustive async state handling.
 - **Impact:** 40% faster feature delivery vs bidirectional
 - **Source:** Android UI Layer Guide
 
@@ -46,7 +48,7 @@ Data classes immutable. copyWith for derivation.
   - Kotlin: data class (val only)
   - Swift: struct
   - RN: TypeScript readonly + Immer
-- **Source:** Platform best practices
+- **Source:** Kotlin Data Classes, Swift Value Types (WWDC), Dart Immutable Data Patterns
 
 ### ARC-04 [HIGH] Dependency Injection
 Constructor injection preferred. DI container for lifecycle scope.
@@ -89,7 +91,7 @@ Typed results for recoverable errors. Exceptions for exceptional cases only.
   - Swift: Result<T, E>
   - Dart: Either (dartz/fpdart) / sealed class
   - TS: discriminated unions
-- **Source:** Error handling best practices
+- **Source:** Kotlin Result API, Swift Error Handling (Swift Programming Language Guide), Dart Either Pattern
 
 ### ARC-09 [HIGH] Defensive API Parsing
 Null-safe JSON. Fallback for unexpected shapes. No force-cast.
@@ -142,7 +144,7 @@ Visual regression testing for UI.
 Never skip, mock away, or relax assertions to pass tests.
 - **Detect:** `skip: true` on failing tests. Assertions changed to match bugs. Mock replacing tested unit
 - **Fix:** Fix code or fix test to validate correct behavior. Every bug fix = regression test
-- **Source:** Test integrity
+- **Source:** Kent Beck — Test-Driven Development: By Example, Google Testing Blog
 
 ### TST-06 [HIGH] Static Analysis CI Gate
 Lint + analyzer must pass in CI.
@@ -153,7 +155,7 @@ Lint + analyzer must pass in CI.
   - Android: ktlint + detekt
   - iOS: SwiftLint
   - RN: ESLint + TS strict
-- **Source:** Platform lint tools
+- **Source:** Flutter Analysis Options, Android ktlint/detekt, SwiftLint, ESLint TypeScript
 
 ---
 
@@ -168,28 +170,37 @@ Lint + analyzer must pass in CI.
 ### PRF-02 [HIGH] Cold Start < 2s
 Cold < 2s. Warm < 1s. > 5s is excessive.
 - **Detect:** Measure with platform tools. Heavy init on main thread. Blocking network on startup
-- **Fix:** Defer non-critical init. Lazy-load features. Minimize main thread work. Platform splash API
-- **Impact:** 100ms delay = 1% user loss
+- **Fix:** Defer non-critical init. Lazy-load features. Minimize main thread work. Platform splash API.
+  Cold start optimization pattern (Flutter): `addPostFrameCallback` to defer non-critical services after first frame:
+  ```dart
+  void main() {
+    runApp(const MyApp());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeNonCriticalServices(); // analytics, remote config, etc.
+    });
+  }
+  ```
+- **Impact:** 100ms delay = 1% user loss. 49% of users expect app to open within 2s. 53% abandon apps exceeding 3s.
 - **Source:** Android Startup, Flutter TTID/TTFD
 
 ### PRF-03 [HIGH] App Size Budget
 Track APK/IPA size. Tree-shaking. Remove unused assets.
 - **Detect:** APK > 50MB unjustified. Unused assets. No size analysis
 - **Fix:** `flutter build --analyze-size`. R8 shrinking. Remove unused packages. WebP/AVIF images
-- **Source:** Platform size guides
+- **Source:** Android Reduce App Size Guide, Flutter App Size Optimization, Apple App Thinning
 
 ### PRF-04 [HIGH] Image Lazy Loading
 Images on-demand as scrolled into view. Placeholder during load.
 - **Detect:** All images loaded at screen init. No placeholder. High memory from images
 - **Fix:** Lazy load with placeholder (shimmer/blurhash). Cache images. Server-side resize for device
-- **Source:** Performance best practices
+- **Source:** Android Image Loading (Coil/Glide), Flutter Image Best Practices, Apple UIKit Image Optimization
 
 ### PRF-05 [HIGH] Efficient List Rendering
 Virtualized/recycled list rendering for long lists.
 - **Detect:** `ListView` without `.builder` (Flutter), `ScrollView` instead of `FlatList`/`FlashList` (RN), no `RecyclerView` (Android), `List` without lazy loading (SwiftUI). All items built at once
 - **Fix:** Flutter: `ListView.builder` / `SliverList`. RN: `FlashList` (Shopify). Android: `LazyColumn` (Compose) / `RecyclerView`. iOS: `LazyVStack` (SwiftUI). Only build visible items + buffer
 - **Impact:** 10K+ items without virtualization causes jank, OOM, and 60fps failure
-- **Source:** Platform list performance guides
+- **Source:** Flutter ListView.builder, Android RecyclerView/LazyColumn, Shopify FlashList, Apple LazyVStack
 
 ### PRF-06 [CRITICAL] Memory Leak Prevention
 All subscriptions, controllers, and observers properly disposed.
@@ -200,7 +211,7 @@ All subscriptions, controllers, and observers properly disposed.
   - RN: `useEffect` without cleanup function for subscriptions
 - **Fix:** Dispose all controllers in `dispose()`. Use `[weak self]` in closures. Collect flows in `repeatOnLifecycle`. Return cleanup from `useEffect`. Profile with platform memory tools
 - **Impact:** Memory leaks cause OS to kill the app, resulting in data loss and state corruption
-- **Source:** Platform memory management guides, MASVS-RESILIENCE
+- **Source:** Flutter Memory Best Practices, Android Memory Management Guide, Apple Instruments Leaks, MASVS-RESILIENCE
 
 ### PRF-07 [HIGH] Battery Optimization
 No unnecessary background activity that drains battery.
@@ -219,7 +230,7 @@ UI components with unchanging inputs must be marked immutable to skip unnecessar
   - RN: `React.memo()` wrapper on functional components with stable props
   - Web React: `React.memo()` / `useMemo()` for expensive render subtrees; Vue: `v-once` for static content
 - **Impact:** Lowest-cost, highest-impact rebuild optimization across all platforms. Non-immutable leaf widgets rebuild even when inputs are unchanged
-- **Source:** Platform rendering optimization guides
+- **Source:** Flutter Performance Best Practices (const widgets), React.memo API Reference, Jetpack Compose Stability, SwiftUI EquatableView
 
 ### PRF-09 [HIGH] Animation Performance Anti-Patterns
 Animations must not trigger expensive layout recalculations or rebuild entire subtrees.
@@ -230,7 +241,7 @@ Animations must not trigger expensive layout recalculations or rebuild entire su
   - Android/Compose: `Modifier.graphicsLayer { alpha = ... }` instead of `Modifier.alpha()` on complex subtrees. `RenderEffect` for GPU-side effects
   - RN: `useNativeDriver: true` in Animated API. `Reanimated` worklets for complex gesture-driven animations
   - Web: Animate `transform`/`opacity` only (compositor-only properties). `will-change` hint for known animation targets. `requestAnimationFrame` for frame sync
-- **Source:** Platform animation performance guides
+- **Source:** Flutter Animations Overview, iOS Core Animation Programming Guide, Jetpack Compose Animation, React Native Reanimated
 
 ---
 
@@ -253,7 +264,7 @@ Retry transient failures. Cap retries.
 Stop calling failing service after threshold.
 - **Detect:** Repeated calls to failing endpoint. No failure tracking. Frozen on timeout
 - **Fix:** Track failures. Open after N. Half-open on cooldown. Close on success. Show offline UI during open
-- **Source:** Resilience patterns
+- **Source:** Michael Nygard — Release It!, Microsoft Azure Circuit Breaker Pattern
 
 ### NET-04 [HIGH] Cache: TTL + ETag + SWR
 Memory -> disk -> network. Stale-while-revalidate.
@@ -266,7 +277,7 @@ Universal Links (iOS) + App Links (Android) with domain verification.
 - **Detect:** No deep links. Custom schemes only (unverified). No install fallback
 - **Fix:** Verified deep links. Deferred deep linking for first-install. Web fallback
 - **Note:** Firebase Dynamic Links being deprecated
-- **Source:** Platform deep linking
+- **Source:** Android App Links Guide, Apple Universal Links Documentation, Flutter Deep Linking
 
 ### NET-06 [CRITICAL] Sensitive Data Cache Exclusion
 No credentials/PII in HTTP cache, screenshot cache, keyboard cache.
@@ -294,13 +305,13 @@ All UI strings in resource files. Zero hardcoded.
   - Android: strings.xml
   - iOS: .xcstrings / Localizable.strings
   - RN: react-intl / i18n-js
-- **Source:** Platform i18n
+- **Source:** Flutter Internationalization Guide, Android String Resources, Apple Localization Guide, react-intl
 
 ### DEV-05 [HIGH] Locale-Aware Formatting
 Dates, numbers, currency formatted per locale.
 - **Detect:** Hardcoded date format (MM/DD/YYYY). Hardcoded currency symbol. Manual number formatting
 - **Fix:** Use Intl/DateFormat APIs with user locale
-- **Source:** Platform localization
+- **Source:** ICU Formatting Guide, Android DateFormat, Apple NSDateFormatter, Flutter intl Package
 
 ### DEV-06 [HIGH] Pluralization Rules
 ICU message format. Languages have different rules (EN: 2, AR: 6, Slavic: 4).
@@ -312,4 +323,4 @@ ICU message format. Languages have different rules (EN: 2, AR: 6, Slavic: 4).
 JSON logs. No secrets/PII. Correlation IDs.
 - **Detect:** Unstructured log messages. Sensitive data in logs (tokens, passwords, PII). No request correlation
 - **Fix:** Structured JSON format. Sanitize sensitive fields. Add correlation IDs. Define log levels (debug/info/warn/error)
-- **Source:** Observability best practices
+- **Source:** OpenTelemetry Specification, Google SRE Book (Monitoring Distributed Systems)

@@ -30,7 +30,7 @@ Only include verified, accessible sources and URLs. Present T5/T6 sources with c
 
 ## Execution Flow
 
-Setup → Parse Query → Research → Synthesize → Output
+Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Output
 
 ### Phase 1: Setup [SKIP with flags]
 
@@ -47,6 +47,8 @@ Recovery check: if progress artifact exists from prior deep run, ask: Resume / S
 **Gate:** Depth and search scope selected.
 
 ### Phase 2: Parse Query
+
+**Findings file check:** If `.ds-findings.md` exists, check for relevant findings that provide research context. Use project type and stack from findings metadata.
 
 **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
    - **Type + Stack** → context for technology-specific research queries
@@ -88,7 +90,16 @@ Validate outputs: verify all claims cite sources, check for contradictions, remo
 
 **Gate:** All claims cite sources and contradictions resolved.
 
-### Phase 5: Output
+### Phase 5: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 6: Output
 
 Executive summary, evidence hierarchy (primary T1-T2, supporting T3-T4), contradictions resolved, knowledge gaps, recommendation (DO/AVOID/CONSIDER).
 

@@ -49,9 +49,8 @@ Same-company roles: LinkedIn auto-groups under one company header with total dur
 | Start date | Month/Year | Optional - omit if program duration unusual |
 | End date | Month/Year | Graduation date |
 | Grade | Text | Optional - omit if below 3.5/4 |
-| Activities and societies | Text | Clubs, thesis, projects |
-| Description | 1,000 chars | Optional |
 | Activities and societies | 500 chars | Clubs, thesis, projects |
+| Description | 1,000 chars | Optional |
 | Skills | Multi-select | Tag relevant skills |
 | Media | Upload | Transcripts, certificates |
 
@@ -151,7 +150,7 @@ Available but not required:
 ## CV-LINKEDIN-DIFF [INFO] Key Differences
 
 | Aspect | CV | LinkedIn |
-|--------|----|---------||
+|--------|----|---------|
 | Roles at same company | Combine to 2-3 entries | Keep each separate (auto-groups) |
 | Detail level | 1-3 bullets per role | Can be longer (2,000 chars) |
 | Skills format | Category + pill tags | Flat list, endorsable |
@@ -160,3 +159,14 @@ Available but not required:
 | Email | Omit from public HTML | Include (connections-only visibility) |
 | Company descriptor | First mention only | Not needed (company page links) |
 | "Responsibilities:" style | Never | Replace with achievement bullets |
+
+---
+
+## Sources
+
+- [LinkedIn Help — Edit Your Profile](https://www.linkedin.com/help/linkedin/answer/a543685)
+- [LinkedIn Help — Profile Character Limits](https://www.linkedin.com/help/linkedin/answer/a542091)
+- [LinkedIn Help — Open to Work Preferences](https://www.linkedin.com/help/linkedin/answer/a507508)
+- [LinkedIn Help — Custom URL](https://www.linkedin.com/help/linkedin/answer/a542685)
+- [LinkedIn Help — Featured Section](https://www.linkedin.com/help/linkedin/answer/a704787)
+- Field limits verified against LinkedIn UI, March 2026

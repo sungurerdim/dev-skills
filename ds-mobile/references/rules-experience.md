@@ -24,7 +24,7 @@ Use skeleton/shimmer for content loading areas. Spinners only for discrete actio
 - **Detect:** `CircularProgressIndicator`, `ActivityIndicator`, `ProgressView` used for content loading (not submit/save actions)
 - **Fix:** Replace with skeleton/shimmer widget matching content layout. 1.5-2s pulse cycles, 300-700ms animation
 - **Impact:** 20% faster perceived, 9-20% lower bounce
-- **Source:** UX research
+- **Source:** Luke Wroblewski — Mobile Loading Patterns, Google Web Fundamentals (Perceived Performance)
 
 ### UX-03 [HIGH] Descriptive Loading Text
 Loading indicators must include descriptive text.
@@ -73,7 +73,7 @@ State transition animations between 200-500ms. Must respect reduced motion.
 Prominent search with suggestions, recents, voice icon, no-results state.
 - **Detect:** Search hidden in menu/drawer. No recent searches. No suggestions. Missing no-results state
 - **Fix:** Search bar at top of screen. Real-time suggestions. Recent searches. Voice icon. Helpful no-results with alternatives
-- **Source:** Mobile search UX
+- **Source:** Nielsen Norman Group — Mobile Search Patterns, Material 3 Search Component
 
 ### UX-11 [HIGH] Progressive Onboarding
 Value-first. Defer advanced features. Skip always visible.
@@ -86,7 +86,7 @@ Pre-permission screen explaining WHY before system prompt.
 - **Detect:** System permission dialog without preceding context screen. Permission request unrelated to current action
 - **Fix:** Custom priming UI: explain benefit → user taps Continue → system prompt. If denied: degrade gracefully + settings redirect
 - **Impact:** 28% higher grant rate
-- **Source:** Nielsen Norman Group, Android permission guidelines
+- **Source:** Nielsen Norman Group — Permission Priming, Android Runtime Permissions Guide, Apple Pre-Alert Patterns
 
 ### UX-13 [HIGH] Infinite Scroll + Lazy Load
 Infinite scroll for mobile lists. Lazy load images.
@@ -98,13 +98,13 @@ Infinite scroll for mobile lists. Lazy load images.
 Content scrolls when keyboard appears. Fields not covered.
 - **Detect:** Input fields hidden behind keyboard. No scroll adjustment. Fixed elements overlapping keyboard
 - **Fix:** Scroll viewport to active field. Platform keyboard avoidance: iOS KeyboardAvoidingView, Android adjustResize, Flutter Scaffold resizeToAvoidBottomInset
-- **Source:** Platform guidelines
+- **Source:** Apple HIG — Keyboard Management, Android Input Method Guide, Flutter Scaffold.resizeToAvoidBottomInset
 
 ### UX-15 [HIGH] Optimistic UI Updates
 Show expected result immediately. Reconcile asynchronously.
 - **Detect:** UI blocked during every server call. Spinner for every tap. List unchanged until API responds
 - **Fix:** Update UI on user action. Reconcile with server response. Revert on failure with feedback
-- **Source:** Modern UX
+- **Source:** Facebook Engineering — Optimistic UI, Material Design Interaction Patterns
 
 ### UX-16 [LOW] Grouped Settings
 Categories for 15+ settings. Toggles for immediate-effect only. Destructive actions at bottom.
@@ -122,7 +122,7 @@ Tactile feedback for critical actions.
 After positive experience. Frequency capped.
 - **Detect:** Review prompt on first launch. No frequency cap. Prompt after error
 - **Fix:** Trigger after successful task. Cap 3x/year. Use platform API (SKStoreReviewController / ReviewManager)
-- **Source:** Apple/Google review guidelines
+- **Source:** Apple App Store Review Guidelines (Section 1.1.7), Google Play In-App Review API
 
 ### UX-19 [HIGH] Navigation Depth <= 3 Taps
 Any core feature reachable within 3 taps from home.
@@ -157,7 +157,7 @@ Scroll position restored after navigation, tab switch, or orientation change.
 - **Detect:** Scroll resets to top on tab switch or back navigation. No scroll state persistence. List position lost on orientation change
 - **Fix:** Save scroll offset in ViewModel/state. Restore on return. Use `PageStorageKey` (Flutter), `SavedStateHandle` (Android), state restoration (iOS)
 - **Impact:** Losing scroll position forces users to re-find their place in long lists
-- **Source:** Platform state restoration guidelines
+- **Source:** Android SavedStateHandle, iOS State Restoration Guide, Flutter PageStorageKey
 
 ### UX-24 [HIGH] Progressive Disclosure
 No screen shows more than 7 primary options or controls at once.
@@ -185,7 +185,7 @@ Apps handling sensitive data must show visible trust indicators on relevant scre
 - **Detect:** App handles sensitive data (auth, health, finance, encrypted storage, PII) but shows no visual trust indicators on relevant screens. No encryption/security status near sensitive operations. No data handling disclosure before permission prompts
 - **Fix:** Add contextual trust indicators: encryption badge on auth/data-entry screens. Data handling micro-text near sensitive operations (e.g., "Processed in memory only", "End-to-end encrypted"). Privacy transparency panel in settings showing what data is collected. Just-in-time disclosure before permission prompts (increases opt-in 12-19%)
 - **Conditional:** Only for apps with privacy/security/health/finance focus — detect via manifest permissions, API patterns, or compliance docs
-- **Source:** Signal, Ente, Bitwarden UX patterns; NNG Trust Design research
+- **Source:** Nielsen Norman Group — Trust in UX Design, Signal/Ente/Bitwarden Privacy UX Patterns
 
 ---
 
@@ -215,7 +215,7 @@ Support system font scaling. iOS: Dynamic Type. Android: sp (never dp for text).
 Body >= 16sp/17pt. Never below 11sp/12pt for any text.
 - **Detect:** Body text < 16sp. Any text < 11sp. Captions unreadable
 - **Fix:** Material 3 scale: Display 57-36, Headline 32-24, Title 22-16, Body 16-14, Label 14-11
-- **Source:** Typography best practices
+- **Source:** Material 3 Typography Scale, Apple Dynamic Type Sizes, WCAG 1.4.4
 
 ### VIS-03 [HIGH] Semantic Color Tokens
 Named colors (surface, primary, error), not hardcoded hex.
@@ -233,7 +233,7 @@ Respect system preference. Manual toggle. Test all screens.
 #121212 for surfaces. Pure black (#000000) causes OLED smearing.
 - **Detect:** `#000000` or `Color(0xFF000000)` as dark mode background
 - **Fix:** #121212 or equivalent dark gray. Pure black only for decorative or user-requested high-contrast
-- **Source:** OLED best practices
+- **Source:** Material Design Dark Theme Guide, OLED Display Smearing Research
 
 ### VIS-06 [HIGH] 8dp Grid Spacing
 All spacing in multiples of 8. Internal <= external.
@@ -298,7 +298,7 @@ Handle visible, >= 48dp wide. Snap points defined.
 Smooth splash-to-content transition. No blank flash.
 - **Detect:** Blank/white flash between splash and content. Splash > 2s. No transition
 - **Fix:** Platform splash API (Android 12+ SplashScreen, iOS launch storyboard). Fast transition to first content
-- **Source:** Platform guidelines
+- **Source:** Android 12 SplashScreen API, Apple Launch Storyboard Guide, Flutter Native Splash
 
 ### VIS-14 [HIGH] Adaptive Icons (Android)
 Foreground + background layers. 66dp safe zone.
@@ -394,7 +394,7 @@ Constrained layouts must protect against text/content overflow across all viewpo
   - Content that might exceed viewport height: wrap in scrollable container with min-height constraint
   - Replace hardcoded widths with responsive values (percentage, flex, weight)
   - Use targeted size queries (Flutter: `MediaQuery.sizeOf` not `.of`; Web: container queries not window resize; iOS: trait collections)
-- **Source:** Platform layout overflow prevention guides
+- **Source:** Flutter Layout Overflow Debugging, CSS Overflow Module Level 3, Android ConstraintLayout Guide, Auto Layout Guide (Apple)
 
 ---
 

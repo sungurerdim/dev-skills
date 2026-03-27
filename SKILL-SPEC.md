@@ -584,6 +584,8 @@ The boundaries below define **primary ownership** — which skill provides the d
 | ds-market | Marketing strategy + copy generation + growth | Strategic guidance: positioning, channels, copy, growth |
 | ds-analytics | Privacy-first analytics: event taxonomy, funnels, metrics, audit | Analytics design, tool integration, privacy audit |
 | ds-cv | Professional CV generation: ATS-compatible HTML, metric verification, LinkedIn alignment | Full CV workflow: gather, verify, generate, audit, deploy |
+| ds-frontend | Frontend design quality: design system, tokens, components, states, a11y, responsive, theming | Full UI audit + design system generation for any framework |
+| ds-tune | Autonomous optimization: measurable metric loop, 100+ experiments, keep only improvements | Full optimization workflow for any measurable metric |
 
 ### Overlap Resolution
 
@@ -603,6 +605,7 @@ Where scopes overlap between skills, each skill handles the full scope independe
 | Analytics/tracking | ds-analytics (event taxonomy, privacy), ds-compliance (tracking consent) | ds-analytics designs tracking. ds-compliance audits consent mechanisms. |
 | API design | ds-backend (API + DB + auth design), ds-review (code quality) | ds-backend owns API/DB/auth architecture. ds-review handles code-level quality fixes. |
 | Marketing copy | ds-market (strategy + copy), ds-launch (store listing copy) | ds-market generates marketing strategy and copy. ds-launch focuses on store-specific metadata. |
+| UI/UX quality | ds-frontend (design system), ds-mobile (mobile UX), ds-review (code quality), ds-compliance (a11y law) | ds-frontend owns design tokens, component states, responsive, theming. ds-mobile owns mobile-specific UX (gestures, permissions, store). ds-review owns code-level quality. ds-compliance owns regulatory a11y (EAA, ADA). |
 
 ### Inter-Skill Communication
 
@@ -698,6 +701,7 @@ All scopes from all skills can appear in findings. The analyzer does not need to
 | analytics, event taxonomy | ds-analytics | ds-analytics (own design/setup) |
 | scaffolding, project init | ds-init | ds-init (own generation) |
 | perf-profiling (deep) | ds-review --perf | ds-review (own analysis + fixes) |
+| tokens, components, states, a11y (design), responsive, theming | ds-blueprint, ds-frontend | ds-frontend (audit + fix + design) |
 
 Note: ds-fix and ds-devops primarily run external tools (formatters, linters, CI commands) and typically do their own analysis. They may read findings for context but their primary input is tool output, not the findings file.
 
@@ -794,6 +798,7 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 | ds-backend | **Project Map.Modules** → know API structure, skip architecture discovery. **Config.data** → know auth/data requirements. **Project Map.External** → know existing DB/cache/queue. | api, db, auth |
 | ds-analytics | **Config.data** → know privacy constraints for tracking design. **Config.audience** → context for event taxonomy. **Config.regulations** → compliance requirements for analytics. | analytics, privacy |
 | ds-launch | **Config.audience** → know store requirements. **Config.deploy** → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
+| ds-frontend | **Config.priorities** → order scope execution. **Type + Stack** → select framework-specific patterns. **Current Scores** → focus on lowest-scoring UX dimensions. | tokens, components, states, a11y, responsive, theming |
 | ds-repo | — (producer only) | — |
 | ds-blueprint | — (producer only, reads own profile for incremental updates) | — (producer only) |
 

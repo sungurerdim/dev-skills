@@ -1,4 +1,4 @@
-# ds-autotune
+# ds-tune
 
 Manual optimization means 8-10 experiments per day with no audit trail. This skill sets up an autonomous loop that runs 100+ experiments, keeping only what measurably improves.
 
@@ -7,15 +7,15 @@ Manual optimization means 8-10 experiments per day with no audit trail. This ski
 ## Install
 
 ```bash
-cp -r ds-autotune ~/.claude/skills/ds-autotune
+cp -r ds-tune ~/.claude/skills/ds-tune
 ```
 
 ## Use
 
 ```bash
-/ds-autotune           # Full setup: discover goal, analyze, generate, baseline, start loop
-/ds-autotune run       # Resume loop from existing auto/ setup
-/ds-autotune status    # Show experiment results and improvement
+/ds-tune           # Full setup: discover goal, analyze, generate, baseline, start loop
+/ds-tune run       # Resume loop from existing auto/ setup
+/ds-tune status    # Show experiment results and improvement
 ```
 
 ## How It Works

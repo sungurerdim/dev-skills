@@ -42,7 +42,7 @@ Without flags: present mode and scope selection to the user.
 
 ## Execution Flow
 
-Detect → Configure → Scan → Report → [Fix] → Summary
+Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summary
 
 ### Phase 1: Detect
 
@@ -147,6 +147,15 @@ ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
 **Gate:** Fixed + skipped + failed = total findings; every modified file re-read and verified. Every finding/action has a disposition. Accounting verified.
+
+### Phase 7: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
 
 ## Quality Gates
 

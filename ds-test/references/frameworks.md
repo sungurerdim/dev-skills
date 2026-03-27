@@ -11,13 +11,21 @@ Per-stack test framework detection and commands. Load only the section matching 
 | Unit/Integration (default) | Vitest | `npx vitest run` | `vitest.config.ts` |
 | Unit/Integration (alt) | Jest | `npx jest` | `jest.config.*` |
 | Unit/Integration (alt) | Mocha | `npx mocha` | `.mocharc.*` |
+| Unit/Integration (Bun) | bun:test | `bun test` | `bunfig.toml` (optional) |
 | E2E (default) | Playwright | `npx playwright test` | `playwright.config.ts` |
 | E2E (alt) | Cypress | `npx cypress run` | `cypress.config.*` |
 | Coverage | c8 / istanbul | `npx vitest run --coverage` | `vitest.config.ts` |
 
-**Detection:** `vitest` in deps → Vitest. `jest` in deps → Jest. `@playwright/test` in deps → Playwright. `cypress` in deps → Cypress.
-**Recommended (new projects):** Vitest (unit) + Playwright (E2E).
+**Detection:** `vitest` in deps → Vitest. `jest` in deps → Jest. `@playwright/test` in deps → Playwright. `cypress` in deps → Cypress. `bun.lock` or `bunfig.toml` present → Bun test available.
+**Recommended (new projects):** Vitest (unit) + Playwright (E2E). For Bun projects: bun:test (unit) + Playwright (E2E).
 **Test directory:** `__tests__/`, `test/`, or co-located `*.test.ts` / `*.spec.ts`.
+
+**2025-2026 Notes:**
+- **Vitest** is the dominant test runner in the Vite ecosystem, ~3x faster than Jest due to native ESM and Vite's transform pipeline. Jest-compatible API makes migration straightforward.
+- **bun:test** is the fastest option for Bun-native projects. Built-in, zero-config, Jest-compatible API. Use when the project already runs on Bun.
+- **Playwright** has overtaken Cypress in market share for browser E2E testing (2025). Better multi-browser support, auto-wait, and trace viewer. Cypress remains viable for existing projects but new projects should prefer Playwright.
+- **Mocha** is in maintenance mode. Migrate to Vitest for new projects.
+- **Jest** remains widely used but new projects in the Vite ecosystem should prefer Vitest for better performance and native ESM support.
 
 ---
 

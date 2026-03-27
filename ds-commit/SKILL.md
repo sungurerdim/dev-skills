@@ -30,7 +30,7 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 
 ## Execution Flow
 
-Pre-checks → Analyze → Execute → Verify → Summary
+Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Pre-checks
 
@@ -54,6 +54,9 @@ If `release-please-config.json` or `.release-please-manifest.json` exists in pro
 **1.3 Conflict check:** `UU`/`AA`/`DD` in status -> stop.
 
 **1.4 Quality Gates (changed files only):**
+
+**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, check for relevant findings on changed files. Use as additional context for commit grouping.
+
 - Always: secret scan + large file check
 - Code files: format + lint (no tests) on changed files only
   - Detect toolchain: first search for blueprint profile (`Toolchain:` line under `## Blueprint Profile` heading in instruction files). No blueprint → auto-detect from project files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile).
@@ -213,7 +216,16 @@ on large datasets. Requires running migration 20240115_add_search_index.
 
 **Gate:** git log confirms commit(s) and working tree is clean.
 
-### Phase 5: Summary
+### Phase 5: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 6: Summary
 
 Commit count, file count, branch, commit hashes. Next step: push or create a pull request.
 

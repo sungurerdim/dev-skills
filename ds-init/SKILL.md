@@ -60,7 +60,7 @@ What type of project are you scaffolding?
 
 ## Execution Flow
 
-Setup → Detect → Configure → Generate → Verify → Summary
+Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
@@ -137,12 +137,21 @@ Files are generated in parallel where independent (configs, CI, Docker).
 
 **Gate:** All verifications pass. If any fail → fix before summary.
 
-### Phase 5: Summary
+### Phase 5: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 6: Summary
 
 Output generated file list with tree structure:
 
 ```
-ds-init: OK | Created: N files | Skipped: N (existing) | Type: {type}
+ds-init: {OK|WARN|FAIL} | Generated: N | Skipped: N | Failed: N | Total: N
 
 {project-name}/
 ├── .github/workflows/ci.yml

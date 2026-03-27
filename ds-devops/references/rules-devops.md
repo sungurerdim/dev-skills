@@ -33,14 +33,16 @@ Every project must have automated CI/CD.
   - C/C++: `clang-format`, `clang-tidy`, `ctest`, `cmake --build`
   - Scala: `scalafmt`, `scalafix`, `sbt test`, `sbt assembly`
 - **Impact:** Manual builds cause inconsistent releases and missed quality checks
-- **Source:** Industry standard CI/CD practices
+- **GitHub Actions (2025-2026):** Use reusable workflows (`uses: ./.github/workflows/ci.yml`) for DRY pipelines. Use OIDC auth (`permissions: id-token: write`) instead of long-lived secrets for cloud deploys. Use matrix builds for multi-version testing. Pin actions by SHA, not tag.
+- **Source:** GitHub Actions Reusable Workflows docs, OIDC for GitHub Actions (github.blog 2023), CI/CD best practices (martinfowler.com)
 
 ### DOP-02 [HIGH] Quality Gate Coverage
 CI must include format, lint/analyze, test, and build stages.
 - **Detect:** CI config exists but missing stages. Check for presence of format, lint/analyze, test, and build commands in workflow files.
 - **Fix:** Add missing stages. Run in order: format → lint → test → build. Fail pipeline on any stage failure.
 - **Impact:** Missing quality gates allow regressions to reach production
-- **Source:** CI/CD best practices
+- **GitHub Actions (2025-2026):** Use `concurrency` groups to cancel redundant runs. Use `needs:` for stage ordering (format → lint → test → build). Use composite actions for shared steps.
+- **Source:** GitHub Actions Workflow Syntax docs, Google DORA State of DevOps Report (2024)
 
 ### DOP-03 [HIGH] CI/Local Parity
 CI checks should match local development checks.
@@ -50,7 +52,8 @@ CI checks should match local development checks.
   - CI uses different tool versions than local (no `.tool-versions`, `.nvmrc`, or version pinning)
 - **Fix:** Align CI and local commands. Use `.tool-versions` or `.nvmrc` for version pinning. Provide `make ci` or equivalent that mirrors CI exactly.
 - **Impact:** "Works on my machine" issues, CI-only failures block development
-- **Source:** DevOps best practices
+- **GitHub Actions (2025-2026):** Use `actions/setup-node@v4` with `node-version-file: '.nvmrc'` for version parity. Use `act` (nektos/act) for local workflow testing.
+- **Source:** 12factor.net (Dev/prod parity), nektos/act README, GitHub Actions setup-node docs
 
 ### DOP-04 [HIGH] Conventional Commits
 feat:/fix:/refactor: format with automated changelog.
@@ -67,7 +70,7 @@ Production apps must have crash reporting with symbolicated traces.
   - Mobile: missing dSYM/mapping.txt upload in CI
 - **Fix:** Add crash reporting SDK. Upload debug symbols in CI. Monitor crash-free rate.
 - **Impact:** Without crash reporting, production issues go undetected until user reports
-- **Source:** Industry standard
+- **Source:** Sentry Best Practices Guide, Firebase Crashlytics docs, DORA Metrics (change failure rate)
 
 ### DOP-06 [HIGH] Dependency Audit CI Gate
 CVE check in CI. Fail on vulnerabilities.
@@ -109,7 +112,7 @@ No manual signing. Signing must be automated in CI.
   - Android: base64 keystore in CI secrets. `keystore.properties` in `.gitignore`.
 - **Impact:** Manual signing blocks releases and creates single-point-of-failure
 - **Note:** Applies to mobile and desktop projects only. Skip for web/API/CLI/library.
-- **Source:** Platform deployment guides
+- **Source:** Apple Code Signing Guide, Android App Signing docs, Fastlane Match docs
 
 ### DOP-09 [HIGH] Signing Security
 Signing credentials must not be in source code.
@@ -203,7 +206,7 @@ Dependencies must be compatible with each other. Use BOM where available.
     - Scala: eviction warnings in sbt resolution
 - **Fix:** Use BOM for coordinated releases. Use overrides only temporarily with TODO comment. Commit lockfiles.
 - **Impact:** Dependency conflicts cause build failures and unpredictable behavior
-- **Source:** Platform dependency management docs
+- **Source:** Maven BOM docs, Gradle Platform docs, npm peer dependency RFC, Cargo resolver docs
 
 ### DOP-14 [HIGH] Version Pinning
 Dependencies should be pinned to specific versions. Lockfiles committed.
@@ -213,4 +216,4 @@ Dependencies should be pinned to specific versions. Lockfiles committed.
   - `.gitignore` excluding lockfiles
 - **Fix:** Pin versions. Commit lockfiles. Remove lockfiles from `.gitignore`.
 - **Impact:** Unpinned dependencies cause non-reproducible builds and surprise breakage
-- **Source:** Dependency management best practices
+- **Source:** npm lockfile docs, Yarn deterministic installs, Go Module Reference (go.dev), Cargo.lock docs

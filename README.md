@@ -1,7 +1,7 @@
 # dev-skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/skills-20-blue)]()
+[![Skills](https://img.shields.io/badge/skills-21-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
@@ -23,7 +23,7 @@ dev-skills are multi-phase execution systems — with quality gates, error recov
 
 ## The skills
 
-> scaffold → code → test → review → commit → PR → deploy → launch → analytics
+> scaffold → code → design → test → review → commit → PR → deploy → launch → analytics
 
 | Skill | What it does |
 |-------|-------------|
@@ -38,6 +38,7 @@ dev-skills are multi-phase execution systems — with quality gates, error recov
 | [ds-deploy](ds-deploy) | First deploy means bloated images, no health checks, no SSL. Generates production-ready configs. |
 | [ds-launch](ds-launch) | ~40% of store submissions fail for preventable errors. Scans your project and flags them. |
 | [ds-compliance](ds-compliance) | One missing privacy policy or unpatched XSS means fines or rejection. 80+ rules, file:line precision. |
+| [ds-frontend](ds-frontend) | Hardcoded colors, inconsistent spacing, missing focus states. Enforces design system in code. |
 | [ds-mobile](ds-mobile) | Permission abuse, missing a11y, hardcoded keys surface during review. 145+ rules catch them first. |
 | [ds-devops](ds-devops) | Broken CI, unsigned builds, outdated deps erode release quality. Audits your entire DevOps setup. |
 | [ds-repo](ds-repo) | Unprotected branches, stale PRs, no CODEOWNERS — most repos are misconfigured. Audits and fixes. |
@@ -46,7 +47,7 @@ dev-skills are multi-phase execution systems — with quality gates, error recov
 | [ds-market](ds-market) | Solo devs build great products but can't get noticed. Generates positioning, copy, and growth playbook. |
 | [ds-analytics](ds-analytics) | Most apps track everything (privacy risk) or nothing (blind). Designs minimum taxonomy, maximum insight. |
 | [ds-cv](ds-cv) | ATS rejects most CVs before a human sees them. Generates ones that pass. |
-| [ds-autotune](ds-autotune) | Manual optimization: 8 experiments/day. This skill runs 100+ overnight, keeping only what improves. |
+| [ds-tune](ds-tune) | Manual optimization: 8 experiments/day. This skill runs 100+ overnight, keeping only what improves. |
 
 Each skill is self-contained. No dependencies between them. Install one or all.
 
@@ -65,6 +66,7 @@ Start with `/ds-blueprint` — it scans your entire codebase and produces a `.ds
 
 For new projects: `/ds-init` → then the workflow above.
 For deployment: `/ds-deploy` → `/ds-launch`.
+For frontend: `/ds-frontend` → design system audit + fixes.
 For audits: `/ds-compliance` or `/ds-mobile`.
 
 ## Why these are different

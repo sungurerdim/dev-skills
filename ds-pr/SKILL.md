@@ -34,7 +34,7 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 
 ## Execution Flow
 
-Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Create -> [Merge Setup] -> [Cleanup] -> Summary
+Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Create -> [Merge Setup] -> [Cleanup] -> [Needs-Approval] -> Summary
 
 ### Phase 1: Validate
 
@@ -142,11 +142,21 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 
 **Gate:** All merged branches deleted locally and remotely, or cleanup skipped by user.
 
-### Phase 7: Summary
+### Phase 7: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 8: Summary
 
 PR URL, title, type -> bump effect, auto-merge status.
 
 `pr: {OK|FAIL} | {url} | {type} -> {bump} | auto-merge: {on|off}`
+`FRC: Fixed: N | Skipped: N | Failed: N | Total: N`
 
 **Gate:** Summary line printed. PR URL returned to user.
 

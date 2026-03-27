@@ -33,11 +33,13 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 
 ## Execution Flow
 
-Gather -> Verify -> Write -> Generate -> Audit -> Deploy
+Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 
 ### Phase 1: Gather [generate]
 
 **Goal:** Collect all career data through structured questions. Only use confirmed data.
+
+**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, check for relevant findings that may inform CV content (project metrics, quality scores).
 
 **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
    - **Type + Stack** → context for technical skills section
@@ -137,7 +139,16 @@ Load audit rules from `references/audit-rules.md`. Key checks:
 
 **Gate:** Zero CRITICAL findings. All HIGH addressed or acknowledged.
 
-### Phase 6: Deploy [generate]
+### Phase 6: Needs-Approval Review [needs_approval > 0]
+
+Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
+- **--auto without --force-approve:** List items, skip them, note in summary
+- **--force-approve:** Apply all needs_approval items without asking
+- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+
+### Phase 7: Deploy [generate]
 
 **Goal:** CV accessible as PDF and web page.
 

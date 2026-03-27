@@ -19,13 +19,13 @@ API: p95 < 200ms. Page load: < 3s. Background jobs: bounded timeout.
 - **Detect:** No response time monitoring. Slow queries without indexes. Synchronous processing of heavy operations
 - **Fix:** Profile with APM tools. Add database indexes for frequent queries. Move heavy work to background queues. Set timeouts on all external calls
 - **Impact:** 100ms delay = 1% conversion loss (Amazon). p95 > 500ms = poor user experience
-- **Source:** Web performance best practices
+- **Source:** Google Web Vitals, Amazon Latency Study (100ms = 1% conversion loss)
 
 ### PRF-02 [MAJOR] Startup Time
 Application cold start < 5s. Serverless cold start < 1s. Defer non-critical initialization.
 - **Detect:** Heavy initialization on startup (loading all configs, prewarming all caches). Blocking I/O during boot. Large dependency trees slowing startup
 - **Fix:** Lazy-load non-critical modules. Defer cache warming. Use connection pooling (not connect-on-boot). Minimize dependency tree for serverless
-- **Source:** Serverless optimization, Application performance
+- **Source:** AWS Lambda Performance Optimization, Google Cloud Functions Cold Start Guide
 
 ### PRF-03 [MAJOR] Bundle/Binary Size
 Track and optimize output size. Remove unused dependencies.
@@ -35,13 +35,13 @@ Track and optimize output size. Remove unused dependencies.
   - Python: remove unused packages from requirements
   - Go: `go build -ldflags="-s -w"` for smaller binaries
   - Docker: multi-stage builds, distroless/alpine base images
-- **Source:** Build optimization guides
+- **Source:** webpack Bundle Analysis Guide, esbuild/Vite Optimization, Docker Multi-Stage Builds
 
 ### PRF-04 [MAJOR] Lazy Loading
 Load resources on demand. Defer non-critical work.
 - **Detect:** All modules imported eagerly. All images loaded at page init. Full dataset loaded when only summary needed
 - **Fix:** Dynamic imports for routes/features. Lazy load images (Intersection Observer). Paginate database queries. Stream large responses
-- **Source:** Performance best practices
+- **Source:** MDN Lazy Loading Guide, Intersection Observer API, HTTP Range Requests (RFC 7233)
 
 ### PRF-05 [MAJOR] Efficient Data Queries
 No N+1 queries. Paginate large results. Select only needed fields.
@@ -53,7 +53,7 @@ No N+1 queries. Paginate large results. Select only needed fields.
   - Search: query calls inside `for`/`forEach`/`map` loops
 - **Fix:** Use eager loading/joins for related data. Select specific fields. Paginate with cursor or offset. Add indexes for WHERE/ORDER BY columns. Use `EXPLAIN` to verify query plans
 - **Impact:** N+1 with 100 items = 101 queries instead of 2. Linear performance degradation
-- **Source:** Database performance, ORM best practices
+- **Source:** Use The Index Luke (SQL Indexing), Django ORM N+1 Guide, Prisma Query Optimization
 
 ### PRF-06 [CRITICAL] Memory Leak Prevention
 All subscriptions, connections, and resources properly cleaned up.
@@ -64,7 +64,7 @@ All subscriptions, connections, and resources properly cleaned up.
   - Web: `addEventListener` without `removeEventListener`, `setInterval` without `clearInterval` in components
 - **Fix:** Use cleanup patterns: `finally` blocks, `with` statements (Python), `defer` (Go), cleanup functions in useEffect (React). Monitor with heap snapshots. Use connection pooling with max limits
 - **Impact:** Memory leaks cause OOM crashes, degraded performance, and increased infrastructure costs
-- **Source:** Platform memory management guides
+- **Source:** Node.js Memory Leak Debugging Guide, Python gc Module, Go pprof, Chrome DevTools Heap Snapshot
 
 ### PRF-07 [MAJOR] Resource Optimization
 Bounded concurrency, connection pooling, file handle limits.
@@ -74,7 +74,7 @@ Bounded concurrency, connection pooling, file handle limits.
   - File handles not closed after read/write
   - No timeout on HTTP client requests
 - **Fix:** Limit concurrency (p-limit, semaphore). Use connection pools (pg pool, SQLAlchemy pool). Set timeouts on all I/O operations. Close resources in finally/defer/with blocks
-- **Source:** Resource management best practices
+- **Source:** Node.js p-limit, PostgreSQL Connection Pooling Guide, Go Context and Cancellation
 
 ---
 
@@ -90,7 +90,7 @@ UI components with unchanged inputs must not rebuild on every state change.
   - Mark immutable components: `const` (Flutter), `React.memo` (React/RN), `@Stable`/`@Immutable` (Compose), `EquatableView` (SwiftUI), `v-once` (Vue)
   - Use selective state observation: watch only needed fields, not entire state objects (Riverpod `select()`, Redux `useSelector`, Compose `derivedStateOf`, SwiftUI `@Observable` with access tracking)
   - Move expensive computations outside render/build cycle into memoized values or computed properties
-- **Source:** Platform rendering optimization guides
+- **Source:** React.memo API Reference, Flutter const Widget Optimization, Jetpack Compose Stability, Vue v-once Directive
 
 ### PRF-09 [MAJOR] Animation Layer Promotion
 Animations must not trigger expensive layout recalculations or rebuild entire subtrees.
@@ -108,7 +108,7 @@ Animations must not trigger expensive layout recalculations or rebuild entire su
     - Web: animate `transform`/`opacity` only; `will-change` hint for known targets; `requestAnimationFrame` for frame sync
   - Extract static children outside animation scope
   - Sync animation lifecycle with display refresh (vsync, CADisplayLink, Choreographer, requestAnimationFrame)
-- **Source:** Platform animation performance guides
+- **Source:** CSS Triggers (compositor-only properties), Flutter Animations Overview, Chrome Rendering Performance Guide
 
 ### PRF-10 [MAJOR] Cold Start Optimization
 First meaningful frame must render within 2 seconds on target devices.
@@ -126,7 +126,7 @@ First meaningful frame must render within 2 seconds on target devices.
   - Lazy-load feature modules
   - Run database migrations on background thread
 - **Impact:** 49% of users expect <2s, 53% abandon >3s
-- **Source:** Platform startup optimization guides
+- **Source:** Google Think with Google (53% abandon >3s), Flutter Deferred Components, requestIdleCallback MDN
 
 ---
 
@@ -136,7 +136,7 @@ First meaningful frame must render within 2 seconds on target devices.
 Clear primary data source. Cache layers explicit and invalidatable.
 - **Detect:** UI/client reads from multiple inconsistent sources. No caching strategy. Cache invalidation undefined
 - **Fix:** Define source of truth per data type (DB, cache, external API). Cache with explicit TTL. Invalidate on writes. Document cache strategy
-- **Source:** Caching best practices
+- **Source:** HTTP Caching (MDN), Redis Caching Patterns, Stale-While-Revalidate (RFC 5861)
 
 ### NET-02 [MAJOR] Exponential Backoff + Jitter
 Retry transient failures with backoff. Cap retries.
@@ -176,4 +176,4 @@ Structured logging with correlation IDs. Request tracing across services.
   - No request duration tracking
   - No error rate monitoring
 - **Fix:** Generate unique request ID per request. Pass through all service calls. Log: request_id, method, path, status, duration, user_id (hashed). Use structured JSON logging. Integrate with APM (Datadog, New Relic, OpenTelemetry)
-- **Source:** Observability best practices, OpenTelemetry
+- **Source:** OpenTelemetry Specification, Google SRE Book (Monitoring Distributed Systems), Datadog APM Guide
