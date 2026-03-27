@@ -142,10 +142,11 @@ Describe intent, not mechanism. Skills must work across any AI coding tool.
 ### Specificity Calibration
 
 Every instruction specifies:
-- **WHAT** to do — the action and its inputs
+- **WHAT** to do — the action and its inputs (explicit, not vague — Claude 4.x takes instructions literally)
 - **WHAT** to verify — the expected outcome or gate condition
+- **WHAT** to output — format, structure, and scope of the result
 
-Never specify:
+Avoid specifying:
 - **HOW** to invoke — tool names, API parameters, SDK calls
 
 Example — good:
@@ -160,9 +161,10 @@ Example — bad:
 - Numbered steps within phases — predictable execution order
 - Tables over prose — scannable, compact, unambiguous
 - Rule + example pairs — every behavioral rule includes at least one concrete example
-- **Positive framing** — "Only modify required lines" instead of "Don't touch unrelated code". Negative constraints fail 40-60% of the time.
-- **Gates over prose** — every phase ends with an explicit pass/fail condition + recovery action
-- **3-5 examples per rule** — more is diminishing returns. Place the most relevant example last (recency bias).
+- **Positive framing** — "Only modify required lines" instead of "Don't touch unrelated code". Hard negatives fail ~5%, soft negatives ~10-15%. Positive framing is 2-5× more reliable. Reserve hard negatives for safety-critical rules only (max 5 per skill).
+- **Gates over prose** — every phase ends with an explicit pass/fail condition + recovery action. Process-level verification outperforms outcome-only checks.
+- **3-5 examples per rule** — more is diminishing returns. Well-selected 3.5% of examples outperforms 100% random (RDS+ arXiv 2025). Place the most relevant example last (recency bias). Prioritize diversity over quantity.
+- **Hyper-explicit intent** — Claude 4.x takes instructions literally — omitted details are omitted from output. Specify desired output format, scope, and criteria precisely. Vague intent produces vague results.
 
 ### Skill Voice
 
@@ -203,6 +205,26 @@ Constraints that AI models often violate:
 ### Example Density
 
 Every rule that constrains behavior must include at least one example showing correct application. Abstract rules without examples are ignored by AI models.
+
+### Adaptive Thinking (replaces forced CoT)
+
+Reasoning-capable models (Claude 4.x, o3-mini) reason adaptively by default. Forced chain-of-thought ("think step-by-step") adds only 2.9–3.1% accuracy while costing 20-80% more tokens (Wharton GenAI Labs 2025).
+
+| Instead of | Write |
+|-----------|-------|
+| "Think through this step-by-step" | "Identify the 3 key factors, then decide" |
+| "Reason carefully about each option" | "Compare options against these criteria: [list]" |
+| "Let me analyze this..." | (Omit — model calibrates reasoning depth) |
+
+**Prompt reasoning explicitly only when:**
+- Using non-reasoning models (Haiku) on complex tasks (+11-13% accuracy gain)
+- Multi-criteria decisions with >3 trade-offs
+- Novel problems outside common patterns
+
+**Skip reasoning prompts for:**
+- Procedural tasks with clear numbered steps
+- Pattern-matching tasks (code review, linting)
+- Simple lookups or transformations
 
 See [references/ai-instruction-patterns.md](references/ai-instruction-patterns.md) for full research.
 
@@ -420,11 +442,12 @@ Not all phases are required. Skills select the phases relevant to their workflow
 
 For skills with 3+ phases, use a persistent progress mechanism to survive context compression:
 
-**Pattern:** Write findings and progress to a structured artifact (findings file, checklist, or progress log) that can be re-read if context is lost.
+**Pattern:** Write findings and progress to a structured file (findings file, checklist, or progress log) that can be re-read if context is lost. Conversation memory is volatile — structured files survive context compression.
 
 **Requirements:**
 - Each phase writes its output to the progress artifact on completion
 - Recovery reads the artifact to determine which phases completed
+- Use structured formats (JSON, markdown tables) over prose for state files — easier to parse on recovery
 - Never restart from scratch — resume from last completed phase
 
 **Recovery protocol:**
