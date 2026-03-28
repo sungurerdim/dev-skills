@@ -161,10 +161,7 @@ Branch:    autotune/[tag]
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
-- **--auto without --force-approve:** List items, skip them, note in summary
-- **--force-approve:** Apply all needs_approval items without asking
-- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
 **Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
 
@@ -299,6 +296,9 @@ ds-tune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {
 - Discarded experiments are fully reverted (git reset --hard) — zero residue
 - Results.tsv is append-only — complete experiment history preserved
 - Simplicity criterion: complexity must earn its keep with measurable improvement
+- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
+- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
+- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
 
 ## Error Recovery
 

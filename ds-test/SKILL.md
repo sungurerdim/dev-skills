@@ -203,10 +203,7 @@ After any generate/update/fix operation:
 
 ### Phase 4: Needs-Approval Review [needs_approval > 0]
 
-Items flagged `needs_approval` (cross-module changes, destructive actions, user-facing decisions):
-- **--auto without --force-approve:** List items, skip them, note in summary
-- **--force-approve:** Apply all needs_approval items without asking
-- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
 **Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
 
@@ -264,6 +261,10 @@ When analyzing existing tests, flag tests that provide no concrete value:
 - Mocks must be minimal — only mock external dependencies (network, filesystem, time), not internal modules
 - Generated test matches project's existing style — no style drift
 - Every finding gets a disposition in the summary — zero silent drops (FRC)
+- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
+- After modifying {file}, verify no dependent file references a changed interface in a now-broken way. _(W2)_
+- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
+- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
 
 ## Error Recovery
 

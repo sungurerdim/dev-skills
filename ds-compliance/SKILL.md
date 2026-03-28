@@ -159,10 +159,7 @@ Architecture: [detected summary]
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
-- **--auto without --force-approve:** List items, skip them, note in summary
-- **--force-approve:** Apply all needs_approval items without asking
-- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
 **Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
 
@@ -182,6 +179,9 @@ ds-compliance: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 2. Format preservation (indentation, code style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (use correct framework APIs)
+5. Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
+6. Only modify files required by the current task — leave unrelated code untouched. _(W3)_
+7. After context gap, re-read source files and progress artifacts before modifying. _(W4)_
 
 ## Error Recovery
 
