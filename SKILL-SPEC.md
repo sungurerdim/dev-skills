@@ -165,6 +165,14 @@ Example — bad:
 - **Gates over prose** — every phase ends with an explicit pass/fail condition + recovery action. Process-level verification outperforms outcome-only checks.
 - **3-5 examples per rule** — more is diminishing returns. Well-selected 3.5% of examples outperforms 100% random (RDS+ arXiv 2025). Place the most relevant example last (recency bias). Prioritize diversity over quantity.
 - **Hyper-explicit intent** — Claude 4.x takes instructions literally — omitted details are omitted from output. Specify desired output format, scope, and criteria precisely. Vague intent produces vague results.
+- **Placeholder examples** — All examples in SKILL.md use `{placeholder}` tokens, never hardcoded project names, file paths, library names, or version numbers. Examples must be reusable across any project context.
+
+| Write This | Not This |
+|------------|----------|
+| `{type}({scope}): {description}` | `feat(auth): add OAuth2 login` |
+| `{tool_a} conflict with {tool_b} → {resolution}` | `ESLint conflict with Prettier → Prettier wins` |
+| `{n} commits ({type_a}+{type_b}) → net: {dominant_type}` | `3 commits (feat+fix+refactor) → net: feat` |
+| `If {metric} < {threshold} → {action}` | `If coverage < 80% → generate tests` |
 
 ### Skill Voice
 
@@ -506,19 +514,19 @@ Every finding produced by an audit phase MUST appear in the summary with exactly
 ```
 | # | Finding              | Disposition                        |
 |---|----------------------|------------------------------------|
-| 1 | Stale branch         | fixed ✅                           |
-| 2 | Auto-merge disabled  | skipped (free plan limitation)     |
-| 3 | Homepage URL empty   | needs-input → user provided → fixed ✅ |
-| 4 | Branch protection    | skipped (free plan limitation)     |
-| 5 | CODEOWNERS rewrite   | needs-approval → user approved → fixed ✅ |
+| 1 | {finding_1}          | fixed ✅                           |
+| 2 | {finding_2}          | skipped ({limitation_reason})      |
+| 3 | {finding_3}          | needs-input → user provided → fixed ✅ |
+| 4 | {finding_4}          | skipped ({limitation_reason})      |
+| 5 | {finding_5}          | needs-approval → user approved → fixed ✅ |
 ```
 
-**Example — incorrect (finding #3 silently dropped):**
+**Example — incorrect ({finding_3} silently dropped):**
 ```
 | # | Finding              | Disposition                   |
 |---|----------------------|-------------------------------|
-| 1 | Stale branch         | fixed ✅                      |
-| 2 | Auto-merge disabled  | skipped (free plan limitation) |
+| 1 | {finding_1}          | fixed ✅                      |
+| 2 | {finding_2}          | skipped ({limitation_reason})  |
 ```
 
 ### Deterministic Scope Checklist (DSC)
@@ -543,22 +551,22 @@ Every scope that performs auditing MUST define an explicit, enumerated checklist
 
 **Example scope definition:**
 ```markdown
-**settings scope checks:**
-1. Merge strategy — squash-only enabled
-2. Commit title format — PR_TITLE
-3. Commit message format — PR_BODY
-4. Delete branch on merge — enabled
-5. Auto-merge — enabled
+**{scope} scope checks:**
+1. {check_1} — {expected_value}
+2. {check_2} — {expected_value}
+3. {check_3} — {expected_value}
+4. {check_4} — {expected_value}
+5. {check_5} — {expected_value}
 ```
 
 **Example scope result (all checks accounted):**
 ```
-settings: 3 findings, 2 pass
-  1. Merge strategy     → ✅ squash-only
-  2. Commit title       → MEDIUM: COMMIT_OR_PR_TITLE (expected PR_TITLE)
-  3. Commit message     → MEDIUM: COMMIT_MESSAGES (expected PR_BODY)
-  4. Delete on merge    → MEDIUM: false (expected true)
-  5. Auto-merge         → N/A (requires branch protection, free plan)
+{scope}: 3 findings, 2 pass
+  1. {check_1}     → ✅ {expected_value}
+  2. {check_2}     → MEDIUM: {actual_value} (expected {expected_value})
+  3. {check_3}     → MEDIUM: {actual_value} (expected {expected_value})
+  4. {check_4}     → MEDIUM: {actual_value} (expected {expected_value})
+  5. {check_5}     → N/A ({reason_not_applicable})
 ```
 
 ### Summary Format
@@ -609,6 +617,7 @@ The boundaries below define **primary ownership** — which skill provides the d
 | ds-cv | Professional CV generation: ATS-compatible HTML, metric verification, LinkedIn alignment | Full CV workflow: gather, verify, generate, audit, deploy |
 | ds-frontend | Frontend design quality: design system, tokens, components, states, a11y, responsive, theming | Full UI audit + design system generation for any framework |
 | ds-tune | Autonomous optimization: measurable metric loop, 100+ experiments, keep only improvements | Full optimization workflow for any measurable metric |
+| ds-solve | Adaptive problem-solving: multi-plan backtracking, web research, constraint preservation | Full iterative solve with 3-layer budget ({P} plans x {R} rounds x {A} alternatives) |
 
 ### Overlap Resolution
 
@@ -822,6 +831,7 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 | ds-analytics | **Config.data** → know privacy constraints for tracking design. **Config.audience** → context for event taxonomy. **Config.regulations** → compliance requirements for analytics. | analytics, privacy |
 | ds-launch | **Config.audience** → know store requirements. **Config.deploy** → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
 | ds-frontend | **Config.priorities** → order scope execution. **Type + Stack** → select framework-specific patterns. **Current Scores** → focus on lowest-scoring UX dimensions. | tokens, components, states, a11y, responsive, theming |
+| ds-solve | **Type + Stack** → research query context. **Config.constraints** → automatic red lines. **Current Scores** → weak dimensions near objective. | — (context consumer, not scope producer) |
 | ds-repo | — (producer only) | — |
 | ds-blueprint | — (producer only, reads own profile for incremental updates) | — (producer only) |
 
@@ -917,6 +927,22 @@ Load references based on active scope only:
 ### Context Budget
 
 Total skill overhead (SKILL.md + loaded references) should stay within 10K tokens. This leaves maximum context for the actual codebase being analyzed.
+
+### Concise Expression
+
+Same meaning, fewer tokens. Apply these compression patterns without losing precision or AI model comprehension:
+
+| Pattern | Before | After | Saving |
+|---------|--------|-------|--------|
+| Phase header + Goal merge | `### Phase N: {Name}\n\n**Goal:** {desc}` | `### Phase N: {Name} — {desc}` | ~40% |
+| IDU check inline | 6-8 lines of findings + blueprint check | 2-3 line `**IDU check.** {artifact} → {behavior}; ...` | ~60% |
+| Needs-Approval boilerplate | 6-8 lines per skill | 3 lines: modes on one line, gate on next | ~55% |
+| Redundant prose removal | "The goal of this phase is to..." | Direct imperative: "Decompose into steps." | ~30% |
+| Single-row tables | `\| Col \|\n\|---\|\n\| Val \|` | Inline: `**Col:** Val` | ~60% |
+
+**Rule:** If a phrase can be shortened without changing what the AI model executes, shorten it. Measure by: does the compressed version produce identical behavior?
+
+**Ceiling:** Never compress below readability for a human reviewer. The skill author must still understand the instruction on first read.
 
 ---
 

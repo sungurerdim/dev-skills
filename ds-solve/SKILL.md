@@ -13,7 +13,7 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 ## Contract
 
-- Red lines are preserved throughout — checked before and after every attempt. Example: if "Node 16 compatibility" is a red line, every alternative is validated against Node 16 before advancing.
+- Red lines are preserved throughout — checked before and after every attempt. Example: if "{runtime} {version} compatibility" is a red line, every alternative is validated against {runtime} {version} before advancing.
 - Red lines are auto-detected from project documentation, then confirmed by user. User can add unlimited additional red lines.
 - Every attempt is recorded in episodic memory — zero silent drops. Example: alternative #3 fails with "peer dep conflict" → recorded with failure reason + learned constraint, visible in summary.
 - Infinite loop protection: 3 plans x 3 research rounds x 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
@@ -67,13 +67,13 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
    | Linter/formatter config | "Lint and format rules must be preserved" |
    | Blueprint `Config.constraints` | Infrastructure and project constraints |
 
-   Example — detected red lines from a Next.js project:
+   Example — detected red lines:
    ```
    Red lines detected:
-   1. Node >= 18 (from package.json engines)
-   2. TypeScript strict mode (from tsconfig.json)
-   3. All 47 existing tests pass (from jest config)
-   4. ESLint rules preserved (from .eslintrc)
+   1. {runtime} >= {version} (from {manifest} engines)
+   2. {language} strict mode (from {config_file})
+   3. All {n} existing tests pass (from {test_config})
+   4. {linter} rules preserved (from {linter_config})
    ```
 
 2. **Red line confirmation.** Present detected red lines as a numbered list. Ask user to:
@@ -87,8 +87,8 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
    Example — verification criteria:
    ```
-   Objective: "Make the app work with PostgreSQL instead of SQLite"
-   Verification: `npm test && node -e "require('./db').query('SELECT 1')"`
+   Objective: "{objective_description}"
+   Verification: `{test_command} && {validation_command}`
    ```
 
 5. **Quick check.** Run verification criterion immediately. If it already passes → report OK, skip to Summary.
@@ -113,13 +113,13 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
    Example — plan output:
    ```
-   Plan 1: SQLite → PostgreSQL Migration (4 steps)
+   Plan 1: {plan_summary} ({N} steps)
    | # | Step | Verification | Red Line Risk |
    |---|------|-------------|---------------|
-   | 1 | Install pg driver | `node -e "require('pg')"` exits 0 | #2 (strict TS) |
-   | 2 | Update connection config | Config loads without error | #1 (Node 18) |
-   | 3 | Adapt query syntax | `npm test` passes | #3 (47 tests) |
-   | 4 | Remove SQLite deps | `npm ls` clean | — |
+   | 1 | {step_1_desc} | `{verify_cmd_1}` exits 0 | #{red_line_id} ({constraint}) |
+   | 2 | {step_2_desc} | {verify_condition_2} | #{red_line_id} ({constraint}) |
+   | 3 | {step_3_desc} | `{verify_cmd_3}` passes | #{red_line_id} ({constraint}) |
+   | 4 | {step_4_desc} | `{verify_cmd_4}` clean | — |
    ```
 
 **Output:** Numbered step table with verification criteria.
@@ -141,14 +141,14 @@ Record all alternatives to state file.
 
    Example — research output for step 1:
    ```
-   Step 1: Install pg driver — 5 alternatives
+   Step 1: {step_description} — 5 alternatives
    | # | Alternative | Source | CRAAP+ |
    |---|------------|--------|--------|
-   | 1 | npm install pg @types/pg | npmjs.com (T1) | 92 |
-   | 2 | npm install postgres (postgres.js) | github.com (T2) | 87 |
-   | 3 | npm install knex pg (query builder) | knexjs.org (T1) | 81 |
-   | 4 | npm install drizzle-orm pg | orm.drizzle.team (T2) | 78 |
-   | 5 | npm install sequelize pg | sequelize.org (T1) | 72 |
+   | 1 | {alt_1_desc} | {source_url} (T1) | {score} |
+   | 2 | {alt_2_desc} | {source_url} (T2) | {score} |
+   | 3 | {alt_3_desc} | {source_url} (T1) | {score} |
+   | 4 | {alt_4_desc} | {source_url} (T2) | {score} |
+   | 5 | {alt_5_desc} | {source_url} (T1) | {score} |
    ```
 
 **Output:** Alternatives table per step with CRAAP+ scores.
@@ -173,10 +173,10 @@ Only modify files required by the current step. Leave unrelated code untouched. 
 
 Progress indicator after each attempt:
 ```
-[Plan 1/3] [Step 2/5] [Alt 1/5] [Round 1/3] Trying: Install pg via npm
-Result: FAIL — peer dependency conflict with @types/node@16
-Learned: pg@8.x requires @types/node >= 18
-Red lines: 4/4 held
+[Plan 1/3] [Step 2/5] [Alt 1/5] [Round 1/3] Trying: {alternative_description}
+Result: FAIL — {failure_reason}
+Learned: {package}@{version} requires {dependency} >= {min_version}
+Red lines: {n}/{n} held
 Next: Trying alternative 2...
 ```
 
@@ -189,7 +189,7 @@ Next: Trying alternative 2...
 **Goal:** Research new alternatives incorporating learned constraints. Decision tree and constraint propagation rules in [references/backtrack-logic.md](references/backtrack-logic.md).
 
 1. **Analyze failures.** Extract common patterns from all failure reasons for this step. What constraints did we learn?
-2. **New research.** Search web for 5 new alternatives. Explicitly exclude previously tried approaches. Incorporate learned constraints in queries (e.g., "PostgreSQL driver compatible with Node 16" if Node 16 was the blocker).
+2. **New research.** Search web for 5 new alternatives. Explicitly exclude previously tried approaches. Incorporate learned constraints in queries (e.g., "{tool} compatible with {runtime} {version}" if {runtime} version was the blocker).
 3. **Increment** research round counter for this step.
 4. Round <= budget.R (default 3): Return to Execute with new alternatives.
 5. Round > budget.R: Enter Re-plan.
@@ -215,19 +215,7 @@ Next: Trying alternative 2...
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Items flagged `needs_approval` during execution (irreversible changes, cross-module modifications, destructive actions):
-
-- **`--auto` without `--force-approve`:** List items, skip them, note in summary
-- **`--force-approve`:** Apply all needs_approval items without asking
-- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
-
-Example — needs-approval item:
-```
-needs_approval: Step 3 deletes migration table (irreversible)
-  Risk: Cannot undo without database backup
-  Affected: migrations/, db/schema.sql
-  → Apply / Skip?
-```
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply All / Review Each / Skip All.
 
 **Gate:** All needs_approval items resolved (applied → `fixed`/`failed`, declined → `skipped`).
 
@@ -343,22 +331,22 @@ Not a finding-based skill. Severity applies to issues discovered during executio
 
 | Level | Meaning | Example |
 |-------|---------|---------|
-| CRITICAL | Red line violation, or objective impossible within constraints | Test suite fails after change; dependency requires Node 20 but red line says Node 16 |
-| HIGH | Step exhausted all alternatives across all research rounds | 15 alternatives tried for "install driver", all fail |
-| MEDIUM | Alternative failed but others remain (expected during adaptive solving) | npm install fails, but yarn alternative exists |
-| LOW | Minor issue during research or verification (stale source, slow command) | CRAAP+ score 45 source discarded |
+| CRITICAL | Red line violation, or objective impossible within constraints | {test_suite} fails after change; {dependency} requires {runtime} {version} but red line says {lower_version} |
+| HIGH | Step exhausted all alternatives across all research rounds | {n} alternatives tried for "{step_desc}", all fail |
+| MEDIUM | Alternative failed but others remain (expected during adaptive solving) | {tool_a} fails, but {tool_b} alternative exists |
+| LOW | Minor issue during research or verification (stale source, slow command) | CRAAP+ score {score} source discarded |
 
 ## Error Recovery
 
 | Situation | Action |
 |-----------|--------|
 | Red line violated during execution | Immediately revert changes, record violation, try next alternative |
-| Verification command fails to run | Check syntax and environment. If infrastructure issue, record as learned constraint. Example: `pg_config` not found → constraint "PostgreSQL dev headers missing" |
+| Verification command fails to run | Check syntax and environment. If infrastructure issue, record as learned constraint. Example: `{tool_binary}` not found → constraint "{tool} headers missing" |
 | Same alternative fails identically twice | Skip remaining retries, advance to next alternative |
 | State file corrupted | Infer last successful step from git state, restart from there |
 | Git state inconsistent | Stash or revert uncommitted changes before retrying |
 | Web search unavailable | Fall back to local-only research, reduce alternatives target to 3, warn in summary |
-| Context approaching limit | Checkpoint state, compress episodic memory (keep failure reasons + constraints, drop verbose logs). Re-read state file to resume. _(W4: Memory Decay)_ |
+| Context approaching limit | Checkpoint state, summarize completed iterations to one-line entries (keep failure reasons + constraints, discard verbose logs). Re-read state file to resume. _(W4: Memory Decay)_ |
 
 ## Edge Cases
 
@@ -367,9 +355,9 @@ Not a finding-based skill. Severity applies to issues discovered during executio
 | Objective already achieved | Run verification upfront. If passes, report OK immediately. |
 | Single-step objective | Skip plan decomposition. Execute directly with 5 alternatives. |
 | User changes red lines mid-run | Re-validate all completed steps against new lines. If violation found, backtrack to that step. |
-| Objective is vague | Ask user for a verification criterion. If they cannot define one, suggest measurable proxies. Example: "make it faster" → suggest `time npm run build` < 30s. |
+| Objective is vague | Ask user for a verification criterion. If they cannot define one, suggest measurable proxies. Example: "{vague_goal}" → suggest `{benchmark_command}` < {threshold}. |
 | All steps pass but final verification fails | Plan decomposition missed something. Enter Re-plan with constraint: "individual step success insufficient". |
 | Irreversible change in a step | Flag as `needs-approval`. In `--auto` without `--force-approve`, skip and note. |
 | No project documentation found | Ask user directly for all red lines. Proceed with user-stated constraints only. |
 | Budget override too small | Warn if budget < 1x1x2. Clamp to minimum. |
-| Contradictory red lines | Explain conflict (e.g., "Node 16 required" + "use pg@8.x which needs Node 18"), ask which takes priority. |
+| Contradictory red lines | Explain conflict (e.g., "{constraint_a}" + "{dependency} requires {conflicting_constraint}"), ask which takes priority. |

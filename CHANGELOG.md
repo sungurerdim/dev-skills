@@ -7,13 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ## [Unreleased]
 
 ### Added
-- 20 production-grade, tool-agnostic AI coding skills:
+- 22 production-grade, tool-agnostic AI coding skills:
   - **Audit:** ds-compliance (regulatory), ds-mobile (mobile apps), ds-devops (CI/CD & deps), ds-repo (repo health)
   - **Development:** ds-fix (format/lint/typecheck), ds-test (test lifecycle), ds-review (code quality & architecture), ds-docs (documentation), ds-blueprint (project health scoring)
   - **Design:** ds-backend (API + DB + auth), ds-deploy (infra + monitoring), ds-init (project scaffolding)
   - **Git workflow:** ds-commit (smart commits), ds-pr (pull requests)
   - **Research & Growth:** ds-research (multi-source with CRAAP+), ds-market (marketing strategy), ds-analytics (privacy-first analytics), ds-launch (store submission)
   - **Specialized:** ds-cv (ATS-proof CV generation), ds-tune (autonomous optimization loop)
+  - **Problem Solving:** ds-solve (adaptive multi-plan backtracking with web research)
   - **Frontend:** ds-frontend (design system audit, tokens, components, a11y, responsive, theming)
 - SKILL-SPEC.md — universal specification for tool-agnostic AI coding skills
 - Findings pipeline (`.ds-findings.md`) — single-file inter-skill communication standard

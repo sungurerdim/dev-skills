@@ -1,7 +1,7 @@
 # dev-skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/skills-21-blue)]()
+[![Skills](https://img.shields.io/badge/skills-22-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
@@ -47,6 +47,7 @@ dev-skills are multi-phase execution systems — with quality gates, error recov
 | [ds-market](ds-market) | Solo devs build great products but can't get noticed. Generates positioning, copy, and growth playbook. |
 | [ds-analytics](ds-analytics) | Most apps track everything (privacy risk) or nothing (blind). Designs minimum taxonomy, maximum insight. |
 | [ds-cv](ds-cv) | ATS rejects most CVs before a human sees them. Generates ones that pass. |
+| [ds-solve](ds-solve) | Complex problems resist single-pass fixes. Plans, tries alternatives, backtracks, re-plans until solved. |
 | [ds-tune](ds-tune) | Manual optimization: 8 experiments/day. This skill runs 100+ overnight, keeping only what improves. |
 
 Each skill is self-contained. No dependencies between them. Install one or all.
@@ -67,6 +68,7 @@ Start with `/ds-blueprint` — it scans your entire codebase and produces a `.ds
 For new projects: `/ds-init` → then the workflow above.
 For deployment: `/ds-deploy` → `/ds-launch`.
 For frontend: `/ds-frontend` → design system audit + fixes.
+For stuck/complex problems: `/ds-solve` — adaptive retry with web research.
 For audits: `/ds-compliance` or `/ds-mobile`.
 
 ## Why these are different
