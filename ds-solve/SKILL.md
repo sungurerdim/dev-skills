@@ -13,20 +13,20 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 ## Contract
 
-- Red lines are preserved throughout — checked before and after every attempt. Example: if "{runtime} {version} compatibility" is a red line, every alternative is validated against {runtime} {version} before advancing.
-- Red lines are auto-detected from project documentation, then confirmed by user. User can add unlimited additional red lines.
-- Every attempt is recorded in episodic memory — zero silent drops. Example: alternative #3 fails with "peer dep conflict" → recorded with failure reason + learned constraint, visible in summary.
+- **Autonomous by default.** The user states the problem — the skill handles everything else. User is only consulted for: (1) escalation (all plans exhausted), (2) irreversible actions (needs-approval). All other decisions are made independently.
+- Red lines are auto-detected from project documentation and applied automatically. Detected red lines are shown as output, not as a question. User can add more via `--red-line="{constraint}"` flag if needed.
+- Every attempt is recorded in episodic memory — zero silent drops.
 - Infinite loop protection: 3 plans x 3 research rounds x 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
-- Backtrack and re-plan decisions are automatic. User is only consulted on escalation (3 plans exhausted) or needs-approval items.
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every step receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
 | Flag | Effect |
 |------|--------|
-| (none) | Interactive: detect red lines, confirm with user, ask for objective, confirm plan |
-| `--auto` | Skip plan confirmation. Still escalates on exhaustion. |
+| (none) | Autonomous: auto-detect red lines, infer verification, plan and execute without asking |
+| `--red-line="{text}"` | Add explicit red line (repeatable). Combined with auto-detected ones. |
+| `--confirm` | Pause for user confirmation after Setup and Plan phases before executing |
 | `--resume` | Resume from `.ds-solve-state.json` progress artifact |
 | `--status` | Show current solve session status |
 | `--dry-run` | Plan + Research only, no execution |
@@ -42,18 +42,15 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs-Approval] → [Escalate] → Summary
 
-### Phase 1: Setup
+### Phase 1: Setup — Detect objective, red lines, and verification criterion
 
-**Goal:** Understand the objective, detect and confirm red lines.
+**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use as context.
 
-**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use as context for understanding project state and known issues.
+**IDU:** Profile → Type + Stack, Config.constraints, Current Scores. Findings() → verify + use. Absent → own analysis.
 
-**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-- **Type + Stack** → context for research queries
-- **Config.constraints** → automatic red lines (user confirms)
-- **Current Scores** → context for identifying weak dimensions related to objective
+1. **Parse objective.** Extract from user's invocation message. If the user wrote `/ds-solve {description}`, use `{description}` as the objective. Only ask if no objective is discernible from context.
 
-1. **Red line auto-detection.** Scan project documentation:
+2. **Red line auto-detection.** Scan project documentation silently and apply all detected constraints:
 
    | Source | What to extract |
    |--------|----------------|
@@ -66,65 +63,42 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
    | Existing test suite | "All existing tests must keep passing" |
    | Linter/formatter config | "Lint and format rules must be preserved" |
    | Blueprint `Config.constraints` | Infrastructure and project constraints |
+   | `--red-line` flags | User-specified explicit constraints |
 
-   Example — detected red lines:
-   ```
-   Red lines detected:
-   1. {runtime} >= {version} (from {manifest} engines)
-   2. {language} strict mode (from {config_file})
-   3. All {n} existing tests pass (from {test_config})
-   4. {linter} rules preserved (from {linter_config})
-   ```
+   Show detected red lines as output (not a question). Merge with any `--red-line` flags.
 
-2. **Red line confirmation.** Present detected red lines as a numbered list. Ask user to:
-   - Confirm or remove detected red lines
-   - Add any additional red lines (no limit)
-   - If nothing detected: explicitly ask for constraints
+3. **Verification criterion.** Determine autonomously from the objective:
+   - Objective mentions tests → `{test_command}` exits 0
+   - Objective mentions a service → service responds on expected port/endpoint
+   - Objective mentions a build → `{build_command}` succeeds
+   - Objective mentions a behavior → construct a validation command or script
+   - If no mechanical criterion can be inferred → use the most conservative proxy and state the assumption. Only ask the user if zero proxy is possible (`--confirm` mode: always ask).
 
-3. **Objective.** Ask: "What do you want to achieve?" Wait for answer.
+4. **Quick check.** Run verification criterion immediately. If already passes → report OK, skip to Summary.
 
-4. **Verification criterion.** Define how to prove the objective is met: a command that returns 0, a test that passes, a state check, or an observable condition. Confirm with user.
+5. **Initialize.** Create `.ds-solve-state.json` (schema in [references/backtrack-logic.md](references/backtrack-logic.md)) with objective, red lines, verification, and budget config.
 
-   Example — verification criteria:
-   ```
-   Objective: "{objective_description}"
-   Verification: `{test_command} && {validation_command}`
-   ```
+**Output:** Objective + red lines table + verification criterion (all as statements, not questions).
 
-5. **Quick check.** Run verification criterion immediately. If it already passes → report OK, skip to Summary.
+**Gate:** Objective parsed, red lines applied, verification criterion defined, state file created.
 
-6. **Initialize.** Create `.ds-solve-state.json` (schema in [references/backtrack-logic.md](references/backtrack-logic.md)) with objective, red lines, verification, and budget config. Parse `--budget` if provided, otherwise use `3x3x5`.
+### Phase 2: Plan — Decompose objective into ordered steps
 
-**Output:** Red lines table + objective + verification criterion.
-
-**Gate:** Objective stated, red lines confirmed, verification criterion defined, state file created.
-
-### Phase 2: Plan
-
-**Goal:** Decompose objective into ordered steps.
-
-1. Read relevant files. Understand current state relative to the objective. Verify each file exists before referencing — state "not verified" rather than assuming. _(W1: Hallucination prevention)_
-2. Decompose into 2-10 ordered steps. Each step has:
-   - **Description:** what this step achieves
-   - **Verification:** command or check that proves this step succeeded
-   - **Red line risk:** which red lines this step could potentially violate
+1. Read relevant files. Verify each file exists before referencing. _(W1)_
+2. Decompose into 2-10 ordered steps. Each step: **Description**, **Verification** (command/check), **Red line risk** (which red lines could be affected).
 3. Record plan to `.ds-solve-state.json` as `plan-N`.
-4. Present plan to user. (`--auto`: proceed without confirmation.)
+4. Show plan table and proceed immediately. (`--confirm`: pause for user approval before executing.)
 
-   Example — plan output:
    ```
    Plan 1: {plan_summary} ({N} steps)
    | # | Step | Verification | Red Line Risk |
    |---|------|-------------|---------------|
-   | 1 | {step_1_desc} | `{verify_cmd_1}` exits 0 | #{red_line_id} ({constraint}) |
-   | 2 | {step_2_desc} | {verify_condition_2} | #{red_line_id} ({constraint}) |
-   | 3 | {step_3_desc} | `{verify_cmd_3}` passes | #{red_line_id} ({constraint}) |
-   | 4 | {step_4_desc} | `{verify_cmd_4}` clean | — |
+   | 1 | {step_desc} | `{verify_cmd}` exits 0 | #{id} ({constraint}) |
    ```
 
-**Output:** Numbered step table with verification criteria.
+**Output:** Numbered step table.
 
-**Gate:** Plan confirmed. Every step has a verification criterion.
+**Gate:** Plan recorded. Every step has a verification criterion. Proceed to Research.
 
 ### Phase 3: Research
 
@@ -244,7 +218,7 @@ Next: Trying alternative 2...
 
 **Mandatory.** Always execute, always produce output — never skip regardless of mode or flags.
 
-**FRC accounting:** Every step from every plan appears with a disposition.
+FRC+DSC accounting.
 
 **Output:**
 
@@ -277,8 +251,6 @@ Red lines: {held}/{total} held | Budget: {used}/{max} attempts
 | `not-applicable` | Step rendered unnecessary by different plan approach |
 
 **Accounting gate:** `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total_steps`
-
-**Mandatory phase verification:** Confirm all mandatory phases (Setup, Plan, Research, Execute, Summary) produced visible output. _(W6: Skip Tendency prevention)_
 
 Status: `OK` (objective achieved), `WARN` (partial — some steps succeeded), `FAIL` (objective not achieved after exhaustion or abort).
 
@@ -318,12 +290,10 @@ Status: `OK` (objective achieved), `WARN` (partial — some steps succeeded), `F
 - Every step has a mechanical verification criterion (command exit code, test result, state check)
 - Episodic memory records every attempt — no silent retries. Example: 3 attempts for step 2 → all 3 visible in state file and summary.
 - Budget limits enforced: plan counter, research round counter, alternative counter
-- State file updated after every state change — survives interruption. Re-read state file after context gap before modifying. _(W4: Memory Decay)_
-- Previous plans' failures inform new plans — no duplicate approaches. Same file:step combination failing identically → merge, keep latest. _(W7: Redundancy Blindness)_
-- FRC accounting in summary — every step gets a disposition, equation must balance
-- Before using any dependency, API, or tool in an alternative → verify it exists via search or docs. State "not verified" rather than assuming. _(W1: Hallucination)_
-- Only modify files required by the current step — leave unrelated code untouched. _(W3: Scope Creep)_
-- Validate all external input before interpolating into shell commands. Quote paths, use `--` separators, reject metacharacters. _(W8: Injection Risk)_
+- State file updated after every state change — survives interruption.
+- Previous plans' failures inform new plans — no duplicate approaches.
+- FRC accounting in summary — every step gets a disposition, equation must balance.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Severity
 
@@ -355,9 +325,9 @@ Not a finding-based skill. Severity applies to issues discovered during executio
 | Objective already achieved | Run verification upfront. If passes, report OK immediately. |
 | Single-step objective | Skip plan decomposition. Execute directly with 5 alternatives. |
 | User changes red lines mid-run | Re-validate all completed steps against new lines. If violation found, backtrack to that step. |
-| Objective is vague | Ask user for a verification criterion. If they cannot define one, suggest measurable proxies. Example: "{vague_goal}" → suggest `{benchmark_command}` < {threshold}. |
+| Objective is vague | Infer the most conservative measurable proxy and state the assumption. Example: "{vague_goal}" → use `{benchmark_command}` < {threshold}. Only ask if zero proxy is possible. |
 | All steps pass but final verification fails | Plan decomposition missed something. Enter Re-plan with constraint: "individual step success insufficient". |
 | Irreversible change in a step | Flag as `needs-approval`. In `--auto` without `--force-approve`, skip and note. |
-| No project documentation found | Ask user directly for all red lines. Proceed with user-stated constraints only. |
+| No project documentation found | Proceed with zero auto-detected red lines + any `--red-line` flags. Apply universal defaults: "existing tests pass", "no new errors introduced". |
 | Budget override too small | Warn if budget < 1x1x2. Clamp to minimum. |
-| Contradictory red lines | Explain conflict (e.g., "{constraint_a}" + "{dependency} requires {conflicting_constraint}"), ask which takes priority. |
+| Contradictory red lines | Apply the more restrictive constraint. Log the conflict in episodic memory. If the restrictive choice blocks all alternatives → surface in Escalation report (not before). |

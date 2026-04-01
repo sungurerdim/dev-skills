@@ -15,7 +15,7 @@ AI models hallucinate sources, cite outdated data, and can't distinguish a blog 
 
 - Searches both local codebase files and web sources.
 - Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project context. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -50,9 +50,7 @@ Recovery check: if progress artifact exists from prior deep run, ask: Resume / S
 
 **Findings file check:** If `.ds-findings.md` exists, check for relevant findings that provide research context. Use project type and stack from findings metadata.
 
-**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Type + Stack** → context for technology-specific research queries
-   - **Config.constraints** → know project constraints affecting research scope
+**IDU:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis.
 
 Extract from arguments: concepts, tech domain, comparison mode, search mode (troubleshoot/changelog/security).
 
@@ -122,9 +120,7 @@ ds-research: {OK|WARN|FAIL} | Sources: N | CRAAP+ avg: {score} | Claims: N verif
 - Every claim cites at least one source with CRAAP+ score ≥50
 - Contradictory sources noted explicitly with confidence assessment
 - Only cite actually retrieved and verified sources and URLs
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

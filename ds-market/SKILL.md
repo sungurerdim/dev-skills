@@ -16,7 +16,7 @@ Solo developers build great products but can't get anyone to notice. This skill 
 - Strategic guidance skill — produces plans, copy, and checklists, not code
 - Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project type, audience, and stack to tailor marketing strategy. When absent, asks user for context.
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Every deliverable (strategy, copy, checklist) is accounted for in the summary — zero silent drops
 - **Minimal liability:** recommends established marketing patterns, no dark patterns
 - **Maximum privacy:** no invasive tracking recommendations, no manipulative UX
@@ -99,7 +99,7 @@ Full copy formulas, voice rules, anti-patterns, landing page structure, growth p
 | Referral | Referral program design, bilateral incentive, reward < 50% CAC |
 | Community | Reddit, Discord, Twitter, developer communities |
 | Content | 3-2-1 framework: 3 value, 2 engagement, 1 promo per week. Format ROI ranking: short-form video (highest, 2.5x engagement) > technical blogs (67% more leads) > code samples (direct activation) > infographics (high shareability) > documentation (credibility signal) |
-| Product Hunt | Multi-launch strategy compounds visibility (Supabase: 16 launches in 4 years, Cursor: 5x in 2025). Tactics: external hunter partnership (2-3 weeks pre-launch), 12:01 AM PT timing (first 4 hours = algorithm positioning), visual-first gallery (5-7 images: positioning→workflow→outcome), pre-written maker comment (<800 chars, personal + actionable), weekend launches better for dev tools. PH = 2.7M monthly visitors; optimize for conversion rate, not ranking |
+| Product Hunt | Multi-launch strategy compounds visibility ({product_a}: 16 launches in 4 years, {product_b}: 5x in 1 year). Tactics: external hunter partnership (2-3 weeks pre-launch), 12:01 AM PT timing (first 4 hours = algorithm positioning), visual-first gallery (5-7 images: positioning→workflow→outcome), pre-written maker comment (<800 chars, personal + actionable), weekend launches better for dev tools. PH = 2.7M monthly visitors; optimize for conversion rate, not ranking |
 | Directories | AlternativeTo, SaaSHub, BetaList, awesome-* GitHub lists, SetApp (Mac), G2/Capterra (B2B) |
 | Email | 14-day onboarding sequence, retention emails, churn prevention triggers |
 | Partnerships | Cross-promotion, integration partnerships |
@@ -113,9 +113,7 @@ Setup → Research → Generate → Review → [Needs-Approval] → Summary
 
 **Goal:** Understand the product and market.
 
-**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Config.audience** → know target audience for positioning and copy tone
-   - **Type + Stack** → context for marketing channel selection
+**IDU:** Profile → Config.audience, Type + Stack. Findings() → verify + use. Absent → own analysis.
 
 1. If flags provided, proceed directly
 2. If no flags, present interactive menu
@@ -215,9 +213,7 @@ Next steps:
 - Every tagline set includes at least 1 contrarian hook and 1 metric-proof option
 - Store descriptions open with pain/outcome, never feature list
 - Landing page structure includes proof layer (demo/metric) and philosophy section (beliefs)
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

@@ -16,7 +16,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 ## Contract
 
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Generates tests that follow the project's existing test patterns and conventions
 - Preserves existing passing tests — only overwrites with explicit confirmation
 - Always runs generated tests to verify they pass before declaring done
@@ -58,11 +58,7 @@ Setup → [Generate / Update / Run+Fix] → Verify → [Needs-Approval] → Summ
 ### Phase 1: Setup
 
 1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings with `testing` scope. Use them to prioritize which modules need tests (skip own coverage analysis for covered scopes). If no findings file or stale, run own full analysis.
-2. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Ideal Metrics.Coverage** → set coverage threshold target
-   - **Project Map.Toolchain** → skip test framework detection, use stated framework
-   - **Current Scores.Testing** → if low, prioritize coverage gaps over new features
-   - **Type + Stack** → skip own project detection
+2. **IDU:** Profile → {Ideal Metrics.Coverage, Project Map.Toolchain, Current Scores.Testing, Type + Stack}. Findings({testing}) → verify + use. Absent → own analysis.
 3. **Detect test framework** from project config and dependencies. See `references/frameworks.md` for the detection table.
 4. **Detect test conventions:**
    - Test directory: `test/`, `tests/`, `__tests__/`, `spec/`, `src/**/*.test.*`
@@ -260,11 +256,7 @@ When analyzing existing tests, flag tests that provide no concrete value:
 - No test should depend on execution order — each test must be independently runnable
 - Mocks must be minimal — only mock external dependencies (network, filesystem, time), not internal modules
 - Generated test matches project's existing style — no style drift
-- Every finding gets a disposition in the summary — zero silent drops (FRC)
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- After modifying {file}, verify no dependent file references a changed interface in a now-broken way. _(W2)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

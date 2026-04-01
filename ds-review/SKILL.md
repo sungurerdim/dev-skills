@@ -18,7 +18,7 @@ Three modes: `--tactical` for file-level quality fixes, `--strategic` for archit
 - Every fix cites file:line with before/after — no blind modifications
 - Only modifies lines required by the finding — no scope creep
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -87,12 +87,7 @@ Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] �
 ### Phase 1: Setup [SKIP if --auto]
 
 1. Pre-flight: check if git repo (optional, warn if not)
-2. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Config.priorities** → order scope execution by user priorities
-   - **Config.quality** → calibrate severity (prototype: skip LOW, enterprise: flag all)
-   - **Current Scores** → start analysis with lowest-scoring dimensions
-   - **Project Map.Toolchain** → know existing patterns, avoid incompatible suggestions
-   - **Type + Stack** → skip own project detection
+2. **IDU:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
 3. Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh
 4. **Mode selection.** If no `--tactical`/`--strategic`/`--perf` flag, ask the user:
    - **Tactical** — file-level fixes: security, hygiene, types, performance, privacy (9 scopes)
@@ -221,9 +216,7 @@ refactor complete (tactical)
 Fixed: {n} | Skipped: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
 ```
 
-**FRC accounting:** Every finding from the Analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
-
-**DSC verification:** Each scope reports how many checks were evaluated vs how many produced findings. Scopes with zero findings listed as clean.
+FRC+DSC accounting.
 
 **Strategic output:**
 ```
@@ -257,17 +250,6 @@ scope_score = max(0, base_score + sum(penalties))
 ```
 
 Cap: any CRITICAL -> max 40, 3+ HIGH -> max 60.
-
-## Severity Levels
-
-| Level | Criteria |
-|-------|----------|
-| CRITICAL | Security, data loss, crash |
-| HIGH | Broken functionality |
-| MEDIUM | Suboptimal but works |
-| LOW | Style only |
-
-When uncertain, choose lower severity.
 
 ## Error Recovery
 

@@ -16,7 +16,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no 
 - Only manages repository settings and structure — not code quality
 - Every recommendation cites specific setting or file
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -83,9 +83,7 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
 
 1. Verify `git` and `gh` CLI available and authenticated — `git` required, `gh` required for settings/protection scopes
 2. Detect repo info via GitHub API: name, default branch, visibility, description, topics, license, homepage, plan (free/pro/enterprise)
-3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Type + Stack** → suggest relevant topics for metadata scope
-   - **Config.constraints** → respect stated constraints for repo settings
+3. **IDU:** Profile → {Type + Stack, Config.constraints}. Findings({repo}) → verify + use. Absent → own analysis.
 4. **Mode selection.** If no flags provided, ask the user:
    - **Full Audit** — audit all scopes, report findings
    - **Audit & Fix** — audit all scopes, then apply fixes
@@ -179,9 +177,7 @@ Clean: settings (5/5 ✅), structure (2/2 ✅)
 3. Every finding gets a disposition in the summary — zero silent drops (FRC)
 4. Every scope check is evaluated and accounted for — zero silent omissions (DSC)
 5. Destructive changes (branch deletion, permission changes) require confirmation unless `--auto`
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

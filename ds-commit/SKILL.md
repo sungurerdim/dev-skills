@@ -16,7 +16,7 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 **The commit message describes what `git diff` shows — nothing else.** Not what you discussed in the session, not what you tried and reverted, not what you planned. Read the diff, describe the diff.
 
 - Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses toolchain info to skip detection. When absent, runs own complete detection with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -235,10 +235,7 @@ Commit count, file count, branch, commit hashes. Next step: push or create a pul
 - Commit message describes only what `git diff` shows — verified by re-reading diff
 - Every quality gate check (format, lint, secret scan) gets a disposition in the summary (FRC)
 - Conventional commit type matches the litmus test classification
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- After modifying {file}, verify no dependent file references a changed interface in a now-broken way. _(W2)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

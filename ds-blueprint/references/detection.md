@@ -2,6 +2,21 @@
 
 Two-step detection: identify stack from manifests, then determine project type from secondary signals.
 
+## Instruction Files
+
+AI instruction files where the Blueprint Profile is written. Check in order, use the first match:
+
+| File | Tool |
+|------|------|
+| `CLAUDE.md` | Claude Code |
+| `.cursorrules` | Cursor |
+| `.cursor/rules/*.md` | Cursor (rules directory) |
+| `.github/copilot-instructions.md` | GitHub Copilot |
+| `.windsurfrules` | Windsurf |
+| `.aider.conf.yml` | Aider |
+
+If none found: ask the user which tool they use, then create the appropriate file.
+
 ## Step 1: Stack Detection
 
 Scan project root for manifest files. Multiple may coexist.

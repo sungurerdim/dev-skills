@@ -20,7 +20,7 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 - The skill generates the optimization infrastructure (auto/ folder), then runs the loop
 - Fully standalone — zero dependency on other skills
 - Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses metric context. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -40,9 +40,7 @@ Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] �
 
 **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize.
 
-**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Ideal Metrics** → use as baseline target for optimization
-   - **Type + Stack** → context for experiment constraints
+**IDU:** Profile → Ideal Metrics, Type + Stack. Findings() → verify + use. Absent → own analysis.
 
 Ask the user ONE question:
 
@@ -296,9 +294,7 @@ ds-tune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {
 - Discarded experiments are fully reverted (git reset --hard) — zero residue
 - Results.tsv is append-only — complete experiment history preserved
 - Simplicity criterion: complexity must earn its keep with measurable improvement
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

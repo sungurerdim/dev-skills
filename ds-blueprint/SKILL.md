@@ -15,7 +15,7 @@ You can't improve what you don't measure. This skill scores your project across 
 ## Contract
 
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Scores project health across 9 dimensions — signal counting, not file:line finding lists
 - Only modifies the instruction file's blueprint profile section — never touches other content
 - Suggests next steps but does NOT invoke other skills or fix code directly
@@ -42,18 +42,7 @@ Profile embedded in the project's AI instruction file between `## Blueprint Prof
 3. Preserve all existing content (scores, config, project map, run history)
 4. Remove the old markers
 
-**Instruction file detection** — check in order, use the first match:
-
-| File | Tool |
-|------|------|
-| `CLAUDE.md` | Claude Code |
-| `.cursorrules` | Cursor |
-| `.cursor/rules/*.md` | Cursor (rules directory) |
-| `.github/copilot-instructions.md` | GitHub Copilot |
-| `.windsurfrules` | Windsurf |
-| `.aider.conf.yml` | Aider |
-
-If none found: create the most common one for the platform, or ask the user which tool they use.
+**Instruction file detection** — search for known AI instruction files (see [references/detection.md](references/detection.md) § Instruction Files for the full list). Use the first match. If none found: ask the user which tool they use, then create the appropriate file.
 
 **Profile format:**
 
@@ -376,12 +365,9 @@ In `--auto` mode: print as part of summary, no interaction.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
-Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
-- **--auto without --force-approve:** List items, skip them, note in summary
-- **--force-approve:** Apply all needs_approval items without asking
-- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+Present needs_approval items with risk context. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved.
 
 ### Phase 9: Summary
 
@@ -389,7 +375,7 @@ Items flagged `needs_approval` (cross-module changes, destructive actions, archi
 
 `blueprint: {OK|WARN|FAIL} | Health: {before}->{after}/{target} | Fixed: N | Skipped: N | Failed: N | Total: N | Score: {n}/100`
 
-**FRC accounting:** Every finding from the audit/analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
+FRC+DSC accounting.
 
 Status: OK (overall >= target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression).
 

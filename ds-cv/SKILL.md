@@ -19,7 +19,7 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 - All content is ATS-safe: zero non-ASCII characters in output, zero special HTML entities except `&amp;`.
 - Privacy by default: omit email, phone, address, birth date, and photo from public HTML.
 - Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project context for metric verification. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -41,9 +41,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 
 **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, check for relevant findings that may inform CV content (project metrics, quality scores).
 
-**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Type + Stack** → context for technical skills section
-   - **Project Map** → real project contributions for experience verification
+**IDU:** Profile → Type + Stack, Project Map. Findings() → verify + use. Absent → own analysis.
 
 1. **Identity:** Name (ask about middle name - PII consideration), title, LinkedIn URL, GitHub URL, location + timezone, email preference (omit from public HTML - spam risk).
 2. **Experience:** List all roles chronologically first, then detail each:
@@ -175,9 +173,7 @@ ds-cv: {OK|WARN|FAIL} | Sections: N | Metrics: N verified | ATS: {score} | Fixed
 - All company descriptors appear only on first mention
 - All non-technical roles have at least 1 bullet showing transferable impact
 - Experience timeframe claims match first professional role date
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

@@ -29,9 +29,9 @@ Every SKILL.md follows this section sequence:
 | 6 | Execution Flow | Yes | Phase overview (single line) |
 | 7 | Phases | Yes | Numbered phases with steps |
 | 8 | Report Format | If applicable | Output structure |
-| 9 | Quality Gates | Yes | Post-execution verification |
-| 10 | Error Recovery | Yes | How to handle failures and ambiguity |
-| 11 | Severity | If applicable | Finding classification |
+| 9 | Quality Gates | Yes | Compact W1-W8 one-liner + skill-specific gates only |
+| 10 | Error Recovery | Only if domain-specific | Standard recovery is baseline — omit if no additions |
+| 11 | Severity | Only if domain-specific | Standard 4 levels are baseline — omit if no additions |
 | 12 | Edge Cases | Yes | Boundary conditions and fallbacks |
 
 ### Phase Template
@@ -895,7 +895,7 @@ Recommended base error recovery pattern for skill authors to adapt:
 | Ambiguous input | List 2-3 interpretations, ask user to choose |
 | Same action fails twice | Stop retrying, report error, propose alternative |
 
-Skills should replace generic rows with domain-specific recovery actions. A skill that only has the 4 generic rows above should omit the Error Recovery section entirely — this behavior is implicit.
+Skills MUST replace generic rows with domain-specific recovery actions. A skill that only has the 4 generic rows above MUST omit the Error Recovery section entirely — standard recovery is baseline for all skills. Only write Error Recovery when the skill has domain-specific recovery actions beyond the standard 4.
 
 ---
 
@@ -935,8 +935,13 @@ Same meaning, fewer tokens. Apply these compression patterns without losing prec
 | Pattern | Before | After | Saving |
 |---------|--------|-------|--------|
 | Phase header + Goal merge | `### Phase N: {Name}\n\n**Goal:** {desc}` | `### Phase N: {Name} — {desc}` | ~40% |
-| IDU check inline | 6-8 lines of findings + blueprint check | 2-3 line `**IDU check.** {artifact} → {behavior}; ...` | ~60% |
-| Needs-Approval boilerplate | 6-8 lines per skill | 3 lines: modes on one line, gate on next | ~55% |
+| IDU check inline | 6-8 lines of findings + blueprint check | 1-2 line: `**IDU:** Profile → {fields}. Findings({scopes}) → verify + use. Absent → own analysis.` | ~70% |
+| Needs-Approval boilerplate | 6-8 lines per skill | 3 lines: header + modes on one line + gate | ~55% |
+| Quality Gates (W1-W8) | 6-10 line itemized list | Compact one-liner per weakness (see template) | ~55% |
+| Error Recovery (standard-only) | 6-8 line table with generic rows | Omit section — standard recovery is baseline | 100% |
+| Severity (standard-only) | 8-10 line table repeating 4 levels | Omit section — standard severity is baseline | 100% |
+| FRC+DSC in contract | 2 separate bullet items | Single: `FRC+DSC enforced.` | ~50% |
+| Summary phase body | 5-8 lines with FRC/DSC/format explanation | 2 lines: `FRC+DSC accounting.` + output format | ~65% |
 | Redundant prose removal | "The goal of this phase is to..." | Direct imperative: "Decompose into steps." | ~30% |
 | Single-row tables | `\| Col \|\n\|---\|\n\| Val \|` | Inline: `**Col:** Val` | ~60% |
 
@@ -1034,7 +1039,7 @@ Before releasing any skill, verify:
 - [Positive guarantee]: "Always [behavior]"
 - [Boundary]: "Only [scope] — [other skill] handles [excluded scope]"
 - [Independence]: "Fully functional standalone — zero dependency on other skills. When blueprint profile or .ds-findings.md exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality."
-- [FRC]: "Every finding receives a disposition in the summary — zero silent drops"
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -1073,52 +1078,27 @@ Phase1 → Phase2 → [Phase3] → Phase4 → Summary
 
 ### Phase N-1: Needs-Approval Review [needs_approval > 0]
 
-Items flagged `needs_approval` (cross-module changes, destructive actions, architectural decisions):
-- **--auto without --force-approve:** List items, skip them, note in summary
-- **--force-approve:** Apply all needs_approval items without asking
-- **Interactive:** Present needs_approval items with risk context. Ask: Apply All / Review Each / Skip All
+Present needs_approval items with risk context. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → `fixed`/`failed`, declined → `skipped`).
+**Gate:** All needs_approval items resolved.
 
 ### Phase N: Summary
 
-**Mandatory.** Always execute, always produce output — never skip regardless of mode or flags.
-
-**FRC accounting:** Every finding from audit phase appears with a disposition (see Finding Resolution Completeness).
-
-**DSC verification:** Every scope lists which checks passed, failed, or were N/A (see Deterministic Scope Checklist).
-
-Output format:
-```
-{skill}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
-```
+FRC+DSC accounting. Output: `{skill}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N`
 
 ## Quality Gates
 
-- Every finding cites file:line (not "Don't report without evidence")
-- Only modify lines required by the task (not "Don't touch unrelated code")
-- Every finding gets a disposition in the summary — zero silent drops (FRC)
-- Every scope check is evaluated and accounted for — zero silent omissions (DSC)
+W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- FRC+DSC enforced.
+{Add skill-specific gates here, if any.}
 
 ## Error Recovery
 
-| Situation | Action |
-|-----------|--------|
-| Required tool unavailable | Stop with clear error message |
-| Installable tool unavailable | Offer to install (show command), ask user. Accepted → install + re-run. Declined → skip scope. |
-| Optional tool unavailable | Skip with warning, continue with next phase |
-| Ambiguous input | List 2-3 interpretations, ask user to choose |
-| Same action fails twice | Stop retrying, report error, propose alternative |
-| Context limit approaching | Save progress to artifact, summarize state |
+_(Standard recovery is baseline for all skills. Omit this section if no domain-specific recovery. Write only domain-specific rows.)_
 
 ## Severity
 
-| Level | Meaning |
-|-------|---------|
-| CRITICAL | Description |
-| HIGH | Description |
-| MEDIUM | Description |
-| LOW | Description |
+_(Standard CRITICAL/HIGH/MEDIUM/LOW is baseline. Omit this section if no domain-specific definitions. Write only domain-specific severity.)_
 
 ## Edge Cases
 

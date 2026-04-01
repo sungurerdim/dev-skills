@@ -21,7 +21,7 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 - Reports counts, not verbose output
 - Does NOT perform manual code review, architecture analysis, or refactoring
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -49,9 +49,7 @@ Detection → [L10n] → [Format] → [Typecheck] → [Lint] → [Security] → 
 
 ### Phase 1: Stack Detection
 
-1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Project Map.Toolchain** → skip tool detection, use stated formatter/linter/typechecker directly
-   - **Type + Stack** → select correct toolchain from references
+1. **IDU:** Profile → Toolchain, Type+Stack. Absent → own detection.
 
 Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 
@@ -225,9 +223,9 @@ Output summary line:
 ds-fix: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**FRC accounting:** Every finding from the audit/analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
+FRC+DSC accounting.
 
-**Gate:** Summary table rendered with status per scope and totals. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+**Gate:** Summary table rendered with status per scope and totals.
 
 ## Quality Gates
 
@@ -236,10 +234,7 @@ ds-fix: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 - Only report findings in `--check` mode — verify diff is empty after check run
 - Secret findings are always CRITICAL — never auto-fix, always report
 - Scope boundary: only run scopes the user requested (or all if none specified)
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- After modifying {file}, verify no dependent file references a changed interface in a now-broken way. _(W2)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Severity
 

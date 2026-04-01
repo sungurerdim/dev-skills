@@ -21,7 +21,7 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 - **Minimal liability:** only generates standard, well-known config patterns — no custom security code
 - **Minimum dependencies:** scaffolded projects start with minimal deps, documented rationale for each
 - **Maximum automation:** CI, linting, formatting, testing configured from the start
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Minimize external dependencies — prefer stdlib and well-established minimal libraries.
 
 ## Arguments
@@ -68,9 +68,7 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 
 **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings for context on existing project state. If absent, proceed with fresh scaffolding.
 
-**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Type + Stack** → use as default project type suggestion
-   - **Project Map.Toolchain** → pre-configure detected tools in generated configs
+**IDU:** Profile → Type + Stack, Project Map.Toolchain. Findings() → verify + use. Absent → own analysis.
 
 1. If `--type` and `--stack` provided, proceed directly
 2. If working directory has existing files, scan for signals (package.json, pubspec.yaml, go.mod, Cargo.toml)
@@ -180,9 +178,7 @@ Next steps:
 - `.env.example` contains only placeholder values, never real secrets
 - CI workflow is a complete lint → test → build pipeline
 - Generated README includes setup and run instructions
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

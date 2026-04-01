@@ -15,7 +15,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 
 - Covers deployment, infrastructure hardening, monitoring, and incident response
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Generates configuration files and checklists — does NOT execute deployment commands
 - **Minimal liability:** generates configs for review, never auto-deploys to production
 - **Maximum performance:** optimizes Docker images, enables caching, configures health checks
@@ -85,11 +85,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 **Goal:** Determine mode and deployment context.
 
-1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Config.deploy** → skip deployment target detection, use stated method (Docker, VPS, PaaS)
-   - **Project Map.External** → know dependencies to configure (Redis, DB, queue, etc.)
-   - **Config.constraints** → respect stated infrastructure constraints
-   - **Type + Stack** → skip own project detection
+1. **IDU:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
 2. If flags provided, proceed directly
 3. If no flags, present interactive menu
 4. Detect deployment signals: Dockerfile, docker-compose.yml, Procfile, serverless.yml, fly.toml, vercel.json
@@ -201,10 +197,7 @@ ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | 
 - Monitoring setup includes PII redaction
 - SSL configuration targets A+ rating
 - Backup strategy includes verification and offsite storage
-- Every finding gets a disposition in the summary — zero silent drops (FRC)
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

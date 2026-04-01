@@ -15,7 +15,7 @@
 
 - Covers store account setup, listing metadata, review preparation, release management
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Generates checklists and metadata — does NOT submit to stores directly
 - **Minimal liability:** generates store-compliant metadata, flags common rejection reasons
 - **Maximum privacy:** privacy label generation with minimal data collection focus
@@ -115,11 +115,7 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 
 1. If flags provided, proceed directly
 2. If no flags, present interactive menu
-3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Config.audience** → know store requirements (public: full store listing)
-   - **Config.deploy** → know release pipeline and CI setup
-   - **Type** → select store-specific checklists (mobile vs desktop)
-   - **Stack** → know platform (Flutter/RN/Swift/Kotlin) for store-specific guidance
+3. **IDU:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
 4. Detect platform from project signals (pubspec.yaml → mobile, package.json → web, etc.)
 5. Detect current launch stage: pre-submission, in-review, post-launch
 
@@ -226,7 +222,7 @@ ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|All} | Ready: N/N checks 
 
 Include checklist of remaining items before submission.
 
-**FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+FRC+DSC accounting.
 
 **Gate:** Summary printed with submission readiness status.
 
@@ -238,9 +234,7 @@ Include checklist of remaining items before submission.
 - Version numbers are valid semver with incrementing build numbers
 - Release notes are user-friendly (not developer jargon)
 - Every finding gets a disposition in the summary — zero silent drops (FRC)
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

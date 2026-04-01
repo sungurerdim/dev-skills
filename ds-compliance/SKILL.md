@@ -21,7 +21,7 @@ Covers 80+ rules across 8 compliance domains.
 - Unverifiable rules are skipped, not guessed
 - Only audits compliance — code fixes are CAT-1 (auto) or CAT-2 (user approval)
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -50,13 +50,7 @@ Detect -> Configure -> Scan -> Report -> [Fix] -> [Needs-Approval] -> Summary
 
 ### Phase 1: Detect
 
-1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Config.regulations** → skip regulation detection, use stated frameworks (GDPR, KVKK, CCPA) directly
-   - **Config.data** → know data types to scan for (PII, credentials, sensitive data)
-   - **Config.audience** → public users: stricter compliance requirements
-   - **Type + Stack** → skip own project detection
-
-   **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching compliance scopes. Use verified findings to skip redundant analysis. If stale or absent, run own full analysis.
+1. **IDU:** Profile → Config.regulations, Config.data, Config.audience, Type+Stack. Findings(compliance scopes) → verify + use. Absent → own analysis.
 
 2. **Project detection.** Search for config files to identify project type:
    - **Web frontend:** `package.json` with react/next/vue/nuxt/angular/svelte/astro
@@ -169,7 +163,7 @@ Architecture: [detected summary]
 ds-compliance: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**FRC accounting:** Every finding from the audit/analyze phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
+FRC+DSC accounting.
 
 **Gate:** `fixed + failed + skipped + needs_approval + not_applicable = total`; every modified file re-read and verified.
 
@@ -179,9 +173,7 @@ ds-compliance: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 2. Format preservation (indentation, code style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (use correct framework APIs)
-5. Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-6. Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-7. After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

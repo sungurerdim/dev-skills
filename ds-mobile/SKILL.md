@@ -17,7 +17,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Only audits mobile app quality — does not modify non-mobile code
 - Platform-specific rules only apply to detected platforms
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -63,11 +63,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 3. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching mobile scopes. Use verified findings to skip redundant analysis. If stale or absent, run own full analysis.
 
-4. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Config.data** → know privacy requirements for store compliance checks
-   - **Config.deploy** → know build pipeline (CI platform, signing config)
-   - **Current Scores** → focus audit on lowest-scoring dimensions
-   - **Type + Stack** → skip own project detection
+4. **IDU:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
 
 4. **Mode selection.** Ask the user or use flags:
    - Audit Only (default) — scan all domains, report only
@@ -236,7 +232,7 @@ ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fi
 
 **Cleanup:** Delete `.ds-findings.md` after summary.
 
-**FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+FRC+DSC accounting.
 
 **Gate:** Fixed + failed + skipped + needs_approval + not_applicable = total findings; every modified file re-read and verified; `.ds-findings.md` deleted.
 
@@ -248,9 +244,7 @@ ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fi
 4. **Platform consistency** — fixes use correct platform API
 5. **Artifact-first recovery** — re-read files before and after editing
 6. **Every finding gets a disposition in the summary — zero silent drops (FRC)**
-7. Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-8. Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-9. After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

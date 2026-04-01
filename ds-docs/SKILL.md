@@ -14,7 +14,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 ## Contract
 
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Every generated sentence must earn its place — no filler, marketing language, or obvious statements
 - Only generates/modifies documentation files — never touches source code
 - Verifies claims against actual source code before writing
@@ -55,11 +55,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh.
 
-1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Config.audience** → tailor doc tone (public users: user-friendly, developers: technical)
-   - **Project Map** → know entry points, modules, and external deps to document
-   - **Type** → select ideal doc set per project type table
-   - **Config.priorities** → order doc generation by priority areas
+1. **IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis.
 2. **Mode selection.** If no flags provided, ask the user:
    - **Auto** — detect project type, analyze gaps, generate all missing docs
    - **Preview** — analyze gaps only, no generation
@@ -208,10 +204,7 @@ Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 - Every generated doc verified against source code — no claims without file:line evidence
 - Only modify documentation files — never touch source code
 - Generated docs match project's existing documentation style
-- Every finding gets a disposition in the summary — zero silent drops (FRC)
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

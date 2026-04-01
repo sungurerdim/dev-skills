@@ -18,7 +18,7 @@ PR descriptions that list every commit instead of the net change create noise, c
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
 - Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses toolchain info to skip detection. When absent, runs own complete detection with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 **Pipeline:** `PR title → squash merge on main → release-please reads title → changelog + version bump`. The PR title IS the changelog entry. The PR body becomes the squash commit body. Everything must be accurate and minimal.
 
@@ -40,9 +40,7 @@ Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Cre
 
 **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, note relevant findings for PR body context. If stale, ignore.
 
-**Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Project Map.Toolchain** → skip tool detection for quality gates, use stated formatter/linter
-   - **Type + Stack** → skip own project detection
+**IDU:** Profile → {Project Map.Toolchain, Type + Stack}. Findings({pr}) → verify + use. Absent → own analysis.
 
 **Steps 1-4 are independent — run in parallel:**
 
@@ -162,9 +160,7 @@ PR URL, title, type -> bump effect, auto-merge status.
 - PR description describes the net diff — not the journey of individual commits
 - Every quality gate check (format, lint, test) gets a disposition in the summary (FRC)
 - Conventional commit type on PR title matches the net diff classification
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

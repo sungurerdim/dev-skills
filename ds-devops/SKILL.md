@@ -16,7 +16,7 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 - Every finding cites file and line — never infer or assume
 - Only audits CI/CD, signing, dependencies, and release pipelines
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 
 ## Arguments
 
@@ -46,10 +46,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 ### Phase 1: Detect
 
-1. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Project Map.Toolchain** → skip CI detection, use stated CI platform and tools
-   - **Type + Stack** → select correct pipeline templates
-   - **Config.deploy** → know deployment context for pipeline design
+1. **IDU:** Profile → Project Map.Toolchain, Type+Stack, Config.deploy. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
 2. **Project type detection.** Search for config files:
 
 | Type | Detection |
@@ -160,10 +157,7 @@ ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 2. Format preservation (indentation, config style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (correct CI syntax, valid config)
-5. Every finding gets a disposition in the summary — zero silent drops (FRC)
-6. Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-7. Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-8. After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

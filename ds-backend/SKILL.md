@@ -15,7 +15,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 
 - Covers three scopes: API design, database design, and authentication
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams
 - Only suggests well-established patterns — no experimental or untested approaches
 - **Minimal liability:** auth recommendations prioritize managed services over DIY
@@ -87,11 +87,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 1. If flags provided, proceed directly
 2. If no flags, present interactive menu
-3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Project Map.Modules** → know API structure, skip architecture discovery
-   - **Config.data** → know auth and data protection requirements
-   - **Project Map.External** → know existing DB, cache, queue, auth providers
-   - **Type + Stack** → skip own project detection
+3. **IDU:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
 4. Detect project stack (framework, ORM, auth library) by scanning config files and dependencies
 5. Load relevant reference docs based on detected scope
 
@@ -180,7 +176,7 @@ ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Ski
 
 **Spec output:** Generated specification files with locations.
 
-**FRC accounting:** Every finding appears with a disposition. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+FRC+DSC accounting.
 
 **Gate:** Summary printed with all design artifacts listed.
 
@@ -192,10 +188,7 @@ ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Ski
 - OpenAPI spec validates against OpenAPI 3.0+ schema
 - Migration files include both `up` and `down` operations
 - Auth flows use current best practices (PKCE for public clients, not implicit flow)
-- Every finding gets a disposition in the summary — zero silent drops (FRC)
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 

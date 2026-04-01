@@ -17,7 +17,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 - Audits UI/UX design quality in code — stays clear of business logic and backend
 - Applies to all UI platforms: web (React/Vue/Svelte/Angular), mobile (Flutter/RN/SwiftUI/Compose), desktop (Electron/Tauri)
 - Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
-- Every finding receives a disposition in the summary — zero silent drops (FRC)
+- FRC+DSC enforced.
 - Only modifies UI-layer code (styles, components, tokens, ARIA) — business logic stays untouched
 
 ## Arguments
@@ -77,10 +77,7 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
 
 2. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching frontend scopes (tokens, components, states, a11y, responsive, theming). Use verified findings to skip redundant analysis. If stale or absent, run own full analysis.
 
-3. **Upstream check:** Search for `## Blueprint Profile` in known instruction files. If found:
-   - **Type + Stack** — skip own framework detection
-   - **Config.priorities** — order scope execution by priority
-   - **Current Scores** — focus audit on lowest-scoring dimensions
+3. **IDU:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 
 4. **Design system detection.** Search for existing token/theme sources:
    - CSS: custom properties (`:root { --color-*`), Tailwind config, CSS modules theme
@@ -210,9 +207,9 @@ Generate design system artifacts based on project analysis:
 ds-frontend: {OK|WARN|FAIL} | Mode: {audit|audit+fix|design} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**FRC accounting:** Every finding from scan phase appears with a disposition (fixed, failed, skipped, needs-approval, not-applicable). `fixed + failed + skipped + needs_approval + not_applicable = total`.
+FRC+DSC accounting.
 
-**Gate:** Summary rendered with FRC accounting verified. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+**Gate:** Summary rendered. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
 ## Quality Gates
 
@@ -221,9 +218,7 @@ ds-frontend: {OK|WARN|FAIL} | Mode: {audit|audit+fix|design} | Fixed: N | Skippe
 - Every finding gets a disposition in the summary — zero silent drops (FRC)
 - Every scope check is evaluated and accounted for — zero silent omissions (DSC)
 - After fix, re-read modified file to verify the fix worked
-- Verify every import, API, or dependency exists before using — state "not verified" rather than assuming. _(W1)_
-- Only modify files required by the current task — leave unrelated code untouched. _(W3)_
-- After context gap, re-read source files and progress artifacts before modifying. _(W4)_
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
 
