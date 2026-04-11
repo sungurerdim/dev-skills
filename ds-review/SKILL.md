@@ -120,7 +120,7 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity.
 
 Wait for all batches before proceeding.
 
-**Gate:** If findings = 0 -> skip to summary.
+**Gate:** If findings = 0 -> print "All {N} checks evaluated across {scopes}: 0 findings" confirmation line, then skip to summary. This distinguishes a clean result from a skipped analysis.
 
 **CRITICAL escalation:** If any CRITICAL finding detected, re-read the full file section (±20 lines around the finding) and verify it's a genuine CRITICAL issue — not a false positive from pattern matching. If evidence is insufficient, downgrade to HIGH. Only confirmed CRITICALs proceed to the fix plan.
 

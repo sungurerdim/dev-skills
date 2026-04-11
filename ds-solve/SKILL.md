@@ -76,7 +76,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 4. **Quick check.** Run verification criterion immediately. If already passes → report OK, skip to Summary.
 
-5. **Initialize.** Create `.ds-solve-state.json` (schema in [references/backtrack-logic.md](references/backtrack-logic.md)) with objective, red lines, verification, and budget config.
+5. **Initialize.** Create `.ds-solve-state.json` (schema in [references/backtrack-logic.md](references/backtrack-logic.md)) with objective, red lines, verification, and budget config. Verify `.ds-solve-state.json` is listed in `.gitignore` — if not, add it (state files should not be committed).
 
 **Output:** Objective + red lines table + verification criterion (all as statements, not questions).
 
@@ -108,7 +108,7 @@ For each step in the plan:
 
 1. **Local search first.** Scan codebase for existing patterns, utilities, prior solutions that address this step.
 2. **Web search.** 2 parallel search queries per step. Include current date in queries to avoid stale results. Target the step's technical domain + project stack.
-3. **Score alternatives.** Use CRAAP+ methodology from [../ds-research/references/craap.md](../ds-research/references/craap.md): Relevance to step, Currency, Authority. Discard score < 50.
+3. **Score alternatives.** Use CRAAP+ methodology from [references/craap-scoring.md](references/craap-scoring.md): Relevance to step, Currency, Authority. Discard score < 50.
 4. **Rank and select.** Top 5 alternatives per step. Record as `research-round-1`.
 
 Record all alternatives to state file.

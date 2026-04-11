@@ -95,6 +95,7 @@ Load reference files matching scope:
 | network | [rules-network.md](references/rules-network.md) |
 | arch | [rules-arch.md](references/rules-arch.md) |
 | perf | [rules-perf.md](references/rules-perf.md) |
+| a11y | [rules-a11y.md](references/rules-a11y.md) |
 | i18n | [rules-i18n.md](references/rules-i18n.md) |
 
 **Gate:** All reference files for in-scope domains loaded successfully; unloadable domains marked N/A.
@@ -141,6 +142,8 @@ Architecture: [detected summary]
 **Gate:** Report presented to user with all findings, severities, and summary table.
 
 ### Phase 6: Fix (skip if audit-only)
+
+**Overwrite prevention:** Before generating or modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if the target file already exists. If it does, do NOT overwrite — instead show a diff between the existing content and the proposed changes, and ask the user: "Update existing / Keep existing / Show diff". This prevents ds-compliance and ds-docs from overwriting each other's output.
 
 1. Present fix plan grouped by category (CAT-1 auto-fixable, CAT-2 pre-approved)
 2. Confirmation:

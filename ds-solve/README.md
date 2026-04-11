@@ -2,7 +2,7 @@
 
 Some problems resist single-pass fixes. Environment conflicts, integration failures, migration breakage — they need multiple attempts with different approaches. This skill plans, executes, researches alternatives on failure, backtracks, and re-plans until it solves the problem or exhausts its budget.
 
-Combines [Ralph Loop](https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum) persistence with [ds-tune](../ds-tune/) mechanical verification and web-research-driven alternative discovery. Backtrack logic and state schema documented in [references/backtrack-logic.md](references/backtrack-logic.md). Research scoring uses [CRAAP+ methodology](../ds-research/references/craap.md).
+Combines [Ralph Loop](https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum) persistence with [ds-tune](../ds-tune/) mechanical verification and web-research-driven alternative discovery. Backtrack logic and state schema documented in [references/backtrack-logic.md](references/backtrack-logic.md). Research scoring uses [CRAAP+ methodology](references/craap-scoring.md).
 
 ## Install
 

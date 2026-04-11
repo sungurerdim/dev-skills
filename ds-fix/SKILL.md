@@ -206,16 +206,16 @@ Look up the audit command from `references/toolchains.md`. If tool not installed
 Print a markdown table:
 
 ```
-| Scope     | Status | Details          |
-|-----------|--------|------------------|
-| L10n      | ✓/✗/⊘  | count or message |
-| Format    | ✓/✗/⊘  | files fixed      |
-| Typecheck | ✓/✗/⊘  | errors found     |
-| Lint      | ✓/✗/⊘  | issues found     |
-| Security  | ✓/✗/⊘  | findings         |
+| Scope     | Status   | Details          |
+|-----------|----------|------------------|
+| L10n      | ✓/✗/⊘/⚠ | count or message |
+| Format    | ✓/✗/⊘/⚠ | files fixed      |
+| Typecheck | ✓/✗/⊘/⚠ | errors found     |
+| Lint      | ✓/✗/⊘/⚠ | issues found     |
+| Security  | ✓/✗/⊘/⚠ | findings         |
 ```
 
-Legend: ✓ = pass, ✗ = issues found, ⊘ = skipped
+Legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped)
 
 Output summary line:
 

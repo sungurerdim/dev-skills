@@ -187,6 +187,8 @@ Present generated files for review before writing.
 ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | Findings: N | Generated: N | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
+If `--auto` was used, append to summary: `⚠ Generated without interactive review`.
+
 **Gate:** Summary printed with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
 
 ## Quality Gates

@@ -65,23 +65,23 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 4. **IDU:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
 
-4. **Mode selection.** Ask the user or use flags:
+5. **Mode selection.** Ask the user or use flags:
    - Audit Only (default) — scan all domains, report only
    - Audit & Fix — scan, review, then fix
    - Quick Fix — scan and auto-fix, minimal review
    - Release Ready — 100-point scoring with manual gates
    - Custom — pick specific domains and mode
 
-5. **Scope parsing.** Map selection to domains and mode. Default: `audit` mode, `all` domains.
+6. **Scope parsing.** Map selection to domains and mode. Default: `audit` mode, `all` domains.
 
-6. **Custom scope** (only if Custom selected): Ask for domains and mode.
+7. **Custom scope** (only if Custom selected): Ask for domains and mode.
 
-7. **Regulatory framework detection** (when scope includes security, regulatory, store, or all):
+8. **Regulatory framework detection** (when scope includes security, regulatory, store, or all):
    - Auto-detect by searching codebase for framework indicators (GDPR, KVKK, CCPA, LGPD, PIPL, etc.)
    - Confirm detected frameworks with user, or ask which apply
    - Rules tagged `[FRAMEWORK: X,Y]` only checked if at least one framework is active
 
-8. **Release-ready setup** (only if release-ready mode):
+9. **Release-ready setup** (only if release-ready mode):
    - Detect available platforms (android/ and ios/ directories)
    - If both available, ask which to audit
    - Set report directory: `{project_root}/.mobileaudit/`
@@ -230,11 +230,11 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Cleanup:** Delete `.ds-findings.md` after summary.
+**Cleanup:** Remove only mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `.ds-findings.md`. If the file becomes empty after removal (no findings from other scopes remain), delete the file entirely.
 
 FRC+DSC accounting.
 
-**Gate:** Fixed + failed + skipped + needs_approval + not_applicable = total findings; every modified file re-read and verified; `.ds-findings.md` deleted.
+**Gate:** Fixed + failed + skipped + needs_approval + not_applicable = total findings; every modified file re-read and verified; mobile-scoped findings removed from `.ds-findings.md`.
 
 ## Quality Gates
 

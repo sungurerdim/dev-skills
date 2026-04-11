@@ -143,7 +143,7 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 3. Generate TestFlight/Internal Testing setup steps
 
 **Listing metadata:**
-1. Generate app description template (short + long) with placeholder structure
+1. Generate final store-ready app description (short + long). If ds-market draft descriptions exist (files marked `[DRAFT — finalize with ds-launch --listing]`), use them as the starting point — refine, verify character limits, and produce the final versions. If no drafts exist, generate from scratch.
 2. Generate keyword research framework
 3. Generate screenshot size requirements per platform
 4. Generate localization checklist

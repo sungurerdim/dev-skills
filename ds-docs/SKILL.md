@@ -49,14 +49,19 @@ Without flags: present mode selection to the user.
 
 Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval] → Summary
 
-### Phase 1: Setup [SKIP if --auto]
+### Phase 0: Pre-flight [ALWAYS — never skip]
 
 **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings with `docs` scope. Use them to target specific documentation gaps (skip own gap analysis for covered areas). If no findings file or stale, run own full analysis.
 
+**IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis.
+
+**Gate:** IDU complete, findings loaded or own analysis planned.
+
+### Phase 1: Setup [SKIP if --auto]
+
 Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh.
 
-1. **IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis.
-2. **Mode selection.** If no flags provided, ask the user:
+1. **Mode selection.** If no flags provided, ask the user:
    - **Auto** — detect project type, analyze gaps, generate all missing docs
    - **Preview** — analyze gaps only, no generation
    - **Scoped** — pick specific scope(s): readme, api, dev, user, ops, changelog, refine, verify
@@ -167,6 +172,8 @@ Source mandate: every documented flag, endpoint, or config value MUST be verifie
 
 **Compliance scope templates (when scope = compliance):**
 
+**Overwrite prevention:** Before generating any compliance document, check if the target file already exists. If it does, do NOT overwrite — instead show a diff between the existing content and the proposed content, and ask the user: "Update existing / Keep existing / Show diff". This prevents ds-docs and ds-compliance from overwriting each other's output.
+
 Generate compliance documents by scanning codebase for data flows, third-party SDKs, privacy configurations, and API patterns. Use these template structures:
 
 1. **Privacy Policy** — Sections: Who we are, Data collected (table: data type / source / purpose), Data NOT collected, How data is used, Local storage, Server-side processing, Authentication, Third-party services (table: service / entity / data shared / purpose), Data retention (table: data type / retention period / deletion trigger), User rights (access, delete, export, revoke, portability), Children's privacy, International transfers, Security measures, Changes to policy, Contact
@@ -196,6 +203,10 @@ Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
 `docs: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
+
+If total findings = 0, include "All {N} scopes evaluated: 0 findings" confirmation line in the summary. This distinguishes a clean result from a skipped analysis.
+
+**Profile update:** If a blueprint profile exists in the instruction file, append a Run History entry: `- {YYYY-MM-DD}: ds-docs {mode} | Fixed: {n} | Skipped: {n} | Total: {n}`. This keeps the Documentation dimension score traceable after doc generation.
 
 **Gate:** Summary table rendered with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
 

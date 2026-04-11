@@ -1,6 +1,6 @@
 # Backtrack Logic
 
-Decision logic, state machine, and budget mathematics for [/ds-solve](../SKILL.md). Research scoring follows [CRAAP+ methodology](../../ds-research/references/craap.md). Revert mechanism inspired by [ds-tune](../../ds-tune/SKILL.md) git ratchet pattern.
+Decision logic, state machine, and budget mathematics for [/ds-solve](../SKILL.md). Research scoring follows [CRAAP+ methodology](craap-scoring.md). Revert mechanism inspired by [ds-tune](../../ds-tune/SKILL.md) git ratchet pattern.
 
 ## State Machine
 

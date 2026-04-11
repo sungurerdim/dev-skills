@@ -184,13 +184,15 @@ Ask the user two sets of questions:
 - Constraints? (Keep framework, Preserve public APIs, Minimize new dependencies, No restrictions)
 - Who uses this project? (Public users, Internal team, Other developers, Local/undecided)
 
+**Data fallback:** If PII/credential pattern scan finds nothing, explicitly ask: "Does this project process user data? (Yes — describe data types / No)". This ensures `Config.data` is never empty by inference alone — downstream skills (ds-compliance) depend on it for regulation detection.
+
 **--auto Mode Defaults:**
 
 | Question | Default |
 |----------|---------|
 | Project type | Auto-detected |
 | Quality | Production |
-| Data | Search for PII/credential patterns |
+| Data | Search for PII/credential patterns. If scan finds nothing, default to "No sensitive data" but add note: "PII scan negative — verify manually if project handles user data indirectly (e.g., via external APIs)" |
 | Priorities | Security + Code Quality |
 | Constraints | Keep framework/language |
 | Audience | Auto-detect (Dockerfile → container, CI → cloud, else local) |
@@ -297,9 +299,9 @@ Build from Discovery + Assess results:
    | {id} | {severity} | {file} | {line} | {scope} | {title} |
    ```
    Every finding must include file:line so fix skills can act on it directly.
-4. Verify completeness: every dimension must have its findings written. A missing scope in `.ds-findings.md` means fix skills will skip their own detection for that scope — resulting in missed issues.
+4. **Verify completeness:** Count the distinct scope values in `.ds-findings.md`. The expected count is 22 (security, privacy, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, performance, robustness, production-readiness, testing, functional-completeness, stack, dx, docs). If the count is less than 22, identify missing scopes and re-run assessment for those scopes before proceeding. A missing scope means fix skills will skip their own detection for that scope — resulting in missed issues.
 
-**Gate:** All 9 dimension scores calculated. Calibration checks passed. `.ds-findings.md` written with all scopes.
+**Gate:** All 9 dimension scores calculated. Calibration checks passed. `.ds-findings.md` written with all 22 scopes verified present.
 
 ### Phase 5: Dashboard
 

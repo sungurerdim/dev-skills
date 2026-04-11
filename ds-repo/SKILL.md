@@ -198,4 +198,4 @@ Clean: settings (5/5 ✅), structure (2/2 ✅)
 | Fork repository | Note fork status, skip protection (forked from upstream) |
 | Empty repository | Skip hygiene, minimal metadata check |
 | Free private plan | Mark protection and auto-merge checks as N/A with reason |
-| needs-input item in --auto mode | Skip with disposition `skipped (--auto, no user input)` |
+| needs-input item in --auto mode | Skip with disposition `⚠ SKIPPED (requires input)` — list all skipped needs-input items prominently in the summary section so they are not silently lost |

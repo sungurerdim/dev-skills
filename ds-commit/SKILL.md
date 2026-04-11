@@ -58,9 +58,16 @@ If `release-please-config.json` or `.release-please-manifest.json` exists in pro
 **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, check for relevant findings on changed files. Use as additional context for commit grouping.
 
 - Always: secret scan + large file check
+- Always: **repo completeness check** — detect untracked source files referenced by tracked code:
+  1. List untracked non-ignored files: `git ls-files --others --exclude-standard`
+  2. Filter to source files only (by stack extensions: `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.py`, `.dart`, `.rs`, `.rb`, `.php`, `.ex`, `.scala`, `.cs`, `.c`, `.cpp`, `.h`, `.swift`, `.vue`, `.svelte`). Exclude build output, lockfiles, generated files.
+  3. For each untracked source file, grep tracked files for import/require/include references to that filename (without extension): `git grep -l "<filename>"`. Also check relative path patterns (e.g., `../lib/utils`, `./utils`).
+  4. If any untracked file is referenced by tracked code → list them with their referencing files and ask: **"These files are used by your code but not tracked by git — CI will fail. Stage them?"** with options: Stage all (recommended) / Review each / Skip
+  5. If user approves → `git add` the files, include in the commit
+  6. If user skips → warn: "CI will likely fail due to missing files"
 - Code files: format + lint (no tests) on changed files only
   - Detect toolchain: first search for blueprint profile (`Toolchain:` line under `## Blueprint Profile` heading in instruction files). No blueprint → auto-detect from project files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile).
-  - Run formatter then linter with auto-fix. Skip silently if tool unavailable.
+  - Run formatter then linter with auto-fix. If tool unavailable → offer to install: show the install command (e.g., `pip install ruff`, `npm install -D eslint`), ask "Install and continue?" If user accepts → install, re-run scope. If user declines → skip scope and mark as `⚠ Skipped (tool unavailable, declined install): {scope}` in summary. For system-level tools (e.g., `go`, `rustfmt`) that require manual install → show install instructions, skip scope.
 - Docs/config only: skip code checks
 - If format/lint modified files: include those changes in the commit
 - On failure: ask "Fix first (recommended)" or "Commit anyway"
@@ -253,3 +260,6 @@ Commit count, file count, branch, commit hashes. Next step: push or create a pul
 | No changes detected | Report "nothing to commit", exit |
 | All changes are untracked | Ask user which files to include |
 | Merge conflict markers present | Warn user, do not commit until resolved |
+| Untracked file referenced by tracked code | Repo completeness gate catches it — ask user to stage |
+| Untracked file with no tracked references | Ignore — not a completeness issue, just an unstaged file |
+| Many untracked source files (>20) | Show count + top 5 referenced, ask "Stage referenced (N) / Review / Skip" |
