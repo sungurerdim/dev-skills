@@ -76,7 +76,7 @@ If tests fail -> stop. Only create PR when all tests pass.
 
 ### Phase 3: Analyze
 
-`git diff {base}...HEAD` is THE source of truth.
+`git diff {base}...HEAD` is THE source of truth. PR quality rules: [references/rules-pr.md](references/rules-pr.md).
 
 **Net diff principle:** The PR describes the final state difference, not the development journey.
 

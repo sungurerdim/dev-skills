@@ -54,8 +54,6 @@ const config = loadConfig({ strict: true });
 
 **Why:** Incorrect code examples waste developer time and erode trust. Auto-generated docs eliminate drift by construction.
 
-**Source:** SKILL-SPEC verify scope, documentation best practices
-
 ---
 
 ### DOC-03 | MEDIUM | Quick Start in 5 Commands or Fewer

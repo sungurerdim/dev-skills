@@ -4,7 +4,21 @@ Universal test skill — generate, update, run, and fix tests for any stack.
 
 ## Install
 
-See the [main README](../README.md#install) for install instructions per AI tool.
+```bash
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-test ~/.claude/skills/ds-test` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
+```
 
 ## Use
 
@@ -29,5 +43,5 @@ Node.js (Vitest/Jest/Playwright), Python (pytest/Playwright), Go, Rust, Flutter,
 - **Convention-first** — reads existing tests to learn your style, then generates matching tests
 - **Behavioral naming** — test names describe what the behavior is, not how it's implemented
 - **Smart classification** — distinguishes test bugs from app bugs, never weakens assertions
-- **Findings integration** — app bugs found during test runs written to `.ds-findings.md` for ds-review
+- **Findings integration** — app bugs found during test runs written to `.ds-findings.md` for downstream code review
 - **Run-fix loop** — runs, fixes, re-runs until green (max 3 iterations)

@@ -240,6 +240,7 @@ Commit count, file count, branch, commit hashes. Next step: push or create a pul
 ## Quality Gates
 
 - Commit message describes only what `git diff` shows — verified by re-reading diff
+- Commit quality rules applied from [references/rules-commit.md](references/rules-commit.md)
 - Every quality gate check (format, lint, secret scan) gets a disposition in the summary (FRC)
 - Conventional commit type matches the litmus test classification
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.

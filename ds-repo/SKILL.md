@@ -94,7 +94,7 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
 
 ### Phase 2: Audit
 
-Run every check in every selected scope. Each check produces exactly one outcome:
+Run every check in every selected scope following [references/rules-repo.md](references/rules-repo.md). Each check produces exactly one outcome:
 - **Finding** — issue detected (with severity)
 - **Pass (✅)** — check executed, no issue
 - **N/A** — check cannot apply (with reason, e.g., "private repo", "solo contributor", "free plan")

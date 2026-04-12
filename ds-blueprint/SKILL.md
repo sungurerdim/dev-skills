@@ -184,7 +184,7 @@ Ask the user two sets of questions:
 - Constraints? (Keep framework, Preserve public APIs, Minimize new dependencies, No restrictions)
 - Who uses this project? (Public users, Internal team, Other developers, Local/undecided)
 
-**Data fallback:** If PII/credential pattern scan finds nothing, explicitly ask: "Does this project process user data? (Yes — describe data types / No)". This ensures `Config.data` is never empty by inference alone — downstream skills (ds-compliance) depend on it for regulation detection.
+**Data fallback:** If PII/credential pattern scan finds nothing, explicitly ask: "Does this project process user data? (Yes — describe data types / No)". This ensures `Config.data` is never empty by inference alone.
 
 **--auto Mode Defaults:**
 

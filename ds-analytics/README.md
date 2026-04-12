@@ -4,7 +4,21 @@ Privacy-first analytics setup — event taxonomy design, funnel definition, metr
 
 ## Install
 
-See the [main README](../README.md#install) for install instructions per AI tool.
+```bash
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-analytics ~/.claude/skills/ds-analytics` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
+```
 
 ## Use
 

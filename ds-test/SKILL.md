@@ -162,7 +162,7 @@ When source code changed and tests need updating:
 | **Environment issue** (missing dep, config, database not running) | Report with setup instructions |
 | **Flaky test** (passes sometimes, fails others — timing, ordering) | Flag as flaky, suggest fix approach |
 
-4. Fix test-side issues automatically. For app bugs, write a finding to `.ds-findings.md` with scope `app-bugs` (not `testing` — the `testing` scope is used by ds-review/ds-blueprint for code quality findings about test coverage and test quality).
+4. Fix test-side issues automatically. For app bugs, write a finding to `.ds-findings.md` with scope `app-bugs` (not `testing` — the `testing` scope is reserved for code-quality findings about test coverage and test quality).
 5. Re-run to verify fixes. Max 3 fix-run iterations.
 
 **Critical rule:** If a test was passing before and now fails after source change, the SOURCE is likely wrong (regression), not the test. Keep assertions at full strength — fix the test logic or report the app bug.

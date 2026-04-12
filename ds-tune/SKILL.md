@@ -54,7 +54,7 @@ Wait for answer. Only proceed after receiving it.
 
 **Goal:** Map the user's goal to a measurable metric and identify the optimization target.
 
-Work autonomously — do not ask more questions.
+Work autonomously — do not ask more questions. Apply experiment design rules from [references/rules-optimization.md](references/rules-optimization.md).
 
 1. Read project root: README, package files, entry points, test files, benchmarks
 2. Understand project stack, structure, and purpose

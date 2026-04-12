@@ -107,7 +107,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 3: Analyze [--audit, --checklist]
 
-**Goal:** Identify infrastructure issues.
+**Goal:** Identify infrastructure issues. Apply rules from [references/rules-deployment.md](references/rules-deployment.md) (container security, deployment patterns) and [references/rules-monitoring.md](references/rules-monitoring.md) (observability, alerting).
 
 **Dockerfile audit:**
 1. Check base image (use specific tags, not `latest`)

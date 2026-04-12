@@ -4,7 +4,21 @@ Repository structure, settings, and team configuration — audit and setup. 6 sc
 
 ## Install
 
-See the [main README](../README.md#install) for install instructions per AI tool.
+```bash
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-repo ~/.claude/skills/ds-repo` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
+```
 
 ## Use
 
@@ -29,4 +43,3 @@ Run `/ds-repo`, or ask to audit your repo settings.
 | **Audit & Fix** | Scan and apply fixes |
 | **Scoped** | Pick specific areas to audit |
 
-CI/CD and dependency management are handled by `/ds-devops`.

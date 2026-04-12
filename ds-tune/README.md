@@ -7,7 +7,19 @@ Manual optimization means 8-10 experiments per day with no audit trail. This ski
 ## Install
 
 ```bash
-cp -r ds-tune ~/.claude/skills/ds-tune
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-tune ~/.claude/skills/ds-tune` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
 ```
 
 ## Use

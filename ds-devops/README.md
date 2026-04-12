@@ -6,7 +6,21 @@ Works with Flutter, Node.js, Python, Go, Rust, Java/Kotlin, and more.
 
 ## Install
 
-See the [main README](../README.md#install) for install instructions per AI tool.
+```bash
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-devops ~/.claude/skills/ds-devops` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
+```
 
 ## Use
 

@@ -75,7 +75,7 @@ Without flags: present interactive mode selection.
 | Tools | Privacy-respecting tool recommendations |
 | Compliance | GDPR consent, ATT (iOS), CCPA opt-out |
 
-Recommend analytics tool based on privacy requirements — see `references/tool-comparison.md`.
+Recommend analytics tool based on privacy requirements — see `references/tool-comparison.md`. Event taxonomy and privacy audit rules: [references/rules-analytics.md](references/rules-analytics.md).
 
 ## Execution Flow
 

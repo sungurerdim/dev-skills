@@ -67,7 +67,7 @@ Example: "Most AI coding skills are 50-line rule snippets. Here's what happens w
 
 **Formula 2 — Pain-First (PAS)** (highest conversion for landing pages):
 `"You've tried [common approach]. It [specific failure]. [Product] [specific fix]."`
-Example: "You've tried Word for your CV. ATS rejects it. ds-cv generates one that passes every tracking system."
+Example: "You've tried Word for your CV. ATS rejects it. A purpose-built generator produces one that passes every tracking system."
 
 **Formula 3 — Philosophy Statement** (strongest long-term positioning):
 `"We believe [sharp belief]. That's why [product] [specific design decision]."`
@@ -154,7 +154,7 @@ Setup → Research → Generate → Review → [Needs-Approval] → Summary
 
 **Copy mode:**
 1. Generate 5 tagline options using formulas from [references/copy-and-growth-playbook.md](references/copy-and-growth-playbook.md) (min 1 contrarian hook + 1 metric proof)
-2. Generate store descriptions (short + long) as **drafts** — first sentence must be pain-first or outcome-first, never feature-first. Output files are marked as `[DRAFT — finalize with ds-launch --listing]` in their header. ds-launch --listing produces the final store-ready versions.
+2. Generate store descriptions (short + long) as **drafts** — first sentence must be pain-first or outcome-first, never feature-first. Output files are marked as `[DRAFT]` in their header — a separate finalization pass produces the store-ready versions.
 3. Generate 5 social media posts per platform
 4. Generate landing page copy: hero + proof layer (demo video/GIF/metric) + philosophy (3-5 sharp beliefs) + features + social proof + CTA
 5. Generate press kit content

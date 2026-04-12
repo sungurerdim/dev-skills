@@ -7,7 +7,19 @@ Audits UI/UX design quality across 45 rules, enforces design tokens, generates d
 ## Install
 
 ```bash
-cp -r ds-frontend ~/.claude/skills/ds-frontend
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-frontend ~/.claude/skills/ds-frontend` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
 ```
 
 ## Use

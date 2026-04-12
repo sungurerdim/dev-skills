@@ -143,7 +143,7 @@ Architecture: [detected summary]
 
 ### Phase 6: Fix (skip if audit-only)
 
-**Overwrite prevention:** Before generating or modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if the target file already exists. If it does, do NOT overwrite — instead show a diff between the existing content and the proposed changes, and ask the user: "Update existing / Keep existing / Show diff". This prevents ds-compliance and ds-docs from overwriting each other's output.
+**Overwrite prevention:** Before generating or modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if the target file already exists. If it does, do NOT overwrite — instead show a diff between the existing content and the proposed changes, and ask the user: "Update existing / Keep existing / Show diff".
 
 1. Present fix plan grouped by category (CAT-1 auto-fixable, CAT-2 pre-approved)
 2. Confirmation:

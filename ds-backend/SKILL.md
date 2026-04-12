@@ -89,7 +89,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 2. If no flags, present interactive menu
 3. **IDU:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
 4. Detect project stack (framework, ORM, auth library) by scanning config files and dependencies
-5. Load relevant reference docs based on detected scope
+5. Load relevant reference docs based on detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md)
 
 **Gate:** Scope and mode confirmed.
 

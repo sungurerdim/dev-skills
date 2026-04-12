@@ -74,7 +74,7 @@ Recovery check: if progress artifact exists from prior run, ask: Resume / Start 
 
 ### Phase 2: Analysis
 
-Scan existing docs, detect project type, assess completeness:
+Scan existing docs, detect project type, assess completeness. Apply quality rules from [references/rules-writing.md](references/rules-writing.md):
 1. Search for doc files (README.md, CONTRIBUTING.md, docs/*, CHANGELOG.md, API.md, DEPLOY.md)
 2. For each found doc: read and assess completeness (0-100%)
 3. Detect project type from config files
@@ -172,7 +172,7 @@ Source mandate: every documented flag, endpoint, or config value MUST be verifie
 
 **Compliance scope templates (when scope = compliance):**
 
-**Overwrite prevention:** Before generating any compliance document, check if the target file already exists. If it does, do NOT overwrite — instead show a diff between the existing content and the proposed content, and ask the user: "Update existing / Keep existing / Show diff". This prevents ds-docs and ds-compliance from overwriting each other's output.
+**Overwrite prevention:** Before generating any compliance document, check if the target file already exists. If it does, do NOT overwrite — instead show a diff between the existing content and the proposed content, and ask the user: "Update existing / Keep existing / Show diff".
 
 Generate compliance documents by scanning codebase for data flows, third-party SDKs, privacy configurations, and API patterns. Use these template structures:
 

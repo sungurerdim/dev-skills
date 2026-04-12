@@ -90,7 +90,7 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 
 ### Phase 3: Generate Structure
 
-**Goal:** Create project files.
+**Goal:** Create project files following scaffolding rules in [references/rules-scaffold.md](references/rules-scaffold.md).
 
 1. Create directory structure for selected type
 2. Generate configuration files:
