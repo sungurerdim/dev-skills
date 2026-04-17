@@ -1,6 +1,6 @@
 # Review Scopes
 
-For concrete Detect/Fix patterns: architecture and testing scopes use `rules-quality.md`. Other scopes use structural analysis described in the Focus column.
+For concrete Detect/Fix patterns: architecture and testing scopes use `rules-quality.md`. Other scopes use structural analysis described in Focus column.
 
 Strategic, architecture-level analysis scopes. 8 scopes, 92 checks.
 
@@ -26,7 +26,7 @@ For review scopes without fixable findings (architecture, patterns), score refle
 - 30-49: Significant structural problems
 - 0-29: Fundamental architectural issues
 
-These ranges are guidelines, not formulas. Use judgment within the range based on finding severity and count.
+These ranges are guidelines, not formulas. Use judgment within range based on finding severity and count.
 
 For scopes with countable findings:
 

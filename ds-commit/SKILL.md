@@ -1,6 +1,6 @@
 # /ds-commit
 
-AI commits are vague ("update code"), bundle unrelated changes, and skip pre-commit checks. This skill reads the diff, groups changes logically, and writes precise conventional commit messages.
+AI commits are vague ("update code"), bundle unrelated changes, and skip pre-commit checks. Skill reads diff, groups changes logically, and writes precise conventional commit messages.
 
 **Smart Commits** — Quality gates + atomic grouping + conventional commit format.
 
@@ -13,9 +13,9 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 
 ## Contract
 
-**The commit message describes what `git diff` shows — nothing else.** Not what you discussed in the session, not what you tried and reverted, not what you planned. Read the diff, describe the diff.
+**Commit message describes what `git diff` shows — nothing else.** Not what you discussed in the session, not what you tried and reverted, not what you planned. Read diff, describe diff.
 
-- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses toolchain info to skip detection. When absent, runs own complete detection with identical quality.
+- Standalone. Uses blueprint profile for toolchain detection when available; own detection when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -46,48 +46,48 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 **1.2 Branch management:**
 
-**On main/master:** Suggest creating a feature branch. Show: 1 suggested name (`{type}/{short-description}`), option to commit on main.
-If `release-please-config.json` or `.release-please-manifest.json` exists in project root, add note to the commit-on-main option: "Not recommended — bypasses changelog pipeline".
+**On main/master:** Suggest creating feature branch. Show: 1 suggested name (`{type}/{short-description}`), option to commit on main.
+If `release-please-config.json` or `.release-please-manifest.json` exists in project root, add note to commit-on-main option: "Not recommended — bypasses changelog pipeline".
 
-**On feature branch:** If changes don't match branch scope, ask: continue here (recommended) or create new branch.
+**On feature branch:** Changes don't match branch scope → ask: continue here (recommended) or create new branch.
 
-**1.3 Conflict check:** `UU`/`AA`/`DD` in status -> stop.
+**1.3 Conflict check:** `UU`/`AA`/`DD` in status → stop.
 
 **1.4 Quality Gates (changed files only):**
 
-**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, check for relevant findings on changed files. Use as additional context for commit grouping.
+**Findings file check:** `.ds-findings.md` with fresh `git_hash` → check for relevant findings on changed files. Use as additional context for commit grouping.
 
 - Always: secret scan + large file check
 - Always: **repo completeness check** — detect untracked source files referenced by tracked code:
   1. List untracked non-ignored files: `git ls-files --others --exclude-standard`
   2. Filter to source files only (by stack extensions: `.ts`, `.tsx`, `.js`, `.jsx`, `.go`, `.py`, `.dart`, `.rs`, `.rb`, `.php`, `.ex`, `.scala`, `.cs`, `.c`, `.cpp`, `.h`, `.swift`, `.vue`, `.svelte`). Exclude build output, lockfiles, generated files.
-  3. For each untracked source file, grep tracked files for import/require/include references to that filename (without extension): `git grep -l "<filename>"`. Also check relative path patterns (e.g., `../lib/utils`, `./utils`).
-  4. If any untracked file is referenced by tracked code → list them with their referencing files and ask: **"These files are used by your code but not tracked by git — CI will fail. Stage them?"** with options: Stage all (recommended) / Review each / Skip
-  5. If user approves → `git add` the files, include in the commit
-  6. If user skips → warn: "CI will likely fail due to missing files"
+  3. Per untracked source file, grep tracked files for import/require/include references to that filename (without extension): `git grep -l "<filename>"`. Also check relative path patterns (e.g., `../lib/utils`, `./utils`).
+  4. Any untracked file referenced by tracked code → list them with referencing files and ask: **"These files are used by your code but not tracked by git — CI will fail. Stage them?"** with options: Stage all (recommended) / Review each / Skip
+  5. User approves → `git add` files, include in commit
+  6. User skips → warn: "CI will likely fail due to missing files"
 - Code files: format + lint (no tests) on changed files only
   - Detect toolchain: first search for blueprint profile (`Toolchain:` line under `## Blueprint Profile` heading in instruction files). No blueprint → auto-detect from project files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile).
-  - Run formatter then linter with auto-fix. If tool unavailable → offer to install: show the install command (e.g., `pip install ruff`, `npm install -D eslint`), ask "Install and continue?" If user accepts → install, re-run scope. If user declines → skip scope and mark as `⚠ Skipped (tool unavailable, declined install): {scope}` in summary. For system-level tools (e.g., `go`, `rustfmt`) that require manual install → show install instructions, skip scope.
+  - Run formatter then linter with auto-fix. Tool unavailable → offer to install: show install command (e.g., `pip install ruff`, `npm install -D eslint`), ask "Install and continue?" User accepts → install, re-run scope. User declines → skip scope and mark as `⚠ Skipped (tool unavailable, declined install): {scope}` in summary. System-level tools (e.g., `go`, `rustfmt`) requiring manual install → show install instructions, skip scope.
 - Docs/config only: skip code checks
-- If format/lint modified files: include those changes in the commit
+- Format/lint modified files: include those changes in the commit
 - On failure: ask "Fix first (recommended)" or "Commit anyway"
 
 **Gate:** No merge conflicts, quality gates passed or user chose to proceed.
 
 ### Phase 2: Analyze
 
-Run `git diff` (or `git diff --cached` for `--staged-only`). This is the **only input** for building the commit message.
+Run `git diff` (or `git diff --cached` for `--staged-only`). This is **only input** for building commit message.
 
 **Unpushed commit integration:**
 
 Check unpushed commits: `git log @{upstream}..HEAD` (no upstream → all local commits are unpushed).
 
-- If new changes touch the same file or scope as an unpushed commit, offer fixup:
+- New changes touch same file or scope as unpushed commit → offer fixup:
   - HEAD commit → `git commit --amend`
   - Older unpushed commit → `git commit --fixup={hash}` + `git rebase -i --autosquash`
 - Otherwise → new commit
 - Only fixup into unpushed commits — pushed commits are immutable
-- If rebase conflicts → abort, fall back to new commit, warn user
+- Rebase conflicts → abort, fall back to new commit, warn user
 
 **Smart grouping algorithm:**
 
@@ -103,8 +103,8 @@ Check unpushed commits: `git log @{upstream}..HEAD` (no upstream → all local c
 | Source code | `src` — further grouped by module/directory |
 
 2. **Group by logical change** — files that change together for one reason:
-   - A new feature: source files + its tests + its docs = one commit
-   - A dependency update: lockfile + config + migration = one commit
+   - New feature: source files + its tests + its docs = one commit
+   - Dependency update: lockfile + config + migration = one commit
    - Pure refactor: renamed/moved files = one commit
    - Unrelated fixes in different modules = separate commits
 
@@ -114,11 +114,11 @@ Check unpushed commits: `git log @{upstream}..HEAD` (no upstream → all local c
 |-----------|--------|
 | All files serve one logical purpose | Single commit |
 | `--single` flag | Force single commit |
-| Mixed categories with no logical link (e.g., a bug fix + unrelated docs update) | Split into separate commits |
+| Mixed categories with no logical link (e.g., bug fix + unrelated docs update) | Split into separate commits |
 | deps change + source code adaptation | Single commit (causally linked) |
-| Format/lint auto-fixes from quality gate | Include in the commit they belong to, not separate |
+| Format/lint auto-fixes from quality gate | Include in commit they belong to, not separate |
 
-4. **Commit ordering** (when splitting): `deps` → `config` → `src` → `test` → `docs` → `ci/infra`. Each commit must leave the project in a buildable state.
+4. **Commit ordering** (when splitting): `deps` → `config` → `src` → `test` → `docs` → `ci/infra`. Each commit must leave project in buildable state.
 
 5. **Display commit plan table:**
 
@@ -130,7 +130,7 @@ Check unpushed commits: `git log @{upstream}..HEAD` (no upstream → all local c
 | 3 | {type}   | {commit description}                | {n}   |
 ```
 
-If amending: show `(amend → {short-hash})` next to the entry.
+If amending: show `(amend → {short-hash})` next to entry.
 
 **Gate:** Commit plan table displayed with type, title, and file count per commit.
 
@@ -196,12 +196,12 @@ When uncertain → always prefer non-bumping type.
 
 | Include body when | Skip body when |
 |-------------------|---------------|
-| The "why" is not obvious from the title | Title fully explains the change |
+| The "why" is not obvious from title | Title fully explains change |
 | There are trade-offs or alternatives considered | Simple rename/move/delete |
-| Multiple files changed for a non-obvious reason | Single-file change |
+| Multiple files changed for non-obvious reason | Single-file change |
 | Breaking change needs migration guidance | Routine dependency update |
 
-Body format: 1-3 lines, separated from title by blank line. Explain **why**, not **what** (the diff shows what). Wrap at 72 chars.
+Body format: 1-3 lines, separated from title by blank line. Explain **why**, not **what** (diff shows what). Wrap at 72 chars.
 
 ```
 feat(search): add full-text search with PostgreSQL tsvector
@@ -211,7 +211,7 @@ on large datasets. Requires running migration 20240115_add_search_index.
 ```
 
 **Trailer and footers:**
-- Exactly one `Co-Authored-By:` line with the AI model name and provider email
+- Exactly one `Co-Authored-By:` line with AI model name and provider email
 - Breaking changes: `BREAKING CHANGE: description` footer (in addition to `!` in title)
 - References: `Closes #123`, `Fixes #456` when applicable
 
@@ -231,7 +231,7 @@ on large datasets. Requires running migration 20240115_add_search_index.
 
 ### Phase 6: Summary
 
-Commit count, file count, branch, commit hashes. Next step: push or create a pull request.
+Commit count, file count, branch, commit hashes. Next step: push or create pull request.
 
 `ds-commit: {OK|WARN|FAIL} | Commits: N | Files: N | Fixed: N | Skipped: N | Failed: N | Total: N`
 
@@ -241,8 +241,8 @@ Commit count, file count, branch, commit hashes. Next step: push or create a pul
 
 - Commit message describes only what `git diff` shows — verified by re-reading diff
 - Commit quality rules applied from [references/rules-commit.md](references/rules-commit.md)
-- Every quality gate check (format, lint, secret scan) gets a disposition in the summary (FRC)
-- Conventional commit type matches the litmus test classification
+- Every quality gate check (format, lint, secret scan) gets disposition in summary (FRC)
+- Conventional commit type matches litmus test classification
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery
@@ -252,7 +252,7 @@ Commit count, file count, branch, commit hashes. Next step: push or create a pul
 | Pre-commit hook fails | Show hook output, ask: fix and retry or skip hook (explain risk) |
 | Rebase conflict during fixup | Abort rebase, fall back to new commit, warn user |
 | Formatter/linter unavailable | Skip silently, proceed with commit |
-| Detached HEAD state | Stop, suggest creating a branch first |
+| Detached HEAD state | Stop, suggest creating branch first |
 
 ## Edge Cases
 
@@ -262,5 +262,5 @@ Commit count, file count, branch, commit hashes. Next step: push or create a pul
 | All changes are untracked | Ask user which files to include |
 | Merge conflict markers present | Warn user, do not commit until resolved |
 | Untracked file referenced by tracked code | Repo completeness gate catches it — ask user to stage |
-| Untracked file with no tracked references | Ignore — not a completeness issue, just an unstaged file |
+| Untracked file with no tracked references | Ignore — not completeness issue, just unstaged file |
 | Many untracked source files (>20) | Show count + top 5 referenced, ask "Stage referenced (N) / Review / Skip" |

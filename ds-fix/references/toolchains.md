@@ -2,8 +2,6 @@
 
 Per-stack toolchain lookup for ds-fix. Load only the section matching the detected stack.
 
----
-
 ## Flutter / Dart
 
 | Category | Tool | Fix Command | Check Command |
@@ -253,7 +251,7 @@ Per-stack toolchain lookup for ds-fix. Load only the section matching the detect
 **Manifest:** `build.sbt`
 **Config:** `.scalafmt.conf`, `.scalafix.conf`
 **Detection:** `build.sbt` → Scala/sbt project. `.scalafmt.conf` → scalafmt configured. `.scalafix.conf` → scalafix configured. `sbt-wartremover` in `project/plugins.sbt` → WartRemover enabled.
-**Note:** Scala builds can be slow. Run `sbt compile` first to warm the build cache, then lint tools run faster.
+**Note:** Scala builds can be slow. Run `sbt compile` first to warm build cache, then lint tools run faster.
 
 ---
 

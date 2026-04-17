@@ -98,7 +98,7 @@ volumes:
 # Minimum requirements: 4GB RAM, 2 CPU cores, 50GB storage
 ```
 
-**Note:** PostHog self-host is resource-intensive. For solo devs, the free cloud tier (1M events/mo) is often sufficient.
+**Note:** PostHog self-host is resource-intensive. For solo devs, free cloud tier (1M events/mo) is often sufficient.
 
 ### Plausible
 

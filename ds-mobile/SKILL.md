@@ -16,7 +16,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Every finding cites file path and line number — never fabricate
 - Only audits mobile app quality — does not modify non-mobile code
 - Platform-specific rules only apply to detected platforms
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -30,7 +30,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 | `--skip-manual` | Skip manual verification gates (release-ready mode) |
 | `--diff` | Compare with previous release readiness report |
 
-Without flags: present mode selection to the user.
+No flags → present mode selection.
 
 ## Modes
 
@@ -49,7 +49,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 ### Phase 1: Detect
 
-1. **Project detection.** Search for project files to identify platform:
+1. **Project detection.**
 
 | Platform | Detection |
 |----------|-----------|
@@ -59,18 +59,13 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 | Android Native | `build.gradle` with `android {}` block |
 | Cross-platform | Multiple platform indicators |
 
-2. **Platform confirmation.** If ambiguous, ask the user to confirm.
+2. **Platform confirmation.** Ambiguous → ask user.
 
-3. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching mobile scopes. Use verified findings to skip redundant analysis. If stale or absent, run own full analysis.
+3. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching mobile scopes. Use verified findings to skip redundant analysis. Stale or absent → run own full analysis.
 
 4. **IDU:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
 
-5. **Mode selection.** Ask the user or use flags:
-   - Audit Only (default) — scan all domains, report only
-   - Audit & Fix — scan, review, then fix
-   - Quick Fix — scan and auto-fix, minimal review
-   - Release Ready — 100-point scoring with manual gates
-   - Custom — pick specific domains and mode
+5. **Mode selection.** Ask user or use flags: Audit Only / Audit & Fix / Quick Fix / Release Ready / Custom.
 
 6. **Scope parsing.** Map selection to domains and mode. Default: `audit` mode, `all` domains.
 
@@ -94,21 +89,11 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 **When:** Scope includes 3+ domains or `all`.
 
-1. **Detect architecture:** pattern (Clean/MVVM/MVC), auth, state management, navigation, backend, offline capability, design system, testing, CI/CD, i18n, dependency injection.
-
-2. **Confirm with user.** Present detected architecture for corrections.
-
-3. **Classify rules:**
-   - **CAT-1 Conformance:** Universal best practice, existing pattern used incorrectly, bug, security flaw — auto-fixable
-   - **CAT-2 Enhancement:** New layer/structure not in current architecture — requires approval
-
-   A rule's category depends on the architecture. Example:
-   - User has Riverpod → unidirectional data flow violation is CAT-1
-   - User has no state management → adding it is CAT-2
-
-4. **Present ideal scenario.** Show CAT-1 (auto-fixable) and CAT-2 opportunities. Ask which enhancements to include (default: none).
-
-5. **Finalize scope:** All CAT-1 rules + only approved CAT-2 rules. This scope is fixed for the entire audit.
+1. **Detect architecture:** pattern (Clean/MVVM/MVC), auth, state management, navigation, backend, offline, design system, testing, CI/CD, i18n, DI.
+2. **Confirm with user.** Present for corrections.
+3. **Classify rules:** CAT-1 = universal best practice, existing pattern used incorrectly, bug, security flaw (auto-fixable). CAT-2 = new layer/structure not in current architecture (requires approval). Category depends on architecture — e.g., user has Riverpod → UDF violation is CAT-1; no state management → adding it is CAT-2.
+4. **Present ideal scenario.** Show CAT-1 and CAT-2 opportunities. Ask which enhancements to include (default: none).
+5. **Finalize scope:** All CAT-1 + only approved CAT-2. Scope is fixed for entire audit.
 
 **Critical rule:** CAT-2 fixes are NEVER applied without user approval.
 
@@ -130,33 +115,19 @@ Load only reference files matching scope:
 
 ### Phase 4: Scan
 
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (experience, engineering, compliance, release). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
+1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching scopes. Verify each (re-read file:line), skip verified; run full for uncovered.
 
-**Large scope (3+ domains):** Use progress tracking to survive context loss:
-2. Create numbered progress checklist with all domains in scope
-3. Append findings to `.ds-findings.md` in project root (add to .gitignore) — if file exists with fresh `git_hash`, preserve findings from other scopes
-4. After each domain scan, append findings to the file
-5. Maximum 2 parallel domain scans
+**Large scope (3+ domains):** Progress checklist + append findings to `.ds-findings.md` after each domain. Max 2 parallel scans.
 
-**Per domain:**
-1. Search for relevant files
-2. Search contents for violation patterns
-3. Read files to verify findings in context
-4. Skip rules that cannot be verified from client code
+**Per domain:** Search files → search for violations → read context to verify → skip unverifiable rules.
 
-**Confidence:** HIGH = specific pattern match + context verified, MEDIUM = pattern match, ambiguous context, LOW = heuristic only.
+**Confidence:** HIGH = pattern + context verified; MEDIUM = pattern, ambiguous context; LOW = heuristic.
 
-**False positive prevention:** Check surrounding context. Never flag: `// noqa`, `// intentional`, `// safe:`, `_` prefix, `TYPE_CHECKING` blocks, test fixtures.
+**False positive prevention:** Never flag `// noqa`, `// intentional`, `// safe:`, `_` prefix, `TYPE_CHECKING`, test fixtures.
 
-**Category assignment:**
-- CAT-1: Always report
-- CAT-2: Only report if in approved enhancements
+**Category assignment:** CAT-1: always report. CAT-2: only if in approved enhancements.
 
-**Recovery (if context lost mid-audit):**
-1. Resume from progress checklist — check completed domains first
-2. Read `.ds-findings.md` to restore completed findings
-3. Resume from first incomplete domain
-4. Never re-scan a completed domain
+**Recovery (context lost):** Progress checklist → read `.ds-findings.md` → resume from first incomplete domain. Never re-scan completed domains.
 
 **Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
 
@@ -182,7 +153,7 @@ Architecture: [summary]
 | Category | CRITICAL | HIGH | MEDIUM | LOW | Total |
 ```
 
-**Severity:** CRITICAL > HIGH > MEDIUM > LOW. When uncertain, choose lower.
+**Severity:** CRITICAL > HIGH > MEDIUM > LOW. Uncertain → choose lower.
 
 #### Release Readiness Report (release-ready mode)
 
@@ -205,16 +176,9 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 
-1. **Plan.** Read findings (from `.ds-findings.md` for large scopes). Apply severity filter. Group by file. Identify fix dependencies. Present grouped fix plan:
-   - CAT-1 Conformance (auto-fixable)
-   - CAT-2 Enhancement (pre-approved)
-
-2. **Confirmation** (mode-dependent):
-   - `quick-fix`: Show summary, proceed without per-item approval
-   - `audit+fix`: Show full plan, ask: Apply all / Review each / Cancel
-   - `release-ready`: Show auto-fixable vs guidance-required split
-
-3. **Execute.** Apply fixes grouped by file. Re-read each file before editing. Re-read after editing to verify. Record: applied, failed, skipped.
+1. **Plan.** Read findings, apply severity filter, group by file, identify dependencies. Present: CAT-1 (auto-fixable) and CAT-2 (pre-approved).
+2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask; `release-ready` → show auto-fixable vs guidance split.
+3. **Execute.** Apply grouped by file. Re-read before and after each edit. Record applied/failed/skipped.
 
 **Gate:** All standard fixes attempted; each recorded as applied, failed, or skipped.
 
@@ -230,7 +194,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Cleanup:** Remove only mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `.ds-findings.md`. If the file becomes empty after removal (no findings from other scopes remain), delete the file entirely.
+**Cleanup:** Remove only mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `.ds-findings.md`. If file becomes empty after removal (no findings from other scopes remain), delete file entirely.
 
 FRC+DSC accounting.
 
@@ -240,10 +204,10 @@ FRC+DSC accounting.
 
 1. **No cascading breakage** — after fixes, verify no broken imports/references
 2. **Format preservation** — fixes match existing indentation and code style
-3. **Scope boundary** — only touch lines the task requires
+3. **Scope boundary** — only touch lines task requires
 4. **Platform consistency** — fixes use correct platform API
 5. **Artifact-first recovery** — re-read files before and after editing
-6. **Every finding gets a disposition in the summary — zero silent drops (FRC)**
+6. **Every finding gets a disposition in summary — zero silent drops (FRC)**
 7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery

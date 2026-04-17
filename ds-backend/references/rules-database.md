@@ -34,7 +34,7 @@ db.query(`SELECT * FROM users WHERE name = '${name}'`)
 - **Ruby/Rails:** `User.where(id: user_id)` (ActiveRecord parameterizes automatically)
 - **PHP/Laravel:** `DB::select('SELECT * FROM users WHERE id = ?', [$userId])`, Eloquent ORM
 
-**Why:** SQL injection remains a top-3 web vulnerability (OWASP Top 10). A single unparameterized query can expose or destroy the entire database.
+**Why:** SQL injection remains top-3 web vulnerability (OWASP Top 10). Single unparameterized query can expose or destroy entire database.
 
 **Source:** [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html), database-design-guide.md Schema Design section
 
@@ -55,9 +55,9 @@ db.query(`SELECT * FROM users WHERE name = '${name}'`)
 | BRIN (PG) | Append-only time-series | 100-1000x smaller than B-tree |
 | Covering | Index-only scans | `INCLUDE (name, email)` avoids table lookups |
 
-Column order matters in composite indexes: leftmost prefix queries are served. Monitor unused indexes via `pg_stat_user_indexes` and remove them to reduce write overhead.
+Column order matters in composite indexes: leftmost prefix queries are served. Monitor unused indexes via `pg_stat_user_indexes` and remove to reduce write overhead.
 
-**Why:** Missing indexes are the most common cause of slow queries. A single index addition can reduce query time from seconds to milliseconds.
+**Why:** Missing indexes are most common cause of slow queries. Single index addition can reduce query time from seconds to milliseconds.
 
 **Source:** [Use The Index, Luke](https://use-the-index-luke.com/), database-design-guide.md Indexing section
 
@@ -65,14 +65,14 @@ Column order matters in composite indexes: leftmost prefix queries are served. M
 
 ### DB-03 Migration Safety [HIGH]
 
-**Detect:** Column drops, renames, or type changes deployed without a safety period. Migrations that acquire exclusive locks on large tables.
+**Detect:** Column drops, renames, or type changes deployed without safety period. Migrations that acquire exclusive locks on large tables.
 
-**Fix:** Use the expand-contract pattern for all destructive changes:
+**Fix:** Use expand-contract pattern for all destructive changes:
 
-1. **Expand:** Add new column/table alongside the old. Deploy code that writes to both.
+1. **Expand:** Add new column/table alongside old. Deploy code that writes to both.
 2. **Migrate data:** Backfill existing rows.
 3. **Switch reads:** Update application to read from new structure.
-4. **Contract:** Drop the old column/table after verification period.
+4. **Contract:** Drop old column/table after verification period.
 
 | Operation | Safe? | Notes |
 |-----------|-------|-------|
@@ -83,7 +83,7 @@ Column order matters in composite indexes: leftmost prefix queries are served. M
 | `CREATE INDEX` | Dangerous | Use `CONCURRENTLY` in PG |
 | `ADD NOT NULL` | Dangerous | Fails if NULLs exist; add CHECK first |
 
-Migrations are immutable once applied to a shared environment. Every `up` has a corresponding `down`. PG DDL is transactional; MySQL and SQLite are not.
+Migrations immutable once applied to shared environment. Every `up` has corresponding `down`. PG DDL is transactional; MySQL and SQLite are not.
 
 **Why:** Unsafe migrations cause downtime, data loss, or long-held table locks that block all queries.
 
@@ -93,9 +93,9 @@ Migrations are immutable once applied to a shared environment. Every `up` has a 
 
 ### DB-04 Connection Pooling [HIGH]
 
-**Detect:** Application creates a new database connection per request. Connection count approaches or exceeds `max_connections`. `pg_stat_activity` shows many idle connections.
+**Detect:** Application creates new database connection per request. Connection count approaches or exceeds `max_connections`. `pg_stat_activity` shows many idle connections.
 
-**Fix:** Use a bounded connection pool with appropriate min/max/idle settings.
+**Fix:** Use bounded connection pool with appropriate min/max/idle settings.
 
 | Setting | Solo/Dev | Production |
 |---------|----------|------------|
@@ -121,7 +121,7 @@ Pool size rule of thumb: `(2 * CPU cores) + 1` for NVMe storage. Keep total conn
 
 ### DB-05 Schema Naming [MEDIUM]
 
-**Detect:** Mixed naming conventions: camelCase and snake_case in the same schema, mixed singular/plural table names, inconsistent FK naming.
+**Detect:** Mixed naming conventions: camelCase and snake_case in same schema, mixed singular/plural table names, inconsistent FK naming.
 
 **Fix:** Adopt and enforce one convention project-wide:
 
@@ -146,7 +146,7 @@ Consistency matters more than which specific style is chosen.
 
 ### DB-06 N+1 Prevention [MEDIUM]
 
-**Detect:** Query logging shows 1 query for a list followed by N queries for related data (one per item). `pg_stat_statements` reveals high-frequency, low-cost queries with the same pattern.
+**Detect:** Query logging shows 1 query for list followed by N queries for related data (one per item). `pg_stat_statements` reveals high-frequency, low-cost queries with same pattern.
 
 **Fix:** Use eager loading, JOINs, or batch queries to fetch related data in one round trip.
 
@@ -162,7 +162,7 @@ Consistency matters more than which specific style is chosen.
 
 Detection tools: `django-debug-toolbar`, `bullet` (Ruby), `laravel-query-detector`, `sqlcommenter`.
 
-**Why:** N+1 queries turn a single page load into hundreds of database round trips, degrading response time linearly with data size.
+**Why:** N+1 queries turn single page load into hundreds of database round trips, degrading response time linearly with data size.
 
 **Source:** ORM documentation (Django, SQLAlchemy, ActiveRecord, JPA), database-design-guide.md ORM Patterns section
 
@@ -172,7 +172,7 @@ Detection tools: `django-debug-toolbar`, `bullet` (Ruby), `laravel-query-detecto
 
 **Detect:** Production database without automated backup configuration. Backups that have never been test-restored.
 
-**Fix:** Implement the 3-2-1 rule: **3** copies, **2** storage types, **1** offsite.
+**Fix:** Implement 3-2-1 rule: **3** copies, **2** storage types, **1** offsite.
 
 | Frequency | Method | Retention |
 |-----------|--------|-----------|
@@ -190,9 +190,9 @@ pg_dump -Fc --compress=zstd:3 -f "backup_$(date +%Y%m%d).dump" "$DATABASE_URL"
 litestream replicate mydb.sqlite s3://my-bucket/mydb
 ```
 
-Automate everything. Test restores monthly. Take a backup before any destructive migration.
+Automate everything. Test restores monthly. Take backup before any destructive migration.
 
-**Why:** Untested backups are equivalent to no backups. Data loss from hardware failure, migration errors, or accidental deletion requires proven restore procedures.
+**Why:** Untested backups = no backups. Data loss from hardware failure, migration errors, or accidental deletion requires proven restore procedures.
 
 **Source:** [AWS RDS backup docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html), [pg_dump best practices](https://www.postgresql.org/docs/current/app-pgdump.html), database-design-guide.md Backup and Recovery section
 
@@ -221,6 +221,6 @@ Automate everything. Test restores monthly. Take a backup before any destructive
 
 Migrate from SQLite to PostgreSQL when: frequent `SQLITE_BUSY`, file size > 10 GB, multi-server writes, or row-level security requirements.
 
-**Why:** Choosing the right database avoids premature complexity (over-engineering) or painful migrations later (under-engineering).
+**Why:** Choosing right database avoids premature complexity (over-engineering) or painful migrations later (under-engineering).
 
 **Source:** [DB-Engines comparison](https://db-engines.com/en/system/MySQL%3BPostgreSQL%3BSQLite), database-design-guide.md Database Selection section

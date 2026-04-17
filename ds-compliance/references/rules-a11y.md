@@ -62,11 +62,11 @@ Error messages must be programmatically associated with their form fields.
 - **Source:** WCAG 2.2 SC 3.3.1 Error Identification
 
 ### A11Y-06 [MAJOR] Heading Hierarchy
-Page headings must follow a logical hierarchy (no skipped levels).
+Page headings must follow logical hierarchy (no skipped levels).
 - **Detect:**
   - `<h1>` followed by `<h3>` (skipping `<h2>`)
   - Multiple `<h1>` elements per page
-  - No `<h1>` on the page
+  - No `<h1>` on page
 - **Fix:** Restructure headings to follow sequential hierarchy
 - **Source:** WCAG 2.2 SC 1.3.1 Info and Relationships
 

@@ -16,14 +16,14 @@ Only `&amp;` is safe (standard HTML encoding).
 Single-column layout with standard section headings.
 - **Detect:** Multi-column CSS (float, column-count), non-standard headings, images/SVG in content
 - **Fix:** Single column, standard headings (Professional Summary, Technical Skills, Experience, Education)
-- **Impact:** Multi-column causes ATS to read content out of order. Non-standard headings are not mapped.
+- **Impact:** Multi-column → ATS reads content out of order. Non-standard headings not mapped.
 - **Source:** Resume parsing best practices 2026
 
 ## METRIC-MATH [CRITICAL] Metric Verification
 
 Every quantified claim must be mathematically correct.
 - **Detect:** Cross-check: if "128h to 8h" then multiplier = 128/8 = 16x, not 9x
-- **Fix:** Recalculate. Confirm with user. Use the correct multiplier.
+- **Fix:** Recalculate. Confirm with user. Use correct multiplier.
 - **Impact:** Recruiter or interviewer checks math. Wrong math = credibility loss.
 - **Source:** Common CV error: users copy metrics without verifying math
 
@@ -37,17 +37,17 @@ Same metric must not appear identically in both summary and experience.
 
 ## ROLE-ATTRIB [CRITICAL] Achievement-Role Attribution
 
-Achievements must be attributed to the role where they actually happened.
+Achievements must be attributed to role where they actually happened.
 - **Detect:** Ask user "Which role did you do X in?" for every achievement
 - **Fix:** Move bullet to correct role entry
-- **Impact:** Misattribution is discoverable in interview ("Tell me about your Head of Optimization work")
+- **Impact:** Misattribution discoverable in interview ("Tell me about your Head of Optimization work")
 - **Source:** Common misattribution when users hold multiple roles at same company
 
 ## DATE-HONEST [HIGH] Date Honesty
 
 Combined role entries must use real departure dates.
 - **Detect:** Combined entry date range covers a resignation gap
-- **Fix:** If user resigned and returned, split into separate entries. End date = actual departure.
+- **Fix:** User resigned and returned → split into separate entries. End date = actual departure.
 - **Impact:** Discoverable in background check
 - **Source:** Common issue with combined role entries hiding resignation gaps
 
@@ -55,7 +55,7 @@ Combined role entries must use real departure dates.
 
 "since YYYY" must reference a professional role, not hobby/student era.
 - **Detect:** Check if claimed start year has a paid/professional role
-- **Fix:** If no professional role in YYYY, use "for over a decade" or count from first professional role
+- **Fix:** No professional role in YYYY → use "for over a decade" or count from first professional role
 - **Impact:** Recruiter checks timeline: if first role is 2014 but CV says "since 2008", credibility gap
 - **Source:** Common inflation when users count from hobby/student era
 
@@ -111,7 +111,7 @@ Family businesses should use generic descriptors.
 
 Content must fit single A4 page when printed.
 - **Detect:** Print preview shows content on 2nd page
-- **Fix:** Reduce print CSS spacing. If still overflows, evaluate: cut weakest role or expand to fill page 2 meaningfully.
+- **Fix:** Reduce print CSS spacing. Still overflows → evaluate: cut weakest role or expand to fill page 2 meaningfully.
 - **Impact:** 2-page CV with 3 orphan lines on page 2 looks unprofessional
 - **Source:** Common issue when CV content grows beyond single page
 
@@ -120,7 +120,7 @@ Content must fit single A4 page when printed.
 Management/leadership roles should show scope, not just IC work.
 - **Detect:** "Head of..." or "Director" role with only "Built X" bullets
 - **Fix:** Add ownership/scope bullet: "Owned end-to-end...", "Established...", "Founded..."
-- **Impact:** Appears as IC when role was leadership. Undervalues the position.
+- **Impact:** Appears as IC when role was leadership. Undervalues position.
 - **Source:** Common issue with management roles described using only IC verbs
 
 ## GPA-THRESH [LOW] GPA Below Threshold

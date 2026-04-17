@@ -64,7 +64,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 - **Go/Gin:** `ErrorHandler` middleware wrapping all errors into a `ProblemDetail` struct
 - **Java/Spring:** `@ControllerAdvice` with `ProblemDetail` (Spring 6+ has built-in support)
 
-**Impact:** Clients parse one format. Monitoring tools detect errors reliably. The `status` field in the body must match the HTTP status code.
+**Impact:** Clients parse one format. Monitoring tools detect errors reliably. `status` field in body must match HTTP status code.
 
 **Source:** [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html), api-architecture-patterns.md Section 6
 
@@ -92,9 +92,9 @@ Rules: Increment major version only for breaking changes. Support at least two m
 
 ### API-04 Request Validation [HIGH]
 
-**Detect:** Endpoints that accept request bodies or query parameters without schema validation at the API boundary.
+**Detect:** Endpoints that accept request bodies or query parameters without schema validation at API boundary.
 
-**Fix:** Add schema validation at the entry point of every endpoint. Reject malformed input with 422 and descriptive errors.
+**Fix:** Add schema validation at entry point of every endpoint. Reject malformed input with 422 and descriptive errors.
 
 **Multi-stack examples:**
 
@@ -105,7 +105,7 @@ Rules: Increment major version only for breaking changes. Support at least two m
 - **Ruby/Rails:** `strong_parameters` + custom validators
 - **PHP/Laravel:** `FormRequest` classes with validation rules
 
-**Impact:** Prevents invalid data from reaching business logic or the database. Reduces attack surface (injection, type confusion).
+**Impact:** Prevents invalid data from reaching business logic or database. Reduces attack surface (injection, type confusion).
 
 **Source:** [OWASP Input Validation Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html), api-architecture-patterns.md Section 8 (API4)
 
@@ -169,11 +169,11 @@ Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at 
 
 **Detect:** `POST` endpoints that create resources or trigger side effects without idempotency protection. Duplicate submissions create duplicate records.
 
-**Fix:** Accept an `Idempotency-Key: <uuid>` header on non-idempotent mutation endpoints. Store the key with the response; return the stored response on replay.
+**Fix:** Accept `Idempotency-Key: <uuid>` header on non-idempotent mutation endpoints. Store key with response; return stored response on replay.
 
 - `PUT` and `DELETE` are naturally idempotent by spec
 - `POST` requires explicit idempotency keys for safety (payments, order creation)
-- Store idempotency records with a TTL (24-48 hours)
+- Store idempotency records with TTL (24-48 hours)
 
 **Multi-stack examples:**
 
@@ -190,7 +190,7 @@ Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at 
 
 ### API-08 OpenAPI Specification [MEDIUM]
 
-**Detect:** API project without an `openapi.json` or `openapi.yaml` file. Endpoints undocumented in a machine-readable format.
+**Detect:** API project without `openapi.json` or `openapi.yaml`. Endpoints undocumented in machine-readable format.
 
 **Fix:** Generate from code annotations or write spec-first. Lint in CI.
 
@@ -229,7 +229,7 @@ Design-first (write YAML before code) produces cleaner contracts and enables fro
 }
 ```
 
-HATEOAS is optional for internal APIs but valuable for public APIs to reduce client coupling and enable API evolution without breaking changes.
+HATEOAS optional for internal APIs but valuable for public APIs to reduce client coupling and enable API evolution without breaking changes.
 
 **Impact:** Reduces client-side URL construction. Enables API evolution without breaking existing consumers.
 

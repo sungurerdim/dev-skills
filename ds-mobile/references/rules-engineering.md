@@ -199,7 +199,7 @@ Images on-demand as scrolled into view. Placeholder during load.
 Virtualized/recycled list rendering for long lists.
 - **Detect:** `ListView` without `.builder` (Flutter), `ScrollView` instead of `FlatList`/`FlashList` (RN), no `RecyclerView` (Android), `List` without lazy loading (SwiftUI). All items built at once
 - **Fix:** Flutter: `ListView.builder` / `SliverList`. RN: `FlashList` (Shopify). Android: `LazyColumn` (Compose) / `RecyclerView`. iOS: `LazyVStack` (SwiftUI). Only build visible items + buffer
-- **Impact:** 10K+ items without virtualization causes jank, OOM, and 60fps failure
+- **Impact:** 10K+ items without virtualization → jank, OOM, and 60fps failure
 - **Source:** Flutter ListView.builder, Android RecyclerView/LazyColumn, Shopify FlashList, Apple LazyVStack
 
 ### PRF-06 [CRITICAL] Memory Leak Prevention
@@ -210,14 +210,14 @@ All subscriptions, controllers, and observers properly disposed.
   - Android: `ViewModel` holding Activity/Fragment reference. `Flow.collect` in wrong lifecycle scope
   - RN: `useEffect` without cleanup function for subscriptions
 - **Fix:** Dispose all controllers in `dispose()`. Use `[weak self]` in closures. Collect flows in `repeatOnLifecycle`. Return cleanup from `useEffect`. Profile with platform memory tools
-- **Impact:** Memory leaks cause OS to kill the app, resulting in data loss and state corruption
+- **Impact:** Memory leaks → OS kills app → data loss and state corruption
 - **Source:** Flutter Memory Best Practices, Android Memory Management Guide, Apple Instruments Leaks, MASVS-RESILIENCE
 
 ### PRF-07 [HIGH] Battery Optimization
 No unnecessary background activity that drains battery.
 - **Detect:** Polling intervals < 15 minutes. GPS with `kCLLocationAccuracyBest` / `PRIORITY_HIGH_ACCURACY` always-on. Indefinite wake locks. Continuous sensor reads without user action. Background network requests without `BackgroundTasks` (iOS) / `WorkManager` (Android)
 - **Fix:** Use push notifications instead of polling. Significant location change monitoring instead of continuous GPS. Release wake locks promptly. Use platform background task APIs with constraints (charging, wifi). Batch network requests
-- **Impact:** Excessive battery drain is the #1 reason users uninstall apps
+- **Impact:** Excessive battery drain is #1 reason users uninstall apps
 - **Source:** Android Battery Optimization, iOS Energy Efficiency Guide
 
 ### PRF-08 [HIGH] Immutable / Static UI Component Optimization

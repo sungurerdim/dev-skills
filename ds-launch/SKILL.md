@@ -14,7 +14,7 @@
 ## Contract
 
 - Covers store account setup, listing metadata, review preparation, release management
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates checklists and metadata — does NOT submit to stores directly
 - **Minimal liability:** generates store-compliant metadata, flags common rejection reasons
@@ -34,22 +34,22 @@
 | `--post-launch` | Post-launch monitoring checklist |
 | `--auto` | All modes, no questions, single-line summary |
 
-Without flags: present interactive mode selection (setup, listing, aso, privacy, review, release, post-launch).
+No flags → present interactive mode selection (setup, listing, aso, privacy, review, release, post-launch).
 
 ## Scopes
 
 ### Store Setup Scope
 
-Verify store account setup is complete. Check: developer account active, app ID registered, signing configured.
+Verify store account setup complete. Check: developer account active, app ID registered, signing configured.
 
 ### Listing Scope
 
 | Element | What It Covers |
 |---------|---------------|
 | App name | Character limits, keyword inclusion, localization |
-| Description | Short/long description with pain-first opening sentence — see voice guide in [references/aso-2026-updates.md](references/aso-2026-updates.md). First line must state the problem solved or the outcome delivered — never open with a feature list. Benefit-driven highlights, not feature highlights |
+| Description | Short/long description with pain-first opening sentence — see voice guide in [references/aso-2026-updates.md](references/aso-2026-updates.md). First line must state problem solved or outcome delivered — never open with feature list. Benefit-driven highlights, not feature highlights |
 | Keywords | Keyword research, competitor analysis, localization |
-| Screenshots | First 3 screenshots decide the install — must follow problem → solution → delight narrative. Text overlay captions with benefit-driven copy (captions now index in Apple search as of June 2025). Platform-specific: do not reuse iOS screenshots on Play. Required sizes per device, layout guidance, A/B testing |
+| Screenshots | First 3 screenshots decide install — must follow problem → solution → delight narrative. Text overlay captions with benefit-driven copy (captions now index in Apple search as of June 2025). Platform-specific: do not reuse iOS screenshots on Play. Required sizes per device, layout guidance, A/B testing |
 | Video preview | Portrait video: +7% watch time, +5% conversion vs landscape (Google Play). 15-30 seconds, no audio dependency, demonstrate core value proposition |
 | Icon | Platform requirements, design guidelines |
 | Category | Primary/secondary category selection |
@@ -78,7 +78,7 @@ Verify store account setup is complete. Check: developer account active, app ID 
 
 ### Review Scope (Active Detection)
 
-Each check scans the codebase and produces PASS/FAIL with severity and file:line references — not a manual checklist.
+Each check scans codebase and produces PASS/FAIL with severity and file:line references — not a manual checklist.
 
 | Check | Detection Method | Severity |
 |-------|-----------------|----------|
@@ -111,42 +111,24 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 
 ### Phase 1: Setup
 
-**Goal:** Determine platform and launch stage.
-
-1. If flags provided, proceed directly
-2. If no flags, present interactive menu
-3. **IDU:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
-4. Detect platform from project signals (pubspec.yaml → mobile, package.json → web, etc.)
-5. Detect current launch stage: pre-submission, in-review, post-launch
+1. Flags provided → proceed directly; otherwise present interactive menu.
+2. **IDU:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
+3. Detect platform from project signals (pubspec.yaml → mobile, package.json → web, etc.)
+4. Detect current launch stage: pre-submission, in-review, post-launch.
 
 **Gate:** Platform and mode confirmed.
 
 ### Phase 2: Detect Current State
 
-**Goal:** Understand what's already prepared.
-
-1. Search for store-related configs (fastlane, metadata directories, screenshots)
-2. Check version information in project config files
-3. Search for existing privacy policy, terms of service
-4. Check for CI/CD release workflows
-5. Build inventory of what exists vs what's missing
+Search for store-related configs, version info, existing privacy policy/ToS, CI/CD release workflows. Build inventory of what exists vs. missing.
 
 **Gate:** Inventory complete.
 
 ### Phase 3: Generate [setup, listing, aso, privacy, review]
 
-**Goal:** Create store preparation artifacts.
+**Store setup:** Platform-specific account setup checklist, certificate/signing key guide, TestFlight/Internal Testing steps.
 
-**Store setup:**
-1. Generate platform-specific account setup checklist
-2. Generate certificate/signing key management guide
-3. Generate TestFlight/Internal Testing setup steps
-
-**Listing metadata:**
-1. Generate final store-ready app description (short + long). If draft descriptions marked `[DRAFT]` exist in the project, use them as the starting point — refine, verify character limits, and produce the final versions.
-2. Generate keyword research framework
-3. Generate screenshot size requirements per platform
-4. Generate localization checklist
+**Listing metadata:** Final store-ready app description (short + long; if `[DRAFT]` descriptions exist in project, refine them). Keyword research framework, screenshot size requirements, localization checklist.
 
 **Listing template structure:**
 - **Short description** (80 chars max) per supported language — per-locale keyword optimization, not literal translation
@@ -162,32 +144,25 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
   | {type} | Yes/No | Yes/No | {purpose} |
 
 - **Review notes** for store review teams: special permission justifications, demo account credentials (if needed), features requiring network, consumable vs subscription IAP model
-- **Screenshot narrative** (6 recommended screens covering the full user journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
+- **Screenshot narrative** (6 recommended screens covering full user journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
 
-**ASO mode:**
-1. Analyze competitor keywords, optimize title/subtitle for search ranking
-2. Recommend category placement based on competition density
-3. Suggest A/B test variants for title, screenshots, and icon
+**ASO mode:** Analyze competitor keywords, optimize title/subtitle, recommend category placement, suggest A/B variants.
 
-**Privacy labels:**
-1. Scan codebase for data collection patterns (analytics, auth, storage, networking)
-2. Map detected patterns to Apple/Google privacy label categories
-3. Generate privacy label declaration guide with your app's specific data types
-4. Flag discrepancies between code behavior and declared privacy labels
+**Privacy labels:** Scan codebase for data collection → map to Apple/Google categories → generate declaration guide → flag code/label discrepancies.
 
 **Review preparation (active scan — not just a checklist):**
 
-Scan the project for the top rejection triggers. Each check produces PASS/FAIL with file:line references.
+Scan project for top rejection triggers. Each check produces PASS/FAIL with file:line references.
 
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (store, review, privacy-labels, release). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
-2. **Privacy policy [CRITICAL]:** Search for privacy policy URL in project config, metadata files, and store listing drafts. Verify URL is accessible (HTTP 200). If missing → FAIL with "Missing privacy policy URL — will cause rejection."
+1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching scopes (store, review, privacy-labels, release). Each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
+2. **Privacy policy [CRITICAL]:** Search for privacy policy URL in project config, metadata files, and store listing drafts. Verify URL accessible (HTTP 200). Missing → FAIL with "Missing privacy policy URL — will cause rejection."
 3. **Metadata completeness [CRITICAL]:** Scan store metadata directories (fastlane/metadata, app store connect export, Play Console drafts). Flag: empty description, missing screenshots, placeholder text ("Lorem ipsum", "TODO", "Coming soon"). Guideline 2.1 (App Completeness) accounts for 40%+ of unresolved rejections.
-4. **Permission descriptions [HIGH]:** Scan `Info.plist` (iOS) for `NS*UsageDescription` keys, `AndroidManifest.xml` for permissions. Every permission must have a user-facing description. Missing → FAIL.
+4. **Permission descriptions [HIGH]:** Scan `Info.plist` (iOS) for `NS*UsageDescription` keys, `AndroidManifest.xml` for permissions. Every permission must have user-facing description. Missing → FAIL.
 5. **Privacy manifest & SDK compliance [HIGH]:** Scan for `PrivacyInfo.xcprivacy` (iOS). Verify all third-party SDKs have privacy manifests. Flag SDKs that track users without disclosure.
 6. **Platform cross-references [MEDIUM]:** Search store listing text for references to other platforms ("available on Android" in iOS listing, "App Store" in Play listing). Flag as rejection risk.
 7. **Crash-prone patterns [MEDIUM]:** Scan for force-unwraps (Swift `!`), unhandled exceptions at app entry, missing null checks on launch-critical paths. Flag as "Performance — crash on launch review risk."
-8. **AI data consent [HIGH — new 2025]:** If app uses external AI services, check for consent modal implementation. Apple requires provider name + data types disclosure before personal data sharing.
-9. **Age rating compliance [MEDIUM]:** Check if age rating questionnaire is complete. New 13+/16+/18+ tiers (July 2025). Deadline: January 31, 2026 for updated questionnaire.
+8. **AI data consent [HIGH — new 2025]:** App uses external AI services → check for consent modal implementation. Apple requires provider name + data types disclosure before personal data sharing.
+9. **Age rating compliance [MEDIUM]:** Check if age rating questionnaire complete. New 13+/16+/18+ tiers (July 2025). Deadline: January 31, 2026 for updated questionnaire.
 10. **Data deletion [HIGH]:** Search for account deletion UI flow. Both stores require in-app account deletion mechanism. Missing → FAIL.
 11. **SDK & build requirements [MEDIUM]:** Check minimum SDK version. Starting April 2026: all iOS submissions must use iOS 26 SDK.
 
@@ -195,16 +170,9 @@ Scan the project for the top rejection triggers. Each check produces PASS/FAIL w
 
 ### Phase 4: Release Management [release, post-launch]
 
-**Goal:** Manage version and release.
+**Version management:** Check current version, suggest bump (patch/minor/major), generate release notes from commits, generate staged rollout strategy.
 
-**Version management:**
-1. Check current version in project config
-2. Suggest version bump based on changes (patch/minor/major)
-3. Generate release notes from commit history since last release
-4. Generate staged rollout strategy (1% → 5% → 20% → 50% → 100%)
-
-**Post-launch monitoring:**
-Generate post-launch monitoring checklist: crash-free rate targets, store rating tracking, review response process, download monitoring, update cadence, and force-update threshold recommendations.
+**Post-launch monitoring:** Checklist covering crash-free rate targets, store rating tracking, review response, download monitoring, update cadence, force-update thresholds.
 
 **Gate:** Release artifacts generated.
 
@@ -233,7 +201,7 @@ FRC+DSC accounting.
 - Pre-review checklist has zero CRITICAL items
 - Version numbers are valid semver with incrementing build numbers
 - Release notes are user-friendly (not developer jargon)
-- Every finding gets a disposition in the summary — zero silent drops (FRC)
+- Every finding gets a disposition in summary — zero silent drops (FRC)
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery

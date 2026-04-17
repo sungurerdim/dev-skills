@@ -1,6 +1,6 @@
 # /ds-review
 
-Code review catches what tests miss — security holes, dead code, wrong abstractions, and performance traps hiding in plain sight. This skill scans for all of them with file:line precision.
+Code review catches what tests miss — security holes, dead code, wrong abstractions, and performance traps hiding in plain sight. Skill scans for all of them with file:line precision.
 
 **Code Improvement** — Tactical fixes and strategic architecture alignment in a single skill.
 
@@ -17,7 +17,7 @@ Three modes: `--tactical` for file-level quality fixes, `--strategic` for archit
 
 - Every fix cites file:line with before/after — no blind modifications
 - Only modifies lines required by the finding — no scope creep
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -33,7 +33,7 @@ Three modes: `--tactical` for file-level quality fixes, `--strategic` for archit
 | `--loop` | Re-run until clean or max 3 iterations (tactical only) |
 | `--force-approve` | Auto-apply needs_approval items without asking |
 
-Without flags: present mode selection to the user.
+Without flags: present mode selection to user.
 
 ## Scopes
 
@@ -65,7 +65,7 @@ Without flags: present mode selection to the user.
 
 ### Performance Scopes (--perf)
 
-Deep performance analysis beyond the tactical `performance` scope. Checks areas that require profiling-level analysis.
+Deep performance analysis beyond tactical `performance` scope. Checks areas requiring profiling-level analysis.
 
 | Group | Checks |
 |-------|--------|
@@ -89,7 +89,7 @@ Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] �
 1. Pre-flight: check if git repo (optional, warn if not)
 2. **IDU:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
 3. Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh
-4. **Mode selection.** If no `--tactical`/`--strategic`/`--perf` flag, ask the user:
+4. **Mode selection.** If no `--tactical`/`--strategic`/`--perf` flag, ask:
    - **Tactical** — file-level fixes: security, hygiene, types, performance, privacy (9 scopes)
    - **Strategic** — architecture-level: patterns, coupling, testing, production readiness (8 scopes)
    - **Performance** — deep profiling: bundle size, startup time, memory, caching, Core Web Vitals
@@ -100,19 +100,19 @@ Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] �
 
 ### Phase 2: Analyze
 
-**Findings file check:** If `.ds-findings.md` exists and its `git_hash` matches current HEAD, filter findings by the active scopes. For each matching finding:
-1. Read the file:line and surrounding context (±10 lines)
-2. Verify the finding is still valid (code may have changed since analysis)
+**Findings file check:** If `.ds-findings.md` exists and its `git_hash` matches current HEAD, filter findings by active scopes. Per matching finding:
+1. Read file:line and surrounding context (±10 lines)
+2. Verify finding is still valid (code may have changed since analysis)
 3. If confirmed → add to fix list. If false positive or already resolved → discard silently.
 4. After verification, proceed to fix confirmed findings.
 
-Skip own analysis for scopes covered by the findings file. For scopes NOT in the findings file, run own analysis below.
+Skip own analysis for scopes covered by findings file. For scopes NOT in findings file, run own analysis below.
 
-**If no findings file or stale:** Analyze the codebase in batches of 2 scope groups. Each batch receives scope definitions from the appropriate references file.
+**If no findings file or stale:** Analyze codebase in batches of 2 scope groups. Each batch receives scope definitions from appropriate references file.
 
 **Tactical analysis** prompts focus on: grep for patterns, read context (50 lines), score findings by severity. For repository hygiene (committed binaries, secrets): verify files are git-tracked via `git ls-files`.
 
-**Strategic analysis** prompts focus on: evaluate patterns across the codebase, flag structural issues even if not auto-fixable, question consistency not just correctness.
+**Strategic analysis** prompts focus on: evaluate patterns across codebase, flag structural issues even if not auto-fixable, question consistency not just correctness.
 
 Cross-scope dedup: merge findings at same file:line, keep highest severity.
 
@@ -122,7 +122,7 @@ Wait for all batches before proceeding.
 
 **Gate:** If findings = 0 -> print "All {N} checks evaluated across {scopes}: 0 findings" confirmation line, then skip to summary. This distinguishes a clean result from a skipped analysis.
 
-**CRITICAL escalation:** If any CRITICAL finding detected, re-read the full file section (±20 lines around the finding) and verify it's a genuine CRITICAL issue — not a false positive from pattern matching. If evidence is insufficient, downgrade to HIGH. Only confirmed CRITICALs proceed to the fix plan.
+**CRITICAL escalation:** If any CRITICAL finding detected, re-read full file section (±20 lines around finding) and verify it's genuine CRITICAL — not false positive from pattern matching. If evidence is insufficient, downgrade to HIGH. Only confirmed CRITICALs proceed to fix plan.
 
 ### Phase 3: Gap Analysis (strategic only)
 
@@ -145,7 +145,7 @@ Categorize recommendations by effort/impact: Quick Win -> Moderate -> Complex ->
 
 ### Phase 4: Plan Review (skip if --auto)
 
-Present findings table (ID, severity, title, file:line). Ask the user:
+Print findings table (ID, severity, title, file:line). Ask:
 
 - **Fix All** (recommended) — apply all fixable findings
 - **By Severity** — choose which severities to fix
@@ -167,11 +167,11 @@ After all fixes: run available lint/type/test checks. If fixes introduce new err
 
 **Loop mode (`--loop`):** After applying fixes:
 1. Re-read all modified files + their direct dependents (importers, callers)
-2. Re-analyze for new findings caused by the fixes (cascade breakage)
-3. If new findings found, apply fixes for the new findings
+2. Re-analyze for new findings caused by fixes (cascade breakage)
+3. If new findings found, apply fixes for new findings
 4. Max 3 iterations. If still finding issues after 3 loops, report remaining and stop.
 
-For each fix, include education: why (impact if unfixed), avoid (anti-pattern), prefer (correct pattern).
+Per fix, include education: why (impact if unfixed), avoid (anti-pattern), prefer (correct pattern).
 
 **Gate:** All approved fixes applied and lint/type/test checks pass (or max 3 fix-verify iterations exhausted).
 
@@ -186,7 +186,7 @@ Items flagged `needs_approval` (cross-module changes, architectural decisions):
 
 ### Phase 5b: CRITICAL Escalation
 
-If any CRITICAL finding is detected: flag for manual review before auto-fixing. In interactive mode, show the finding with full context and ask for explicit confirmation. CRITICAL findings should be verified with extra scrutiny — re-read the file section and surrounding context.
+If any CRITICAL finding detected: flag for manual review before auto-fixing. In interactive mode, show finding with full context and ask for explicit confirmation. CRITICAL findings should be verified with extra scrutiny — re-read file section and surrounding context.
 
 **Gate:** Every CRITICAL finding explicitly confirmed or downgraded before fix.
 

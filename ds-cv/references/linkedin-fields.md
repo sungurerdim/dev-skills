@@ -37,7 +37,7 @@ Each role has these editable fields:
 
 Same-company roles: LinkedIn auto-groups under one company header with total duration.
 
-**Date overlap fix:** LinkedIn counts both start and end months inclusively. If Role A ends March and Role B starts March, LinkedIn double-counts March in total duration. Fix: set Role A end date to one month earlier (February) so months don't overlap.
+**Date overlap fix:** LinkedIn counts both start and end months inclusively. Role A ends March + Role B starts March → LinkedIn double-counts March. Fix: set Role A end date one month earlier (February).
 
 ## EDU-FIELDS [INFO] Education Form Fields
 

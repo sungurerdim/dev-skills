@@ -1,6 +1,6 @@
 # /ds-solve
 
-Problems that resist single-pass fixes — environment conflicts, integration failures, migration breakage — need adaptive iteration: plan, try, research, backtrack, re-plan. This skill exhausts every viable path before giving up.
+Problems that resist single-pass fixes — environment conflicts, integration failures, migration breakage — need adaptive iteration: plan, try, research, backtrack, re-plan. Skill exhausts every viable path before giving up.
 
 **Adaptive Problem Solver** — Plan, execute, research alternatives, backtrack on failure, re-plan from scratch. Combines [Ralph Loop](https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum) persistence, mechanical verification via metric-driven iteration, and research-driven alternative discovery. Architecture informed by [CodeTree](https://arxiv.org/abs/2411.04329) (tree search with specialized agents), [BacktrackAgent](https://aclanthology.org/2025.emnlp-main.212/) (error detection + rollback), [Reflexion](https://arxiv.org/abs/2303.11366) (episodic memory), and [EnCompass](https://news.mit.edu/2026/helping-ai-agents-search-to-get-best-results-from-llms-0205) (branchpoint search).
 
@@ -13,11 +13,11 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 ## Contract
 
-- **Autonomous by default.** The user states the problem — the skill handles everything else. User is only consulted for: (1) escalation (all plans exhausted), (2) irreversible actions (needs-approval). All other decisions are made independently.
-- Red lines are auto-detected from project documentation and applied automatically. Detected red lines are shown as output, not as a question. User can add more via `--red-line="{constraint}"` flag if needed.
-- Every attempt is recorded in episodic memory — zero silent drops.
+- **Autonomous by default.** User states the problem — skill handles everything else. User consulted only for: (1) escalation (all plans exhausted), (2) irreversible actions (needs-approval). All other decisions made independently.
+- Red lines auto-detected from project documentation and applied automatically. Detected red lines shown as output, not as a question. User can add more via `--red-line="{constraint}"` flag if needed.
+- Every attempt recorded in episodic memory — zero silent drops.
 - Infinite loop protection: 3 plans x 3 research rounds x 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -48,7 +48,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 **IDU:** Profile → Type + Stack, Config.constraints, Current Scores. Findings() → verify + use. Absent → own analysis.
 
-1. **Parse objective.** Extract from user's invocation message. If the user wrote `/ds-solve {description}`, use `{description}` as the objective. Only ask if no objective is discernible from context.
+1. **Parse objective.** Extract from user's invocation message. If user wrote `/ds-solve {description}`, use `{description}` as objective. Only ask if no objective is discernible from context.
 
 2. **Red line auto-detection.** Scan project documentation silently and apply all detected constraints:
 
@@ -67,12 +67,12 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
    Show detected red lines as output (not a question). Merge with any `--red-line` flags.
 
-3. **Verification criterion.** Determine autonomously from the objective:
+3. **Verification criterion.** Determine autonomously from objective:
    - Objective mentions tests → `{test_command}` exits 0
    - Objective mentions a service → service responds on expected port/endpoint
    - Objective mentions a build → `{build_command}` succeeds
    - Objective mentions a behavior → construct a validation command or script
-   - If no mechanical criterion can be inferred → use the most conservative proxy and state the assumption. Only ask the user if zero proxy is possible (`--confirm` mode: always ask).
+   - If no mechanical criterion can be inferred → use most conservative proxy and state the assumption. Only ask user if zero proxy is possible (`--confirm` mode: always ask).
 
 4. **Quick check.** Run verification criterion immediately. If already passes → report OK, skip to Summary.
 
@@ -102,12 +102,10 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 ### Phase 3: Research
 
-**Goal:** For each step, identify ranked alternatives before execution.
+Per step in plan:
 
-For each step in the plan:
-
-1. **Local search first.** Scan codebase for existing patterns, utilities, prior solutions that address this step.
-2. **Web search.** 2 parallel search queries per step. Include current date in queries to avoid stale results. Target the step's technical domain + project stack.
+1. **Local search first.** Scan codebase for existing patterns, utilities, prior solutions addressing this step.
+2. **Web search.** 2 parallel search queries per step. Include current date in queries to avoid stale results. Target step's technical domain + project stack.
 3. **Score alternatives.** Use CRAAP+ methodology from [references/craap-scoring.md](references/craap-scoring.md): Relevance to step, Currency, Authority. Discard score < 50.
 4. **Rank and select.** Top 5 alternatives per step. Record as `research-round-1`.
 
@@ -131,19 +129,17 @@ Record all alternatives to state file.
 
 ### Phase 4: Execute
 
-**Goal:** Execute each step using alternatives on failure.
-
-For each step in order:
+Per step in order:
 
 1. **Red line pre-check.** Verify all red lines hold before touching anything. If any violated → STOP, enter Re-plan (something external broke them).
 2. **Try alternative #1** (highest-ranked from Research).
-3. **Verify.** Run the step's verification criterion.
-4. **Red line post-check.** Verify all red lines still hold after execution. If violated → revert all changes from this attempt, record violation, try next alternative. After modifying any file, verify no other file depends on the changed interface in a now-broken way. _(W2: Tunnel Vision prevention)_
+3. **Verify.** Run step's verification criterion.
+4. **Red line post-check.** Verify all red lines still hold after execution. If violated → revert all changes from this attempt, record violation, try next alternative. After modifying any file, verify no other file depends on changed interface in now-broken way. _(W2: Tunnel Vision prevention)_
 5. **On failure:** Record failure reason and learned constraint in episodic memory. Try next alternative (2→5).
 6. **On success:** Record success, update state, advance to next step.
 7. **All 5 alternatives exhausted:** Enter Backtrack for this step.
 
-Only modify files required by the current step. Leave unrelated code untouched. _(W3: Scope Creep prevention)_
+Only modify files required by current step. Leave unrelated code untouched. _(W3: Scope Creep prevention)_
 
 Progress indicator after each attempt:
 ```
@@ -160,7 +156,7 @@ Next: Trying alternative 2...
 
 ### Phase 5: Backtrack [all alternatives for a step exhausted]
 
-**Goal:** Research new alternatives incorporating learned constraints. Decision tree and constraint propagation rules in [references/backtrack-logic.md](references/backtrack-logic.md).
+Decision tree and constraint propagation rules in [references/backtrack-logic.md](references/backtrack-logic.md).
 
 1. **Analyze failures.** Extract common patterns from all failure reasons for this step. What constraints did we learn?
 2. **New research.** Search web for 5 new alternatives. Explicitly exclude previously tried approaches. Incorporate learned constraints in queries (e.g., "{tool} compatible with {runtime} {version}" if {runtime} version was the blocker).
@@ -174,10 +170,10 @@ Next: Trying alternative 2...
 
 ### Phase 6: Re-plan [plan-level backtrack]
 
-**Goal:** Redesign step sequence from scratch using accumulated knowledge. State machine transitions in [references/backtrack-logic.md](references/backtrack-logic.md).
+State machine transitions in [references/backtrack-logic.md](references/backtrack-logic.md).
 
 1. **Review episodic memory.** All attempts, all failures, all learned constraints across all steps. Re-read modified files and state artifact before proceeding — conversation memory is not source of truth. _(W4: Memory Decay prevention)_
-2. **Identify flexibility.** Which requirements are essential to the objective vs. which are implementation choices? Can the objective be decomposed differently to avoid the failure patterns?
+2. **Identify flexibility.** Which requirements are essential to objective vs. which are implementation choices? Can objective be decomposed differently to avoid failure patterns?
 3. **Create new plan.** Different step decomposition, different ordering, different sub-goals that avoid known failure patterns. Must differ meaningfully from previous plan(s).
 4. **Increment** plan counter. Record as `plan-{N}`.
 5. Plan counter <= budget.P (default 3): Return to Research with new plan.
@@ -195,8 +191,6 @@ Next: Trying alternative 2...
 
 ### Phase 8: Escalate [all plans exhausted]
 
-**Goal:** Present exhaustive report and ask user for direction.
-
 1. **Compile report.** All plans attempted, steps per plan, alternatives per step, failure reasons. See Report Format below.
 2. **Pattern analysis.** Identify recurring blockers across all attempts:
    - Which red lines blocked the most alternatives?
@@ -206,7 +200,7 @@ Next: Trying alternative 2...
    - **Red line relaxation:** "If constraint X were relaxed, approach Y becomes viable"
    - **Scope reduction:** "A partial solution achieving A+B (but not C) is possible"
    - **External action:** "This requires manual action X before automation can continue"
-4. **Ask user:** Update red lines / Reduce scope / Provide new direction / Abort
+4. **Ask:** Update red lines / Reduce scope / Provide new direction / Abort
 5. User provides new direction → reset plan counter, return to Plan phase with updated context.
 6. User aborts → proceed to Summary.
 
@@ -325,9 +319,9 @@ Not a finding-based skill. Severity applies to issues discovered during executio
 | Objective already achieved | Run verification upfront. If passes, report OK immediately. |
 | Single-step objective | Skip plan decomposition. Execute directly with 5 alternatives. |
 | User changes red lines mid-run | Re-validate all completed steps against new lines. If violation found, backtrack to that step. |
-| Objective is vague | Infer the most conservative measurable proxy and state the assumption. Example: "{vague_goal}" → use `{benchmark_command}` < {threshold}. Only ask if zero proxy is possible. |
+| Objective is vague | Infer most conservative measurable proxy and state the assumption. Example: "{vague_goal}" → use `{benchmark_command}` < {threshold}. Only ask if zero proxy is possible. |
 | All steps pass but final verification fails | Plan decomposition missed something. Enter Re-plan with constraint: "individual step success insufficient". |
 | Irreversible change in a step | Flag as `needs-approval`. In `--auto` without `--force-approve`, skip and note. |
 | No project documentation found | Proceed with zero auto-detected red lines + any `--red-line` flags. Apply universal defaults: "existing tests pass", "no new errors introduced". |
 | Budget override too small | Warn if budget < 1x1x2. Clamp to minimum. |
-| Contradictory red lines | Apply the more restrictive constraint. Log the conflict in episodic memory. If the restrictive choice blocks all alternatives → surface in Escalation report (not before). |
+| Contradictory red lines | Apply more restrictive constraint. Log conflict in episodic memory. If restrictive choice blocks all alternatives → surface in Escalation report (not before). |

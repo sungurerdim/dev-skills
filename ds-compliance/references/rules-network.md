@@ -61,7 +61,7 @@ All external calls must have explicit timeouts to prevent resource exhaustion.
 - **Source:** NIST resilience guidelines
 
 ### NET-08 [MAJOR] API Versioning
-APIs must have a versioning strategy to prevent breaking changes.
+APIs must have versioning strategy to prevent breaking changes.
 - **Detect:** API routes without version prefix (`/api/users` instead of `/api/v1/users`). No `Accept` header version negotiation. No sunset/deprecation headers on old versions
 - **Fix:** URL path versioning (`/api/v1/`) or header versioning (`Accept: application/vnd.api+json;version=1`). Document deprecation timeline. Add `Sunset` header to deprecated versions
 - **Source:** REST API design best practices
@@ -83,8 +83,8 @@ Retries on external service failures must use exponential backoff with jitter.
 - **Source:** AWS architecture best practices
 
 ### NET-11 [MAJOR] Circuit Breaker Pattern
-Repeated failures to external services should trip a circuit breaker to prevent cascade failures.
-- **Detect:** External service calls without circuit breaker. Repeated timeout/error handling that continues calling a failing service
+Repeated failures to external services should trip circuit breaker to prevent cascade failures.
+- **Detect:** External service calls without circuit breaker. Repeated timeout/error handling that continues calling failing service
 - **Fix:** Implement circuit breaker with three states: closed (normal), open (failing, fast-fail), half-open (testing recovery). Track failure rate over sliding window. Go: `sony/gobreaker`. Node: `opossum`. Python: `pybreaker`
 - **Source:** Michael Nygard, "Release It!"
 

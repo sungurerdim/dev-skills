@@ -1,6 +1,6 @@
 # Rules: Performance Compliance
 
-Performance rules focused on resource safety, DoS prevention, and service continuity — the compliance-relevant subset of performance. Each rule: ID, severity, title, detect pattern, fix action.
+Performance rules focused on resource safety, DoS prevention, and service continuity — compliance-relevant subset of performance. Each rule: ID, severity, title, detect pattern, fix action.
 
 ## Table of Contents
 
@@ -50,7 +50,7 @@ Database queries must never use string concatenation with user input.
 
 ### PRF-06 [CRITICAL] N+1 Query Detection
 Loops that execute database queries per iteration indicate N+1 problems.
-- **Detect:** Database query inside a `for`/`forEach`/`map` loop. ORM lazy loading in iteration (`user.posts` accessed per user in a loop). Multiple identical queries in a single request trace
+- **Detect:** Database query inside `for`/`forEach`/`map` loop. ORM lazy loading in iteration (`user.posts` accessed per user in loop). Multiple identical queries in single request trace
 - **Fix:** Use eager loading/joins: Django `select_related`/`prefetch_related`. SQLAlchemy `joinedload`. TypeORM `relations`/`leftJoinAndSelect`. Go: single query with `IN` clause. Batch queries: load all related records in one query, then map in memory
 - **Source:** Database performance best practices
 

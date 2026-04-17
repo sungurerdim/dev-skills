@@ -84,7 +84,7 @@ Value-first. Defer advanced features. Skip always visible.
 ### UX-12 [CRITICAL] Permission Priming
 Pre-permission screen explaining WHY before system prompt.
 - **Detect:** System permission dialog without preceding context screen. Permission request unrelated to current action
-- **Fix:** Custom priming UI: explain benefit → user taps Continue → system prompt. If denied: degrade gracefully + settings redirect
+- **Fix:** Custom priming UI: explain benefit → user taps Continue → system prompt. Denied → degrade gracefully + settings redirect
 - **Impact:** 28% higher grant rate
 - **Source:** Nielsen Norman Group — Permission Priming, Android Runtime Permissions Guide, Apple Pre-Alert Patterns
 
@@ -142,14 +142,14 @@ Scrollable content screens support pull-to-refresh gesture.
 Back button and swipe-back behave predictably across all screens.
 - **Detect:** Inconsistent back behavior: some screens pop, others reset stack. Swipe-back disabled without reason. Data loss on back without confirmation
 - **Fix:** Consistent back stack behavior. Enable swipe-back (iOS) and predictive back (Android 14+). Confirm before discarding unsaved data
-- **Impact:** Unpredictable back navigation causes data loss and user frustration
+- **Impact:** Unpredictable back navigation → data loss and user frustration
 - **Source:** Android Predictive Back, Apple HIG Navigation
 
 ### UX-22 [HIGH] Immediate Action Feedback
 Every tap produces visual feedback within 100ms.
 - **Detect:** Tappable elements without ripple/highlight state. Buttons with no pressed state. Actions with no visual response for >100ms
 - **Fix:** Add ripple (Material) or highlight (Cupertino) to all interactive elements. Show loading indicator if action takes >300ms. Disable button during processing
-- **Impact:** No feedback within 100ms makes users tap again, causing duplicate actions
+- **Impact:** No feedback within 100ms → users tap again → duplicate actions
 - **Source:** Jakob Nielsen Response Time Limits
 
 ### UX-23 [LOW] Scroll Position Preservation
@@ -202,7 +202,7 @@ Support system font scaling. iOS: Dynamic Type. Android: sp (never dp for text).
   - iOS: UIFontMetrics, Dynamic Type categories
   - Android: sp units for all text
   - Flutter: Theme.of(context).textTheme, test at 200% scale
-  - **Interim safety (all platforms):** While building full WCAG 1.4.4 200% support, clamp text scaling to 0.8–1.3× range via platform text scale API to prevent layout breakage. Document the cap and plan its removal:
+  - **Interim safety (all platforms):** While building full WCAG 1.4.4 200% support, clamp text scaling to 0.8–1.3× range via platform text scale API to prevent layout breakage. Document cap and plan its removal:
     - Flutter: `MediaQuery.textScaler.clamp(minScaleFactor: 0.8, maxScaleFactor: 1.3)` in `MaterialApp.builder`
     - iOS: `adjustsFontForContentSizeCategory` with maximum category limit
     - Android: `Configuration.fontScale` bounded in Application subclass
@@ -230,7 +230,7 @@ Respect system preference. Manual toggle. Test all screens.
 - **Source:** Material 3, Apple HIG
 
 ### VIS-05 [LOW] Dark Gray Over Pure Black
-#121212 for surfaces. Pure black (#000000) causes OLED smearing.
+#121212 for surfaces. Pure black (#000000) → OLED smearing.
 - **Detect:** `#000000` or `Color(0xFF000000)` as dark mode background
 - **Fix:** #121212 or equivalent dark gray. Pure black only for decorative or user-requested high-contrast
 - **Source:** Material Design Dark Theme Guide, OLED Display Smearing Research
@@ -307,21 +307,21 @@ Foreground + background layers. 66dp safe zone.
 - **Source:** Android Adaptive Icons
 
 ### VIS-15 [HIGH] Color Palette Limit & Harmony
-Maximum 6 distinct hues in the app. All colors from theme tokens.
-- **Detect:** >6 distinct hue values across the app. Random hex values outside theme definition. Colors not from `ColorScheme` / theme tokens
-- **Fix:** Define a palette of max 6 hues (primary, secondary, tertiary, neutral, error, + 1 accent). All UI colors reference theme tokens. No arbitrary hex in widget code
-- **Impact:** Uncontrolled color use creates visual noise and undermines brand identity
+Maximum 6 distinct hues in app. All colors from theme tokens.
+- **Detect:** >6 distinct hue values across app. Random hex values outside theme definition. Colors not from `ColorScheme` / theme tokens
+- **Fix:** Define palette of max 6 hues (primary, secondary, tertiary, neutral, error, + 1 accent). All UI colors reference theme tokens. No arbitrary hex in widget code
+- **Impact:** Uncontrolled color use → visual noise and undermines brand identity
 - **Source:** Material 3 Color System, Color Theory
 
 ### VIS-16 [HIGH] Color Blindness Safety
-Color is never the sole differentiator. Shapes, icons, or text always accompany color.
+Color is never sole differentiator. Shapes, icons, or text always accompany color.
 - **Detect:** Red-green as only distinction (e.g., success/error). Status indicators using color alone without icon or label. Charts relying solely on color
 - **Fix:** Pair every color indicator with icon, shape, or text label. Use colorblind-safe palettes. Test with deuteranopia/protanopia simulators
 - **Impact:** 8% of males have color vision deficiency — color-only UI excludes them
 - **Source:** WCAG 1.4.1, Material Design Accessibility
 
 ### VIS-17 [HIGH] Semantic Color Correctness
-Colors match their semantic meaning. No misleading color usage.
+Colors match semantic meaning. No misleading color usage.
 - **Detect:** Green used for errors or warnings. Red used for success states. Blue used for destructive actions. Inconsistent semantic color assignment across screens
 - **Fix:** Error = red/orange. Success = green. Warning = amber/yellow. Info = blue. Destructive = red. Define semantic tokens and enforce globally
 - **Impact:** Wrong semantic colors confuse users and increase error rates
@@ -338,14 +338,14 @@ Clear primary/secondary/tertiary action distinction per screen.
 Shadow values follow design system tokens. No arbitrary elevation.
 - **Detect:** Arbitrary `elevation` / `boxShadow` values not from theme. Mixed shadow styles on same screen. Inconsistent elevation levels across similar components
 - **Fix:** Define elevation scale (e.g., 0, 1, 2, 3, 4, 5). Map to component types: 0=flat, 1=card, 2=appbar, 3=FAB, 4=dialog, 5=drawer. Use theme elevation tokens only
-- **Impact:** Inconsistent shadows create visual clutter and break spatial metaphor
+- **Impact:** Inconsistent shadows → visual clutter and break spatial metaphor
 - **Source:** Material 3 Elevation System
 
 ### VIS-20 [HIGH] Card Design Consistency
-All cards on a screen share the same radius, padding, and elevation.
+All cards on a screen share same radius, padding, and elevation.
 - **Detect:** Cards with different border radius on same screen. Inconsistent internal padding across cards. Mixed card styles (outlined vs elevated) without clear purpose
 - **Fix:** Define card variants (elevated, filled, outlined) with fixed radius, padding, and elevation. Use one variant per context. Internal padding consistent across all cards
-- **Impact:** Inconsistent cards make the UI feel unpolished and reduce scannability
+- **Impact:** Inconsistent cards → unpolished UI and reduced scannability
 - **Source:** Material 3 Card Component
 
 ### VIS-21 [HIGH] Button Style Hierarchy
@@ -357,23 +357,23 @@ Distinct button styles for primary, secondary, and tertiary actions.
 
 ### VIS-22 [LOW] Image Aspect Ratio Consistency
 Images maintain correct aspect ratio. No distortion.
-- **Detect:** Images with `fit: BoxFit.fill` (Flutter), `resizeMode: 'stretch'` (RN), `contentMode: .scaleToFill` (iOS) causing distortion. Mixed aspect ratios in grid/list layouts
+- **Detect:** Images with `fit: BoxFit.fill` (Flutter), `resizeMode: 'stretch'` (RN), `contentMode: .scaleToFill` (iOS) → distortion. Mixed aspect ratios in grid/list layouts
 - **Fix:** Use `BoxFit.cover` or `BoxFit.contain`. Consistent aspect ratios in lists (e.g., all 16:9 or all 1:1). Placeholder for loading. Error image for failures
-- **Impact:** Distorted images look unprofessional and damage trust in the app
+- **Impact:** Distorted images look unprofessional and damage trust
 - **Source:** Material Design Imagery, Apple HIG Images
 
 ### VIS-23 [HIGH] Icon Style Consistency
-Single icon family throughout the app. Consistent sizing.
+Single icon family throughout app. Consistent sizing.
 - **Detect:** Mixed icon families (Material + Cupertino + custom). Inconsistent icon sizes (20dp, 24dp, 28dp in same context). Outlined and filled icons mixed without purpose
 - **Fix:** Choose one icon family per platform. Standard sizes: 16dp (inline), 24dp (actions), 40dp+ (features). Filled for selected states, outlined for unselected. Custom icons match family weight/style
-- **Impact:** Mixed icon styles create visual inconsistency and feel like multiple apps stitched together
+- **Impact:** Mixed icon styles → visual inconsistency, feels like multiple apps stitched together
 - **Source:** Material Icons Guide, SF Symbols Guidelines
 
 ### VIS-24 [HIGH] Interactive State Visibility
 All interactive elements show pressed, disabled, focused, and loading states.
 - **Detect:** Buttons without pressed/disabled visual state. No loading indicator on async buttons. Form fields without focus ring. Switches/checkboxes without state transition
 - **Fix:** Define states for every interactive component: default, pressed, focused, disabled, loading, error. Disabled = reduced opacity (38%). Loading = spinner replacing label. Focus = visible ring/outline
-- **Impact:** Missing interactive states make the UI feel unresponsive and confuse users about what's actionable
+- **Impact:** Missing interactive states → UI feels unresponsive and confuses users about what's actionable
 - **Source:** Material 3 State Layers, Apple HIG Interactive Elements
 
 ### VIS-25 [HIGH] Overflow Prevention Patterns

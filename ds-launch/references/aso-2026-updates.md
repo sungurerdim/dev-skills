@@ -29,7 +29,7 @@ Sources: [Apple App Store Transparency Report 2024](https://developer.apple.com/
 
 ### Rejection Prevention Checklist
 
-Top Apple rejection reasons and how to prevent each:
+Top Apple rejection reasons and prevention:
 
 | Reason | % of Rejections | Prevention |
 |--------|----------------|------------|
@@ -71,7 +71,7 @@ Source: [Apple App Store Review](https://developer.apple.com/app-store/review/),
 | Change | Impact | Since |
 |--------|--------|-------|
 | **Screenshot caption indexing** | Text overlays on screenshots now rank in search. Include target keywords in benefit-driven captions. | June 2025 |
-| **Custom Product Pages (CPP) expansion** | 35 → 70 CPPs per app. Each is keyword-linkable for organic search. Create segment-specific pages for different keyword clusters. | July 2025 |
+| **Custom Product Pages (CPP) expansion** | 35 → 70 CPPs per app. Each keyword-linkable for organic search. Create segment-specific pages for different keyword clusters. | July 2025 |
 | **Search result diversity** | Algorithm shows intent variety instead of clustering 10-15 results on single intent. Long-tail keywords benefit more. | June 2025 |
 | **Additional search ads** | New ad placements in search results. Phased rollout: UK → Japan → Global Q2 2026. | March 2026 |
 | **Product Page Optimization (PPO)** | Up to 3 treatment variants for A/B testing icons, screenshots, and app previews. | Ongoing |
@@ -98,7 +98,7 @@ Sources: [AppTweak ASO News 2026](https://www.apptweak.com/en/aso-blog/app-store
 
 ### First Sentence Rule
 
-The first sentence of every store description (short and long) must be **pain-first or outcome-first**. Never open with a feature list.
+First sentence of every store description (short and long) must be **pain-first or outcome-first**. Never open with feature list.
 
 **Pain-first:** "[Target audience] waste [time/money/effort] on [current broken approach]. [App name] [specific fix]."
 
@@ -108,14 +108,14 @@ The first sentence of every store description (short and long) must be **pain-fi
 
 ### Why This Works
 
-- First 3 lines of the store description are visible before "Read More" — they decide the install
+- First 3 lines of store description visible before "Read More" — they decide the install
 - Developers and users scan, they don't read. Pain/outcome hooks stop the scroll
 - PAS (Problem-Agitate-Solve) framework: 37% conversion rate in case studies
 - For technical audiences: PAS+FAB hybrid — state pain briefly, then prove solution with technical depth
 
 ### Short Description (80 chars)
 
-Distill the pain-first hook to 80 characters. Include the primary keyword naturally.
+Distill pain-first hook to 80 characters. Include primary keyword naturally.
 
 Examples:
 - "Stop losing data to bad exports. [App] converts everything, preserves everything."
@@ -127,7 +127,7 @@ Structure:
 1. **Line 1-3:** Pain or outcome hook (visible before "Read More")
 2. **Line 4-8:** 3-5 key benefits (not features) with specific outcomes
 3. **Line 9-15:** Social proof if available (star count, user quotes, press)
-4. **Line 16-25:** Feature details (now that reader is interested)
+4. **Line 16-25:** Feature details (reader is already interested)
 5. **Line 26+:** Technical specs, compatibility, privacy highlights
 
 ### Keyword Placement
@@ -164,18 +164,18 @@ Line 13-18: Feature details (reader is already interested at this point)
 Line 19+:   Technical specs, compatibility, version history
 ```
 
-**Privacy highlights table:** Apple and Google both require data safety/privacy declarations. Surfacing a simplified version in the description builds trust and differentiates from competitors who bury privacy information.
+**Privacy highlights table:** Apple and Google both require data safety/privacy declarations. Surfacing simplified version in description builds trust and differentiates from competitors who bury privacy information.
 
 ### Localization Impact
 
-- 5 strategically chosen languages can double the addressable market
-- Per-locale keyword optimization (not literal translation) is required — search terms differ by culture
-- Korean users search differently than Japanese users even for the same app category
+- 5 strategically chosen languages can double addressable market
+- Per-locale keyword optimization (not literal translation) required — search terms differ by culture
+- Korean users search differently than Japanese users even for same app category
 - App Store Connect supports 40+ localizations; Google Play supports 75+
 - Minimum viable localization: English, Spanish, Portuguese, Japanese, Korean (covers ~60% of app store spending)
 - Screenshot captions must be localized separately (now indexed in Apple search)
 
-**Common mistake:** Running store description through machine translation. Instead, research local search terms per market and adapt the description around those terms.
+**Common mistake:** Running store description through machine translation. Instead, research local search terms per market and adapt description around those terms.
 
 Source: [AppTweak — ASO Trends 2026](https://www.apptweak.com/en/aso-blog/aso-trends-to-watch-in-2026), [Phiture — ASO Trends 2026](https://phiture.com/blog/aso-trends-in-2026/)
 
@@ -187,9 +187,9 @@ Source: [AppTweak — ASO Trends 2026](https://www.apptweak.com/en/aso-blog/aso-
 
 First 3 screenshots decide the install. They must tell a story:
 
-1. **Screenshot 1 — Problem/Hook:** Show the pain point or the bold claim. Text overlay: contrarian or pain-first caption.
-2. **Screenshot 2 — Solution:** Show the app solving the problem. Text overlay: outcome-focused caption.
-3. **Screenshot 3 — Delight:** Show the result or the "wow" moment. Text overlay: metric or social proof.
+1. **Screenshot 1 — Problem/Hook:** Show pain point or bold claim. Text overlay: contrarian or pain-first caption.
+2. **Screenshot 2 — Solution:** Show app solving problem. Text overlay: outcome-focused caption.
+3. **Screenshot 3 — Delight:** Show result or "wow" moment. Text overlay: metric or social proof.
 
 Remaining screenshots: feature highlights, settings, edge cases.
 

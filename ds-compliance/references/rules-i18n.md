@@ -78,5 +78,5 @@ Numbers and currencies must be formatted per locale.
   - Search: hardcoded currency symbols (`$`, `€`, `£`) concatenated with numbers
   - Search: `toFixed(2)` for currency display (doesn't handle locale-specific decimal separators)
   - Search: hardcoded thousand separators (`,` or `.`) in number formatting
-- **Fix:** Use `Intl.NumberFormat` (JS), `NumberFormat` (Flutter/Dart), `babel.numbers` (Python). Specify locale and currency code. Let the formatter handle symbol placement, decimal separator, and grouping.
+- **Fix:** Use `Intl.NumberFormat` (JS), `NumberFormat` (Flutter/Dart), `babel.numbers` (Python). Specify locale and currency code. Let formatter handle symbol placement, decimal separator, and grouping.
 - **Source:** ICU Number Formatting

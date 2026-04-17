@@ -112,11 +112,11 @@ Proper meta tags, semantic HTML, structured data for public-facing pages.
 LCP < 2.5s, INP < 200ms, CLS < 0.1.
 - **Detect:**
   - No performance monitoring (no web-vitals library, no RUM)
-  - Large images above the fold without optimization
+  - Large images above fold without optimization
   - Layout shifts from dynamically loaded content
   - Long tasks blocking main thread
 - **Fix:** Optimize LCP: preload critical resources, optimize images (WebP/AVIF, srcset), use CDN. Optimize INP: break long tasks, use `requestIdleCallback`, debounce handlers. Optimize CLS: set explicit dimensions on images/embeds, avoid injecting content above viewport
-- **Impact:** Core Web Vitals are a Google ranking signal. Poor scores = lower search visibility
+- **Impact:** Core Web Vitals are Google ranking signal. Poor scores = lower search visibility
 - **Source:** web.dev Core Web Vitals
 
 ### WEB-10 [MAJOR] Image Optimization

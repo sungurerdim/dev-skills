@@ -1,6 +1,6 @@
 # /ds-research
 
-AI models hallucinate sources, cite outdated data, and can't distinguish a blog post from a peer-reviewed study. This skill searches, scores source reliability, and synthesizes with citations.
+AI models hallucinate sources, cite outdated data, can't distinguish blog post from peer-reviewed study. Skill searches, scores source reliability, synthesizes with citations.
 
 **Smart Research** — Parallel search, tier sources, synthesize, recommend.
 
@@ -14,7 +14,7 @@ AI models hallucinate sources, cite outdated data, and can't distinguish a blog 
 ## Contract
 
 - Searches both local codebase files and web sources.
-- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project context. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -24,7 +24,7 @@ AI models hallucinate sources, cite outdated data, and can't distinguish a blog 
 | `--quick` | T1-T2 sources only |
 | `--deep` | All tiers, resumable |
 
-Without flags: present depth selection to the user.
+Without flags: present depth selection to user.
 
 Only include verified, accessible sources and URLs. Present T5/T6 sources with confidence caveat. Resolve contradictions when sources disagree. Cite specific source tiers in every synthesis.
 
@@ -36,7 +36,7 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 
 Recovery check: if progress artifact exists from prior deep run, ask: Resume / Start fresh.
 
-1. **Depth selection.** If no `--quick`/`--deep` flag, ask the user:
+1. **Depth selection.** If no `--quick`/`--deep` flag, ask:
    - **Quick** — T1-T2 sources only, fast results
    - **Standard** — T1-T4 sources, balanced depth
    - **Deep** — all tiers, 20+ sources, resumable
@@ -48,19 +48,19 @@ Recovery check: if progress artifact exists from prior deep run, ask: Resume / S
 
 ### Phase 2: Parse Query
 
-**Findings file check:** If `.ds-findings.md` exists, check for relevant findings that provide research context. Use project type and stack from findings metadata.
+**Findings file check:** If `.ds-findings.md` exists, check for relevant findings providing research context. Use project type and stack from findings metadata.
 
 **IDU:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis.
 
 Extract from arguments: concepts, tech domain, comparison mode, search mode (troubleshoot/changelog/security).
 
-**Date handling:** Resolve current date from system context. Include it explicitly in every search query to prevent stale results (e.g., "React 19 migration guide 2026").
+**Date handling:** Resolve current date from system context. Include explicitly in every search query to prevent stale results (e.g., "React 19 migration guide 2026").
 
 **Gate:** Query parsed into concepts, domain, and search mode with current date resolved.
 
 ### Phase 3: Research
 
-Search in batches of 2 search queries, applying the CRAAP+ methodology from [references/craap.md](references/craap.md):
+Search in batches of 2 search queries, applying CRAAP+ methodology from [references/craap.md](references/craap.md):
 
 | Track | What | When |
 |-------|------|------|
@@ -72,7 +72,7 @@ Search in batches of 2 search queries, applying the CRAAP+ methodology from [ref
 | Security (NVD/CVE/Snyk) | Dependency mode per CRAAP+ | If security query |
 | Comparison A/B | Full search + analyze + synthesize | If comparison detected |
 
-For each source found:
+Per source found:
 1. Assign tier (T1-T6) based on source type
 2. Apply modifiers (freshness, authority, cross-verification)
 3. Calculate CRAAP+ score (Currency 20%, Relevance 25%, Authority 25%, Accuracy 20%, Purpose 10%)

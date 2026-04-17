@@ -15,9 +15,9 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 
 - Generates project structure, CI config, test setup, Docker stubs, editor config, env templates
 - Detects intent (web app, mobile app, API, CLI, library, monorepo) from user input or codebase signals
-- Generates only files relevant to the detected project type — no unnecessary boilerplate
+- Generates only files relevant to detected project type — no unnecessary boilerplate
 - Respects existing files — only overwrites with explicit user confirmation
-- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project type and stack to select scaffold template. When absent, asks user.
+- Standalone. Uses blueprint when available to select scaffold template; asks user when absent.
 - **Minimal liability:** only generates standard, well-known config patterns — no custom security code
 - **Minimum dependencies:** scaffolded projects start with minimal deps, documented rationale for each
 - **Maximum automation:** CI, linting, formatting, testing configured from the start
@@ -34,7 +34,7 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 | `--full` | Full production structure (CI, Docker, testing, docs) |
 | `--dry-run` | Show what would be created without writing files |
 
-Without flags: present interactive menu to the user.
+No flags → present interactive menu.
 
 **Interactive menu (no flags):**
 ```
@@ -64,33 +64,28 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 
 ### Phase 1: Setup
 
-**Goal:** Determine project type and stack.
-
-**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings for context on existing project state. If absent, proceed with fresh scaffolding.
+**Findings file check:** `.ds-findings.md` with fresh `git_hash` → read for context; absent → proceed fresh.
 
 **IDU:** Profile → Type + Stack, Project Map.Toolchain. Findings() → verify + use. Absent → own analysis.
 
-1. If `--type` and `--stack` provided, proceed directly
-2. If working directory has existing files, scan for signals (package.json, pubspec.yaml, go.mod, Cargo.toml)
-3. If empty directory or no signals, present interactive menu for type selection
-4. Ask for stack choice within the selected type
-5. Ask: `--minimal` or `--full` structure? (default: full)
+1. `--type` and `--stack` provided → proceed directly
+2. Working directory has existing files → scan for signals (package.json, pubspec.yaml, go.mod, Cargo.toml)
+3. Empty directory or no signals → present interactive menu for type selection
+4. Ask for stack choice within selected type
+5. Ask: `--minimal` or `--full`? (default: full)
 
-**Gate:** Project type and stack confirmed. If ambiguous → ask user.
+**Gate:** Project type and stack confirmed. Ambiguous → ask user.
 
 ### Phase 2: Detect Existing Setup
 
-**Goal:** Avoid overwriting existing configuration.
+1. Scan for existing config files (.eslintrc, tsconfig, Dockerfile, .github/workflows, etc.) → mark as SKIP.
+2. Report: "Found N existing config files — these will be preserved."
 
-1. Scan for existing config files (.eslintrc, tsconfig, Dockerfile, .github/workflows, etc.)
-2. For each detected file, mark as SKIP (preserve existing)
-3. Report: "Found N existing config files — these will be preserved"
-
-**Gate:** Conflict list confirmed. If user wants to overwrite specific files → confirm each.
+**Gate:** Conflict list confirmed. User wants to overwrite specific files → confirm each.
 
 ### Phase 3: Generate Structure
 
-**Goal:** Create project files following scaffolding rules in [references/rules-scaffold.md](references/rules-scaffold.md).
+Create project files following [references/rules-scaffold.md](references/rules-scaffold.md).
 
 1. Create directory structure for selected type
 2. Generate configuration files:
@@ -120,20 +115,18 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
    - `CONTRIBUTING.md` stub (if `--full`)
    - `LICENSE` file prompt
 
-Files are generated in parallel where independent (configs, CI, Docker).
+Generate independent files in parallel (configs, CI, Docker).
 
 **Gate:** All files created. Verify no file conflicts.
 
 ### Phase 4: Post-Generate Verification
 
-**Goal:** Ensure generated structure is valid.
+1. Verify all generated files syntactically valid (JSON, YAML).
+2. Check `.gitignore` covers: `.env*`, `node_modules`/build artifacts, `coverage/`, OS/IDE files.
+3. Verify `.env.example` has no real secrets.
+4. Check CI workflow references correct paths and commands.
 
-1. Verify all generated files are syntactically valid (JSON parseable, YAML valid)
-2. Check `.gitignore` covers: `.env*` (glob), `node_modules`/build artifacts (`dist/`, `build/`, `.next/`), `coverage/`, OS files, IDE files
-3. Verify `.env.example` contains no real secrets (only placeholder values)
-4. Check CI workflow references correct paths and commands
-
-**Gate:** All verifications pass. If any fail → fix before summary.
+**Gate:** All verifications pass. Any fail → fix before summary.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
@@ -174,7 +167,7 @@ Next steps:
 ## Quality Gates
 
 - Every generated config file is syntactically valid
-- `.gitignore` covers all standard exclusions for the selected stack
+- `.gitignore` covers all standard exclusions for selected stack
 - `.env.example` contains only placeholder values, never real secrets
 - CI workflow is a complete lint → test → build pipeline
 - Generated README includes setup and run instructions

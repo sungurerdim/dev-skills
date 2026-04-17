@@ -28,7 +28,7 @@ Logs must never contain passwords, tokens, credit card numbers, PII, or secrets.
 
 ### ARC-03 [CRITICAL] Structured Logging Format
 Logs must be structured (JSON) with consistent fields for security analysis.
-- **Detect:** `print()` or `console.log()` for application events (not debug). Unstructured log messages without timestamp, level, or context. Mixed log formats across the application
+- **Detect:** `print()` or `console.log()` for application events (not debug). Unstructured log messages without timestamp, level, or context. Mixed log formats across application
 - **Fix:** Use structured logging: `{timestamp, level, message, service, trace_id, user_id, ...}`. Python: `structlog` or `logging` with JSON formatter. Node: `pino` or `winston`. Go: `slog` (stdlib). Include correlation/trace ID for request tracing
 - **Source:** 12-Factor App (Treat logs as event streams)
 
@@ -43,27 +43,27 @@ Application must define and enforce log retention periods.
 ## Boundary Security
 
 ### ARC-05 [BLOCKER] Input Validation at Trust Boundaries
-All external input (API requests, file uploads, webhooks, queue messages) must be validated at the entry point.
+All external input (API requests, file uploads, webhooks, queue messages) must be validated at entry point.
 - **Detect:** Controller/handler functions that pass request data directly to business logic without validation. Missing schema validation middleware. `req.body.field` used without type/format/range checks
-- **Fix:** Validate at the boundary: type, format, range, length, allowed values. Use schema validation: `zod` (Node), `pydantic` (Python), struct tags (Go), `jakarta.validation` (Java). Reject invalid input with 400, never attempt to sanitize and proceed
+- **Fix:** Validate at boundary: type, format, range, length, allowed values. Use schema validation: `zod` (Node), `pydantic` (Python), struct tags (Go), `jakarta.validation` (Java). Reject invalid input with 400, never attempt to sanitize and proceed
 - **Source:** OWASP A03:2021 (Injection)
 
 ### ARC-06 [CRITICAL] Error Response Without Stack Traces
 Production error responses must not expose stack traces, internal paths, or framework details.
 - **Detect:** `res.status(500).send(error.stack)`, `DEBUG=True` in production config, `app.use(errorHandler)` that sends full error to client, `traceback.print_exc()` in API handlers, framework default error pages in production
-- **Fix:** Return generic error with correlation ID: `{error: "Internal error", reference: "abc-123"}`. Log full details server-side with the same correlation ID. Disable debug mode in production. Custom error handler that maps exceptions to safe HTTP responses
+- **Fix:** Return generic error with correlation ID: `{error: "Internal error", reference: "abc-123"}`. Log full details server-side with same correlation ID. Disable debug mode in production. Custom error handler that maps exceptions to safe HTTP responses
 - **Source:** OWASP A04:2021 (Insecure Design)
 
 ### ARC-07 [CRITICAL] Fail-Closed Authorization
 Authorization failures must deny access by default, not grant it.
 - **Detect:** Auth middleware that returns `next()` on error (fail-open). Missing `else` clause in permission checks. Default case in role switch that allows access. `catch` blocks that continue request processing after auth failure
-- **Fix:** Default deny: if auth check fails for any reason (error, timeout, missing data), return 401/403. Never fall through to the protected resource. Use allowlists for permitted roles, not blocklists for denied roles
+- **Fix:** Default deny: if auth check fails for any reason (error, timeout, missing data), return 401/403. Never fall through to protected resource. Use allowlists for permitted roles, not blocklists for denied roles
 - **Source:** OWASP A01:2021 (Broken Access Control)
 
 ### ARC-08 [MAJOR] Separation of Auth from Business Logic
 Authentication and authorization logic must be isolated from business logic.
 - **Detect:** Auth checks (`if user.role === 'admin'`) scattered inside business functions. Permission logic mixed with data processing. Direct database role queries inside service methods
-- **Fix:** Centralize auth in middleware/decorators/interceptors. Business logic receives already-authorized context. Use policy-based authorization (e.g., RBAC/ABAC middleware). Auth decisions happen once at the boundary, not repeatedly in business code
+- **Fix:** Centralize auth in middleware/decorators/interceptors. Business logic receives already-authorized context. Use policy-based authorization (e.g., RBAC/ABAC middleware). Auth decisions happen once at boundary, not repeatedly in business code
 - **Source:** Clean Architecture, OWASP
 
 ---
@@ -84,6 +84,6 @@ Dependencies should not be severely outdated (major versions behind).
 
 ### ARC-11 [MAJOR] Minimal Dependency Surface
 Avoid unnecessary dependencies that increase attack surface.
-- **Detect:** Dependencies used for trivial functionality (left-pad pattern). Packages with 0 maintenance (no updates in 2+ years, archived repos). Multiple packages for the same purpose (2 HTTP clients, 2 date libraries)
-- **Fix:** Evaluate each dependency: can stdlib do this? Is the package maintained? How many transitive deps does it add? Remove unused deps (`depcheck`, `pip-extra-reqs`). Prefer well-maintained, minimal packages
+- **Detect:** Dependencies used for trivial functionality (left-pad pattern). Packages with 0 maintenance (no updates in 2+ years, archived repos). Multiple packages for same purpose (2 HTTP clients, 2 date libraries)
+- **Fix:** Evaluate each dependency: can stdlib do this? Is package maintained? How many transitive deps does it add? Remove unused deps (`depcheck`, `pip-extra-reqs`). Prefer well-maintained, minimal packages
 - **Source:** Supply chain security, NIST SSDF

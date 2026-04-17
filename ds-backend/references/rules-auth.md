@@ -34,7 +34,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 - **Ruby:** `argon2` gem with `Argon2::Password.create(password)`
 - **PHP:** `password_hash($password, PASSWORD_ARGON2ID)` (PHP 7.3+)
 
-**Why:** Fast hashes (MD5, SHA-family) allow billions of guesses per second on modern GPUs. Argon2id with proper memory cost limits attackers to a few hundred attempts per second per GPU.
+**Why:** Fast hashes (MD5, SHA-family) allow billions of guesses per second on modern GPUs. Argon2id with proper memory cost limits attackers to few hundred attempts per second per GPU.
 
 **Source:** [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), auth-implementation-guide.md Password Security section
 
@@ -69,7 +69,7 @@ Set-Cookie: session_id=<value>;
 | Refresh token | 7-30 days | httpOnly, Secure, SameSite=Strict cookie |
 | ID token (OIDC) | Match access token | Memory; used once to establish session |
 
-**Why:** Tokens in localStorage are readable by any JavaScript on the page, including injected XSS payloads. httpOnly cookies are inaccessible to JavaScript entirely.
+**Why:** Tokens in localStorage are readable by any JavaScript on the page, including injected XSS payloads. httpOnly cookies inaccessible to JavaScript entirely.
 
 **Source:** [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), auth-implementation-guide.md JWT Best Practices and Session Management sections
 
@@ -77,9 +77,9 @@ Set-Cookie: session_id=<value>;
 
 ### AUTH-03 OAuth 2.0 / OIDC [HIGH]
 
-**Detect:** Custom authentication flows instead of OIDC for third-party login. Use of deprecated OAuth grants (Implicit, ROPC). PKCE missing from Authorization Code flow.
+**Detect:** Custom authentication flows instead of OIDC for third-party login. Deprecated OAuth grants (Implicit, ROPC). PKCE missing from Authorization Code flow.
 
-**Fix:** Use Authorization Code + PKCE (S256) for all client types. RFC 9700 (January 2025) codifies this as the only recommended flow.
+**Fix:** Use Authorization Code + PKCE (S256) for all client types. RFC 9700 (January 2025) codifies this as only recommended flow.
 
 PKCE flow summary:
 1. Client generates `code_verifier` (43-128 char random string)
@@ -104,7 +104,7 @@ RFC 9700 compliance checklist:
 
 **Detect:** JWTs decoded without signature verification. `alg=none` accepted. Missing validation of `exp`, `iss`, or `aud` claims. Symmetric algorithm (HS256) used when asymmetric is appropriate.
 
-**Fix:** Validate all claims on every request. Maintain a server-side algorithm allowlist.
+**Fix:** Validate all claims on every request. Maintain server-side algorithm allowlist.
 
 Required validations per request:
 - **`alg`**: Match against server-side allowlist (RS256, ES256, EdDSA). Reject `none`.
@@ -120,11 +120,11 @@ Signing algorithm selection:
 | ES256 | Asymmetric (ECDSA) | Preferred for new systems (smaller tokens, fast) |
 | RS256 | Asymmetric (RSA) | Default; public key verification without shared secrets |
 | EdDSA | Asymmetric (Ed25519) | Best performance, smallest keys |
-| HS256 | Symmetric (HMAC) | Only when issuer and verifier are the same service |
+| HS256 | Symmetric (HMAC) | Only when issuer and verifier are same service |
 
 Keep JWT payloads small: `sub`, `iss`, `aud`, `exp`, `iat`, `jti`, and role/scope. Avoid storing PII (email, name) in JWTs -- they are base64-encoded, not encrypted.
 
-**Why:** JWT algorithm confusion is a CRITICAL vulnerability. Accepting `alg=none` or failing to verify signatures allows token forgery.
+**Why:** JWT algorithm confusion is CRITICAL vulnerability. Accepting `alg=none` or failing to verify signatures allows token forgery.
 
 **Source:** [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [JWT.io best practices](https://jwt.io/introduction/), auth-implementation-guide.md JWT Best Practices section
 
@@ -155,7 +155,7 @@ Keep JWT payloads small: `sub`, `iss`, `aud`, `exp`, `iat`, `jti`, and role/scop
 
 PKCE replaces CSRF tokens in OAuth flows (per RFC 9700).
 
-**Why:** CSRF attacks trick authenticated users into performing unintended actions. A single missing CSRF check on a sensitive endpoint enables account takeover or data manipulation.
+**Why:** CSRF attacks trick authenticated users into performing unintended actions. Single missing CSRF check on sensitive endpoint enables account takeover or data manipulation.
 
 **Source:** [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), auth-implementation-guide.md Session Management section
 
@@ -163,9 +163,9 @@ PKCE replaces CSRF tokens in OAuth flows (per RFC 9700).
 
 ### AUTH-06 RBAC / Authorization [MEDIUM]
 
-**Detect:** Authorization checks missing on protected endpoints. All-or-nothing authentication (logged in = full access). Role checks performed only on the client side.
+**Detect:** Authorization checks missing on protected endpoints. All-or-nothing authentication (logged in = full access). Role checks performed only on client side.
 
-**Fix:** Implement middleware-based RBAC with server-side enforcement on every request. Deny by default -- require explicit grants.
+**Fix:** Implement middleware-based RBAC with server-side enforcement on every request. Deny by default — require explicit grants.
 
 | Model | Complexity | Best For |
 |-------|-----------|----------|
@@ -177,9 +177,9 @@ PKCE replaces CSRF tokens in OAuth flows (per RFC 9700).
 
 Implementation: Schema uses `users`, `organizations`, `memberships(user_id, org_id, role)`, `permissions(role, resource, action)`. Check permissions in middleware, not in route handlers.
 
-For solo dev with fewer than 5 roles: flat RBAC with a `role` column on the user table. For multi-tenant SaaS: group-based RBAC with a `memberships` table. Avoid ABAC/ReBAC until simpler models become a demonstrable bottleneck.
+For solo dev with fewer than 5 roles: flat RBAC with `role` column on user table. For multi-tenant SaaS: group-based RBAC with `memberships` table. Avoid ABAC/ReBAC until simpler models become demonstrable bottleneck.
 
-**Why:** Missing server-side authorization is the most common API vulnerability (OWASP API1: BOLA accounts for 40% of all API attacks).
+**Why:** Missing server-side authorization is most common API vulnerability (OWASP API1: BOLA accounts for 40% of all API attacks).
 
 **Source:** [NIST RBAC Model](https://csrc.nist.gov/projects/role-based-access-control), auth-implementation-guide.md RBAC and Permission Models section
 
@@ -203,7 +203,7 @@ Return `429 Too Many Requests` with `Retry-After` header. Use sliding window cou
 
 Error messages must be generic: "Invalid credentials" rather than "Wrong password" or "User not found". This prevents user enumeration.
 
-**Why:** Authentication endpoints are the primary target for credential stuffing and brute-force attacks. Without rate limiting, attackers can attempt millions of passwords per hour.
+**Why:** Authentication endpoints are primary target for credential stuffing and brute-force attacks. Without rate limiting, attackers can attempt millions of passwords per hour.
 
 **Source:** [OWASP Credential Stuffing Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html), auth-implementation-guide.md Common Vulnerabilities section
 
@@ -231,9 +231,9 @@ Error messages must be generic: "Invalid credentials" rather than "Wrong passwor
 | Payload size | ~32 bytes cookie | ~800+ bytes |
 | XSS risk | Low (httpOnly) | High if in localStorage |
 
-Default for solo developers: server sessions with httpOnly cookies. Add JWT only with a concrete cross-origin or mobile requirement.
+Default for solo developers: server sessions with httpOnly cookies. Add JWT only with concrete cross-origin or mobile requirement.
 
-**Why:** Choosing the wrong auth mechanism leads to unnecessary complexity (JWT for a simple web app) or security gaps (sessions without shared store in a distributed system).
+**Why:** Wrong auth mechanism → unnecessary complexity (JWT for simple web app) or security gaps (sessions without shared store in distributed system).
 
 **Source:** [Auth0 Session vs JWT comparison](https://auth0.com/blog/), auth-implementation-guide.md Auth Decision Framework section
 
@@ -243,7 +243,7 @@ Default for solo developers: server sessions with httpOnly cookies. Add JWT only
 
 **Detect:** Auth system relies solely on passwords with no passwordless option. No WebAuthn/FIDO2 integration. Users cannot register platform authenticators (biometrics, security keys).
 
-**Fix:** Add WebAuthn/passkey as a secondary authentication method alongside existing password auth.
+**Fix:** Add WebAuthn/passkey as secondary authentication method alongside existing password auth.
 
 | Aspect | Detail |
 |--------|--------|
@@ -284,10 +284,10 @@ Implementation priority: offer passkeys as optional upgrade during login, not ma
 Implementation rules:
 - Always request `email` scope (primary account identifier for linking)
 - Support account linking: user logs in with Google, later with Apple -> same email = same account
-- Store provider ID + provider user ID + email in a `user_identities` table (many-to-one with users)
+- Store provider ID + provider user ID + email in `user_identities` table (many-to-one with users)
 - Handle email conflicts: if email exists with different provider, prompt user to link accounts (never auto-merge without verification)
-- Implement fallback auth (email/password or passkey) so users are not locked to a single provider
+- Implement fallback auth (email/password or passkey) so users are not locked to single provider
 
-**Why:** Social login reduces signup friction (one-tap vs form-fill). Apple Sign In is mandatory for iOS apps offering any third-party login. Proper implementation prevents account fragmentation and provider lock-in.
+**Why:** Social login reduces signup friction (one-tap vs form-fill). Apple Sign In mandatory for iOS apps offering any third-party login. Proper implementation prevents account fragmentation and provider lock-in.
 
 **Source:** [Apple Sign In Guidelines](https://developer.apple.com/sign-in-with-apple/), [Google Identity Services](https://developers.google.com/identity), [App Store Review Guidelines 4.8](https://developer.apple.com/app-store/review/guidelines/#sign-in-with-apple)

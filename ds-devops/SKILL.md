@@ -15,7 +15,7 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 
 - Every finding cites file and line — never infer or assume
 - Only audits CI/CD, signing, dependencies, and release pipelines
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -65,26 +65,26 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 4. **Dependency tooling.** Detect: `dependabot.yml`, `renovate.json`, lockfiles, `.nvmrc`, `.tool-versions`.
 
-5. **Mode selection.** If no `--mode` flag, ask the user:
+5. **Mode selection.** No `--mode` flag → ask user:
    - **Full Audit** — scan all scopes, report findings
    - **Audit & Fix** — scan, review findings, then fix
    - **Quick Fix** — scan and auto-fix, minimal review
 
-6. **Scope selection.** If no `--scope` flag, ask which scopes to audit (default: all).
+6. **Scope selection.** No `--scope` flag → ask which scopes to audit (default: all).
 
 **Gate:** Project type identified, CI platform detected, mode and scope confirmed.
 
 ### Phase 2: Rule Loading
 
-Load [rules-devops.md](references/rules-devops.md). Rules are project-type-aware — skip rules that don't apply to the detected stack.
+Load [rules-devops.md](references/rules-devops.md). Rules are project-type-aware — skip rules that don't apply to detected stack.
 
 **Gate:** Rules file loaded and filtered to detected project type; inapplicable rules excluded.
 
 ### Phase 3: Scan
 
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (ci, signing, deps, release-pipeline). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
+1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching scopes (ci, signing, deps, release-pipeline). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
 
-For each scope, scan the codebase:
+For each scope, scan codebase:
 
 2. Search for relevant config and build files
 3. Search contents for violation patterns
@@ -118,7 +118,7 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 | Scope | CRITICAL | HIGH | MEDIUM | LOW | Total |
 ```
 
-**Severity:** CRITICAL > HIGH > MEDIUM > LOW. When uncertain, choose lower.
+**Severity:** CRITICAL > HIGH > MEDIUM > LOW. Uncertain → choose lower.
 
 **Gate:** Report presented to user with all findings, severities, and summary table.
 

@@ -15,7 +15,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no 
 
 - Only manages repository settings and structure — not code quality
 - Every recommendation cites specific setting or file
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -26,11 +26,11 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no 
 | `--preview` | Audit only, no changes |
 | `--scope=X` | Specific scope(s), comma-separated |
 
-Without flags: present mode selection to the user.
+No flags → present mode selection.
 
 ## Scopes
 
-Each scope defines an explicit checklist. Every check is evaluated on every run — no check is silently omitted (DSC).
+Each scope defines an explicit checklist. Every check evaluated on every run — no check silently omitted (DSC).
 
 ### settings (5 checks)
 
@@ -84,11 +84,11 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
 1. Verify `git` and `gh` CLI available and authenticated — `git` required, `gh` required for settings/protection scopes
 2. Detect repo info via GitHub API: name, default branch, visibility, description, topics, license, homepage, plan (free/pro/enterprise)
 3. **IDU:** Profile → {Type + Stack, Config.constraints}. Findings({repo}) → verify + use. Absent → own analysis.
-4. **Mode selection.** If no flags provided, ask the user:
+4. **Mode selection.** No flags → ask user:
    - **Full Audit** — audit all scopes, report findings
    - **Audit & Fix** — audit all scopes, then apply fixes
    - **Scoped** — pick specific scope(s) to audit
-5. **Scope selection.** If Scoped mode or no `--scope` flag with Audit & Fix, ask which scopes to audit.
+5. **Scope selection.** Scoped mode or no `--scope` flag with Audit & Fix → ask which scopes to audit.
 
 **Gate:** Repo info retrieved via API and mode/scopes selected.
 
@@ -124,7 +124,7 @@ Display findings table with ALL checks accounted:
 
 Ask user: Fix All / By Severity / Review Each / Report Only.
 
-**needs-input findings:** Before proceeding to Apply, ask the user for required input on `needs-input` items. Example: "Homepage URL is empty — do you have a URL to set? (provide URL / skip)"
+**needs-input findings:** Before proceeding to Apply, ask user for required input on `needs-input` items. Example: "Homepage URL is empty — do you have a URL to set? (provide URL / skip)"
 
 **Gate:** User selected action plan. All needs-input items resolved (user provided input or explicitly declined).
 
@@ -132,7 +132,7 @@ Ask user: Fix All / By Severity / Review Each / Report Only.
 
 Apply fixes via GitHub API (settings, protection), git commands (hygiene), file operations (config files).
 
-For each finding, assign a disposition:
+Per finding, assign disposition:
 - `fixed` — applied and verified via API read-back or file check
 - `failed` — attempted but API/command returned error
 - `skipped` — user declined, platform limitation, or not applicable (with reason)
@@ -152,7 +152,7 @@ For each finding, assign a disposition:
 repo: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-Display disposition table — every finding from Gap Analysis appears with its final status:
+Display disposition table — every finding from Gap Analysis appears with final status:
 
 ```
 | # | Finding | Disposition |
@@ -174,8 +174,8 @@ Clean: settings (5/5 ✅), structure (2/2 ✅)
 
 1. Settings changes verified via API read-back
 2. Scope boundary — only modify what was requested
-3. Every finding gets a disposition in the summary — zero silent drops (FRC)
-4. Every scope check is evaluated and accounted for — zero silent omissions (DSC)
+3. Every finding gets a disposition in summary — zero silent drops (FRC)
+4. Every scope check evaluated and accounted for — zero silent omissions (DSC)
 5. Destructive changes (branch deletion, permission changes) require confirmation unless `--auto`
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
@@ -198,4 +198,4 @@ Clean: settings (5/5 ✅), structure (2/2 ✅)
 | Fork repository | Note fork status, skip protection (forked from upstream) |
 | Empty repository | Skip hygiene, minimal metadata check |
 | Free private plan | Mark protection and auto-merge checks as N/A with reason |
-| needs-input item in --auto mode | Skip with disposition `⚠ SKIPPED (requires input)` — list all skipped needs-input items prominently in the summary section so they are not silently lost |
+| needs-input item in --auto mode | Skip with disposition `⚠ SKIPPED (requires input)` — list all skipped needs-input items prominently in summary section so they are not silently lost |

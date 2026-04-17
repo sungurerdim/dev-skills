@@ -1,22 +1,16 @@
 # Rules: Monitoring & Observability
 
-Rules for audit/generate/monitor modes. Each rule: ID, severity, detect pattern, fix action, source.
-
-## Table of Contents
-
-| Section | Rules | Line |
-|---------|-------|------|
-| **Observability** | MON-01 to MON-06 (3 HIGH, 2 MEDIUM, 1 LOW) | ~12 |
-
----
+| Section | Rules |
+|---------|-------|
+| **Observability** | MON-01 to MON-06 (3 HIGH, 2 MEDIUM, 1 LOW) |
 
 ## Observability
 
 ### MON-01 | HIGH | Structured JSON Logging
 
-**Detect:** Unstructured `console.log`, `print`, `fmt.Println`, or `System.out.println` calls used in production code paths. Log output lacks machine-parseable format.
+**Detect:** Unstructured `console.log`, `print`, `fmt.Println`, or `System.out.println` calls in production code paths. Log output lacks machine-parseable format.
 
-**Fix:** Use a structured logger that outputs JSON with consistent fields: timestamp, level, message, request_id, and relevant context.
+**Fix:** Use a structured logger outputting JSON with consistent fields: timestamp, level, message, request_id, and relevant context.
 
 ```javascript
 // Node.js — Winston
@@ -44,7 +38,7 @@ slog.Info("request processed",
     slog.Int("duration_ms", 42))
 ```
 
-**Why:** Structured logs enable filtering, aggregation, and alerting in log management tools (Loki, Betterstack, Axiom). Unstructured text requires regex parsing and breaks on format changes.
+**Why:** Structured logs → filtering, aggregation, and alerting in log management tools (Loki, Betterstack, Axiom). Unstructured text requires regex parsing and breaks on format changes.
 
 **Source:** OpenTelemetry Logging specification, deployment-patterns.md (Log aggregation)
 
@@ -52,12 +46,12 @@ slog.Info("request processed",
 
 ### MON-02 | HIGH | Liveness and Readiness Endpoints
 
-**Detect:** Application exposes a single `/health` endpoint (or none at all), with no distinction between "process is alive" and "process can serve traffic."
+**Detect:** Application exposes single `/health` endpoint (or none), with no distinction between "process is alive" and "process can serve traffic."
 
 **Fix:** Implement two separate endpoints:
 
-- `/healthz` (liveness): Returns 200 if the process is running. Minimal checks only (avoids cascading restarts).
-- `/readyz` (readiness): Returns 200 if the process can serve traffic. Checks database connectivity, cache availability, and critical dependencies. Returns 503 when degraded.
+- `/healthz` (liveness): Returns 200 if process is running. Minimal checks only (avoids cascading restarts).
+- `/readyz` (readiness): Returns 200 if process can serve traffic. Checks database connectivity, cache availability, and critical dependencies. Returns 503 when degraded.
 
 ```javascript
 app.get('/healthz', (req, res) => res.json({ status: 'alive' }));
@@ -73,7 +67,7 @@ app.get('/readyz', async (req, res) => {
 });
 ```
 
-**Why:** Liveness failures trigger container restarts; readiness failures remove the instance from the load balancer. Combining them into one endpoint causes unnecessary restarts when a dependency is temporarily unavailable.
+**Why:** Liveness failures → container restarts; readiness failures → remove instance from load balancer. Combining into one endpoint → unnecessary restarts when a dependency is temporarily unavailable.
 
 **Source:** Kubernetes probe best practices, deployment-patterns.md (Health Endpoint)
 
@@ -81,7 +75,7 @@ app.get('/readyz', async (req, res) => {
 
 ### MON-03 | HIGH | Error Alerting
 
-**Detect:** Errors are logged but no alerting or notification is configured. Team learns about outages from users instead of automated systems.
+**Detect:** Errors logged but no alerting or notification configured. Team learns about outages from users instead of automated systems.
 
 **Fix:** Integrate error tracking with a notification channel:
 
@@ -116,7 +110,7 @@ provider.register();
 registerInstrumentations({ instrumentations: [/* http, express, pg, etc. */] });
 ```
 
-**Why:** Without trace propagation, a single user request that touches 3 services generates 3 unconnected log streams. Tracing connects them into a single timeline, reducing debugging time from hours to minutes.
+**Why:** Without trace propagation, a single user request touching 3 services generates 3 unconnected log streams. Tracing connects them into a single timeline, reducing debugging time from hours to minutes.
 
 **Source:** OpenTelemetry specification, W3C Trace Context standard
 
@@ -124,7 +118,7 @@ registerInstrumentations({ instrumentations: [/* http, express, pg, etc. */] });
 
 ### MON-05 | MEDIUM | External Uptime Monitoring
 
-**Detect:** No external monitoring configured. Downtime detection relies on internal health checks (which fail when the entire host is unreachable) or user reports.
+**Detect:** No external monitoring configured. Downtime detection relies on internal health checks (which fail when entire host is unreachable) or user reports.
 
 **Fix:** Configure an external uptime service to check production endpoints at intervals of 5 minutes or less:
 
@@ -136,7 +130,7 @@ registerInstrumentations({ instrumentations: [/* http, express, pg, etc. */] });
 
 Alert on downtime sustained longer than 1 minute. Configure a status page for transparency with users.
 
-**Why:** Internal health checks cannot detect network-level, DNS, or full-host failures. External monitoring provides the user's perspective on availability.
+**Why:** Internal health checks cannot detect network-level, DNS, or full-host failures. External monitoring provides user's perspective on availability.
 
 **Source:** UptimeRobot, Better Stack, cost-optimization.md (Monitoring section)
 

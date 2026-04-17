@@ -55,7 +55,7 @@ Play Store requires AAB format and arm64-v8a support.
 ## Privacy & Compliance
 
 ### REL-09 [CRITICAL] Privacy Policy URL Verification
-Privacy policy must be a live, accessible URL with valid content.
+Privacy policy must be live, accessible URL with valid content.
 - **Detect:** No privacy policy URL found in project files, or URL returns error/placeholder content
 - **Fix:** Publish privacy policy. Add URL to store listings and in-app settings.
 - **Source:** App Store / Play Store requirement

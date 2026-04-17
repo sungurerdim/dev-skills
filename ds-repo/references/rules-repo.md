@@ -24,13 +24,13 @@ Default branch requires PR review and passing CI before merge. Prevents direct p
 - **Source:** GitHub branch protection documentation
 
 ### RPO-02 [HIGH] Squash Merge Default
-Squash merge produces clean linear history with one commit per PR. PR title becomes the commit message, enabling conventional commit tooling.
+Squash merge → clean linear history with one commit per PR. PR title becomes commit message, enabling conventional commit tooling.
 - **Detect:**
   - Merge commits as default merge strategy (noisy history)
   - Rebase merge as default (loses PR context)
   - Squash merge not using PR title as commit message
   - Mixed merge strategies across PRs
-- **Fix:** Set squash merge as default (or only) merge strategy. Configure commit title format to use PR title. This enables release-please, conventional-changelog, and semantic versioning from PR titles
+- **Fix:** Set squash merge as default (or only) merge strategy. Configure commit title format to use PR title. → release-please, conventional-changelog, and semantic versioning from PR titles
 - **Source:** release-please requirements, GitHub merge settings
 
 ### RPO-03 [MEDIUM] Delete Branch on Merge
@@ -43,7 +43,7 @@ Merged branches auto-deleted to prevent branch accumulation and stale reference 
 - **Source:** GitHub repository settings documentation
 
 ### RPO-04 [MEDIUM] CODEOWNERS
-Critical paths have defined owners. PRs touching owned paths automatically request review from the right people.
+Critical paths have defined owners. PRs touching owned paths automatically request review from right people.
 - **Detect:**
   - No CODEOWNERS file in .github/, docs/, or root
   - CODEOWNERS exists but does not cover critical paths (CI config, security, core modules)
@@ -56,12 +56,12 @@ Critical paths have defined owners. PRs touching owned paths automatically reque
 ## Hygiene
 
 ### RPO-05 [HIGH] README Quality
-README is the first thing visitors see. Structure for scannability and quick comprehension.
+README is first thing visitors see. Structure for scannability and quick comprehension.
 - **Detect:**
-  - README leads with a wall of badges
-  - Feature list before explaining what the project does
+  - README leads with wall of badges
+  - Feature list before explaining what project does
   - README exceeds 2000 words without clear structure
-  - No quick start section in the first screenful
+  - No quick start section in first screenful
   - Missing: one-liner description, proof/demo, install steps
 - **Fix:** Structure: hook sentence -> one-liner description -> proof (screenshot/demo/benchmark) -> quick start (install + run in <60 seconds) -> philosophy/why -> feature overview -> contributing. Front-load value; details go in docs/
 - **Impact:** READMEs with this structure receive 4x more engagement
@@ -86,10 +86,10 @@ SECURITY.md defines how to report vulnerabilities. Required for responsible disc
 - **Source:** GitHub security advisory documentation
 
 ### RPO-08 [LOW] Social Preview
-Repository has a custom social preview image. Improves appearance when shared on social media and in search results.
+Repository has custom social preview image. Improves appearance when shared on social media and in search results.
 - **Detect:**
   - No custom social preview set (Settings > Social preview)
-  - Preview image is the default GitHub avatar
+  - Preview image is default GitHub avatar
   - Image dimensions not 1280x640px (2:1 ratio)
-- **Fix:** Create a 1280x640px image with: project name, tagline or one-liner, visual identity (logo or icon). Upload via Settings > Social preview. Use readable font sizes and high contrast for legibility at small sizes
+- **Fix:** Create 1280x640px image with: project name, tagline or one-liner, visual identity (logo or icon). Upload via Settings > Social preview. Use readable font sizes and high contrast for legibility at small sizes
 - **Source:** GitHub documentation on social preview images

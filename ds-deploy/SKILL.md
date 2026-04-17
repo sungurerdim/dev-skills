@@ -14,7 +14,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 ## Contract
 
 - Covers deployment, infrastructure hardening, monitoring, and incident response
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates configuration files and checklists — does NOT execute deployment commands
 - **Minimal liability:** generates configs for review, never auto-deploys to production
@@ -83,11 +83,9 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 1: Setup
 
-**Goal:** Determine mode and deployment context.
-
 1. **IDU:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
-2. If flags provided, proceed directly
-3. If no flags, present interactive menu
+2. Flags provided → proceed directly
+3. No flags → present interactive menu
 4. Detect deployment signals: Dockerfile, docker-compose.yml, Procfile, serverless.yml, fly.toml, vercel.json
 5. Detect target: VPS, PaaS, serverless, container orchestration
 
@@ -95,9 +93,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 2: Discover
 
-**Goal:** Map existing infrastructure.
-
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use relevant findings
+1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → use relevant findings
 2. Search for deployment configs (Dockerfile, compose, CI deploy steps)
 3. Search for monitoring configs (Sentry DSN, logging config, health endpoints)
 4. Search for environment variables and secrets management
@@ -107,7 +103,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 3: Analyze [--audit, --checklist]
 
-**Goal:** Identify infrastructure issues. Apply rules from [references/rules-deployment.md](references/rules-deployment.md) (container security, deployment patterns) and [references/rules-monitoring.md](references/rules-monitoring.md) (observability, alerting).
+Apply rules from [references/rules-deployment.md](references/rules-deployment.md) (container security, deployment patterns) and [references/rules-monitoring.md](references/rules-monitoring.md) (observability, alerting).
 
 **Dockerfile audit:**
 1. Check base image (use specific tags, not `latest`)
@@ -140,8 +136,6 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 4: Generate [--generate]
 
-**Goal:** Create deployment configuration files.
-
 1. **Dockerfile:** Multi-stage, non-root, optimized layers, health check
 2. **docker-compose.yml:** Services, networking, volumes, health checks, restart policies
 3. **Reverse proxy config:** SSL termination, security headers, rate limiting
@@ -154,8 +148,6 @@ Present generated files for review before writing.
 
 ### Phase 5: Monitor Setup [--monitor]
 
-**Goal:** Configure observability stack.
-
 1. Generate structured logging configuration (JSON format, log levels)
 2. Generate crash reporting setup with PII redaction rules
 3. Generate health check endpoint implementation
@@ -165,8 +157,6 @@ Present generated files for review before writing.
 **Gate:** Monitoring configs are valid and PII redaction is configured.
 
 ### Phase 6: Incident Response [--incident]
-
-**Goal:** Define incident response procedure.
 
 1. Generate incident severity classification (P1-P4)
 2. Generate detection → triage → mitigate → communicate → post-mortem procedure
@@ -187,7 +177,7 @@ Present generated files for review before writing.
 ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | Findings: N | Generated: N | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-If `--auto` was used, append to summary: `⚠ Generated without interactive review`.
+`--auto` used → append to summary: `⚠ Generated without interactive review`.
 
 **Gate:** Summary printed with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
 

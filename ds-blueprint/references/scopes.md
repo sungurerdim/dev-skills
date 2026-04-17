@@ -1,6 +1,6 @@
 # Blueprint Scopes
 
-Blueprint uses these scopes for signal counting and scoring. For each scope, blueprint searches the codebase for the patterns described and counts matches. The detailed pattern definitions are in the SKILL.md Phase 3 assessment table.
+Blueprint uses these scopes for signal counting and scoring. Per scope, blueprint searches codebase for described patterns and counts matches. Detailed pattern definitions in SKILL.md Phase 3 assessment table.
 
 All analysis scopes used by /blueprint across 5 assessment tracks.
 

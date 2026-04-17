@@ -1,6 +1,6 @@
 # /ds-pr
 
-PR descriptions that list every commit instead of the net change create noise, confuse reviewers, and break changelogs. This skill describes what the diff actually shows.
+PR descriptions that list every commit instead of net change create noise, confuse reviewers, and break changelogs. This skill describes what the diff actually shows.
 
 **Smart Pull Requests** — Conventional commit title + clean body for release-please.
 
@@ -9,18 +9,18 @@ PR descriptions that list every commit instead of the net change create noise, c
 - User runs `/ds-pr`
 - User asks to create a pull request, open a PR, or prepare changes for merge
 - User says "create PR", "open PR", or "submit for review"
-- After a successful commit, suggest PR creation if on a feature branch
+- After successful commit, suggest PR creation if on a feature branch
 
 ## Contract
 
-**The PR describes the net diff between main and HEAD — nothing else.** Not the journey of individual commits, not session decisions, not what was tried and reverted. If commit A added something and commit B removed it, the net effect is zero — do not mention it.
+**PR describes net diff between main and HEAD — nothing else.** Not journey of individual commits, not session decisions, not what was tried and reverted. If commit A added something and commit B removed it, net effect is zero — do not mention it.
 
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
-- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses toolchain info to skip detection. When absent, runs own complete detection with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
-**Pipeline:** `PR title → squash merge on main → release-please reads title → changelog + version bump`. The PR title IS the changelog entry. The PR body becomes the squash commit body. Everything must be accurate and minimal.
+**Pipeline:** `PR title → squash merge on main → release-please reads title → changelog + version bump`. PR title IS changelog entry. PR body becomes squash commit body. Everything must be accurate and minimal.
 
 ## Arguments
 
@@ -38,7 +38,7 @@ Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Cre
 
 ### Phase 1: Validate
 
-**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, note relevant findings for PR body context. If stale, ignore.
+**Findings file check:** `.ds-findings.md` with fresh `git_hash` → note relevant findings for PR body context. Stale → ignore.
 
 **IDU:** Profile → {Project Map.Toolchain, Type + Stack}. Findings({pr}) → verify + use. Absent → own analysis.
 
@@ -57,20 +57,20 @@ Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Cre
 
 If >3 unpushed commits, offer to tidy: squash into logical commits based on net diff.
 
-- Ask the user: Tidy (recommended) or Keep as-is (--auto: tidy silently)
+- Ask user: Tidy (recommended) or Keep as-is (--auto: tidy silently)
 - Execute: `git reset --mixed origin/{base}`, stage and commit per plan
 - On failure: `git reset --hard $ORIG_HEAD`
 - Push: `git push -u origin {branch}`
 
-**Gate:** Commits are tidied (or skipped) and pushed to remote.
+**Gate:** Commits tidied (or skipped) and pushed to remote.
 
 ### Phase 2: Quality Gates (entire project)
 
-Run format, lint, and test across the entire project. Auto-fix all fixable issues. Detect toolchain from config files. Skip silently if tool unavailable.
+Run format, lint, and test across entire project. Auto-fix all fixable issues. Detect toolchain from config files. Skip silently if tool unavailable.
 
 Run in order (stop on failure): Format -> Lint -> Test.
-If format/lint changed files -> commit as `chore: format and lint fixes`.
-If tests fail -> stop. Only create PR when all tests pass.
+Format/lint changed files → commit as `chore: format and lint fixes`.
+Tests fail → stop. Only create PR when all tests pass.
 
 **Gate:** Format, lint, and tests all pass. No uncommitted fixes remain.
 
@@ -78,7 +78,7 @@ If tests fail -> stop. Only create PR when all tests pass.
 
 `git diff {base}...HEAD` is THE source of truth. PR quality rules: [references/rules-pr.md](references/rules-pr.md).
 
-**Net diff principle:** The PR describes the final state difference, not the development journey.
+**Net diff principle:** PR describes final state difference, not development journey.
 
 **Type classification:**
 1. Scan commit titles for initial signal
@@ -104,7 +104,7 @@ Display: branch, title, body preview, version annotation.
 
 Effects: `feat` → minor bump, `fix` → patch bump, `feat!`/`fix!` → major bump, anything else → no bump.
 
-Ask the user:
+Ask user:
 
 - **Create + Auto-merge** (recommended) — squash + delete branch when checks pass
 - **Create PR only** — merge manually later
@@ -117,7 +117,7 @@ Ask the user:
 
 `gh pr create --title "{title}" --body "{body}" [--draft]`
 
-**Gate:** PR created successfully. `gh pr create` returned a PR URL.
+**Gate:** PR created successfully. `gh pr create` returned PR URL.
 
 ### Phase 6: Merge Setup (default, skip if --no-auto-merge, --draft, or manual)
 
@@ -134,7 +134,7 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 
 1. Detect local merged branches: `git branch --merged {base}` (exclude base and current)
 2. Detect remote merged branches: `git branch -r --merged origin/{base}` (exclude base and HEAD)
-3. Combine results. If merged branches found:
+3. Combine results. Merged branches found:
    - Ask: Delete all (recommended) / Skip (--auto: delete all silently)
    - Delete local: `git branch -d {branch}`. Delete remote-only: `git push origin --delete {branch}`. On error: warn and continue.
 
@@ -157,9 +157,9 @@ PR URL, title, type -> bump effect, auto-merge status.
 
 ## Quality Gates
 
-- PR description describes the net diff — not the journey of individual commits
-- Every quality gate check (format, lint, test) gets a disposition in the summary (FRC)
-- Conventional commit type on PR title matches the net diff classification
+- PR description describes net diff — not journey of individual commits
+- Every quality gate check (format, lint, test) gets a disposition in summary (FRC)
+- Conventional commit type on PR title matches net diff classification
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery

@@ -1,15 +1,9 @@
 # Rules: Deployment & Containerization
 
-Rules for audit/generate/checklist modes. Each rule: ID, severity, detect pattern, fix action, source.
-
-## Table of Contents
-
-| Section | Rules | Line |
-|---------|-------|------|
-| **Container Security** | DEP-01 to DEP-05 (2 CRITICAL, 3 HIGH) | ~12 |
-| **Deployment Patterns** | DEP-06 to DEP-10 (1 HIGH, 2 MEDIUM, 2 LOW) | ~75 |
-
----
+| Section | Rules |
+|---------|-------|
+| **Container Security** | DEP-01 to DEP-05 (2 CRITICAL, 3 HIGH) |
+| **Deployment Patterns** | DEP-06 to DEP-10 (1 HIGH, 2 MEDIUM, 2 LOW) |
 
 ## Container Security
 
@@ -24,7 +18,7 @@ RUN --mount=type=secret,id=npm_token \
     NPM_TOKEN=$(cat /run/secrets/npm_token) npm ci
 ```
 
-**Why:** Secrets in images persist in every layer and every registry. A single leaked image exposes all credentials.
+**Why:** Secrets in images persist in every layer and every registry. Single leaked image exposes all credentials.
 
 **Source:** Docker security best practices, OWASP Docker Security Cheat Sheet
 
@@ -49,7 +43,7 @@ app.example.com { reverse_proxy localhost:3000 }
 
 ### DEP-03 | HIGH | Multi-Stage Build
 
-**Detect:** Single-stage Dockerfile with build tools (compilers, dev dependencies, source code) present in the final image.
+**Detect:** Single-stage Dockerfile with build tools (compilers, dev dependencies, source code) present in final image.
 
 **Fix:** Use multi-stage builds: `FROM builder` stage compiles, `FROM runtime` stage copies only production artifacts.
 
@@ -66,7 +60,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 ```
 
-**Why:** Reduces image size 60-90%, shrinks attack surface by excluding build tools, and speeds up pulls and deploys.
+**Why:** Reduces image size 60-90%, shrinks attack surface by excluding build tools, speeds up pulls and deploys.
 
 **Source:** Docker multi-stage build docs, deployment-patterns.md
 
@@ -74,7 +68,7 @@ COPY --from=builder /app/node_modules ./node_modules
 
 ### DEP-04 | HIGH | Health Check Endpoint
 
-**Detect:** No `HEALTHCHECK` instruction in Dockerfile, no `/health` or `/healthz` endpoint in the application.
+**Detect:** No `HEALTHCHECK` instruction in Dockerfile, no `/health` or `/healthz` endpoint in application.
 
 **Fix:** Add `/health` returning 200 with dependency checks (DB, cache), 503 when degraded. Add `HEALTHCHECK` in Dockerfile.
 
@@ -95,11 +89,9 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Fix:** `RUN addgroup -S app && adduser -S app -G app` then `USER app` before `CMD`.
 
-**Why:** A compromised root container gives attackers root-level filesystem access and potential host escape via privilege escalation.
+**Why:** Compromised root container gives attackers root-level filesystem access and potential host escape via privilege escalation.
 
 **Source:** CIS Docker Benchmark, Docker security best practices
-
----
 
 ## Deployment Patterns
 
@@ -109,7 +101,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Fix:** Create `.dockerignore`: `.git`, `node_modules`, `*.md`, `.env*`, `.vscode`, `coverage`, `tests`, `__pycache__`, `.idea`, `dist`, `build`.
 
-**Why:** Without `.dockerignore`, the build context includes everything (`.git` alone can be hundreds of MB). Reduces build time, image size, and secret leakage risk.
+**Why:** Without `.dockerignore`, build context includes everything (`.git` alone can be hundreds of MB). Reduces build time, image size, and secret leakage risk.
 
 **Source:** Docker build context optimization, deployment-patterns.md
 
@@ -117,7 +109,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 ### DEP-07 | MEDIUM | Zero-Downtime Deployment
 
-**Detect:** Deploying causes brief 502/503 errors because the old container stops before the new one is ready.
+**Detect:** Deploying causes brief 502/503 errors because old container stops before new one is ready.
 
 **Fix:** Use rolling updates (health check gates traffic), blue-green (two compose files, switch proxy after health check), or canary (route percentage to new version). Blue-green = instant rollback; rolling = simplest; canary = safest for large changes.
 
@@ -133,7 +125,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Fix:** Set `deploy.resources.limits` in compose (`memory: 512M`, `cpus: "1.0"`) or equivalent in Kubernetes.
 
-**Why:** A single runaway process without limits can consume all host resources and crash co-located services.
+**Why:** Single runaway process without limits can consume all host resources and crash co-located services.
 
 **Source:** Kubernetes resource management, deployment-patterns.md (Docker Compose section)
 
@@ -141,7 +133,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 ### DEP-09 | LOW | Dockerfile Layer Optimization
 
-**Detect:** `COPY . .` appears before dependency installation, busting the cache on every code change.
+**Detect:** `COPY . .` appears before dependency installation, busting cache on every code change.
 
 **Fix:** Copy dependency manifests first, install, then copy application code:
 
@@ -161,8 +153,8 @@ COPY . .                                  # source code (changes frequently)
 
 **Detect:** No `docker-compose.yml` for local development, or local setup diverges significantly from production.
 
-**Fix:** Provide `docker-compose.yml` mirroring production: same services, named volumes, networks, env files. New contributors run `docker compose up` for the full stack.
+**Fix:** Provide `docker-compose.yml` mirroring production: same services, named volumes, networks, env files. New contributors run `docker compose up` for full stack.
 
-**Why:** Dev/prod parity catches environment-specific bugs early. New contributors can run the full stack with a single command.
+**Why:** Dev/prod parity catches environment-specific bugs early. New contributors can run full stack with single command.
 
 **Source:** Docker Compose docs, deployment-patterns.md (Docker Compose for Production)

@@ -14,7 +14,7 @@ Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern
 ## Component Quality
 
 ### CMP-01 [HIGH] Component API Consistency
-Props/parameters follow a consistent naming convention, are typed, and have sensible defaults.
+Props/parameters follow consistent naming convention, are typed, and have sensible defaults.
 - **Detect:** Search for component definitions. Compare prop/parameter names across components:
   - Inconsistent boolean naming: `isVisible` vs `visible` vs `show` vs `hidden`
   - Inconsistent callback naming: `onClick` vs `handleClick` vs `onPress` vs `onTap`
@@ -71,7 +71,7 @@ Errors displayed with recovery action, plain language, and multi-signal feedback
 
 ### CMP-06 [MEDIUM] Component Composition
 Complex components use composition pattern (children/slots/compound) instead of deep prop drilling.
-- **Detect:** Components with >7 props, especially when many props are passed through to child components unchanged. Deeply nested prop passing (3+ levels).
+- **Detect:** Components with >7 props, especially when many props passed through to child components unchanged. Deeply nested prop passing (3+ levels).
 - **Fix:** Refactor to composition pattern:
   - React: compound components with React.Children or context
   - Vue: slots (default + named)
@@ -117,7 +117,7 @@ Transitions use 200-500ms duration with consistent easing per interaction type.
   - Linear easing on UI transitions (feels mechanical)
   - Inconsistent duration for same interaction type (e.g., all modals should use same timing)
 - **Fix:** Apply consistent timing: micro-interactions 200ms, standard transitions 300ms, complex animations 500ms. Use ease-out for entrances, ease-in for exits, ease-in-out for state changes.
-- **Impact:** Wrong timing breaks the illusion of responsiveness. Too fast = jarring. Too slow = sluggish. Inconsistent = unprofessional.
+- **Impact:** Wrong timing breaks illusion of responsiveness. Too fast = jarring. Too slow = sluggish. Inconsistent = unprofessional.
 - **Source:** Material Design Motion, Apple HIG Animation
 
 ### INT-02 [MEDIUM] Immediate Action Feedback
@@ -128,17 +128,17 @@ Every user action receives visual feedback within 100ms.
   - Form inputs without focus ring
   - Toggle switches without transition
 - **Fix:** Add immediate visual feedback: scale change, color shift, opacity change, or elevation change on interaction. Response must be <100ms (below human perception threshold for "instant").
-- **Impact:** Without immediate feedback, users double-click, retry, or abandon. The 100ms threshold is a well-established UX constant.
+- **Impact:** Without immediate feedback, users double-click, retry, or abandon. 100ms threshold is well-established UX constant.
 - **Source:** Jakob Nielsen Response Time Limits, Material Design State Feedback
 
 ### INT-03 [LOW] Micro-interaction Consistency
-Same interaction type produces same animation parameters across the entire application.
+Same interaction type produces same animation parameters across entire application.
 - **Detect:** Compare animation parameters for same interaction types:
   - All page transitions use same duration/easing?
   - All dropdown menus use same open/close animation?
   - All toast notifications use same enter/exit?
 - **Fix:** Define interaction pattern library: page transition, reveal, dismiss, feedback. Each pattern = one set of duration + easing + properties.
-- **Impact:** Inconsistent micro-interactions make the product feel like a collection of parts rather than a cohesive experience.
+- **Impact:** Inconsistent micro-interactions make product feel like a collection of parts rather than a cohesive experience.
 - **Source:** Material Design Motion Patterns
 
 ### INT-04 [LOW] Compositor-Only Animation
@@ -148,5 +148,5 @@ Animations target transform and opacity (GPU-composited) instead of layout-trigg
   - Flutter: Use Transform widget, not AnimatedContainer for size changes during animation
   - Web: animate transform/opacity only; use will-change hint
   - Mobile: use platform GPU animation APIs (React Native: useNativeDriver: true)
-- **Impact:** Layout-triggering animations cause jank (dropped frames). Compositor-only animations run on GPU at 60fps+.
+- **Impact:** Layout-triggering animations → jank (dropped frames). Compositor-only animations run on GPU at 60fps+.
 - **Source:** Google Web Fundamentals Rendering Performance, CSS Triggers

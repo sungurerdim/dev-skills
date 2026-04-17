@@ -13,22 +13,22 @@ Rules for experiment design, metric selection, and result validation. Each rule:
 ## Experiment Design
 
 ### OPT-01 [HIGH] Single Metric
-Each experiment optimizes exactly one measurable metric. Secondary metrics are tracked but not optimized.
+Each experiment optimizes exactly one measurable metric. Secondary metrics tracked but not optimized.
 - **Detect:**
   - Experiment changes multiple variables simultaneously
   - No clear success metric defined before starting
   - Success criteria described qualitatively ("make it better") instead of quantitatively
-  - Multiple metrics optimized in the same experiment, making attribution impossible
-- **Fix:** Define the primary metric before starting the experiment. State: metric name, current value, target value, measurement method. Track secondary metrics as guardrails (they should not regress) but optimize only one
+  - Multiple metrics optimized in same experiment, making attribution impossible
+- **Fix:** Define primary metric before starting experiment. State: metric name, current value, target value, measurement method. Track secondary metrics as guardrails (they should not regress) but optimize only one
 - **Source:** Karpathy autoresearch pattern, A/B testing fundamentals
 
 ### OPT-02 [HIGH] Baseline Measurement
-Record baseline before any experiment. Without a baseline, improvement cannot be measured.
+Record baseline before any experiment. Without baseline, improvement cannot be measured.
 - **Detect:**
   - Experiment started without recording current metric value
   - Baseline measured with different methodology than post-experiment measurement
   - Baseline not tied to a specific commit hash or reproducible state
-- **Fix:** Before any change: run evaluation on current state. Record: metric value, timestamp, commit hash, environment details, measurement command. The baseline must be reproducible — anyone can check out the commit and reproduce the number
+- **Fix:** Before any change: run evaluation on current state. Record: metric value, timestamp, commit hash, environment details, measurement command. Baseline must be reproducible — anyone can check out the commit and reproduce the number
 - **Source:** Scientific method, experiment design principles
 
 ### OPT-03 [MEDIUM] Isolation
@@ -41,12 +41,12 @@ Each experiment changes exactly one variable. Multi-variable changes make it imp
 - **Source:** Experiment design principles, controlled experiments
 
 ### OPT-04 [MEDIUM] Rollback Safety
-Every experiment can be fully reverted to the pre-experiment state within minutes.
+Every experiment can be fully reverted to pre-experiment state within minutes.
 - **Detect:**
   - Experiment applied directly on main branch without a branch
   - Experiment modifies shared state (database schema, external config) without backup
   - No documented rollback procedure
-  - Experiment branch has been deleted before results were recorded
+  - Experiment branch deleted before results were recorded
 - **Fix:** One branch per experiment. Rollback = revert the branch merge or delete the branch. For infrastructure experiments: snapshot before, document restore procedure. Never experiment on production data without a rollback plan
 - **Source:** Git workflow best practices, feature flag patterns
 

@@ -63,7 +63,7 @@ All subscriptions, connections, and resources properly cleaned up.
   - Go: goroutine leaks (no context cancellation), unclosed channels, deferred close missing
   - Web: `addEventListener` without `removeEventListener`, `setInterval` without `clearInterval` in components
 - **Fix:** Use cleanup patterns: `finally` blocks, `with` statements (Python), `defer` (Go), cleanup functions in useEffect (React). Monitor with heap snapshots. Use connection pooling with max limits
-- **Impact:** Memory leaks cause OOM crashes, degraded performance, and increased infrastructure costs
+- **Impact:** Memory leaks → OOM crashes, degraded performance, increased infrastructure costs
 - **Source:** Node.js Memory Leak Debugging Guide, Python gc Module, Go pprof, Chrome DevTools Heap Snapshot
 
 ### PRF-07 [MAJOR] Resource Optimization

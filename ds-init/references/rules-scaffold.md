@@ -29,7 +29,7 @@ Project follows platform-conventional directory structure. Reviewers and tools e
 - **Source:** Platform project templates, official documentation
 
 ### SCF-02 [HIGH] CI From Day One
-CI pipeline configured in the initial commit. Catches issues before they accumulate.
+CI pipeline configured in initial commit. Catches issues before they accumulate.
 - **Detect:**
   - No .github/workflows/, .gitlab-ci.yml, or equivalent CI config
   - CI config exists but does not run on pull requests
@@ -55,7 +55,7 @@ OS artifacts, IDE files, build outputs, and dependency directories excluded from
   - No .gitignore file
   - Missing entries for: OS files (.DS_Store, Thumbs.db), IDE (.idea/, .vscode/), dependencies (node_modules/, venv/), build output (dist/, build/, *.pyc)
   - Generated files tracked in git
-- **Fix:** Use gitignore.io or github/gitignore templates for the project stack. Combine OS + IDE + language + framework ignores. Verify with `git status` that no generated files are tracked
+- **Fix:** Use gitignore.io or github/gitignore templates for project stack. Combine OS + IDE + language + framework ignores. Verify with `git status` that no generated files are tracked
 - **Source:** github/gitignore repository
 
 ---
@@ -63,12 +63,12 @@ OS artifacts, IDE files, build outputs, and dependency directories excluded from
 ## Configuration
 
 ### SCF-05 [HIGH] Dependency Lock
-Lockfile committed from first install. Ensures reproducible builds across environments.
+Lockfile committed from first install. → reproducible builds across environments.
 - **Detect:**
   - Lockfile listed in .gitignore
   - Lockfile missing from repository
   - Lockfile not updated after dependency changes
-- **Fix:** Commit the appropriate lockfile:
+- **Fix:** Commit appropriate lockfile:
   - **npm:** package-lock.json
   - **yarn:** yarn.lock
   - **pnpm:** pnpm-lock.yaml

@@ -4,7 +4,7 @@ Two-step detection: identify stack from manifests, then determine project type f
 
 ## Instruction Files
 
-AI instruction files where the Blueprint Profile is written. Check in order, use the first match:
+AI instruction files where the Blueprint Profile is written. Check in order, use first match:
 
 | File | Tool |
 |------|------|
@@ -15,7 +15,7 @@ AI instruction files where the Blueprint Profile is written. Check in order, use
 | `.windsurfrules` | Windsurf |
 | `.aider.conf.yml` | Aider |
 
-If none found: ask the user which tool they use, then create the appropriate file.
+None found: ask user which tool they use, then create appropriate file.
 
 ## Step 1: Stack Detection
 
@@ -41,7 +41,7 @@ Scan project root for manifest files. Multiple may coexist.
 
 ## Step 2: Project Type from Secondary Signals
 
-Once the stack is identified, use framework dependencies, config files, and directory structure to determine the project type.
+Once stack identified, use framework dependencies, config files, and directory structure to determine project type.
 
 ### Node (`package.json`)
 
@@ -186,7 +186,7 @@ Always **iac**.
 
 ## Step 3: Supplementary Stack Detection
 
-These coexist with the primary stack. Detect but do not use for project type classification.
+These coexist with primary stack. Detect but do not use for project type classification.
 
 | File | Supplementary Stack | Action |
 |------|---------------------|--------|
@@ -202,7 +202,7 @@ These coexist with the primary stack. Detect but do not use for project type cla
 
 | Scenario | Resolution |
 |----------|------------|
-| Multiple primary stacks (e.g., `package.json` + `pyproject.toml`) | Monorepo if workspace config exists. Otherwise, determine primary by source file count — the stack with more source files is primary. |
+| Multiple primary stacks (e.g., `package.json` + `pyproject.toml`) | Monorepo if workspace config exists. Otherwise, determine primary by source file count — stack with more source files is primary. |
 | Framework ambiguity (e.g., Rails could be web or api) | Check for view templates (`app/views/`, `templates/`). Present → **web**. Absent → **api**. |
 | Multiple types match (e.g., cli + library) | Use disambiguation priority: monorepo > mobile > desktop > web > api > cli > library > devtool |
-| `Makefile` present — is it C/C++ or just a task runner? | Check if `Makefile` references `gcc`, `g++`, `clang`, `$(CC)`, or `$(CXX)`. Also check for `.c`/`.cpp`/`.h` source files. Both present → c-cpp. Otherwise → supplementary build tool. |
+| `Makefile` present — is it C/C++ or just task runner? | Check if `Makefile` references `gcc`, `g++`, `clang`, `$(CC)`, or `$(CXX)`. Also check for `.c`/`.cpp`/`.h` source files. Both present → c-cpp. Otherwise → supplementary build tool. |

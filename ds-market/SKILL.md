@@ -1,6 +1,6 @@
 # /ds-market
 
-Solo developers build great products but can't get anyone to notice. This skill generates the positioning, copy, and growth playbook to change that.
+Solo developers build great products but can't get anyone to notice. This skill generates positioning, copy, and growth playbook to change that.
 
 **Marketing & Growth** — Positioning, copy generation, and growth tactics for indie and solo-dev products.
 
@@ -14,10 +14,9 @@ Solo developers build great products but can't get anyone to notice. This skill 
 ## Contract
 
 - Strategic guidance skill — produces plans, copy, and checklists, not code
-- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses project type, audience, and stack to tailor marketing strategy. When absent, asks user for context.
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; asks user for context when absent.
 - FRC+DSC enforced.
-- Every deliverable (strategy, copy, checklist) is accounted for in the summary — zero silent drops
+- Every deliverable (strategy, copy, checklist) accounted for in summary — zero silent drops
 - **Minimal liability:** recommends established marketing patterns, no dark patterns
 - **Maximum privacy:** no invasive tracking recommendations, no manipulative UX
 - **Maximum efficiency:** automation-first tactics, time-efficient for solo devs
@@ -32,7 +31,7 @@ Solo developers build great products but can't get anyone to notice. This skill 
 | `--growth` | Growth tactics: referral, organic, community, content |
 | `--auto` | Run strategy + copy + growth sequentially |
 
-Without flags: present interactive mode selection.
+No flags → present interactive mode selection.
 
 ## Scopes
 
@@ -111,42 +110,28 @@ Setup → Research → Generate → Review → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
-**Goal:** Understand the product and market.
-
 **IDU:** Profile → Config.audience, Type + Stack. Findings() → verify + use. Absent → own analysis.
 
-1. If flags provided, proceed directly
-2. If no flags, present interactive menu
-3. Gather context:
-   - What does the app do? (read README, project description)
-   - What platform? (mobile, web, desktop)
-   - What stage? (pre-launch, just launched, growing)
-   - Who is the target user?
-   - What is the monetization model?
-4. If context is insufficient, ask user for: one-line description, target audience, top 3 competitors
+1. Flags provided → proceed directly; otherwise present interactive menu.
+2. Gather context: what app does (read README), platform, stage, target user, monetization model.
+3. If insufficient, ask for: one-line description, target audience, top 3 competitors.
 
 **Gate:** Product context sufficient to generate relevant strategy.
 
 ### Phase 2: Research [--strategy]
 
-**Goal:** Analyze market and competition.
-
-1. Identify 3-5 direct competitors from user input or web search
-2. Analyze competitor positioning: taglines, feature emphasis, pricing
-3. Identify differentiation opportunities
+Identify 3-5 direct competitors, analyze positioning (taglines, features, pricing), identify differentiation opportunities.
 
 **Gate:** Competitive landscape understood.
 
 ### Phase 3: Generate
 
-**Goal:** Produce marketing artifacts.
-
 **Strategy mode:**
-1. Generate positioning statement using the best-fit template:
+1. Generate positioning statement using best-fit template:
    - **Standard:** "For {audience} who {need}, {APP_NAME} is {category} that {key benefit}. Unlike {alternative}, {APP_NAME} {differentiator}."
    - **Contrarian:** "{APP_NAME} exists because {status quo} is broken. {One sentence on what it does differently}."
    - **Philosophy-first:** "We believe {sharp belief}. {APP_NAME} is built around that — {how belief shapes the product}."
-   Pick the template that matches the product's strongest angle: standard for B2B/enterprise, contrarian for developer tools, philosophy-first for opinionated products.
+   Pick template that matches product's strongest angle: standard for B2B/enterprise, contrarian for developer tools, philosophy-first for opinionated products.
 2. Generate user persona (1-2 personas)
 3. Generate channel strategy with priorities (high/medium/low effort vs impact)
 4. Generate timeline: pre-launch (4 weeks) → launch day → week 1 → month 1
@@ -154,7 +139,7 @@ Setup → Research → Generate → Review → [Needs-Approval] → Summary
 
 **Copy mode:**
 1. Generate 5 tagline options using formulas from [references/copy-and-growth-playbook.md](references/copy-and-growth-playbook.md) (min 1 contrarian hook + 1 metric proof)
-2. Generate store descriptions (short + long) as **drafts** — first sentence must be pain-first or outcome-first, never feature-first. Output files are marked as `[DRAFT]` in their header — a separate finalization pass produces the store-ready versions.
+2. Generate store descriptions (short + long) as **drafts** — first sentence must be pain-first or outcome-first, never feature-first. Output files marked as `[DRAFT]` in header — separate finalization pass produces store-ready versions.
 3. Generate 5 social media posts per platform
 4. Generate landing page copy: hero + proof layer (demo video/GIF/metric) + philosophy (3-5 sharp beliefs) + features + social proof + CTA
 5. Generate press kit content
@@ -170,12 +155,7 @@ Setup → Research → Generate → Review → [Needs-Approval] → Summary
 
 ### Phase 4: Review
 
-**Goal:** Quality check generated content.
-
-1. Verify copy is accurate (no false claims about features)
-2. Verify no dark patterns (manipulative urgency, hidden costs, confusing opt-outs)
-3. Verify accessibility (alt text suggestions for images, readable contrast)
-4. Verify all store listing content meets platform character limits
+Verify: no false feature claims, no dark patterns (manipulative urgency, hidden costs), accessibility (alt text, contrast), all store listing content within character limits.
 
 **Gate:** All content passes review.
 
@@ -204,11 +184,11 @@ Next steps:
 
 ## Quality Gates
 
-- No false claims about features the app doesn't have
+- No false claims about features app doesn't have
 - No dark patterns: no fake urgency, hidden costs, or manipulative copy
 - All store listing text within platform character limits
 - Budget recommendations start from $0 (free tactics first)
-- Growth tactics are ethical and privacy-respecting
+- Growth tactics ethical and privacy-respecting
 - All generated copy passes Voice Rules: zero forbidden words, pain-first or contrarian opening, no feature-first descriptions
 - Every tagline set includes at least 1 contrarian hook and 1 metric-proof option
 - Store descriptions open with pain/outcome, never feature list

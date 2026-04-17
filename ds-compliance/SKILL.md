@@ -1,6 +1,6 @@
 # /ds-compliance
 
-A single missing privacy policy or an unpatched XSS can mean fines, data breaches, or store rejection. This skill audits 80+ rules across 8 compliance domains with file:line precision.
+Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 80+ rules across 8 compliance domains with file:line precision.
 
 **Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and internationalization.
 
@@ -20,7 +20,7 @@ Covers 80+ rules across 8 compliance domains.
 - Every finding cites file and line — never infer or assume
 - Unverifiable rules are skipped, not guessed
 - Only audits compliance — code fixes are CAT-1 (auto) or CAT-2 (user approval)
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -60,12 +60,12 @@ Detect -> Configure -> Scan -> Report -> [Fix] -> [Needs-Approval] -> Summary
 
 3. **Stack detection.** Identify framework, language, architecture pattern, auth, database, ORM, API style, testing, CI/CD, i18n, deployment.
 
-4. **Mode selection.** If no `--mode` flag, ask the user:
+4. **Mode selection.** No `--mode` flag → ask user:
    - **Audit Only** — scan all domains, report only
    - **Audit & Fix** — scan, review findings, then fix
    - **Quick Fix** — scan and auto-fix, minimal review
 
-5. **Scope selection.** If no `--scope` flag, ask which domains to audit (default: all applicable).
+5. **Scope selection.** No `--scope` flag → ask which domains to audit (default: all applicable).
    - For regulatory scope: detect frameworks (GDPR, KVKK, CCPA, etc.) from codebase patterns, confirm with user
 
 **Gate:** Project type identified, mode and scope confirmed, regulatory frameworks resolved.
@@ -102,7 +102,7 @@ Load reference files matching scope:
 
 ### Phase 4: Scan
 
-For each domain in scope, scan the codebase:
+Per domain in scope, scan codebase:
 
 1. Search for relevant files
 2. Search contents for violation patterns
@@ -113,7 +113,7 @@ For each domain in scope, scan the codebase:
 
 **False positive prevention:** Check surrounding context. Never flag: `// noqa`, `// intentional`, `// safe:`, `_` prefix, `TYPE_CHECKING` blocks, test fixtures.
 
-**Large scope (3+ domains):** Track progress with a numbered checklist. Append findings to `.ds-findings.md` in project root (add to .gitignore) — if the file exists with a fresh `git_hash`, preserve findings from other scopes and append only your own. After each domain scan, append findings. This enables recovery if context is lost.
+**Large scope (3+ domains):** Track progress with numbered checklist. Append findings to `.ds-findings.md` in project root (add to .gitignore) — file exists with fresh `git_hash` → preserve findings from other scopes and append only your own. After each domain scan, append findings. Enables recovery if context is lost.
 
 **Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
 
@@ -143,7 +143,7 @@ Architecture: [detected summary]
 
 ### Phase 6: Fix (skip if audit-only)
 
-**Overwrite prevention:** Before generating or modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if the target file already exists. If it does, do NOT overwrite — instead show a diff between the existing content and the proposed changes, and ask the user: "Update existing / Keep existing / Show diff".
+**Overwrite prevention:** Before generating or modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if target file already exists. Exists → do NOT overwrite — show diff between existing content and proposed changes, ask user: "Update existing / Keep existing / Show diff".
 
 1. Present fix plan grouped by category (CAT-1 auto-fixable, CAT-2 pre-approved)
 2. Confirmation:
@@ -194,4 +194,3 @@ FRC+DSC accounting.
 | No source code files | Report empty scan, suggest checking path |
 | Mixed project types | Detect all types, apply union of applicable rules |
 | Generated code only | Skip generated files, warn if no scannable code remains |
-

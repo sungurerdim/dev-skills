@@ -13,14 +13,14 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 
 ## Contract
 
-- Runs automated fixers in a safe, deterministic order: l10n → format → typecheck → lint → security
+- Runs automated fixers in safe, deterministic order: l10n → format → typecheck → lint → security
 - Format always runs before lint so auto-formatting does not introduce new lint issues
 - Only reports findings in `--check` mode — zero file modifications
-- Missing tools are skipped with a warning — never fails due to absent optional tooling
-- Re-validates after fix to confirm the fix worked
+- Missing tools skipped with a warning — never fails due to absent optional tooling
+- Re-validates after fix to confirm fix worked
 - Reports counts, not verbose output
 - Does NOT perform manual code review, architecture analysis, or refactoring
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -70,21 +70,21 @@ Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 | `mix.exs` | elixir |
 | `build.sbt` | scala |
 
-**Tier 2 — Supplementary stacks** (run only applicable tools, never the sole detected stack):
+**Tier 2 — Supplementary stacks** (run only applicable tools, never sole detected stack):
 
 | Signal | Stack | Condition to activate |
 |--------|-------|----------------------|
 | `CMakeLists.txt` or `Makefile` | c-cpp | **Only if** `.c`, `.cpp`, `.cc`, or `.h` source files exist in `src/` or project root. A `Makefile` without C/C++ sources is just a task runner — skip. |
 | `*.sh` files | shell | **Only if** 3+ `.sh` files exist, or a `scripts/` directory with `.sh` files. A single `setup.sh` does not make this a shell project. |
 | `*.tf` files | terraform | High confidence — `.tf` extension is unique to Terraform. Treat as primary if no other stack detected. |
-| `Dockerfile` / `docker-compose.yml` | docker | **Always supplementary.** Run hadolint/trivy alongside the primary stack, never as sole stack. |
+| `Dockerfile` / `docker-compose.yml` | docker | **Always supplementary.** Run hadolint/trivy alongside primary stack, never as sole stack. |
 
 **Disambiguation rules:**
-- If only Tier 2 stacks detected (e.g., just Dockerfile + shell scripts): run security scope universally, run Tier 2 tools for their specific files only.
-- If Tier 1 + Tier 2 detected: run full toolchain for Tier 1, supplementary tools for Tier 2.
-- Terraform exception: if `*.tf` is the only manifest, treat as primary (iac project).
+- Only Tier 2 stacks detected (e.g., just Dockerfile + shell scripts): run security scope universally, run Tier 2 tools for their specific files only.
+- Tier 1 + Tier 2 detected: run full toolchain for Tier 1, supplementary tools for Tier 2.
+- Terraform exception: `*.tf` is only manifest → treat as primary (iac project).
 
-For each detected stack, load the matching toolchain from `references/toolchains.md`.
+Per stack: load matching toolchain from `references/toolchains.md`.
 
 **Gate:** At least one stack detected or security-only mode.
 
@@ -93,8 +93,8 @@ For each detected stack, load the matching toolchain from `references/toolchains
 Stack-specific localization generation and validation.
 
 1. Detect l10n framework from project config and dependencies
-2. Generate localization files if the stack supports it (e.g., `flutter gen-l10n`)
-3. Cross-check translation keys: all locale files must have the same keys as the base locale
+2. Generate localization files if stack supports it (e.g., `flutter gen-l10n`)
+3. Cross-check translation keys: all locale files must have same keys as base locale
 4. Check placeholder consistency: `{name}` in base must exist in all translations
 5. Check for encoding issues (mojibake patterns from cp1252→UTF-8 double-encoding)
 6. **Fix mode:** generate files, stage generated output
@@ -122,39 +122,39 @@ Skip silently if no l10n framework detected.
 
 ### Phase 3: Format [scope: format]
 
-For each detected stack, run the canonical formatter.
+Per stack: run canonical formatter.
 
-1. Look up the format tool from `references/toolchains.md`
-2. Check if the tool is available. If not → offer to install (see Error Recovery). If user declines or system-level tool → skip scope.
-3. **Fix mode:** run the fix command
-4. **Check mode:** run the check command, report exit code
-5. If the project uses a non-default formatter (e.g., Biome instead of Prettier for Node), detect from config files and use that instead
+1. Look up format tool from `references/toolchains.md`
+2. Tool unavailable → offer to install (see Error Recovery); declined or system-level tool → skip scope.
+3. **Fix mode:** run fix command
+4. **Check mode:** run check command, report exit code
+5. Non-default formatter (e.g., Biome instead of Prettier for Node) → detect from config files and use that instead
 
 **Gate:** Format clean before proceeding to lint.
 
 ### Phase 4: Typecheck [scope: typecheck]
 
-For each detected stack, run the static type checker if one is configured.
+Per stack: run static type checker if one is configured.
 
-1. Look up the typecheck tool from `references/toolchains.md`
+1. Look up typecheck tool from `references/toolchains.md`
 2. Detect if type checking is configured (e.g., `tsconfig.json` for Node, type hints in Python)
-3. If no type checker configured, skip silently
-4. Run the type checker. Type checkers are read-only — they report but don't auto-fix.
+3. No type checker configured → skip silently
+4. Run type checker. Type checkers are read-only — they report but don't auto-fix.
 5. Report error count and top issues
 
-Example: Python project with `pyproject.toml` containing `[tool.mypy]` or `[tool.pyright]` → run the configured checker. No config → skip.
+Example: Python project with `pyproject.toml` containing `[tool.mypy]` or `[tool.pyright]` → run configured checker. No config → skip.
 
 **Gate:** Type checker reports zero errors or no type checker configured.
 
 ### Phase 5: Lint [scope: lint]
 
-For each detected stack, run the canonical linter with auto-fix.
+Per stack: run canonical linter with auto-fix.
 
-1. Look up the lint tool from `references/toolchains.md`
-2. Check if the tool is available. If not → offer to install (see Error Recovery). If user declines or system-level tool → skip scope.
+1. Look up lint tool from `references/toolchains.md`
+2. Tool unavailable → offer to install (see Error Recovery); declined or system-level tool → skip scope.
 3. **Fix mode:** run fix command, then re-run check to verify
 4. **Check mode:** run check command only, report issues
-5. If the project uses a non-default linter (e.g., Biome instead of ESLint), detect from config and use that
+5. Non-default linter (e.g., Biome instead of ESLint) → detect from config and use that
 
 Stack-specific extra checks (search file contents, not tool-dependent):
 
@@ -191,7 +191,7 @@ Search project files for these patterns, excluding `.git/`, `node_modules/`, `bu
 
 **6b. Dependency Audit (per stack):**
 
-Look up the audit command from `references/toolchains.md`. If tool not installed, skip with warning.
+Look up audit command from `references/toolchains.md`. Tool not installed → skip with warning.
 
 **Gate:** Secret scan and dependency audit completed with findings classified.
 
@@ -230,10 +230,10 @@ FRC+DSC accounting.
 ## Quality Gates
 
 - Format runs before lint — never reverse this order
-- After fix, re-run check to verify the fix worked. If re-check fails, report as unresolved.
+- After fix, re-run check to verify fix worked. Re-check fails → report as unresolved.
 - Only report findings in `--check` mode — verify diff is empty after check run
 - Secret findings are always CRITICAL — never auto-fix, always report
-- Scope boundary: only run scopes the user requested (or all if none specified)
+- Scope boundary: only run scopes user requested (or all if none specified)
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Severity
@@ -263,6 +263,6 @@ FRC+DSC accounting.
 
 | Situation | Action |
 |-----------|--------|
-| Tool not installed (e.g., formatter, linter) | Offer to install: show the install command (e.g., `pip install ruff`, `npm install -D eslint`), ask "Install and continue?" If user accepts → install, re-run scope. If user declines → skip scope, warn in summary. For system-level tools (e.g., `go`, `rustfmt`) that require manual install → show install instructions, skip scope. |
+| Tool not installed (e.g., formatter, linter) | Offer to install: show install command (e.g., `pip install ruff`, `npm install -D eslint`), ask "Install and continue?" User accepts → install, re-run scope. User declines → skip scope, warn in summary. System-level tools (e.g., `go`, `rustfmt`) requiring manual install → show install instructions, skip scope. |
 | Lock file conflict | Warn, skip dependency operations |
 | Formatter and linter disagree | Run formatter first, then linter |

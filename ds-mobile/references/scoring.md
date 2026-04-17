@@ -27,7 +27,7 @@ applicable_max  = sum of points for sub-checks that apply to PLATFORM
 dimension_score = round((points_earned / applicable_max) × dimension_weight)
 ```
 
-If `applicable_max = 0` for a dimension → exclude, show as N/A.
+`applicable_max = 0` for a dimension → exclude, show as N/A.
 
 ## Status Thresholds
 

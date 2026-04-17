@@ -26,9 +26,9 @@ Source: [Aakash Gupta — Linear Growth](https://www.news.aakashg.com/p/how-line
 
 **Template:** `"You've tried [common approach]. It [specific failure]. [Product] [specific fix]."`
 
-**Why it works:** Reader nods at the pain (agreement), then is receptive to the solution. 37% conversion rate in one case study.
+**Why it works:** Reader nods at pain (agreement), then receptive to solution. 37% conversion rate in one case study.
 
-**Nuance for dev tools:** Developers already know the pain — don't dwell on agitation. State pain → prove solution fast. Consider hybrid PAS+FAB (Features-Advantages-Benefits) for technical audiences.
+**Nuance for dev tools:** Developers already know pain — don't dwell on agitation. State pain → prove solution fast. Consider hybrid PAS+FAB (Features-Advantages-Benefits) for technical audiences.
 
 **When to use:** Landing pages, store descriptions, email subject lines.
 
@@ -61,7 +61,7 @@ Source: [Aakash Gupta — Linear Growth](https://www.news.aakashg.com/p/how-line
 **Why it works:** Quantification validates claims and builds credibility. Numbers are scannable and memorable.
 
 **Rules:**
-- Every metric must be verifiable (show the calculation)
+- Every metric must be verifiable (show calculation)
 - Use specific numbers, not rounded ("89% reduction" not "~90%")
 - Pair with context ("Same functionality" to clarify nothing was lost)
 
@@ -69,12 +69,12 @@ Source: [Aakash Gupta — Linear Growth](https://www.news.aakashg.com/p/how-line
 
 ### Formula 5: Progressive Disclosure
 
-**Template:** Start with the simplest version, then reveal complexity incrementally.
+**Template:** Start with simplest version, then reveal complexity incrementally.
 
-**Why it works:** Users (and readers) absorb information better when complexity is layered. First contact = simple hook. Second contact = deeper understanding. Third = full picture.
+**Why it works:** Users absorb information better when complexity is layered. First contact = simple hook. Second contact = deeper understanding. Third = full picture.
 
 **Verified examples:**
-- Zara Zhang (frontend-slides): Reduced prompt from 1,625 lines to 183 lines (89% reduction) while keeping the same functionality. Shared the metric publicly as an iteration story. ([X milestone post](https://x.com/zarazhangrui/status/2029092514435932647))
+- Zara Zhang (frontend-slides): Reduced prompt from 1,625 lines to 183 lines (89% reduction) while keeping same functionality. Shared metric publicly as an iteration story. ([X milestone post](https://x.com/zarazhangrui/status/2029092514435932647))
 - Linear: Onboarding shows one workflow, then progressively reveals keyboard shortcuts, integrations, and advanced features
 
 **Rules:**
@@ -88,15 +88,15 @@ Source: [Aakash Gupta — Linear Growth](https://www.news.aakashg.com/p/how-line
 
 **Template:** `"[N] [milestone]. Here's what changed since [previous milestone]."`
 
-**Why it works:** Builds parasocial connection. Shows the product is alive and improving. Creates recurring engagement moments.
+**Why it works:** Builds parasocial connection. Shows product is alive and improving. Creates recurring engagement moments.
 
 **Verified examples:**
-- Zara Zhang: "1K stars" → "7.8K stars — here's what I changed" → "10K stars" — each milestone post drove a new wave of engagement ([X milestone posts](https://x.com/zarazhangrui/status/2034331675363279338))
+- Zara Zhang: "1K stars" → "7.8K stars — here's what I changed" → "10K stars" — each milestone post drove new wave of engagement ([X milestone posts](https://x.com/zarazhangrui/status/2034331675363279338))
 - AFFiNE: Publicly documented 0→6K→15K→33K star growth phases
 
 **Rules:**
-- Share what changed between milestones, not just the number
-- Include a specific learning or improvement ("We refactored X and it cut Y by Z%")
+- Share what changed between milestones, not just number
+- Include specific learning or improvement ("We refactored X and it cut Y by Z%")
 - Post at natural thresholds (1K, 5K, 10K) — not arbitrary intervals
 
 **When to use:** Social posts, changelog entries, community updates.
@@ -136,7 +136,7 @@ prevents, eliminates, enforces, catches, verifies, reduces, automates, replaces,
 | Do | Don't |
 |----|-------|
 | State beliefs as beliefs ("We believe X") | Abstract principles ("Maximum efficiency") |
-| Name the pain specifically ("ATS rejects 75% of Word CVs") | Generic pain ("Many people struggle with...") |
+| Name pain specifically ("ATS rejects 75% of Word CVs") | Generic pain ("Many people struggle with...") |
 | Show proof with numbers ("1,625 → 183 lines, 89% reduction") | Claim without evidence ("Best in class") |
 | Be contrarian when authentic | Be contrarian for shock value |
 | Use developer language | Use marketing language |
@@ -285,7 +285,7 @@ Source: [Idealogic Content Marketing 2026](https://idealogic.dev/blog/future-con
 
 ## 5. Monetization Messaging (Data-Driven)
 
-When positioning pricing, trials, and paywall decisions in marketing copy, use these verified benchmarks.
+Positioning pricing, trials, and paywall decisions in marketing copy — use these verified benchmarks.
 
 ### Model Performance
 
@@ -295,7 +295,7 @@ When positioning pricing, trials, and paywall decisions in marketing copy, use t
 | Freemium | 2.1% median (top 10%: 8.2%) | $0.27 |
 | Subscription (trial) | 3-8% trial-to-paid | Varies |
 
-**Key insight:** Hard paywall generates 8-9x higher RPI than freemium. Retention at 12 months is nearly identical between models — freemium does not retain better, it converts worse.
+**Key insight:** Hard paywall generates 8-9x higher RPI than freemium. Retention at 12 months nearly identical between models — freemium does not retain better, it converts worse.
 
 ### Trial Length ROI
 
@@ -306,7 +306,7 @@ When positioning pricing, trials, and paywall decisions in marketing copy, use t
 | 14 days | 35-45% |
 | 30 days | 25-35% |
 
-Shorter trials create urgency. Longer trials build engagement but leak conversions. 7 days is the most common balance point.
+Shorter trials create urgency. Longer trials build engagement but leak conversions. 7 days is most common balance point.
 
 ### Trial Type: Feature-Limited vs Time-Limited
 
@@ -319,13 +319,13 @@ Feature-limited trials let users build habits around core features, creating swi
 
 ### IAP Implementation Note
 
-Platform handles payment processing -- your server receives a receipt token only. Never process payment details directly. Validate receipts server-side (Apple App Store Server API v2, Google Play Developer API) to prevent receipt fraud. Store the transaction record, not the payment method.
+Platform handles payment processing — server receives receipt token only. Never process payment details directly. Validate receipts server-side (Apple App Store Server API v2, Google Play Developer API) to prevent receipt fraud. Store transaction record, not payment method.
 
 ### Hybrid Model Adoption
 
 35% of subscription apps now mix subscriptions with consumables or lifetime purchases (2025 data). AI apps drive this trend — variable per-unit costs that pure subscriptions cannot absorb. Gaming (61.7%) and social/lifestyle (39.4%) lead adoption.
 
-**Copy implication:** When marketing a hybrid model, lead with the subscription value ("Pro plan includes X"), then present consumables as add-ons ("Need more? Add credits anytime").
+**Copy implication:** Marketing hybrid model → lead with subscription value ("Pro plan includes X"), then present consumables as add-ons ("Need more? Add credits anytime").
 
 Source: [RevenueCat State of Subscription Apps 2026](https://www.revenuecat.com/state-of-subscription-apps/), [RevenueCat SOSA 2025](https://www.revenuecat.com/state-of-subscription-apps-2025/)
 

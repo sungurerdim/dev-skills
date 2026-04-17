@@ -98,7 +98,7 @@ Registry endpoints for version/CVE checking:
 
 ## Answer Engine Optimization (AEO)
 
-AI-powered search engines are a growing traffic source and citation channel. Sources that perform well in AI search results demonstrate higher findability and structured authority.
+AI-powered search engines are growing traffic source and citation channel. Sources performing well in AI search results demonstrate higher findability and structured authority.
 
 ### AI Search Landscape (2025-2026)
 
@@ -125,7 +125,7 @@ Sources optimized for AI citation tend to score higher on CRAAP+ dimensions (str
 
 ### CRAAP+ Scoring Adjustment for AI-Cited Sources
 
-Sources that are actively cited by AI search engines demonstrate verified findability and structured quality.
+Sources actively cited by AI search engines demonstrate verified findability and structured quality.
 
 | Condition | Effect |
 |-----------|--------|
@@ -133,7 +133,7 @@ Sources that are actively cited by AI search engines demonstrate verified findab
 | Cited by 2+ AI search engines independently | +15 |
 | Appears in AI-generated answer with direct attribution | +5 |
 
-Apply this modifier in the same phase as other CRAAP+ modifiers. AI citation is a signal of structured quality, not a guarantee of accuracy — standard triangulation rules still apply.
+Apply this modifier in the same phase as other CRAAP+ modifiers. AI citation = signal of structured quality, not a guarantee of accuracy — standard triangulation rules still apply.
 
 **Source:** CXL AEO Guide (2026), Frase.io AEO Guide, Ahrefs AI Search Traffic Study (2025)
 
@@ -141,7 +141,7 @@ Apply this modifier in the same phase as other CRAAP+ modifiers. AI citation is 
 
 ## AI-Assisted Research Verification
 
-When using AI tools (LLM assistants, code generators, AI search) as part of the research or development workflow, apply these additional verification gates. AI output is T6 by default until verified.
+When using AI tools (LLM assistants, code generators, AI search) as part of research or development workflow, apply these additional verification gates. AI output is T6 by default until verified.
 
 ### Verification Rules for AI-Generated Content
 
@@ -151,7 +151,7 @@ When using AI tools (LLM assistants, code generators, AI search) as part of the 
 | Cross-model verification | Single AI model used for both generation and review | Use a secondary AI model or manual review for verification. Generator must not review itself |
 | Hallucinated references | AI cites packages, APIs, papers, or URLs that do not exist | Verify every AI-cited source exists before inclusion. Check package registries, resolve URLs, search for papers |
 | Security audit for AI code | AI-generated code deployed without security review (Veracode 2025: 45% of AI code has vulnerabilities; CodeRabbit: 2.74x higher vulnerability rate) | Run SAST + DAST on all AI-generated code. Secrets scanning in pre-commit + CI. Never let AI handle auth/payment/encryption without domain expert review |
-| Specification before generation | AI prompted without upfront specification, leading to architectural drift | Write detailed specs before invoking AI. Break work into small, chunked tasks (one function/feature). Provide existing code examples for pattern matching |
+| Specification before generation | AI prompted without upfront specification, → architectural drift | Write detailed specs before invoking AI. Break work into small, chunked tasks (one function/feature). Provide existing code examples for pattern matching |
 
 ### CRAAP+ Scoring for AI-Generated Sources
 

@@ -61,7 +61,7 @@ All user input validated and sanitized. No raw interpolation in queries or comma
   - No input validation middleware/decorators on route handlers
   - Search: `eval(`, `Function(`, `innerHTML =` with user input
 - **Fix:** Parameterized queries (prepared statements). Input validation with schemas (Zod, Pydantic, Joi). Never interpolate user input into SQL/shell/HTML. Use ORM for queries
-- **Impact:** SQL injection is still the #1 web vulnerability. Single unparameterized query = full database compromise
+- **Impact:** SQL injection is still #1 web vulnerability. Single unparameterized query = full database compromise
 - **Source:** OWASP A03:2021
 
 ### SEC-06 [CRITICAL] Strong Cryptography
@@ -173,14 +173,14 @@ No PII in logs, error reports, or analytics.
     | Auth token | Bearer xxx | `(Bearer\|token)\s+[A-Za-z0-9\-_.]+` |
     | UUID | 550e8400-... | `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}` |
 
-- **Fix:** Sanitize logs. Redact PII fields. Never log auth tokens or passwords. Use structured logging with field-level redaction. Implement redaction filter in logging/error-reporting pipeline — apply before data leaves the process (e.g., Sentry `beforeSend`, Winston transport, Python `logging.Filter`, Go middleware, Java `LoggingFilter`). Test redaction with sample PII strings to verify patterns catch real-world formats
+- **Fix:** Sanitize logs. Redact PII fields. Never log auth tokens or passwords. Use structured logging with field-level redaction. Implement redaction filter in logging/error-reporting pipeline — apply before data leaves process (e.g., Sentry `beforeSend`, Winston transport, Python `logging.Filter`, Go middleware, Java `LoggingFilter`). Test redaction with sample PII strings to verify patterns catch real-world formats
 - **Source:** OWASP Logging Cheat Sheet
 
 ---
 
 ## Regulatory Compliance (Framework-Tagged)
 
-Rules in this section are only checked when the corresponding framework is in `ACTIVE_FRAMEWORKS`. Tag format: `[FRAMEWORK: X,Y]` means check only if X or Y is active.
+Rules in this section only checked when corresponding framework is in `ACTIVE_FRAMEWORKS`. Tag format: `[FRAMEWORK: X,Y]` means check only if X or Y is active.
 
 ### PRV-06 [BLOCKER] CCPA/CPRA Compliance [FRAMEWORK: CCPA]
 California Consumer Privacy Act + California Privacy Rights Act.

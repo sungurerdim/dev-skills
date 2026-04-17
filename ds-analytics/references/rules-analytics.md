@@ -17,10 +17,10 @@ Applies to all project types with analytics: web, mobile, API, desktop.
 
 ### EVT-01 [HIGH] Event Naming Convention
 
-Events use verb_noun format in snake_case, consistent across the entire application.
+Events use verb_noun format in snake_case, consistent across entire application.
 
 - **Detect:** Mixed naming patterns in event tracking calls (camelCase, PascalCase, inconsistent verb/noun order). Grep for analytics track/log calls and check naming consistency.
-- **Fix:** Standardize all events to `verb_noun` snake_case format (e.g., `button_clicked`, `page_viewed`, `form_submitted`, `item_purchased`). Create a naming guide and lint rule to enforce it.
+- **Fix:** Standardize all events to `verb_noun` snake_case format (e.g., `button_clicked`, `page_viewed`, `form_submitted`, `item_purchased`). Create naming guide and lint rule to enforce it.
 - **Impact:** Inconsistent naming makes funnel analysis unreliable and creates duplicate event counts
 - **Source:** Segment Analytics Academy, Mixpanel Naming Best Practices Guide
 
@@ -29,7 +29,7 @@ Events use verb_noun format in snake_case, consistent across the entire applicat
 Track only events that inform a specific business decision. Every event maps to a question.
 
 - **Detect:** More than 50 distinct event types without a documented purpose map. Events tracked "just in case" with no associated dashboard or query.
-- **Fix:** Map each event to a business question it answers (e.g., `signup_completed` answers "How many users complete registration?"). Remove events that don't inform decisions. Document the mapping in a taxonomy file.
+- **Fix:** Map each event to a business question it answers (e.g., `signup_completed` answers "How many users complete registration?"). Remove events that don't inform decisions. Document mapping in a taxonomy file.
 - **Impact:** Event bloat increases costs, slows queries, and dilutes focus on actionable metrics
 - **Source:** Amplitude Data Taxonomy Playbook, PostHog Event Tracking Guide
 
@@ -58,7 +58,7 @@ Common properties (user_id, session_id, platform, app_version) attached to every
   - `platform` (web/ios/android)
   - `app_version`
   - `locale`
-  Configure the analytics SDK to auto-attach these via middleware or identify calls.
+  Configure analytics SDK to auto-attach these via middleware or identify calls.
 - **Impact:** Missing properties make cross-platform analysis and debugging unreliable
 - **Source:** Segment Tracking Plan Documentation, PostHog Properties Guide
 
@@ -71,8 +71,8 @@ Common properties (user_id, session_id, platform, app_version) attached to every
 No analytics SDK initialization before user consent (where legally required).
 
 - **Detect:** Analytics SDK init at application startup without a consent gate. SDK loaded unconditionally in index.html or main entry point. No consent management platform (CMP) integration.
-- **Fix:** Gate analytics init behind consent check. Load SDK only after user grants consent. For privacy-first tools (Plausible, Umami): consent banner may not be required in EU, but document the legal basis. For tools requiring consent (GA4, Mixpanel, Amplitude): integrate CMP and defer init.
-- **Impact:** Tracking without consent violates GDPR/ePrivacy and exposes the project to legal risk
+- **Fix:** Gate analytics init behind consent check. Load SDK only after user grants consent. For privacy-first tools (Plausible, Umami): consent banner may not be required in EU, but document legal basis. For tools requiring consent (GA4, Mixpanel, Amplitude): integrate CMP and defer init.
+- **Impact:** Tracking without consent violates GDPR/ePrivacy and exposes project to legal risk
 - **Source:** GDPR Article 6, ePrivacy Directive Article 5(3), ICO Cookie Guidance
 
 ### PVA-02 [HIGH] No PII in Events
@@ -88,8 +88,8 @@ No email, name, phone number, IP address, or other personally identifiable infor
 
 Defined retention period with automatic deletion for analytics data.
 
-- **Detect:** No retention policy configured in the analytics platform. Self-hosted analytics database growing without bounds. No documented data lifecycle policy.
-- **Fix:** Set a 90-day default retention period (adjust based on business needs, document the reason). Configure auto-delete in the analytics platform. For self-hosted: set up a cron job or database policy to purge old data. Document the retention policy in the project's privacy documentation.
+- **Detect:** No retention policy configured in analytics platform. Self-hosted analytics database growing without bounds. No documented data lifecycle policy.
+- **Fix:** Set 90-day default retention period (adjust based on business needs, document reason). Configure auto-delete in analytics platform. For self-hosted: set up cron job or database policy to purge old data. Document retention policy in project's privacy documentation.
 - **Impact:** Indefinite data retention increases storage costs and regulatory exposure
 - **Source:** GDPR Article 5(1)(e) (storage limitation), NIST SP 800-188
 
@@ -98,6 +98,6 @@ Defined retention period with automatic deletion for analytics data.
 Users can disable analytics tracking via an accessible UI toggle.
 
 - **Detect:** No opt-out toggle in application settings. No documented way for users to disable tracking. Opt-out exists but does not take effect immediately.
-- **Fix:** Add an analytics opt-out toggle in the settings or preferences screen. When toggled off: stop all event tracking immediately, clear any pending event queue, and respect the setting on next session. Store the preference locally (not via analytics).
+- **Fix:** Add analytics opt-out toggle in settings or preferences screen. When toggled off: stop all event tracking immediately, clear any pending event queue, and respect setting on next session. Store preference locally (not via analytics).
 - **Impact:** Missing opt-out reduces user trust and may not meet regulatory requirements in some jurisdictions
 - **Source:** GDPR Article 7(3) (right to withdraw consent), Apple App Store Guidelines 5.1.2

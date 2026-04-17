@@ -16,7 +16,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 - Audits UI/UX design quality in code — stays clear of business logic and backend
 - Applies to all UI platforms: web (React/Vue/Svelte/Angular), mobile (Flutter/RN/SwiftUI/Compose), desktop (Electron/Tauri)
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Only modifies UI-layer code (styles, components, tokens, ARIA) — business logic stays untouched
 
@@ -60,7 +60,7 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
 
 ### Phase 1: Detect
 
-1. **Framework detection.** Search for project files:
+1. **Framework detection.**
 
    | Framework | Detection |
    |-----------|-----------|
@@ -75,7 +75,7 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
    | Electron/Tauri | `package.json` with `electron` or `@tauri-apps/api` |
    | Plain HTML/CSS | `*.html` + `*.css` files without framework |
 
-2. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching frontend scopes (tokens, components, states, a11y, responsive, theming). Use verified findings to skip redundant analysis. If stale or absent, run own full analysis.
+2. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching frontend scopes. Use verified findings to skip redundant analysis. Stale or absent → run own full analysis.
 
 3. **IDU:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 
@@ -87,11 +87,7 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
    - Compose: MaterialTheme, custom theme objects
    - Files: `tokens.json`, `tokens.yaml`, `design-tokens.*`
 
-5. **Mode selection.** Ask the user or use flags:
-   - Audit Only (default) — scan all scopes, report only
-   - Audit & Fix — scan, report, fix CAT-1
-   - Design — generate design system artifacts
-   - Custom — pick specific scopes and mode
+5. **Mode selection.** Ask user or use flags: Audit Only / Audit & Fix / Design / Custom.
 
 6. **Scope parsing.** Map selection to reference files. Default: all scopes.
 
@@ -99,22 +95,15 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
 
 ### Phase 2: Configure [SKIP if single scope audit]
 
-1. **Design system inventory:** If design system exists, catalog:
-   - Color token count and naming pattern
-   - Spacing scale values
-   - Typography token count
-   - Shadow/elevation levels
-   - Border radius values
-
-2. **Component pattern detection:** Search for component directories, naming conventions, barrel exports, shared component library.
-
+1. **Design system inventory:** Catalog color token count/naming, spacing scale, typography count, shadow levels, border radii.
+2. **Component pattern detection:** Search component directories, naming conventions, barrel exports, shared library.
 3. **A11y tooling detection:** Search for axe-core, eslint-plugin-jsx-a11y, @angular-eslint/eslint-plugin-template, flutter_lints accessibility rules.
 
 **Gate:** Design system landscape mapped, component patterns identified.
 
 ### Phase 3: Scan
 
-For each in-scope domain, load the matching reference file:
+Load matching reference file for each in-scope domain:
 
 | Scope | Reference File |
 |-------|---------------|
@@ -123,25 +112,15 @@ For each in-scope domain, load the matching reference file:
 | a11y | [rules-accessibility.md](references/rules-accessibility.md) |
 | responsive | [rules-responsive.md](references/rules-responsive.md) |
 
-**Large scope (3+ scopes):** Use progress tracking to survive context loss:
-1. Create numbered progress checklist with all scopes
-2. Write findings to persistent artifact after each scope
-3. Maximum 2 parallel scope scans
+**Large scope (3+ scopes):** Progress checklist + persistent findings artifact. Max 2 parallel scans.
 
-**Per scope:**
-1. Search for relevant files (styles, components, layouts, templates)
-2. Search contents for violation patterns
-3. Read file context to verify (pattern match alone is insufficient)
-4. Classify: CAT-1 (auto-fixable) or CAT-2 (needs approval)
+**Per scope:** Search relevant files → search for violation patterns → read context to verify → classify CAT-1 (auto-fixable) or CAT-2 (needs approval).
 
 **Confidence:** HIGH = pattern match + context verified. MEDIUM = pattern match, ambiguous context. LOW = heuristic only.
 
 **False positive prevention:** Skip tokens inside comments, generated files (*.g.dart, *.gen.*), test fixtures, vendor/node_modules directories. Respect skip patterns: `/* noqa */`, `// intentional`, `// safe:`.
 
-**Recovery (if context lost mid-scan):**
-1. Check progress checklist for completed scopes
-2. Read persistent findings artifact
-3. Resume from first incomplete scope
+**Recovery (context lost):** Check progress checklist → read findings artifact → resume from first incomplete scope.
 
 **Gate:** Every in-scope check evaluated, all findings recorded with severity, confidence, and category.
 
@@ -163,15 +142,10 @@ Design System: [exists/partial/absent]
 
 ### Phase 5: Fix [SKIP if audit-only or --check]
 
-1. **Plan.** Group findings by file. Order: CRITICAL -> HIGH -> MEDIUM -> LOW.
-2. **Execute.** Apply CAT-1 fixes:
-   - Hardcoded color -> nearest semantic token reference
-   - Missing `alt` attribute -> add with descriptive text or `alt=""`
-   - Contrast violation -> adjust shade to meet 4.5:1 ratio
-   - Missing `:focus-visible` -> add outline style
-   - Missing `aria-label` -> add based on element context
-3. **Verify.** Re-read each modified file after fix to confirm.
-4. **Record.** Track: applied, failed, skipped for each finding.
+1. **Plan.** Group by file, order CRITICAL→HIGH→MEDIUM→LOW.
+2. **Execute.** CAT-1 fixes: hardcoded color→token, missing `alt`→add, contrast→adjust to 4.5:1, missing `:focus-visible`→add outline, missing `aria-label`→add from context.
+3. **Verify.** Re-read each modified file.
+4. **Record.** Track applied/failed/skipped.
 
 **Gate:** Fixed + failed + skipped = total. Every modified file re-read and verified.
 
@@ -183,21 +157,9 @@ Design System: [exists/partial/absent]
 
 ### Phase 7: Design [SKIP if mode is not design]
 
-Generate design system artifacts based on project analysis:
-
-1. **tokens.json** — W3C Design Tokens Community Group format (2025.10 spec):
-   - Color: primary, secondary, error, warning, success, info, surface, background (+ 3 shades each)
-   - Spacing: 4/8/12/16/24/32/48/64 scale
-   - Typography: display/heading/title/body/label/caption (fontFamily, fontSize, lineHeight, fontWeight)
-   - Shadow: sm/md/lg/xl elevation levels
-   - Border: radius sm/md/lg/full, width thin/medium/thick
-
-2. **Component catalog** — list of detected components with:
-   - State coverage matrix (which states each component handles)
-   - Missing state recommendations
-   - A11y compliance status per component
-
-3. **A11y checklist** — WCAG 2.2 AA project-specific checklist based on detected framework and components
+1. **tokens.json** — W3C DTCG 2025.10 format: color (primary/secondary/error/warning/success/info/surface/background + 3 shades), spacing (4/8/12/16/24/32/48/64), typography (display/heading/title/body/label/caption), shadow (sm/md/lg/xl), border (radius sm/md/lg/full, width thin/medium/thick).
+2. **Component catalog** — state coverage matrix, missing state recommendations, a11y compliance per component.
+3. **A11y checklist** — WCAG 2.2 AA checklist specific to detected framework and components.
 
 **Gate:** Design artifacts generated and written to project. User informed of file locations.
 
@@ -213,11 +175,11 @@ FRC+DSC accounting.
 
 ## Quality Gates
 
-- Every finding cites file:line — verified by reading the actual code
+- Every finding cites file:line — verified by reading actual code
 - Only modify UI-layer code (styles, components, tokens, ARIA attributes) — business logic untouched
-- Every finding gets a disposition in the summary — zero silent drops (FRC)
-- Every scope check is evaluated and accounted for — zero silent omissions (DSC)
-- After fix, re-read modified file to verify the fix worked
+- Every finding gets a disposition in summary — zero silent drops (FRC)
+- Every scope check evaluated and accounted for — zero silent omissions (DSC)
+- After fix, re-read modified file to verify fix worked
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
 
 ## Error Recovery

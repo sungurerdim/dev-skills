@@ -1,6 +1,6 @@
 # /ds-backend
 
-AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, and schemas that don't survive the first migration. This skill designs all three layers correctly from the start.
+AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, and schemas that don't survive first migration. Skill designs all three layers correctly from start.
 
 **Backend Design** — API design, database schema, and authentication architecture in a single skill.
 
@@ -14,7 +14,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 ## Contract
 
 - Covers three scopes: API design, database design, and authentication
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams
 - Only suggests well-established patterns — no experimental or untested approaches
@@ -83,10 +83,8 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 ### Phase 1: Setup
 
-**Goal:** Determine scope and mode.
-
-1. If flags provided, proceed directly
-2. If no flags, present interactive menu
+1. Flags provided → proceed directly
+2. No flags → present interactive menu
 3. **IDU:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
 4. Detect project stack (framework, ORM, auth library) by scanning config files and dependencies
 5. Load relevant reference docs based on detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md)
@@ -95,19 +93,15 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 ### Phase 2: Discover
 
-**Goal:** Map existing backend architecture.
-
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use relevant findings
+1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → use relevant findings
 2. Search for route/endpoint definitions, controller files, middleware
 3. Search for database schema files (migrations, models, entity definitions)
 4. Search for auth configuration (JWT secret usage, session config, OAuth setup)
 5. Build inventory: endpoints list, tables/models list, auth mechanisms
 
-**Gate:** Inventory complete. If no backend code found → switch to design mode.
+**Gate:** Inventory complete. No backend code found → switch to design mode.
 
 ### Phase 3: Analyze [--audit mode]
-
-**Goal:** Identify issues in existing code.
 
 **API analysis:**
 1. Check naming conventions against REST best practices
@@ -133,11 +127,9 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 Cross-scope dedup: merge findings at same file:line, keep highest severity.
 
-**Gate:** Findings collected. If 0 → skip to summary.
+**Gate:** Findings collected. 0 findings → skip to summary.
 
 ### Phase 4: Design [--design mode]
-
-**Goal:** Generate new API/DB/auth design.
 
 1. Ask user for requirements (entities, relationships, user roles)
 2. Generate based on scope:
@@ -149,8 +141,6 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity.
 **Gate:** User approves design or requests changes.
 
 ### Phase 5: Spec [--spec mode]
-
-**Goal:** Generate specification artifacts.
 
 1. **API:** OpenAPI 3.0+ YAML spec from analyzed or designed endpoints
 2. **DB:** Migration files in project's ORM format, or raw SQL

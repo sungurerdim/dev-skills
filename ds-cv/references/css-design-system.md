@@ -145,5 +145,5 @@ Print auto-fit:
   .section + .header: margin-bottom auto (space distributes evenly across page)
   .section:last-child: margin-bottom 0
   page-break-inside: avoid on .section, .exp-entry, .edu-grid
-  If overflow: reduce body font (9pt -> 8.5pt -> 8pt), then padding/gaps
+  Overflow → reduce body font (9pt -> 8.5pt -> 8pt), then padding/gaps
 ```

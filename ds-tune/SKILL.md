@@ -1,6 +1,6 @@
 # /ds-tune
 
-Manual optimization is slow — 8-10 experiments per day, subjective judgment, no audit trail. This skill runs 100+ experiments autonomously, keeping only what measurably improves.
+Manual optimization is slow — 8-10 experiments per day, subjective judgment, no audit trail. Skill runs 100+ experiments autonomously, keeping only what measurably improves.
 
 **Autonomous Optimization** — [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) pattern generalized for any project with a measurable metric. Thanks to Andrej Karpathy for open-sourcing the core idea.
 
@@ -15,11 +15,10 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 
 - One file, one metric, one loop — Karpathy's core constraint
 - Git ratchet — only improvements survive, failures are reverted
-- Every experiment is committed before evaluation — full audit trail
+- Every experiment committed before evaluation — full audit trail
 - Evaluation is mechanical (deterministic assertions or benchmarks), not subjective
-- The skill generates the optimization infrastructure (auto/ folder), then runs the loop
-- Fully standalone — zero dependency on other skills
-- Fully functional standalone — zero dependency on other skills. When blueprint profile exists, uses metric context. When absent, runs own complete analysis with identical quality.
+- Skill generates optimization infrastructure (auto/ folder), then runs the loop
+- Standalone. Uses blueprint when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -36,13 +35,11 @@ Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] �
 
 ### Phase 1: Discovery
 
-**Goal:** Understand what the user wants to optimize.
-
 **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize.
 
 **IDU:** Profile → Ideal Metrics, Type + Stack. Findings() → verify + use. Absent → own analysis.
 
-Ask the user ONE question:
+Ask ONE question:
 
 > What do you want to improve in this project? No technical detail needed — describe the goal in your own words.
 
@@ -52,14 +49,12 @@ Wait for answer. Only proceed after receiving it.
 
 ### Phase 2: Analysis
 
-**Goal:** Map the user's goal to a measurable metric and identify the optimization target.
-
 Work autonomously — do not ask more questions. Apply experiment design rules from [references/rules-optimization.md](references/rules-optimization.md).
 
 1. Read project root: README, package files, entry points, test files, benchmarks
 2. Understand project stack, structure, and purpose
 3. Map user's goal to measurable metric(s)
-4. Identify the ONE target file most relevant to the goal
+4. Identify ONE target file most relevant to goal
 5. Identify or create an evaluation method (existing tests, benchmark script, or new eval)
 6. Check for existing test data and fixtures
 
@@ -78,9 +73,7 @@ Determine these values:
 
 ### Phase 3: Plan
 
-**Goal:** Get user confirmation before generating infrastructure.
-
-Show a summary:
+Show summary:
 
 ```
 Project:    [project name]
@@ -98,8 +91,6 @@ Ask: "Confirm? (yes / suggest changes)"
 **Gate:** User confirmed.
 
 ### Phase 4: Generate
-
-**Goal:** Create the optimization infrastructure in `auto/` folder.
 
 Create these files in project root `auto/` directory:
 
@@ -133,15 +124,13 @@ Requirements: cd to project root, redirect ALL output to `auto/run.log`, output 
 timestamp	commit	status	<metric>	<secondary>	duration	description
 ```
 
-Column notes: `timestamp` is ISO 8601. `duration` is `HH:MM:SS` format (wall-clock time for the experiment).
+Column notes: `timestamp` is ISO 8601. `duration` is `HH:MM:SS` format (wall-clock time for experiment).
 
-**auto/program.md** — Agent instructions generated from the template below with all project-specific values filled in.
+**auto/program.md** — Agent instructions generated from template below with all project-specific values filled in.
 
 **Gate:** All files created and executable.
 
 ### Phase 5: Baseline
-
-**Goal:** Measure starting point.
 
 1. Run `bash auto/bench.sh`
 2. Extract metrics: search for `<metric>:` in `auto/run.log`
@@ -165,13 +154,11 @@ Branch:    autotune/[tag]
 
 ### Phase 7: Loop
 
-**Goal:** Autonomous optimization — keep/discard experiments until interrupted.
-
-Execute the loop defined in auto/program.md. Follow it exactly:
+Execute loop defined in auto/program.md. Follow it exactly:
 
 1. Read and analyze target file. What could improve the metric?
 2. Form a hypothesis. One change per experiment.
-3. Edit target file with the experimental idea.
+3. Edit target file with experimental idea.
 4. Commit: `git add <target_file> && git commit -m "description of change"`
 5. Run: `bash auto/bench.sh`
 6. Read results: search for `<metric>:` in `auto/run.log`
@@ -252,7 +239,7 @@ Repeat forever:
 2. Read `auto/program.md`
 3. Read `auto/results.tsv` — find current baseline (last `keep` entry)
 4. Check current git branch — if not on `autotune/*`, checkout the branch
-5. Resume the experiment loop from auto/program.md
+5. Resume experiment loop from auto/program.md
 
 ## `/ds-tune status` — Results
 
@@ -288,10 +275,10 @@ ds-tune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {
 
 ## Quality Gates
 
-- Every experiment is committed before evaluation — full audit trail in git
-- Only the target file is modified — all other files are read-only
+- Every experiment committed before evaluation — full audit trail in git
+- Only target file modified — all other files are read-only
 - Metric evaluation is mechanical (deterministic script output, not subjective judgment)
-- Discarded experiments are fully reverted (git reset --hard) — zero residue
+- Discarded experiments fully reverted (git reset --hard) — zero residue
 - Results.tsv is append-only — complete experiment history preserved
 - Simplicity criterion: complexity must earn its keep with measurable improvement
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
@@ -312,7 +299,7 @@ ds-tune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {
 | Scenario | Behavior |
 |----------|----------|
 | No testable metric exists | Help user define one: suggest assertions, benchmarks, or timing measurements |
-| Multiple files need changes | Identify the ONE most impactful file. If changes truly span files, expand target scope but keep it minimal |
+| Multiple files need changes | Identify ONE most impactful file. If changes truly span files, expand target scope but keep it minimal |
 | Metric is subjective (e.g., "code quality") | Convert to mechanical proxy: lint error count, test pass rate, complexity score |
 | Eval takes > 5 minutes | Suggest sampling (subset of test data) or lighter proxy metric |
 | User wants to optimize prompt/SKILL.md | Target = the .md file, metric = eval assertions pass rate |

@@ -1,6 +1,6 @@
 # Optimize Scopes
 
-For concrete Detect/Fix patterns: performance scope uses `rules-performance.md`. Other scopes use pattern-matching described in the Focus column — the model searches for those specific patterns in the codebase.
+For concrete Detect/Fix patterns: performance scope uses `rules-performance.md`. Other scopes use pattern-matching described in Focus column — search for those specific patterns in codebase.
 
 Tactical, file-level analysis scopes. 9 scopes, 97 checks.
 

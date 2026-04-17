@@ -69,7 +69,7 @@ Zero business rules in route handlers, controllers, or CLI commands. Entry point
 - **Source:** Clean Architecture, SOLID SRP
 
 ### ARC-06 [MAJOR] Consistent Error Handling Strategy
-Single error handling pattern across the codebase. Errors categorized and handled per type.
+Single error handling pattern across codebase. Errors categorized and handled per type.
 - **Detect:**
   - Mixed error handling: some try-catch, some .catch(), some unhandled
   - Generic catch-all without specific handling

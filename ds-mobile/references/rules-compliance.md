@@ -176,7 +176,7 @@ Complete data deletion including backend and backups.
 
 ## Regulatory Compliance (Framework-Tagged)
 
-Rules in this section are only checked when the corresponding framework is in `ACTIVE_FRAMEWORKS`. Tag format: `[FRAMEWORK: X,Y]` means check only if X or Y is active.
+Rules in this section only checked when corresponding framework is in `ACTIVE_FRAMEWORKS`. Tag format: `[FRAMEWORK: X,Y]` means check only if X or Y is active.
 
 **Common detect strategy for PRV-06–13:** Each framework rule checks for absence of framework-specific compliance artifacts. Pattern: (1) Search compliance/privacy files for framework keywords, (2) verify consent mechanism meets framework requirements, (3) check cross-border transfer safeguards if applicable. Specific keywords per rule below.
 
@@ -317,7 +317,7 @@ Timely notification to authority and affected individuals upon data breach.
 - **Source:** GDPR Art. 33-34, CCPA 1798.150, LGPD Art. 48, PIPL Art. 57, KVKK Art. 12
 
 ### PRV-17 [CRITICAL] Data Portability [FRAMEWORK: GDPR,CCPA,UK_GDPR,LGPD,PIPA]
-Users can export their data in machine-readable format.
+Users can export data in machine-readable format.
 - **Detect:**
   - No data export feature in app
   - No API endpoint for data export
@@ -448,7 +448,7 @@ Kids-directed apps have strict restrictions on data collection, ads, and third-p
 - **Source:** COPPA Rule 16 CFR 312, App Store Kids Category, Play Store Families Policy
 
 ### STO-09 [CRITICAL] Subscription Transparency
-All auto-renewal terms, pricing, and trial conditions must be visible on the purchase screen before the user commits.
+All auto-renewal terms, pricing, and trial conditions must be visible on purchase screen before user commits.
 - **Detect:**
   - Paywall/purchase screen missing any of:
     - Subscription price and billing period (monthly/yearly)
@@ -456,9 +456,9 @@ All auto-renewal terms, pricing, and trial conditions must be visible on the pur
     - Free trial duration and post-trial price
     - Introductory offer terms (if applicable)
   - Search UI files for paywall/purchase screens: `paywall`, `subscription`, `premium`, `upgrade`, `purchase`
-  - Verify pricing text is visible without scrolling on standard screen sizes
+  - Verify pricing text visible without scrolling on standard screen sizes
   - Terms of Service and Privacy Policy links missing from purchase screen
-- **Fix:** Display all subscription terms on purchase screen: price, period, auto-renewal statement, trial length + post-trial price. Add ToS and Privacy Policy links. Ensure all text is visible without scrolling
+- **Fix:** Display all subscription terms on purchase screen: price, period, auto-renewal statement, trial length + post-trial price. Add ToS and Privacy Policy links. Ensure all text visible without scrolling
 - **Source:** App Store 3.1.2, Play Store Subscriptions Policy, EU Consumer Rights Directive
 
 ### STO-10 [CRITICAL] Subscription Cancellation
@@ -474,13 +474,13 @@ Users must be able to manage and cancel subscriptions easily. Apple requires in-
 - **Source:** App Store 3.1.2(a), Play Store Subscription Policy
 
 ### STO-11 [CRITICAL] Sign in with Apple
-If the app offers third-party social login, Sign in with Apple must be offered alongside (iOS only).
+If app offers third-party social login, Sign in with Apple must be offered alongside (iOS only).
 - **Detect:**
   - Search for third-party OAuth providers: `GoogleSignIn`, `google_sign_in`, `FacebookLogin`, `facebook_auth`, `TwitterLogin`, `GIDSignIn`, `ASAuthorizationAppleIDProvider`, `sign_in_with_apple`
-  - If any third-party OAuth found AND no `ASAuthorizationAppleIDProvider` or `sign_in_with_apple` → CRITICAL
+  - Third-party OAuth found AND no `ASAuthorizationAppleIDProvider` or `sign_in_with_apple` → CRITICAL
   - Exemptions: educational institution apps (managed Apple IDs), enterprise internal apps, government apps, apps using only company's own first-party auth
   - Sign in with Apple button placement: must be equal or more prominent than other login options
-- **Fix:** Add Sign in with Apple alongside existing OAuth providers. Use `ASAuthorizationAppleIDProvider` (native) or `sign_in_with_apple` (Flutter). Ensure button is equally or more prominent than alternatives. Handle credential revocation
+- **Fix:** Add Sign in with Apple alongside existing OAuth providers. Use `ASAuthorizationAppleIDProvider` (native) or `sign_in_with_apple` (Flutter). Ensure button equally or more prominent than alternatives. Handle credential revocation
 - **Source:** App Store 4.8, Apple Human Interface Guidelines
 
 ### STO-12 [HIGH] App Completeness
@@ -509,7 +509,7 @@ Store listing metadata must accurately reflect app functionality. No misleading 
 - **Source:** App Store 2.3, Play Store Metadata Policy
 
 ### STO-14 [HIGH] Permission Justification
-Every requested permission must have a clear use case. Unused or unjustified permissions cause rejection.
+Every requested permission must have clear use case. Unused or unjustified permissions cause rejection.
 - **Detect:**
   - Declared permissions not used in code:
     - Android: compare `AndroidManifest.xml` `<uses-permission>` against actual API usage in source
@@ -518,7 +518,7 @@ Every requested permission must have a clear use case. Unused or unjustified per
   - Sensitive permissions without user-facing justification string:
     - Camera (`CAMERA`), Microphone (`RECORD_AUDIO`), Location (`ACCESS_FINE_LOCATION`), Contacts (`READ_CONTACTS`), Photos (`READ_MEDIA_IMAGES`)
   - Background location without foreground use case demonstrated first
-- **Fix:** Remove unused permissions. Add `NS*UsageDescription` strings for all iOS permissions. Ensure each permission maps to a declared data practice. Request sensitive permissions in context (when feature is used, not at launch)
+- **Fix:** Remove unused permissions. Add `NS*UsageDescription` strings for all iOS permissions. Ensure each permission maps to declared data practice. Request sensitive permissions in context (when feature is used, not at launch)
 - **Source:** App Store 5.1.1, Play Store Permissions Policy
 
 ### STO-15 [CRITICAL] ATT Compliance (iOS)
@@ -534,7 +534,7 @@ App Tracking Transparency prompt must appear before any tracking occurs. IDFA ac
 - **Source:** App Store 5.1.2(i), Apple ATT Framework
 
 ### STO-16 [HIGH] Push Notification Consent
-Apps should explain notification value before triggering the OS permission prompt.
+Apps should explain notification value before triggering OS permission prompt.
 - **Detect:**
   - OS notification permission requested at app launch without prior explanation
   - Search for notification permission request: `UNUserNotificationCenter.requestAuthorization`, `Notification.requestPermission`, `firebase_messaging` permission request
@@ -558,7 +558,7 @@ Universal Links (iOS) and App Links (Android) must be properly configured and va
 - **Source:** Apple Universal Links, Android App Links, Play Store Deep Linking Policy
 
 ### STO-18 [MEDIUM] Store Listing Localization
-Store metadata should be localized for all languages the app supports.
+Store metadata should be localized for all languages app supports.
 - **Detect:**
   - App supports multiple locales (ARB files, `.lproj` directories, `values-xx/strings.xml`) but store metadata only in one language
   - Search for: `fastlane/metadata/*/`, locale-specific store listing directories
@@ -571,7 +571,7 @@ Store metadata should be localized for all languages the app supports.
 Every declared `UIBackgroundModes` capability must have real functional usage. Unused background modes cause rejection.
 - **Detect:**
   - Search `Info.plist` for `UIBackgroundModes` array entries: `audio`, `location`, `voip`, `fetch`, `remote-notification`, `bluetooth-central`, `bluetooth-peripheral`, `external-accessory`, `processing`
-  - For each declared mode, verify actual usage in source code:
+  - Per declared mode, verify actual usage in source code:
 
     | Mode | Required Evidence |
     |------|------------------|
@@ -583,7 +583,7 @@ Every declared `UIBackgroundModes` capability must have real functional usage. U
     | `bluetooth-central` | `CBCentralManager` background scanning |
 
   - Declared mode with no matching API usage → HIGH (will be rejected)
-- **Fix:** Remove unused `UIBackgroundModes` entries. If background capability is needed, ensure corresponding API is implemented and functional
+- **Fix:** Remove unused `UIBackgroundModes` entries. Background capability needed → ensure corresponding API is implemented and functional
 - **Source:** App Store 2.5.4, Apple Background Execution Guide
 
 ### STO-20 [HIGH] Billing Library Version (Android)

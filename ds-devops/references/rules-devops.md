@@ -1,18 +1,12 @@
 # Rules: CI/CD, Workflow & Dependency Management
 
-Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
-
 Applies to all project types: web, API, CLI, library, mobile, monorepo.
 
-## Table of Contents
-
-| Section | Rules | Line |
-|---------|-------|------|
-| **CI/CD & Workflow** | DOP-01–07 (1 CRITICAL, 6 HIGH) | ~16 |
-| **Code Signing** | DOP-08–09 (2 HIGH) | ~89 |
-| **Dependency Management** | DOP-10–14 (1 CRITICAL, 4 HIGH) | ~115 |
-
----
+| Section | Rules |
+|---------|-------|
+| **CI/CD & Workflow** | DOP-01–07 (1 CRITICAL, 6 HIGH) |
+| **Code Signing** | DOP-08–09 (2 HIGH) |
+| **Dependency Management** | DOP-10–14 (1 CRITICAL, 4 HIGH) |
 
 ## CI/CD & Workflow
 
@@ -32,7 +26,7 @@ Every project must have automated CI/CD.
   - Elixir: `mix format`, `mix credo`, `mix test`, `mix release`
   - C/C++: `clang-format`, `clang-tidy`, `ctest`, `cmake --build`
   - Scala: `scalafmt`, `scalafix`, `sbt test`, `sbt assembly`
-- **Impact:** Manual builds cause inconsistent releases and missed quality checks
+- **Impact:** Manual builds → inconsistent releases and missed quality checks
 - **GitHub Actions (2025-2026):** Use reusable workflows (`uses: ./.github/workflows/ci.yml`) for DRY pipelines. Use OIDC auth (`permissions: id-token: write`) instead of long-lived secrets for cloud deploys. Use matrix builds for multi-version testing. Pin actions by SHA, not tag.
 - **Source:** GitHub Actions Reusable Workflows docs, OIDC for GitHub Actions (github.blog 2023), CI/CD best practices (martinfowler.com)
 
@@ -94,7 +88,7 @@ CVE check in CI. Fail on vulnerabilities.
 ### DOP-07 [HIGH] Required Status Checks
 Protected branches should require CI checks to pass before merge.
 - **Detect:** Branch protection exists but no required status checks configured. Or CI jobs run but aren't required for merge.
-- **Fix:** Configure required status checks for lint, test, and build jobs on the default branch.
+- **Fix:** Configure required status checks for lint, test, and build jobs on default branch.
 - **Impact:** PRs can merge with failing CI, bypassing quality gates
 - **Source:** GitHub/GitLab branch protection docs
 
@@ -149,7 +143,7 @@ Detect and plan for breaking changes in dependencies and platform SDKs.
     - C/C++: compiler standard upgrades (C++17→20→23), deprecated headers
     - Scala: Scala 2→3 migration, sbt version bumps
 - **Fix:** Read changelog and migration guide before major updates. Create separate branch. Run full test suite before merging.
-- **Impact:** Undetected breaking changes cause build failures and runtime crashes
+- **Impact:** Undetected breaking changes → build failures and runtime crashes
 - **Source:** Semantic Versioning, platform migration guides
 
 ### DOP-11 [HIGH] Outdated Dependency Detection
@@ -180,7 +174,7 @@ Detect outdated dependencies. Update to latest compatible stable versions.
 Automated dependency update tool must be configured.
 - **Detect:**
   - No `.github/dependabot.yml` and no `renovate.json` / `.renovaterc`
-  - Existing config doesn't cover all package ecosystems in the project
+  - Existing config doesn't cover all package ecosystems in project
   - No auto-merge policy for patch/minor updates
 - **Fix:** Configure Dependabot or Renovate. Cover all ecosystems. Set auto-merge for patch updates, manual review for major.
 - **Impact:** Without automated updates, dependencies silently become outdated and vulnerable
@@ -205,7 +199,7 @@ Dependencies must be compatible with each other. Use BOM where available.
     - Rust: `cargo tree -d` showing duplicate dependencies
     - Scala: eviction warnings in sbt resolution
 - **Fix:** Use BOM for coordinated releases. Use overrides only temporarily with TODO comment. Commit lockfiles.
-- **Impact:** Dependency conflicts cause build failures and unpredictable behavior
+- **Impact:** Dependency conflicts → build failures and unpredictable behavior
 - **Source:** Maven BOM docs, Gradle Platform docs, npm peer dependency RFC, Cargo resolver docs
 
 ### DOP-14 [HIGH] Version Pinning
@@ -215,5 +209,5 @@ Dependencies should be pinned to specific versions. Lockfiles committed.
   - Missing lockfile in git (pubspec.lock, package-lock.json, yarn.lock, poetry.lock, Cargo.lock, go.sum, Gemfile.lock, composer.lock, mix.lock)
   - `.gitignore` excluding lockfiles
 - **Fix:** Pin versions. Commit lockfiles. Remove lockfiles from `.gitignore`.
-- **Impact:** Unpinned dependencies cause non-reproducible builds and surprise breakage
+- **Impact:** Unpinned dependencies → non-reproducible builds and surprise breakage
 - **Source:** npm lockfile docs, Yarn deterministic installs, Go Module Reference (go.dev), Cargo.lock docs

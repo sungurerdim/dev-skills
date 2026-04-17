@@ -34,7 +34,7 @@ SETUP ──► PLAN ──► RESEARCH ──► EXECUTE ──┬──► nex
 
 ## Decision Tree
 
-At each decision point, the logic is deterministic:
+At each decision point, logic is deterministic:
 
 ### Step-Level Decision (after each attempt)
 
@@ -113,7 +113,7 @@ In practice, most problems resolve in plan 1, round 1, alternatives 1-3.
 
 ## Learned Constraint Propagation
 
-When an alternative fails, the failure reason is analyzed for reusable constraints:
+When an alternative fails, failure reason analyzed for reusable constraints:
 
 ### Extraction Rules
 
@@ -128,7 +128,7 @@ When an alternative fails, the failure reason is analyzed for reusable constrain
 
 ### Propagation Scope
 
-Learned constraints are applied to:
+Learned constraints applied to:
 1. **Same step, next alternative:** Exclude approaches that would hit the same constraint
 2. **Same step, next research round:** Include constraint in search queries (e.g., "solve X without dependency Y")
 3. **New plan:** Available in episodic memory for plan design — avoid steps that depend on blocked resources
@@ -153,7 +153,7 @@ Scope values:
 
 ### When to Revert
 
-Revert is triggered when:
+Revert triggered when:
 1. Red line post-check fails after an execution attempt
 2. An alternative needs to be abandoned (verification failed)
 
@@ -246,6 +246,6 @@ When context or state file grows large:
 
 1. **Keep:** failure reasons, learned constraints, step outcomes
 2. **Compress:** verbose command outputs → one-line summaries
-3. **Drop:** successful intermediate outputs (the success is recorded in step status)
+3. **Drop:** successful intermediate outputs (success recorded in step status)
 
-Trigger: episodic_memory exceeds 50 entries. Compress oldest entries first, keeping the 20 most recent in full detail.
+Trigger: episodic_memory exceeds 50 entries. Compress oldest entries first, keeping 20 most recent in full detail.

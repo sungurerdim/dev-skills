@@ -1,6 +1,6 @@
 # Test Frameworks Reference
 
-Per-stack test framework detection and commands. Load only the section matching the detected stack.
+Per-stack test framework detection and commands. Load only the section matching detected stack.
 
 ---
 
@@ -21,11 +21,11 @@ Per-stack test framework detection and commands. Load only the section matching 
 **Test directory:** `__tests__/`, `test/`, or co-located `*.test.ts` / `*.spec.ts`.
 
 **2025-2026 Notes:**
-- **Vitest** is the dominant test runner in the Vite ecosystem, ~3x faster than Jest due to native ESM and Vite's transform pipeline. Jest-compatible API makes migration straightforward.
-- **bun:test** is the fastest option for Bun-native projects. Built-in, zero-config, Jest-compatible API. Use when the project already runs on Bun.
+- **Vitest** is dominant test runner in Vite ecosystem, ~3x faster than Jest due to native ESM and Vite's transform pipeline. Jest-compatible API makes migration straightforward.
+- **bun:test** is fastest option for Bun-native projects. Built-in, zero-config, Jest-compatible API. Use when project already runs on Bun.
 - **Playwright** has overtaken Cypress in market share for browser E2E testing (2025). Better multi-browser support, auto-wait, and trace viewer. Cypress remains viable for existing projects but new projects should prefer Playwright.
 - **Mocha** is in maintenance mode. Migrate to Vitest for new projects.
-- **Jest** remains widely used but new projects in the Vite ecosystem should prefer Vitest for better performance and native ESM support.
+- **Jest** remains widely used but new projects in Vite ecosystem should prefer Vitest for better performance and native ESM support.
 
 ---
 

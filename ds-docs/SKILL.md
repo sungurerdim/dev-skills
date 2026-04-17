@@ -13,7 +13,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 
 ## Contract
 
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Every generated sentence must earn its place — no filler, marketing language, or obvious statements
 - Only generates/modifies documentation files — never touches source code
@@ -51,7 +51,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 ### Phase 0: Pre-flight [ALWAYS — never skip]
 
-**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings with `docs` scope. Use them to target specific documentation gaps (skip own gap analysis for covered areas). If no findings file or stale, run own full analysis.
+**Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings with `docs` scope. Use to target specific documentation gaps (skip own gap analysis for covered areas). No findings file or stale → run own full analysis.
 
 **IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis.
 
@@ -61,12 +61,12 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh.
 
-1. **Mode selection.** If no flags provided, ask the user:
+1. **Mode selection.** No flags provided → ask user:
    - **Auto** — detect project type, analyze gaps, generate all missing docs
    - **Preview** — analyze gaps only, no generation
    - **Scoped** — pick specific scope(s): readme, api, dev, user, ops, changelog, refine, verify
 
-3. **Scope selection.** If mode is not Auto/Preview, ask:
+3. **Scope selection.** Mode is not Auto/Preview → ask:
    - Which documentation areas to cover (Core: readme+changelog, Technical: api+dev, User-facing: user+ops)
    - How to handle existing docs (Fill gaps, Refine existing, Verify claims, Update all)
 
@@ -76,7 +76,7 @@ Recovery check: if progress artifact exists from prior run, ask: Resume / Start 
 
 Scan existing docs, detect project type, assess completeness. Apply quality rules from [references/rules-writing.md](references/rules-writing.md):
 1. Search for doc files (README.md, CONTRIBUTING.md, docs/*, CHANGELOG.md, API.md, DEPLOY.md)
-2. For each found doc: read and assess completeness (0-100%)
+2. Per found doc: read and assess completeness (0-100%)
 3. Detect project type from config files
 4. Check for doc-sync issues: README drift, API signature mismatch, deprecated refs, broken links
 
@@ -107,9 +107,9 @@ Missing docs = HIGH, incomplete (<70%) = MEDIUM.
 
 **Refine scope:** Analyze for scannability, clarity, redundancy, conciseness.
 
-**Verify scope (doc ↔ code sync):**
+**Verify scope (doc vs code sync):**
 
-The verify scope is the most critical — it finds lies in documentation. For every testable claim in docs, search the source code to confirm or deny.
+The verify scope is the most critical — it finds lies in documentation. For every testable claim in docs, search source code to confirm or deny.
 
 **What to verify (exhaustive checklist):**
 
@@ -131,7 +131,7 @@ The verify scope is the most critical — it finds lies in documentation. For ev
 **Verification process:**
 
 1. Parse each doc file into testable claims (every code block, table row, flag, path, number, link)
-2. For each claim, search the codebase for the referenced entity
+2. Per claim, search codebase for referenced entity
 3. Classify each finding:
 
 | Result | Classification | Action |
@@ -150,7 +150,7 @@ The verify scope is the most critical — it finds lies in documentation. For ev
 | {n} | {Drift/Stale/Gap/Broken} | {file}:{line} | {claim} | {actual} | {severity} |
 ```
 
-**Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are the highest-drift-risk elements.
+**Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are highest-drift-risk elements.
 
 **Gate:** Gap analysis complete with severity-classified findings table.
 
@@ -168,11 +168,11 @@ Generate missing docs following these principles:
 3. Scannable format — headers, bullets, tables, copy-pasteable commands
 4. Action-oriented — focus on what reader needs to do
 
-Source mandate: every documented flag, endpoint, or config value MUST be verified by searching the source before inclusion.
+Source mandate: every documented flag, endpoint, or config value MUST be verified by searching source before inclusion.
 
 **Compliance scope templates (when scope = compliance):**
 
-**Overwrite prevention:** Before generating any compliance document, check if the target file already exists. If it does, do NOT overwrite — instead show a diff between the existing content and the proposed content, and ask the user: "Update existing / Keep existing / Show diff".
+**Overwrite prevention:** Before generating any compliance document, check if target file already exists. Exists → do NOT overwrite — show diff between existing content and proposed content, ask: "Update existing / Keep existing / Show diff".
 
 Generate compliance documents by scanning codebase for data flows, third-party SDKs, privacy configurations, and API patterns. Use these template structures:
 
@@ -204,9 +204,9 @@ Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 `docs: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-If total findings = 0, include "All {N} scopes evaluated: 0 findings" confirmation line in the summary. This distinguishes a clean result from a skipped analysis.
+Total findings = 0 → include "All {N} scopes evaluated: 0 findings" confirmation line in summary. Distinguishes clean result from skipped analysis.
 
-**Profile update:** If a blueprint profile exists in the instruction file, append a Run History entry: `- {YYYY-MM-DD}: ds-docs {mode} | Fixed: {n} | Skipped: {n} | Total: {n}`. This keeps the Documentation dimension score traceable after doc generation.
+**Profile update:** Blueprint profile exists → append Run History entry: `- {YYYY-MM-DD}: ds-docs {mode} | Fixed: {n} | Skipped: {n} | Total: {n}`. Keeps Documentation dimension score traceable after doc generation.
 
 **Gate:** Summary table rendered with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
 
@@ -233,4 +233,3 @@ If total findings = 0, include "All {N} scopes evaluated: 0 findings" confirmati
 | No existing docs | Generate from scratch using source code analysis |
 | Docs contradict code | Flag discrepancy, update doc to match code |
 | Multilingual docs | Maintain only detected languages, warn about sync |
-

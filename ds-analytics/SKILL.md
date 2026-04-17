@@ -1,6 +1,6 @@
 # /ds-analytics
 
-Most apps either track everything (privacy violation) or nothing (flying blind). This skill designs the minimum event taxonomy that gives you maximum insight — privacy-first.
+Most apps track everything (privacy violation) or nothing (flying blind). Skill designs minimum event taxonomy for maximum insight — privacy-first.
 
 **Analytics & Metrics** — Privacy-first analytics setup, event taxonomy, funnel design, and user insights.
 
@@ -14,7 +14,7 @@ Most apps either track everything (privacy violation) or nothing (flying blind).
 ## Contract
 
 - Privacy-first: maximum insights with minimum data collection
-- Fully functional standalone — zero dependency on other skills. When blueprint profile or `.ds-findings.md` exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality.
+- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates event taxonomies, tracking plans, and dashboard specs — not tracking code
 - **Maximum privacy:** recommends privacy-respecting tools, no invasive tracking
@@ -83,10 +83,8 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 
 ### Phase 1: Setup
 
-**Goal:** Understand analytics needs and context.
-
-1. If flags provided, proceed directly
-2. If no flags, present interactive menu
+1. Flags provided → proceed directly
+2. No flags → present interactive menu
 3. **IDU:** Profile → Config.data, Config.audience, Config.regulations, Type+Stack. Findings(privacy, coverage, noise, quality) → verify + use. Absent → own analysis.
 4. Detect platform (web, mobile, API) from project signals
 5. Detect existing analytics (search for analytics SDKs in dependencies)
@@ -95,8 +93,6 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 **Gate:** Platform and goals confirmed.
 
 ### Phase 2: Discover
-
-**Goal:** Map current analytics state.
 
 1. Search for analytics SDK imports and initialization
 2. Search for existing event tracking calls
@@ -107,16 +103,14 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 
 ### Phase 3: Design [--design]
 
-**Goal:** Create event taxonomy and tracking plan.
-
-1. **Core events:** Generate essential events for the app type:
+1. **Core events:** Generate essential events for app type:
    - All apps: app_open, signup_complete, error_occurred
    - SaaS: feature_used, subscription_started, subscription_cancelled
    - E-commerce: product_viewed, cart_updated, purchase_completed
    - Content: content_viewed, content_shared, content_saved
 2. **Naming convention:** `{object}_{action}` in snake_case
    - Example: `transcript_created`, `subscription_started`, `settings_changed`
-3. **Event properties:** For each event, define:
+3. **Event properties:** Per event, define:
    - Required properties (always present)
    - Optional properties (context-dependent)
    - Forbidden properties (PII: email, name, IP, device ID)
@@ -126,8 +120,6 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 **Gate:** Taxonomy covers all key user journeys with zero PII in properties.
 
 ### Phase 4: Setup [--setup]
-
-**Goal:** Integration guide for chosen tool.
 
 1. Recommend analytics tool based on project needs and privacy requirements
 2. Generate integration pattern:
@@ -139,13 +131,11 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
    - Debug mode for event verification
    - Event validation in CI
 
-**Gate:** Integration guide is complete and privacy-compliant.
+**Gate:** Integration guide complete and privacy-compliant.
 
 ### Phase 5: Audit [--audit]
 
-**Goal:** Review existing analytics.
-
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings matching scopes (privacy, coverage, noise, quality). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. For uncovered scopes, run full analysis.
+1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching scopes (privacy, coverage, noise, quality). Per match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
 2. **Coverage check:** Map tracked events to user journeys — identify gaps
 3. **Privacy check:**
    - PII in event properties? (emails, names, IPs, precise location)

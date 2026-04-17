@@ -1,6 +1,6 @@
 # CRAAP+ Scoring for ds-solve Research
 
-Subset of the full CRAAP+ methodology, covering the scoring dimensions used by ds-solve's Research phase to rank alternatives.
+Subset of full CRAAP+ methodology, covering scoring dimensions used by ds-solve's Research phase to rank alternatives.
 
 ## Source Tiers
 
