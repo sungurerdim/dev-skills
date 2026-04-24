@@ -1,7 +1,7 @@
 # dev-skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/skills-22-blue)]()
+[![Skills](https://img.shields.io/badge/skills-26-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
@@ -49,27 +49,49 @@ dev-skills are multi-phase execution systems — with quality gates, error recov
 | [ds-cv](ds-cv) | ATS rejects most CVs before a human sees them. Generates ones that pass. |
 | [ds-solve](ds-solve) | Complex problems resist single-pass fixes. Plans, tries alternatives, backtracks, re-plans until solved. |
 | [ds-tune](ds-tune) | Manual optimization: 8 experiments/day. This skill runs 100+ overnight, keeping only what improves. |
+| [ds-ship](ds-ship) | Fikir, scaffold, yarım iş, dondurulmuş projeler — hepsini ship-ready noktasına götüren orkestratör. Tüm ds-* skill'leri doğru sırayla çağırır, tek raporda toplar. |
+| [ds-benchmark](ds-benchmark) | Projelerin "ideali" kimsenin inandığı bir şey değildir. 5–10 karşılaştırılabilir projeyi araştırır, ideal mimariyi sentezler, mevcut-ideal fark tablosu üretir. |
+| [ds-simplify](ds-simplify) | Dead code, tek çağrılan helper, fallback, orphan, premature abstraction — hijyen denetimi, onaylı silme, commit başına bir geri alınabilir grup. |
+| [ds-deps](ds-deps) | Dondurulmuş projelerin bağımlılıkları kokar. Safe patch/minor otomatik yükselt + test geçidi + commit; major'ler için migration notlu onay. |
 
 Each skill is self-contained. No dependencies between them. Install one or all.
 
 ## Recommended workflow
 
 ```
-1. /ds-blueprint        Score your project health, generate .ds-findings.md
-2. /ds-review --tactical  Fix code issues (uses .ds-findings.md if available)
+1. /ds-blueprint        Score your project health, generate .audit/findings.md
+2. /ds-review --tactical  Fix code issues (uses .audit/findings.md if available)
 3. /ds-fix              Format, lint, type-check
 4. /ds-test             Generate missing tests, fix failing ones
 5. /ds-commit           Commit with quality gates
 6. /ds-pr               Create PR with net diff analysis
 ```
 
-Start with `/ds-blueprint` — it scans your entire codebase and produces a `.ds-findings.md` that other skills consume, so they skip redundant analysis and jump straight to fixes.
+Start with `/ds-blueprint` — it scans your entire codebase and produces a `.audit/findings.md` that other skills consume, so they skip redundant analysis and jump straight to fixes.
 
 For new projects: `/ds-init` → then the workflow above.
 For deployment: `/ds-deploy` → `/ds-launch`.
 For frontend: `/ds-frontend` → design system audit + fixes.
 For stuck/complex problems: `/ds-solve` — adaptive retry with web research.
 For audits: `/ds-compliance` or `/ds-mobile`.
+For a full idea-to-ship orchestration: `/ds-ship` — classifies the project, plans the sequence, delegates every ds-* skill, consolidates one `.audit/report.md`.
+For competitive benchmarking: `/ds-benchmark` — 5-10 comparables, synthesizes ideal, produces gap table.
+For dead-weight hygiene: `/ds-simplify` — dead exports, single-caller helpers, premature abstractions, approved deletion.
+For dormant projects: `/ds-deps` — safe-group upgrades automatic, majors approval-gated.
+
+## Shared audit namespace
+
+All dev-skills artifacts live under `.audit/` at repo root:
+
+```
+.audit/
+  findings.md          ← shared findings across skills
+  report.md            ← ds-ship consolidated report
+  report.html          ← optional, ds-ship --html
+  <skill>.json         ← per-skill state for resumable skills
+```
+
+Add to `.gitignore` once: `.audit/`. Nothing else leaks to the repo root.
 
 ## Why these are different
 
@@ -78,7 +100,7 @@ Most AI coding "skills" are static rule snippets (30-100 lines). dev-skills are 
 - **Multi-phase workflows** with quality gates, mandatory phase enforcement, and error recovery
 - **8 AI weaknesses systematically addressed** — hallucination, scope creep, tunnel vision, confidence bias, memory decay, skip tendency, redundancy blindness, injection risk
 - **Finding Resolution Completeness (FRC)** — every finding gets a disposition (fixed/skipped/failed), zero silent drops
-- **Inter-skill coordination** via `.ds-findings.md` + blueprint profile — share analysis results and project context, avoid duplicate work
+- **Inter-skill coordination** via `.audit/findings.md` + blueprint profile — share analysis results and project context, avoid duplicate work
 - **Token-efficient** — 10K token budget per skill, references loaded on demand
 - **Tool-agnostic** — works with any AI tool that accepts markdown instructions
 
