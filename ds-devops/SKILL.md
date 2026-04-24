@@ -15,7 +15,7 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 
 - Every finding cites file and line — never infer or assume
 - Only audits CI/CD, signing, dependencies, and release pipelines
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -26,6 +26,8 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 | `--scope=<domains>` | Comma-separated: ci, signing, deps, release-pipeline, or `all` |
 | `--auto` | All scopes, no questions, single-line summary |
 | `--preview` | Dry run — show what would be checked without loading rules or scanning |
+| `--resume` | Resume from `.audit/devops.json` without prompting |
+| `--clean` | Delete existing state and start fresh |
 
 Without flags: present mode and scope selection to the user.
 
@@ -40,11 +42,19 @@ Without flags: present mode and scope selection to the user.
 
 ---
 
+## Delegation
+
+**Owns:** ci, signing, deps-audit, pipeline-structure | **Delegates:** ds-deps → deps-upgrade-execution; ds-deploy → infra / container / TLS / monitoring | **Receives:** ds-ship → Phase 5 infra chain
+
 ## Execution Flow
 
 Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summary
 
 ### Phase 1: Detect
+
+**Recovery check:** DETECT `.audit/devops.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read CI/signing/deps config, discard stale findings), skip `done` phases, announce `[OPS] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+
+**State `data` shape:** `{ mode, scopes_selected, scopes_done[], ci_platform, toolchain, findings[{id, severity, file, line, scope, disposition}], fix_progress }`.
 
 1. **IDU:** Profile → Project Map.Toolchain, Type+Stack, Config.deploy. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
 2. **Project type detection.** Search for config files:
@@ -82,7 +92,7 @@ Load [rules-devops.md](references/rules-devops.md). Rules are project-type-aware
 
 ### Phase 3: Scan
 
-1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching scopes (ci, signing, deps, release-pipeline). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
+1. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → read findings matching scopes (ci, signing, deps, release-pipeline). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
 
 For each scope, scan codebase:
 
@@ -157,7 +167,7 @@ ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 2. Format preservation (indentation, config style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (correct CI syntax, valid config)
-5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/devops.json` updated per scope, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

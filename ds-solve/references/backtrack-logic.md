@@ -179,66 +179,86 @@ After failed attempt:
 
 ## State File Schema
 
-`.ds-solve-state.json`:
+`.audit/solve.json` — canonical envelope from SKILL-SPEC State Management. Rich ds-solve fields live under `data`:
 
 ```json
 {
+  "skill": "ds-solve",
+  "prefix": "SOL",
   "version": 1,
   "objective": "description of what to achieve",
-  "verification": "command or check that proves success",
-  "red_lines": [
-    { "id": 1, "description": "...", "source": "auto|user", "check": "command or condition" }
+  "args": ["--budget=3x3x5"],
+  "git_hash": "a3f9c21",
+  "timestamp": "2026-04-22T14:33:00Z",
+  "phases": [
+    { "id": 1, "name": "Setup",    "status": "done" },
+    { "id": 2, "name": "Plan",     "status": "done" },
+    { "id": 3, "name": "Research", "status": "done" },
+    { "id": 4, "name": "Execute",  "status": "in_progress", "progress": "plan-1/step-2/alt-3" },
+    { "id": 5, "name": "Backtrack",       "status": "pending" },
+    { "id": 6, "name": "Re-plan",         "status": "pending" },
+    { "id": 7, "name": "Needs-Approval",  "status": "pending" },
+    { "id": 8, "name": "Escalate",        "status": "pending" },
+    { "id": 9, "name": "Summary",         "status": "pending" }
   ],
-  "budget": { "P": 3, "R": 3, "A": 5 },
-  "current_plan": 1,
-  "status": "in_progress|completed|failed|escalated",
-  "plans": [
-    {
-      "id": "plan-1",
-      "status": "in_progress|completed|failed",
-      "steps": [
-        {
-          "id": "step-1",
-          "description": "...",
-          "verification": "...",
-          "red_line_risk": [1, 3],
-          "status": "pending|in_progress|completed|failed|skipped",
-          "current_round": 1,
-          "rounds": [
-            {
-              "id": "round-1",
-              "alternatives": [
-                {
-                  "id": "alt-1",
-                  "description": "...",
-                  "source": "local|web",
-                  "craap_score": 85,
-                  "status": "pending|success|failed",
-                  "failure_reason": null,
-                  "learned_constraint": null
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "episodic_memory": [
-    {
-      "plan": 1, "step": 1, "round": 1, "alt": 1,
-      "action": "what was attempted",
-      "result": "success|fail",
-      "evidence": "command output or observation",
-      "learned_constraint": { "constraint": "...", "scope": "step|plan|global", "type": "..." },
-      "timestamp": "ISO 8601"
-    }
-  ],
-  "red_line_checks": [
-    { "timestamp": "...", "context": "pre|post step-1 alt-2", "all_passed": true, "violations": [] }
-  ]
+  "current_phase": 4,
+  "data": {
+    "verification": "command or check that proves success",
+    "red_lines": [
+      { "id": 1, "description": "...", "source": "auto|user", "check": "command or condition" }
+    ],
+    "budget": { "P": 3, "R": 3, "A": 5 },
+    "current_plan": 1,
+    "status": "in_progress|completed|failed|escalated",
+    "plans": [
+      {
+        "id": "plan-1",
+        "status": "in_progress|completed|failed",
+        "steps": [
+          {
+            "id": "step-1",
+            "description": "...",
+            "verification": "...",
+            "red_line_risk": [1, 3],
+            "status": "pending|in_progress|completed|failed|skipped",
+            "current_round": 1,
+            "rounds": [
+              {
+                "id": "round-1",
+                "alternatives": [
+                  {
+                    "id": "alt-1",
+                    "description": "...",
+                    "source": "local|web",
+                    "craap_score": 85,
+                    "status": "pending|success|failed",
+                    "failure_reason": null,
+                    "learned_constraint": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "episodic_memory": [
+      {
+        "plan": 1, "step": 1, "round": 1, "alt": 1,
+        "action": "what was attempted",
+        "result": "success|fail",
+        "evidence": "command output or observation",
+        "learned_constraint": { "constraint": "...", "scope": "step|plan|global", "type": "..." },
+        "timestamp": "ISO 8601"
+      }
+    ],
+    "red_line_checks": [
+      { "timestamp": "...", "context": "pre|post step-1 alt-2", "all_passed": true, "violations": [] }
+    ]
+  }
 }
 ```
+
 
 ## Episodic Memory Compression
 

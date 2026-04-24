@@ -18,7 +18,7 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 - Output: single HTML file with inline CSS. Only Google Fonts as external dependency.
 - All content ATS-safe: zero non-ASCII characters in output, zero special HTML entities except `&amp;`.
 - Privacy by default: omit email, phone, address, birth date, and photo from public HTML.
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -29,7 +29,13 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 | `audit` | Audit existing CV against best practices | - |
 | `update` | Update existing HTML CV with new info | - |
 | `linkedin` | Generate LinkedIn profile guide from CV | - |
+| `--resume` | Resume from `.audit/cv.json` without prompting | - |
+| `--clean` | Delete existing state and start fresh | - |
 | (no flag) | Show command menu | - |
+
+## Delegation
+
+**Owns:** cv-generation, cv-ats-compatibility, cv-metric-verification, linkedin-alignment | **Delegates:** ds-research → candidate / market research; ds-docs → proofreading | **Receives:** none
 
 ## Execution Flow
 
@@ -37,7 +43,11 @@ Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 
 ### Phase 1: Gather [generate]
 
-**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, check for relevant findings that may inform CV content (project metrics, quality scores).
+**Recovery check:** DETECT `.audit/cv.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD (project context changed). Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (reconfirm gathered identity/experience blocks are still correct), skip `done` phases, announce `[CV] Resuming from Phase {N}: {name}.` On successful Deploy, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+
+**State `data` shape:** `{ mode, sections_gathered: {identity, experience[], skills, education, gaps}, verifications_done[], html_generated, audit_findings[{id, severity, disposition}] }`.
+
+**Findings file check:** If `.audit/findings.md` exists with fresh `git_hash`, check for relevant findings that may inform CV content (project metrics, quality scores).
 
 **IDU:** Profile → Type + Stack, Project Map. Findings() → verify + use. Absent → own analysis.
 
@@ -161,7 +171,7 @@ ds-cv: {OK|WARN|FAIL} | Sections: N | Metrics: N verified | ATS: {score} | Fixed
 - All company descriptors appear only on first mention
 - All non-technical roles have at least 1 bullet showing transferable impact
 - Experience timeframe claims match first professional role date
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/cv.json` updated per section gathered, gitignored, deleted on successful Deploy.
 
 ## Error Recovery
 

@@ -15,7 +15,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no 
 
 - Only manages repository settings and structure — not code quality
 - Every recommendation cites specific setting or file
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -25,6 +25,9 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no 
 | `--auto` | All scopes, no questions, fix everything |
 | `--preview` | Audit only, no changes |
 | `--scope=X` | Specific scope(s), comma-separated |
+| `--oss-ready` | OSS-readiness mode (see `oss-readiness` scope below) |
+| `--resume` | Resume from `.audit/repo.json` without prompting |
+| `--clean` | Delete existing state and start fresh |
 
 No flags → present mode selection.
 
@@ -73,13 +76,43 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 1. **.gitignore completeness** — IDE, OS, language-specific entries present
 2. **Config file sprawl** — no multiple competing configs for same tool
 
-**Not in scope:** CI/CD pipelines and dependency management.
+### oss-readiness (15 checks — activated by `--oss-ready` flag or when scope is explicitly selected)
+
+1. **LICENSE present** — file at repo root, SPDX-recognized identifier
+2. **LICENSE compatibility** — dependency licenses compatible with repo license (e.g., GPL dep under MIT project → finding)
+3. **CODE_OF_CONDUCT.md** — present, tailored (not stock Contributor Covenant copy with no customization)
+4. **CONTRIBUTING.md** — present, covers local setup + PR expectations + testing
+5. **SECURITY.md** — present, declares vulnerability reporting channel
+6. **Issue templates** — at least `bug_report.md` + `feature_request.md` under `.github/ISSUE_TEMPLATE/`
+7. **PR template** — `.github/pull_request_template.md` present
+8. **CODEOWNERS** — present, maps key paths to maintainers
+9. **README first impression** — has: problem statement, install, quick usage, screenshot/demo (where applicable), maintenance signal (last commit / release < 6 months)
+10. **Discoverability — topics** — ≥3 relevant GitHub topics on the repo
+11. **Discoverability — badges** — at least CI status badge + license badge
+12. **Short description** — repo description populated, one sentence, ≤100 chars
+13. **Homepage URL** — populated when project has docs site / landing page
+14. **Dependabot or renovate** — `.github/dependabot.yml` or `renovate.json` present, enabled for supported stacks
+15. **Git secret history** — scan git history for hardcoded secrets (`git log -p -S"api_key"` / `git-secrets --scan-history` / `trufflehog`). Any hit → Category B finding with `git-filter-repo` surgery proposal; autonomous deletion is forbidden.
+
+OSS-readiness emits Category B findings for anything user-visible (README rewrites, LICENSE changes, trademark concerns). Templates, metadata, and Dependabot config may be Category A when they don't alter public-facing text.
+
+**Trademark / name collision check (part of check 10):** Brief web search for project name against USPTO / EUIPO common-term lookup. Ambiguous or conflicting → HIGH finding with suggestion to consult legal counsel.
+
+**Not in scope:** CI/CD pipelines and dependency management. Code-level security audit delegated to `/ds-compliance`.
+
+## Delegation
+
+**Owns:** repo-settings, branch-protection, repo-hygiene, repo-metadata, team, structure, oss-readiness (--oss-ready mode) | **Delegates:** ds-docs → LICENSE / CONTRIBUTING / SECURITY content generation | **Receives:** ds-ship → Phase 5 repo pass
 
 ## Execution Flow
 
 Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
+
+**Recovery check:** DETECT `.audit/repo.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-query GitHub API for changed settings), skip `done` phases, announce `[RPO] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+
+**State `data` shape:** `{ repo_info: {name, default_branch, visibility, plan}, scopes_selected, scopes_done[], checks_run[], findings[{id, severity, scope, check, disposition}], fixes_applied[] }`.
 
 1. Verify `git` and `gh` CLI available and authenticated — `git` required, `gh` required for settings/protection scopes
 2. Detect repo info via GitHub API: name, default branch, visibility, description, topics, license, homepage, plan (free/pro/enterprise)
@@ -177,7 +210,7 @@ Clean: settings (5/5 ✅), structure (2/2 ✅)
 3. Every finding gets a disposition in summary — zero silent drops (FRC)
 4. Every scope check evaluated and accounted for — zero silent omissions (DSC)
 5. Destructive changes (branch deletion, permission changes) require confirmation unless `--auto`
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/repo.json` updated per scope + per API call, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

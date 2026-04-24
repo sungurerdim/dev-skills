@@ -14,7 +14,7 @@
 ## Contract
 
 - Covers store account setup, listing metadata, review preparation, release management
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates checklists and metadata — does NOT submit to stores directly
 - **Minimal liability:** generates store-compliant metadata, flags common rejection reasons
@@ -27,14 +27,36 @@
 |------|--------|
 | `--setup` | Store account setup checklists and initial configuration |
 | `--listing` | Store listing metadata: description, keywords, screenshots |
-| `--privacy` | Privacy label and data safety declarations |
+| `--privacy` | Privacy label declarations — **store-label-correctness only**. Canonical privacy audit delegated to `/ds-compliance --privacy` (OVERLAP-4). This mode verifies store labels match actual code behavior; it does not re-audit data collection or consent. |
 | `--review` | Pre-review checklist: common rejection prevention |
 | `--aso` | App Store Optimization — keyword research and search ranking |
 | `--release` | Release management: version, notes, staged rollout |
 | `--post-launch` | Post-launch monitoring checklist |
+| `--perf-budget` | Author a formal perf budget (LCP, INP, p99, bundle size, startup) and wire CI enforcement via `/ds-devops` |
 | `--auto` | All modes, no questions, single-line summary |
+| `--resume` | Resume from `.audit/launch.json` without prompting |
+| `--clean` | Delete existing state and start fresh |
 
-No flags → present interactive mode selection (setup, listing, aso, privacy, review, release, post-launch).
+No flags → present interactive mode selection (setup, listing, aso, privacy, review, release, post-launch, perf-budget).
+
+### Perf Budget Mode (`--perf-budget`)
+
+Authors a single file at `perf-budget.json` (repo root) and wires CI enforcement.
+
+**Schema:**
+```json
+{
+  "web":    { "lcp_ms": 2500, "inp_ms": 200, "cls": 0.1, "ttfb_ms": 600, "bundle_js_kb": 300, "bundle_css_kb": 60 },
+  "api":    { "p50_ms": 50, "p95_ms": 200, "p99_ms": 500, "error_rate_pct": 0.5 },
+  "mobile": { "cold_start_ms": 2000, "warm_start_ms": 800, "app_size_mb": 40, "jank_pct": 1.0 }
+}
+```
+
+Keep only the sections that fit the project type. Default values come from blueprint profile `Config.priorities` and industry baselines.
+
+**CI enforcement:** delegate to `/ds-devops` to add a CI step that runs the project's native perf tool (Lighthouse CI, k6, Firebase Test Lab, etc.) and compares results to `perf-budget.json`. Over-budget → CI fails with offending metric(s) named.
+
+Budget authoring is Category B (commits the project to enforceable numbers). CI wiring is Category A once a budget exists.
 
 ## Scopes
 
@@ -105,11 +127,19 @@ Each check scans codebase and produces PASS/FAIL with severity and file:line ref
 | Force update | Minimum version enforcement, update UX |
 | Rollback | Emergency rollback procedure |
 
+## Delegation
+
+**Owns:** store, release, privacy-labels (store-label-correctness only), perf-budget (--perf-budget mode) | **Delegates:** ds-compliance → canonical privacy; ds-market → marketing copy; ds-mobile → mobile-specific store compliance | **Receives:** ds-ship → Phase 5 launch pass
+
 ## Execution Flow
 
 Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
+
+**Recovery check:** DETECT `.audit/launch.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read store configs, discard stale checks), skip `done` phases, announce `[LCH] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+
+**State `data` shape:** `{ modes_invoked[], platform, stage, inventory: {configs[], metadata[]}, metadata_generated[], checklist_progress, review_findings[{id, severity, check, disposition}] }`.
 
 1. Flags provided → proceed directly; otherwise present interactive menu.
 2. **IDU:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
@@ -154,7 +184,7 @@ Search for store-related configs, version info, existing privacy policy/ToS, CI/
 
 Scan project for top rejection triggers. Each check produces PASS/FAIL with file:line references.
 
-1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching scopes (store, review, privacy-labels, release). Each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
+1. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → read findings matching scopes (store, review, privacy-labels, release). Each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
 2. **Privacy policy [CRITICAL]:** Search for privacy policy URL in project config, metadata files, and store listing drafts. Verify URL accessible (HTTP 200). Missing → FAIL with "Missing privacy policy URL — will cause rejection."
 3. **Metadata completeness [CRITICAL]:** Scan store metadata directories (fastlane/metadata, app store connect export, Play Console drafts). Flag: empty description, missing screenshots, placeholder text ("Lorem ipsum", "TODO", "Coming soon"). Guideline 2.1 (App Completeness) accounts for 40%+ of unresolved rejections.
 4. **Permission descriptions [HIGH]:** Scan `Info.plist` (iOS) for `NS*UsageDescription` keys, `AndroidManifest.xml` for permissions. Every permission must have user-facing description. Missing → FAIL.
@@ -202,7 +232,7 @@ FRC+DSC accounting.
 - Version numbers are valid semver with incrementing build numbers
 - Release notes are user-friendly (not developer jargon)
 - Every finding gets a disposition in summary — zero silent drops (FRC)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/launch.json` updated per mode + per artifact, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

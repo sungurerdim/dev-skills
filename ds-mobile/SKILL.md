@@ -16,7 +16,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Every finding cites file path and line number — never fabricate
 - Only audits mobile app quality — does not modify non-mobile code
 - Platform-specific rules only apply to detected platforms
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -29,6 +29,8 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 | `--release-ready` | Shorthand for `--mode=release-ready` — runs release-critical domains only |
 | `--skip-manual` | Skip manual verification gates (release-ready mode) |
 | `--diff` | Compare with previous release readiness report |
+| `--resume` | Resume from `.audit/mobile.json` without prompting |
+| `--clean` | Delete existing state and start fresh |
 
 No flags → present mode selection.
 
@@ -43,11 +45,19 @@ No flags → present mode selection.
 
 ---
 
+## Delegation
+
+**Owns:** mobile-security, mobile-privacy, mobile-regulatory, mobile-ux, mobile-store, mobile-permissions, mobile-release, mobile-visual | **Delegates:** none (authoritative for mobile projects) | **Receives:** ds-compliance → security / privacy / regulatory on mobile projects
+
 ## Execution Flow
 
 Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/Score] → [Needs-Approval] → Summary
 
 ### Phase 1: Detect
+
+**Recovery check:** DETECT `.audit/mobile.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read files referenced by pending findings, discard stale ones), skip `done` phases, announce `[MOB] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+
+**State `data` shape:** `{ platform, mode, scopes_selected, scopes_done[], frameworks_detected[], findings[{id, severity, file, line, scope, disposition}], fix_progress, release_ready_score }`.
 
 1. **Project detection.**
 
@@ -61,7 +71,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 2. **Platform confirmation.** Ambiguous → ask user.
 
-3. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching mobile scopes. Use verified findings to skip redundant analysis. Stale or absent → run own full analysis.
+3. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → read findings matching mobile scopes. Use verified findings to skip redundant analysis. Stale or absent → run own full analysis.
 
 4. **IDU:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
 
@@ -115,9 +125,9 @@ Load only reference files matching scope:
 
 ### Phase 4: Scan
 
-1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → read findings matching scopes. Verify each (re-read file:line), skip verified; run full for uncovered.
+1. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → read findings matching scopes. Verify each (re-read file:line), skip verified; run full for uncovered.
 
-**Large scope (3+ domains):** Progress checklist + append findings to `.ds-findings.md` after each domain. Max 2 parallel scans.
+**Large scope (3+ domains):** Progress checklist + append findings to `.audit/findings.md` after each domain. Max 2 parallel scans.
 
 **Per domain:** Search files → search for violations → read context to verify → skip unverifiable rules.
 
@@ -127,7 +137,7 @@ Load only reference files matching scope:
 
 **Category assignment:** CAT-1: always report. CAT-2: only if in approved enhancements.
 
-**Recovery (context lost):** Progress checklist → read `.ds-findings.md` → resume from first incomplete domain. Never re-scan completed domains.
+**Recovery (context lost):** Progress checklist → read `.audit/findings.md` → resume from first incomplete domain. Never re-scan completed domains.
 
 **Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
 
@@ -194,11 +204,11 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Cleanup:** Remove only mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `.ds-findings.md`. If file becomes empty after removal (no findings from other scopes remain), delete file entirely.
+**Cleanup:** Remove only mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `.audit/findings.md`. If file becomes empty after removal (no findings from other scopes remain), delete file entirely.
 
 FRC+DSC accounting.
 
-**Gate:** Fixed + failed + skipped + needs_approval + not_applicable = total findings; every modified file re-read and verified; mobile-scoped findings removed from `.ds-findings.md`.
+**Gate:** Fixed + failed + skipped + needs_approval + not_applicable = total findings; every modified file re-read and verified; mobile-scoped findings removed from `.audit/findings.md`.
 
 ## Quality Gates
 
@@ -208,7 +218,7 @@ FRC+DSC accounting.
 4. **Platform consistency** — fixes use correct platform API
 5. **Artifact-first recovery** — re-read files before and after editing
 6. **Every finding gets a disposition in summary — zero silent drops (FRC)**
-7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/mobile.json` updated per scope, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 
@@ -217,7 +227,7 @@ FRC+DSC accounting.
 | Platform detection fails | Ask user to specify platform manually |
 | Reference file fails to load | Skip affected domain, mark findings as N/A |
 | Fix breaks another file | Revert fix, flag as failed, continue with next finding |
-| Context lost mid-audit (large scope) | Resume from progress checklist + `.ds-findings.md` |
+| Context lost mid-audit (large scope) | Resume from progress checklist + `.audit/findings.md` |
 
 ## Edge Cases
 

@@ -23,6 +23,7 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 - **Maximum automation:** CI, linting, formatting, testing configured from the start
 - FRC+DSC enforced.
 - Minimize external dependencies — prefer stdlib and well-established minimal libraries.
+- **Exempt from state protocol:** idempotent scaffolding — re-running on the same project naturally resumes because existing files are skipped. No `.audit/init.json` written.
 
 ## Arguments
 
@@ -58,13 +59,17 @@ What type of project are you scaffolding?
 | library | src/lib/, examples/ | lint + test + build + publish | N/A | Unit + integration |
 | monorepo | packages/, apps/ | per-package + affected detection | Per-package | Per-package + E2E |
 
+## Delegation
+
+**Owns:** scaffolding, project-init, ci-bootstrap, editor-config | **Delegates:** none | **Receives:** none
+
 ## Execution Flow
 
 Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
-**Findings file check:** `.ds-findings.md` with fresh `git_hash` → read for context; absent → proceed fresh.
+**Findings file check:** `.audit/findings.md` with fresh `git_hash` → read for context; absent → proceed fresh.
 
 **IDU:** Profile → Type + Stack, Project Map.Toolchain. Findings() → verify + use. Absent → own analysis.
 

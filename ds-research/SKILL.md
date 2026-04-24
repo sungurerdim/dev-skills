@@ -23,10 +23,16 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 |------|--------|
 | `--quick` | T1-T2 sources only |
 | `--deep` | All tiers, resumable |
+| `--resume` | Resume from `.audit/research.json` without prompting |
+| `--clean` | Delete existing state and start fresh |
 
 Without flags: present depth selection to user.
 
 Only include verified, accessible sources and URLs. Present T5/T6 sources with confidence caveat. Resolve contradictions when sources disagree. Cite specific source tiers in every synthesis.
+
+## Delegation
+
+**Owns:** research, craap-plus-reliability-scoring, source-verification, claim-verification | **Delegates:** none | **Receives:** ds-benchmark → competitor research engine; ds-ship → Phase 1; ds-cv → market research; ds-solve → web research during backtrack
 
 ## Execution Flow
 
@@ -34,7 +40,9 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 
 ### Phase 1: Setup [SKIP with flags]
 
-Recovery check: if progress artifact exists from prior deep run, ask: Resume / Start fresh.
+**Recovery check (deep mode):** DETECT `.audit/research.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read tracked source batches, discard fetched sources with stale CRAAP evidence), skip `done` phases, announce `[RSC] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Output, delete state. Initialize state on fresh deep run — verify `.audit/*.json` in `.gitignore`, append if missing.
+
+**State `data` shape (deep mode):** `{ depth, scopes, query, search_batches[{track, queries, results[], done}], sources_scored[{url, tier, score}], synthesis_draft }`.
 
 1. **Depth selection.** If no `--quick`/`--deep` flag, ask:
    - **Quick** — T1-T2 sources only, fast results
@@ -48,7 +56,7 @@ Recovery check: if progress artifact exists from prior deep run, ask: Resume / S
 
 ### Phase 2: Parse Query
 
-**Findings file check:** If `.ds-findings.md` exists, check for relevant findings providing research context. Use project type and stack from findings metadata.
+**Findings file check:** If `.audit/findings.md` exists, check for relevant findings providing research context. Use project type and stack from findings metadata.
 
 **IDU:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis.
 
@@ -120,7 +128,7 @@ ds-research: {OK|WARN|FAIL} | Sources: N | CRAAP+ avg: {score} | Claims: N verif
 - Every claim cites at least one source with CRAAP+ score ≥50
 - Contradictory sources noted explicitly with confidence assessment
 - Only cite actually retrieved and verified sources and URLs
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: deep-mode state written per phase, gitignored, deleted on successful Output. Deep mode only — quick/standard are atomic.
 
 ## Error Recovery
 

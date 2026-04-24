@@ -17,7 +17,7 @@ Three modes: `--tactical` for file-level quality fixes, `--strategic` for archit
 
 - Every fix cites file:line with before/after — no blind modifications
 - Only modifies lines required by the finding — no scope creep
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -32,6 +32,9 @@ Three modes: `--tactical` for file-level quality fixes, `--strategic` for archit
 | `--scope=<name>` | Specific scope(s), comma-separated |
 | `--loop` | Re-run until clean or max 3 iterations (tactical only) |
 | `--force-approve` | Auto-apply needs_approval items without asking |
+| `--resume` | Resume from `.audit/review.json` without prompting |
+| `--clean` | Delete existing state and start fresh |
+| `--no-bootstrap` | Skip auto-invoke of `/ds-blueprint` when findings are absent or stale (testing only) |
 
 Without flags: present mode selection to user.
 
@@ -80,27 +83,39 @@ Deep performance analysis beyond tactical `performance` scope. Checks areas requ
 
 **Scope boundary:** Performance-specific deep dive. Produces optimization recommendations with estimated impact. Fixes only low-risk optimizations (const constructors, unused imports, memoization). High-impact changes (architecture, caching strategy) report as `needs_approval`.
 
+## Delegation
+
+**Owns:** hygiene, types, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, performance (profiling via --perf) | **Delegates:** ds-simplify → overengineering / dead-code / orphan / premature-abstraction; ds-blueprint → bootstrap when `.audit/findings.md` absent or stale | **Receives:** ds-ship → Phase 2 rule audit
+
 ## Execution Flow
 
 Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] → Summary
 
 ### Phase 1: Setup [SKIP if --auto]
 
-1. Pre-flight: check if git repo (optional, warn if not)
-2. **IDU:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
-3. Recovery check: if progress artifact exists from prior run, ask: Resume / Start fresh
-4. **Mode selection.** If no `--tactical`/`--strategic`/`--perf` flag, ask:
+1. **Recovery check:** DETECT `.audit/review.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read files referenced by pending findings, discard findings whose file:line changed), skip `done` phases, announce `[REV] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+2. **State `data` shape:** `{ mode, scopes_selected, scopes_done[], findings[{id, severity, file, line, scope, title, disposition}], fixed_count, failed_count, needs_approval[] }`.
+3. Pre-flight: check if git repo (optional, warn if not)
+4. **IDU:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
+5. **Mode selection.** If no `--tactical`/`--strategic`/`--perf` flag, ask:
    - **Tactical** — file-level fixes: security, hygiene, types, performance, privacy (9 scopes)
    - **Strategic** — architecture-level: patterns, coupling, testing, production readiness (8 scopes)
    - **Performance** — deep profiling: bundle size, startup time, memory, caching, Core Web Vitals
-5. **Scope selection.** If no `--scope` flag, ask which scopes to check (default: all for selected mode)
-6. If uncommitted changes detected, ask: continue / stash first / cancel
+6. **Scope selection.** If no `--scope` flag, ask which scopes to check (default: all for selected mode)
+7. If uncommitted changes detected, ask: continue / stash first / cancel
 
 **Gate:** Mode and scope selection confirmed (explicitly or via flags).
 
 ### Phase 2: Analyze
 
-**Findings file check:** If `.ds-findings.md` exists and its `git_hash` matches current HEAD, filter findings by active scopes. Per matching finding:
+**Findings bootstrap rule.** Before any analysis:
+1. `.audit/findings.md` absent → invoke `/ds-blueprint --preview --scope=all`, wait for completion, re-read. Skill owns detection SSOT; re-implementing it here is duplicate work.
+2. `.audit/findings.md` exists but `git_hash` ≠ HEAD → invoke `/ds-blueprint --refresh`, wait for completion, re-read.
+3. `.audit/findings.md` exists + fresh → proceed.
+
+The auto-invoke step MAY be skipped via `--no-bootstrap` for testing, in which case the review runs its own scope analysis per the legacy path below.
+
+**Findings file check:** If `.audit/findings.md` exists and its `git_hash` matches current HEAD, filter findings by active scopes. Per matching finding:
 1. Read file:line and surrounding context (±10 lines)
 2. Verify finding is still valid (code may have changed since analysis)
 3. If confirmed → add to fix list. If false positive or already resolved → discard silently.
@@ -108,7 +123,7 @@ Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] �
 
 Skip own analysis for scopes covered by findings file. For scopes NOT in findings file, run own analysis below.
 
-**If no findings file or stale:** Analyze codebase in batches of 2 scope groups. Each batch receives scope definitions from appropriate references file.
+**If no findings file after bootstrap or `--no-bootstrap`:** Analyze codebase in batches of 2 scope groups. Each batch receives scope definitions from appropriate references file.
 
 **Tactical analysis** prompts focus on: grep for patterns, read context (50 lines), score findings by severity. For repository hygiene (committed binaries, secrets): verify files are git-tracked via `git ls-files`.
 
@@ -250,6 +265,11 @@ scope_score = max(0, base_score + sum(penalties))
 ```
 
 Cap: any CRITICAL -> max 40, 3+ HIGH -> max 60.
+
+## Quality Gates
+
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/review.json` updated per scope + per fix, gitignored, deleted on successful Summary.
+- FRC+DSC enforced.
 
 ## Error Recovery
 

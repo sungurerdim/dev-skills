@@ -14,7 +14,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 ## Contract
 
 - Covers deployment, infrastructure hardening, monitoring, and incident response
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates configuration files and checklists — does NOT execute deployment commands
 - **Minimal liability:** generates configs for review, never auto-deploys to production
@@ -33,6 +33,8 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 | `--incident` | Incident response: detection, triage, mitigation, post-mortem |
 | `--cost` | Analyze infrastructure costs: identify over-provisioned resources, suggest right-sizing, calculate cost at 1x/10x/100x scale |
 | `--auto` | All modes, no questions, single-line summary |
+| `--resume` | Resume from `.audit/deploy.json` without prompting |
+| `--clean` | Delete existing state and start fresh |
 
 Without flags: present interactive mode selection.
 
@@ -77,11 +79,19 @@ Without flags: present interactive mode selection.
 | Recovery | Fix verification, health check confirmation, 30-min monitoring window |
 | Post-mortem | Root cause analysis, timeline, action items template |
 
+## Delegation
+
+**Owns:** deployment, infra, container, tls, monitoring, incident-runbook, cost | **Delegates:** ds-devops → CI pipeline structure (CI deploy step verified via ds-devops) | **Receives:** ds-ship → Phase 5 infra chain
+
 ## Execution Flow
 
 Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
+
+**Recovery check:** DETECT `.audit/deploy.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read deployment configs, discard stale inventory), skip `done` phases, announce `[DEP] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+
+**State `data` shape:** `{ modes_invoked[], target, inventory: {services[], configs[], monitoring[]}, findings[{id, severity, area, disposition}], configs_generated[], checklist_progress }`.
 
 1. **IDU:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
 2. Flags provided → proceed directly
@@ -93,7 +103,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 2: Discover
 
-1. **Findings file check:** `.ds-findings.md` with fresh `git_hash` → use relevant findings
+1. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → use relevant findings
 2. Search for deployment configs (Dockerfile, compose, CI deploy steps)
 3. Search for monitoring configs (Sentry DSN, logging config, health endpoints)
 4. Search for environment variables and secrets management
@@ -139,7 +149,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 1. **Dockerfile:** Multi-stage, non-root, optimized layers, health check
 2. **docker-compose.yml:** Services, networking, volumes, health checks, restart policies
 3. **Reverse proxy config:** SSL termination, security headers, rate limiting
-4. **CI deploy step:** Deploy-on-merge workflow, rollback capability
+4. **CI deploy step:** Delegated to `/ds-devops` (OVERLAP-3). This skill does not audit or modify CI pipeline structure. If a deploy-on-merge workflow is missing, emit a single finding: `missing-ci-deploy-step → delegated to ds-devops`, then continue. `/ds-devops` owns the pipeline YAML; `/ds-deploy` owns the deploy target (container, TLS, monitoring).
 5. **Backup script:** Automated database + file backup with rotation
 
 Present generated files for review before writing.
@@ -189,7 +199,7 @@ ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | 
 - Monitoring setup includes PII redaction
 - SSL configuration targets A+ rating
 - Backup strategy includes verification and offsite storage
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/deploy.json` updated per mode + per config generated, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

@@ -17,7 +17,7 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 - Red lines auto-detected from project documentation and applied automatically. Detected red lines shown as output, not as a question. User can add more via `--red-line="{constraint}"` flag if needed.
 - Every attempt recorded in episodic memory — zero silent drops.
 - Infinite loop protection: 3 plans x 3 research rounds x 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -27,7 +27,7 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 | (none) | Autonomous: auto-detect red lines, infer verification, plan and execute without asking |
 | `--red-line="{text}"` | Add explicit red line (repeatable). Combined with auto-detected ones. |
 | `--confirm` | Pause for user confirmation after Setup and Plan phases before executing |
-| `--resume` | Resume from `.ds-solve-state.json` progress artifact |
+| `--resume` | Resume from `.audit/solve.json` progress artifact |
 | `--status` | Show current solve session status |
 | `--dry-run` | Plan + Research only, no execution |
 | `--budget=PxRxA` | Override budget (default: `3x3x5` = 3 plans, 3 rounds, 5 alternatives) |
@@ -38,13 +38,19 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 - Budget below minimum (1x1x2) → warn, clamp to minimum
 - `--dry-run` + `--resume` → warn conflict, `--resume` takes priority (resume existing session in dry-run mode)
 
+## Delegation
+
+**Owns:** adaptive-problem-solving, backtracking, multi-plan, budget-management | **Delegates:** ds-research → web research during backtrack; any ds-* skill relevant to the problem | **Receives:** none
+
 ## Execution Flow
 
 Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs-Approval] → [Escalate] → Summary
 
 ### Phase 1: Setup — Detect objective, red lines, and verification criterion
 
-**Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use as context.
+**Recovery check:** DETECT `.audit/solve.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read modified files from state), skip `done` phases, announce `[SOL] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Summary, delete state.
+
+**Findings file check:** If `.audit/findings.md` exists with fresh `git_hash`, use as context.
 
 **IDU:** Profile → Type + Stack, Config.constraints, Current Scores. Findings() → verify + use. Absent → own analysis.
 
@@ -76,7 +82,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 4. **Quick check.** Run verification criterion immediately. If already passes → report OK, skip to Summary.
 
-5. **Initialize.** Create `.ds-solve-state.json` (schema in [references/backtrack-logic.md](references/backtrack-logic.md)) with objective, red lines, verification, and budget config. Verify `.ds-solve-state.json` is listed in `.gitignore` — if not, add it (state files should not be committed).
+5. **Initialize.** Create `.audit/solve.json` using canonical envelope (`skill: ds-solve`, `prefix: SOL`, `version: 1`, `git_hash: {HEAD}`, `timestamp`, `phases`, `current_phase`, `data: {...}`). Schema in [references/backtrack-logic.md](references/backtrack-logic.md). Verify `.gitignore` contains `.audit/*.json` or `.audit/solve.json` — add `.audit/*.json` to root `.gitignore` if neither present, report the addition.
 
 **Output:** Objective + red lines table + verification criterion (all as statements, not questions).
 
@@ -86,7 +92,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 1. Read relevant files. Verify each file exists before referencing. _(W1)_
 2. Decompose into 2-10 ordered steps. Each step: **Description**, **Verification** (command/check), **Red line risk** (which red lines could be affected).
-3. Record plan to `.ds-solve-state.json` as `plan-N`.
+3. Record plan to `.audit/solve.json` as `plan-N`.
 4. Show plan table and proceed immediately. (`--confirm`: pause for user approval before executing.)
 
    ```
@@ -143,7 +149,7 @@ Only modify files required by current step. Leave unrelated code untouched. _(W3
 
 Progress indicator after each attempt:
 ```
-[Plan 1/3] [Step 2/5] [Alt 1/5] [Round 1/3] Trying: {alternative_description}
+[SOL Phase 4/9] Execute [Plan 1/3] [Step 2/5] [Alt 1/5] [Round 1/3] Trying: {alternative_description}
 Result: FAIL — {failure_reason}
 Learned: {package}@{version} requires {dependency} >= {min_version}
 Red lines: {n}/{n} held
@@ -287,7 +293,7 @@ Status: `OK` (objective achieved), `WARN` (partial — some steps succeeded), `F
 - State file updated after every state change — survives interruption.
 - Previous plans' failures inform new plans — no duplicate approaches.
 - FRC accounting in summary — every step gets a disposition, equation must balance.
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase, `.audit/*.json` in `.gitignore`, deleted on success.
 
 ## Severity
 

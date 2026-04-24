@@ -20,8 +20,9 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 - Re-validates after fix to confirm fix worked
 - Reports counts, not verbose output
 - Does NOT perform manual code review, architecture analysis, or refactoring
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
+- **Exempt from state protocol:** tool-driven, fast, independent passes — re-running repeats idempotent fixes. No `.audit/fix.json` written.
 
 ## Arguments
 
@@ -42,6 +43,10 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 | `security` | Secret pattern scan + dependency audit |
 
 Default: all five scopes in order.
+
+## Delegation
+
+**Owns:** format, lint, typecheck, l10n, secret-scan-quick, dep-quick-check | **Delegates:** ds-deps → deps-upgrade-execution; ds-review → code-level quality fixes | **Receives:** ds-commit → pre-commit gates; ds-pr → pre-PR gates
 
 ## Execution Flow
 

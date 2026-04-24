@@ -15,7 +15,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 
 ## Contract
 
-- Standalone. Uses blueprint/.ds-findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates tests that follow project's existing test patterns and conventions
 - Preserves existing passing tests — only overwrites with explicit confirmation
@@ -38,6 +38,8 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | `--prune` | Find and delete low-value tests, replace with meaningful ones |
 | `--scope=<path>` | Limit to specific file, directory, or module |
 | `--auto` | No questions, generate + run + fix cycle |
+| `--resume` | Resume from `.audit/test.json` without prompting |
+| `--clean` | Delete existing state and start fresh |
 
 ## Scopes
 
@@ -51,13 +53,21 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 
 Default: `unit` + `integration`. E2E and snapshot require explicit `--e2e` or `--scope`.
 
+## Delegation
+
+**Owns:** testing, coverage, test-generation, test-regression, e2e, functional-completeness (test side) | **Delegates:** none | **Receives:** ds-deps → post-upgrade test run; ds-review → test generation for findings; ds-tune → per-experiment test validation
+
 ## Execution Flow
 
 Setup → [Generate / Update / Run+Fix] → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, read findings with `testing` scope. Use them to prioritize which modules need tests (skip own coverage analysis for covered scopes). If no findings file or stale, run own full analysis.
+**Recovery check:** DETECT `.audit/test.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read source files referenced by pending generations, re-check generated test files exist), skip `done` phases, announce `[TST] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+
+**State `data` shape:** `{ mode, framework, files_queued[], files_processed[{file, tests_generated, status}], failures[{test, reason, disposition}], coverage_before, coverage_after }`.
+
+1. **Findings file check:** If `.audit/findings.md` exists with fresh `git_hash`, read findings with `testing` scope. Use them to prioritize which modules need tests (skip own coverage analysis for covered scopes). If no findings file or stale, run own full analysis.
 2. **IDU:** Profile → {Ideal Metrics.Coverage, Project Map.Toolchain, Current Scores.Testing, Type + Stack}. Findings({testing}) → verify + use. Absent → own analysis.
 3. **Detect test framework** from project config and dependencies. See `references/frameworks.md` for detection table.
 4. **Detect test conventions:**
@@ -162,12 +172,12 @@ When source code changed and tests need updating:
 | **Environment issue** (missing dep, config, database not running) | Report with setup instructions |
 | **Flaky test** (passes sometimes, fails others — timing, ordering) | Flag as flaky, suggest fix approach |
 
-4. Fix test-side issues automatically. For app bugs, write a finding to `.ds-findings.md` with scope `app-bugs` (not `testing` — `testing` scope reserved for code-quality findings about test coverage and test quality).
+4. Fix test-side issues automatically. For app bugs, write a finding to `.audit/findings.md` with scope `app-bugs` (not `testing` — `testing` scope reserved for code-quality findings about test coverage and test quality).
 5. Re-run to verify fixes. Max 3 fix-run iterations.
 
 **Critical rule:** If a test was passing before and now fails after source change, SOURCE is likely wrong (regression), not the test. Keep assertions at full strength — fix the test logic or report the app bug.
 
-**Gate:** Test-side fixes verified passing or app bugs written to .ds-findings.md.
+**Gate:** Test-side fixes verified passing or app bugs written to .audit/findings.md.
 
 ### Phase 2d: Framework Setup [--setup]
 
@@ -213,7 +223,7 @@ ds-test: {OK|WARN|FAIL} | Generated: N | Updated: N | Fixed: N | Skipped: N | Fa
 | Generated |  {n}  | {n} unit, {n} integration|
 | Updated   |  {n}  | matched source changes|
 | Fixed     |  {n}  | {n} assertion, {n} mock|
-| Failing   |  {n}  | app bugs (see .ds-findings.md) |
+| Failing   |  {n}  | app bugs (see .audit/findings.md) |
 ```
 
 **Gate:** Summary table rendered with generated/updated/fixed/failing counts. Every finding/action has a disposition. Accounting verified.
@@ -256,7 +266,7 @@ When analyzing existing tests, flag tests that provide no concrete value:
 - No test should depend on execution order — each test must be independently runnable
 - Mocks must be minimal — only mock external dependencies (network, filesystem, time), not internal modules
 - Generated test matches project's existing style — no style drift
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/test.json` updated per file processed, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 
@@ -278,4 +288,4 @@ When analyzing existing tests, flag tests that provide no concrete value:
 | Monorepo with multiple test frameworks | Detect per-package, run each package's framework |
 | E2E requires running server | Check for dev server script, start it, run tests, stop it |
 | Coverage tool not configured | Skip coverage analysis, suggest setup |
-| `--auto` mode with failing app tests | Write findings to `.ds-findings.md`, fix the test, not the source code |
+| `--auto` mode with failing app tests | Write findings to `.audit/findings.md`, fix the test, not the source code |
