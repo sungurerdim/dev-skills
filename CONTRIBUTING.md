@@ -32,9 +32,9 @@ All skills must follow [SKILL-SPEC.md](SKILL-SPEC.md):
 - **Contract** — Every finding must cite file and line; standalone guarantee ("zero dependency on other skills")
 - **FRC** — Every finding gets a disposition in the summary (fixed/skipped/failed/needs-approval/not-applicable) — zero silent drops
 - **DSC** — Scopes that audit must define an explicit checklist of checks, every check evaluated every run
-- **IDU** — When blueprint profile or `.ds-findings.md` exist, use them; when absent, run own complete analysis
+- **IDU** — When blueprint profile or `.audit/findings.md` exist, use them; when absent, run own complete analysis
 - **Modes** — Provide at least audit-only and audit-and-fix modes where applicable
-- **Overlap** — Skills may overlap in scope; `.ds-findings.md` deduplicates across producers
+- **Overlap** — Skills may overlap in scope; `.audit/findings.md` deduplicates across producers
 
 ## Commit Format
 

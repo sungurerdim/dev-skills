@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
   - **Problem Solving:** ds-solve (adaptive multi-plan backtracking with web research)
   - **Frontend:** ds-frontend (design system audit, tokens, components, a11y, responsive, theming)
 - SKILL-SPEC.md — universal specification for tool-agnostic AI coding skills
-- Findings pipeline (`.ds-findings.md`) — single-file inter-skill communication standard
+- Findings pipeline (`.audit/findings.md`) — single-file inter-skill communication standard
 - Blueprint profile — project context shared across skills (type, stack, config, scores, run history)
 - AI instruction patterns reference — research-backed best practices (2025-2026)
 - GitHub issue and PR templates
@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ### Architecture
 - Tool-agnostic design — works with Claude Code, Cursor, Copilot, Windsurf, Aider, and any AI coding tool
-- Findings pipeline — analyzers produce `.ds-findings.md`, fixers consume it, eliminating duplicate analysis
+- Findings pipeline — analyzers produce `.audit/findings.md`, fixers consume it, eliminating duplicate analysis
 - Single findings file with append-and-dedup semantics — 4 producers, 11 consumers, scope-level dedup
 - Blueprint profile — auto-detects AI instruction file, embeds project profile with markdown heading markers, legacy marker migration
 - Blueprint produces 20 granular scopes mapped 1:1 to consumer scope names

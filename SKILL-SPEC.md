@@ -26,13 +26,14 @@ Every SKILL.md follows this section sequence:
 | 3 | Contract | Yes | Behavioral boundaries and guarantees |
 | 4 | Arguments | Yes | Flags, modes, defaults |
 | 5 | Scopes | If applicable | What the skill inspects or generates |
-| 6 | Execution Flow | Yes | Phase overview (single line) |
-| 7 | Phases | Yes | Numbered phases with steps |
-| 8 | Report Format | If applicable | Output structure |
-| 9 | Quality Gates | Yes | Compact W1-W8 one-liner + skill-specific gates only |
-| 10 | Error Recovery | Only if domain-specific | Standard recovery is baseline — omit if no additions |
-| 11 | Severity | Only if domain-specific | Standard 4 levels are baseline — omit if no additions |
-| 12 | Edge Cases | Yes | Boundary conditions and fallbacks |
+| 6 | Delegation | Yes | Claims authority over / Delegates to / Receives delegation from |
+| 7 | Execution Flow | Yes | Phase overview (single line) |
+| 8 | Phases | Yes | Numbered phases with steps. Qualifying skills (3+ phases, non-trivial compute) MUST include the canonical Recovery Check block as the first step of the Setup phase. See [State Management](#state-management). |
+| 9 | Report Format | If applicable | Output structure |
+| 10 | Quality Gates | Yes | Compact W1-W8 one-liner + skill-specific gates only |
+| 11 | Error Recovery | Only if domain-specific | Standard recovery is baseline — omit if no additions |
+| 12 | Severity | Only if domain-specific | Standard 4 levels are baseline — omit if no additions |
+| 13 | Edge Cases | Yes | Boundary conditions and fallbacks |
 
 ### Phase Template
 
@@ -347,6 +348,20 @@ Eight systematic weaknesses observed in AI coding assistants. Each skill must ad
 
 **Recovery:** Review generated commands for injection vectors before execution.
 
+### W9: State Hygiene
+
+**Definition:** Skill fails to persist progress, re-does completed work after interruption, leaves stale state files, or forgets to ignore state artifacts in version control.
+
+**Detection signals:** Skill restarts from scratch on `--resume`. State directory uncommitted but not in `.gitignore`. State survives successful completion. Hash mismatch silently ignored.
+
+**Prevention rules:**
+- State file written after every phase status change — never batched to the end.
+- `.gitignore` contains `.audit/` — verify on every fresh invocation.
+- Successful Summary phase deletes the state file. `.audit/` empties → remove the directory.
+- Hash mismatch prompts user (or respects `--resume`) — never silently continues with stale state.
+
+**Recovery:** On any phase completion, write state before advancing. On successful summary, delete state. On hash mismatch, surface the change.
+
 ---
 
 ## 4. Quality Gates
@@ -448,22 +463,85 @@ Not all phases are required. Skills select the phases relevant to their workflow
 
 ### State Management
 
-For skills with 3+ phases, use a persistent progress mechanism to survive context compression:
+Prescriptive resumability protocol for every skill with 3+ phases AND at least one phase that reads source files or performs non-trivial work (>30s typical).
 
-**Pattern:** Write findings and progress to a structured file (findings file, checklist, or progress log) that can be re-read if context is lost. Conversation memory is volatile — structured files survive context compression.
+**Qualifying eligibility:** A skill MUST implement this protocol when it has 3+ phases AND a phase that reads source files or does non-trivial work. Skills that are idempotent, atomic, or git-driven (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) are exempt — their Contract section MUST state the exemption reason.
 
-**Requirements:**
-- Each phase writes its output to the progress artifact on completion
-- Recovery reads the artifact to determine which phases completed
-- Use structured formats (JSON, markdown tables) over prose for state files — easier to parse on recovery
-- Never restart from scratch — resume from last completed phase
+**Naming:** State file lives under the single shared namespace as `.audit/<skill>.json` (e.g., `.audit/review.json`, `.audit/solve.json`). The skill token is the portion after `ds-` (e.g., `ds-review` → `.audit/review.json`). One `.gitignore` entry `.audit/` covers the whole suite.
 
-**Recovery protocol:**
-1. Don't restart — check for existing progress artifacts
-2. Read progress artifact to determine completed phases
-3. Re-read source files referenced by incomplete phases
-4. Resume from first incomplete phase
-5. Never redo completed phases unless source files changed
+**Required schema (top-level):**
+
+```json
+{
+  "skill": "ds-review",
+  "prefix": "REV",
+  "version": 1,
+  "objective": "Tactical review of src/ — security + hygiene",
+  "args": ["--tactical", "--scope=security,hygiene"],
+  "git_hash": "a3f9c21",
+  "timestamp": "2026-04-22T14:33:00Z",
+  "phases": [
+    { "id": 1, "name": "Setup",  "status": "done" },
+    { "id": 2, "name": "Scan",   "status": "done" },
+    { "id": 3, "name": "Fix",    "status": "in_progress", "progress": "3/11 findings fixed" },
+    { "id": 4, "name": "Needs-Approval", "status": "pending" },
+    { "id": 5, "name": "Summary", "status": "pending" }
+  ],
+  "current_phase": 3,
+  "data": {}
+}
+```
+
+- **Required:** `skill`, `version`, `objective`, `git_hash`, `timestamp`, `phases`, `current_phase`
+- **Recommended:** `prefix`, `args`, `data`
+- **Phase status enum:** `pending | in_progress | done | skipped | failed`
+- **Skill-specific payload:** goes inside `data`. Rich skill-specific structures (episodic memory, experiment logs, etc.) live here — top-level envelope remains uniform across skills.
+
+**Canonical recovery (MUST be first step of Setup phase for qualifying skills):**
+
+1. **DETECT** — `.audit/<skill>.json` exists?
+   - No file + no `--resume` → fresh start.
+   - No file + `--resume` given → warn, fresh start.
+   - File + `--clean` given → delete state file, fresh start. If `.audit/` is then empty, remove the directory.
+   - File exists → continue to step 2.
+2. **READ STATE** — Parse the JSON.
+   - If `git_hash` ≠ current HEAD → warn: `State from commit {state_hash} differs from HEAD {current}. Source-reading phases will re-verify. Resume? [Y/n]`. User N → delete state, fresh start. User Y or `--resume` given → continue.
+   - Determine `current_phase` and `done` phases from the `phases` array.
+3. **RE-VERIFY** — For phases marked `in_progress`:
+   - Re-read source files that phase depends on.
+   - Is partial `data` still valid? Yes → resume mid-phase. No → reset that phase to `pending`, restart it.
+4. **RESUME** — Skip `done` phases, start from `current_phase`. Announce: `Resuming [SKILL] from Phase {N}: {name}. Phases 1-{N-1} complete.`
+
+**State-write triggers:**
+- After every phase status change (phase → `done`, next → `in_progress`).
+- After significant progress within a long phase (e.g., finding fixed, scope completed).
+
+**State-delete triggers:**
+
+| Trigger | Action |
+|---------|--------|
+| Summary phase completes successfully | Delete state file. If `.audit/` is then empty, remove the directory. |
+| `--clean` flag | Delete existing state before fresh start |
+| User chose "start fresh" on hash mismatch | Delete state |
+| `--resume` not given, state exists | Ask: `Resume previous run? [Y/n]`. N → delete + fresh. Y → resume. |
+
+**`.gitignore` enforcement (first fresh invocation per project):**
+- Setup phase checks root `.gitignore` for `.audit/` pattern.
+- If absent → append `.audit/` to root `.gitignore` and report the addition.
+- Legacy patterns (`.ds-findings.md`, `.ds-*-state.json`) present → remove them and note the migration.
+
+**Exempt skills (atomic / git-driven):**
+
+| Skill | Reason |
+|-------|--------|
+| ds-init | Idempotent scaffolding; re-running in the same project naturally resumes (existing files skipped). |
+| ds-fix | Tool-driven, fast, independent passes. State overhead does not pay off for a ~30s skill. |
+| ds-commit | Atomic, git-diff-driven, seconds-long. Git staging area is the natural state. |
+| ds-pr | Git history is the natural state; `git diff {base}...HEAD` always provides full context. |
+
+Exempt skills state the exemption (one sentence) in their Contract section.
+
+See [Appendix: Skill Prefix Registry](#appendix-skill-prefix-registry) for the canonical prefix per skill.
 
 ### Large Scope Protocol
 
@@ -590,9 +668,9 @@ Status codes:
 
 ### Ownership & Independence
 
-Each skill is **fully functional standalone**. Skills are self-contained: no skill references SKILL-SPEC, other skills, or files outside its own directory at runtime. The only shared artifacts are `.ds-findings.md` (project root) and the blueprint profile section in the AI instruction file — both are optional optimizations.
+Each skill is **fully functional standalone**. Skills are self-contained: no skill references SKILL-SPEC, other skills, or files outside its own directory at runtime. The only shared artifacts are `.audit/findings.md` (repo-root `.audit/` directory) and the blueprint profile section in the AI instruction file — both are optional optimizations.
 
-The boundaries below define **primary ownership** — which skill provides the deepest, most authoritative analysis for each concern. When `.ds-findings.md` exists, skills consume pre-analyzed data to avoid duplicate work. When it doesn't, every skill runs its own complete analysis.
+The boundaries below define **primary ownership** — which skill provides the deepest, most authoritative analysis for each concern. When `.audit/findings.md` exists, skills consume pre-analyzed data to avoid duplicate work. When it doesn't, every skill runs its own complete analysis.
 
 | Skill | Primary ownership | Standalone capability |
 |-------|-------------------|---------------------|
@@ -621,7 +699,7 @@ The boundaries below define **primary ownership** — which skill provides the d
 
 ### Overlap Resolution
 
-Where scopes overlap between skills, each skill handles the full scope independently when standalone. When multiple skills run together, `.ds-findings.md` prevents duplicate analysis.
+Where scopes overlap between skills, each skill handles the full scope independently when standalone. When multiple skills run together, `.audit/findings.md` prevents duplicate analysis.
 
 | Overlapping concern | Skills involved | Resolution |
 |--------------------|-----------------|------------|
@@ -649,7 +727,7 @@ Communication happens through two well-known file locations:
 
 **Marker detection:** Consumer skills search for `## Blueprint Profile` heading first, then legacy markers (HTML comment pairs or variant headings containing "Blueprint Profile") as fallback. ds-blueprint writes a new standard profile alongside legacy blocks without touching them, then reports coverage comparison so the user can decide when to remove the legacy block.
 
-**2. Findings file** — `.ds-findings.md` in project root. Universal format for passing analysis results between skills (or between any analyzer and any fixer).
+**2. Findings file** — `.audit/findings.md` under the repo-root `.audit/` directory. Universal format for passing analysis results between skills (or between any analyzer and any fixer).
 
 #### Findings File Format
 
@@ -663,18 +741,24 @@ scopes: {comma-separated list of analyzed scopes}
 
 ## Findings
 
-| ID | Severity | File | Line | Scope | Title |
-|----|----------|------|------|-------|-------|
-| {id} | {severity} | {file} | {line} | {scope} | {title} |
+| ID | Severity | Category | File | Line | Scope | Title |
+|----|----------|----------|------|------|-------|-------|
+| {id} | {severity} | {A|B} | {file} | {line} | {scope} | {title} |
 ```
+
+The `Category` column (A/B) classifies the fix action:
+- **A** — conforms to current agreed architecture/plan → autonomous fix allowed
+- **B** — changes architecture, scope, capability, user-promise, or dependency → approval-gated
+
+Producer skills populate the column; fixer skills read it to route through the right gate.
 
 #### Findings File Rules
 
-**Single file, always.** There is exactly ONE `.ds-findings.md` per project. All producers write to the same file. All consumers read from the same file. No skill creates its own separate findings file.
+**Single file, always.** There is exactly ONE `.audit/findings.md` per project. All producers write to the same file. All consumers read from the same file. No skill creates its own separate findings file.
 
 | Rule | Detail |
 |------|--------|
-| **Location** | `.ds-findings.md` in project root. Add to `.gitignore` — this is a transient artifact, not committed. |
+| **Location** | `.audit/findings.md` (repo-root `.audit/` directory). Add `.audit/` to `.gitignore` — transient artifacts, not committed. |
 | **Freshness** | Compare `git_hash` with current HEAD. If different, findings are stale — skill must re-analyze. |
 | **Scopes** | Lists which scopes were analyzed. A fix skill checks: is my scope listed? If yes → use findings. If no → run own analysis for that scope. |
 | **Consumption** | After a fix skill processes findings, it removes the fixed entries. When all entries are resolved, delete the file. |
@@ -684,7 +768,7 @@ scopes: {comma-separated list of analyzed scopes}
 
 #### Write Semantics
 
-Multiple skills produce findings. They all write to the same `.ds-findings.md` with these rules:
+Multiple skills produce findings. They all write to the same `.audit/findings.md` with these rules:
 
 | Scenario | Behavior |
 |----------|----------|
@@ -711,29 +795,39 @@ All scopes from all skills can appear in findings. The analyzer does not need to
 
 | Scope | Typical producer | Typical consumer |
 |-------|-----------------|-----------------|
-| security, privacy | ds-blueprint, ds-compliance | ds-review (tactical) |
-| hygiene, types, simplify | ds-blueprint, ds-compliance | ds-review (tactical) |
+| security, privacy | ds-blueprint, ds-compliance | ds-review (tactical), ds-compliance --secrets-migrate |
+| hygiene, types, simplify | ds-blueprint, ds-simplify | ds-review (tactical), ds-simplify |
 | ai-hygiene, doc-sync | ds-blueprint | ds-review (tactical) |
-| performance | ds-blueprint, ds-compliance | ds-review (tactical) |
+| performance | ds-blueprint, ds-compliance | ds-review (tactical), ds-launch --perf-budget |
 | robustness, production-readiness | ds-blueprint | ds-review (tactical) |
 | architecture, patterns, cross-cutting | ds-blueprint | ds-review (strategic) |
 | maintainability, ai-architecture | ds-blueprint | ds-review (strategic) |
 | testing, functional-completeness | ds-blueprint, ds-review | ds-test (generates/updates tests based on findings) |
 | testing (run+fix) | ds-test (own execution) | ds-test (fixes test-side issues) |
-| stack | ds-blueprint | ds-review, ds-fix, ds-devops |
+| stack | ds-blueprint | ds-review, ds-fix, ds-devops, ds-deps |
+| stack-fitness | ds-blueprint | ds-deps, ds-simplify, ds-ship |
 | dx | ds-blueprint | ds-review |
+| external-tooling | ds-blueprint | ds-devops, ds-simplify |
 | docs | ds-blueprint | ds-docs |
+| spec-alignment | ds-blueprint | ds-docs, ds-ship |
+| ideal-gap | ds-benchmark | ds-ship (Phase 1) |
 | format, lint, typecheck | ds-fix (own analysis) | ds-fix (own tools) |
-| ci, signing, deps, deploy | ds-devops | ds-devops (own fix) |
+| ci, signing, deps, deploy | ds-devops | ds-devops (own fix), ds-deps (upgrade execution) |
+| deps-upgrade | ds-deps | ds-deps (own fix), ds-commit (per-group commit) |
 | mobile-specific scopes | ds-mobile | ds-mobile (own fix) |
 | api, db, auth design | ds-backend | ds-backend (own design/spec) |
 | deployment, infra, monitoring | ds-deploy | ds-deploy (own config gen) |
-| store, release, privacy labels | ds-launch | ds-launch (own metadata gen) |
+| store, release, privacy-labels (store-label-correctness only) | ds-launch | ds-launch (own metadata gen) |
+| perf-budget | ds-launch --perf-budget | ds-devops (CI wiring) |
 | marketing, growth | ds-market | ds-market (strategy only) |
-| analytics, event taxonomy | ds-analytics | ds-analytics (own design/setup) |
+| analytics, event taxonomy, event-pii-scan | ds-analytics | ds-analytics (own design/setup) |
 | scaffolding, project init | ds-init | ds-init (own generation) |
 | perf-profiling (deep) | ds-review --perf | ds-review (own analysis + fixes) |
 | tokens, components, states, a11y (design), responsive, theming | ds-blueprint, ds-frontend | ds-frontend (audit + fix + design) |
+| oss-readiness | ds-repo --oss-ready | ds-repo, ds-docs (LICENSE / CONTRIBUTING / SECURITY content) |
+| adr | ds-docs --adr | ds-docs (author), ds-benchmark (record intentional deviation), ds-ship (record decisions) |
+| regulatory | ds-compliance | ds-compliance (canonical), ds-mobile (mobile projects) |
+| a11y-regulatory-framing | ds-compliance | ds-frontend (implementation), ds-compliance (framing only) |
 
 Note: ds-fix and ds-devops primarily run external tools (formatters, linters, CI commands) and typically do their own analysis. They may read findings for context but their primary input is tool output, not the findings file.
 
@@ -742,11 +836,11 @@ Note: ds-fix and ds-devops primarily run external tools (formatters, linters, CI
 ```
 Analyzer (any)              Fixer (any)
 ──────────────              ───────────
-Scan codebase        →      Check: .ds-findings.md exists?
+Scan codebase        →      Check: .audit/findings.md exists?
 Classify by scope    →        Yes + fresh → read findings for my scopes
-Write .ds-findings.md              → verify each finding (re-read file:line)
+Write .audit/findings.md           → verify each finding (re-read file:line)
                                 → fix verified findings
-                                → remove fixed entries from .ds-findings.md
+                                → remove fixed entries from .audit/findings.md
                               Yes + stale → re-analyze, overwrite
                               No → run own full analysis
 ```
@@ -760,7 +854,7 @@ Skills are standalone, but when upstream artifacts exist they MUST be fully util
 | Artifact | Location | Producer | Consumers |
 |----------|----------|----------|-----------|
 | Blueprint profile | AI instruction file (`## Blueprint Profile`) | ds-blueprint | All skills that analyze or fix code |
-| Findings file | `.ds-findings.md` in project root | ds-blueprint, ds-compliance, ds-mobile, ds-review | All skills that fix code or generate assets |
+| Findings file | `.audit/findings.md` under repo-root `.audit/` | ds-blueprint, ds-compliance, ds-mobile, ds-review | All skills that fix code or generate assets |
 | Repo metadata | GitHub API (live query) | ds-repo (also cached in findings when relevant) | Skills that need repo context (visibility, plan, settings) |
 
 #### Producer Requirements
@@ -779,13 +873,13 @@ Producer skills MUST ensure their output is maximally useful for downstream cons
    - **Current Scores**: ds-review (focus low dimensions), ds-mobile (focus low dimensions)
    An incomplete profile forces consumers to re-detect what blueprint already discovered.
 
-2. **Findings file scope coverage:** When writing `.ds-findings.md`, the `scopes` field in the meta header MUST list every scope that was analyzed — even if zero findings were found for that scope. This tells consumers "this scope was checked and is clean" vs "this scope was never analyzed." Example:
+2. **Findings file scope coverage:** When writing `.audit/findings.md`, the `scopes` field in the meta header MUST list every scope that was analyzed — even if zero findings were found for that scope. This tells consumers "this scope was checked and is clean" vs "this scope was never analyzed." Example:
    ```
    scopes: security, code-quality, architecture, performance, resilience, testing, stack, dx, docs
    ```
    A consumer checking for `testing` findings and seeing `testing` in the scopes list with zero matching rows knows testing is clean. If `testing` is absent from scopes, the consumer must run its own testing analysis.
 
-3. **Finding actionability:** Every finding in `.ds-findings.md` must include enough context for a consumer to act:
+3. **Finding actionability:** Every finding in `.audit/findings.md` must include enough context for a consumer to act:
    - `File` and `Line` must be precise (not approximate or file-level when line-level is possible)
    - `Title` must describe the issue, not just name the check (e.g., "Hardcoded API key in config" not "SEC-01 violation")
    - `Scope` must use standard scope names from the Scope Coverage table
@@ -803,7 +897,7 @@ Consumer skills MUST check for and fully utilize upstream artifacts before runni
    - **Constraints** → respect stated constraints (e.g., "keep framework" = flag framework changes as needs_approval)
    - **Current scores** → focus effort on lowest-scoring dimensions
 
-2. **Findings file utilization:** Before scanning a scope, check if `.ds-findings.md` covers that scope:
+2. **Findings file utilization:** Before scanning a scope, check if `.audit/findings.md` covers that scope:
    - Scope listed + findings present → verify each finding (re-read file:line), use verified ones, skip own scan
    - Scope listed + zero findings → trust the clean result, skip own scan for that scope
    - Scope NOT listed → run own full analysis for that scope
@@ -1002,6 +1096,104 @@ Before releasing any skill, verify:
 
 ---
 
+## 10. Artifact & Delegation Standards
+
+### 10.1 Artifact Discipline
+
+**Single namespace.** All dev-skills artifacts live under `.audit/` at repo root. Nothing else leaks to root.
+
+```
+<repo-root>/
+  .audit/
+    findings.md          <- shared findings (all writers append-merge-dedup)
+    report.md            <- ds-ship consolidated report (ds-ship only)
+    report.html          <- optional, ds-ship --html (self-contained)
+    <skill>.json         <- per-skill state (resumable skills; atomic skills have none)
+  .gitignore             <- contains `.audit/`
+```
+
+**MUST:**
+
+1. Every dev-skills artifact is placed under `.audit/`. No skill creates a dotfile at repo root.
+2. Shared findings: `.audit/findings.md` — exactly one per project.
+3. Per-skill state: `.audit/<skill>.json` where `<skill>` is the skill token after `ds-` (e.g., `ds-review` → `.audit/review.json`). Atomic/git-driven skills have no state file.
+4. Orchestrator report: `.audit/report.md`, with `.audit/report.html` produced only under `--html`.
+5. `.audit/` empties → remove the directory. Empty-dir residue is not allowed.
+6. `.gitignore` contains a single line: `.audit/`.
+
+**MUST NOT:**
+
+1. Per-run log files anywhere in the repo.
+2. Trace dumps, debug dumps, or execution history files.
+3. Date-stamped findings copies (e.g., `findings-2026-04-24.md`).
+4. Append-only growing files that persist across runs.
+5. Cache files outside `.audit/` (analysis results belong in `.audit/findings.md`).
+6. Root-level dev-skills dotfiles.
+7. State JSON outside `.audit/`.
+
+**Exception — skill operational directories.** A skill may own a user-visible operational directory outside `.audit/` when it contains runnable tooling the user invokes directly (e.g., `auto/bench.sh`, `auto/eval/`, `auto/results.tsv`). This exception applies only to user-facing operational tools — never to state, progress, or findings data, which always live under `.audit/`.
+
+### 10.2 Delegation Contract
+
+Every SKILL.md includes a `## Delegation` section as a **single pipe-separated line**:
+
+```markdown
+## Delegation
+
+**Owns:** {scope-list} | **Delegates:** {skill→scope; …, or "none"} | **Receives:** {skill→scope; …, or "none"}
+```
+
+**Rules:**
+
+1. Every scope in `Owns:` matches the scope name used in `.audit/findings.md` (canonical token, lowercase, kebab-case).
+2. A scope claimed by more than one skill is a spec bug — exactly one skill is authoritative per scope.
+3. A skill detecting signal in a scope it does not own → delegates, does not analyze.
+4. `Receives:` is the inverse of every other skill's `Delegates:` pointing at this skill — consistency holds across SKILL.md files.
+5. Empty side → write `none` explicitly. Never omit a field.
+6. Scope lists are comma-separated; skill→scope maps are semicolon-separated.
+
+**Parse grammar:** `\*\*Owns:\*\* ([^|]+) \| \*\*Delegates:\*\* ([^|]+) \| \*\*Receives:\*\* (.+)$` — AI agents can extract any of the three fields with a single regex.
+
+### 10.3 Orchestration Contract (orchestrator skills only)
+
+A skill is an orchestrator when its primary purpose is to coordinate other ds-* skills. Orchestrator SKILL.md MUST satisfy:
+
+1. **No own analysis.** Orchestrator never rediscovers what a delegated skill discovers. It consumes `.audit/findings.md` as the single source of truth.
+2. **Staleness bootstrap.** When `.audit/findings.md` is absent or stale (git-hash mismatch), the orchestrator invokes the canonical full-scanner (`ds-blueprint`) before any other delegation.
+3. **Delegation loop.** For every invoked skill: pre-note (log to own report) → invoke → wait for done → re-read findings diff → classify Category A/B → route → mark done → advance.
+4. **Resume discipline.** Orchestrator state (`.audit/<orchestrator>.json`) records the delegation queue, A/B counters, and the pending approval batch so a fresh invocation resumes from the last completed step.
+5. **Report SSOT.** Only the orchestrator writes `.audit/report.md`. Rerun overwrites.
+
+### 10.4 HTML Report Contract (optional)
+
+Skills that produce HTML reports MUST:
+
+1. **Self-contained.** One file, no external references, no remote CDNs, no remote fonts, no remote scripts. Inline CSS + inline SVG/Mermaid.
+2. **ASCII-only.** No non-ASCII characters. Print compatible across any OS/viewer.
+3. **Offline.** Opens in any browser with the network disabled.
+4. **Compact.** Each major section wraps in `<details>` (collapsed by default) so the viewer scans without scrolling.
+5. **Deterministic.** Same input produces identical output — no timestamps in user-visible positions beyond a single header.
+
+### 10.5 Categories A/B Approval Model
+
+All skills that mutate code or configuration MUST classify every action:
+
+| Category | Meaning | Action |
+|----------|---------|--------|
+| **A** (autonomous) | Fix conforms to the current agreed architecture / plan. Small missing piece, bug, or violation of a rule the codebase already enforces. | Apply without asking. |
+| **B** (approval-gated) | Changes architecture, scope, capability, user-facing promise, or introduces / removes a dependency. | Batch into a single approval gate with impact / effort / risk columns. |
+
+**MUST:**
+
+1. Category A is never silently promoted to B, and Category B is never compressed into A (honest classification).
+2. All Category B items surface in one batched approval block, not one-by-one.
+3. Each B item presents: current → proposed, reason (concrete benefit), impact, effort, risk, rollback path.
+4. `--auto` without `--force-approve` lists B items and marks them `skipped (needs-approval)`.
+5. `--force-approve` applies all B items without asking.
+6. A and B findings are recorded in `.audit/findings.md` with a `category` column alongside `severity`.
+
+---
+
 ## Appendix A: Skill Evaluation Rubric
 
 | Criterion | Excellent (3) | Good (2) | Needs Work (1) | Missing (0) |
@@ -1038,7 +1230,7 @@ Before releasing any skill, verify:
 
 - [Positive guarantee]: "Always [behavior]"
 - [Boundary]: "Only [scope] — [other skill] handles [excluded scope]"
-- [Independence]: "Fully functional standalone — zero dependency on other skills. When blueprint profile or .ds-findings.md exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality."
+- [Independence]: "Fully functional standalone — zero dependency on other skills. When blueprint profile or .audit/findings.md exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality."
 - FRC+DSC enforced.
 
 ## Arguments
@@ -1053,17 +1245,24 @@ Before releasing any skill, verify:
 |-------|---------------|
 | name | Description |
 
+## Delegation
+
+- **Claims authority over:** {scope-list}
+- **Delegates to:** {skill → scope, or "none"}
+- **Receives delegation from:** {skill → scope, or "none"}
+
 ## Execution Flow
 
 Phase1 → Phase2 → [Phase3] → Phase4 → Summary
 
-### Phase 1: Name [CONDITION]
+### Phase 1: Setup [CONDITION]
 
 **Goal:** [1-line success metric for this phase]
 
-1. **Findings file check:** If `.ds-findings.md` exists with fresh `git_hash`, use relevant findings. Otherwise, run own analysis.
-2. Step description [SKIP if condition]
-3. Step description [PARALLEL]
+1. **Recovery check (qualifying skills):** DETECT `.audit/{skill}.json` → READ + hash-verify → RE-VERIFY `in_progress` phase → RESUME from `current_phase`. `--clean` deletes existing state. `--resume` forces resume without prompt. On successful Summary, delete state; remove `.audit/` if it empties. Verify `.audit/` is in `.gitignore`; add if missing.
+2. **Findings file check:** If `.audit/findings.md` exists with fresh `git_hash`, use relevant findings. Otherwise, run own analysis.
+3. Step description [SKIP if condition]
+4. Step description [PARALLEL]
 
 **Gate:** [Specific condition]. If fails → [specific recovery].
 
@@ -1088,7 +1287,7 @@ FRC+DSC accounting. Output: `{skill}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | F
 
 ## Quality Gates
 
-W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase under `.audit/`, `.audit/` gitignored, state deleted on success.
 - FRC+DSC enforced.
 {Add skill-specific gates here, if any.}
 
@@ -1109,3 +1308,26 @@ _(Standard CRITICAL/HIGH/MEDIUM/LOW is baseline. Omit this section if no domain-
 ```
 
 See [references/ai-instruction-patterns.md](references/ai-instruction-patterns.md) for the research behind these patterns.
+
+---
+
+## Appendix: Skill Prefix Registry
+
+Every skill reserves a unique prefix used in progress markers and state files. Prefixes are stable — changing one breaks existing state files in the wild.
+
+**Usage format:** `[{PREFIX} Phase {N}/{total}] {phase_name}`
+
+Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
+
+| Skill | Prefix | Skill | Prefix | Skill | Prefix |
+|-------|--------|-------|--------|-------|--------|
+| ds-init | INI | ds-launch | LCH | ds-research | RSC |
+| ds-fix | FIX | ds-compliance | CMP | ds-market | MKT |
+| ds-test | TST | ds-frontend | FE | ds-analytics | ANL |
+| ds-review | REV | ds-mobile | MOB | ds-cv | CV |
+| ds-blueprint | BP | ds-devops | OPS | ds-solve | SOL |
+| ds-docs | DOC | ds-repo | RPO | ds-tune | TUN |
+| ds-commit | CMT | ds-backend | BE | | |
+| ds-pr | PR | ds-deploy | DEP | | |
+
+**Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.
