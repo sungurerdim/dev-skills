@@ -17,7 +17,7 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 
 - Standalone. Uses blueprint profile for toolchain detection when available; own detection when absent.
 - FRC+DSC enforced.
-- **Exempt from state protocol:** atomic, git-diff-driven, seconds-long — git staging area is the natural state. No `.audit/commit.json` written.
+- **Exempt from state protocol:** atomic, git-diff-driven, seconds-long — git staging area is the natural state. No `ds/audit/commit.json` written.
 
 ## Arguments
 
@@ -60,7 +60,7 @@ If `release-please-config.json` or `.release-please-manifest.json` exists in pro
 
 **1.4 Quality Gates (changed files only):**
 
-**Findings file check:** `.audit/findings.md` with fresh `git_hash` → check for relevant findings on changed files. Use as additional context for commit grouping.
+**Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → check for relevant findings on changed files. Use as additional context for commit grouping.
 
 - Always: secret scan + large file check
 - Always: **repo completeness check** — detect untracked source files referenced by tracked code:

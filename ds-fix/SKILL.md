@@ -20,9 +20,9 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 - Re-validates after fix to confirm fix worked
 - Reports counts, not verbose output
 - Does NOT perform manual code review, architecture analysis, or refactoring
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
-- **Exempt from state protocol:** tool-driven, fast, independent passes — re-running repeats idempotent fixes. No `.audit/fix.json` written.
+- **Exempt from state protocol:** tool-driven, fast, independent passes — re-running repeats idempotent fixes. No `ds/audit/fix.json` written.
 
 ## Arguments
 

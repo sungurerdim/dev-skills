@@ -14,7 +14,7 @@
 ## Contract
 
 - Covers store account setup, listing metadata, review preparation, release management
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates checklists and metadata — does NOT submit to stores directly
 - **Minimal liability:** generates store-compliant metadata, flags common rejection reasons
@@ -34,14 +34,14 @@
 | `--post-launch` | Post-launch monitoring checklist |
 | `--perf-budget` | Author a formal perf budget (LCP, INP, p99, bundle size, startup) and wire CI enforcement via `/ds-devops` |
 | `--auto` | All modes, no questions, single-line summary |
-| `--resume` | Resume from `.audit/launch.json` without prompting |
+| `--resume` | Resume from `ds/audit/launch.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
 No flags → present interactive mode selection (setup, listing, aso, privacy, review, release, post-launch, perf-budget).
 
 ### Perf Budget Mode (`--perf-budget`)
 
-Authors a single file at `perf-budget.json` (repo root) and wires CI enforcement.
+Authors a single file at `ds/launch/perf-budget.json` (committed; `ds/<skill>/` user-facing operational namespace per SKILL-SPEC §10.1) and wires CI enforcement to read from that path. The file is a functional CI gate — Category B, user-approved, version-controlled — not transient state.
 
 **Schema:**
 ```json
@@ -54,7 +54,7 @@ Authors a single file at `perf-budget.json` (repo root) and wires CI enforcement
 
 Keep only the sections that fit the project type. Default values come from blueprint profile `Config.priorities` and industry baselines.
 
-**CI enforcement:** delegate to `/ds-devops` to add a CI step that runs the project's native perf tool (Lighthouse CI, k6, Firebase Test Lab, etc.) and compares results to `perf-budget.json`. Over-budget → CI fails with offending metric(s) named.
+**CI enforcement:** delegate to `/ds-devops` to add a CI step that runs the project's native perf tool (Lighthouse CI, k6, Firebase Test Lab, etc.) and compares results to `ds/launch/perf-budget.json`. Over-budget → CI fails with offending metric(s) named.
 
 Budget authoring is Category B (commits the project to enforceable numbers). CI wiring is Category A once a budget exists.
 
@@ -137,7 +137,7 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `.audit/launch.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read store configs, discard stale checks), skip `done` phases, announce `[LCH] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/launch.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read store configs, discard stale checks), skip `done` phases, announce `[LCH] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
 **State `data` shape:** `{ modes_invoked[], platform, stage, inventory: {configs[], metadata[]}, metadata_generated[], checklist_progress, review_findings[{id, severity, check, disposition}] }`.
 
@@ -184,7 +184,7 @@ Search for store-related configs, version info, existing privacy policy/ToS, CI/
 
 Scan project for top rejection triggers. Each check produces PASS/FAIL with file:line references.
 
-1. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → read findings matching scopes (store, review, privacy-labels, release). Each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
+1. **Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → read findings matching scopes (store, review, privacy-labels, release). Each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
 2. **Privacy policy [CRITICAL]:** Search for privacy policy URL in project config, metadata files, and store listing drafts. Verify URL accessible (HTTP 200). Missing → FAIL with "Missing privacy policy URL — will cause rejection."
 3. **Metadata completeness [CRITICAL]:** Scan store metadata directories (fastlane/metadata, app store connect export, Play Console drafts). Flag: empty description, missing screenshots, placeholder text ("Lorem ipsum", "TODO", "Coming soon"). Guideline 2.1 (App Completeness) accounts for 40%+ of unresolved rejections.
 4. **Permission descriptions [HIGH]:** Scan `Info.plist` (iOS) for `NS*UsageDescription` keys, `AndroidManifest.xml` for permissions. Every permission must have user-facing description. Missing → FAIL.
@@ -232,7 +232,7 @@ FRC+DSC accounting.
 - Version numbers are valid semver with incrementing build numbers
 - Release notes are user-friendly (not developer jargon)
 - Every finding gets a disposition in summary — zero silent drops (FRC)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/launch.json` updated per mode + per artifact, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/launch.json` updated per mode + per artifact, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

@@ -2,7 +2,7 @@
 
 Projects at every stage — raw idea, half-built scaffold, feature-complete but unlaunched, long-dormant — accumulate gaps: broken promises in the docs, outdated stacks, missing launch gates, obsolete automations, overengineered abstractions that don't pay rent. Invoking the right ds-* skills in the right order is its own cognitive tax.
 
-**Ship Orchestrator** — classify the project, plan the skill sequence, delegate each phase, consolidate `.audit/findings.md`, produce `.audit/report.md` (and optional `.audit/report.html`) with exactly what was done and what's left.
+**Ship Orchestrator** — classify the project, plan the skill sequence, delegate each phase, consolidate `ds/audit/findings.md`, produce `ds/audit/report.md` (and optional `ds/audit/report.html`) with exactly what was done and what's left.
 
 ## Triggers
 
@@ -14,9 +14,9 @@ Projects at every stage — raw idea, half-built scaffold, feature-complete but 
 
 ## Contract
 
-- Orchestrator — zero own analysis, consumes `.audit/findings.md` as SSOT. FRC+DSC enforced. State: `.audit/ship.json`.
+- Orchestrator — zero own analysis, consumes `ds/audit/findings.md` as SSOT. FRC+DSC enforced. State: `ds/audit/ship.json`.
 - Findings absent or stale → invoke `/ds-blueprint` before any other delegation.
-- Artifacts: `.audit/findings.md` (via delegated skills) + own `.audit/report.md` (+ `.audit/report.html` under `--html`). No logs, traces, history, dumps.
+- Artifacts: `ds/audit/findings.md` (via delegated skills) + own `ds/audit/report.md` (+ `ds/audit/report.html` under `--html`). No logs, traces, history, dumps.
 - Two-gate fix: Category A autonomous, Category B batched approval.
 - Project-type exclusivity: mobile → `/ds-mobile` authoritative (skip `/ds-compliance` overlap scopes); web/backend → `/ds-compliance` authoritative; library/CLI → skip UI-centric skills.
 - Destructive ops forbidden. Approved Category B deletions → `/ds-commit` reversible commits.
@@ -27,14 +27,14 @@ Projects at every stage — raw idea, half-built scaffold, feature-complete but 
 |------|--------|
 | `--preview` | Run Phase 0–1 only: classification, doc census, gap table, proposed sequence. No mutations. |
 | `--stage=X` | Override auto-classified stage: idea, spec-only, scaffold, implementation, review-pending, pre-launch, launched, frozen |
-| `--html` | Additionally produce `.audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |
+| `--html` | Additionally produce `ds/audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |
 | `--skip=X` | Comma-separated skills to skip (e.g., `--skip=ds-mobile,ds-analytics`) |
 | `--only=X` | Comma-separated skills to include (override classification defaults) |
 | `--auto` | Run every phase; Category B items listed and skipped (needs-approval) |
 | `--force-approve` | Apply every Category B item without asking |
-| `--resume` | Resume from `.audit/ship.json` without prompt |
+| `--resume` | Resume from `ds/audit/ship.json` without prompt |
 | `--clean` | Delete existing state, start fresh |
-| `--clean-all` | Delete `.audit/` entirely (every skill's state) — use after a completed ship pass |
+| `--clean-all` | Delete `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
 | `--no-pr-suggest` | Skip Phase 5c PR suggestion for this run (solo-dev main-only workflow) |
 
 Without flags: present mode menu (full / preview / resume).
@@ -70,7 +70,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 ### Phase 0: Assess
 
-1. **Recovery check:** DETECT `.audit/ship.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present + `--clean-all` → delete `.audit/` entirely, fresh. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → skip `done` phases + delegation steps, announce `[SHP] Resuming from Phase {N}, step {K}`. On successful Summary, delete state; remove `.audit/` if empty. Verify `.audit/` in `.gitignore`; add if missing.
+1. **Recovery check:** DETECT `ds/audit/ship.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present + `--clean-all` → delete `ds/audit/` entirely, fresh. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → skip `done` phases + delegation steps, announce `[SHP] Resuming from Phase {N}, step {K}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`; add if missing.
 
 2. **State shape:**
 ```json
@@ -106,15 +106,15 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 | README.md                    | fresh   | 120 lines | 3 days ago  |
 | SPEC.md                      | stale   | 450 lines | 180 days ago|
 | docs/api.md                  | draft   | 30 lines  | 5 days ago  |
-| CLAUDE.md / AGENTS.md / ...  | fresh   | 200 lines | 1 day ago   |
-| .audit/findings.md           | absent  | -         | -           |
+| {AI instruction file}        | fresh   | 200 lines | 1 day ago   |
+| ds/audit/findings.md         | absent  | -         | -           |
 ```
 
 5. **Git posture.** Active branch, uncommitted changes, unpushed commits, last-activity date, frozen vs active signal.
 
 6. **Value proposition extraction.** From docs, extract the project's one-paragraph concrete promise. Surface to user: "I read this as: {paragraph}. Confirm before I measure everything against it? [Y/n]".
 
-7. **Promise census.** Extract every concrete capability claim from README / SPEC / docs/ / CLAUDE.md / blueprint profile. For each, query source (grep + LSP if available) for implementation. Classify:
+7. **Promise census.** Extract every concrete capability claim from README / SPEC / docs/ / AI instruction file (per host — see ds-blueprint `references/detection.md` § Instruction Files) / blueprint profile. For each, query source (grep + LSP if available) for implementation. Classify:
    - `promised-not-implemented` — doc claims X; no matching module/function/endpoint
    - `implemented-not-documented` — code has X; no doc mentions it
    - `drift` — both exist; behavior diverges (default changed, signature changed, removed flag still listed)
@@ -123,12 +123,12 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 9. **Skill sequence proposal.** Combine stage + project type → propose the sequence per the matrix, adjusted by user answers. Show the plan; user confirms or trims.
 
-**Gate:** Value proposition confirmed. Skill sequence approved. `.audit/ship.json` has populated stage + type + promise census + sequence. No execution past this gate without approval.
+**Gate:** Value proposition confirmed. Skill sequence approved. `ds/audit/ship.json` has populated stage + type + promise census + sequence. No execution past this gate without approval.
 
 ### Phase 1: Ideal-vs-Current Gap
 
 1. **Delegate to `/ds-benchmark`** with the confirmed problem-space. Wait.
-2. **Re-read `.audit/findings.md`** for the `ideal-gap` scope after benchmark completes.
+2. **Re-read `ds/audit/findings.md`** for the `ideal-gap` scope after benchmark completes.
 3. **Merge with promise census.** `promised-not-implemented` entries join the gap table as `missing` with `source=promise`.
 4. **Approval batch.** Present all Category B gaps in one block — close / defer / intentional-deviation. For each intentional deviation, optionally invoke `/ds-docs --adr` to record the rationale.
 
@@ -138,14 +138,14 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 Sequenced per the approved plan. One skill at a time. Orchestration loop per delegation:
 
-1. **Pre-delegation note.** Append one line to `.audit/report.md` under `## Orchestration log`:
+1. **Pre-delegation note.** Append one line to `ds/audit/report.md` under `## Orchestration log`:
    `[P{N}.{K}] invoke {skill} — reason: {one sentence} — expected: findings update | fixes applied | metric produced`.
 
 2. **Update state.** `delegation_queue` entry → `in_progress`.
 
 3. **Invoke** the skill via the host tool's skill-invocation mechanism. Pass only documented arguments.
 
-4. **Wait for done.** The delegated skill finishes when its own Summary phase completes and its `.audit/<skill>.json` is deleted. `.audit/findings.md` reflects new entries.
+4. **Wait for done.** The delegated skill finishes when its own Summary phase completes and its `ds/audit/<skill>.json` is deleted. `ds/audit/findings.md` reflects new entries.
 
 5. **Re-read findings diff.** Only entries added since pre-delegation are new. Classify each as A or B using Phase 0 rules.
 
@@ -169,7 +169,7 @@ Sequenced per the approved plan. One skill at a time. Orchestration loop per del
 
 **Category B batch at end of Phase 2.** Present all B items with impact / effort / risk. Modes: interactive → Apply All / Review Each / Skip All / Defer. `--auto` without `--force-approve` → list + skip. `--force-approve` → apply all. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
 
-**Gate:** Every queued delegation `done`. Every B item has a decision. `.audit/findings.md` reflects current state.
+**Gate:** Every queued delegation `done`. Every B item has a decision. `ds/audit/findings.md` reflects current state.
 
 ### Phase 3: Simplify
 
@@ -184,12 +184,12 @@ Sequenced per the approved plan. One skill at a time. Orchestration loop per del
 
 **4a — Compact existing context-loaded docs.**
 
-Target any doc that acts as persistent context for the AI assistant or human readers: `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.windsurfrules`, or the host's equivalent; `README.md`; skill/prompt/agent definition files; large `docs/` files referenced from context-loading paths.
+Target any doc that acts as persistent context for the AI assistant or human readers: AI instruction files (per host — see ds-blueprint `references/detection.md` § Instruction Files for the full list); `README.md`; skill/prompt/agent definition files; large `docs/` files referenced from context-loading paths.
 
 For each such doc, per-file pass:
 1. Preserve every concrete fact, instruction, pointer.
 2. Remove filler prose, redundant restatements, obsolete sections, verbose formatting where compact equivalents exist.
-3. Relocate misplaced information (e.g., runtime notes in `CLAUDE.md` that belong in `docs/runtime.md`).
+3. Relocate misplaced information (e.g., runtime notes in the AI instruction file that belong in `docs/runtime.md`).
 4. Compress: tables over prose, bullets over paragraphs, references over duplication.
 5. Measure: report before/after token estimate per rewritten doc.
 
@@ -239,7 +239,7 @@ Orchestrator never pushes or opens a PR on its own. This step **only suggests** 
 Response handling:
 - `y` → invoke `/ds-pr`, record result hash in state, include PR URL in Phase 6 report.
 - `n` → record `pr_suggested: declined (this run)` in state, continue to Phase 6. Next run will ask again.
-- `always-skip` → record `pr_suggestion: muted` in `.audit/ship.json`; subsequent runs skip this step until `--clean` or manual edit.
+- `always-skip` → record `pr_suggestion: muted` in `ds/audit/ship.json`; subsequent runs skip this step until `--clean` or manual edit.
 
 **When NOT triggered (silent skip — no prompt, no noise):**
 
@@ -258,7 +258,7 @@ Response handling:
 
 ### Phase 6: Consolidated Report
 
-Write `.audit/report.md` overwriting prior content:
+Write `ds/audit/report.md` overwriting prior content:
 
 ```markdown
 # Ship Report — {repo-name}
@@ -320,7 +320,7 @@ type: {project-type}
 {When should ds-ship next run — e.g., "after feature X lands", "before 2026-Q3 public release", "quarterly hygiene".}
 ```
 
-**`--html` flag: additionally write `.audit/report.html`.**
+**`--html` flag: additionally write `ds/audit/report.html`.**
 
 Self-contained, offline, ASCII-only. Sections:
 1. Header with stage gauge.
@@ -332,7 +332,7 @@ Self-contained, offline, ASCII-only. Sections:
 
 Inline CSS + inline SVG + inline Mermaid (statically rendered SVG, not JavaScript-rendered — so offline opens render instantly). No external CDN, no remote font, no remote script.
 
-**Gate:** `.audit/report.md` written. `.audit/report.html` written if `--html`.
+**Gate:** `ds/audit/report.md` written. `ds/audit/report.html` written if `--html`.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
@@ -346,7 +346,7 @@ FRC+DSC accounting. Output:
 
 `ds-ship: {OK|WARN|FAIL} | Stage: {stage} | A-fixed: N | B-applied: N | B-skipped: N | Deferred: N | Blockers: N | Ship-ready: {yes|no}`
 
-On success: delete `.audit/ship.json`. Keep `.audit/findings.md` and `.audit/report.md` — they remain for follow-up runs. Use `--clean-all` to wipe `.audit/` entirely.
+On success: delete `ds/audit/ship.json`. Keep `ds/audit/findings.md` and `ds/audit/report.md` — they remain for follow-up runs. Use `--clean-all` to wipe `ds/audit/` entirely.
 
 **Gate:** Every A/B item has a disposition. Accounting balances.
 
@@ -356,7 +356,7 @@ See Phase 6 above.
 
 ## Quality Gates
 
-W1: every claim in `.audit/report.md` cites file:line or findings ID — no unsourced prose. W2: after modifying docs, re-grep for references to moved content. W3: orchestrator never modifies source code directly — every mutation goes through a delegated skill. W4: re-read `.audit/findings.md` diff after every delegation. W5: uncertain classification → B. W6: every phase produces a visible entry in the orchestration log. W7: dedup findings across skills — ds-blueprint's finding wins on overlap with partial scanners. W8: quote every path in shell; orchestrator never interpolates user strings into commands. W9: state in `.audit/ship.json`, `.audit/` gitignored, state deleted on Summary.
+W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no unsourced prose. W2: after modifying docs, re-grep for references to moved content. W3: orchestrator never modifies source code directly — every mutation goes through a delegated skill. W4: re-read `ds/audit/findings.md` diff after every delegation. W5: uncertain classification → B. W6: every phase produces a visible entry in the orchestration log. W7: dedup findings across skills — ds-blueprint's finding wins on overlap with partial scanners. W8: quote every path in shell; orchestrator never interpolates user strings into commands. W9: state in `ds/audit/ship.json`, `ds/audit/` gitignored, state deleted on Summary.
 
 - No destructive shortcuts: `--no-verify`, `reset --hard`, branch deletion are forbidden to the orchestrator; every blocker is surfaced, not bypassed.
 - Stop condition: same obstacle blocks 3 times → stop, write `## Blockers` section in report, exit with WARN.
@@ -371,7 +371,7 @@ W1: every claim in `.audit/report.md` cites file:line or findings ID — no unso
 | User declines every B item | Proceed with A only; report Ship-ready: no with open B count |
 | Stage misclassified (user disagrees) | Accept `--stage=X` override, re-plan sequence, resume |
 | Findings file becomes stale mid-run (new commit) | Re-invoke `/ds-blueprint --refresh` before continuing the current phase |
-| `.audit/report.html` requested but Mermaid static render fails | Fall back to ASCII art flow in `<pre>` block; flag in report header |
+| `ds/audit/report.html` requested but Mermaid static render fails | Fall back to ASCII art flow in `<pre>` block; flag in report header |
 
 ## Edge Cases
 

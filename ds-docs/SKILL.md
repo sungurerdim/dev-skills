@@ -13,7 +13,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 
 ## Contract
 
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Every generated sentence must earn its place — no filler, marketing language, or obvious statements
 - Only generates/modifies documentation files — never touches source code
@@ -29,7 +29,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 | `--adr` | ADR mode: scan architecture decisions, propose/maintain numbered ADR files under `docs/adr/` |
 | `--update` | Regenerate even if docs exist |
 | `--force-approve` | Auto-apply needs_approval items (structural changes) |
-| `--resume` | Resume from `.audit/docs.json` without prompting |
+| `--resume` | Resume from `ds/audit/docs.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
 Without flags: present mode selection to the user.
@@ -73,7 +73,7 @@ Without flags: present mode selection to the user.
 **Operations (`--adr` mode):**
 
 1. **Inventory:** list existing ADRs, verify numbering is contiguous, flag any with missing status / date / sections.
-2. **Proposal candidates:** for every Category B decision surfaced in recent `.audit/findings.md` runs (scope `ideal-gap`, `architecture`, `stack-fitness`) without a matching ADR, propose a draft ADR. User approves each before writing.
+2. **Proposal candidates:** for every Category B decision surfaced in recent `ds/audit/findings.md` runs (scope `ideal-gap`, `architecture`, `stack-fitness`) without a matching ADR, propose a draft ADR. User approves each before writing.
 3. **Supersedence:** when a new ADR contradicts an earlier one, the new ADR's status cites the superseded ADR and the earlier ADR is updated to `status: superseded-by NNNN`.
 4. **No autonomous ADR writes.** Every new ADR is Category B — user approves title + draft content before the file is created.
 
@@ -87,7 +87,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 ### Phase 0: Pre-flight [ALWAYS — never skip]
 
-**Findings file check:** `.audit/findings.md` with fresh `git_hash` → read findings with `docs` scope. Use to target specific documentation gaps (skip own gap analysis for covered areas). No findings file or stale → run own full analysis.
+**Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → read findings with `docs` scope. Use to target specific documentation gaps (skip own gap analysis for covered areas). No findings file or stale → run own full analysis.
 
 **IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis.
 
@@ -95,7 +95,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 ### Phase 1: Setup [SKIP if --auto]
 
-**Recovery check:** DETECT `.audit/docs.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-check docs files that were being generated, discard stale inventory), skip `done` phases, announce `[DOC] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/docs.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-check docs files that were being generated, discard stale inventory), skip `done` phases, announce `[DOC] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
 **State `data` shape:** `{ mode, scopes_selected, project_type, docs_inventory[{file, completeness}], gaps[], docs_generated[], verifications_done[] }`.
 
@@ -244,7 +244,7 @@ Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 Total findings = 0 → include "All {N} scopes evaluated: 0 findings" confirmation line in summary. Distinguishes clean result from skipped analysis.
 
-**Profile update:** Blueprint profile exists → append Run History entry: `- {YYYY-MM-DD}: ds-docs {mode} | Fixed: {n} | Skipped: {n} | Total: {n}`. Keeps Documentation dimension score traceable after doc generation.
+**Profile update:** ds-docs does NOT modify the blueprint profile. The Documentation dimension score is recalculated by ds-blueprint on its next run. Run history is preserved in `git log` and the terminal summary above — never re-injected into context-loaded files (SKILL-SPEC §10.1 MUST NOT #8).
 
 **Gate:** Summary table rendered with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
 
@@ -253,7 +253,7 @@ Total findings = 0 → include "All {N} scopes evaluated: 0 findings" confirmati
 - Every generated doc verified against source code — no claims without file:line evidence
 - Only modify documentation files — never touch source code
 - Generated docs match project's existing documentation style
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/docs.json` updated per doc generated, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/docs.json` updated per doc generated, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

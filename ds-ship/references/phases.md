@@ -99,7 +99,7 @@ ds-launch (store submission OR web launch OR library publish; --perf-budget if m
 ds-repo (branch protection, CODEOWNERS, metadata, --oss-ready if public)
 ```
 
-Each skill in the chain consumes `.audit/findings.md` and adds its own scope's findings. ds-ship does not re-invoke an already-completed skill in the same pass.
+Each skill in the chain consumes `ds/audit/findings.md` and adds its own scope's findings. ds-ship does not re-invoke an already-completed skill in the same pass.
 
 ## Category A vs B — Examples
 

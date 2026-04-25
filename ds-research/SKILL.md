@@ -23,7 +23,7 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 |------|--------|
 | `--quick` | T1-T2 sources only |
 | `--deep` | All tiers, resumable |
-| `--resume` | Resume from `.audit/research.json` without prompting |
+| `--resume` | Resume from `ds/audit/research.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
 Without flags: present depth selection to user.
@@ -40,7 +40,7 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 
 ### Phase 1: Setup [SKIP with flags]
 
-**Recovery check (deep mode):** DETECT `.audit/research.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read tracked source batches, discard fetched sources with stale CRAAP evidence), skip `done` phases, announce `[RSC] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Output, delete state. Initialize state on fresh deep run — verify `.audit/*.json` in `.gitignore`, append if missing.
+**Recovery check (deep mode):** DETECT `ds/audit/research.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read tracked source batches, discard fetched sources with stale CRAAP evidence), skip `done` phases, announce `[RSC] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Output, delete state. Initialize state on fresh deep run — verify `ds/audit/*.json` in `.gitignore`, append if missing.
 
 **State `data` shape (deep mode):** `{ depth, scopes, query, search_batches[{track, queries, results[], done}], sources_scored[{url, tier, score}], synthesis_draft }`.
 
@@ -56,7 +56,7 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 
 ### Phase 2: Parse Query
 
-**Findings file check:** If `.audit/findings.md` exists, check for relevant findings providing research context. Use project type and stack from findings metadata.
+**Findings file check:** If `ds/audit/findings.md` exists, check for relevant findings providing research context. Use project type and stack from findings metadata.
 
 **IDU:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis.
 

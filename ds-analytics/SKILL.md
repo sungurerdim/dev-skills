@@ -14,7 +14,7 @@ Most apps track everything (privacy violation) or nothing (flying blind). Skill 
 ## Contract
 
 - Privacy-first: maximum insights with minimum data collection
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates event taxonomies, tracking plans, and dashboard specs — not tracking code
 - **Maximum privacy:** recommends privacy-respecting tools, no invasive tracking
@@ -30,7 +30,7 @@ Most apps track everything (privacy violation) or nothing (flying blind). Skill 
 | `--audit` | Audit existing analytics for gaps, noise, coverage |
 | `--privacy-audit` | **Narrow scope (OVERLAP-4):** event-property PII scan only. Canonical privacy audit (consent, retention, regulatory framing) delegated to `/ds-compliance --privacy`. |
 | `--auto` | All modes, no questions, single-line summary |
-| `--resume` | Resume from `.audit/analytics.json` without prompting |
+| `--resume` | Resume from `ds/audit/analytics.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
 Without flags: present interactive mode selection.
@@ -42,7 +42,7 @@ When `--privacy-audit` is active (or privacy concerns surface in `--audit` mode)
 1. **Announce scope narrowing:** "Privacy canonical owner is /ds-compliance. This run limits to event-property PII scan."
 2. **Scan only:** every event declaration (`track(...)`, `logEvent(...)`, `analytics.track(...)`, stack-native equivalents) — inspect the properties payload for PII patterns (email, phone, full name, national ID, address, IP when not anonymized, precise geolocation, biometric, health, financial data).
 3. **Do not emit findings on:** consent mechanisms, retention policies, regulatory framework mapping, data-subject-request endpoints. Those belong to `/ds-compliance`.
-4. **Write findings with scope `event-pii-scan` only** (not `privacy`). This lets `.audit/findings.md` consumers distinguish event-level scans from canonical privacy findings.
+4. **Write findings with scope `event-pii-scan` only** (not `privacy`). This lets `ds/audit/findings.md` consumers distinguish event-level scans from canonical privacy findings.
 
 ## Scopes
 
@@ -99,7 +99,7 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `.audit/analytics.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read analytics inventory, discard stale detections), skip `done` phases, announce `[ANL] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/analytics.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read analytics inventory, discard stale detections), skip `done` phases, announce `[ANL] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
 **State `data` shape:** `{ mode, platform, goals[], inventory: {sdks[], events[]}, scopes_done[], taxonomy_generated, privacy_findings[{id, severity, disposition}] }`.
 
@@ -155,7 +155,7 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 
 ### Phase 5: Audit [--audit]
 
-1. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → read findings matching scopes (privacy, coverage, noise, quality). Per match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
+1. **Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → read findings matching scopes (privacy, coverage, noise, quality). Per match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
 2. **Coverage check:** Map tracked events to user journeys — identify gaps
 3. **Privacy check:**
    - PII in event properties? (emails, names, IPs, precise location)
@@ -203,7 +203,7 @@ FRC+DSC accounting.
 - Event naming follows consistent convention
 - Funnels have defined conversion targets
 - Every finding gets a disposition in the summary — zero silent drops (FRC)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/analytics.json` updated per scope + per deliverable, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/analytics.json` updated per scope + per deliverable, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

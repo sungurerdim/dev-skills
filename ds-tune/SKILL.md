@@ -17,7 +17,7 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 - Git ratchet — only improvements survive, failures are reverted
 - Every experiment committed before evaluation — full audit trail
 - Evaluation is mechanical (deterministic assertions or benchmarks), not subjective
-- Skill generates optimization infrastructure (auto/ folder), then runs the loop
+- Skill generates optimization infrastructure (ds/tune/ folder), then runs the loop
 - Standalone. Uses blueprint when available; own analysis when absent.
 - FRC+DSC enforced.
 
@@ -25,11 +25,11 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 
 | Flag | Effect |
 |------|--------|
-| (none) | Full setup: discover goal, analyze project, generate auto/ folder, measure baseline, start loop |
-| `run` | Resume optimization loop from existing auto/ setup + `.audit/tune.json` |
+| (none) | Full setup: discover goal, analyze project, generate ds/tune/ folder, measure baseline, start loop |
+| `run` | Resume optimization loop from existing `ds/tune/` setup + `ds/audit/tune.json` |
 | `status` | Show results summary (experiments, hit rate, improvement) |
 | `--resume` | Equivalent to `run` — force resume from state without prompt |
-| `--clean` | Delete `.audit/tune.json` (keeps `auto/`) and re-enter setup |
+| `--clean` | Delete `ds/audit/tune.json` (keeps `ds/tune/`) and re-enter setup |
 
 ## Delegation
 
@@ -41,11 +41,11 @@ Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] �
 
 ### Phase 1: Discovery
 
-**Recovery check:** DETECT `.audit/tune.json`. Absent + no `--resume`/`run` → fresh setup. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY: re-read `auto/.autotune.json` and tail of `auto/results.tsv`, skip `done` phases, enter Loop at next experiment. Announce `[TUN] Resuming from Phase {N}: {name}. Baseline {metric}={value}, {N} experiments recorded.` On user-triggered stop or context exhaustion, state persists; on graceful completion (user ends the loop), delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/tune.json`. Absent + no `--resume`/`run` → fresh setup. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY: re-read `ds/tune/.autotune.json` and tail of `ds/tune/results.tsv`, skip `done` phases, enter Loop at next experiment. Announce `[TUN] Resuming from Phase {N}: {name}. Baseline {metric}={value}, {N} experiments recorded.` On user-triggered stop or context exhaustion, state persists; on graceful completion (user ends the loop), delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
-**State `data` shape:** `{ target_file, metric, direction, secondary, bench_cmd, budget_sec, tag, auto_dir: "auto/", baseline: {value, commit}, branch, experiment_count, last_experiment_idx }`.
+**State `data` shape:** `{ target_file, metric, direction, secondary, bench_cmd, budget_sec, tag, tune_dir: "ds/tune/", baseline: {value, commit}, branch, experiment_count, last_experiment_idx }`.
 
-**Findings file check:** If `.audit/findings.md` exists with fresh `git_hash`, use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize.
+**Findings file check:** If `ds/audit/findings.md` exists with fresh `git_hash`, use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize.
 
 **IDU:** Profile → Ideal Metrics, Type + Stack. Findings() → verify + use. Absent → own analysis.
 
@@ -102,9 +102,9 @@ Ask: "Confirm? (yes / suggest changes)"
 
 ### Phase 4: Generate
 
-Create these files in project root `auto/` directory:
+Create these files in project `ds/tune/` directory (committed; `ds/<skill>/` is the user-facing operational namespace per SKILL-SPEC §10.1):
 
-**auto/.autotune.json** — Configuration:
+**ds/tune/.autotune.json** — Configuration:
 ```json
 {
   "target": "<target_file>",
@@ -117,37 +117,37 @@ Create these files in project root `auto/` directory:
 }
 ```
 
-**auto/bench.sh** — Evaluation wrapper:
+**ds/tune/bench.sh** — Evaluation wrapper:
 ```bash
 #!/bin/bash
 set -e
 cd "$(dirname "$0")/.."
-<eval_command> > auto/run.log 2>&1
+<eval_command> > ds/tune/run.log 2>&1
 ```
 
-Requirements: cd to project root, redirect ALL output to `auto/run.log`, output metrics as `metric_name:    value` (grep-able), complete within budget_sec.
+Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, output metrics as `metric_name:    value` (grep-able), complete within budget_sec.
 
-**auto/eval script** — Project-specific evaluation (Python, Bash, or project language). Must output metrics in exact format: `<metric>:    <value>`. If test data doesn't exist, create minimal fixtures.
+**ds/tune/eval** — Project-specific evaluation (Python, Bash, or project language). Must output metrics in exact format: `<metric>:    <value>`. If test data doesn't exist, create minimal fixtures.
 
-**auto/results.tsv** — Initialize with header:
+**ds/tune/results.tsv** — Initialize with header:
 ```
 timestamp	commit	status	<metric>	<secondary>	duration	description
 ```
 
 Column notes: `timestamp` is ISO 8601. `duration` is `HH:MM:SS` format (wall-clock time for experiment).
 
-**auto/program.md** — Agent instructions generated from template below with all project-specific values filled in.
+**ds/tune/program.md** — Agent instructions generated from template below with all project-specific values filled in.
 
 **Gate:** All files created and executable.
 
 ### Phase 5: Baseline
 
-1. Run `bash auto/bench.sh`
-2. Extract metrics: search for `<metric>:` in `auto/run.log`
+1. Run `bash ds/tune/bench.sh`
+2. Extract metrics: search for `<metric>:` in `ds/tune/run.log`
 3. Record baseline in results.tsv
-4. Commit auto/ folder: `git add auto/ && git commit -m "autotune: setup with baseline"`
+4. Commit ds/tune/ folder: `git add ds/tune/ && git commit -m "autotune: setup with baseline"`
 5. Create branch: `git checkout -b autotune/<tag>`
-6. Write `.audit/tune.json` with canonical envelope + baseline snapshot in `data`.
+6. Write `ds/audit/tune.json` with canonical envelope + baseline snapshot in `data`.
 
 Report:
 ```
@@ -165,19 +165,19 @@ Branch:    autotune/[tag]
 
 ### Phase 7: Loop
 
-Execute loop defined in auto/program.md. Follow it exactly:
+Execute loop defined in ds/tune/program.md. Follow it exactly:
 
 1. Read and analyze target file. What could improve the metric?
 2. Form a hypothesis. One change per experiment.
 3. Edit target file with experimental idea.
 4. Commit: `git add <target_file> && git commit -m "description of change"`
-5. Run: `bash auto/bench.sh`
-6. Read results: search for `<metric>:` in `auto/run.log`
-7. Append to auto/results.tsv (tab-separated): `<ISO8601_timestamp>\t<commit_7char>\t<status>\t<metric>\t<secondary>\t<HH:MM:SS>\t<description>`
+5. Run: `bash ds/tune/bench.sh`
+6. Read results: search for `<metric>:` in `ds/tune/run.log`
+7. Append to ds/tune/results.tsv (tab-separated): `<ISO8601_timestamp>\t<commit_7char>\t<status>\t<metric>\t<secondary>\t<HH:MM:SS>\t<description>`
 8. Decision:
    - Metric improved → KEEP. Branch advances.
    - Metric same or worse → DISCARD. Run: `git reset HEAD~1 --hard`
-9. Update `.audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`.
+9. Update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`.
 10. Go to step 1. Continue without interruption.
 
 **Gate:** Loop runs until user interrupts or context limit approaches.
@@ -200,10 +200,10 @@ Generated in Phase 4 with all placeholders filled:
 | File | Permission | Purpose |
 |------|-----------|---------|
 | <target_file> | EDITABLE | Optimization target |
-| auto/bench.sh | read-only | Evaluation harness |
-| auto/eval script | read-only | Metric extraction |
-| auto/.autotune.json | read-only | Configuration |
-| auto/results.tsv | append-only | Experiment log |
+| ds/tune/bench.sh | read-only | Evaluation harness |
+| ds/tune/eval | read-only | Metric extraction |
+| ds/tune/.autotune.json | read-only | Configuration |
+| ds/tune/results.tsv | append-only | Experiment log |
 | All other files | read-only | Keep unchanged |
 
 ## Baseline
@@ -218,9 +218,9 @@ Repeat forever:
 2. Form a hypothesis. Think about what change might help.
 3. Edit <target_file> with your experimental idea.
 4. Commit: git add <target_file> && git commit -m "description of change"
-5. Run: bash auto/bench.sh
-6. Read results: grep "^<metric>:" auto/run.log
-7. Append to auto/results.tsv (tab-separated):
+5. Run: bash ds/tune/bench.sh
+6. Read results: grep "^<metric>:" ds/tune/run.log
+7. Append to ds/tune/results.tsv (tab-separated):
    <ISO8601_timestamp>\t<commit_7char>\t<status>\t<metric_value>\t<secondary_value>\t<HH:MM:SS>\t<description>
 8. Decision:
    - <metric> improved (<direction>) -> KEEP. Branch advances.
@@ -247,16 +247,16 @@ Repeat forever:
 
 ## `/ds-tune run` — Resume
 
-1. Read `.audit/tune.json` — verify `skill: ds-tune`, `version: 1`, `git_hash` vs HEAD (prompt on mismatch).
-2. Verify `auto/` folder exists, read `auto/.autotune.json`
-3. Read `auto/program.md`
-4. Read `auto/results.tsv` — find current baseline (last `keep` entry)
+1. Read `ds/audit/tune.json` — verify `skill: ds-tune`, `version: 1`, `git_hash` vs HEAD (prompt on mismatch).
+2. Verify `ds/tune/` folder exists, read `ds/tune/.autotune.json`
+3. Read `ds/tune/program.md`
+4. Read `ds/tune/results.tsv` — find current baseline (last `keep` entry)
 5. Check current git branch — if not on `autotune/*`, checkout the branch
-6. Resume experiment loop from auto/program.md, announce `[TUN] Resuming from experiment {N+1}, current best = {metric}={value}`.
+6. Resume experiment loop from ds/tune/program.md, announce `[TUN] Resuming from experiment {N+1}, current best = {metric}={value}`.
 
 ## `/ds-tune status` — Results
 
-1. Read `auto/results.tsv`
+1. Read `ds/tune/results.tsv`
 2. Display summary:
 
 ```
@@ -294,7 +294,7 @@ ds-tune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {
 - Discarded experiments fully reverted (git reset --hard) — zero residue
 - Results.tsv is append-only — complete experiment history preserved
 - Simplicity criterion: complexity must earn its keep with measurable improvement
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/tune.json` updated per experiment, `.audit/*.json` in `.gitignore`, cleared only on user-confirmed completion (`auto/` stays).
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/tune.json` updated per experiment, `ds/audit/` in `.gitignore`, cleared only on user-confirmed completion (`ds/tune/` stays committed).
 
 ## Error Recovery
 
@@ -305,7 +305,7 @@ ds-tune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {
 | Experiment exceeds time budget | Kill process, log as crash, move to next hypothesis |
 | Git conflict on reset | Stash changes, hard reset to last keep commit |
 | No improvement after 10 consecutive experiments | Re-read target file, analyze results.tsv patterns, try fundamentally different approaches |
-| auto/ folder missing (for `run`) | Run full setup first |
+| ds/tune/ folder missing (for `run`) | Run full setup first |
 
 ## Edge Cases
 

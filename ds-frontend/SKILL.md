@@ -16,7 +16,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 - Audits UI/UX design quality in code — stays clear of business logic and backend
 - Applies to all UI platforms: web (React/Vue/Svelte/Angular), mobile (Flutter/RN/SwiftUI/Compose), desktop (Electron/Tauri)
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Only modifies UI-layer code (styles, components, tokens, ARIA) — business logic stays untouched
 
@@ -28,7 +28,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 | `--scope=<scopes>` | Comma-separated: tokens, components, states, a11y, responsive, theming, or `all` |
 | `--framework=<f>` | Override: `react`, `vue`, `svelte`, `angular`, `flutter`, `swiftui`, `compose`, `rn` |
 | `--check` | Report only, zero modifications |
-| `--resume` | Resume from `.audit/frontend.json` without prompting |
+| `--resume` | Resume from `ds/audit/frontend.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
 Without flags: present mode selection to the user.
@@ -66,7 +66,7 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
 
 ### Phase 1: Detect
 
-**Recovery check:** DETECT `.audit/frontend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read files referenced by pending findings, discard stale ones), skip `done` phases, announce `[FE] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/frontend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read files referenced by pending findings, discard stale ones), skip `done` phases, announce `[FE] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
 **State `data` shape:** `{ framework, mode, scopes_selected, scopes_done[], design_system: {tokens_path, component_catalog}, findings[{id, severity, file, line, scope, disposition}], fix_progress, design_artifacts_generated[] }`.
 
@@ -85,7 +85,7 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
    | Electron/Tauri | `package.json` with `electron` or `@tauri-apps/api` |
    | Plain HTML/CSS | `*.html` + `*.css` files without framework |
 
-2. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → read findings matching frontend scopes. Use verified findings to skip redundant analysis. Stale or absent → run own full analysis.
+2. **Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → read findings matching frontend scopes. Use verified findings to skip redundant analysis. Stale or absent → run own full analysis.
 
 3. **IDU:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 
@@ -190,7 +190,7 @@ FRC+DSC accounting.
 - Every finding gets a disposition in summary — zero silent drops (FRC)
 - Every scope check evaluated and accounted for — zero silent omissions (DSC)
 - After fix, re-read modified file to verify fix worked
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/frontend.json` updated per scope + per artifact, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/frontend.json` updated per scope + per artifact, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

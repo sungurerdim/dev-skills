@@ -13,7 +13,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 
 ## Contract
 
-- Standalone; uses `.audit/findings.md` (stack, deps scopes) when fresh, own audit otherwise. FRC+DSC enforced. State: `.audit/deps.json`.
+- Standalone; uses `ds/audit/findings.md` (stack, deps scopes) when fresh, own audit otherwise. FRC+DSC enforced. State: `ds/audit/deps.json`.
 - Test gate between upgrade and commit is non-negotiable. Test fail → revert batch.
 - Category A: safe-patch + safe-minor (no changelog breaking entries) → autonomous. Category B: every major, every upgrade with breaking notes, every removal → batched approval.
 - One `/ds-commit` per group. Never a single mega-commit.
@@ -28,7 +28,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 | `--auto` | Apply safe-patch + safe-minor; list majors, skip without asking |
 | `--force-approve` | Apply every classified upgrade including majors |
 | `--dry-run` | Run the classifier + security scan, skip the upgrade execution |
-| `--resume` | Resume from `.audit/deps.json` without prompt |
+| `--resume` | Resume from `ds/audit/deps.json` without prompt |
 | `--clean` | Delete existing state, start fresh |
 
 Without flags: present mode menu.
@@ -53,7 +53,7 @@ Setup → Discover → Classify → Plan → Execute → [Needs-Approval] → Su
 
 ### Phase 1: Setup
 
-1. **Recovery check:** DETECT `.audit/deps.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` group, skip `done` groups, announce `[DEP] Resuming from Phase {N}`. On successful Summary, delete state; remove `.audit/` if empty. Verify `.audit/` in `.gitignore`; add if missing.
+1. **Recovery check:** DETECT `ds/audit/deps.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` group, skip `done` groups, announce `[DEP] Resuming from Phase {N}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`; add if missing.
 
 2. **State shape:** `{ mode, stack, manifest_paths[], deps: [{name, current, latest_stable, bump_type, advisory?, classification, changelog_url?, breaking_notes?}], groups: {patch: [ids], minor: [ids], major: [ids], security: [ids], removal: [ids]}, group_status: {id: pending|applied|failed|skipped}, commits: [{group, hash}], git_hash }`.
 
@@ -124,7 +124,7 @@ Display plan table:
 
 Per-group summary: `Safe-patch: 8 deps | Safe-minor: 3 deps | Review-major: 2 deps | Removal: 1 dep | Security: 2 (overlaps above)`.
 
-Write findings to `.audit/findings.md` with `scope=deps` and `category` column: A for safe groups, B for review-major + removal.
+Write findings to `ds/audit/findings.md` with `scope=deps` and `category` column: A for safe groups, B for review-major + removal.
 
 **Gate:** Plan table displayed, every dep accounted for.
 
@@ -182,13 +182,13 @@ Summary line:
 
 `ds-deps: {OK|WARN|FAIL} | Bumped: N | Majors-pending: N | Skipped: N | Failed: N | Total: N | Advisories-closed: N`
 
-On success: delete `.audit/deps.json`. If `.audit/` empties, remove the directory.
+On success: delete `ds/audit/deps.json`. If `ds/audit/` empties, remove the directory.
 
 **Gate:** Every dep has exactly one disposition. Accounting balances.
 
 ## Quality Gates
 
-W1: every classification cites registry metadata + changelog URL. W2: after upgrade, verify no broken import in consumers. W3: only manifest + lockfile + approved source lines change. W4: re-read manifest before commit. W5: uncertain changelog → `review-major`, not `safe-minor`. W6: every group produces output. W7: dedup — same dep across monorepo workspaces listed once per workspace. W8: quote package names with version specifiers in shell; reject names containing shell metacharacters. W9: state in `.audit/deps.json`, `.audit/` gitignored, state deleted on Summary.
+W1: every classification cites registry metadata + changelog URL. W2: after upgrade, verify no broken import in consumers. W3: only manifest + lockfile + approved source lines change. W4: re-read manifest before commit. W5: uncertain changelog → `review-major`, not `safe-minor`. W6: every group produces output. W7: dedup — same dep across monorepo workspaces listed once per workspace. W8: quote package names with version specifiers in shell; reject names containing shell metacharacters. W9: state in `ds/audit/deps.json`, `ds/audit/` gitignored, state deleted on Summary.
 
 - Lockfile always updated alongside manifest — no orphaned version mismatch.
 - Peer-dep conflicts: detect via stack-native tool output; conflict → elevate to `review-major`.

@@ -1,5 +1,4 @@
-.audit/
-.launch-research.md
+ds/audit/
 .DS_Store
 Thumbs.db
 *.swp

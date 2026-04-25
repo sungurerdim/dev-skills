@@ -15,7 +15,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no 
 
 - Only manages repository settings and structure — not code quality
 - Every recommendation cites specific setting or file
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -26,7 +26,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no 
 | `--preview` | Audit only, no changes |
 | `--scope=X` | Specific scope(s), comma-separated |
 | `--oss-ready` | OSS-readiness mode (see `oss-readiness` scope below) |
-| `--resume` | Resume from `.audit/repo.json` without prompting |
+| `--resume` | Resume from `ds/audit/repo.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
 No flags → present mode selection.
@@ -110,7 +110,7 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `.audit/repo.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-query GitHub API for changed settings), skip `done` phases, announce `[RPO] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/repo.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-query GitHub API for changed settings), skip `done` phases, announce `[RPO] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
 **State `data` shape:** `{ repo_info: {name, default_branch, visibility, plan}, scopes_selected, scopes_done[], checks_run[], findings[{id, severity, scope, check, disposition}], fixes_applied[] }`.
 
@@ -210,7 +210,7 @@ Clean: settings (5/5 ✅), structure (2/2 ✅)
 3. Every finding gets a disposition in summary — zero silent drops (FRC)
 4. Every scope check evaluated and accounted for — zero silent omissions (DSC)
 5. Destructive changes (branch deletion, permission changes) require confirmation unless `--auto`
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/repo.json` updated per scope + per API call, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/repo.json` updated per scope + per API call, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

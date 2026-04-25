@@ -14,7 +14,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 ## Contract
 
 - Covers three scopes: API design, database design, and authentication
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams
 - Only suggests well-established patterns — no experimental or untested approaches
@@ -32,7 +32,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | `--migrate` | Generate or review database migrations |
 | `--scope=<scope>` | Specific scope: api, db, auth (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary |
-| `--resume` | Resume from `.audit/backend.json` without prompting |
+| `--resume` | Resume from `ds/audit/backend.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
 Without flags: present interactive mode selection.
@@ -89,7 +89,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `.audit/backend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-check endpoints/schemas inventory, discard stale findings), skip `done` phases, announce `[BE] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/backend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-check endpoints/schemas inventory, discard stale findings), skip `done` phases, announce `[BE] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
 **State `data` shape:** `{ mode, scopes_selected, inventory: {endpoints[], tables[], auth_flows[]}, scopes_done[], findings[{id, severity, scope, disposition}], artifacts_generated[] }`.
 
@@ -103,7 +103,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 ### Phase 2: Discover
 
-1. **Findings file check:** `.audit/findings.md` with fresh `git_hash` → use relevant findings
+1. **Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → use relevant findings
 2. Search for route/endpoint definitions, controller files, middleware
 3. Search for database schema files (migrations, models, entity definitions)
 4. Search for auth configuration (JWT secret usage, session config, OAuth setup)
@@ -188,7 +188,7 @@ FRC+DSC accounting.
 - OpenAPI spec validates against OpenAPI 3.0+ schema
 - Migration files include both `up` and `down` operations
 - Auth flows use current best practices (PKCE for public clients, not implicit flow)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/backend.json` updated per scope, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/backend.json` updated per scope, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

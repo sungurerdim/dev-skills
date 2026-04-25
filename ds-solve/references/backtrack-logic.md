@@ -179,7 +179,7 @@ After failed attempt:
 
 ## State File Schema
 
-`.audit/solve.json` — canonical envelope from SKILL-SPEC State Management. Rich ds-solve fields live under `data`:
+`ds/audit/solve.json` — canonical envelope from SKILL-SPEC State Management. Rich ds-solve fields live under `data`:
 
 ```json
 {

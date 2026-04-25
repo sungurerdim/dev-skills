@@ -13,7 +13,7 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 
 ## Contract
 
-- Standalone; uses `.audit/findings.md` when fresh, own scan otherwise. FRC+DSC enforced. State: `.audit/simplify.json`.
+- Standalone; uses `ds/audit/findings.md` when fresh, own scan otherwise. FRC+DSC enforced. State: `ds/audit/simplify.json`.
 - Detection only — zero deletion without approval batch. Every finding cites file:line + concrete ref count or pattern.
 - Delete execution delegates to `/ds-commit` — one reversible commit per approved batch.
 - Three similar lines beat a premature abstraction: abstractions on ≤3 usages → finding.
@@ -26,7 +26,7 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 | `--scope=X` | Single scope: dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan, all |
 | `--auto` | All phases, list Category B items (every deletion is B), skip without asking |
 | `--force-approve` | Apply every pending deletion without asking |
-| `--resume` | Resume from `.audit/simplify.json` without prompt |
+| `--resume` | Resume from `ds/audit/simplify.json` without prompt |
 | `--clean` | Delete existing state, start fresh |
 
 Without flags: present mode menu (full scan / preview / single scope).
@@ -56,11 +56,11 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 ### Phase 1: Setup
 
-1. **Recovery check:** DETECT `.audit/simplify.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` scope, skip `done` scopes, announce `[SMP] Resuming from Phase {N}: {name}`. On successful Summary, delete state; remove `.audit/` if empty. Verify `.audit/` in `.gitignore`; add if missing.
+1. **Recovery check:** DETECT `ds/audit/simplify.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` scope, skip `done` scopes, announce `[SMP] Resuming from Phase {N}: {name}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`; add if missing.
 
 2. **State shape:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, file, line, kind, evidence, proposal}]}, approval_decisions: {id: keep|delete|defer}, batch_commits: [hash], git_hash }`.
 
-3. **Findings file check:** `.audit/findings.md` exists and fresh → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Absent or stale → run own scan.
+3. **Findings file check:** `ds/audit/findings.md` exists and fresh → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Absent or stale → run own scan.
 
 4. **Mode selection.** No flags → ask user: Full Scan (all scopes), Preview (no approval), Single Scope (choose one).
 
@@ -143,7 +143,7 @@ Single delete-or-keep table:
 
 Per-scope summary line below the table: `Scope {n}: {k} findings, {m} clean`.
 
-Write findings to `.audit/findings.md` with `scope=simplify` and the `category` column set to `B` for every row (every deletion is approval-gated).
+Write findings to `ds/audit/findings.md` with `scope=simplify` and the `category` column set to `B` for every row (every deletion is approval-gated).
 
 **Gate:** Table displayed with every finding's proposal.
 
@@ -195,13 +195,13 @@ Summary line:
 
 `ds-simplify: {OK|WARN|FAIL} | Removed: N | Deferred: N | Skipped: N | Failed: N | Total: N`
 
-On success: delete `.audit/simplify.json`. If `.audit/` empties, remove the directory.
+On success: delete `ds/audit/simplify.json`. If `ds/audit/` empties, remove the directory.
 
 **Gate:** Every finding has exactly one disposition. Accounting balances.
 
 ## Quality Gates
 
-W1: cite file:line + reference count, never assume. W2: verify no new broken import after deletion. W3: only task-required lines — do not reformat adjacent code. W4: re-read file after context gap before deletion. W5: uncertain coupling → defer, not delete. W6: verify all scopes produced output. W7: dedup file:line — single finding for multi-scope hits, keep tightest proposal. W8: no raw shell interpolation. W9: state in `.audit/simplify.json`, `.audit/` gitignored, state deleted on Summary.
+W1: cite file:line + reference count, never assume. W2: verify no new broken import after deletion. W3: only task-required lines — do not reformat adjacent code. W4: re-read file after context gap before deletion. W5: uncertain coupling → defer, not delete. W6: verify all scopes produced output. W7: dedup file:line — single finding for multi-scope hits, keep tightest proposal. W8: no raw shell interpolation. W9: state in `ds/audit/simplify.json`, `ds/audit/` gitignored, state deleted on Summary.
 
 - Deletion is reversible: every batch ends in a git commit — rollback = `git revert {hash}`.
 - Framework contracts honored: do not delete exports required by framework (Next.js `generateMetadata`, React Server Component signatures, Dart widget `build`, etc.).

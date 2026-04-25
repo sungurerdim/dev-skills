@@ -13,9 +13,9 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 
 ## Contract
 
-- Standalone; uses blueprint profile + `.audit/findings.md` when fresh to skip re-detection. FRC+DSC enforced. State: `.audit/benchmark.json`.
+- Standalone; uses blueprint profile + `ds/audit/findings.md` when fresh to skip re-detection. FRC+DSC enforced. State: `ds/audit/benchmark.json`.
 - Research delegated to `/ds-research` — never re-implements web-search or CRAAP+ scoring.
-- Writes `.audit/findings.md` (scope=ideal-gap); contributes gap section to ds-ship report when invoked under it.
+- Writes `ds/audit/findings.md` (scope=ideal-gap); contributes gap section to ds-ship report when invoked under it.
 - Zero autonomous architectural change. Every gap closure is Category B → user decision.
 
 ## Arguments
@@ -25,7 +25,7 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 | `--preview` | Research + synthesis + gap table, no approval block |
 | `--competitors=N` | Target count of comparables (default 7; min 3, max 12) |
 | `--scope=X` | Narrow to a single dimension: architecture, stack, data-model, ux, security, privacy, operational, all |
-| `--resume` | Resume from `.audit/benchmark.json` without prompt |
+| `--resume` | Resume from `ds/audit/benchmark.json` without prompt |
 | `--clean` | Delete existing state, start fresh |
 
 Without flags: full benchmark across every dimension.
@@ -52,7 +52,7 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 ### Phase 1: Setup
 
-1. **Recovery check:** DETECT `.audit/benchmark.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → skip `done` phases, announce `[BEN] Resuming from Phase {N}`. On successful Summary, delete state; remove `.audit/` if empty. Verify `.audit/` in `.gitignore`; add if missing.
+1. **Recovery check:** DETECT `ds/audit/benchmark.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → skip `done` phases, announce `[BEN] Resuming from Phase {N}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`; add if missing.
 
 2. **State shape:** `{ problem_definition, competitors: [{name, url, tier, strengths, weaknesses}], ideal: {dimension: synthesis}, gaps: [{id, dimension, ideal, current, gap_type, proposal, category, decision}], git_hash }`.
 
@@ -114,7 +114,7 @@ Output as `ideal` block in state:
 
 ### Phase 5: Gap Table
 
-For each dimension, compare ideal vs current (current from blueprint profile + `.audit/findings.md`):
+For each dimension, compare ideal vs current (current from blueprint profile + `ds/audit/findings.md`):
 
 ```
 | ID  | Dimension    | Ideal                                  | Current                                | Gap type           | Proposal                         | Category |
@@ -132,7 +132,7 @@ Category rules:
 - Code-level fix that does not alter architecture or scope → A.
 - Architecture, new dependency, new capability, or user-facing promise → B.
 
-Write gap entries to `.audit/findings.md` with `scope=ideal-gap` and the `category` column set.
+Write gap entries to `ds/audit/findings.md` with `scope=ideal-gap` and the `category` column set.
 
 **Gate:** Every dimension has at least one row (or an explicit "no gap" entry).
 
@@ -152,7 +152,7 @@ Category A gaps are recorded as findings but not executed here — this skill do
 
 ### Phase 7: Record
 
-1. Update `.audit/findings.md` meta header scopes list to include `ideal-gap`.
+1. Update `ds/audit/findings.md` meta header scopes list to include `ideal-gap`.
 2. Each `close` decision → finding remains with `disposition=needs-execution`.
 3. Each `defer` decision → finding remains with `disposition=deferred`.
 4. Each `intentional-deviation` decision → finding marked `disposition=skipped (intentional)`, ADR written to `docs/adr/NNNN-{slug}.md` if user agreed.
@@ -182,13 +182,13 @@ Summary line:
 
 `ds-benchmark: {OK|WARN|FAIL} | Gaps: N | Close: N | Defer: N | Intentional: N | Skipped: N | Total: N`
 
-On success: delete `.audit/benchmark.json`. If `.audit/` empties, remove the directory.
+On success: delete `ds/audit/benchmark.json`. If `ds/audit/` empties, remove the directory.
 
 **Gate:** Every gap has exactly one decision. Accounting balances.
 
 ## Quality Gates
 
-W1: every competitor claim cites source URL + CRAAP+ tier. W2: ideal synthesis honors stated constraints — never proposes a stack change the user pinned out. W3: only `.audit/findings.md` + optional ADRs written. W4: re-read blueprint profile before Gap phase. W5: single-source claim → MEDIUM confidence, do not promote to "ideal". W6: every active scope produces a row. W7: dedup competitor claims across sources — merge "do this" signals, keep strongest source. W8: quote all URLs. W9: state in `.audit/benchmark.json`, `.audit/` gitignored, state deleted on Summary.
+W1: every competitor claim cites source URL + CRAAP+ tier. W2: ideal synthesis honors stated constraints — never proposes a stack change the user pinned out. W3: only `ds/audit/findings.md` + optional ADRs written. W4: re-read blueprint profile before Gap phase. W5: single-source claim → MEDIUM confidence, do not promote to "ideal". W6: every active scope produces a row. W7: dedup competitor claims across sources — merge "do this" signals, keep strongest source. W8: quote all URLs. W9: state in `ds/audit/benchmark.json`, `ds/audit/` gitignored, state deleted on Summary.
 
 - Research budget respected: `/ds-research` returns on its own time; do not spawn parallel research sessions beyond the delegated call.
 - Intentional deviation always offered — the ideal is not the law, the user's constraints win.

@@ -17,9 +17,9 @@ PR descriptions that list every commit instead of net change create noise, confu
 
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
-- **Exempt from state protocol:** git history is the natural state — `git diff {base}...HEAD` always provides full context. No `.audit/pr.json` written.
+- **Exempt from state protocol:** git history is the natural state — `git diff {base}...HEAD` always provides full context. No `ds/audit/pr.json` written.
 
 **Pipeline:** `PR title → squash merge on main → release-please reads title → changelog + version bump`. PR title IS changelog entry. PR body becomes squash commit body. Everything must be accurate and minimal.
 
@@ -43,7 +43,7 @@ Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Cre
 
 ### Phase 1: Validate
 
-**Findings file check:** `.audit/findings.md` with fresh `git_hash` → note relevant findings for PR body context. Stale → ignore.
+**Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → note relevant findings for PR body context. Stale → ignore.
 
 **IDU:** Profile → {Project Map.Toolchain, Type + Stack}. Findings({pr}) → verify + use. Absent → own analysis.
 

@@ -23,7 +23,7 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 - **Maximum automation:** CI, linting, formatting, testing configured from the start
 - FRC+DSC enforced.
 - Minimize external dependencies — prefer stdlib and well-established minimal libraries.
-- **Exempt from state protocol:** idempotent scaffolding — re-running on the same project naturally resumes because existing files are skipped. No `.audit/init.json` written.
+- **Exempt from state protocol:** idempotent scaffolding — re-running on the same project naturally resumes because existing files are skipped. No `ds/audit/init.json` written.
 
 ## Arguments
 
@@ -69,7 +69,7 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 
 ### Phase 1: Setup
 
-**Findings file check:** `.audit/findings.md` with fresh `git_hash` → read for context; absent → proceed fresh.
+**Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → read for context; absent → proceed fresh.
 
 **IDU:** Profile → Type + Stack, Project Map.Toolchain. Findings() → verify + use. Absent → own analysis.
 

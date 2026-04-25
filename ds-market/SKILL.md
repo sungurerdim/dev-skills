@@ -14,7 +14,7 @@ Solo developers build great products but can't get anyone to notice. This skill 
 ## Contract
 
 - Strategic guidance skill — produces plans, copy, and checklists, not code
-- Standalone. Uses blueprint/.audit/findings.md when available; asks user for context when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; asks user for context when absent.
 - FRC+DSC enforced.
 - Every deliverable (strategy, copy, checklist) accounted for in summary — zero silent drops
 - **Minimal liability:** recommends established marketing patterns, no dark patterns
@@ -30,7 +30,7 @@ Solo developers build great products but can't get anyone to notice. This skill 
 | `--copy` | Generate marketing text: taglines, descriptions, social posts |
 | `--growth` | Growth tactics: referral, organic, community, content |
 | `--auto` | Run strategy + copy + growth sequentially |
-| `--resume` | Resume from `.audit/market.json` without prompting |
+| `--resume` | Resume from `ds/audit/market.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
 No flags → present interactive mode selection.
@@ -116,7 +116,7 @@ Setup → Research → Generate → Review → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `.audit/market.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read README and product context, discard stale research), skip `done` phases, announce `[MKT] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/market.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read README and product context, discard stale research), skip `done` phases, announce `[MKT] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
 **State `data` shape:** `{ modes_invoked[], context: {product, audience, competitors[]}, scopes_done[], deliverables_generated[] }`.
 
@@ -203,7 +203,7 @@ Next steps:
 - Every tagline set includes at least 1 contrarian hook and 1 metric-proof option
 - Store descriptions open with pain/outcome, never feature list
 - Landing page structure includes proof layer (demo/metric) and philosophy section (beliefs)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/market.json` updated per deliverable, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/market.json` updated per deliverable, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

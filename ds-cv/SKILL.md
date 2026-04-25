@@ -18,7 +18,7 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 - Output: single HTML file with inline CSS. Only Google Fonts as external dependency.
 - All content ATS-safe: zero non-ASCII characters in output, zero special HTML entities except `&amp;`.
 - Privacy by default: omit email, phone, address, birth date, and photo from public HTML.
-- Standalone. Uses blueprint/.audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
 - FRC+DSC enforced.
 
 ## Arguments
@@ -29,7 +29,7 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 | `audit` | Audit existing CV against best practices | - |
 | `update` | Update existing HTML CV with new info | - |
 | `linkedin` | Generate LinkedIn profile guide from CV | - |
-| `--resume` | Resume from `.audit/cv.json` without prompting | - |
+| `--resume` | Resume from `ds/audit/cv.json` without prompting | - |
 | `--clean` | Delete existing state and start fresh | - |
 | (no flag) | Show command menu | - |
 
@@ -43,11 +43,11 @@ Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 
 ### Phase 1: Gather [generate]
 
-**Recovery check:** DETECT `.audit/cv.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD (project context changed). Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (reconfirm gathered identity/experience blocks are still correct), skip `done` phases, announce `[CV] Resuming from Phase {N}: {name}.` On successful Deploy, delete state. Verify `.audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/cv.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD (project context changed). Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (reconfirm gathered identity/experience blocks are still correct), skip `done` phases, announce `[CV] Resuming from Phase {N}: {name}.` On successful Deploy, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 
 **State `data` shape:** `{ mode, sections_gathered: {identity, experience[], skills, education, gaps}, verifications_done[], html_generated, audit_findings[{id, severity, disposition}] }`.
 
-**Findings file check:** If `.audit/findings.md` exists with fresh `git_hash`, check for relevant findings that may inform CV content (project metrics, quality scores).
+**Findings file check:** If `ds/audit/findings.md` exists with fresh `git_hash`, check for relevant findings that may inform CV content (project metrics, quality scores).
 
 **IDU:** Profile → Type + Stack, Project Map. Findings() → verify + use. Absent → own analysis.
 
@@ -151,7 +151,7 @@ Load audit rules from `references/audit-rules.md`. Key checks:
    - Copy HTML as `index.html`, push
    - Configure: homepage URL, topics (cv, resume, portfolio, github-pages), disable issues/wiki/projects
 3. **LinkedIn guide [SKIP if user declines]:** Generate from `references/linkedin-fields.md`. Map every LinkedIn form field. Achievement-based descriptions, not "Responsibilities:" style. Verify all metrics match CV.
-4. **Reference file:** Generate private career reference with all excluded details, attribution mapping, metric proofs, gap explanations.
+4. **Reference file:** Generate private career reference with all excluded details, attribution mapping, metric proofs, gap explanations. Default path: `ds/cv/reference.md` (committed; the user's private record). User may pass `--reference=<path>` to write outside the repo (e.g., `~/Documents/cv-reference.md`). Never write to repo root or to a hidden dotfile — both violate SKILL-SPEC §10.1.
 
 **Summary format:**
 ```
@@ -171,7 +171,7 @@ ds-cv: {OK|WARN|FAIL} | Sections: N | Metrics: N verified | ATS: {score} | Fixed
 - All company descriptors appear only on first mention
 - All non-technical roles have at least 1 bullet showing transferable impact
 - Experience timeframe claims match first professional role date
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `.audit/cv.json` updated per section gathered, gitignored, deleted on successful Deploy.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/cv.json` updated per section gathered, gitignored, deleted on successful Deploy.
 
 ## Error Recovery
 
