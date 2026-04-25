@@ -1,6 +1,8 @@
 # ds-repo
 
-Repository structure, settings, and team configuration — audit and setup. 6 scopes.
+Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no branch policies — most repos are misconfigured from day one. This skill audits and fixes it.
+
+**Repository structure, settings, and team configuration — audit and setup. 6 scopes.**
 
 ## Install
 

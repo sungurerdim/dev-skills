@@ -1,6 +1,8 @@
 # ds-init
 
-Generate production-ready project structure for any stack — CI, Docker, testing, editor config, env templates.
+New projects start with no CI, no test setup, no linting, and inconsistent structure. This skill scaffolds all of it from day one.
+
+**Generate production-ready project structure for any stack — CI, Docker, testing, editor config, env templates.**
 
 ## Install
 

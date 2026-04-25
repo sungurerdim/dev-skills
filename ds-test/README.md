@@ -1,6 +1,8 @@
 # ds-test
 
-Universal test skill — generate, update, run, and fix tests for any stack.
+AI-generated tests often mock everything, assert nothing useful, and break on the first refactor. Skill generates tests that follow project's patterns and verifies they actually pass.
+
+**Universal test skill — generate, update, run, and fix tests for any stack.**
 
 ## Install
 

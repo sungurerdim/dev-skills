@@ -1,6 +1,8 @@
 # ds-blueprint
 
-Project health system — profile-based assessment, transformation, and progress tracking.
+Can't improve what you don't measure. Skill scores project across 9 dimensions and tells you exactly where to focus next.
+
+**Project health system — profile-based assessment, transformation, and progress tracking.**
 
 ## Install
 

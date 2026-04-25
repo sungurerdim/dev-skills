@@ -1,6 +1,8 @@
 # ds-review
 
-Tactical file-level fixes + strategic architecture analysis + deep performance profiling. 25+ scopes.
+Code review catches what tests miss — security holes, dead code, wrong abstractions, and performance traps hiding in plain sight. Skill scans for all of them with file:line precision.
+
+**Tactical file-level fixes + strategic architecture analysis + deep performance profiling. 25+ scopes.**
 
 ## Install
 

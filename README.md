@@ -8,6 +8,17 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 
 **dev-skills are multi-phase execution systems** — quality gates, error recovery, systematic mitigation of 8 known AI weaknesses — covering the entire software lifecycle from project scaffolding to store launch.
 
+### Proof
+
+| Number | Meaning |
+|--------|---------|
+| **26 skills** | One per real lifecycle moment — discover, build, improve, document, audit, ship |
+| **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
+| **8 AI failure modes** | Hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk — every skill carries explicit mitigations (W1-W9) |
+| **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
+| **5 AI tools supported** | Claude Code, Cursor, GitHub Copilot, Windsurf, Aider — same skill, every host |
+| **2 namespaces, 1 root** | `ds/audit/` (gitignored, transient state) + `ds/<skill>/` (committed operational tooling) — nothing else leaks to your repo root |
+
 > **Quick start:** `git clone https://github.com/sungurerdim/dev-skills.git /tmp/ds && cp -r /tmp/ds/ds-review ~/.claude/skills/ds-review && rm -rf /tmp/ds`
 > Then run `/ds-review` in Claude Code (or copy into your tool of choice — see [Install](#install)).
 

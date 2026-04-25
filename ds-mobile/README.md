@@ -1,6 +1,8 @@
 # ds-mobile
 
-Audit your mobile app against 145+ rules across 13 domains, fix violations, and score release readiness.
+Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 145+ rules before you submit.
+
+**Audit your mobile app against 145+ rules across 13 domains, fix violations, and score release readiness.**
 
 Works with Flutter, SwiftUI, Kotlin/Compose, and React Native.
 

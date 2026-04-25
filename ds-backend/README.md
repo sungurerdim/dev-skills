@@ -1,6 +1,8 @@
 # ds-backend
 
-API design, database schema review, and authentication architecture — audit, design, and spec generation.
+AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, and schemas that don't survive first migration. Skill designs all three layers correctly from start.
+
+**API design, database schema review, and authentication architecture — audit, design, and spec generation.**
 
 ## Install
 

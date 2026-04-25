@@ -1,6 +1,8 @@
 # ds-fix
 
-Stack-agnostic code quality fixer — format, lint, type-check, l10n, and security scan.
+AI assistants skip formatting, ignore lint errors, and never run type checks. This skill runs all five quality passes in the correct order and verifies the result.
+
+**Stack-agnostic code quality fixer — format, lint, type-check, l10n, and security scan.**
 
 ## Install
 

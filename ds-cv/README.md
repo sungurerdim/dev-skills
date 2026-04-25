@@ -1,6 +1,8 @@
 # ds-cv
 
-Generate professional, ATS-compatible HTML CVs with LinkedIn profile alignment.
+ATS rejects most CVs before a human ever sees them. This skill generates ones that pass.
+
+**Generate professional, ATS-compatible HTML CVs with LinkedIn profile alignment.**
 
 ## Install
 

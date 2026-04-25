@@ -1,6 +1,8 @@
 # ds-deploy
 
-Deployment, infrastructure, monitoring, and incident response — from Dockerfile to post-mortem.
+First deploy often means bloated Docker images, no health checks, no SSL, and no monitoring. This skill audits and generates production-ready infrastructure configs.
+
+**Deployment, infrastructure, monitoring, and incident response — from Dockerfile to post-mortem.**
 
 ## Install
 

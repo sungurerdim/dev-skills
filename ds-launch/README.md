@@ -1,6 +1,8 @@
 # ds-launch
 
-Store submission, ASO (App Store Optimization), release management, and post-launch monitoring.
+~40% of iOS submissions get delayed or rejected for preventable errors. This skill scans your project and flags them before you submit.
+
+**Store submission, ASO (App Store Optimization), release management, and post-launch monitoring.**
 
 ## Install
 

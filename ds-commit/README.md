@@ -1,6 +1,8 @@
 # ds-commit
 
-Smart git commits with quality gates, atomic grouping, and conventional commit format.
+AI commits are vague ("update code"), bundle unrelated changes, and skip pre-commit checks. Skill reads diff, groups changes logically, and writes precise conventional commit messages.
+
+**Smart git commits with quality gates, atomic grouping, and conventional commit format.**
 
 ## Install
 

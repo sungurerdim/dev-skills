@@ -1,6 +1,8 @@
 # ds-pr
 
-Create pull requests with conventional commit titles for clean release-please changelogs.
+PR descriptions that list every commit instead of net change create noise, confuse reviewers, and break changelogs. This skill describes what the diff actually shows.
+
+**Create pull requests with conventional commit titles for clean release-please changelogs.**
 
 ## Install
 

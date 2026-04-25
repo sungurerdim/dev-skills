@@ -1,6 +1,8 @@
 # ds-analytics
 
-Privacy-first analytics setup — event taxonomy design, funnel definition, metrics, and user insights.
+Most apps track everything (privacy violation) or nothing (flying blind). Skill designs minimum event taxonomy for maximum insight — privacy-first.
+
+**Privacy-first analytics setup — event taxonomy design, funnel definition, metrics, and user insights.**
 
 ## Install
 

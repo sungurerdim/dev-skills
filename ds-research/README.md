@@ -1,6 +1,8 @@
 # ds-research
 
-Multi-source research with CRAAP+ reliability scoring and tiered synthesis.
+AI models hallucinate sources, cite outdated data, can't distinguish blog post from peer-reviewed study. Skill searches, scores source reliability, synthesizes with citations.
+
+**Multi-source research with CRAAP+ reliability scoring and tiered synthesis.**
 
 ## Install
 

@@ -1,6 +1,8 @@
 # ds-market
 
-Marketing strategy, copy generation, and growth tactics.
+Solo developers build great products but can't get anyone to notice. This skill generates positioning, copy, and growth playbook to change that.
+
+**Marketing strategy, copy generation, and growth tactics.**
 
 ## Install
 

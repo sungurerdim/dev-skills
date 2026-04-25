@@ -1,6 +1,8 @@
 # ds-docs
 
-Documentation gap analysis — compare ideal vs current docs, generate missing content.
+Documentation drifts from code the moment it's written. This skill detects the gaps, verifies claims against source code, and generates what's missing.
+
+**Documentation gap analysis — compare ideal vs current docs, generate missing content.**
 
 ## Install
 
