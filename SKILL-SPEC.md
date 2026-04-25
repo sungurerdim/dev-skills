@@ -26,7 +26,7 @@ Every SKILL.md follows this section sequence:
 | 3 | Contract | Yes | Behavioral boundaries and guarantees |
 | 4 | Arguments | Yes | Flags, modes, defaults |
 | 5 | Scopes | If applicable | What the skill inspects or generates |
-| 6 | Delegation | Yes | Claims authority over / Delegates to / Receives delegation from |
+| 6 | Delegation | Yes | Single pipe-separated line: `**Owns:** ... \| **Delegates:** ... \| **Receives:** ...` (see §10.2) |
 | 7 | Execution Flow | Yes | Phase overview (single line) |
 | 8 | Phases | Yes | Numbered phases with steps. Qualifying skills (3+ phases, non-trivial compute) MUST include the canonical Recovery Check block as the first step of the Setup phase. See [State Management](#state-management). |
 | 9 | Report Format | If applicable | Output structure |
@@ -45,13 +45,16 @@ Every SKILL.md follows this section sequence:
 3. Step description [PARALLEL]
 4. Step description
 
-**Gate:** Condition to proceed to next phase.
+**Gate:** {pass condition}. If fails → {explicit recovery action}.
 ```
+
+**Gate format is mandatory two-arm:** the pass condition states what is true to proceed; the `If fails →` arm states a concrete action (skip / retry / ask user / abort with summary). A gate with only the pass condition leaves the AI without an instruction on the failure path — Claude 4.x will either silently proceed (W6 violation), invent a recovery (W1 violation), or stop without explanation. This is enforced by the §9 Cross-Tool Verification Checklist.
 
 Annotations:
 - `[SKIP if ...]` — conditional step bypass
 - `[PARALLEL]` — steps that can run concurrently
 - `[CONDITION]` — phase-level entry condition (e.g., `[--auto]`, `[findings > 0]`)
+- `[SKIP if X — except step Y]` — phase-level skip with one or more unconditional steps preserved (e.g., Recovery Check)
 - No annotation — **mandatory phase, always executes**
 
 ### Mandatory vs Conditional Phases
@@ -235,6 +238,8 @@ Reasoning-capable models (Claude 4.x, o3-mini) reason adaptively by default. For
 - Pattern-matching tasks (code review, linting)
 - Simple lookups or transformations
 
+**Effort-parameter models (Claude 4.x).** Where the host exposes an `effort` parameter (Anthropic Managed Agents 2026 API), reasoning depth is controlled at the API level, not in the prompt. Skill text MUST NOT contain "think harder" / "reason more" hints. At `low`/`medium` effort the model deliberately scopes to exactly what was asked — vague intent at low effort produces vague output. Use the spec's Specificity Calibration rules (every intent explicit, output format named, boundaries stated) as the substitute for prompt-level reasoning hints.
+
 See [references/ai-instruction-patterns.md](references/ai-instruction-patterns.md) for full research.
 
 ---
@@ -337,16 +342,26 @@ Eight systematic weaknesses observed in AI coding assistants. Each skill must ad
 
 ### W8: Injection Risk
 
-**Definition:** Incorporating unvalidated external input into shell commands or generated code, enabling command injection.
+**Definition:** Incorporating unvalidated external input into shell commands, generated code, or LLM prompt context — enabling command injection (classical) or prompt injection (LLM-specific). Prompt injection is OWASP #1 LLM vulnerability and present in 73% of audited production deployments (Cisco State of AI Security 2026).
 
-**Detection signals:** String concatenation with user input in shell commands. Unescaped values in generated scripts.
+**Classical injection — detection signals:** string concatenation with user input in shell commands; unescaped values in generated scripts.
 
-**Prevention rules:**
-- Never interpolate raw values into shell strings.
-- Use `--` to separate flags from arguments. Quote all file paths. Reject shell metacharacters in user input.
+**Prompt injection — 2026 attack vectors a skill must defend against:**
+- **Tool / MCP server description manipulation** — malicious tool descriptions bypass content filters because they are processed as trusted content
+- **RAG / findings poisoning** — documents (or `ds/audit/findings.md` rows) authored by an attacker embed instructions executed at consumption time
+- **Multi-hop indirect injection** — payloads delivered via chained skill outputs; up 70% YoY 2025-2026
+- **Multimodal injection** — malicious prompts in image metadata, audio, or video that the agent reads
+- **Tool output forgery** — fabricated tool responses injecting false reasoning steps into agent memory
+
+**Prevention rules (defense in layers — none is sufficient alone):**
+- Never interpolate raw values into shell strings. Use `--` to separate flags from arguments. Quote every file path. Reject shell metacharacters in user input.
 - Validate flags and scopes. Unknown values → warn and ignore.
+- **Segregate external content.** When a skill ingests file contents, search results, or another skill's output, treat that content as data not instruction. Wrap with explicit markers like `<external_content>...</external_content>` when forwarding to a model so the model recognizes the trust boundary.
+- **Least privilege for delegated skills.** A skill never grants a downstream skill more scope than required for its stated task. ds-ship's `--only` and `--skip` flags exist for this purpose.
+- **Human-in-the-loop for privileged actions.** Sending PRs, opening issues, deploying, executing arbitrary user-supplied code → require approval. Category B is the spec-level mechanism.
+- **Findings file integrity.** Skills consuming `ds/audit/findings.md` MUST verify each finding's `file:line` against current source before acting on it. A finding that points to nonexistent code is either stale or planted — discard it.
 
-**Recovery:** Review generated commands for injection vectors before execution.
+**Recovery:** Review generated commands for injection vectors before execution. For findings-driven actions, re-read the cited file:line to confirm the finding is real before applying any fix.
 
 ### W9: State Hygiene
 
@@ -463,9 +478,17 @@ Not all phases are required. Skills select the phases relevant to their workflow
 
 ### State Management
 
-Prescriptive resumability protocol for every skill with 3+ phases AND at least one phase that reads source files or performs non-trivial work (>30s typical).
+Prescriptive resumability protocol for every skill with 3+ phases AND at least one phase that reads source files or performs non-trivial work.
 
-**Qualifying eligibility:** A skill MUST implement this protocol when it has 3+ phases AND a phase that reads source files or does non-trivial work. Skills that are idempotent, atomic, or git-driven (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) are exempt — their Contract section MUST state the exemption reason.
+**Qualifying eligibility:** A skill MUST implement this protocol when it has 3+ phases AND any of the following is true:
+- a phase reads >5 source files, OR
+- a phase has >3 sub-steps, OR
+- typical wall-clock execution exceeds 30s, OR
+- the skill produces findings or artifacts that another skill consumes downstream.
+
+Skills that are idempotent, atomic, or git-driven (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) are exempt — their Contract section MUST state the exemption reason.
+
+**Recovery-check exemption from `[SKIP]` annotations:** Even when a phase is annotated `[SKIP if --auto]` or `[SKIP if {flag}]`, the Recovery Check (step 1 of Setup phase for qualifying skills) MUST execute unconditionally. Annotate the phase header `[SKIP if --auto — except step 1 Recovery Check]` so the AI does not skip the recovery step in `--auto` mode. A skipped recovery on a resumed session causes silent state corruption.
 
 **Naming:** State file lives under the single shared namespace as `ds/audit/<skill>.json` (e.g., `ds/audit/review.json`, `ds/audit/solve.json`). The skill token is the portion after `ds-` (e.g., `ds-review` → `ds/audit/review.json`). One `.gitignore` entry `ds/audit/` covers the whole suite.
 
@@ -1022,6 +1045,21 @@ Load references based on active scope only:
 
 Total skill overhead (SKILL.md + loaded references) should stay within 10K tokens. This leaves maximum context for the actual codebase being analyzed.
 
+### Context Engineering (2026 update)
+
+Earlier guidance suggested an absolute "instruction degrades around 3,000 tokens" threshold. 2026 research (Chroma Context Rot study, arXiv 2510.05381) shows degradation is model-dependent and non-linear — there is no reliable fixed number. Treat the budget above as a guide, not a guarantee, and apply these structural rules instead:
+
+**Just-in-time loading.** Load reference files only when the active scope requires them. Skills with multiple scopes MUST gate reference loads on `--scope` selection; never load every reference upfront.
+
+**Context ordering** (Anthropic recommendation, used by every multi-phase skill):
+1. System / spec instructions (loaded once)
+2. Persistent state (`ds/audit/<skill>.json`, blueprint profile)
+3. Tool / capability definitions
+4. Conversation or task history
+5. Active query / user request — **placed at the END of the active prompt**
+
+**Tool-output efficiency.** When skills delegate or invoke tools, prefer narrow queries (line ranges over full files, single grep over multiple, summary over raw dump). Verbose tool outputs are the primary source of context bloat.
+
 ### Concise Expression
 
 Same meaning, fewer tokens. Apply these compression patterns without losing precision or AI model comprehension:
@@ -1092,7 +1130,10 @@ Before releasing any skill, verify:
 - [ ] Graceful degradation defined for optional features
 - [ ] SKILL.md ≤500 lines
 - [ ] README.md ≤80 lines
-- [ ] Every behavioral rule has at least one example
+- [ ] Every behavioral rule has at least 2 examples (correct + incorrect application)
+- [ ] Every `**Gate:**` line includes an `If fails → {recovery action}` arm — no gate states only the pass condition
+- [ ] Every phase has either a structured output (table, JSON, summary line) or a stated "no output, internal phase" note
+- [ ] No phrases that force chain-of-thought on reasoning models (e.g., "think step by step", "reason carefully", "consider all options"). Reasoning emerges from explicit step decomposition.
 
 ---
 
@@ -1188,6 +1229,8 @@ A skill is an orchestrator when its primary purpose is to coordinate other ds-* 
 3. **Delegation loop.** For every invoked skill: pre-note (log to own report) → invoke → wait for done → re-read findings diff → classify Category A/B → route → mark done → advance.
 4. **Resume discipline.** Orchestrator state (`ds/audit/<orchestrator>.json`) records the delegation queue, A/B counters, and the pending approval batch so a fresh invocation resumes from the last completed step.
 5. **Report SSOT.** Only the orchestrator writes `ds/audit/report.md`. Rerun overwrites.
+6. **Planner / Generator / Evaluator separation.** Orchestrators MUST keep the three concerns separate: the planner (Phase 0 in ds-ship — classify + propose sequence) decides what to invoke; the generator is each delegated skill (which produces the work); the evaluator (Phase 2-7 review steps) judges the output and gates the next step. Conflating these — letting the planner judge its own plan, or letting a generator self-evaluate — collapses to single-agent quality (≤5% actionable rate per arXiv 2511.15755). The Category A/B approval gate is the canonical evaluator boundary.
+7. **Utility-guided invocation.** Each delegation MUST justify itself: state the expected finding count or artifact and the cost (token budget, runtime). If the expected utility does not exceed the cost (e.g., re-running ds-blueprint on a clean codebase) → skip with a note, do not invoke for completeness.
 
 ### 10.4 HTML Report Contract (optional)
 
@@ -1391,9 +1434,7 @@ Adopted across all artifact-producing skills (`ds-init`, `ds-fix`, `ds-deploy`, 
 
 ## Delegation
 
-- **Claims authority over:** {scope-list}
-- **Delegates to:** {skill → scope, or "none"}
-- **Receives delegation from:** {skill → scope, or "none"}
+**Owns:** {scope-list} | **Delegates:** {skill→scope; …, or "none"} | **Receives:** {skill→scope; …, or "none"}
 
 ## Execution Flow
 
