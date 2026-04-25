@@ -105,7 +105,7 @@ Create project files following [references/rules-scaffold.md](references/rules-s
    - Branch protection suggestions
    - Cache configuration for dependencies (setup-node cache, actions/cache)
    - Release workflow with release-please (if `--full`)
-   - Comment recommending SHA-pinned third-party actions
+   - SHA-pin every third-party action (e.g., `actions/checkout@<40-char-sha>`) — supply chain mitigation per [references/principles.md §5](references/principles.md). Tag references like `@v4` MUST NOT appear in generated workflows.
 4. Generate Docker files (if `--full` or API/web type):
    - `Dockerfile` with multi-stage build, non-root `USER`, `HEALTHCHECK`
    - `.dockerignore` (minimum: `.git`, `node_modules`, `.env*`, `.vscode`, `coverage`, `tests`, `*.md`)
@@ -130,6 +130,7 @@ Generate independent files in parallel (configs, CI, Docker).
 2. Check `.gitignore` covers: `.env*`, `node_modules`/build artifacts, `coverage/`, OS/IDE files.
 3. Verify `.env.example` has no real secrets.
 4. Check CI workflow references correct paths and commands.
+5. Twelve-Factor checks on generated artifacts ([references/principles.md §3](references/principles.md)): generated `Dockerfile` logs to stdout (no `--logfile=` paths), binds via `$PORT` env var (no hardcoded ports), runs as non-root `USER`, has `HEALTHCHECK`. Generated `docker-compose.yml` uses `restart: unless-stopped`, externalizes config via `environment:` from `.env`. Every CI workflow action is SHA-pinned (no `@v4` style tag references).
 
 **Gate:** All verifications pass. Any fail → fix before summary.
 
@@ -176,7 +177,7 @@ Next steps:
 - `.env.example` contains only placeholder values, never real secrets
 - CI workflow is a complete lint → test → build pipeline
 - Generated README includes setup and run instructions
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (idempotent scaffolding, see Contract).
 
 ## Error Recovery
 

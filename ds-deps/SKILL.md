@@ -53,7 +53,7 @@ Setup → Discover → Classify → Plan → Execute → [Needs-Approval] → Su
 
 ### Phase 1: Setup
 
-1. **Recovery check:** DETECT `ds/audit/deps.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` group, skip `done` groups, announce `[DEP] Resuming from Phase {N}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`; add if missing.
+1. **Recovery check:** DETECT `ds/audit/deps.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` group, skip `done` groups, announce `[DPS] Resuming from Phase {N}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`; add if missing.
 
 2. **State shape:** `{ mode, stack, manifest_paths[], deps: [{name, current, latest_stable, bump_type, advisory?, classification, changelog_url?, breaking_notes?}], groups: {patch: [ids], minor: [ids], major: [ids], security: [ids], removal: [ids]}, group_status: {id: pending|applied|failed|skipped}, commits: [{group, hash}], git_hash }`.
 
@@ -95,6 +95,8 @@ Per dep, determine `bump_type` and `classification`.
 | minor | 1.2.3 → 1.5.0 | No changelog breaking entries + no deprecations → `safe-minor`. Otherwise → `review-major` |
 | major | 1.2.3 → 2.0.0 | Always `review-major` |
 | pre-1.0 | 0.1.x → 0.2.x | Treat minor bump as `review-major` (semver pre-1.0 treats minor as breaking by convention) |
+
+**Supply-chain override ([references/principles.md §5](references/principles.md)):** any package whose new version introduces or expands `postinstall` / `preinstall` / `prepare` / lifecycle scripts (or equivalent in non-npm ecosystems) auto-promotes to `review-major` regardless of semver delta. New executable hooks during install are a known supply-chain attack surface — surface for human review.
 
 **Changelog extraction:**
 

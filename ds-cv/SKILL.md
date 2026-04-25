@@ -122,6 +122,8 @@ Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 
 8. **Single-page auto-fit [CRITICAL]:** Use CSS flex auto-spacing for single-page A4 fit (see `references/css-design-system.md`). Overflow → reduce print font-size incrementally (9pt -> 8.5pt -> 8pt). Ensure every delivered CV fits within page bounds.
 
+9. **External resource minimization ([references/principles.md §5](references/principles.md)):** Verify only Google Fonts CDN loads externally — no other third-party scripts, tracking pixels, analytics SDKs, or remote images. Zero inline JavaScript. The deployed page MUST be auditable with view-source alone.
+
 **Gate:** Zero non-ASCII characters. Print preview fits single A4. All section headings standard.
 
 ### Phase 5: Audit [audit, generate]
@@ -151,7 +153,7 @@ Load audit rules from `references/audit-rules.md`. Key checks:
    - Copy HTML as `index.html`, push
    - Configure: homepage URL, topics (cv, resume, portfolio, github-pages), disable issues/wiki/projects
 3. **LinkedIn guide [SKIP if user declines]:** Generate from `references/linkedin-fields.md`. Map every LinkedIn form field. Achievement-based descriptions, not "Responsibilities:" style. Verify all metrics match CV.
-4. **Reference file:** Generate private career reference with all excluded details, attribution mapping, metric proofs, gap explanations. Default path: `ds/cv/reference.md` (committed; the user's private record). User may pass `--reference=<path>` to write outside the repo (e.g., `~/Documents/cv-reference.md`). Never write to repo root or to a hidden dotfile — both violate SKILL-SPEC §10.1.
+4. **Reference file:** Generate private career reference with all excluded details, attribution mapping, metric proofs, gap explanations. Default path: `ds/cv/reference.md` (committed; the user's private record). User may pass `--reference=<path>` to write outside the repo (e.g., `~/Documents/cv-reference.md`). Never write to repo root or to a hidden dotfile — both violate the dev-skills artifact discipline (data outside `ds/audit/` or `ds/<skill>/` namespaces).
 
 **Summary format:**
 ```

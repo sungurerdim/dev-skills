@@ -248,7 +248,8 @@ Commit count, file count, branch, commit hashes. Next step: push or create pull 
 - Commit quality rules applied from [references/rules-commit.md](references/rules-commit.md)
 - Every quality gate check (format, lint, secret scan) gets disposition in summary (FRC)
 - Conventional commit type matches litmus test classification
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- **Secret scan covers commit message body and trailers ([references/principles.md §5](references/principles.md)):** apply the same secret-pattern detection used on file contents to the proposed commit message + body + footer. A leak in the message is as visible as one in source.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract).
 
 ## Error Recovery
 

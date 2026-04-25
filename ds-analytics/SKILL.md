@@ -91,7 +91,7 @@ Recommend analytics tool based on privacy requirements — see `references/tool-
 
 ## Delegation
 
-**Owns:** analytics, event-taxonomy, funnels, metrics, event-pii-scan (narrow privacy-audit only) | **Delegates:** ds-compliance → canonical privacy / regulatory | **Receives:** ds-ship → Phase 2 analytics pass
+**Owns:** analytics, event-taxonomy, funnels, metrics, event-pii-scan (narrow privacy-audit only) | **Delegates:** ds-compliance → canonical privacy / regulatory | **Receives:** ds-ship → Phase 2 `--privacy-audit` invocation only
 
 ## Execution Flow
 
@@ -200,6 +200,7 @@ FRC+DSC accounting.
 - Zero PII in event properties (no emails, names, IPs, device IDs)
 - Consent mechanism required before any tracking
 - Every tracked event has a documented business purpose
+- **Least privilege for analytics SDK credentials ([references/principles.md §5](references/principles.md)):** write keys / API tokens scoped to write-only project IDs; read tokens never embedded in client code. Validate every event property at the tracking boundary — reject PII patterns before send.
 - Event naming follows consistent convention
 - Funnels have defined conversion targets
 - Every finding gets a disposition in the summary — zero silent drops (FRC)

@@ -64,6 +64,12 @@ Without flags: present mode selection to user.
 | Production Readiness | production-readiness |
 | Completeness | functional-completeness, ai-architecture |
 
+**Per-scope mandatory checks ([references/principles.md](references/principles.md)):**
+
+- **architecture, patterns:** Evaluate by name — SOLID (SRP, OCP, LSP, ISP, DIP) and GRASP (Information Expert, Low Coupling >7 unrelated imports, High Cohesion). Cite the violated principle in the finding title (see [references/principles.md §2](references/principles.md)).
+- **production-readiness:** Enumerate reliability patterns — flag missing timeout on every external call, retry-with-backoff on transient failures (idempotent ops only), circuit breaker on high-volume services, health checks (liveness + readiness), idempotency keys on externally-exposed write endpoints, graceful shutdown handler, structured logging (no raw `print`/`console.log` in production paths), fail-fast input validation at every system boundary (see [references/principles.md §4](references/principles.md)).
+- **testing:** Verify Test Pyramid (unit-heavy, E2E-light — flag inverted pyramid as HIGH), AAA pattern presence, realistic test data, regression-test-before-fix discipline, coverage as diagnostic not goal (see [references/principles.md §7](references/principles.md)).
+
 **Scope boundary:** Architecture-level assessment. Questions design decisions, evaluates pattern consistency. Does NOT fix individual code issues (unused imports, type errors, formatting).
 
 ### Performance Scopes (--perf)

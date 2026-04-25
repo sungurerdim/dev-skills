@@ -85,6 +85,7 @@ Per source found:
 2. Apply modifiers (freshness, authority, cross-verification)
 3. Calculate CRAAP+ score (Currency 20%, Relevance 25%, Authority 25%, Accuracy 20%, Purpose 10%)
 4. Discard sources scoring <50
+5. **Authority override for security topics ([references/principles.md §5](references/principles.md)):** for queries about CVEs, secure coding, threat models, or cryptography, T1 authoritative sources (OWASP, NIST, CVE/NVD, vendor security advisories) ALWAYS rank above T3+ blogs and Stack Overflow answers regardless of CRAAP+ score delta. Security truth is authoritative, not democratic.
 
 **Gate:** At least one source with CRAAP+ score >=50 found per search track.
 

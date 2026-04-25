@@ -237,9 +237,10 @@ FRC+DSC accounting.
 - Format runs before lint — never reverse this order
 - After fix, re-run check to verify fix worked. Re-check fails → report as unresolved.
 - Only report findings in `--check` mode — verify diff is empty after check run
-- Secret findings are always CRITICAL — never auto-fix, always report
+- Secret findings are always CRITICAL — never auto-fix, always report. Surface rotation guidance: "rotate this credential immediately, then add the variable name (placeholder value) to `.env.example`" ([references/principles.md §8](references/principles.md)).
+- When fix modifies security-critical or business-logic code: check if a regression test exists for the affected path; if absent, add a MEDIUM finding "regression test missing for {file}:{line} fix path" before completing ([references/principles.md §7](references/principles.md)).
 - Scope boundary: only run scopes user requested (or all if none specified)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, tool-driven, see Contract).
 
 ## Severity
 

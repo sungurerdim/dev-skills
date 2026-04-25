@@ -142,6 +142,26 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 3. Suggest free tier alternatives where applicable
 4. Calculate cost at different scale points
 
+**Twelve-Factor gates ([references/principles.md §3](references/principles.md)):**
+- Stateless processes (Factor 6) — no in-memory state survives restart; sessions in shared store
+- Build/Release/Run separation (Factor 5) — release artifact is immutable; never recompiled between environments
+- Dev/prod parity (Factor 10) — same backing service types in dev as prod (no SQLite-in-dev, Postgres-in-prod)
+- Logs to stdout (Factor 11) — no log file paths in app config; aggregator captures the stream
+- Port binding (Factor 7) — port from `$PORT` env var, never hardcoded
+- Admin tasks (migrations, seeds) as one-off commands (Factor 12), never embedded in deploy job
+
+**Reliability gates ([references/principles.md §4](references/principles.md)):**
+- Timeout configured on every external call (DB, HTTP, queue) — no infinite waits
+- Retry with exponential backoff on transient failures (idempotent operations only)
+- Circuit breaker on high-volume external dependencies
+- Liveness + readiness probes on long-running processes
+- Graceful shutdown handler (drain connections → flush logs → exit)
+
+**Config & secrets gates ([references/principles.md §8](references/principles.md)):**
+- All generated configs externalize values to env vars; no hardcoded secrets, hostnames, or tokens
+- `.env.example` stub generated alongside any new env var consumed
+- Strict separation: secrets (never committed) vs config (committed, env-overridable) vs constants (immutable)
+
 **Gate:** All applicable checks completed with file:line findings.
 
 ### Phase 4: Generate [--generate]

@@ -102,7 +102,7 @@ Ask: "Confirm? (yes / suggest changes)"
 
 ### Phase 4: Generate
 
-Create these files in project `ds/tune/` directory (committed; `ds/<skill>/` is the user-facing operational namespace per SKILL-SPEC §10.1):
+Create these files in project `ds/tune/` directory (committed; `ds/<skill>/` is the user-facing operational namespace):
 
 **ds/tune/.autotune.json** — Configuration:
 ```json
@@ -175,8 +175,8 @@ Execute loop defined in ds/tune/program.md. Follow it exactly:
 6. Read results: search for `<metric>:` in `ds/tune/run.log`
 7. Append to ds/tune/results.tsv (tab-separated): `<ISO8601_timestamp>\t<commit_7char>\t<status>\t<metric>\t<secondary>\t<HH:MM:SS>\t<description>`
 8. Decision:
-   - Metric improved → KEEP. Branch advances.
-   - Metric same or worse → DISCARD. Run: `git reset HEAD~1 --hard`
+   - Metric improved AND no test regressions (run full test suite, not just bench) → KEEP. Branch advances.
+   - Metric same or worse OR any previously passing test now fails → DISCARD. Run: `git reset HEAD~1 --hard`. (Per [references/principles.md §7](references/principles.md): a metric win that breaks tests is still a regression.)
 9. Update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`.
 10. Go to step 1. Continue without interruption.
 
@@ -294,6 +294,7 @@ ds-tune: {OK|WARN|FAIL} | Experiments: N | Best: {metric_value} | Improvement: {
 - Discarded experiments fully reverted (git reset --hard) — zero residue
 - Results.tsv is append-only — complete experiment history preserved
 - Simplicity criterion: complexity must earn its keep with measurable improvement
+- **Shell quoting ([references/principles.md §5](references/principles.md)):** generated `ds/tune/bench.sh` and `ds/tune/eval` MUST quote every variable reference (`"$VAR"`, `"${VAR}"`). Never interpolate user-supplied metric names or commands without quoting.
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/tune.json` updated per experiment, `ds/audit/` in `.gitignore`, cleared only on user-confirmed completion (`ds/tune/` stays committed).
 
 ## Error Recovery

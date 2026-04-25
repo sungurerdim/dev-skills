@@ -86,6 +86,8 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 **Output:** Objective + red lines table + verification criterion (all as statements, not questions).
 
+**Security-sensitive auto-gate ([references/principles.md §5](references/principles.md)):** if objective involves modifying auth config, `.env*`, secrets-manager integration, crypto functions, or signing/credential code, automatically mark all steps in those files as `needs_approval` regardless of scope size. The user reviews each before execution.
+
 **Gate:** Objective parsed, red lines applied, verification criterion defined, state file created.
 
 ### Phase 2: Plan — Decompose objective into ordered steps

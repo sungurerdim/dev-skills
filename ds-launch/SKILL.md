@@ -41,7 +41,7 @@ No flags → present interactive mode selection (setup, listing, aso, privacy, r
 
 ### Perf Budget Mode (`--perf-budget`)
 
-Authors a single file at `ds/launch/perf-budget.json` (committed; `ds/<skill>/` user-facing operational namespace per SKILL-SPEC §10.1) and wires CI enforcement to read from that path. The file is a functional CI gate — Category B, user-approved, version-controlled — not transient state.
+Authors a single file at `ds/launch/perf-budget.json` (committed; `ds/<skill>/` user-facing operational namespace) and wires CI enforcement to read from that path. The file is a functional CI gate — Category B, user-approved, version-controlled — not transient state.
 
 **Schema:**
 ```json
@@ -177,6 +177,8 @@ Search for store-related configs, version info, existing privacy policy/ToS, CI/
 - **Screenshot narrative** (6 recommended screens covering full user journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
 
 **ASO mode:** Analyze competitor keywords, optimize title/subtitle, recommend category placement, suggest A/B variants.
+
+**Release automation safety ([references/principles.md §8](references/principles.md)):** Any generated release-automation file (Fastlane, `Matchfile`, CI workflow, signing scripts) MUST externalize credentials to environment variables. Generate `.env.example` placeholders for: keystore passwords, App Store Connect API keys, Play Console JSON keys, signing identities, OAuth client secrets. Never embed actual values in committed files. Commit message gate: scan generated files for high-entropy strings before suggesting commit.
 
 **Privacy labels:** Scan codebase for data collection → map to Apple/Google categories → generate declaration guide → flag code/label discrepancies.
 

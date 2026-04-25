@@ -278,6 +278,7 @@ type: {project-type}
 - Awaiting user decision (Category B): {M}
 - Ship-ready: yes | no ({K} blockers remain)
 - Doc token reduction: {before} → {after} ({%})
+- Security baseline ([references/principles.md §5](references/principles.md)): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
 - PR: {url} | declined-this-run | not-applicable ({reason}) | muted
 
 ## Architectural Changes (approved + applied)

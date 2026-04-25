@@ -99,6 +99,7 @@ Per dimension (architecture / stack / data-model / ux / security / privacy / ope
 1. Aggregate competitor signals — what do the T1/T2 sources converge on, what do they diverge on.
 2. Adjust for stated constraints — if user pinned language/framework/DB, the "ideal" respects those.
 3. Write one-paragraph ideal per dimension: concrete, opinionated, no hedging.
+4. **Security/privacy ideal ([references/principles.md §5](references/principles.md)):** the synthesized ideal MUST reflect the security baseline regardless of competitor convergence — boundary validation at every system boundary, least privilege for credentials, no secrets in source, defense in depth (never single-control), vetted crypto only (no custom implementations, no MD5/SHA1/DES/ECB). If competitor consensus contradicts this baseline, the baseline wins; flag the deviation as a finding.
 
 Output as `ideal` block in state:
 

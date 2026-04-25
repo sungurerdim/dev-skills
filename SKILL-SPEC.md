@@ -1219,6 +1219,124 @@ All skills that mutate code or configuration MUST classify every action:
 
 ---
 
+## 11. Engineering Principles
+
+Curated from 24 authoritative sources (12-Factor, SOLID, GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP — see [`references/software-best-practices.md`](references/software-best-practices.md) for the full catalog of 110 principles). The ones below are the **meta-themes** every skill in this suite must internalize. They are the "why" behind the gates.
+
+### 11.1 Seven Cross-Cutting Themes
+
+| # | Theme | One-line rule | How skills apply it |
+|---|-------|--------------|---------------------|
+| 1 | **Single Source of Truth (SSOT)** | Every fact has exactly one authoritative location. | Findings file is one. Blueprint profile is one. Conventions live in code, not duplicated in docs. |
+| 2 | **Make change cheap** | Optimize for adaptability over perfection — requirements always change. | Skills propose minimal Category A fixes by default. Architecture changes are Category B (approval-gated). |
+| 3 | **Feedback speed** | Time-to-discovery of a defect dominates total cost. | Phase gates fail loudly. Quality gates run on every commit/PR, not weekly. |
+| 4 | **Fail fast and loudly** | A loud, early failure beats a silent, late one every time. | Skills surface blockers — never bypass with `--no-verify`, `reset --hard`, or hidden retries. Stop after 3 repeated failures (W2). |
+| 5 | **Locality of change** | Modular boundaries control blast radius — one requirement = one place. | Each skill owns a scope; cross-skill writes go through `ds/audit/findings.md`. No skill mutates another skill's domain. |
+| 6 | **Automate everything repeatable** | If a human does it more than twice, a machine should do it instead. | Skills are the automation. Resumable state (`ds/audit/<skill>.json`) means no manual re-running. |
+| 7 | **Environment parity & reproducibility** | What runs in production must be deterministically reproducible from version control. | Skills detect missing lockfiles, env.example, dev/prod divergence. Every artifact-producing skill writes deterministic output (no timestamps in user-visible positions). |
+
+### 11.2 SOLID + GRASP — Architecture Heuristics
+
+Every skill that audits architecture (`ds-blueprint`, `ds-review`, `ds-backend`, `ds-frontend`, `ds-mobile`) MUST evaluate code against:
+
+| Principle | Detection signal | Severity if violated |
+|-----------|-----------------|---------------------|
+| **Single Responsibility** | Class/module changes for >1 reason; >1 export with unrelated concerns | HIGH |
+| **Open/Closed** | New behavior requires editing existing stable code (vs extending) | MEDIUM |
+| **Liskov Substitution** | Subtype violates parent's contract (postcondition narrowed, exception added) | HIGH |
+| **Interface Segregation** | Consumers forced to depend on members they don't use | LOW |
+| **Dependency Inversion** | High-level module depends directly on low-level concrete | MEDIUM |
+| **Information Expert (GRASP)** | Logic placed away from its data | LOW |
+| **Low Coupling** | Module imports >7 unrelated peers | MEDIUM |
+| **High Cohesion** | Module exports unrelated functions | MEDIUM |
+
+These map to the existing `Code Quality` and `Architecture` dimensions in the Blueprint Profile.
+
+### 11.3 Twelve-Factor Adherence (Operational Skills)
+
+Skills that scaffold or audit deployment/operations (`ds-init`, `ds-devops`, `ds-deploy`, `ds-launch`, `ds-backend`) MUST check:
+
+| Factor | Rule | Skill checking |
+|--------|------|---------------|
+| 1. Codebase | One repo per app, many deploys | ds-repo |
+| 2. Dependencies | Explicit declaration + lockfile | ds-blueprint, ds-deps |
+| 3. Config | In environment, never in code | ds-fix (secrets), ds-deploy |
+| 4. Backing services | Attached as resources via URL | ds-deploy, ds-backend |
+| 5. Build / Release / Run | Strict separation; release is immutable | ds-devops |
+| 6. Processes | Stateless, share-nothing | ds-backend, ds-deploy |
+| 7. Port binding | App exports HTTP via port; no embedded server runtime | ds-deploy |
+| 8. Concurrency | Scale out via process model | ds-backend, ds-deploy |
+| 9. Disposability | Fast startup, graceful shutdown | ds-backend, ds-deploy |
+| 10. Dev/prod parity | Same backing services in all environments | ds-deploy, ds-init |
+| 11. Logs | Stdout streams; no log file management | ds-deploy, ds-backend |
+| 12. Admin processes | Run as one-off processes against the same code | ds-devops |
+
+### 11.4 Reliability Patterns (Production-Bound Code)
+
+Skills that touch production paths (`ds-backend`, `ds-deploy`, `ds-review --tactical` on web/api/mobile) MUST flag missing:
+
+- **Timeouts** on every external call (no infinite waits)
+- **Retry with exponential backoff** on transient failures (idempotent operations only)
+- **Circuit breaker** between services with high call volume
+- **Health checks** (liveness + readiness) on long-running processes
+- **Idempotency keys** on write endpoints exposed externally
+- **Graceful shutdown** handler (drain → close → exit)
+- **Structured logging** (JSON or kv-pair, never raw `print`/`console.log` in production code)
+- **Fail-fast input validation** at every system boundary
+
+These map to the existing `Resilience` and `production-readiness` scopes.
+
+### 11.5 Security Baseline (All Skills)
+
+Adopted from OWASP Secure Coding Practices and reinforces existing W8 (Injection Risk):
+
+- **Validate at every system boundary** — user input, external APIs, file system reads, deserialization. Reject by default.
+- **Least privilege** — every credential, token, role: minimum scope to do the job.
+- **No secrets in source, configs committed to git, logs, error messages, URLs, or AI training data.** ds-fix scans every commit; ds-blueprint scans every audit.
+- **Defense in depth** — never rely on a single control. Auth + authz + input validation + output encoding + audit logging.
+- **Crypto: never roll your own.** Use the platform's vetted library. Approved algorithms only (no MD5/SHA1/DES/ECB).
+- **Quote every file path in shell.** Reject shell metacharacters in dynamic values.
+
+### 11.6 Pragmatic Process Rules
+
+Always-on rules that govern how skills propose work and write commits:
+
+| Rule | What it means in practice |
+|------|--------------------------|
+| **YAGNI** | Skills propose only what's needed for the stated goal — never speculate on hypothetical future needs. |
+| **DRY** | Skills detect duplication and propose extraction. Never tolerated above 3 instances of the same logic. |
+| **KISS** | When two solutions both satisfy requirements, the simpler one wins. Complexity must earn its place with measurable benefit. |
+| **Boy Scout Rule (bounded)** | Within the file you're editing, fix obvious adjacent issues. Outside that file → record as a finding, do not silently fix. (Bounded version of "leave it cleaner" that respects W3 Scope Creep.) |
+| **Conventional Commits** | Every commit type matches the litmus test (see ds-commit). `feat`/`fix` only when end-user impact is real. |
+| **Small frequent commits** | Atomic, reversible, one logical change per commit. ds-commit enforces grouping. |
+| **Code review before merge** | ds-review + ds-pr serve this — automated review precedes human review, not replaces it. |
+| **Refactor mercilessly** | ds-simplify is the dedicated tool. Run it on every dormant codebase. |
+| **Profile before optimizing** | ds-tune requires a measurable metric and baseline before any experiment. |
+
+### 11.7 Testing Discipline
+
+Skills that touch tests (`ds-test`, `ds-review`, `ds-blueprint`, `ds-fix`, `ds-tune`) MUST honor:
+
+- **Test Pyramid** — unit-heavy, integration-medium, E2E-light. Never invert.
+- **Test realism** — real OS paths, production-equivalent layouts, realistic data (`user@example.com`, not `a@b.c`). No mocks for code you own — test the real thing.
+- **Boundary conditions** — every test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable.
+- **AAA pattern** — Arrange / Act / Assert. One concept per test.
+- **Coverage as diagnostic, not goal** — low coverage signals risk; high coverage does not signal quality. Don't chase 100%.
+- **Test names describe behavior** — `should_reject_negative_quantity_on_decrement`, not `test_cart_1`.
+- **Tests fail loudly** — actionable error messages: what was expected, what was received, how to reproduce.
+- **Regression tests for every bug fix** — written before the fix lands.
+
+### 11.8 Configuration & Secrets Discipline
+
+Adopted across all artifact-producing skills (`ds-init`, `ds-fix`, `ds-deploy`, `ds-launch`, `ds-backend`, `ds-frontend`):
+
+- Configuration **externalized** to environment, config files, or a secrets manager — never hardcoded in source.
+- `.env.example` (or stack equivalent) MUST exist when any environment variable is consumed.
+- Strict separation between **secrets** (never committed, never logged), **config** (committed but environment-overridable), and **constants** (committed, immutable).
+- Production secrets rotated on detection of any leak. ds-fix surfaces the leak; rotation is the user's action.
+
+---
+
 ## Appendix A: Skill Evaluation Rubric
 
 | Criterion | Excellent (3) | Good (2) | Needs Work (1) | Missing (0) |
@@ -1231,8 +1349,9 @@ All skills that mutate code or configuration MUST classify every action:
 | **User Isolation** | Defaults documented, conflicts handled, validation present | Most defaults, basic conflict handling | Some defaults, no conflict handling | No user isolation |
 | **FRC+DSC** | Every finding gets disposition, every scope check enumerated | Most findings tracked, most checks listed | Some findings dropped or checks unlisted | No finding tracking |
 | **IDU** | Fully standalone + reads all upstream artifacts when available | Standalone + partial upstream usage | Depends on upstream or ignores it entirely | No inter-skill awareness |
+| **Engineering Principles** | Every applicable §11 sub-section honored (SOLID for architecture skills, 12-Factor for ops skills, reliability patterns for production-bound skills, security baseline always) | Most applicable principles honored | Some applicable principles missed | No engineering-principle awareness |
 
-**Score:** 0-24. Target: ≥18 for production skills, ≥14 for MVP skills.
+**Score:** 0-27. Target: ≥20 for production skills, ≥16 for MVP skills.
 
 ---
 
@@ -1352,7 +1471,8 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | ds-review | REV | ds-mobile | MOB | ds-cv | CV |
 | ds-blueprint | BP | ds-devops | OPS | ds-solve | SOL |
 | ds-docs | DOC | ds-repo | RPO | ds-tune | TUN |
-| ds-commit | CMT | ds-backend | BE | | |
-| ds-pr | PR | ds-deploy | DEP | | |
+| ds-commit | CMT | ds-backend | BE | ds-ship | SHP |
+| ds-pr | PR | ds-deploy | DEP | ds-simplify | SMP |
+| ds-deps | DPS | ds-benchmark | BEN | | |
 
 **Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.

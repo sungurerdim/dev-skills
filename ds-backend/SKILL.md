@@ -135,6 +135,12 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 4. Check password hashing uses bcrypt or argon2 (not MD5/SHA)
 5. Verify OAuth redirect URIs are strictly validated
 
+**Architecture checks ([references/principles.md §2](references/principles.md)):** Evaluate every API/service module against SOLID/GRASP — SRP (handler doing >1 concern: validation + business + persistence), OCP (new endpoint requires editing existing handler), LSP (subtype changes contract), ISP (controller injecting dependency it never calls), DIP (handler depending on concrete DB driver instead of repository abstraction), Information Expert (logic placed away from owning entity), Low Coupling (>7 unrelated peer imports), High Cohesion (one module owning unrelated concerns). Cite principle by name in finding title.
+
+**Reliability checks ([references/principles.md §4](references/principles.md)):** Flag missing — timeout on every outbound HTTP/DB/queue call, retry-with-exponential-backoff (idempotent operations only — never on POST without idempotency key), circuit breaker on high-volume external dependencies, health checks (liveness + readiness endpoints), idempotency keys on externally-exposed write endpoints, graceful shutdown handler (drain → close → exit), structured logging (JSON / kv-pair, never raw `print`), fail-fast input validation at every boundary.
+
+**Twelve-Factor checks ([references/principles.md §3](references/principles.md)):** Stateless processes (no in-memory session/cache survives restart — Factor 6), backing services as URLs from environment (Factor 4), config in environment never in code (Factor 3), port binding via env-provided value (Factor 7), build/release/run separation (Factor 5), logs to stdout (Factor 11), admin tasks (migrations, seeds) as one-off processes against the same code (Factor 12).
+
 Cross-scope dedup: merge findings at same file:line, keep highest severity.
 
 **Gate:** Findings collected. 0 findings → skip to summary.

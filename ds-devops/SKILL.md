@@ -101,6 +101,10 @@ For each scope, scan codebase:
 4. Read files to verify findings in context
 5. Skip rules that cannot be verified
 
+**Twelve-Factor pipeline checks ([references/principles.md §3](references/principles.md)):**
+- Factor 5 (Build/Release/Run): build artifact is immutable — no recompilation between staging and production. Same artifact promoted across environments. Flag if CI rebuilds from source per environment.
+- Factor 12 (Admin processes): migrations / seeds / data backfills run as isolated one-off commands against the same release artifact. Flag if these are embedded in the deploy job or run on dev workstations.
+
 **Confidence:** HIGH = match + context verified. MEDIUM = pattern match, ambiguous. LOW = heuristic.
 
 **Skip patterns:** `# noqa`, `# intentional`, `# safe:`, test fixtures.
@@ -167,7 +171,8 @@ ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 2. Format preservation (indentation, config style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (correct CI syntax, valid config)
-5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/devops.json` updated per scope, gitignored, deleted on successful Summary.
+5. **Shell quoting ([references/principles.md §5](references/principles.md)):** every shell script line in generated CI configs uses double-quoted variable references (`"$VAR"`, `"${VAR}"`). Reject metacharacter injection in dynamic values. Flag any unquoted user-data interpolation as CRITICAL.
+6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/devops.json` updated per scope, gitignored, deleted on successful Summary.
 
 ## Error Recovery
 

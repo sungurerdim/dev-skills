@@ -39,10 +39,12 @@ Without flags: present mode selection to the user.
 |-------|--------|-----------|
 | tokens | Color/spacing/typography/shadow/border token consistency, hardcoded value detection | rules-design-system.md |
 | components | Component API quality, naming, composition, reuse, AI-friendly docs | rules-components.md |
+| solid | SOLID/GRASP violations in component code: SRP (component changes for >1 reason), OCP (new behavior requires editing stable component), ISP (consumer forced to import unused props/methods), DIP (UI imports concrete data layer directly instead of via hook/service abstraction), Low Coupling, High Cohesion ([references/principles.md §2](references/principles.md)) | rules-components.md |
 | states | Empty/loading/error/success/disabled/hover/focus/active state coverage | rules-components.md |
 | a11y | WCAG 2.2 AA, ARIA patterns (APG), keyboard nav, contrast, screen reader | rules-accessibility.md |
 | responsive | Layout overflow, breakpoints, container queries, fluid typography | rules-responsive.md |
 | theming | Dark mode, light-dark(), color-scheme, semantic tokens, theme switching | rules-design-system.md |
+| config | Env-consumed values (API endpoints, OAuth client IDs, feature flags) externalized to env vars; `.env.example` updated when new env var consumed; no secrets in source ([references/principles.md §8](references/principles.md)) | rules-design-system.md |
 
 Default: all scopes.
 

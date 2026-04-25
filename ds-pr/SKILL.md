@@ -73,11 +73,13 @@ If >3 unpushed commits, offer to tidy: squash into logical commits based on net 
 
 Run format, lint, and test across entire project. Auto-fix all fixable issues. Detect toolchain from config files. Skip silently if tool unavailable.
 
-Run in order (stop on failure): Format -> Lint -> Test.
+Run in order (stop on failure): Format -> Lint -> Secret scan -> Test.
 Format/lint changed files → commit as `chore: format and lint fixes`.
 Tests fail → stop. Only create PR when all tests pass.
 
-**Gate:** Format, lint, and tests all pass. No uncommitted fixes remain.
+**Secret scan ([references/principles.md §5](references/principles.md)):** Run secret-pattern detection on all changed files (same patterns as ds-fix security scope) before opening the PR. Any match → FAIL the gate. PR creation must not put credentials in front of human reviewers.
+
+**Gate:** Format, lint, secret scan, and tests all pass. No uncommitted fixes remain.
 
 ### Phase 3: Analyze
 
@@ -165,7 +167,7 @@ PR URL, title, type -> bump effect, auto-merge status.
 - PR description describes net diff — not journey of individual commits
 - Every quality gate check (format, lint, test) gets a disposition in summary (FRC)
 - Conventional commit type on PR title matches net diff classification
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract).
 
 ## Error Recovery
 

@@ -138,6 +138,7 @@ Per domain in scope, scan codebase:
 2. Search contents for violation patterns
 3. Read files to verify findings in context
 4. Skip rules that cannot be verified
+5. **Defense-in-depth check ([references/principles.md §5](references/principles.md)):** flag when only one control layer is detected for a sensitive operation (e.g., input validation present but no output encoding AND no auth layer). Single-control reliance is itself a finding regardless of how strong that control is.
 
 **Confidence:** HIGH = specific grep match + context verified, MEDIUM = pattern match, ambiguous context, LOW = heuristic only.
 

@@ -266,6 +266,11 @@ When analyzing existing tests, flag tests that provide no concrete value:
 - No test should depend on execution order — each test must be independently runnable
 - Mocks must be minimal — only mock external dependencies (network, filesystem, time), not internal modules
 - Generated test matches project's existing style — no style drift
+- **Test Pyramid ([references/principles.md §7](references/principles.md)):** unit-heavy, integration-medium, E2E-light. Detect inverted pyramid (E2E > integration > unit) and flag as HIGH finding before generating more E2E.
+- **Boundary conditions ([references/principles.md §7](references/principles.md)):** every generated test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable to the function under test.
+- **AAA structure ([references/principles.md §7](references/principles.md)):** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
+- **Regression-before-fix ([references/principles.md §7](references/principles.md)):** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
+- **Coverage as diagnostic ([references/principles.md §7](references/principles.md)):** never write a coverage target into generated test configs; configure coverage as a reporter only. The diagnostic is "what did we miss?", not "did we hit X%?".
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/test.json` updated per file processed, gitignored, deleted on successful Summary.
 
 ## Error Recovery

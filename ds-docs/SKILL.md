@@ -212,6 +212,8 @@ Source mandate: every documented flag, endpoint, or config value MUST be verifie
 
 **Overwrite prevention:** Before generating any compliance document, check if target file already exists. Exists → do NOT overwrite — show diff between existing content and proposed content, ask: "Update existing / Keep existing / Show diff".
 
+**Infrastructure-detail safety:** Compliance documents MUST NOT embed hardcoded server addresses, internal endpoints, secret-management tool names, or proprietary internal tool names. Use placeholders (`[your-domain]`, `[DPA-contact-email]`, `[your-cloud-region]`). Disclosure of internal infra in a public privacy policy is itself a security finding.
+
 Generate compliance documents by scanning codebase for data flows, third-party SDKs, privacy configurations, and API patterns. Use these template structures:
 
 1. **Privacy Policy** — Sections: Who we are, Data collected (table: data type / source / purpose), Data NOT collected, How data is used, Local storage, Server-side processing, Authentication, Third-party services (table: service / entity / data shared / purpose), Data retention (table: data type / retention period / deletion trigger), User rights (access, delete, export, revoke, portability), Children's privacy, International transfers, Security measures, Changes to policy, Contact
@@ -244,7 +246,7 @@ Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 Total findings = 0 → include "All {N} scopes evaluated: 0 findings" confirmation line in summary. Distinguishes clean result from skipped analysis.
 
-**Profile update:** ds-docs does NOT modify the blueprint profile. The Documentation dimension score is recalculated by ds-blueprint on its next run. Run history is preserved in `git log` and the terminal summary above — never re-injected into context-loaded files (SKILL-SPEC §10.1 MUST NOT #8).
+**Profile update:** ds-docs does NOT modify the blueprint profile. The Documentation dimension score is recalculated by ds-blueprint on its next run. Run history is preserved in `git log` and the terminal summary above — never re-injected into context-loaded files.
 
 **Gate:** Summary table rendered with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
 

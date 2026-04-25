@@ -105,6 +105,7 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 **2.7 test-realism:**
 1. Scan test files for: email `a@b.c`, `test@test.test`, price `$1`, `$0.01`, id `1`/`"1"`/`"a"`, array `[]` or `[1]` used as "collection", string `"test"` / `"foo"`.
 2. Each finding → propose realistic replacement (`user.lastname+audit@example.com`, `$129.99`, Unicode name, `[` 3–5 realistic items `]`).
+3. **Secret-pattern fixtures ([references/principles.md §5](references/principles.md)):** flag test fixtures containing strings that match secret-scan regex (`sk-test...`, `AKIA...`, `ghp_...`, JWT-like `eyJ...`). Even fake-but-realistic-looking tokens get mistaken for real leaks in CI logs. Propose obvious-fake placeholders (`FAKE_API_KEY_FOR_TESTS`, `not-a-real-token-1234`).
 
 **2.8 io-drift:**
 1. For each function definition, collect its signature (param names + types).

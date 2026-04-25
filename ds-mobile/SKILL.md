@@ -89,7 +89,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 9. **Release-ready setup** (only if release-ready mode):
    - Detect available platforms (android/ and ios/ directories)
    - If both available, ask which to audit
-   - Release report path: `ds/mobile/release.json` (single file, committed, overwritten each run — `ds/<skill>/` user-facing operational namespace per SKILL-SPEC §10.1)
+   - Release report path: `ds/mobile/release.json` (single file, committed, overwritten each run — `ds/<skill>/` user-facing operational namespace)
    - For `--diff`: read the previous content of `ds/mobile/release.json` before overwriting, compute diff in memory, present in chat. Trend over >1 run → `git log -- ds/mobile/release.json` is authoritative — never a persistent directory of stale per-run reports.
    - Fetch live policy data (see references/scoring.md)
 
@@ -130,6 +130,10 @@ Load only reference files matching scope:
 **Large scope (3+ domains):** Progress checklist + append findings to `ds/audit/findings.md` after each domain. Max 2 parallel scans.
 
 **Per domain:** Search files → search for violations → read context to verify → skip unverifiable rules.
+
+**arch scope mandatory checks ([references/principles.md §2](references/principles.md)):** Evaluate widget / screen / view-model / repository layers against SOLID — SRP (widget changes for >1 reason: UI + state + I/O), OCP, LSP (subtype violates parent navigation contract), ISP (consumer forced to implement unused lifecycle hooks), DIP (UI imports concrete platform-channel instead of abstraction). GRASP — Information Expert, Low Coupling (>7 unrelated peer imports), High Cohesion. Cite principle by name.
+
+**network + perf scope reliability checks ([references/principles.md §4](references/principles.md)):** Flag missing — timeout on every API call, retry-with-exponential-backoff on transient failures, offline / slow-network graceful degradation, app-lifecycle handlers (background → foreground state restoration), idempotency keys on payment / order / write endpoints, structured logging that survives across app restart, fail-fast input validation at every system boundary (deep links, push notifications, intent extras).
 
 **Confidence:** HIGH = pattern + context verified; MEDIUM = pattern, ambiguous context; LOW = heuristic.
 
