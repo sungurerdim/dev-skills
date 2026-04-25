@@ -7,7 +7,19 @@ Researches 5–10 comparable projects, synthesizes the ideal architecture, produ
 ## Install
 
 ```bash
-cp -r dev-skills/ds-benchmark ~/.claude/skills/ds-benchmark
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-benchmark ~/.claude/skills/ds-benchmark` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
 ```
 
 ## Use
@@ -38,4 +50,4 @@ cp -r dev-skills/ds-benchmark ~/.claude/skills/ds-benchmark
 - Gap table with category (A: code-level / B: architecture-level)
 - Every B gap requires approval — no surprise refactors
 - Intentional deviations recorded as ADRs via `/ds-docs --adr`
-- Resumable via `.audit/benchmark.json`
+- Resumable via `ds/audit/benchmark.json`

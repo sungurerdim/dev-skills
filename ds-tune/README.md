@@ -26,7 +26,7 @@ rm -rf /tmp/dev-skills
 
 ```bash
 /ds-tune           # Full setup: discover goal, analyze, generate, baseline, start loop
-/ds-tune run       # Resume loop from existing auto/ setup
+/ds-tune run       # Resume loop from existing ds/tune/ setup
 /ds-tune status    # Show experiment results and improvement
 ```
 
@@ -34,21 +34,23 @@ rm -rf /tmp/dev-skills
 
 1. You describe your goal in plain language
 2. Skill analyzes your project, identifies target file and metric
-3. Generates `auto/` folder: bench script, eval, config, program.md
+3. Generates `ds/tune/` folder (committed): bench script, eval, config, program.md
 4. Measures baseline, creates branch
 5. Runs keep/discard experiment loop until you interrupt
 
 ## What It Creates
 
 ```
-auto/
+ds/tune/                 ← committed; user-facing operational namespace
   .autotune.json    Config (target, metric, direction, budget)
   bench.sh          Evaluation wrapper
-  eval.*            Project-specific metric extraction
+  eval              Project-specific metric extraction
   program.md        Agent instructions for the loop
   results.tsv       Experiment log (commit, metric, status, description)
-  run.log           Last evaluation output
+  run.log           Last evaluation output (overwritten each experiment)
 ```
+
+State file `ds/audit/tune.json` lives under the gitignored audit namespace and is deleted on user-confirmed completion.
 
 ## Works With
 

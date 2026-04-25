@@ -7,7 +7,19 @@ Detects each class with file:line evidence, presents a delete-or-keep table, app
 ## Install
 
 ```bash
-cp -r dev-skills/ds-simplify ~/.claude/skills/ds-simplify
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-simplify ~/.claude/skills/ds-simplify` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
 ```
 
 ## Use
@@ -41,5 +53,5 @@ cp -r dev-skills/ds-simplify ~/.claude/skills/ds-simplify
 - One batched approval block — no per-file prompts
 - Each approved batch is one reversible commit (rollback = `git revert`)
 - Post-delete test gate catches regressions before commit
-- Resumable via `.audit/simplify.json`
+- Resumable via `ds/audit/simplify.json`
 - LSP-first, grep fallback

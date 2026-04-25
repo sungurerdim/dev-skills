@@ -2,12 +2,24 @@
 
 Projects accumulate gaps at every stage — broken promises in docs, outdated stacks, missing launch gates, overengineered abstractions that don't earn their keep. Picking the right ds-* skills in the right order is its own tax.
 
-Classifies the project, plans the skill sequence, delegates each phase, consolidates `.audit/findings.md`, writes a single `.audit/report.md` (and optional offline HTML flow diagram + heatmap).
+Classifies the project, plans the skill sequence, delegates each phase, consolidates `ds/audit/findings.md`, writes a single `ds/audit/report.md` (and optional offline HTML flow diagram + heatmap).
 
 ## Install
 
 ```bash
-cp -r dev-skills/ds-ship ~/.claude/skills/ds-ship
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-ship ~/.claude/skills/ds-ship` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
 ```
 
 ## Use
@@ -21,7 +33,7 @@ cp -r dev-skills/ds-ship ~/.claude/skills/ds-ship
 /ds-ship --skip=ds-mobile
 /ds-ship --auto           # list B items, skip (needs-approval)
 /ds-ship --force-approve  # apply every B item — use after a Preview pass
-/ds-ship --clean-all      # wipe .audit/ entirely after a completed pass
+/ds-ship --clean-all      # wipe ds/audit/ entirely after a completed pass
 ```
 
 ## Phases
@@ -34,13 +46,13 @@ cp -r dev-skills/ds-ship ~/.claude/skills/ds-ship
 | 3 | Simplify | Delegate to `/ds-simplify`; every finding Category B |
 | 4 | Docs | Compact context-loaded docs; fill gaps via `/ds-docs`; optional ADRs |
 | 5 | Launch Gates | devops → deploy → launch → repo (--oss-ready if public) |
-| 6 | Report | Write `.audit/report.md` (+ `.audit/report.html` on --html) |
+| 6 | Report | Write `ds/audit/report.md` (+ `ds/audit/report.html` on --html) |
 
 ## Features
 
 - Delegates only — never re-implements another skill's checks
 - Two-gate model: Category A autonomous, Category B approval-batched
-- Resumable via `.audit/ship.json`
+- Resumable via `ds/audit/ship.json`
 - Promise census: every concrete capability claim in docs vs source
 - Stack-fitness + external-tooling scopes consumed from `/ds-blueprint`
 - `--html` produces self-contained, offline, ASCII-only visual report

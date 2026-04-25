@@ -6,101 +6,125 @@
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
 
-dev-skills are multi-phase execution systems — with quality gates, error recovery, and systematic mitigation of 8 known AI weaknesses — covering the entire software lifecycle from project scaffolding to store launch.
-
-<!-- TODO: Add demo GIF/video here — 30-60s silent demo of ds-cv or ds-review -->
+**dev-skills are multi-phase execution systems** — quality gates, error recovery, systematic mitigation of 8 known AI weaknesses — covering the entire software lifecycle from project scaffolding to store launch.
 
 > **Quick start:** `git clone https://github.com/sungurerdim/dev-skills.git /tmp/ds && cp -r /tmp/ds/ds-review ~/.claude/skills/ds-review && rm -rf /tmp/ds`
-> Then: `/ds-review`
+> Then run `/ds-review` in Claude Code (or copy into your tool of choice — see [Install](#install)).
 
 ## What we believe
 
-- **Every dependency is a future breaking change.** Fewer deps = fewer risks, fewer costs, fewer breakages.
-- **Collect nothing you don't need.** Privacy-by-design, data minimization, zero unnecessary collection.
-- **If a human is doing it repeatedly, it should be automated.** No manual repetitive work.
+- **Every dependency is a future breaking change.** Fewer deps = fewer risks, fewer breakages.
+- **Collect nothing you don't need.** Privacy-by-design, data minimization.
+- **If a human is doing it repeatedly, it should be automated.**
 - **Every decision minimizes YOUR legal exposure.** Not the vendor's.
-- **One developer + AI should ship what a team of five ships.** Every skill optimized for solo devs with AI.
+- **One developer + AI should ship what a team of five ships.**
 
-## The skills
+## When to reach for which skill
 
-> scaffold → code → design → test → review → commit → PR → deploy → launch → analytics
+Each row picks one skill for one moment. Pick by the question, not by the noun.
 
-| Skill | What it does |
-|-------|-------------|
-| [ds-init](ds-init) | New projects start with no CI, no tests, no linting. Scaffolds all of it from day one. |
-| [ds-fix](ds-fix) | AI skips formatting and ignores lint. Runs all 5 quality passes in the correct order. |
-| [ds-test](ds-test) | AI tests mock everything and assert nothing. Generates tests that follow your patterns and pass. |
-| [ds-review](ds-review) | Catches what tests miss — security holes, dead code, wrong abstractions. File:line precision. |
-| [ds-blueprint](ds-blueprint) | Can't improve what you don't measure. Scores your project across 9 dimensions. |
-| [ds-docs](ds-docs) | Docs drift from code the moment they're written. Detects gaps and verifies claims against source. |
-| [ds-commit](ds-commit) | AI commits are vague and bundle unrelated changes. Reads the diff, groups logically, writes precisely. |
-| [ds-pr](ds-pr) | PRs that list every commit create noise. Describes the net diff, not the journey. |
-| [ds-deploy](ds-deploy) | First deploy means bloated images, no health checks, no SSL. Generates production-ready configs. |
-| [ds-launch](ds-launch) | ~40% of store submissions fail for preventable errors. Scans your project and flags them. |
-| [ds-compliance](ds-compliance) | One missing privacy policy or unpatched XSS means fines or rejection. 80+ rules, file:line precision. |
-| [ds-frontend](ds-frontend) | Hardcoded colors, inconsistent spacing, missing focus states. Enforces design system in code. |
-| [ds-mobile](ds-mobile) | Permission abuse, missing a11y, hardcoded keys surface during review. 145+ rules catch them first. |
-| [ds-devops](ds-devops) | Broken CI, unsigned builds, outdated deps erode release quality. Audits your entire DevOps setup. |
-| [ds-repo](ds-repo) | Unprotected branches, stale PRs, no CODEOWNERS — most repos are misconfigured. Audits and fixes. |
-| [ds-backend](ds-backend) | AI APIs ship with inconsistent naming and no auth strategy. Designs all three layers correctly. |
-| [ds-research](ds-research) | AI hallucinates sources and cites outdated data. Searches, scores reliability, cites everything. |
-| [ds-market](ds-market) | Solo devs build great products but can't get noticed. Generates positioning, copy, and growth playbook. |
-| [ds-analytics](ds-analytics) | Most apps track everything (privacy risk) or nothing (blind). Designs minimum taxonomy, maximum insight. |
-| [ds-cv](ds-cv) | ATS rejects most CVs before a human sees them. Generates ones that pass. |
-| [ds-solve](ds-solve) | Complex problems resist single-pass fixes. Plans, tries alternatives, backtracks, re-plans until solved. |
-| [ds-tune](ds-tune) | Manual optimization: 8 experiments/day. This skill runs 100+ overnight, keeping only what improves. |
-| [ds-ship](ds-ship) | Fikir, scaffold, yarım iş, dondurulmuş projeler — hepsini ship-ready noktasına götüren orkestratör. Tüm ds-* skill'leri doğru sırayla çağırır, tek raporda toplar. |
-| [ds-benchmark](ds-benchmark) | Projelerin "ideali" kimsenin inandığı bir şey değildir. 5–10 karşılaştırılabilir projeyi araştırır, ideal mimariyi sentezler, mevcut-ideal fark tablosu üretir. |
-| [ds-simplify](ds-simplify) | Dead code, tek çağrılan helper, fallback, orphan, premature abstraction — hijyen denetimi, onaylı silme, commit başına bir geri alınabilir grup. |
-| [ds-deps](ds-deps) | Dondurulmuş projelerin bağımlılıkları kokar. Safe patch/minor otomatik yükselt + test geçidi + commit; major'ler için migration notlu onay. |
+### One skill that runs all the others — `/ds-ship`
 
-Each skill is self-contained. No dependencies between them. Install one or all.
+| When you don't know where to start | Use |
+|-----------------------------------|-----|
+| Idea, scaffold, half-built, feature-complete-but-unlaunched, or dormant project | [`/ds-ship`](ds-ship) — classifies the stage, plans the skill sequence, delegates each phase, consolidates one report. **The fastest path through the whole catalog.** |
 
-## Recommended workflow
+### Discover — understand before you build
+
+| Question | Skill |
+|----------|-------|
+| "Has someone else solved this? What does the literature say?" | [`/ds-research`](ds-research) — searches, scores source reliability, cites file:line |
+| "What do the best projects in this space look like? Where do we fall short?" | [`/ds-benchmark`](ds-benchmark) — synthesizes the ideal from 5–10 comparables, produces gap table |
+| "How healthy is this codebase? What's the lowest-hanging fruit?" | [`/ds-blueprint`](ds-blueprint) — scores 9 dimensions, writes findings every other skill consumes |
+
+### Build — start something new
+
+| Question | Skill |
+|----------|-------|
+| "Empty repo. Get me to a real project from zero." | [`/ds-init`](ds-init) — scaffold, CI, lint, tests from day one |
+| "Design my API + database + auth, end-to-end." | [`/ds-backend`](ds-backend) — three-layer design, no inconsistent naming |
+| "I need design tokens, component states, theming, a11y baseline." | [`/ds-frontend`](ds-frontend) — design system audit + generation |
+| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 145+ rules, 13 domains, release-readiness scoring |
+| "Build me a CV/portfolio site that gets past ATS." | [`/ds-cv`](ds-cv) — single-page HTML + GitHub Pages deploy |
+
+### Improve — fix what's already there
+
+| Question | Skill |
+|----------|-------|
+| "Run a deep code audit — security, hygiene, architecture, perf." | [`/ds-review`](ds-review) — strategic + tactical scopes, file:line precision |
+| "Strip dead code, single-caller helpers, premature abstractions." | [`/ds-simplify`](ds-simplify) — approved deletion, one reversible commit per group |
+| "Catch up on dependency upgrades safely." | [`/ds-deps`](ds-deps) — patch/minor automatic + major-with-migration approval |
+| "Format, lint, type-check, security-gate — in the right order." | [`/ds-fix`](ds-fix) — five quality passes, no skipping |
+| "Tests are missing or asserting nothing. Generate real ones." | [`/ds-test`](ds-test) — patterns matched, mocks rejected, real bugs surfaced |
+| "Optimize a measurable metric autonomously — 100 experiments overnight." | [`/ds-tune`](ds-tune) — git ratchet, only improvements survive |
+| "Hard problem resists a single-pass fix." | [`/ds-solve`](ds-solve) — plan → try → backtrack → re-plan, with web research |
+
+### Document
+
+| Question | Skill |
+|----------|-------|
+| "Detect doc drift, fill gaps, verify claims against source, write ADRs." | [`/ds-docs`](ds-docs) — drift detection + generation + Architecture Decision Records |
+
+### Audit & decide
+
+| Question | Skill |
+|----------|-------|
+| "Am I privacy/regulatory compliant? GDPR, KVKK, CCPA, accessibility law?" | [`/ds-compliance`](ds-compliance) — 80+ rules, file:line precision |
+| "Design event taxonomy that's privacy-respecting and actually useful." | [`/ds-analytics`](ds-analytics) — minimum-collection schema, PII scan |
+| "I have a product but no positioning, no copy, no growth plan." | [`/ds-market`](ds-market) — marketing strategy + draft copy |
+
+### Ship — get changes out the door
+
+| Question | Skill |
+|----------|-------|
+| "Group my diff into atomic, conventional commits." | [`/ds-commit`](ds-commit) — reads diff, groups logically, writes precise messages |
+| "Write a PR description that reflects the net diff, not the journey." | [`/ds-pr`](ds-pr) — net-diff analysis, no commit-by-commit narrative |
+| "Audit my CI/CD — broken steps, unsigned builds, dep audits." | [`/ds-devops`](ds-devops) — pipeline integrity, signing, caching |
+| "First production deploy — container, TLS, health checks, runbook." | [`/ds-deploy`](ds-deploy) — generates production-ready configs + monitoring |
+| "App store / web release / library publish — what gates do I need?" | [`/ds-launch`](ds-launch) — store metadata, perf budgets, release prep |
+| "Repo settings, CODEOWNERS, branch protection, OSS readiness." | [`/ds-repo`](ds-repo) — full repo metadata audit |
+
+## Recommended sequences
+
+| Goal | Order |
+|------|-------|
+| **Resume any project** | `/ds-ship` (lets it pick the order for you) |
+| **New project** | `ds-init` → `ds-blueprint` → `ds-test` → `ds-commit` |
+| **Existing project hygiene** | `ds-blueprint` → `ds-review --tactical` → `ds-simplify` → `ds-fix` → `ds-test` → `ds-commit` |
+| **Pre-launch** | `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
+| **Solo-dev daily loop** | `ds-fix` → `ds-test` → `ds-commit` → `ds-pr` |
+| **Stuck on a hard bug** | `ds-solve` |
+| **Public OSS release** | `ds-docs` → `ds-repo --oss-ready` → `ds-launch` |
+
+`/ds-blueprint` is the recommended first run on any unfamiliar codebase — it writes `ds/audit/findings.md` that every later skill reads to skip redundant scans.
+
+## Shared artifact namespace — `ds/`
+
+Everything dev-skills produces lives under one top-level directory:
 
 ```
-1. /ds-blueprint        Score your project health, generate .audit/findings.md
-2. /ds-review --tactical  Fix code issues (uses .audit/findings.md if available)
-3. /ds-fix              Format, lint, type-check
-4. /ds-test             Generate missing tests, fix failing ones
-5. /ds-commit           Commit with quality gates
-6. /ds-pr               Create PR with net diff analysis
+<repo-root>/
+  ds/
+    audit/                ← gitignored, transient (deleted on success)
+      findings.md         ← shared findings across skills
+      report.md           ← ds-ship consolidated report
+      report.html         ← optional, ds-ship --html
+      <skill>.json        ← per-skill state for resumable skills
+    <skill>/              ← committed, user-facing operational tooling
+      ...                 ← scripts, configs, audit logs (only skills that need them — e.g. ds/tune/, ds/mobile/, ds/launch/, ds/cv/)
+  .gitignore              ← contains the line `ds/audit/`
 ```
 
-Start with `/ds-blueprint` — it scans your entire codebase and produces a `.audit/findings.md` that other skills consume, so they skip redundant analysis and jump straight to fixes.
-
-For new projects: `/ds-init` → then the workflow above.
-For deployment: `/ds-deploy` → `/ds-launch`.
-For frontend: `/ds-frontend` → design system audit + fixes.
-For stuck/complex problems: `/ds-solve` — adaptive retry with web research.
-For audits: `/ds-compliance` or `/ds-mobile`.
-For a full idea-to-ship orchestration: `/ds-ship` — classifies the project, plans the sequence, delegates every ds-* skill, consolidates one `.audit/report.md`.
-For competitive benchmarking: `/ds-benchmark` — 5-10 comparables, synthesizes ideal, produces gap table.
-For dead-weight hygiene: `/ds-simplify` — dead exports, single-caller helpers, premature abstractions, approved deletion.
-For dormant projects: `/ds-deps` — safe-group upgrades automatic, majors approval-gated.
-
-## Shared audit namespace
-
-All dev-skills artifacts live under `.audit/` at repo root:
-
-```
-.audit/
-  findings.md          ← shared findings across skills
-  report.md            ← ds-ship consolidated report
-  report.html          ← optional, ds-ship --html
-  <skill>.json         ← per-skill state for resumable skills
-```
-
-Add to `.gitignore` once: `.audit/`. Nothing else leaks to the repo root.
+Add to `.gitignore` once: `ds/audit/`. Nothing leaks to repo root, no per-skill dotfiles, no append-only history files. See [SKILL-SPEC §10.1](SKILL-SPEC.md#101-artifact-discipline) for the full contract.
 
 ## Why these are different
 
-Most AI coding "skills" are static rule snippets (30-100 lines). dev-skills are **orchestrated execution systems**:
+Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orchestrated execution systems**:
 
-- **Multi-phase workflows** with quality gates, mandatory phase enforcement, and error recovery
+- **Multi-phase workflows** with explicit gates, mandatory-phase enforcement, error recovery
 - **8 AI weaknesses systematically addressed** — hallucination, scope creep, tunnel vision, confidence bias, memory decay, skip tendency, redundancy blindness, injection risk
 - **Finding Resolution Completeness (FRC)** — every finding gets a disposition (fixed/skipped/failed), zero silent drops
-- **Inter-skill coordination** via `.audit/findings.md` + blueprint profile — share analysis results and project context, avoid duplicate work
+- **Inter-skill coordination** via `ds/audit/findings.md` + blueprint profile — share analysis, avoid duplicate work
 - **Token-efficient** — 10K token budget per skill, references loaded on demand
 - **Tool-agnostic** — works with any AI tool that accepts markdown instructions
 
@@ -124,16 +148,18 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 rm -rf /tmp/dev-skills
 ```
 
+Install one skill, several, or all 26 — they are independent.
+
 ## How skills work
 
 ```
 skill-name/
-  SKILL.md        ← Instructions and execution flow
-  README.md       ← What it does, how to use it
-  references/     ← Detailed rules (loaded on demand)
+  SKILL.md        ← Instructions and execution flow (≤500 lines)
+  README.md       ← What it does, how to use it (≤80 lines)
+  references/     ← Detailed rules, loaded on demand
 ```
 
-Each skill is a multi-phase execution system. Phases have explicit entry conditions, quality gates, and error recovery. The `references/` files contain detailed rules loaded on demand — total skill overhead stays within 10K tokens.
+Each skill is a multi-phase execution system. Phases have explicit entry conditions, quality gates, and error recovery. References are loaded on demand — total active skill overhead stays within 10K tokens.
 
 ## Build your own
 
@@ -143,7 +169,7 @@ See also: [AI Instruction Patterns](references/ai-instruction-patterns.md) — r
 
 ## Companion: dev-rules
 
-Always-on behavioral guardrails that prevent mistakes between skill invocations — scope control, complexity limits, security gates, operational awareness. One file, any AI tool: [dev-rules](https://github.com/sungurerdim/dev-rules).
+Always-on behavioral guardrails that prevent mistakes between skill invocations — scope control, complexity limits, security gates. One file, any AI tool: [dev-rules](https://github.com/sungurerdim/dev-rules).
 
 ## Contributing
 

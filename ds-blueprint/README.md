@@ -38,5 +38,5 @@ Run `/ds-blueprint`, or ask to assess your project health.
 - **9 health dimensions** — Security, Code Quality, Architecture, Performance, Resilience, Testing, Stack Health, DX, Documentation
 - **14 project types** — with type-specific weight matrices
 - **Score tracking** — delta and trend across runs
-- **Auto-detected instruction file** — embeds profile in CLAUDE.md, .cursorrules, copilot-instructions.md, etc. Always in context.
+- **Auto-detected instruction file** — embeds profile in your AI tool's instruction file (CLAUDE.md / AGENTS.md / .cursorrules / .cursor/rules / .github/copilot-instructions.md / .windsurfrules / .aider.conf.yml — whichever your tool uses). Always in context.
 - **4 quality levels** — Prototype, MVP, Production, Enterprise

@@ -27,7 +27,7 @@ rm -rf /tmp/dev-skills
 ```bash
 /ds-solve                    # Interactive: detect red lines, ask objective, plan, solve
 /ds-solve --auto             # Skip confirmations, still escalates on exhaustion
-/ds-solve --resume           # Resume from .audit/solve.json
+/ds-solve --resume           # Resume from ds/audit/solve.json
 /ds-solve --status           # Show current session progress
 /ds-solve --dry-run          # Plan + Research only, no execution
 /ds-solve --budget=2x2x3     # Custom budget: 2 plans, 2 rounds, 3 alternatives
@@ -53,7 +53,7 @@ Override with `--budget=PxRxA`. Most problems resolve in plan 1, round 1.
 
 ## State & Resume
 
-Progress is saved to `.audit/solve.json` after every state change. Use `--resume` to continue after interruption. Use `--status` to check progress.
+Progress is saved to `ds/audit/solve.json` after every state change. Use `--resume` to continue after interruption. Use `--status` to check progress.
 
 ## Red Lines
 

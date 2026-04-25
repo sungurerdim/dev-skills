@@ -7,7 +7,19 @@ Classifies every dep as safe-patch / safe-minor / review-major / removal, applie
 ## Install
 
 ```bash
-cp -r dev-skills/ds-deps ~/.claude/skills/ds-deps
+git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
+```
+
+| Tool | Install |
+|------|---------|
+| **Claude Code** | `cp -r /tmp/dev-skills/ds-deps ~/.claude/skills/ds-deps` |
+| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
+| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
+| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Aider** | Reference `SKILL.md` via `--read` flag |
+
+```bash
+rm -rf /tmp/dev-skills
 ```
 
 ## Use
@@ -41,4 +53,4 @@ cp -r dev-skills/ds-deps ~/.claude/skills/ds-deps
 - Security advisories elevated to front of the queue
 - Removal candidates flagged (0 source references)
 - Monorepo workspace-aware
-- Resumable via `.audit/deps.json`
+- Resumable via `ds/audit/deps.json`

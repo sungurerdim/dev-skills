@@ -46,5 +46,5 @@ Run `/ds-cv`, or ask to create, update, or audit your CV.
 | File | Purpose | Visibility |
 |------|---------|------------|
 | `cv.html` | CV source (HTML+CSS) | Public |
-| `linkedin-profile-guide.md` | LinkedIn update guide | Private |
-| `cv-reference-full.md` | Full career reference | Private |
+| `ds/cv/linkedin-profile-guide.md` | LinkedIn update guide | Private (committed) |
+| `ds/cv/reference.md` | Full career reference (override path with `--reference=<path>`) | Private (committed) |
