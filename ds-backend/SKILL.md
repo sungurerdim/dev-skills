@@ -99,7 +99,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 4. Detect project stack (framework, ORM, auth library) by scanning config files and dependencies
 5. Load relevant reference docs based on detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md)
 
-**Gate:** Scope and mode confirmed.
+**Gate:** Scope and mode confirmed. If fails → user provided no flags and did not respond to the interactive menu; default to `--audit --scope=api,db,auth` with a WARN note in state.data.mode, and announce the defaulted scope before proceeding.
 
 ### Phase 2: Discover
 
@@ -109,7 +109,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 4. Search for auth configuration (JWT secret usage, session config, OAuth setup)
 5. Build inventory: endpoints list, tables/models list, auth mechanisms
 
-**Gate:** Inventory complete. No backend code found → switch to design mode.
+**Gate:** Inventory complete. No backend code found → switch to design mode. If fails (partial inventory — some scopes found code, others did not) → mark missing scopes as `not-found` in state.data.inventory, proceed with detected scopes only, and note in the report which scopes were skipped due to absent code.
 
 ### Phase 3: Analyze [--audit mode]
 
@@ -143,7 +143,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 Cross-scope dedup: merge findings at same file:line, keep highest severity.
 
-**Gate:** Findings collected. 0 findings → skip to summary.
+**Gate:** Findings collected. 0 findings → skip to summary. If fails (analysis could not complete for a scope) → re-read the relevant source files for that scope once; if still unanalyzable (e.g., binary files, generated-only code), mark scope as `inconclusive` in state.data.findings, continue with analyzed scopes, and surface the inconclusive scope in the report.
 
 ### Phase 4: Design [--design mode]
 
@@ -154,7 +154,7 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity.
    - **Auth:** flow diagram (text), token strategy, permission model
 3. Present design for user review and iteration
 
-**Gate:** User approves design or requests changes.
+**Gate:** User approves design or requests changes. If fails → user requested changes; apply changes to the generated design, re-present the updated design for approval; after 3 revision rounds with no approval, ask: "Continue with current design / Abort design phase?" — honor the user's choice and record the decision in state.data.artifacts_generated.
 
 ### Phase 5: Spec [--spec mode]
 
@@ -162,13 +162,13 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity.
 2. **DB:** Migration files in project's ORM format, or raw SQL
 3. **Auth:** Authentication flow documentation, middleware configuration
 
-**Gate:** Spec files generated and syntactically valid.
+**Gate:** Spec files generated and syntactically valid. If fails → identify the invalid spec file and the syntax error location; attempt auto-correction once (fix the malformed section); if still invalid, write the file with an inline `# SYNTAX ERROR: {description}` comment at the offending line, mark the artifact as `partial` in state.data.artifacts_generated, and surface the error to the user.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → one or more needs_approval items have no decision recorded; re-present each unresolved item with a forced binary prompt (Apply / Skip); if user declines to respond, mark as `skipped (no response)` and proceed.
 
 ### Phase 7: Summary
 
@@ -184,7 +184,7 @@ ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: N | Fixed: N | Ski
 
 FRC+DSC accounting.
 
-**Gate:** Summary printed with all design artifacts listed.
+**Gate:** Summary printed with all design artifacts listed. If fails → one or more artifact paths in state.data.artifacts_generated could not be confirmed (file not written or spec invalid); list each missing artifact with its intended path and status (`partial` / `failed`), print summary with status `WARN`, and instruct user which phases to re-run.
 
 ## Quality Gates
 

@@ -52,7 +52,7 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 2. **Scope selection.** Ask what areas to search:
    - Local codebase, Security/CVE, Changelog/releases, Dependencies
 
-**Gate:** Depth and search scope selected.
+**Gate:** Depth and search scope selected. If fails → if the user provides no depth or scope selection after one re-prompt, default to Standard depth (T1-T4) with all scopes enabled, warn the user, and proceed.
 
 ### Phase 2: Parse Query
 
@@ -64,7 +64,7 @@ Extract from arguments: concepts, tech domain, comparison mode, search mode (tro
 
 **Date handling:** Resolve current date from system context. Include explicitly in every search query to prevent stale results (e.g., "React 19 migration guide 2026").
 
-**Gate:** Query parsed into concepts, domain, and search mode with current date resolved.
+**Gate:** Query parsed into concepts, domain, and search mode with current date resolved. If fails → if the query is too broad or ambiguous to extract concepts (e.g., single-word query with no domain context), ask the user to narrow the scope with 1-2 specific sub-questions before proceeding; if current date cannot be resolved from system context, use the date provided in the session context and proceed.
 
 ### Phase 3: Research
 
@@ -87,7 +87,7 @@ Per source found:
 4. Discard sources scoring <50
 5. **Authority override for security topics ([references/principles.md §5](references/principles.md)):** for queries about CVEs, secure coding, threat models, or cryptography, T1 authoritative sources (OWASP, NIST, CVE/NVD, vendor security advisories) ALWAYS rank above T3+ blogs and Stack Overflow answers regardless of CRAAP+ score delta. Security truth is authoritative, not democratic.
 
-**Gate:** At least one source with CRAAP+ score >=50 found per search track.
+**Gate:** At least one source with CRAAP+ score >=50 found per search track. If fails → for any track that yields no source scoring >=50, mark that track as `low-confidence` in `state.data.search_batches`, include the best-scoring source found (even if <50) with an explicit confidence caveat, and note in the synthesis that the track's evidence is unverified; do not discard the track silently — surface it in the Phase 6 output with a recommendation for manual verification.
 
 ### Phase 4: Synthesize
 
@@ -95,13 +95,13 @@ Validate outputs: verify all claims cite sources, check for contradictions, remo
 
 **Mandatory saturation gate:** After each batch, if 3+ T1/T2 sources agree, skip remaining lower-tier searches.
 
-**Gate:** All claims cite sources and contradictions resolved.
+**Gate:** All claims cite sources and contradictions resolved. If fails → for any claim that cannot be tied to a source with CRAAP+ score >=50, remove the claim from the synthesis or explicitly flag it as "[unverified — no qualifying source found]"; for contradictions between T1/T2 sources that cannot be resolved, present both positions with their respective sources and confidence scores and let the user decide — record the unresolved contradiction in `state.data.synthesis_draft` as a knowledge gap.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → record the unresolved item with disposition `pending-user-decision`, proceed to Output with status WARN, and list all unresolved needs_approval items at the bottom of the output.
 
 ### Phase 6: Output
 
@@ -122,7 +122,7 @@ Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
 ds-research: {OK|WARN|FAIL} | Sources: N | CRAAP+ avg: {score} | Claims: N verified | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Gate:** Output includes executive summary, evidence hierarchy, and source list with tier/score.
+**Gate:** Output includes executive summary, evidence hierarchy, and source list with tier/score. If fails → if the synthesis is incomplete (no T1/T2 sources found across all tracks), emit a partial output stating "Insufficient high-quality sources found — results below are low-confidence" followed by the best available evidence; mark overall status as WARN in the summary line; in deep mode, preserve `state.data.synthesis_draft` so the session can be resumed with `--resume` once additional sources are available.
 
 ## Quality Gates
 

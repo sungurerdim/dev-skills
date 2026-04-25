@@ -55,7 +55,7 @@ Ask ONE question:
 
 Wait for answer. Only proceed after receiving it.
 
-**Gate:** User has stated an optimization goal.
+**Gate:** User has stated an optimization goal. If fails (user does not respond after one re-prompt) → exit with WARN "ds-tune: no optimization goal provided — re-run and describe what you want to improve (e.g., 'make inference faster', 'reduce bundle size')."
 
 ### Phase 2: Analysis
 
@@ -79,7 +79,7 @@ Determine these values:
 | `bench_cmd` | Command to run evaluation |
 | `budget_sec` | Max seconds per experiment (based on eval duration) |
 
-**Gate:** All fields determined. Metric is mechanical (computable in seconds, deterministic).
+**Gate:** All fields determined. Metric is mechanical (computable in seconds, deterministic). If fails (no mechanical metric can be inferred from the user's goal) → present 2–3 candidate proxy metrics with their suggested `bench_cmd` (e.g., lint error count, test pass rate, timing measurement), ask the user to confirm one; if the user declines all proxies, exit with WARN "ds-tune: cannot proceed without a measurable metric — provide a benchmark command or choose one of the suggested proxies."
 
 ### Phase 3: Plan
 
@@ -98,7 +98,7 @@ If test data is missing, state what will be created.
 
 Ask: "Confirm? (yes / suggest changes)"
 
-**Gate:** User confirmed.
+**Gate:** User confirmed. If fails (user suggests changes) → apply the requested changes to the plan summary (target_file, metric, bench_cmd, or budget_sec), redisplay the updated summary, and ask for re-confirmation; if user asks to abort, exit cleanly without creating ds/tune/ files.
 
 ### Phase 4: Generate
 
@@ -138,7 +138,7 @@ Column notes: `timestamp` is ISO 8601. `duration` is `HH:MM:SS` format (wall-clo
 
 **ds/tune/program.md** — Agent instructions generated from template below with all project-specific values filled in.
 
-**Gate:** All files created and executable.
+**Gate:** All files created and executable. If fails (a file cannot be created or `bench.sh` / `eval` are not executable) → surface the specific file and error (e.g., "ds/tune/bench.sh: permission denied"), attempt `chmod +x` on shell scripts, retry once; if still failing, exit with WARN listing the unresolved files — do not proceed to Phase 5 Baseline over a broken evaluation setup.
 
 ### Phase 5: Baseline
 
@@ -155,13 +155,13 @@ Baseline:  [metric] = [value]
 Branch:    autotune/[tag]
 ```
 
-**Gate:** Baseline measured and committed.
+**Gate:** Baseline measured and committed. If fails (bench.sh returns non-zero or no metric line found in ds/tune/run.log) → show the raw ds/tune/run.log to the user, surface the specific error (missing metric line, eval script crash, missing dependency), and exit with WARN "ds-tune: baseline measurement failed — fix ds/tune/eval or ds/tune/bench.sh and re-run"; do not proceed to the Loop with an unmeasured baseline.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails (user does not respond) → mark unresolved items as `skipped (user did not respond)` in state.data, proceed to Phase 7 Loop.
 
 ### Phase 7: Loop
 
@@ -180,7 +180,7 @@ Execute loop defined in ds/tune/program.md. Follow it exactly:
 9. Update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`.
 10. Go to step 1. Continue without interruption.
 
-**Gate:** Loop runs until user interrupts or context limit approaches.
+**Gate:** Each experiment produces exactly one row in `ds/tune/results.tsv` with status `keep|discard|crash`. Loop exits when (a) user interrupts, (b) context exceeds 85% of model token limit (check after each iteration), or (c) `experiment_count` reaches `--budget` if specified. If `bench.sh` returns non-zero and no metric line is parseable → log a `crash` row, continue to next experiment. If `git reset --hard` fails during DISCARD → stop loop, surface git state, ask user to clean up before resuming.
 
 ## program.md Template
 
@@ -215,7 +215,7 @@ Generated in Phase 4 with all placeholders filled:
 Repeat forever:
 
 1. Read and analyze <target_file>. What could improve <metric>?
-2. Form a hypothesis. Think about what change might help.
+2. Form a hypothesis: identify one specific change to <target_file> predicted to improve <metric>. State the change and predicted direction before editing.
 3. Edit <target_file> with your experimental idea.
 4. Commit: git add <target_file> && git commit -m "description of change"
 5. Run: bash ds/tune/bench.sh

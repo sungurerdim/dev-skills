@@ -123,7 +123,7 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
    - **Scoped** — pick specific scope(s) to audit
 5. **Scope selection.** Scoped mode or no `--scope` flag with Audit & Fix → ask which scopes to audit.
 
-**Gate:** Repo info retrieved via API and mode/scopes selected.
+**Gate:** Repo info retrieved via API and mode/scopes selected. If fails → if `gh` CLI is unavailable or unauthenticated, skip settings and protection scopes, warn the user, and proceed with hygiene/metadata/structure/team scopes using only local git commands; if the GitHub API returns an error, record `state.data.repo_info` with whatever was retrievable and continue; if the user provides no mode/scope selection, default to Full Audit across all scopes.
 
 ### Phase 2: Audit
 
@@ -134,7 +134,7 @@ Run every check in every selected scope following [references/rules-repo.md](ref
 
 Evaluate checks in order as listed in each scope definition above.
 
-**Gate:** All checks in all selected scopes evaluated. Zero checks silently omitted.
+**Gate:** All checks in all selected scopes evaluated. Zero checks silently omitted. If fails → if a specific check cannot be evaluated (API unavailable, insufficient permissions, unsupported plan), record it as `N/A` in `state.data.checks_run` with an explicit reason rather than omitting it; surface all N/A checks in the Phase 3 gap analysis table so they are visible and not silently lost.
 
 ### Phase 3: Gap Analysis
 
@@ -151,7 +151,7 @@ Display findings table with ALL checks accounted:
 
 **Severity:** CRITICAL > HIGH > MEDIUM > LOW > INFO.
 
-**Gate:** Complete checklist table produced — every check from every scope appears.
+**Gate:** Complete checklist table produced — every check from every scope appears. If fails → identify which scope's checks are missing from the table, re-query `state.data.checks_run` to reconstruct the missing rows, and re-render the table; if a scope's check data is unrecoverable, add a row for each missing check with result "ERROR: data unavailable" rather than leaving it absent.
 
 ### Phase 4: Plan Review [SKIP if --auto]
 
@@ -159,7 +159,7 @@ Ask user: Fix All / By Severity / Review Each / Report Only.
 
 **needs-input findings:** Before proceeding to Apply, ask user for required input on `needs-input` items. Example: "Homepage URL is empty — do you have a URL to set? (provide URL / skip)"
 
-**Gate:** User selected action plan. All needs-input items resolved (user provided input or explicitly declined).
+**Gate:** User selected action plan. All needs-input items resolved (user provided input or explicitly declined). If fails → if the user provides no action plan selection after one re-prompt, default to Report Only (no changes applied); for each needs-input item where the user provides no response or declines, record it in `state.data.findings` with disposition `skipped (user declined input)` and list it prominently in the Phase 7 summary.
 
 ### Phase 5: Apply [SKIP if --preview]
 
@@ -171,13 +171,13 @@ Per finding, assign disposition:
 - `skipped` — user declined, platform limitation, or not applicable (with reason)
 - `needs-approval` — protection changes that affect other contributors, CODEOWNERS modifications, visibility changes
 
-**Gate:** Every finding has a disposition. `fixed + failed + skipped + needs_approval = total`.
+**Gate:** Every finding has a disposition. `fixed + failed + skipped + needs_approval = total`. If fails → for any finding missing a disposition, assign `failed` with reason "disposition not recorded during apply", re-run the count; if a GitHub API call to apply a fix returns an error, record the finding as `failed` in `state.data.findings[].disposition` with the API error message and continue with the next finding.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → record the unresolved item in `state.data.findings[].disposition` as `pending-user-decision`, proceed to Summary with status WARN, and list all unresolved needs_approval items in the disposition table so the user can take action outside this session.
 
 ### Phase 7: Summary
 
@@ -201,7 +201,7 @@ Display clean checks — scopes where all checks passed:
 Clean: settings (5/5 ✅), structure (2/2 ✅)
 ```
 
-**Gate:** Summary rendered. `fixed + failed + skipped + needs_approval = total` verified. Every check from every scope accounted for.
+**Gate:** Summary rendered. `fixed + failed + skipped + needs_approval = total` verified. Every check from every scope accounted for. If fails → if the count does not reconcile, list all findings with their dispositions inline to expose the discrepancy, mark summary status as WARN with "Disposition count mismatch — review the table above"; if any scope's checks are missing from the final table, reconstruct from `state.data.checks_run` and append them.
 
 ## Quality Gates
 

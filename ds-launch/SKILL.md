@@ -146,13 +146,13 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 3. Detect platform from project signals (pubspec.yaml → mobile, package.json → web, etc.)
 4. Detect current launch stage: pre-submission, in-review, post-launch.
 
-**Gate:** Platform and mode confirmed.
+**Gate:** Platform and mode confirmed. If fails → if platform is ambiguous, prompt user to select iOS / Android / Web / All and record in `state.data.platform`; if no mode selected after presenting the interactive menu, re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
 
 ### Phase 2: Detect Current State
 
 Search for store-related configs, version info, existing privacy policy/ToS, CI/CD release workflows. Build inventory of what exists vs. missing.
 
-**Gate:** Inventory complete.
+**Gate:** Inventory complete. If fails → record what was found in `state.data.inventory` as a partial inventory, mark the missing config type (store configs, version info, privacy policy, CI workflows) as absent rather than unknown, and proceed to Phase 3 — missing entries become FAIL findings in the review scope.
 
 ### Phase 3: Generate [setup, listing, aso, privacy, review]
 
@@ -198,7 +198,7 @@ Scan project for top rejection triggers. Each check produces PASS/FAIL with file
 10. **Data deletion [HIGH]:** Search for account deletion UI flow. Both stores require in-app account deletion mechanism. Missing → FAIL.
 11. **SDK & build requirements [MEDIUM]:** Check minimum SDK version. Starting April 2026: all iOS submissions must use iOS 26 SDK.
 
-**Gate:** All listing, ASO, and review artifacts generated.
+**Gate:** All listing, ASO, and review artifacts generated. If fails → identify which artifact generation failed (listing metadata, ASO analysis, privacy labels, review scan), log the failed artifact to `state.data.metadata_generated` with status `failed`, mark the overall phase as `partial`, and continue generating remaining artifacts; surface all failed artifacts in Phase 6 summary as WARN items requiring manual completion. For live policy fetch failures (App Store Connect, Play Console), use fallback values from references/scoring.md and annotate the affected artifact as "(fallback values used — verify before submission)".
 
 ### Phase 4: Release Management [release, post-launch]
 
@@ -206,13 +206,13 @@ Scan project for top rejection triggers. Each check produces PASS/FAIL with file
 
 **Post-launch monitoring:** Checklist covering crash-free rate targets, store rating tracking, review response, download monitoring, update cadence, force-update thresholds.
 
-**Gate:** Release artifacts generated.
+**Gate:** Release artifacts generated. If fails → identify which release artifact could not be generated (version bump suggestion, release notes, staged rollout plan, post-launch checklist), log each as `failed` in `state.data.metadata_generated`, proceed with successfully generated artifacts, and list the failures in Phase 6 summary with "manual action required".
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → record the unresolved item in `state.data.checklist_progress` with disposition `pending-user-decision`, proceed to Summary marking overall status as WARN, and list all unresolved needs_approval items prominently so the user can act on them outside this session.
 
 ### Phase 6: Summary
 
@@ -224,7 +224,7 @@ Include checklist of remaining items before submission.
 
 FRC+DSC accounting.
 
-**Gate:** Summary printed with submission readiness status.
+**Gate:** Summary printed with submission readiness status. If fails → write a partial summary with the data available: list all phases that completed, all artifacts generated (even if partial), all open CRITICAL/HIGH findings, and mark the overall status as FAIL with "Summary incomplete — state preserved in ds/audit/launch.json for resume."
 
 ## Quality Gates
 

@@ -97,7 +97,7 @@ Deep performance analysis beyond tactical `performance` scope. Checks areas requ
 
 Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] → Summary
 
-### Phase 1: Setup [SKIP if --auto]
+### Phase 1: Setup [SKIP if --auto — except step 1 Recovery Check]
 
 1. **Recovery check:** DETECT `ds/audit/review.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read files referenced by pending findings, discard findings whose file:line changed), skip `done` phases, announce `[REV] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
 2. **State `data` shape:** `{ mode, scopes_selected, scopes_done[], findings[{id, severity, file, line, scope, title, disposition}], fixed_count, failed_count, needs_approval[] }`.
@@ -110,7 +110,7 @@ Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] �
 6. **Scope selection.** If no `--scope` flag, ask which scopes to check (default: all for selected mode)
 7. If uncommitted changes detected, ask: continue / stash first / cancel
 
-**Gate:** Mode and scope selection confirmed (explicitly or via flags).
+**Gate:** Mode and scope selection confirmed (explicitly or via flags). If fails → re-present the mode/scope menu; if the user declines all options or gives no response after 2 prompts, exit with WARN "No mode selected — run /ds-review with --tactical, --strategic, or --perf to proceed."
 
 ### Phase 2: Analyze
 
@@ -124,7 +124,7 @@ The auto-invoke step MAY be skipped via `--no-bootstrap` for testing, in which c
 **Findings file check:** If `ds/audit/findings.md` exists and its `git_hash` matches current HEAD, filter findings by active scopes. Per matching finding:
 1. Read file:line and surrounding context (±10 lines)
 2. Verify finding is still valid (code may have changed since analysis)
-3. If confirmed → add to fix list. If false positive or already resolved → discard silently.
+3. If confirmed → add to fix list. If false positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved` and record in state file with reason; both count as Skipped in the FRC accounting.
 4. After verification, proceed to fix confirmed findings.
 
 Skip own analysis for scopes covered by findings file. For scopes NOT in findings file, run own analysis below.
@@ -141,7 +141,7 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity.
 
 Wait for all batches before proceeding.
 
-**Gate:** If findings = 0 -> print "All {N} checks evaluated across {scopes}: 0 findings" confirmation line, then skip to summary. This distinguishes a clean result from a skipped analysis.
+**Gate:** If findings = 0 -> print "All {N} checks evaluated across {scopes}: 0 findings" confirmation line, then skip to summary. This distinguishes a clean result from a skipped analysis. If fails (analysis incomplete or bootstrap invocation of /ds-blueprint did not return) → mark affected scopes as `inconclusive` in state, log "bootstrap incomplete — scopes {names} unanalyzed", proceed to summary with partial results and WARN status.
 
 **CRITICAL escalation:** If any CRITICAL finding detected, re-read full file section (±20 lines around finding) and verify it's genuine CRITICAL — not false positive from pattern matching. If evidence is insufficient, downgrade to HIGH. Only confirmed CRITICALs proceed to fix plan.
 
@@ -162,7 +162,7 @@ Display Current vs Ideal table. Technology assessment: evaluate key decisions as
 
 Categorize recommendations by effort/impact: Quick Win -> Moderate -> Complex -> Major.
 
-**Gate:** Current vs Ideal table and categorized recommendations produced.
+**Gate:** Current vs Ideal table and categorized recommendations produced. If fails → for any metric that could not be computed (e.g., coverage tool absent, coupling analysis incomplete), insert a `?` in the Current column with a note "metric unavailable — {reason}", output the partial table, and continue; do not block on missing metrics.
 
 ### Phase 4: Plan Review (skip if --auto)
 
@@ -173,7 +173,7 @@ Print findings table (ID, severity, title, file:line). Ask:
 - **Review Each** — approve each finding individually
 - **Report Only** — no fixes, just the report
 
-**Gate:** User selected a plan action (Fix All / By Severity / Review Each / Report Only).
+**Gate:** User selected a plan action (Fix All / By Severity / Review Each / Report Only). If fails → re-present the four options once; if no selection after 2 attempts, default to Report Only and note the default in state.data.plan_action.
 
 ### Phase 5: Apply [SKIP if --preview]
 
@@ -194,7 +194,7 @@ After all fixes: run available lint/type/test checks. If fixes introduce new err
 
 Per fix, include education: why (impact if unfixed), avoid (anti-pattern), prefer (correct pattern).
 
-**Gate:** All approved fixes applied and lint/type/test checks pass (or max 3 fix-verify iterations exhausted).
+**Gate:** All approved fixes applied and lint/type/test checks pass (or max 3 fix-verify iterations exhausted). If fails → revert the offending fix via `git checkout -- {file}`, record the finding as `failed` in state.data.findings with the lint/type/test error captured, and continue applying remaining approved fixes.
 
 ### Phase 5a: Needs-Approval Review [CONDITIONAL]
 
@@ -203,13 +203,13 @@ Items flagged `needs_approval` (cross-module changes, architectural decisions):
 - **--force-approve:** Apply all needs_approval items without asking
 - **Interactive:** Present needs_approval items. Ask: Apply All / Review Each / Skip All
 
-**Gate:** All needs_approval items resolved (applied, skipped, or deferred).
+**Gate:** All needs_approval items resolved (applied, skipped, or deferred). If fails → if the user declined to respond, mark all unresolved items as `deferred` in state.data.needs_approval and record `deferred (user did not respond)` as disposition; proceed to Phase 5b.
 
 ### Phase 5b: CRITICAL Escalation
 
 If any CRITICAL finding detected: flag for manual review before auto-fixing. In interactive mode, show finding with full context and ask for explicit confirmation. CRITICAL findings should be verified with extra scrutiny — re-read file section and surrounding context.
 
-**Gate:** Every CRITICAL finding explicitly confirmed or downgraded before fix.
+**Gate:** Every CRITICAL finding explicitly confirmed or downgraded before fix. If fails (user does not respond to confirmation prompt) → do not apply the CRITICAL fix; mark the finding as `deferred (awaiting manual review)` in state.data.findings, include it in the Needs Approval section of the summary, and continue with non-CRITICAL fixes.
 
 ### Phase 6: Loop (--loop flag, tactical only)
 
@@ -220,7 +220,7 @@ If applied > 0:
 
 Max 3 iterations. Summary shows per-iteration breakdown.
 
-**Gate:** Zero new findings on re-analysis, or max 3 iterations reached.
+**Gate:** Zero new findings on re-analysis, or max 3 iterations reached. If fails (new findings still appear after 3 iterations) → record remaining findings in state.data.findings with disposition `open (loop exhausted)`, set summary status to WARN, and report the count of unresolved cascade findings to the user.
 
 ### Phase 7: Summary
 
@@ -260,7 +260,7 @@ Fixed: {n} | Skipped: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
 
 Status: OK (failed=0), WARN (failed>0 no CRITICAL), FAIL (CRITICAL unfixed or error).
 
-**Gate:** Summary table printed and `fixed + failed + skipped + needs_approval + not_applicable = total` verified. Every finding has a disposition.
+**Gate:** Summary table printed and `fixed + failed + skipped + needs_approval + not_applicable = total` verified. Every finding has a disposition. If fails (accounting does not balance) → identify findings missing a disposition, assign `failed (disposition missing)` to each, reprint the summary table, and set status to WARN so the imbalance is visible.
 
 ## Score Calculation
 

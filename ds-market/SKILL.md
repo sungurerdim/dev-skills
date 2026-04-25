@@ -126,13 +126,13 @@ Setup → Research → Generate → Review → [Needs-Approval] → Summary
 2. Gather context: what app does (read README), platform, stage, target user, monetization model.
 3. If insufficient, ask for: one-line description, target audience, top 3 competitors.
 
-**Gate:** Product context sufficient to generate relevant strategy.
+**Gate:** Product context sufficient to generate relevant strategy. If fails → re-prompt user for the minimum required fields: one-line description, target audience, and monetization model; if user provides no response after 3 prompts, exit with WARN "Insufficient product context — re-run /ds-market and provide a one-line description when prompted."
 
 ### Phase 2: Research [--strategy]
 
 Identify 3-5 direct competitors, analyze positioning (taglines, features, pricing), identify differentiation opportunities.
 
-**Gate:** Competitive landscape understood.
+**Gate:** Competitive landscape understood. If fails → if fewer than 3 competitors could be identified (no web results, niche market), proceed with the competitors found (even 0) and record `state.data.context.competitors` as the partial list; generate positioning using the "Contrarian" or "Philosophy-first" template which does not require competitor data, and note in the deliverable that competitor analysis was incomplete.
 
 ### Phase 3: Generate
 
@@ -161,19 +161,19 @@ Identify 3-5 direct competitors, analyze positioning (taglines, features, pricin
 3. Generate referral program design
 4. Generate community engagement plan
 
-**Gate:** All requested artifacts generated.
+**Gate:** All requested artifacts generated. If fails → identify which artifact failed (positioning statement, taglines, store descriptions, social posts, growth tactics), log the failed artifact to `state.data.deliverables_generated` with status `failed`, continue generating the remaining artifacts, and mark failed artifacts as `[DRAFT — generation incomplete]` in the summary with instructions for manual completion.
 
 ### Phase 4: Review
 
 Verify: no false feature claims, no dark patterns (manipulative urgency, hidden costs), accessibility (alt text, contrast), all store listing content within character limits.
 
-**Gate:** All content passes review.
+**Gate:** All content passes review. If fails → for each failing artifact, apply the specific correction inline (remove the forbidden word, rephrase the feature-first opening, correct the character count violation) and re-check; if the artifact still fails after one correction pass, mark it as `[DRAFT — requires manual review]` in `state.data.deliverables_generated` and include it in the Phase 6 summary as a flagged item rather than blocking the skill.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → record the unresolved item in `state.data.deliverables_generated` with disposition `pending-user-decision`, proceed to Summary with status WARN, and list all unresolved needs_approval items so the user can action them outside this session.
 
 ### Phase 6: Summary
 
@@ -190,7 +190,7 @@ Next steps:
 3. {third action}
 ```
 
-**Gate:** Summary printed with all generated artifact list and next steps.
+**Gate:** Summary printed with all generated artifact list and next steps. If fails → write a partial summary listing all completed deliverables and their status (including any marked `[DRAFT]`), omit only deliverables that were never started, and mark overall status as WARN with "Summary incomplete — re-run /ds-market --resume to continue."
 
 ## Quality Gates
 

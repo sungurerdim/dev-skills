@@ -99,7 +99,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 4. Detect deployment signals: Dockerfile, docker-compose.yml, Procfile, serverless.yml, fly.toml, vercel.json
 5. Detect target: VPS, PaaS, serverless, container orchestration
 
-**Gate:** Mode and context confirmed.
+**Gate:** Mode and context confirmed. If fails → re-present the interactive mode menu; if context signals are absent (no Dockerfile, no target detected), prompt user: "What is your deployment target? (VPS / PaaS / serverless / container)" — abort with WARN if no response after 3 prompts.
 
 ### Phase 2: Discover
 
@@ -109,7 +109,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 4. Search for environment variables and secrets management
 5. Build inventory: services, ports, volumes, external dependencies
 
-**Gate:** Inventory complete.
+**Gate:** Inventory complete. If fails → log each undiscoverable config to `state.inventory` as `{ file: "<path>", status: "not_found" }`, mark inventory as `partial`, continue analysis with whatever was found; surface a MEDIUM finding "incomplete inventory — some deployment configs could not be located".
 
 ### Phase 3: Analyze [--audit, --checklist]
 
@@ -162,7 +162,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 - `.env.example` stub generated alongside any new env var consumed
 - Strict separation: secrets (never committed) vs config (committed, env-overridable) vs constants (immutable)
 
-**Gate:** All applicable checks completed with file:line findings.
+**Gate:** All applicable checks completed with file:line findings. If fails → for each check area that could not be completed, log it to `state.findings` as `{ severity: "MEDIUM", area: "<area>", disposition: "inconclusive" }` and note the blocking reason (e.g., file unreadable, unexpected format); continue to Phase 4 with the findings collected so far.
 
 ### Phase 4: Generate [--generate]
 
@@ -174,7 +174,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 
 Present generated files for review before writing.
 
-**Gate:** Generated files are syntactically valid.
+**Gate:** Generated files are syntactically valid. If fails → identify the invalid file(s) by name, show the specific syntax error, fix the error inline and re-validate; if a file cannot be made valid after one retry, skip writing that file, add it to `state.configs_generated` with `status: "failed (syntax error)"`, and surface the raw error to the user for manual correction.
 
 ### Phase 5: Monitor Setup [--monitor]
 
@@ -184,7 +184,7 @@ Present generated files for review before writing.
 4. Generate uptime monitoring configuration
 5. Generate alert rules (error rate > 5%, response time > 2s, disk > 80%)
 
-**Gate:** Monitoring configs are valid and PII redaction is configured.
+**Gate:** Monitoring configs are valid and PII redaction is configured. If fails → if PII redaction is missing, block writing the crash-reporting config and prompt user to confirm redaction rules (field names to scrub) before proceeding; if a monitoring config is syntactically invalid, fix inline and re-validate once; still invalid → skip that config, record `status: "failed (invalid config)"` in `state.configs_generated`, continue with remaining monitoring outputs.
 
 ### Phase 6: Incident Response [--incident]
 
@@ -193,13 +193,13 @@ Present generated files for review before writing.
 3. Generate post-mortem template
 4. Generate rollback procedure documentation
 
-**Gate:** Procedure covers all severity levels.
+**Gate:** Procedure covers all severity levels. If fails → identify which severity levels (P1–P4) are missing coverage, generate stubs for the missing levels with a `# TODO: fill in escalation contact and mitigation steps` placeholder, record each stub in `state.configs_generated` with `status: "partial"`, and surface a HIGH finding "incomplete incident procedure — severity levels {missing} need review".
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → any item left unresolved after user interaction (e.g., user dismissed without choosing): mark it `skipped (no decision)` and continue to Summary; do not retry the prompt.
 
 ### Phase 8: Summary
 
@@ -209,7 +209,7 @@ ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | 
 
 `--auto` used → append to summary: `⚠ Generated without interactive review`.
 
-**Gate:** Summary printed with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
+**Gate:** Summary printed with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified. If fails → any finding without a disposition is assigned `skipped (accounting gap)` and the summary is re-emitted as `WARN`; state file is NOT deleted so the partial run is preserved for `--resume`.
 
 ## Quality Gates
 

@@ -58,7 +58,7 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 3. **Blueprint profile check.** Search for `## Blueprint Profile`. Found → read project type, stack, audience, priorities. Absent → proceed with own detection + prompt for problem definition.
 
-**Gate:** Profile located or problem definition ready to be asked.
+**Gate:** Profile located or problem definition ready to be asked. If fails → no blueprint profile found and own detection yielded insufficient signals (e.g., empty repo, no manifest); prompt user directly: "No project profile found — describe the problem space in one sentence." If user declines to provide it, abort with: `Cannot benchmark without problem definition.`
 
 ### Phase 2: Define Problem Space
 
@@ -69,7 +69,7 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
    - Non-negotiable constraints (keep language, keep framework, keep primary DB, etc.).
 3. Present the extracted definition back to user: "Researching ideal for: {problem} for {audience} under {constraints} — confirm? [Y/n]".
 
-**Gate:** Problem space confirmed verbatim by user.
+**Gate:** User has confirmed the problem space. Accept any affirmative: `y`, `yes`, `ok`, `confirmed`, `looks good`. If user suggests changes → apply them, redisplay the updated problem statement, ask for re-confirmation. If user declines or asks to abort → exit cleanly. If fails (no response or ambiguous response after 2 prompts) → treat as implicit confirmation of the auto-extracted problem statement, add WARN note `"Problem space auto-confirmed — no explicit user confirmation received"` to state, and proceed.
 
 ### Phase 3: Research
 
@@ -90,7 +90,7 @@ For each competitor, record:
 | Weaknesses | Concrete dimensions where they fall short |
 | Architecture signal | Public info on stack / module layout / data model |
 
-**Gate:** ≥3 competitors at T1+T2, each with a strengths/weaknesses table.
+**Gate:** ≥3 competitors at T1+T2, each with a strengths/weaknesses table. If fails → `/ds-research` returned fewer than 3 T1+T2 sources; expand search with problem-space synonyms and retry once; still insufficient → proceed with available set, flag `low-sample-size: true` in state.data.competitors, and note "Ideal synthesis may be speculative due to limited comparables" in the report.
 
 ### Phase 4: Synthesize Ideal
 
@@ -111,7 +111,7 @@ Output as `ideal` block in state:
 }
 ```
 
-**Gate:** Every active scope has an ideal paragraph.
+**Gate:** Every active scope has an ideal paragraph. If fails → one or more dimensions have insufficient competitor signals (all sources were T3 or inaccessible); write a `[LOW CONFIDENCE]`-tagged placeholder paragraph for each unsynthesized dimension using only the security baseline from `references/principles.md §5`, flag those dimensions as `speculative` in state.data.ideal, and note them in the gap table header.
 
 ### Phase 5: Gap Table
 
@@ -135,7 +135,7 @@ Category rules:
 
 Write gap entries to `ds/audit/findings.md` with `scope=ideal-gap` and the `category` column set.
 
-**Gate:** Every dimension has at least one row (or an explicit "no gap" entry).
+**Gate:** Every dimension has at least one row (or an explicit "no gap" entry). If fails → dimension was marked `speculative` in Phase 4 and current state is also unknown (no blueprint profile, no `ds/audit/findings.md`); insert an explicit `"current: unknown — insufficient data"` row with `gap_type: unknown`, `category: B`, and `proposal: "Manual assessment required"` so consumers are not silently missing a dimension.
 
 ### Phase 6: Approve
 
@@ -149,7 +149,7 @@ Per "Intentional deviation" decision, offer to invoke `/ds-docs --adr` to record
 
 Category A gaps are recorded as findings but not executed here — this skill does not apply fixes. Consumers (ds-ship, ds-review) pick up `scope=ideal-gap` A findings and execute.
 
-**Gate:** Every B gap has a decision.
+**Gate:** Every B gap has a decision. If fails → user skipped one or more B gaps without choosing Close / Defer / Intentional deviation; re-present each undecided gap individually and require a choice; if user still declines, record `decision: deferred (no response)` in state.data.gaps so no gap is left in an unknown state.
 
 ### Phase 7: Record
 
@@ -158,7 +158,7 @@ Category A gaps are recorded as findings but not executed here — this skill do
 3. Each `defer` decision → finding remains with `disposition=deferred`.
 4. Each `intentional-deviation` decision → finding marked `disposition=skipped (intentional)`, ADR written to `docs/adr/NNNN-{slug}.md` if user agreed.
 
-**Gate:** Every B gap persisted with its decision.
+**Gate:** Every B gap persisted with its decision. If fails → `ds/audit/findings.md` write failed (e.g., file locked, disk error); write gap decisions to state.data.gaps as a fallback, surface the write error with the target path and OS error message, and ask user to resolve the file conflict before re-running Phase 7.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
@@ -185,7 +185,7 @@ Summary line:
 
 On success: delete `ds/audit/benchmark.json`. If `ds/audit/` empties, remove the directory.
 
-**Gate:** Every gap has exactly one decision. Accounting balances.
+**Gate:** Every gap has exactly one decision. Accounting balances. If fails → accounting mismatch (Close + Defer + Intentional + Skipped ≠ total gaps); identify which gap IDs are missing a decision in state.data.gaps, assign `decision: deferred (accounting-fix)` to each, recompute the summary table, and add a WARN line: `"N gap(s) auto-deferred to balance accounting"`.
 
 ## Quality Gates
 

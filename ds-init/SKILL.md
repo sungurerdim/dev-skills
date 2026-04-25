@@ -79,25 +79,38 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 4. Ask for stack choice within selected type
 5. Ask: `--minimal` or `--full`? (default: full)
 
-**Gate:** Project type and stack confirmed. Ambiguous → ask user.
+**Gate:** Project type and stack confirmed. Ambiguous → ask user. If fails → if the user does not respond to the type/stack prompt after two attempts, exit cleanly with "ds-init: ABORTED — project type required to proceed"; do not generate any files.
 
 ### Phase 2: Detect Existing Setup
 
 1. Scan for existing config files (.eslintrc, tsconfig, Dockerfile, .github/workflows, etc.) → mark as SKIP.
 2. Report: "Found N existing config files — these will be preserved."
 
-**Gate:** Conflict list confirmed. User wants to overwrite specific files → confirm each.
+**Gate:** Conflict list confirmed. User wants to overwrite specific files → confirm each. If fails → if the user does not respond to an overwrite confirmation prompt, default to SKIP for that file, announce the skip, and continue scanning; re-run the skill after resolving conflicts to regenerate skipped files.
 
 ### Phase 3: Generate Structure
 
 Create project files following [references/rules-scaffold.md](references/rules-scaffold.md).
 
 1. Create directory structure for selected type
-2. Generate configuration files:
+2. Generate configuration files. Per-stack tool selection (use the primary tool for each detected stack):
+
+   | Stack | Formatter | Linter | Type checker |
+   |-------|-----------|--------|-------------|
+   | node | prettier (or biome if present) | eslint (or biome if present) | tsc (when tsconfig.json) |
+   | python | ruff format (or black) | ruff (or flake8 + pylint) | mypy or pyright |
+   | go | gofmt | go vet + golangci-lint | (built-in) |
+   | rust | rustfmt | clippy | (built-in) |
+   | flutter / dart | dart format | dart analyze | (built-in) |
+   | ruby | rubocop --format | rubocop | sorbet (if present) |
+   | jvm | google-java-format / ktlint | spotbugs / detekt | (compiler) |
+   | swift | swift-format | swiftlint | (compiler) |
+   | dotnet | dotnet format | (built-in) | (compiler) |
+
+   Generated files per stack:
    - Editor config: `.editorconfig`, `.vscode/settings.json` (optional)
-   - Linting: language-appropriate linter config
-   - Formatting: language-appropriate formatter config
-   - TypeScript/type config: `tsconfig.json`, `pyproject.toml`, etc.
+   - Linter + formatter configs from the table above
+   - TypeScript/type config: `tsconfig.json` (node), `pyproject.toml` `[tool.mypy]` (python), etc.
    - Git: `.gitignore` (comprehensive for stack)
    - Environment: `.env.example` with documented variables (never `.env` with real values)
 3. Generate CI workflow:
@@ -122,7 +135,7 @@ Create project files following [references/rules-scaffold.md](references/rules-s
 
 Generate independent files in parallel (configs, CI, Docker).
 
-**Gate:** All files created. Verify no file conflicts.
+**Gate:** All files created. Verify no file conflicts. If fails → for each file that could not be created (permission error, write failure, unexpected conflict): skip that file, record it as `failed (write error)` in the generated list, surface the error with the file path, and continue generating the remaining files; re-run the skill after resolving permissions to generate the skipped files (idempotent — existing files are preserved).
 
 ### Phase 4: Post-Generate Verification
 
@@ -132,13 +145,13 @@ Generate independent files in parallel (configs, CI, Docker).
 4. Check CI workflow references correct paths and commands.
 5. Twelve-Factor checks on generated artifacts ([references/principles.md §3](references/principles.md)): generated `Dockerfile` logs to stdout (no `--logfile=` paths), binds via `$PORT` env var (no hardcoded ports), runs as non-root `USER`, has `HEALTHCHECK`. Generated `docker-compose.yml` uses `restart: unless-stopped`, externalizes config via `environment:` from `.env`. Every CI workflow action is SHA-pinned (no `@v4` style tag references).
 
-**Gate:** All verifications pass. Any fail → fix before summary.
+**Gate:** All verifications pass. Any fail → fix before summary. If fails → for each verification failure: fix the issue inline (e.g., correct YAML syntax, add missing `.gitignore` entry, remove hardcoded port), re-verify once; if the fix cannot be applied automatically (e.g., SHA-pinning requires network lookup), add a `# TODO: SHA-pin this action` comment in the generated file, mark it `partial`, and surface it as a HIGH finding in the summary — do not block summary output.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → any item left unresolved after user interaction: mark it `skipped (no decision)` and proceed to Summary; do not retry the prompt; re-run the skill to revisit skipped items.
 
 ### Phase 6: Summary
 
@@ -168,7 +181,7 @@ Next steps:
 4. Start development: {command}
 ```
 
-**Gate:** Summary printed with generated file list and next steps.
+**Gate:** Summary printed with generated file list and next steps. If fails → if any generated file is missing from the tree output, re-read the file list and add it; if totals do not balance (generated + skipped + failed ≠ total files attempted), assign unaccounted files to `skipped (accounting gap)` and re-emit as `WARN`; since ds-init is exempt from state protocol, re-run the skill to regenerate any failed files.
 
 ## Quality Gates
 

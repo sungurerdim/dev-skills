@@ -91,7 +91,7 @@ Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 
 Per stack: load matching toolchain from `references/toolchains.md`.
 
-**Gate:** At least one stack detected or security-only mode.
+**Gate:** At least one stack detected or security-only mode. If fails → no stack detected and no manifests found: run security scope only (universal secret scan + dependency audit where tools are available), announce "No stack detected — running security scope only", and skip all other scopes.
 
 ### Phase 2: L10n [scope: l10n]
 
@@ -123,7 +123,7 @@ Example l10n frameworks per stack:
 
 Skip silently if no l10n framework detected.
 
-**Gate:** L10n files generated/validated or no l10n framework detected.
+**Gate:** L10n files generated/validated or no l10n framework detected. If fails → if the l10n generation tool (e.g., `flutter gen-l10n`) is not installed, offer to install it (show install command), ask "Install and continue?"; user declines → skip l10n scope, warn in summary; if key mismatches persist after one fix attempt, report the specific mismatched keys in the summary and mark scope `WARN` rather than aborting.
 
 ### Phase 3: Format [scope: format]
 
@@ -135,7 +135,7 @@ Per stack: run canonical formatter.
 4. **Check mode:** run check command, report exit code
 5. Non-default formatter (e.g., Biome instead of Prettier for Node) → detect from config files and use that instead
 
-**Gate:** Format clean before proceeding to lint.
+**Gate:** Format clean before proceeding to lint. If fails → if the formatter tool is unavailable, offer to install it (show install command), ask "Install and continue?"; user declines or system-level tool → skip format scope, warn in summary, and proceed to typecheck; if the formatter exits non-zero after running (format errors remain), report the file count and proceed to typecheck — do not block the pipeline on residual format issues.
 
 ### Phase 4: Typecheck [scope: typecheck]
 
@@ -149,7 +149,7 @@ Per stack: run static type checker if one is configured.
 
 Example: Python project with `pyproject.toml` containing `[tool.mypy]` or `[tool.pyright]` → run configured checker. No config → skip.
 
-**Gate:** Type checker reports zero errors or no type checker configured.
+**Gate:** Type checker reports zero errors or no type checker configured. If fails → if the type checker binary is missing, offer to install it (show install command), ask "Install and continue?"; user declines → skip typecheck scope, warn in summary; if type errors are reported and cannot be auto-fixed (type checkers are read-only), record the error count in the summary table and proceed to lint — type errors do not block subsequent scopes.
 
 ### Phase 5: Lint [scope: lint]
 
@@ -175,7 +175,7 @@ Stack-specific extra checks (search file contents, not tool-dependent):
 | elixir | `IO.inspect` / `IO.puts` | in `lib/` | Use `Logger` module |
 | scala | `println` | in `src/main/` | Use structured logger (e.g., `slf4j`) |
 
-**Gate:** Lint re-check passes after auto-fix or check-mode issues reported.
+**Gate:** Lint re-check passes after auto-fix or check-mode issues reported. If fails → if the linter tool is unavailable, offer to install it (show install command), ask "Install and continue?"; user declines → skip lint scope, warn in summary; if the re-check still shows unfixable errors after auto-fix, report the residual error count and file:line for each, mark scope as `WARN`, and proceed to security — do not re-run lint a second time.
 
 ### Phase 6: Security [scope: security]
 
@@ -198,13 +198,13 @@ Search project files for these patterns, excluding `.git/`, `node_modules/`, `bu
 
 Look up audit command from `references/toolchains.md`. Tool not installed → skip with warning.
 
-**Gate:** Secret scan and dependency audit completed with findings classified.
+**Gate:** Secret scan and dependency audit completed with findings classified. If fails → if the dependency audit tool (e.g., `npm audit`, `pip-audit`) is not installed, skip the dependency sub-phase, warn in summary ("dependency audit skipped — tool unavailable"); secret scan uses built-in pattern matching only (no external tool required) and must always complete — if it fails due to filesystem access error, surface the specific error and mark scope `WARN`; any confirmed secret finding is always CRITICAL and must not be suppressed.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → any item left unresolved after user interaction: mark it `skipped (no decision)` and proceed to Summary; do not retry the prompt.
 
 ### Phase 8: Summary
 
@@ -230,7 +230,7 @@ ds-fix: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 
 FRC+DSC accounting.
 
-**Gate:** Summary table rendered with status per scope and totals.
+**Gate:** Summary table rendered with status per scope and totals. If fails → any scope missing from the table: add it with status `⊘ (skipped)` and detail "not reached"; re-emit the summary as `WARN`; since ds-fix is exempt from state protocol, no state file is preserved — re-run the skill to retry any skipped scopes.
 
 ## Quality Gates
 

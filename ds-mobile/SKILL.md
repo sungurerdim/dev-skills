@@ -93,7 +93,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
    - For `--diff`: read the previous content of `ds/mobile/release.json` before overwriting, compute diff in memory, present in chat. Trend over >1 run → `git log -- ds/mobile/release.json` is authoritative — never a persistent directory of stale per-run reports.
    - Fetch live policy data (see references/scoring.md)
 
-**Gate:** Platform identified, mode and scope confirmed, regulatory frameworks resolved.
+**Gate:** Platform identified, mode and scope confirmed, regulatory frameworks resolved. If fails → if platform cannot be auto-detected, prompt user to select from Flutter / React Native / iOS / Android / Cross-platform and record in `state.data.platform`; if mode or scope is not confirmed after prompting, default to `audit` mode with `all` domains and warn the user; if regulatory framework detection is ambiguous, ask the user to confirm which frameworks apply before proceeding.
 
 ### Phase 2: Architecture Discovery [SKIP if 1-2 domains]
 
@@ -107,7 +107,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 **Critical rule:** CAT-2 fixes are NEVER applied without user approval.
 
-**Gate:** Architecture confirmed by user, every rule classified as CAT-1 or CAT-2, scope finalized with approved enhancements.
+**Gate:** Architecture confirmed by user, every rule classified as CAT-1 or CAT-2, scope finalized with approved enhancements. If fails → if the user provides no corrections and no enhancement selections within one re-prompt, treat the auto-detected architecture as confirmed, classify all unclassified rules as CAT-1, include zero CAT-2 enhancements, record this in `state.data.frameworks_detected`, and proceed to Phase 3 with a note that architecture was auto-confirmed.
 
 ### Phase 3: Rule Loading
 
@@ -121,7 +121,7 @@ Load only reference files matching scope:
 | release (release-ready mode) | [rules-release.md](references/rules-release.md) |
 | release-ready scoring | [scoring.md](references/scoring.md) |
 
-**Gate:** All reference files for in-scope domains loaded successfully; unloadable domains marked N/A.
+**Gate:** All reference files for in-scope domains loaded successfully; unloadable domains marked N/A. If fails → for any reference file that cannot be loaded, mark its domains as N/A in `state.data.scopes_done` with reason "reference file unavailable", skip those domains in Phase 4, and surface them in the Phase 9 summary as "domains skipped: {list} — reference files not found".
 
 ### Phase 4: Scan
 
@@ -143,7 +143,7 @@ Load only reference files matching scope:
 
 **Recovery (context lost):** Progress checklist → read `ds/audit/findings.md` → resume from first incomplete domain. Never re-scan completed domains.
 
-**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
+**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence. If fails → re-read the progress checklist and `ds/audit/findings.md` to identify the last completed domain; resume scanning from the first incomplete domain without re-scanning completed ones; if a specific domain scan fails after retry (file unreadable, context lost), mark that domain as `partial` in `state.data.scopes_done` with the findings collected so far and continue to the next domain.
 
 ### Phase 5: Report
 
@@ -175,7 +175,7 @@ Per references/scoring.md: 100-point dynamic scoring across 7 dimensions, manual
 
 Include: policy values used (fetched vs fallback), dimension breakdown with bar chart, findings by severity, manual gate status, and "if you publish now" consequence table for CRITICAL+HIGH.
 
-**Gate:** Report presented to user with all findings, severities, and summary table.
+**Gate:** Report presented to user with all findings, severities, and summary table. If fails → if any domain produced no findings due to a scan error (not because it was clean), re-run the scan for that domain once; if it still fails, present the report with the failed domains clearly marked as "scan incomplete" and their findings count as "?" in the summary table.
 
 ### Phase 6: Post-Report
 
@@ -186,7 +186,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 | `quick-fix` | Auto-transition, auto-apply all |
 | `release-ready` | Ask: Fix plan / Save report only / Guidance for key findings |
 
-**Gate:** User selected post-report action; mode-specific next step determined.
+**Gate:** User selected post-report action; mode-specific next step determined. If fails → if the user provides no selection after one re-prompt, apply the mode default: `audit` → Report only; `audit+fix` → Fix all; `quick-fix` → Auto-apply all; `release-ready` → Save report only. Record the defaulted action in `state.data.fix_progress` and proceed.
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 
@@ -194,13 +194,13 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask; `release-ready` → show auto-fixable vs guidance split.
 3. **Execute.** Apply grouped by file. Re-read before and after each edit. Record applied/failed/skipped.
 
-**Gate:** All standard fixes attempted; each recorded as applied, failed, or skipped.
+**Gate:** All standard fixes attempted; each recorded as applied, failed, or skipped. If fails → for any finding where the fix could not be attempted (file unreadable, edit error), record it as `failed` in `state.data.findings[].disposition`, revert any partial edit via re-read and restore, continue with the next finding, and list all failed fixes in the Phase 9 summary with the reason.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → record the unresolved item in `state.data.findings[].disposition` as `pending-user-decision`, proceed to Summary with status WARN, and list all unresolved needs_approval items prominently so the user can address them outside this session.
 
 ### Phase 9: Summary
 
@@ -212,7 +212,7 @@ ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fi
 
 FRC+DSC accounting.
 
-**Gate:** Fixed + failed + skipped + needs_approval + not_applicable = total findings; every modified file re-read and verified; mobile-scoped findings removed from `ds/audit/findings.md`.
+**Gate:** Fixed + failed + skipped + needs_approval + not_applicable = total findings; every modified file re-read and verified; mobile-scoped findings removed from `ds/audit/findings.md`. If fails → if the counts do not reconcile, identify which finding lacks a disposition, assign it `failed` with reason "disposition not recorded", re-run the summary count; if `ds/audit/findings.md` cleanup fails, warn the user and leave the file intact rather than partially modifying it.
 
 ## Quality Gates
 

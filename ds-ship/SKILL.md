@@ -123,7 +123,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 9. **Skill sequence proposal.** Combine stage + project type → propose the sequence per the matrix, adjusted by user answers. Show the plan; user confirms or trims.
 
-**Gate:** Value proposition confirmed. Skill sequence approved. `ds/audit/ship.json` has populated stage + type + promise census + sequence. No execution past this gate without approval.
+**Gate:** Value proposition confirmed. Skill sequence approved. `ds/audit/ship.json` has populated stage + type + promise census + sequence. No execution past this gate without approval. If fails (user cannot confirm value proposition or does not approve the sequence) → abort orchestration with message "ds-ship: aborted — value proposition or skill sequence not confirmed. Re-run after clarifying the project's purpose or use --stage=X to override classification." Do not proceed with vague or unconfirmed plan.
 
 ### Phase 1: Ideal-vs-Current Gap
 
@@ -132,7 +132,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 3. **Merge with promise census.** `promised-not-implemented` entries join the gap table as `missing` with `source=promise`.
 4. **Approval batch.** Present all Category B gaps in one block — close / defer / intentional-deviation. For each intentional deviation, optionally invoke `/ds-docs --adr` to record the rationale.
 
-**Gate:** Every Category B gap has a decision. Category A gaps queued for Phase 2 execution.
+**Gate:** Every Category B gap has a decision. Category A gaps queued for Phase 2 execution. If fails (user declines to decide on one or more B gaps) → mark undecided gaps as `deferred` in state.data.category_B_batch, add them to the report's "Awaiting User Decision" section, and continue to Phase 2 with Category A gaps only.
 
 ### Phase 2: Rule-Based Deep Audit (via delegation only)
 
@@ -145,7 +145,7 @@ Sequenced per the approved plan. One skill at a time. Orchestration loop per del
 
 3. **Invoke** the skill via the host tool's skill-invocation mechanism. Pass only documented arguments.
 
-4. **Wait for done.** The delegated skill finishes when its own Summary phase completes and its `ds/audit/<skill>.json` is deleted. `ds/audit/findings.md` reflects new entries.
+4. **Wait for done.** A delegated skill is considered complete when ANY of these holds: (a) its `ds/audit/<skill>.json` state file no longer exists, OR (b) its Summary line was emitted in chat output, OR (c) `ds/audit/findings.md` has new entries with the delegated skill's `source` since pre-delegation. If none holds within the user-driven turn (skill never reported back) → mark delegation as `failed` in the orchestration log, log `delegated skill {name} did not signal completion`, and proceed to next delegation. Never block waiting for a deletion event the orchestrator cannot observe.
 
 5. **Re-read findings diff.** Only entries added since pre-delegation are new. Classify each as A or B using Phase 0 rules.
 
@@ -169,7 +169,7 @@ Sequenced per the approved plan. One skill at a time. Orchestration loop per del
 
 **Category B batch at end of Phase 2.** Present all B items with impact / effort / risk. Modes: interactive → Apply All / Review Each / Skip All / Defer. `--auto` without `--force-approve` → list + skip. `--force-approve` → apply all. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
 
-**Gate:** Every queued delegation `done`. Every B item has a decision. `ds/audit/findings.md` reflects current state.
+**Gate:** Every queued delegation `done`. Every B item has a decision. `ds/audit/findings.md` reflects current state. If fails (a delegated skill did not signal completion or a B item has no decision) → log each incomplete delegation as `failed` in the orchestration log with reason "did not signal completion", mark undecided B items as `deferred`, and continue to Phase 3 with whatever findings were collected; do not block the orchestration on a single failed delegation.
 
 ### Phase 3: Simplify
 
@@ -178,7 +178,7 @@ Sequenced per the approved plan. One skill at a time. Orchestration loop per del
 3. **Every simplify finding is Category B.** Present batch, user approves per scope.
 4. Approved items handled by ds-simplify (deletion + commit per batch).
 
-**Gate:** Every simplify finding has a decision; every approved deletion committed.
+**Gate:** Every simplify finding has a decision; every approved deletion committed. If fails (ds-simplify delegation did not complete or a batch commit failed) → log the incomplete delegation in the orchestration log as `failed (simplify batch not committed)`, record affected simplify finding IDs in state.data.category_B_batch as `deferred`, and continue to Phase 4.
 
 ### Phase 4: Documentation Audit & Optimization
 
@@ -204,7 +204,7 @@ Delegate to `/ds-docs`:
 
 Optionally invoke `/ds-docs --adr` to record architectural decisions surfaced in Phase 1 or Phase 2.
 
-**Gate:** Every context-loading doc has before/after token count. Doc drift delta reported.
+**Gate:** Every context-loading doc has before/after token count. Doc drift delta reported. If fails (a doc could not be read or token count tool is unavailable) → log the unprocessed doc as `skipped (unreadable)` in the orchestration log, estimate token count as "N/A", and continue; report the doc name in the Phase 6 report under a "Documentation gaps" note.
 
 ### Phase 5: Launch Gates
 
@@ -220,7 +220,7 @@ Triggered when `stage ∈ {pre-launch, launched}` or user explicitly requested s
 - Invoke `/ds-repo --oss-ready`.
 - Every OSS-readiness finding is Category B (most are user-visible).
 
-**Gate:** Every Phase 5 delegation `done`. All B items have decisions.
+**Gate:** Every Phase 5 delegation `done`. All B items have decisions. If fails (a launch-gate skill — ds-devops, ds-deploy, ds-launch, or ds-repo — did not signal completion) → log the delegation as `failed` in the orchestration log, mark its B items as `deferred`, set ship-readiness flag to `no` in state for those gates, and continue to Phase 5c.
 
 ### Phase 5c: PR Suggestion [optional — suggestion only, never forces]
 
@@ -254,7 +254,7 @@ Response handling:
 
 **Report note:** Phase 6 report includes one line: `PR: {url} | declined-this-run | not-applicable ({reason}) | muted`.
 
-**Gate:** Decision recorded in state (yes / declined / not-applicable / muted). Step never blocks progression.
+**Gate:** Decision recorded in state (yes / declined / not-applicable / muted). Step never blocks progression. If fails (user does not respond or response is unrecognizable) → record `pr_suggested: no_response` in state, treat as `declined (this run)`, and continue to Phase 6 without further prompting.
 
 ### Phase 6: Consolidated Report
 
@@ -333,13 +333,13 @@ Self-contained, offline, ASCII-only. Sections:
 
 Inline CSS + inline SVG + inline Mermaid (statically rendered SVG, not JavaScript-rendered — so offline opens render instantly). No external CDN, no remote font, no remote script.
 
-**Gate:** `ds/audit/report.md` written. `ds/audit/report.html` written if `--html`.
+**Gate:** `ds/audit/report.md` written. `ds/audit/report.html` written if `--html`. If fails → if `ds/audit/report.md` cannot be written (e.g., path unwritable), surface the error to the user and print the full report to chat output as fallback; if `ds/audit/report.html` fails (Mermaid render error or write failure), fall back to ASCII art flow in a `<pre>` block and flag in the report header — do not block Phase 7.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
 Remaining unresolved B items (rare — most resolved inline per phase). Present. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
 
-**Gate:** All needs-approval resolved.
+**Gate:** All needs-approval resolved. If fails (user declines to resolve one or more items) → mark unresolved items as `skipped (user declined)` in state, include them in the Phase 6 report's "Awaiting User Decision" section, and proceed to Phase 8 summary.
 
 ### Phase 8: Summary
 
@@ -349,7 +349,7 @@ FRC+DSC accounting. Output:
 
 On success: delete `ds/audit/ship.json`. Keep `ds/audit/findings.md` and `ds/audit/report.md` — they remain for follow-up runs. Use `--clean-all` to wipe `ds/audit/` entirely.
 
-**Gate:** Every A/B item has a disposition. Accounting balances.
+**Gate:** Every A/B item has a disposition. Accounting balances. If fails (accounting does not balance) → identify items without a disposition, assign `failed (disposition missing)` to each, reprint the summary line with corrected counts, and set status to WARN so the imbalance is visible in the output.
 
 ## Report Format
 

@@ -103,7 +103,7 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
 
 6. **Scope parsing.** Map selection to reference files. Default: all scopes.
 
-**Gate:** Framework identified, design system state cataloged (exists/partial/absent), mode and scope confirmed.
+**Gate:** Framework identified, design system state cataloged (exists/partial/absent), mode and scope confirmed. If fails → if framework cannot be detected from config signals, prompt user: "Which frontend framework does this project use?" (offer list); if user does not respond, fall back to plain HTML/CSS analysis and announce the fallback; if design system detection is inconclusive, record `design_system: "unknown"` in state and proceed — the scan will surface missing tokens as findings.
 
 ### Phase 2: Configure [SKIP if single scope audit]
 
@@ -111,7 +111,7 @@ Detect -> [Configure] -> Scan -> Report -> [Fix] -> [Needs-Approval] -> [Design]
 2. **Component pattern detection:** Search component directories, naming conventions, barrel exports, shared library.
 3. **A11y tooling detection:** Search for axe-core, eslint-plugin-jsx-a11y, @angular-eslint/eslint-plugin-template, flutter_lints accessibility rules.
 
-**Gate:** Design system landscape mapped, component patterns identified.
+**Gate:** Design system landscape mapped, component patterns identified. If fails → if component directories cannot be located (non-standard layout), prompt user: "Where are your component files? (e.g., src/components/, app/ui/)"; if no response, scan all `.tsx`/`.jsx`/`.vue`/`.svelte`/`.dart` files from the project root and proceed; record `component_catalog: "heuristic"` in state.
 
 ### Phase 3: Scan
 
@@ -134,7 +134,7 @@ Load matching reference file for each in-scope domain:
 
 **Recovery (context lost):** Check progress checklist → read findings artifact → resume from first incomplete scope.
 
-**Gate:** Every in-scope check evaluated, all findings recorded with severity, confidence, and category.
+**Gate:** Every in-scope check evaluated, all findings recorded with severity, confidence, and category. If fails → for any scope that could not be fully evaluated (reference file missing, files unreadable): mark that scope `partial` in `state.scopes_done`, add a MEDIUM finding "scan incomplete for scope {scope} — {reason}", and continue; if a reference rules file is missing, surface it as WARN and proceed with whatever rules are embedded in this skill.
 
 ### Phase 4: Report
 
@@ -150,7 +150,7 @@ Design System: [exists/partial/absent]
 | Scope | CRITICAL | HIGH | MEDIUM | LOW | Total |
 ```
 
-**Gate:** Report presented to user with all findings, severities, and scope summary.
+**Gate:** Report presented to user with all findings, severities, and scope summary. If fails → if any scope is missing from the summary table, re-read `state.findings` for that scope, add a row with the correct counts (or `0` if none), and re-emit the report; do not proceed to Phase 5 until every selected scope appears in the table.
 
 ### Phase 5: Fix [SKIP if audit-only or --check]
 
@@ -159,13 +159,13 @@ Design System: [exists/partial/absent]
 3. **Verify.** Re-read each modified file.
 4. **Record.** Track applied/failed/skipped.
 
-**Gate:** Fixed + failed + skipped = total. Every modified file re-read and verified.
+**Gate:** Fixed + failed + skipped = total. Every modified file re-read and verified. If fails → any modified file that cannot be re-read after fix: mark that fix `failed (verify error)` and revert the change; any finding without a disposition: assign `skipped (accounting gap)`; re-emit the fix summary line as `WARN` if counts do not balance.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied -> fixed/failed, declined -> skipped).
+**Gate:** All needs_approval items resolved (applied -> fixed/failed, declined -> skipped). If fails → any item left unresolved after user interaction: mark it `skipped (no decision)` in `state.findings` and proceed to Phase 7/Summary; do not retry the prompt.
 
 ### Phase 7: Design [SKIP if mode is not design]
 
@@ -173,7 +173,7 @@ Design System: [exists/partial/absent]
 2. **Component catalog** — state coverage matrix, missing state recommendations, a11y compliance per component.
 3. **A11y checklist** — WCAG 2.2 AA checklist specific to detected framework and components.
 
-**Gate:** Design artifacts generated and written to project. User informed of file locations.
+**Gate:** Design artifacts generated and written to project. User informed of file locations. If fails → if a design artifact (tokens.json, component catalog, a11y checklist) cannot be written (permission error, path conflict): surface the specific error, ask user to confirm the target path or provide an alternative; if user does not respond, skip writing that artifact, record it as `failed (write error)` in `state.design_artifacts_generated`, and continue to Summary.
 
 ### Phase 8: Summary
 
@@ -183,7 +183,7 @@ ds-frontend: {OK|WARN|FAIL} | Mode: {audit|audit+fix|design} | Fixed: N | Skippe
 
 FRC+DSC accounting.
 
-**Gate:** Summary rendered. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+**Gate:** Summary rendered. `fixed + failed + skipped + needs_approval + not_applicable = total`. If fails → any finding unaccounted for: assign `skipped (accounting gap)`; if the equation still does not balance, re-emit summary as `WARN`; do not delete `ds/audit/frontend.json` so the partial run is preserved for `--resume`.
 
 ## Quality Gates
 

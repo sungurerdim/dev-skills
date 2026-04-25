@@ -61,7 +61,7 @@ Setup → Discover → Classify → Plan → Execute → [Needs-Approval] → Su
 
 4. **Lockfile verification.** Missing lockfile → HIGH finding, abort upgrade phase (lockfile-first policy). `--preview` still classifies.
 
-**Gate:** Stack(s) detected, manifests listed, lockfile present.
+**Gate:** Stack(s) detected, manifests listed, lockfile present. If fails → if no stack is detected, report "no recognized manifest found" and exit cleanly; if lockfile is missing, emit a HIGH finding "missing lockfile — upgrade aborted (lockfile-first policy)", instruct user to commit a lockfile first, then exit; `--preview` mode may continue classification without a lockfile.
 
 ### Phase 2: Discover
 
@@ -83,7 +83,7 @@ For each manifest:
 
 Parallelize per manifest, max 3 concurrent registry calls.
 
-**Gate:** Every dep has current, latest, and advisory status recorded.
+**Gate:** Every dep has current, latest, and advisory status recorded. If fails → for each dep where the registry query failed (network error, rate limit, package not found): record `{ name, current, latest: "unknown", advisory: "unknown" }` in state, mark it `skipped (registry unreachable)`, and continue; surface a WARN "N deps could not be queried — skipped from classification".
 
 ### Phase 3: Classify
 
@@ -109,7 +109,7 @@ Per dep, determine `bump_type` and `classification`.
 
 **Removal candidates:** classification = `removal` (Category B).
 
-**Gate:** Every dep classified with `safe-patch | safe-minor | review-major | removal`.
+**Gate:** Every dep classified with `safe-patch | safe-minor | review-major | removal`. If fails → any dep whose changelog could not be fetched or parsed: elevate to `review-major` (W5: uncertain → conservative), record `breaking_notes: "changelog unavailable — classified conservatively"`, and continue; never leave a dep unclassified.
 
 ### Phase 4: Plan
 
@@ -128,7 +128,7 @@ Per-group summary: `Safe-patch: 8 deps | Safe-minor: 3 deps | Review-major: 2 de
 
 Write findings to `ds/audit/findings.md` with `scope=deps` and `category` column: A for safe groups, B for review-major + removal.
 
-**Gate:** Plan table displayed, every dep accounted for.
+**Gate:** Plan table displayed, every dep accounted for. If fails → any dep missing from the plan table: re-read its state entry and add a row with `class: "unknown"` and `notes: "classification failed — manual review required"`; do not proceed to Execute until the table is complete or the missing dep is explicitly marked skipped by the user.
 
 ### Phase 5: Execute [skip if --preview or --dry-run]
 
@@ -159,13 +159,13 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 1. Present candidate list with "0 source references" evidence.
 2. User approves → remove from manifest + lockfile, run quick tests, commit as `chore(deps): remove unused {name}`.
 
-**Gate:** Every group has either a commit or a clear `failed` / `skipped` record. Working tree clean.
+**Gate:** Every group has either a commit or a clear `failed` / `skipped` record. Working tree clean. If fails → if the working tree is dirty (partial apply with no commit): revert the uncommitted changes (`git checkout -- .` on the affected manifest + lockfile), mark the group `failed (dirty working tree)` in `state.group_status`, and continue to the next group; if revert itself fails, halt and surface the conflict to the user with the list of modified files.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
 Dominant in this skill. Present all Category B items (every review-major, every removal) in one block. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
 
-**Gate:** Every B item has a decision. Every approved B item either applied (fixed/failed) or explicitly skipped.
+**Gate:** Every B item has a decision. Every approved B item either applied (fixed/failed) or explicitly skipped. If fails → any B item left without a decision after the approval prompt (e.g., user dismissed or timed out): mark it `skipped (no decision)` in `state.group_status` and continue to Summary; do not re-prompt.
 
 ### Phase 7: Summary
 
@@ -186,7 +186,7 @@ Summary line:
 
 On success: delete `ds/audit/deps.json`. If `ds/audit/` empties, remove the directory.
 
-**Gate:** Every dep has exactly one disposition. Accounting balances.
+**Gate:** Every dep has exactly one disposition. Accounting balances. If fails → any dep without a disposition: assign `skipped (accounting gap)`; if counts do not balance, emit summary as `WARN` with a note "N deps unaccounted — state file preserved for --resume"; do not delete `ds/audit/deps.json`.
 
 ## Quality Gates
 

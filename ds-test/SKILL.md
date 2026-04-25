@@ -82,7 +82,7 @@ Setup → [Generate / Update / Run+Fix] → Verify → [Needs-Approval] → Summ
 6. If no test framework found and `--setup` flag: proceed to Framework Setup (see below).
 7. If no test framework found and no `--setup` flag: suggest running with `--setup` first.
 
-**Gate:** Test framework detected or `--setup` mode.
+**Gate:** Test framework detected or `--setup` mode. If fails (no test framework found and no `--setup` flag) → surface "No test framework detected. Re-run with --setup to install one, or specify your framework in the prompt." and exit with WARN; do not attempt to generate tests without a framework.
 
 ### Phase 2a: Generate [--generate or --coverage]
 
@@ -140,7 +140,7 @@ When generating tests for client-side projects, include these additional scenari
 | API | 60%+ | 30%+ | 10%+ |
 | Library | 80%+ | 15%+ | 5%+ |
 
-**Gate:** Test files generated covering happy path, edge cases, and error cases per target.
+**Gate:** Test files generated covering happy path, edge cases, and error cases per target. If fails (a source file has no testable public interface or cannot be read) → skip that file, record it in state.data.files_processed as `{ file: "{path}", status: "skipped", reason: "no public interface" }`, and continue generating tests for remaining files.
 
 ### Phase 2b: Update [--update]
 
@@ -157,7 +157,7 @@ When source code changed and tests need updating:
    - New function → generate new tests (as in Phase 2a)
 5. Run updated tests to verify they pass
 
-**Gate:** Updated tests pass and no previously passing tests regressed.
+**Gate:** Updated tests pass and no previously passing tests regressed. If fails (a previously passing test now fails after the update) → do not weaken the assertion; revert that test file to its pre-update state via `git checkout -- {test_file}`, record the regression in state.data.failures as `{ test: "{name}", reason: "regression after update", disposition: "reverted" }`, and write a finding to `ds/audit/findings.md` with scope `app-bugs` identifying the source change that broke the test.
 
 ### Phase 2c: Run + Fix [--run]
 
@@ -177,7 +177,7 @@ When source code changed and tests need updating:
 
 **Critical rule:** If a test was passing before and now fails after source change, SOURCE is likely wrong (regression), not the test. Keep assertions at full strength — fix the test logic or report the app bug.
 
-**Gate:** Test-side fixes verified passing or app bugs written to ds/audit/findings.md.
+**Gate:** Test-side fixes verified passing or app bugs written to ds/audit/findings.md. If fails (test-side fix did not make the test pass after 3 iterations) → mark the test as `failed (unfixable test-side issue)` in state.data.failures, leave the test file in its best-attempt state, write a finding to `ds/audit/findings.md` with scope `app-bugs` and the captured test output, and continue to Phase 3 Verify.
 
 ### Phase 2d: Framework Setup [--setup]
 
@@ -194,7 +194,7 @@ If no test framework exists:
    - Add test step to CI config if it exists
 5. Run example test to verify setup works
 
-**Gate:** Example test passes with installed framework.
+**Gate:** Example test passes with installed framework. If fails (framework install succeeded but example test fails to run) → collect the test runner error output, surface it to the user with the message "Framework installed but example test failed: {error}. Check {framework} configuration or run {test_command} manually to diagnose.", and exit with WARN — do not proceed to generate tests over a broken framework setup.
 
 ### Phase 3: Verify
 
@@ -205,13 +205,13 @@ After any generate/update/fix operation:
 3. No previously passing test should now fail (regression check)
 4. Report coverage delta if coverage tool is configured
 
-**Gate:** All generated tests pass. Zero regressions.
+**Gate:** All generated tests pass. Zero regressions. If fails → collect the full test runner output for each failing test; classify each failure (test is wrong / app is wrong / environment issue / flaky). Fix test-side failures inline (max 3 iterations per test). For app-bug failures, write each to `ds/audit/findings.md` with scope `app-bugs`. For environment failures, surface setup instructions. Do not commit failing tests — record them as `failing` in state.data.failures and report count in summary.
 
 ### Phase 4: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails (user does not respond) → mark unresolved items as `skipped (user did not respond)` in state.data, proceed to Phase 5 Summary.
 
 ### Phase 5: Summary
 
@@ -226,7 +226,7 @@ ds-test: {OK|WARN|FAIL} | Generated: N | Updated: N | Fixed: N | Skipped: N | Fa
 | Failing   |  {n}  | app bugs (see ds/audit/findings.md) |
 ```
 
-**Gate:** Summary table rendered with generated/updated/fixed/failing counts. Every finding/action has a disposition. Accounting verified.
+**Gate:** Summary table rendered with generated/updated/fixed/failing counts. Every finding/action has a disposition. Accounting verified. If fails (an action has no disposition or counts do not balance) → assign `failed (disposition missing)` to any undisposed action, recompute totals, reprint the summary table with corrected counts, and set status to WARN.
 
 ## Quality Gates
 

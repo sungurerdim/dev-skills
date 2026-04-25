@@ -56,7 +56,7 @@ Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Cre
 5. No commits ahead → stop. Behind base → ask rebase (--auto: rebase automatically)
 6. Check existing PR → show URL, ask: Update / Skip
 
-**Gate:** All pre-checks passed. Branch has commits ahead of base and is ready for PR.
+**Gate:** All pre-checks passed. Branch has commits ahead of base and is ready for PR. If fails → stop with an explicit error identifying which check failed: `git`/`gh` not found → "Install git/gh CLI and run `gh auth login`"; not on a feature branch → "Checkout a feature branch first"; no commits ahead → "Nothing to push — commit your changes first"; `gh` unauthenticated → "Run `gh auth login` then retry"; behind base → offer `git rebase origin/{base}` and stop until user confirms.
 
 ### Phase 1.5: History Tidy (skip if --no-tidy or --preview)
 
@@ -67,7 +67,7 @@ If >3 unpushed commits, offer to tidy: squash into logical commits based on net 
 - On failure: `git reset --hard $ORIG_HEAD`
 - Push: `git push -u origin {branch}`
 
-**Gate:** Commits tidied (or skipped) and pushed to remote.
+**Gate:** Commits tidied (or skipped) and pushed to remote. If fails → if the tidy (git reset --mixed) fails, run `git reset --hard $ORIG_HEAD` to restore the branch and push the original commits as-is with a warning; if the push fails (rejected, no upstream), stop with error "Push failed — run `git push -u origin {branch}` manually and then retry /ds-pr".
 
 ### Phase 2: Quality Gates (entire project)
 
@@ -79,7 +79,7 @@ Tests fail → stop. Only create PR when all tests pass.
 
 **Secret scan ([references/principles.md §5](references/principles.md)):** Run secret-pattern detection on all changed files (same patterns as ds-fix security scope) before opening the PR. Any match → FAIL the gate. PR creation must not put credentials in front of human reviewers.
 
-**Gate:** Format, lint, secret scan, and tests all pass. No uncommitted fixes remain.
+**Gate:** Format, lint, secret scan, and tests all pass. No uncommitted fixes remain. If fails → secret scan hit: stop immediately, do not create PR, output the matching file:line and instruct user to remove the secret and rotate credentials before retrying; test failure: stop, show failing test names, do not create PR; format/lint failure that could not be auto-fixed: stop, list the unfixed violations, do not create PR — all three cases are hard stops with no bypass.
 
 ### Phase 3: Analyze
 
@@ -99,7 +99,7 @@ Tests fail → stop. Only create PR when all tests pass.
 
 **Body:** Summary (1-3 bullets), Changes (grouped, max 5), Breaking Changes (if any). Max 20 lines.
 
-**Gate:** Net diff analyzed and PR title generated in conventional commit format.
+**Gate:** Net diff analyzed and PR title generated in conventional commit format. If fails → if `git diff {base}...HEAD` returns empty (commits exist but net diff is zero), stop with "Net diff is empty — all changes were reverted in later commits. Nothing to describe in a PR."; if type classification is ambiguous after applying the net-diff override, default to the most conservative non-bumping type and append a WARN in the PR body.
 
 ### Phase 4: Review (skip if --auto)
 
@@ -118,13 +118,13 @@ Ask user:
 - **Create as draft** — draft PR for further work
 - **Cancel**
 
-**Gate:** User confirmed PR creation option. Title, body, and merge strategy decided.
+**Gate:** User confirmed PR creation option. Title, body, and merge strategy decided. If fails → if the user selects Cancel, exit cleanly without creating a PR and without modifying the branch; if the user provides no response after one re-prompt, exit with "PR creation cancelled — re-run /ds-pr when ready."
 
 ### Phase 5: Create
 
 `gh pr create --title "{title}" --body "{body}" [--draft]`
 
-**Gate:** PR created successfully. `gh pr create` returned PR URL.
+**Gate:** PR created successfully. `gh pr create` returned PR URL. If fails → stop with explicit error from `gh pr create` output; do not proceed to Merge Setup; suggest: check `gh auth status`, verify the branch was pushed, and re-run /ds-pr --no-tidy to skip the tidy step if the branch state changed.
 
 ### Phase 6: Merge Setup (default, skip if --no-auto-merge, --draft, or manual)
 
@@ -133,7 +133,7 @@ Ask user:
 
 After merge: `git checkout {base} && git pull origin {base} && git branch -d {branch}`
 
-**Gate:** Auto-merge enabled or merge completed. Local branch switched to base.
+**Gate:** Auto-merge enabled or merge completed. Local branch switched to base. If fails → if `gh pr merge --auto` fails (no branch protection, CI not configured), warn the user and skip auto-merge — PR was already created; if the local checkout to base fails (`git checkout {base}`), warn and leave the user on the current branch; do not attempt branch cleanup in Phase 6.1 if checkout failed.
 
 ### Phase 6.1: Branch Cleanup [AFTER MERGE ONLY]
 
@@ -145,13 +145,13 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
    - Ask: Delete all (recommended) / Skip (--auto: delete all silently)
    - Delete local: `git branch -d {branch}`. Delete remote-only: `git push origin --delete {branch}`. On error: warn and continue.
 
-**Gate:** All merged branches deleted locally and remotely, or cleanup skipped by user.
+**Gate:** All merged branches deleted locally and remotely, or cleanup skipped by user. If fails → for any individual branch deletion that errors (`git branch -d` or `git push origin --delete`), warn and continue with the remaining branches; surface all failed deletions in the Phase 8 summary so the user can clean them up manually.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → record the unresolved item with disposition `pending-user-decision`, proceed to Summary with status WARN, and list all unresolved needs_approval items so the user can address them.
 
 ### Phase 8: Summary
 
@@ -160,7 +160,7 @@ PR URL, title, type -> bump effect, auto-merge status.
 `pr: {OK|FAIL} | {url} | {type} -> {bump} | auto-merge: {on|off}`
 `FRC: Fixed: N | Skipped: N | Failed: N | Total: N`
 
-**Gate:** Summary line printed. PR URL returned to user.
+**Gate:** Summary line printed. PR URL returned to user. If fails → print the PR URL on its own line regardless (it was returned by `gh pr create`), then list any phases that could not complete (merge setup, branch cleanup), with the user's next manual action clearly stated.
 
 ## Quality Gates
 

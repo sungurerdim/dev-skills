@@ -110,7 +110,7 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 5. Detect existing analytics (search for analytics SDKs in dependencies)
 6. Ask: Which decisions will analytics inform? Options: feature prioritization, monetization, quality improvement, user retention
 
-**Gate:** Platform and goals confirmed.
+**Gate:** Platform and goals confirmed. If fails → re-prompt user for the missing item (platform or decision-goals); if neither can be resolved after 2 prompts, default platform to `web` and goals to `feature prioritization` with a WARN note in state.data.goals.
 
 ### Phase 2: Discover
 
@@ -119,7 +119,7 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 3. Search for existing dashboard/reporting configuration
 4. Build inventory: tracked events, tools in use, consent mechanism
 
-**Gate:** Current state mapped.
+**Gate:** Current state mapped. If fails → no analytics SDK found in dependencies and no tracking calls detected; set state.data.inventory to empty baseline, add WARN "No analytics instrumentation detected", and proceed to Phase 3 (Design) rather than Phase 5 (Audit) regardless of flags.
 
 ### Phase 3: Design [--design]
 
@@ -137,7 +137,7 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 4. **Funnels:** Define 3-5 key funnels with conversion targets
 5. **Dashboards:** Recommend 1-2 dashboards with specific metrics
 
-**Gate:** Taxonomy covers all key user journeys with zero PII in properties.
+**Gate:** Taxonomy covers all key user journeys with zero PII in properties. If fails → for each PII property found, replace it with a privacy-safe alternative (e.g., hashed ID instead of email) and re-check; for each uncovered journey, add a placeholder event entry marked `[INCOMPLETE]` in state.data.taxonomy_generated so consumers know coverage is partial.
 
 ### Phase 4: Setup [--setup]
 
@@ -151,7 +151,7 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
    - Debug mode for event verification
    - Event validation in CI
 
-**Gate:** Integration guide complete and privacy-compliant.
+**Gate:** Integration guide complete and privacy-compliant. If fails → identify the non-compliant element (missing consent check, PII-capable SDK recommended, etc.); substitute a compliant alternative or add a mandatory TODO block at the exact insertion point in the guide marked `[PRIVACY-REQUIRED]`; flag the guide as `partial` in state.data and note the gap in the summary.
 
 ### Phase 5: Audit [--audit]
 
@@ -171,13 +171,13 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
    - Missing required properties?
    - Events without clear business purpose?
 
-**Gate:** Findings collected.
+**Gate:** Findings collected. If fails → one or more scopes could not be analyzed (e.g., no events file found for coverage check, no consent mechanism to inspect); mark those scopes as `inconclusive` in state.data.scopes_done, continue with successfully analyzed scopes, and flag each inconclusive scope in the audit output so the user knows which areas need manual review.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → one or more needs_approval items have no decision recorded; re-present each unresolved item to the user with a forced binary prompt (Apply / Skip); if user declines to respond, mark as `skipped (no response)` and proceed.
 
 ### Phase 7: Summary
 
@@ -193,7 +193,7 @@ ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: N defined | 
 
 FRC+DSC accounting.
 
-**Gate:** Summary printed with all metrics and recommendations.
+**Gate:** Summary printed with all metrics and recommendations. If fails → one or more metrics (Events count, Gaps count, Privacy status) could not be calculated; substitute `N/A` for each missing metric, print a partial summary with status `WARN`, and list which phases produced incomplete output so the user knows what to re-run.
 
 ## Quality Gates
 

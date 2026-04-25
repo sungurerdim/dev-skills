@@ -98,7 +98,7 @@ Detect -> Configure -> Scan -> Report -> [Fix] -> [Needs-Approval] -> Summary
    - **a11y scope active + project has a frontend** (framework detected in `package.json` / equivalent) → announce delegation: "a11y implementation + fixes delegated to /ds-frontend. This run keeps regulatory framing only (ADA / EN301549 mapping)." Mark a11y scope as `framing-only` for this run; do not emit implementation-level findings, emit only regulatory-mapping findings.
    - **Privacy scope active** → canonical owner. Announce: "/ds-launch --privacy narrows to store-label-correctness, /ds-analytics --privacy-audit narrows to event-property PII scan. This run emits canonical privacy findings."
 
-**Gate:** Project type identified, mode and scope confirmed, regulatory frameworks resolved, overlap routing decisions applied.
+**Gate:** Project type identified, mode and scope confirmed, regulatory frameworks resolved, overlap routing decisions applied. If fails → project type could not be auto-detected and user did not respond to the `--type` prompt; default to `web`, announce the default, and proceed; if regulatory frameworks are ambiguous after detection, present a list of detected signals to the user and require explicit framework selection before proceeding.
 
 ### Phase 2: Architecture Discovery
 
@@ -111,7 +111,7 @@ Detect -> Configure -> Scan -> Report -> [Fix] -> [Needs-Approval] -> Summary
    - **CAT-2 Enhancement:** New layers/patterns not in current architecture — requires explicit approval
 4. Present enhancement opportunities, ask which to include (default: none)
 
-**Gate:** Architecture confirmed by user, every rule classified as CAT-1 or CAT-2, approved enhancements finalized.
+**Gate:** Architecture confirmed by user, every rule classified as CAT-1 or CAT-2, approved enhancements finalized. If fails → user did not confirm the detected architecture (no response or explicit rejection); re-present the detected architecture with a brief explanation of each component and ask once more; if still unconfirmed, proceed with the auto-detected architecture and add WARN: `"Architecture unconfirmed — CAT-2 classifications may be inaccurate"` in state.data.
 
 ### Phase 3: Rule Loading
 
@@ -128,7 +128,7 @@ Load reference files matching scope:
 | a11y | [rules-a11y.md](references/rules-a11y.md) |
 | i18n | [rules-i18n.md](references/rules-i18n.md) |
 
-**Gate:** All reference files for in-scope domains loaded successfully; unloadable domains marked N/A.
+**Gate:** All reference files for in-scope domains loaded successfully; unloadable domains marked N/A. If fails → a reference file for an in-scope domain could not be loaded (file missing, path wrong); mark that domain as `N/A` in state.data.scopes_done, continue scan with available domains, and surface the missing reference path in the report so the user can restore it before the next run.
 
 ### Phase 4: Scan
 
@@ -146,7 +146,7 @@ Per domain in scope, scan codebase:
 
 **Large scope (3+ domains):** Track progress with numbered checklist. Append findings to `ds/audit/findings.md` in project root (add to .gitignore) — file exists with fresh `git_hash` → preserve findings from other scopes and append only your own. After each domain scan, append findings. Enables recovery if context is lost.
 
-**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
+**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence. If fails → one or more domains could not be fully scanned (no scannable source files, access denied, or domain reference was N/A); mark those domains as `inconclusive` in state.data.findings, continue with successfully scanned domains, and list the skipped domains in Phase 5 report so the user knows which compliance areas need manual verification.
 
 ### Phase 5: Report
 
@@ -170,7 +170,7 @@ Architecture: [detected summary]
 
 **Severity order:** CRITICAL > HIGH > MEDIUM > LOW. When uncertain, choose lower severity.
 
-**Gate:** Report presented to user with all findings, severities, and summary table.
+**Gate:** Report presented to user with all findings, severities, and summary table. If fails → findings list is empty because all domains were `inconclusive` or `N/A`; print a report with a single section `"No verifiable findings — all domains inconclusive or reference files missing"`, list the domains and their skip reason, and exit with status `WARN`.
 
 ### Phase 6: Fix (skip if audit-only)
 
@@ -183,13 +183,13 @@ Architecture: [detected summary]
    - `audit`: Ask which severities to fix
 3. Apply fixes grouped by file. Different files can be fixed in parallel, same file sequentially.
 
-**Gate:** All standard fixes attempted; each recorded as applied, failed, or skipped.
+**Gate:** All standard fixes attempted; each recorded as applied, failed, or skipped. If fails → one or more CAT-1 fixes could not be applied (file write error, merge conflict with existing content, or generated compliance doc already exists and user chose "Keep existing"); record each as `failed` in state.data.fix_progress with the specific error, continue applying remaining fixes, and surface all failed fix IDs in the Phase 8 summary.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → one or more needs_approval items have no decision recorded; re-present each unresolved item with a forced binary prompt (Apply / Skip); if user declines to respond, mark as `skipped (no response)` and proceed.
 
 ### Phase 8: Summary
 
@@ -199,7 +199,7 @@ ds-compliance: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 
 FRC+DSC accounting.
 
-**Gate:** `fixed + failed + skipped + needs_approval + not_applicable = total`; every modified file re-read and verified.
+**Gate:** `fixed + failed + skipped + needs_approval + not_applicable = total`; every modified file re-read and verified. If fails → accounting does not balance (sum of dispositions ≠ total findings in state.data.findings); identify each finding ID without a disposition, assign `disposition: skipped (accounting-fix)` to each, recompute the summary line, and add WARN: `"N finding(s) auto-skipped to balance accounting"`.
 
 ## Quality Gates
 

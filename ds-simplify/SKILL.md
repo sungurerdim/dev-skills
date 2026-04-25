@@ -66,7 +66,7 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 5. **Project detection.** Identify language(s) and LSP availability. LSP present (TypeScript, Go, Python, Dart, Rust) → use `findReferences` / `documentSymbol`. LSP absent → grep fallback.
 
-**Gate:** Mode selected, LSP availability determined, scope list locked.
+**Gate:** Mode selected, LSP availability determined, scope list locked. If fails (user does not select a mode) → re-present the mode menu once; if still no selection, default to Preview (no deletion) with a WARN note in state.data.mode, and proceed.
 
 ### Phase 2: Scan
 
@@ -126,7 +126,7 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 
 **False positive prevention:** For every signal, re-read 3 lines around the match, verify no skip pattern (`# noqa`, `# intentional`, `# safe:`), exclude generated files (`*.g.*`, `*.pb.*`, `*.gen.*`).
 
-**Gate:** Every scope executed. Every finding has file:line evidence + proposal.
+**Gate:** Every scope executed. Every finding has file:line evidence + proposal. If fails (a scope could not complete — LSP unavailable for dead-code, or a file was unreadable) → log the incomplete scope to state.data.findings_per_scope as `{ scope: "{name}", status: "inconclusive", reason: "{reason}" }`, continue with remaining scopes, and note the incomplete scope in the Phase 3 report table with "inconclusive — {reason}".
 
 ### Phase 3: Report
 
@@ -146,7 +146,7 @@ Per-scope summary line below the table: `Scope {n}: {k} findings, {m} clean`.
 
 Write findings to `ds/audit/findings.md` with `scope=simplify` and the `category` column set to `B` for every row (every deletion is approval-gated).
 
-**Gate:** Table displayed with every finding's proposal.
+**Gate:** Table displayed with every finding's proposal. If fails (zero findings across all scopes) → print "ds-simplify: 0 findings — codebase is clean" and skip to Phase 7 Summary directly.
 
 ### Phase 4: Approve [skip if --preview]
 
@@ -160,7 +160,7 @@ All findings are Category B — every deletion requires approval.
 
 Record every decision in `approval_decisions`. Batch pending deletions by scope.
 
-**Gate:** Every finding has a decision. Accounting matches total.
+**Gate:** Every finding has a decision. Accounting matches total. If fails (user declines to respond to the approval prompt) → mark all undecided findings as `skipped (user declined)` in state.data.approval_decisions, skip Phase 5 Execute, and proceed to Phase 7 Summary.
 
 ### Phase 5: Execute [skip if --preview or zero approvals]
 
@@ -173,7 +173,7 @@ Per approved batch:
 
 Parallel execution per scope is allowed. Commits are one-per-scope-batch so a user can revert a single scope cleanly.
 
-**Gate:** Every approved batch either committed or cleanly rolled back. No test failures left in-tree.
+**Gate:** Every approved batch either committed or cleanly rolled back. No test failures left in-tree. If fails (tests break after a batch deletion and rollback itself fails) → run `git revert {batch_commit_hash}` to undo the deletion commit, mark the batch as `failed (tests broke, reverted)` in state.data.batch_commits, and continue executing the next approved scope batch.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
@@ -198,7 +198,7 @@ Summary line:
 
 On success: delete `ds/audit/simplify.json`. If `ds/audit/` empties, remove the directory.
 
-**Gate:** Every finding has exactly one disposition. Accounting balances.
+**Gate:** Every finding has exactly one disposition. Accounting balances. If fails (a finding has no disposition or counts do not add up) → assign `failed (disposition missing)` to any undisposed finding, recompute totals, reprint the summary table with corrected counts, and set status to WARN.
 
 ## Quality Gates
 

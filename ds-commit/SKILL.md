@@ -77,7 +77,7 @@ If `release-please-config.json` or `.release-please-manifest.json` exists in pro
 - Format/lint modified files: include those changes in the commit
 - On failure: ask "Fix first (recommended)" or "Commit anyway"
 
-**Gate:** No merge conflicts, quality gates passed or user chose to proceed.
+**Gate:** No merge conflicts, quality gates passed or user chose to proceed. If fails → merge conflicts detected (UU/AA/DD in `git status`); stop, list conflicting files with their paths, instruct user to resolve conflicts and re-run `/ds-commit`; do not attempt to auto-resolve or commit partial state.
 
 ### Phase 2: Analyze
 
@@ -137,7 +137,7 @@ Check unpushed commits: `git log @{upstream}..HEAD` (no upstream → all local c
 
 If amending: show `(amend → {short-hash})` next to entry.
 
-**Gate:** Commit plan table displayed with type, title, and file count per commit.
+**Gate:** Commit plan table displayed with type, title, and file count per commit. If fails → `git diff` returned empty output (no staged or unstaged changes, and no untracked source files referenced by tracked code); report `"Nothing to commit — working tree clean"` and exit without creating a commit.
 
 ### Phase 3: Execute (skip if --preview)
 
@@ -220,19 +220,19 @@ on large datasets. Requires running migration 20240115_add_search_index.
 - Breaking changes: `BREAKING CHANGE: description` footer (in addition to `!` in title)
 - References: `Closes #123`, `Fixes #456` when applicable
 
-**Gate:** All commits created with valid conventional commit format and Co-Authored-By trailer.
+**Gate:** All commits created with valid conventional commit format and Co-Authored-By trailer. If fails → `git commit` was rejected by a pre-commit hook; show the full hook output, ask user: "Fix and retry (recommended) / Commit anyway (bypasses hook — explain risk)"; if user chooses fix, surface the specific files the hook flagged and wait; if user chooses bypass, re-run with `--no-verify` and add a WARN note in summary.
 
 ### Phase 4: Verify
 
 `git log` to confirm. Verify working tree clean (unless `--staged-only`).
 
-**Gate:** git log confirms commit(s) and working tree is clean.
+**Gate:** git log confirms commit(s) and working tree is clean. If fails → `git log` does not show the expected commit hash (commit silently failed), or working tree is still dirty (unstaged changes remain after a non-`--staged-only` run); re-read `git status` output, identify which files are still untracked/modified, surface the discrepancy to the user, and ask: "Stage remaining files and commit / Leave as-is".
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → one or more needs_approval items have no decision recorded; re-present each unresolved item with a forced binary prompt (Apply / Skip); if user declines to respond, mark as `skipped (no response)` and proceed.
 
 ### Phase 6: Summary
 
@@ -240,7 +240,7 @@ Commit count, file count, branch, commit hashes. Next step: push or create pull 
 
 `ds-commit: {OK|WARN|FAIL} | Commits: N | Files: N | Fixed: N | Skipped: N | Failed: N | Total: N`
 
-**Gate:** Summary includes commit count, file count, branch, and hashes.
+**Gate:** Summary includes commit count, file count, branch, and hashes. If fails → one or more commits in the plan were not created (e.g., one of a multi-commit sequence failed mid-way); list each planned commit with its status (created / failed), show the hashes of commits that succeeded, and instruct user to resolve the failed commits by running `/ds-commit` again on the remaining changes.
 
 ## Quality Gates
 

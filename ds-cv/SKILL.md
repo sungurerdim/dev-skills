@@ -62,7 +62,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 5. **Gap analysis:** Map full timeline after collecting roles. Flag gaps > 6 months. Ask about same-company resignation/rehire scenarios.
 6. **Privacy review:** Anonymize family businesses (generic descriptor), ask about middle name, verify no sensitive company names exposed.
 
-**Gate:** All roles, skills, education, gaps addressed. Proceed to verify.
+**Gate:** All roles, skills, education, gaps addressed. Proceed to verify. If fails → user has not provided details for one or more required sections (e.g., no roles given, no skills listed); re-prompt for each missing section individually with a concise targeted question; if user explicitly skips a section, mark it as `[SKIPPED BY USER]` in state.data.sections_gathered and note the omission in the CV with a placeholder so the output is structurally complete.
 
 ### Phase 2: Verify [generate, update]
 
@@ -74,7 +74,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 6. **Experience timeframe:** "since YYYY" only if YYYY has a professional role. Hobby/student years don't count. Use "for over a decade" instead.
 7. **Project ownership:** Named projects must be publicly findable. Verify GitHub org membership is public if claiming project ownership.
 
-**Gate:** All metrics verified, attributions confirmed. Proceed to write.
+**Gate:** All metrics verified, attributions confirmed. Proceed to write. If fails → a metric's math does not check out and user cannot provide correct numbers, or an attribution cannot be confirmed to a specific role; remove the unverifiable metric or attribution from the draft, add a `[UNVERIFIED — OMITTED]` note in state.data.verifications_done for that item, and proceed with only verified content.
 
 ### Phase 3: Write [generate, update]
 
@@ -108,7 +108,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 
 **Date badges:** All date badges must have uniform width (see `references/css-design-system.md`).
 
-**Gate:** All content follows rules, no filler, no jargon. Proceed to generate.
+**Gate:** All content follows rules, no filler, no jargon. Proceed to generate. If fails → one or more bullets contain jargon, filler skills, or non-imperative-mood phrasing that the user insists on keeping; flag each violation inline with `[RULE VIOLATION: {reason}]` in the written draft, add those items to state.data.audit_findings, and proceed to generation — the audit phase (Phase 5) will surface them formally.
 
 ### Phase 4: Generate [generate, update]
 
@@ -124,7 +124,7 @@ Gather -> Verify -> Write -> Generate -> Audit -> [Needs-Approval] -> Deploy
 
 9. **External resource minimization ([references/principles.md §5](references/principles.md)):** Verify only Google Fonts CDN loads externally — no other third-party scripts, tracking pixels, analytics SDKs, or remote images. Zero inline JavaScript. The deployed page MUST be auditable with view-source alone.
 
-**Gate:** Zero non-ASCII characters. Print preview fits single A4. All section headings standard.
+**Gate:** Zero non-ASCII characters. Print preview fits single A4. All section headings standard. If fails → non-ASCII characters found after final scan: replace each with its ASCII equivalent and re-scan; print overflow persists after all font-size reductions (8pt floor): inform user `"Content requires 2 pages — cut a role or reduce bullet count to fit A4"` and deliver the overflow version with a note rather than silently truncating content.
 
 ### Phase 5: Audit [audit, generate]
 
@@ -137,13 +137,13 @@ Load audit rules from `references/audit-rules.md`. Key checks:
 | Privacy | Birth date exposed | Email/phone/address in public HTML, real family business name | Photo, low GPA shown |
 | Cross-doc | - | Metrics mismatch between CV and LinkedIn | Date/title mismatches |
 
-**Gate:** Zero CRITICAL findings. All HIGH addressed or acknowledged.
+**Gate:** Zero CRITICAL findings. All HIGH addressed or acknowledged. If fails → CRITICAL findings remain (wrong dates, bad metric math, or PII exposed in HTML); present each CRITICAL finding to the user with the specific file:line and the required fix; do not proceed to Phase 6 until every CRITICAL is either fixed or the user explicitly overrides with a documented reason in state.data.audit_findings[].disposition.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → one or more needs_approval items have no decision recorded; re-present each unresolved item with a forced binary prompt (Apply / Skip); if user declines to respond, mark as `skipped (no response)` and proceed.
 
 ### Phase 7: Deploy [generate]
 
@@ -160,7 +160,7 @@ Load audit rules from `references/audit-rules.md`. Key checks:
 ds-cv: {OK|WARN|FAIL} | Sections: N | Metrics: N verified | ATS: {score} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Gate:** PDF renders single page. GitHub Pages live. LinkedIn guide metrics match CV.
+**Gate:** PDF renders single page. GitHub Pages live. LinkedIn guide metrics match CV. If fails → GitHub Pages creation failed (repo already exists, permissions error, or user declined); provide manual deployment instructions (create `{username}.github.io` repo, push `index.html`); if LinkedIn guide metrics do not match CV, list each mismatched field with CV value vs guide value and require the user to confirm which is correct before finalizing the guide; print summary with status `WARN` noting which deploy steps were skipped.
 
 ## Quality Gates
 

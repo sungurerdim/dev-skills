@@ -82,13 +82,13 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 6. **Scope selection.** No `--scope` flag → ask which scopes to audit (default: all).
 
-**Gate:** Project type identified, CI platform detected, mode and scope confirmed.
+**Gate:** Project type identified, CI platform detected, mode and scope confirmed. If fails → if project type cannot be determined from config signals, ask user directly: "What type of project is this? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; if CI platform cannot be detected, ask "Which CI platform do you use?"; if mode or scope remain unconfirmed after prompting, default to Full Audit / all scopes and announce the default.
 
 ### Phase 2: Rule Loading
 
 Load [rules-devops.md](references/rules-devops.md). Rules are project-type-aware — skip rules that don't apply to detected stack.
 
-**Gate:** Rules file loaded and filtered to detected project type; inapplicable rules excluded.
+**Gate:** Rules file loaded and filtered to detected project type; inapplicable rules excluded. If fails → if `references/rules-devops.md` cannot be read (missing or unreadable), surface a WARN "rules file unavailable — proceeding with built-in heuristics only" and continue the scan using the embedded rules in this skill; do not abort.
 
 ### Phase 3: Scan
 
@@ -114,7 +114,7 @@ For each scope, scan codebase:
 - MEDIUM: present for review
 - LOW: shown as potential issues
 
-**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence.
+**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence. If fails → for any scope that could not be fully scanned (file unreadable, tool unavailable, unexpected format): mark that scope `partial` in `state.scopes_done`, record a MEDIUM finding "scan incomplete for scope {scope} — {reason}", and continue to Report with partial findings; do not silently omit the scope.
 
 ### Phase 4: Report
 
@@ -134,7 +134,7 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 
 **Severity:** CRITICAL > HIGH > MEDIUM > LOW. Uncertain → choose lower.
 
-**Gate:** Report presented to user with all findings, severities, and summary table.
+**Gate:** Report presented to user with all findings, severities, and summary table. If fails → if any scope row is missing from the summary table, re-read `state.findings` for that scope, add a row with whatever count was recorded (or `0 findings` if none), and re-emit the report; do not proceed to Phase 5 until the table accounts for every selected scope.
 
 ### Phase 5: Post-Report
 
@@ -144,7 +144,7 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 | `audit+fix` | Auto-transition to fix |
 | `quick-fix` | Auto-apply all, summary only |
 
-**Gate:** User selected post-report action; mode-specific next step determined.
+**Gate:** User selected post-report action; mode-specific next step determined. If fails → if the user did not respond or dismissed the prompt, default to "Report only" (no fixes applied), announce the default, and proceed directly to Summary; do not block on the unanswered prompt.
 
 ### Phase 6: Fix [SKIP if audit-only or --preview]
 
@@ -157,13 +157,13 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 ```
 
-**Gate:** Fixed + skipped + failed = total findings; every modified file re-read and verified. Every finding/action has a disposition. Accounting verified.
+**Gate:** Fixed + skipped + failed = total findings; every modified file re-read and verified. Every finding/action has a disposition. Accounting verified. If fails → any finding without a disposition: assign `skipped (accounting gap)`; any modified file that cannot be re-read: mark its fix as `failed (verify error)` and revert the file change; re-emit the summary as `WARN` if counts do not balance.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → any item left unresolved after user interaction: mark it `skipped (no decision)` in `state.fix_progress` and continue to Summary; do not retry the prompt.
 
 ## Quality Gates
 

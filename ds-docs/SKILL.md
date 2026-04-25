@@ -91,7 +91,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 **IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis.
 
-**Gate:** IDU complete, findings loaded or own analysis planned.
+**Gate:** IDU complete, findings loaded or own analysis planned. If fails → if the findings file is unreadable or has a stale `git_hash`, discard it and proceed with own full analysis; if the profile is absent, continue without it and note "no blueprint profile — using own analysis" in the run header.
 
 ### Phase 1: Setup [SKIP if --auto]
 
@@ -108,7 +108,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
    - Which documentation areas to cover (Core: readme+changelog, Technical: api+dev, User-facing: user+ops)
    - How to handle existing docs (Fill gaps, Refine existing, Verify claims, Update all)
 
-**Gate:** Mode and scope selected or flags parsed.
+**Gate:** Mode and scope selected or flags parsed. If fails → if the user does not respond to the mode/scope prompt after two attempts, default to Auto mode covering all scopes and announce: "[DOC] No selection received — defaulting to Auto mode, all scopes."
 
 ### Phase 2: Analysis
 
@@ -118,7 +118,7 @@ Scan existing docs, detect project type, assess completeness. Apply quality rule
 3. Detect project type from config files
 4. Check for doc-sync issues: README drift, API signature mismatch, deprecated refs, broken links
 
-**Gate:** Project type detected and existing docs inventoried with completeness scores.
+**Gate:** Project type detected and existing docs inventoried with completeness scores. If fails → if project type cannot be determined from config signals, prompt user: "What type of project is this? (cli / library / api / web / mobile / desktop / monorepo / other)"; if a doc file exists but cannot be read, record it as `{ file, completeness: 0, status: "unreadable" }` and continue inventory.
 
 ### Phase 3: Gap Analysis (ideal vs current)
 
@@ -190,13 +190,13 @@ The verify scope is the most critical — it finds lies in documentation. For ev
 
 **Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are highest-drift-risk elements.
 
-**Gate:** Gap analysis complete with severity-classified findings table.
+**Gate:** Gap analysis complete with severity-classified findings table. If fails → if a source file referenced by a claim cannot be read during verify scope, record that claim as `{ type: "inconclusive", severity: "MEDIUM", reason: "source file unreadable" }` and continue; re-read the source files once before marking inconclusive; still fails → flag the scope as `inconclusive` in the gap analysis summary.
 
 ### Phase 4: Plan Review (skip if --auto)
 
 Display plan (target files, sections, sources). Ask: Generate All / High Priority Only / Abort.
 
-**Gate:** User approved generation plan or --auto mode active.
+**Gate:** User approved generation plan or --auto mode active. If fails → if user chose "Abort", exit cleanly with `docs: ABORTED | Generated: 0`; if user chose "High Priority Only", update `state.scopes_selected` to include only HIGH/CRITICAL gap items and proceed; do not re-prompt after a clear choice.
 
 ### Phase 5: Generate Documentation (skip if --preview)
 
@@ -221,13 +221,13 @@ Generate compliance documents by scanning codebase for data flows, third-party S
 3. **Breach Notification Plan** — Sections: Scope, Regulatory timelines table (GDPR / KVKK / CCPA / LGPD / UK GDPR / PIPL / PIPA / PDPA with authority + user deadlines), Severity classification (P1 Critical / P2 High / P3 Medium / P4 Low with criteria + containment + notification timelines), 5-phase response procedure (Detection & Triage → Containment → Authority Notification → User Notification → Remediation), Contact information, Review log
 4. **Processor Registry** — Per-processor entry: service name, legal entity, location, data processed, data NOT processed, legal basis per framework, user control mechanism, DPA/SCC status + expiry, transfer mechanism, retention policy. Annual review checklist (processors active, DPA current, transfers valid, minimization verified, opt-out functional, retention aligned)
 
-**Gate:** Every generated claim verified against source code with file:line evidence.
+**Gate:** Every generated claim verified against source code with file:line evidence. If fails → for any claim that cannot be verified (referenced entity not found in source): remove that claim from the generated doc, add a `<!-- TODO: verify {claim} — source not found -->` comment at the removed location, record the scope as `partial` in `state.docs_generated`, and surface a MEDIUM finding "unverified claim removed from {file}".
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped).
+**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → any item left unresolved after user interaction: mark it `skipped (no decision)` in `state.docs_generated` and continue to Summary; do not retry the prompt.
 
 ### Phase 7: Summary
 
@@ -248,7 +248,7 @@ Total findings = 0 → include "All {N} scopes evaluated: 0 findings" confirmati
 
 **Profile update:** ds-docs does NOT modify the blueprint profile. The Documentation dimension score is recalculated by ds-blueprint on its next run. Run history is preserved in `git log` and the terminal summary above — never re-injected into context-loaded files.
 
-**Gate:** Summary table rendered with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified.
+**Gate:** Summary table rendered with fixed/skipped/failed/total counts. Every finding/action has a disposition. Accounting verified. If fails → any finding/doc without a disposition: assign `skipped (accounting gap)`; re-emit the summary as `WARN`; do not delete `ds/audit/docs.json` so the partial run is preserved for `--resume`.
 
 ## Quality Gates
 
@@ -263,7 +263,7 @@ Total findings = 0 → include "All {N} scopes evaluated: 0 findings" confirmati
 |-----------|--------|
 | Source code contradicts existing documentation | Flag as drift, update doc to match code |
 | Referenced file or function no longer exists | Flag as stale, suggest removal |
-| Doc generation exceeds reasonable size | Split into multiple files, ask user for structure preference |
+| Generated doc exceeds 500 lines (or 5,000 words) | Split into multiple files at the next H2 boundary; ask user for structure preference |
 | Verify scope finds broken internal links | List all broken links with suggested fixes |
 
 ## Edge Cases

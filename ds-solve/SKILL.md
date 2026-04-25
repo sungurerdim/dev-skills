@@ -88,7 +88,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 **Security-sensitive auto-gate ([references/principles.md §5](references/principles.md)):** if objective involves modifying auth config, `.env*`, secrets-manager integration, crypto functions, or signing/credential code, automatically mark all steps in those files as `needs_approval` regardless of scope size. The user reviews each before execution.
 
-**Gate:** Objective parsed, red lines applied, verification criterion defined, state file created.
+**Gate:** Objective parsed, red lines applied, verification criterion defined, state file created. If fails (no objective discernible from context and --confirm mode is not available to prompt) → exit with WARN "ds-solve: no objective provided — re-run with a description of what you want to fix or achieve." Do not proceed without a defined objective.
 
 ### Phase 2: Plan — Decompose objective into ordered steps
 
@@ -106,7 +106,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 **Output:** Numbered step table.
 
-**Gate:** Plan recorded. Every step has a verification criterion. Proceed to Research.
+**Gate:** Plan recorded. Every step has a verification criterion. Proceed to Research. If fails (a step has no mechanically verifiable criterion and --confirm mode cannot ask the user) → use the most conservative proxy available ("command exits 0", "no new errors introduced") and record the assumption in state.data as `{ step: N, criterion_assumed: true, proxy: "{description}" }`; flag the step as LOW confidence in the plan table.
 
 ### Phase 3: Research
 
@@ -133,7 +133,7 @@ Record all alternatives to state file.
 
 **Output:** Alternatives table per step with CRAAP+ scores.
 
-**Gate:** Every step has at least 1 alternative. Steps with 0 → flag for re-scoping.
+**Gate:** Every step has at least 1 alternative. Steps with 0 → flag for re-scoping. If fails (web search unavailable and no local alternatives found for a step) → fall back to local-only research for that step, reduce alternative target to 2, record `research_fallback: local_only` in state for that step, and proceed to Execute with the local alternatives found; if still 0 alternatives, mark the step as `skipped (no alternatives found)` and continue to the next step.
 
 ### Phase 4: Execute
 
@@ -160,7 +160,7 @@ Next: Trying alternative 2...
 
 **Output:** Progress indicator per attempt.
 
-**Gate:** Step verification passes AND all red lines hold.
+**Gate:** Step verification passes AND all red lines hold. If fails → revert all file changes from this attempt (`git checkout -- {modified_files}`), record the failure reason and learned constraint in episodic memory in state.data, increment `plans_attempted` if all alternatives are exhausted, and enter Backtrack (Phase 5) for this step.
 
 ### Phase 5: Backtrack [all alternatives for a step exhausted]
 
@@ -174,7 +174,7 @@ Decision tree and constraint propagation rules in [references/backtrack-logic.md
 
 **Output:** New alternatives table + learned constraints summary.
 
-**Gate:** New alternatives found, or research rounds exhausted.
+**Gate:** New alternatives found, or research rounds exhausted. If fails (research rounds exhausted with no new alternatives and plan budget not yet exhausted) → record all failure patterns and learned constraints in state.data, increment the plan counter, and enter Re-plan (Phase 6) to attempt a fundamentally different decomposition.
 
 ### Phase 6: Re-plan [plan-level backtrack]
 
@@ -189,13 +189,13 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 **Output:** New plan table + diff from previous plan + rationale for changes.
 
-**Gate:** New plan with different approach created, or plan budget exhausted.
+**Gate:** New plan with different approach created, or plan budget exhausted. If fails (plan budget exhausted — plan counter > budget.P) → enter Escalate (Phase 8) with a compiled report of all plans attempted, step failures, and learned constraints; present suggested paths forward (red line relaxation, scope reduction, external action) and ask the user for new direction or abort confirmation.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved (applied → `fixed`/`failed`, declined → `skipped`).
+**Gate:** All needs_approval items resolved (applied → `fixed`/`failed`, declined → `skipped`). If fails (user does not respond to the needs_approval prompt) → mark unresolved items as `skipped (user did not respond)` in state.data, continue to Phase 8 or Summary without applying them.
 
 ### Phase 8: Escalate [all plans exhausted]
 
@@ -214,7 +214,7 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 **Output:** Escalation report (see Report Format).
 
-**Gate:** User has provided new direction or confirmed abort.
+**Gate:** User has provided new direction or confirmed abort. If fails (user does not respond to the escalation prompt) → after one re-prompt, treat as abort; proceed to Summary with status FAIL, recording all plans and step dispositions with `objective_not_achieved` noted in the summary.
 
 ### Phase 9: Summary
 

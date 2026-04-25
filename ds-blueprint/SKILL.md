@@ -18,7 +18,8 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 - FRC+DSC enforced.
 - Scores project health across 9 dimensions — signal counting, not file:line finding lists
 - Only modifies instruction file's blueprint profile section — never touches other content
-- Suggests next steps but does NOT invoke other skills or fix code directly
+- Suggests next steps; never invokes other skills or fixes code directly.
+- **Completeness requirement (SSOT):** `ds/audit/findings.md` is the single source of truth for every fix skill. Other skills skip their own detection when blueprint findings exist. Blueprint MUST detect ALL issues in each in-scope dimension — a missing finding will not be fixed downstream.
 
 ## Arguments
 
@@ -144,7 +145,7 @@ Skipping any mandatory phase is an execution bug. Every mandatory phase produces
 3. No profile AND --init: Phase 2 (create profile, stop)
 4. No profile AND not --init: Phase 2 (create profile, ask to continue)
 
-**Gate:** Mode selected, project type detected, instruction file located or creation path determined.
+**Gate:** Mode selected, project type detected, instruction file located or creation path determined. If fails → project type could not be detected (no recognized manifest files, empty repo) and user did not respond to type prompt; default project type to `generic`, set mode to `Full Analysis`, set instruction file creation path to `CLAUDE.md`, add WARN note `"Project type undetected — defaulted to generic"` in state.data, and proceed.
 
 ### Phase 2: Init Flow (no profile OR --init/--refresh)
 
@@ -176,7 +177,7 @@ Ask user two sets of questions:
 
 Write profile to detected instruction file (see Profile Storage). Calculate ideal metrics from `references/weights.md` based on detected project type. Quality-level descriptions in [references/quality-levels.md](references/quality-levels.md).
 
-**Gate:** Profile written to instruction file with all sections populated.
+**Gate:** Profile written to instruction file with all sections populated. If fails → instruction file write failed (permissions error, path invalid, or user-provided tool does not support file creation); save profile content to a temporary file at `ds/audit/blueprint-profile-draft.md`, display the full profile text in chat for the user to paste manually, and surface the write error with the target path.
 
 ### Phase 3: Assess (scan, record, score — don't fix)
 
@@ -234,7 +235,7 @@ Scoring formula from [references/scopes.md](references/scopes.md), dimension wei
 
 Flag missing items as HIGH severity. Skip this gate for cli, library, api, iac, devtool project types.
 
-**Gate:** All 9 dimensions scanned. Every signal has file:line evidence. False positive checks applied.
+**Gate:** All 9 dimensions scanned. Every signal has file:line evidence. False positive checks applied. If fails → one or more dimensions could not be fully scanned (codebase too large, binary-only files, or access denied); mark each incomplete dimension in state.data.findings_per_scope with `confidence: inconclusive`, continue scoring with available signals only, and flag the incomplete dimensions in the dashboard with `[PARTIAL SCAN]` so the user knows those scores are lower-bound estimates.
 
 ### Phase 3.1: Project Map
 
@@ -246,7 +247,7 @@ Build from Discovery + Assess results:
 4. **External:** List runtime dependencies with purpose (not dev tools). Group: databases, caches, queues, auth providers, third-party APIs.
 5. **Toolchain:** Format/lint tools, test framework, CI platform, container setup.
 
-**Gate:** Project map generated with entry points, modules, data flow, and external dependencies.
+**Gate:** Project map generated with entry points, modules, data flow, and external dependencies. If fails → entry point or data flow could not be determined (no main file, no framework signals, no import graph); write the project map with `unknown` placeholders for unresolvable fields, add a WARN note `"Project map incomplete — manual review required for: {list of unknown fields}"` in the profile, and continue with the partial map.
 
 ### Phase 4: Consolidate
 
@@ -277,7 +278,7 @@ Build from Discovery + Assess results:
    Every finding must include file:line so fix skills can act on it directly. The `Category` column is A when the fix conforms to the current architecture/plan, B when it changes architecture/scope/capability/user-promise/dependency.
 4. **Verify completeness:** Count distinct scope values in `ds/audit/findings.md`. Expected count is 24 (security, privacy, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, performance, robustness, production-readiness, testing, functional-completeness, stack, stack-fitness, dx, external-tooling, docs, spec-alignment — plus the `ideal-gap` scope produced by `/ds-benchmark` when it runs). Count < 24 → identify missing scopes and re-run assessment for those scopes before proceeding. Missing scope = fix skills skip detection for that scope → missed issues.
 
-**Gate:** All 9 dimension scores calculated. Calibration checks passed. `ds/audit/findings.md` written with all 24 scopes verified present.
+**Gate:** All 9 dimension scores calculated. Calibration checks passed. `ds/audit/findings.md` written with all 24 scopes verified present. If fails → calibration check found a suspicious score (e.g., dimension at 100, or CRITICAL finding with overall ≥ 80); re-read flagged dimension signals and adjust score; if `ds/audit/findings.md` is missing scopes, re-run the assessment for each missing scope before writing the file; if the file write fails, surface the OS error and ask user to resolve before proceeding.
 
 ### Phase 5: Dashboard
 
@@ -311,7 +312,7 @@ Any dimension dropped (negative delta), explain why:
 Score changes: {dimension} {delta}: {brief cause}
 ```
 
-**Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), and gap analysis. `ds/audit/findings.md` write confirmed.
+**Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), and gap analysis. `ds/audit/findings.md` write confirmed. If fails → `ds/audit/findings.md` write could not be confirmed (e.g., file system error after Phase 4); retry write once; if still failing, print the dashboard with a `[WARN: findings.md not written]` header so the user sees the scores but knows downstream consumers cannot use them until the file is resolved.
 
 ### Phase 6: Suggest (skip if --preview)
 
@@ -329,7 +330,7 @@ Dimensions below target:
 
 In `--auto` mode: print as part of summary, no interaction.
 
-**Gate:** Suggestions generated for all below-target dimensions.
+**Gate:** Suggestions generated for all below-target dimensions. If fails → all dimensions are at or above target (no below-target dimensions); print a single confirmation line `"All dimensions at or above target — no suggestions needed"` and proceed to Phase 7.
 
 ### Phase 7: Update Profile
 
@@ -339,13 +340,13 @@ In `--auto` mode: print as part of summary, no interaction.
 2. If a legacy `### Last Run`, `### Run History`, or `### Current Scores` (table) block exists from a previous version, rewrite the entire profile to the current minimal key-value format. Report `{n} legacy lines rotated to git log` in summary. Never re-inject historical run data.
 3. Previous scores existed: display delta table in chat (Prev / Curr / Δ). Trend over >1 run → read from `git log -- <instruction-file>`, never from an accumulated block.
 
-**Gate:** Profile rewritten in minimal key-value format. Legacy blocks rotated if present. No run-history data in the instruction file.
+**Gate:** Profile rewritten in minimal key-value format. Legacy blocks rotated if present. No run-history data in the instruction file. If fails → instruction file write failed or file is read-only; print the updated `Scores:` line in chat so the user can paste it manually, note the target file and marker positions, and set state.data.profile_written to false so subsequent runs know the profile is stale.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
 Present needs_approval items with risk context. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved.
+**Gate:** All needs_approval items resolved. If fails → one or more needs_approval items have no decision recorded; re-present each unresolved item with a forced binary prompt (Apply / Skip); if user declines to respond, mark as `skipped (no response)` and proceed.
 
 ### Phase 9: Summary
 
@@ -357,7 +358,7 @@ FRC+DSC accounting.
 
 Status: OK (overall >= target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression).
 
-**Gate:** Summary printed with before/after scores and next steps.
+**Gate:** Summary printed with before/after scores and next steps. If fails → before or after scores could not be computed (Phase 4 produced no scores, or previous scores absent from profile); print summary with available scores only, substitute `N/A` for missing before/after values, set status to `WARN`, and note which phases need re-running to complete the assessment.
 
 ## Quality Gates
 
