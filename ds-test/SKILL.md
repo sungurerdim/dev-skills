@@ -7,22 +7,32 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 ## Triggers
 
 - User runs `/ds-test`
-- User asks to write tests, add tests, generate tests, or improve test coverage
+- User asks to write, add, generate tests, or improve test coverage
 - User asks to run tests and fix failures
-- User asks to add E2E tests, integration tests, or unit tests
+- User asks to add E2E, integration, or unit tests
 - User asks "why is this test failing" or "update tests after refactor"
 - After a refactor or feature change, suggest updating affected tests
 
+### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+
+| ÇAĞIRIR | ÇAĞIRMAZ |
+|---------|----------|
+| "write tests for this function", "improve test coverage" | "framework setup decisions for greenfield" (→ ds-init or ds-research) |
+| "generate E2E tests", "update tests after refactor" | "audit test discipline at architecture level" (→ ds-review --strategic --scope=testing) |
+| "why is this test failing — fix the test" | "fix the code so the test passes" (→ ds-fix or manual) |
+| "add regression test for this bug" | "audit functional completeness" (→ ds-review --strategic) |
+
 ## Contract
 
-- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
-- FRC+DSC enforced.
 - Generates tests that follow project's existing test patterns and conventions
-- Preserves existing passing tests — only overwrites with explicit confirmation
+- Preserves existing passing tests — overwrites only with explicit confirmation
 - Always runs generated tests to verify they pass before declaring done
 - Uses project's existing test framework — never introduces a new framework unless none exists
 - Test files go in project's established test directory (auto-detected)
 - Does NOT fix application code to make tests pass — fixes the TEST if test is wrong, or reports app bug if app is wrong
+- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- FRC+DSC enforced.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
 ## Arguments
 
@@ -32,11 +42,11 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | `--generate` | Generate tests for uncovered code |
 | `--update` | Update existing tests to match current source code |
 | `--run` | Run tests, analyze failures, fix what's possible |
-| `--e2e` | Generate or run E2E/integration tests |
+| `--e2e` | Generate or run E2E / integration tests |
 | `--coverage` | Analyze coverage gaps and fill them |
 | `--setup` | Set up test framework and infrastructure |
 | `--prune` | Find and delete low-value tests, replace with meaningful ones |
-| `--scope=<path>` | Limit to specific file, directory, or module |
+| `--scope={path}` | Limit to specific file, directory, or module |
 | `--auto` | No questions, generate + run + fix cycle |
 | `--resume` | Resume from `ds/audit/test.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
@@ -47,7 +57,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 |-------|---------------|
 | `unit` | Single function/method tests, isolated with mocks |
 | `integration` | Multi-module tests, real dependencies where possible |
-| `e2e` | End-to-end tests via browser/UI automation or API calls |
+| `e2e` | End-to-end via browser/UI automation or API calls |
 | `snapshot` | Snapshot/golden tests for UI components or serialized output |
 | `fixture` | Test data setup, factories, builders, seed files |
 
@@ -63,73 +73,50 @@ Setup → [Generate / Update / Run+Fix] → Verify → [Needs-Approval] → Summ
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `ds/audit/test.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read source files referenced by pending generations, re-check generated test files exist), skip `done` phases, announce `[TST] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/test.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read source files referenced by pending generations, re-check generated test files exist), skip `done` phases, announce `[TST] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
 
-**State `data` shape:** `{ mode, framework, files_queued[], files_processed[{file, tests_generated, status}], failures[{test, reason, disposition}], coverage_before, coverage_after }`.
+**State `data`:** `{ mode, framework, files_queued[], files_processed[{file, tests_generated, status}], failures[{test, reason, disposition}], coverage_before, coverage_after }`.
 
-1. **Findings file check:** If `ds/audit/findings.md` exists with fresh `git_hash`, read findings with `testing` scope. Use them to prioritize which modules need tests (skip own coverage analysis for covered scopes). If no findings file or stale, run own full analysis.
+1. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings with `testing` scope. Use to prioritize which modules need tests (skip own coverage analysis for covered scopes). Stale or absent → run own full analysis.
 2. **IDU:** Profile → {Ideal Metrics.Coverage, Project Map.Toolchain, Current Scores.Testing, Type + Stack}. Findings({testing}) → verify + use. Absent → own analysis.
-3. **Detect test framework** from project config and dependencies. See `references/frameworks.md` for detection table.
+3. **Detect test framework** from project config + dependencies. See [references/frameworks.md](references/frameworks.md).
 4. **Detect test conventions:**
    - Test directory: `test/`, `tests/`, `__tests__/`, `spec/`, `src/**/*.test.*`
    - Naming pattern: `*_test.go`, `*.test.ts`, `*.spec.rb`, `test_*.py`
    - Helper/fixture locations: `fixtures/`, `factories/`, `support/`, `conftest.py`
-   - Mock patterns: what mocking library is used, how are mocks structured
-5. **Read 2-3 existing test files** to learn project's test style:
-   - Import conventions, assertion style (expect vs assert), describe/it vs test()
-   - How mocks and fixtures are used
-   - Setup/teardown patterns (beforeEach, setUp, etc.)
-6. If no test framework found and `--setup` flag: proceed to Framework Setup (see below).
-7. If no test framework found and no `--setup` flag: suggest running with `--setup` first.
+   - Mock patterns: mocking library + structure
+5. **Read 2-3 existing test files** to learn project style: imports, assertion style (`expect` vs `assert`), `describe`/`it` vs `test()`, mock + fixture usage, setup/teardown patterns.
+6. No framework + `--setup` → proceed to Framework Setup (Phase 2d).
+7. No framework + no `--setup` → suggest running with `--setup`.
 
-**Gate:** Test framework detected or `--setup` mode. If fails (no test framework found and no `--setup` flag) → surface "No test framework detected. Re-run with --setup to install one, or specify your framework in the prompt." and exit with WARN; do not attempt to generate tests without a framework.
+**Gate:** Test framework detected or `--setup` mode. If fails → no framework + no `--setup` → "No test framework detected. Re-run with --setup to install one, or specify your framework." Exit with WARN; do not attempt generation without a framework.
 
 ### Phase 2a: Generate [--generate or --coverage]
 
 Per uncovered source file (or scoped path):
 
-1. Read source file — understand its public interface (exported functions, class methods, API endpoints)
-2. Identify test-worthy targets:
-   - Public functions/methods with logic (not simple getters)
-   - Edge cases: null inputs, empty arrays, boundary values, error paths
-   - Branches: every if/else, switch case, try/catch
-3. Generate test file following project's existing conventions:
-   - Match naming pattern, import style, assertion library
-   - Group by function/method using describe/context blocks
-   - Include: happy path, edge cases, error cases
-   - Per test: clear name describing the behavior, not the implementation
-4. **For integration tests:** identify cross-module interactions, test integration points with minimal mocking
-5. **For E2E tests (`--e2e`):** identify user flows, generate browser/API test scenarios. See `references/frameworks.md` for E2E framework detection.
+1. Read source — understand public interface (exported functions, class methods, API endpoints).
+2. Identify test-worthy targets: public functions/methods with logic (not simple getters); edge cases (null, empty arrays, boundary values, error paths); branches (every if/else, switch case, try/catch).
+3. Generate test file following project conventions: match naming, import style, assertion library; group by function/method using `describe`/`context`; include happy path + edge cases + error cases; per test: clear name describing **behavior**, not implementation.
+4. **Integration tests:** identify cross-module interactions, test integration points with minimal mocking.
+5. **E2E tests (`--e2e`):** identify user flows, generate browser/API test scenarios. See [references/frameworks.md](references/frameworks.md) for E2E framework detection.
 
-**Test naming rule:** Test names describe WHAT the behavior is, not HOW it's implemented.
+**Test naming rule:** describe WHAT the behavior is, not HOW it's implemented.
 
-| Good | Bad |
-|------|-----|
-| "returns empty array when no items match filter" | "test filterItems function" |
-| "rejects login with expired token" | "test authentication" |
-| "creates order with correct total when discount applied" | "test createOrder" |
+| Good (behavior) | Bad (implementation) |
+|----------------|----------------------|
+| `"returns empty array when no items match filter"` | `"test filterItems function"` |
+| `"rejects login with expired token"` | `"test authentication"` |
+| `"creates order with correct total when discount applied"` | `"test createOrder"` |
 
-**Client-side test scenarios (when platform = mobile, web SPA, or desktop):**
+**Client-side test scenarios (platform = mobile / web SPA / desktop):**
 
-When generating tests for client-side projects, include these additional scenario categories:
-
-**Responsive layout tests:**
-- Test at viewport profiles: 320dp, 375dp, 412dp, 744dp, 1024dp (minimum)
-- Verify no layout overflow errors at each profile
-- Test both portrait and landscape orientations
-
-**Font scaling tests:**
-- Test at 0.8×, 1.0×, 1.3× system font scale
-- Verify text remains readable and layouts stay intact
-
-**Theme tests:**
-- All screens render correctly in both light and dark mode
-- No hardcoded colors bypassing theme system
-
-**Accessibility tests:**
-- Screen reader (TalkBack / VoiceOver / Narrator / NVDA) traversal of all interactive elements
-- All interactive elements have accessibility labels
-- Error states announced to screen readers
+| Category | Required scenarios |
+|----------|-------------------|
+| Responsive layout | Viewport profiles 320dp / 375dp / 412dp / 744dp / 1024dp (minimum); portrait + landscape; no layout overflow |
+| Font scaling | 0.8× / 1.0× / 1.3× system font scale; text readable, layouts intact |
+| Theme | Light + dark mode render correctly; no hardcoded colors bypassing theme system |
+| Accessibility | Screen reader (TalkBack / VoiceOver / Narrator / NVDA) traversal; all interactive elements have a11y labels; error states announced |
 
 **Test ratio targets (by project type):**
 
@@ -140,138 +127,149 @@ When generating tests for client-side projects, include these additional scenari
 | API | 60%+ | 30%+ | 10%+ |
 | Library | 80%+ | 15%+ | 5%+ |
 
-**Gate:** Test files generated covering happy path, edge cases, and error cases per target. If fails (a source file has no testable public interface or cannot be read) → skip that file, record it in state.data.files_processed as `{ file: "{path}", status: "skipped", reason: "no public interface" }`, and continue generating tests for remaining files.
+**Gate:** Test files generated covering happy path + edge cases + error cases per target. If fails → source file has no testable public interface or unreadable → skip, record `{ file, status: "skipped", reason: "no public interface" }` in state.data.files_processed, continue with remaining files.
 
 ### Phase 2b: Update [--update]
 
-When source code changed and tests need updating:
+When source changed and tests need updating:
 
-1. Identify changed source files (from git diff or user-specified scope)
-2. Per changed file, find its corresponding test file
-3. Compare: what changed in source? New params, renamed methods, changed return types, removed functions?
-4. Update test file to match:
-   - New params → update test calls, add tests for new param edge cases
-   - Renamed method → update test references
-   - Changed return type → update assertions
-   - Removed function → remove tests (with confirmation) or mark as skipped with TODO
-   - New function → generate new tests (as in Phase 2a)
-5. Run updated tests to verify they pass
+1. Identify changed source files (from `git diff` or user-specified scope).
+2. Per changed file, find its corresponding test file.
+3. Compare source changes: new params, renamed methods, changed return types, removed functions.
+4. Update test file:
+   - New params → update calls, add tests for new param edge cases.
+   - Renamed method → update references.
+   - Changed return type → update assertions.
+   - Removed function → remove tests (with confirmation) or mark `skipped` with TODO.
+   - New function → generate new tests (per Phase 2a).
+5. Run updated tests to verify passing.
 
-**Gate:** Updated tests pass and no previously passing tests regressed. If fails (a previously passing test now fails after the update) → do not weaken the assertion; revert that test file to its pre-update state via `git checkout -- {test_file}`, record the regression in state.data.failures as `{ test: "{name}", reason: "regression after update", disposition: "reverted" }`, and write a finding to `ds/audit/findings.md` with scope `app-bugs` identifying the source change that broke the test.
+**Gate:** Updated tests pass; no previously passing tests regressed. If fails → previously passing test now fails → do not weaken assertion; revert test file via `git checkout -- {test-file}`, record `{ test, reason: "regression after update", disposition: "reverted" }` in state.data.failures, write a finding to `ds/audit/findings.md` with scope `app-bugs` identifying the source change that broke the test.
 
 ### Phase 2c: Run + Fix [--run]
 
-1. Execute test suite (or scoped subset): detect and run appropriate test command from `references/frameworks.md`
-2. Parse test output: extract failures, errors, skipped tests
+1. Execute test suite (or scoped subset): detect and run test command from [references/frameworks.md](references/frameworks.md).
+2. Parse output: extract failures, errors, skipped.
 3. Per failure, classify:
 
 | Classification | Action |
 |---------------|--------|
 | **Test is wrong** (assertion outdated, mock stale, fixture missing) | Fix the test |
-| **App is wrong** (source code bug causing test failure) | Report as app bug — fix the test, not the source code |
-| **Environment issue** (missing dep, config, database not running) | Report with setup instructions |
-| **Flaky test** (passes sometimes, fails others — timing, ordering) | Flag as flaky, suggest fix approach |
+| **App is wrong** (source bug causing failure) | Report as app bug — fix the test, not the source |
+| **Environment issue** (missing dep, config, DB not running) | Report with setup instructions |
+| **Flaky test** (timing, ordering — passes sometimes) | Flag as flaky, suggest fix approach |
 
-4. Fix test-side issues automatically. For app bugs, write a finding to `ds/audit/findings.md` with scope `app-bugs` (not `testing` — `testing` scope reserved for code-quality findings about test coverage and test quality).
+4. Fix test-side issues automatically. For app bugs, write a finding to `ds/audit/findings.md` with scope `app-bugs` (NOT `testing` — `testing` scope is reserved for code-quality findings about coverage and test quality).
 5. Re-run to verify fixes. Max 3 fix-run iterations.
 
-**Critical rule:** If a test was passing before and now fails after source change, SOURCE is likely wrong (regression), not the test. Keep assertions at full strength — fix the test logic or report the app bug.
+**Critical rule:** test was passing before, fails after source change → SOURCE is likely wrong (regression), not the test. Keep assertions at full strength — fix test logic or report app bug.
 
-**Gate:** Test-side fixes verified passing or app bugs written to ds/audit/findings.md. If fails (test-side fix did not make the test pass after 3 iterations) → mark the test as `failed (unfixable test-side issue)` in state.data.failures, leave the test file in its best-attempt state, write a finding to `ds/audit/findings.md` with scope `app-bugs` and the captured test output, and continue to Phase 3 Verify.
+**Gate:** Test-side fixes verified passing or app bugs written to `ds/audit/findings.md`. If fails → test-side fix did not pass after 3 iterations → mark `failed (unfixable test-side issue)` in state.data.failures, leave test in best-attempt state, write app-bug finding to `ds/audit/findings.md` with captured output, continue to Phase 3.
 
 ### Phase 2d: Framework Setup [--setup]
 
 If no test framework exists:
 
-1. Detect stack from manifests
-2. Recommend canonical test framework for stack (see `references/frameworks.md`)
-3. Ask user to confirm framework choice
-4. Install framework and create config:
-   - Add test dependency to manifest (package.json, pyproject.toml, etc.)
-   - Create test config file (jest.config.ts, pytest.ini, etc.)
+1. Detect stack from manifests.
+2. Recommend canonical framework for stack (see [references/frameworks.md](references/frameworks.md)).
+3. Ask user to confirm framework choice.
+4. Install + create config:
+   - Add test dependency to manifest (`package.json`, `pyproject.toml`, etc.)
+   - Create test config (`jest.config.ts`, `pytest.ini`, etc.)
    - Create test directory with example test
-   - Add test script to manifest (e.g., `"test": "vitest"` in package.json)
+   - Add test script to manifest (`"test": "vitest"` in `package.json` etc.)
    - Add test step to CI config if it exists
-5. Run example test to verify setup works
+5. Run example test to verify setup works.
 
-**Gate:** Example test passes with installed framework. If fails (framework install succeeded but example test fails to run) → collect the test runner error output, surface it to the user with the message "Framework installed but example test failed: {error}. Check {framework} configuration or run {test_command} manually to diagnose.", and exit with WARN — do not proceed to generate tests over a broken framework setup.
+**Gate:** Example test passes with installed framework. If fails → install succeeded but example fails → collect runner error, surface "Framework installed but example test failed: {error}. Check {framework} configuration or run {test-command} manually to diagnose." Exit with WARN — do not generate tests over a broken setup.
 
 ### Phase 3: Verify
 
-After any generate/update/fix operation:
+After any generate/update/fix:
 
-1. Run full test suite (or scoped subset)
-2. All generated/modified tests must pass
-3. No previously passing test should now fail (regression check)
-4. Report coverage delta if coverage tool is configured
+1. Run full test suite (or scoped subset).
+2. All generated/modified tests must pass.
+3. No previously passing test should now fail (regression check).
+4. Report coverage delta if coverage tool is configured.
 
-**Gate:** All generated tests pass. Zero regressions. If fails → collect the full test runner output for each failing test; classify each failure (test is wrong / app is wrong / environment issue / flaky). Fix test-side failures inline (max 3 iterations per test). For app-bug failures, write each to `ds/audit/findings.md` with scope `app-bugs`. For environment failures, surface setup instructions. Do not commit failing tests — record them as `failing` in state.data.failures and report count in summary.
+**Gate:** All generated tests pass; zero regressions. If fails → collect runner output per failing test, classify (test wrong / app wrong / environment / flaky). Fix test-side inline (max 3 iterations per test). App-bug failures → write to `ds/audit/findings.md` with scope `app-bugs`. Environment → surface setup instructions. Do not commit failing tests — record as `failing` in state.data.failures, report count in summary.
 
 ### Phase 4: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails (user does not respond) → mark unresolved items as `skipped (user did not respond)` in state.data, proceed to Phase 5 Summary.
+**Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → unresolved → mark `skipped (no response)` and proceed.
 
 ### Phase 5: Summary
 
 ```
-ds-test: {OK|WARN|FAIL} | Generated: N | Updated: N | Fixed: N | Skipped: N | Failing: N
+ds-test: {OK|WARN|FAIL} | Generated: {n} | Updated: {n} | Fixed: {n} | Skipped: {n} | Failing: {n}
 
-| Action    | Count | Details              |
-|-----------|-------|----------------------|
-| Generated |  {n}  | {n} unit, {n} integration|
-| Updated   |  {n}  | matched source changes|
-| Fixed     |  {n}  | {n} assertion, {n} mock|
-| Failing   |  {n}  | app bugs (see ds/audit/findings.md) |
+| Action    | Count | Details                                  |
+|-----------|-------|------------------------------------------|
+| Generated | {n}   | {n} unit, {n} integration                |
+| Updated   | {n}   | matched source changes                   |
+| Fixed     | {n}   | {n} assertion, {n} mock                  |
+| Failing   | {n}   | app bugs (see ds/audit/findings.md)      |
 ```
 
-**Gate:** Summary table rendered with generated/updated/fixed/failing counts. Every finding/action has a disposition. Accounting verified. If fails (an action has no disposition or counts do not balance) → assign `failed (disposition missing)` to any undisposed action, recompute totals, reprint the summary table with corrected counts, and set status to WARN.
+**Value Delivered:** 1-5 concrete bullets, real test outcomes only. Example shapes (placeholders, not literal):
+
+- `{n} tests generated covering {n} previously-untested branches — coverage rose from {before}% to {after}% on {scope}`
+- `{n} flaky tests fixed (sleep-based → event-based, time-dependent → fixed-clock) — CI failure rate from non-determinism eliminated`
+- `{n} regression tests added (one per bug-fix) — same defect can no longer reach main twice`
+- `Test Pyramid restored: {n} E2E tests replaced by faster unit + integration equivalents — total suite runtime dropped from {before}s to {after}s`
+
+Audit-only run: `{n} test-quality findings (missing AAA, unrealistic data, no boundary cases) — actionable list returned, no tests modified`.
+
+**Gate:** Summary table + Value Delivered rendered; every action has a disposition; accounting verified. If fails → undisposed action or imbalanced counts → assign `failed (disposition missing)`, recompute totals, reprint with corrected counts, set status WARN.
 
 ## Quality Gates
 
 ### Value Rule (most important)
 
-Every test must justify its existence by addressing a **concrete, specific risk**. Before writing any test, answer: "What bug would this catch?" If answer is vague or "none really", skip the test.
+Every test MUST justify its existence by addressing a **concrete, specific risk**. Before writing any test, answer: "What bug would this catch?" If the answer is vague or "none really", skip the test.
 
-| Write this test | Skip — this test validates... |
+| Write this test | Skip — this test validates… |
 |----------------|----------------------|
-| "Catches division by zero when quantity is 0" | "Tests that constructor sets properties" |
-| "Verifies auth rejects expired JWT tokens" | "Tests that getter returns the field value" |
-| "Catches SQL injection via unsanitized user input" | "Tests that `add(2, 3)` returns `5` for a trivial wrapper" |
-| "Verifies race condition in concurrent balance update" | "Tests that config file loads correctly" (if framework handles this) |
-| "Ensures discount calculation rounds correctly at boundary" | "Tests that logger logs a message" |
+| `"Catches division by zero when quantity is 0"` | `"Tests that constructor sets properties"` |
+| `"Verifies auth rejects expired JWT tokens"` | `"Tests that getter returns the field value"` |
+| `"Catches SQL injection via unsanitized user input"` | `"Tests that add(2,3) returns 5 for a trivial wrapper"` |
+| `"Verifies race condition in concurrent balance update"` | `"Tests that config file loads correctly"` (if framework handles this) |
+| `"Ensures discount calculation rounds correctly at boundary"` | `"Tests that logger logs a message"` |
 
 **Prune phase (`--prune` or part of `--auto`):**
 
-When analyzing existing tests, flag tests that provide no concrete value:
+When analyzing existing tests, flag those that provide no concrete value:
 
-1. Search for tests that only assert: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, or 1:1 reimplementation of the source code
-2. Present flagged tests to user with reason:
-   ```
-   | # | Test | File:Line | Reason | Action |
-   |---|------|-----------|--------|--------|
-   | {n} | {test name} | {file}:{line} | {reason} | Delete |
-   ```
-3. Ask: **Delete all** / **Review each** / **Keep all**
-4. In `--auto` mode: delete silently, report count in summary
+1. Search for tests asserting only: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, or 1:1 reimplementation of source code.
+2. Present flagged tests with reason:
 
-**Replacement rule:** After deleting a low-value test, check if file/module now has meaningful untested logic. If yes, generate a valuable replacement test targeting a real risk.
+   ```
+   | # | Test         | File:Line       | Reason   | Action |
+   |---|--------------|-----------------|----------|--------|
+   | {n}| {test-name} | {file}:{line}   | {reason} | Delete |
+   ```
+
+3. Ask: **Delete all** / **Review each** / **Keep all**.
+4. `--auto`: delete silently, report count in summary.
+
+**Replacement rule:** after deleting a low-value test, check if file/module now has meaningful untested logic. Yes → generate a valuable replacement test targeting a real risk.
 
 ### Other Gates
 
-- Generated tests must pass before declaring done — never commit failing tests
-- Keep assertions at full strength — fix the test logic or report the app bug instead of weakening checks
-- Test names describe behavior, not implementation
-- No test should depend on execution order — each test must be independently runnable
-- Mocks must be minimal — only mock external dependencies (network, filesystem, time), not internal modules
-- Generated test matches project's existing style — no style drift
-- **Test Pyramid ([references/principles.md §7](references/principles.md)):** unit-heavy, integration-medium, E2E-light. Detect inverted pyramid (E2E > integration > unit) and flag as HIGH finding before generating more E2E.
-- **Boundary conditions ([references/principles.md §7](references/principles.md)):** every generated test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable to the function under test.
+- Generated tests must pass before declaring done — never commit failing tests.
+- Keep assertions at full strength — fix the test logic or report the app bug instead of weakening checks.
+- Test names describe behavior, not implementation.
+- No test depends on execution order — each independently runnable.
+- Mocks minimal — only mock external dependencies (network, filesystem, time), not internal modules.
+- Generated test matches project's existing style — no style drift.
+- **Test Pyramid ([references/principles.md §7](references/principles.md)):** unit-heavy, integration-medium, E2E-light. Detect inverted pyramid (E2E > integration > unit) → flag HIGH before generating more E2E.
+- **Boundary conditions ([references/principles.md §7](references/principles.md)):** every generated test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable.
 - **AAA structure ([references/principles.md §7](references/principles.md)):** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
 - **Regression-before-fix ([references/principles.md §7](references/principles.md)):** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
 - **Coverage as diagnostic ([references/principles.md §7](references/principles.md)):** never write a coverage target into generated test configs; configure coverage as a reporter only. The diagnostic is "what did we miss?", not "did we hit X%?".
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/test.json` updated per file processed, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/test.json` updated per file processed, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 
@@ -279,7 +277,7 @@ When analyzing existing tests, flag tests that provide no concrete value:
 |-----------|--------|
 | Test framework not detected | Ask user which framework to use |
 | Generated test fails on first run | Read error, fix test logic (fix the test, not the source) |
-| Source file has no testable public interface | Skip with note: "No public API to test" |
+| Source file has no testable public interface | Skip with note "No public API to test" |
 | Coverage tool unavailable | Skip coverage report, generate tests based on source analysis |
 
 ## Edge Cases
@@ -293,4 +291,4 @@ When analyzing existing tests, flag tests that provide no concrete value:
 | Monorepo with multiple test frameworks | Detect per-package, run each package's framework |
 | E2E requires running server | Check for dev server script, start it, run tests, stop it |
 | Coverage tool not configured | Skip coverage analysis, suggest setup |
-| `--auto` mode with failing app tests | Write findings to `ds/audit/findings.md`, fix the test, not the source code |
+| `--auto` with failing app tests | Write findings to `ds/audit/findings.md`, fix the test, not the source code |

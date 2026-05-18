@@ -1,24 +1,56 @@
 # /ds-ship
 
-Projects at every stage — raw idea, half-built scaffold, feature-complete but unlaunched, long-dormant — accumulate gaps: broken promises in the docs, outdated stacks, missing launch gates, obsolete automations, overengineered abstractions that don't pay rent. Invoking the right ds-* skills in the right order is its own cognitive tax.
+Projects at every stage — raw idea, half-built scaffold, feature-complete but unlaunched, long-dormant — accumulate gaps: broken promises in docs, outdated stacks, missing launch gates, obsolete automations, overengineered abstractions that don't pay rent. Invoking the right ds-* skills in the right order is its own cognitive tax.
 
 **Ship Orchestrator** — classify the project, plan the skill sequence, delegate each phase, consolidate `ds/audit/findings.md`, produce `ds/audit/report.md` (and optional `ds/audit/report.html`) with exactly what was done and what's left.
 
 ## Triggers
 
+ds-ship activates at **explicit milestone gates**, not as a generic "audit everything" command. Cascade activation MUST be confirmed twice (intent + scope) before any delegated skill runs.
+
 - User runs `/ds-ship`
-- User asks "is this ready to ship", "bring this up to professional standards", "audit everything", or "finalize"
-- User wants to resume a long-untouched project and doesn't remember the next step
+- **Release-candidate gate** — user about to cut a release branch, sign an artifact, or push to a store
+- **Pre-launch gate** — user about to flip a feature flag, run a paid campaign, or open the product publicly
+- **Post-incident gate** — user wants a full audit after a production issue, breach, or rollback
 - User preparing an OSS release
-- User asks for "promise vs reality" of the project, a stack-fitness review, or a visual status report
+- User wants to resume a long-untouched project and doesn't remember the next step
+- User asks for "promise vs reality", a stack-fitness review, or a visual status report
+
+### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+
+| ÇAĞIRIR | ÇAĞIRMAZ |
+|---------|----------|
+| "is this ready to ship", "finalize the release", "pre-launch audit" | "audit my code" (→ ds-review), "audit the docs" (→ ds-docs) |
+| "post-incident full audit" | "fix lint errors" (→ ds-fix) |
+| "bring this dormant project back" + dormant signals (>90 days) | "improve performance" (→ ds-review --perf) |
+| "promise vs reality across the whole project" | "what dependencies are outdated" (→ ds-deps) |
+
+### Cascade activation — two-confirmation gate
+
+1. **Intent confirmation** — restate the milestone and ask: "You're invoking ds-ship for {milestone}. Cascade may invoke {N} delegated skills. Proceed? [Y/n]"
+2. **Scope confirmation** — show proposed sequence + estimated delegation count + Category B approval batch projection. Ask: "Approve this plan? [Y / edit / n]"
+
+Both required unless `--auto` set; `--auto` skips prompts but records both as `auto-approved` in `ds/audit/ship.json`. Cancelling either aborts cascade without invoking any delegated skill.
+
+### Target-based delegation routing
+
+Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on its own:
+
+| Deployment target | Skill |
+|-------------------|-------|
+| App store (iOS App Store, Play Store, Mac App Store, Microsoft Store) | `/ds-launch` |
+| Custom server, container, k8s, VPS, PaaS | `/ds-deploy` |
+| Multi-target (e.g. mobile app + backend) | Both, in order: `/ds-deploy` first (infra), then `/ds-launch` (store) |
+| Library / package registry (npm, PyPI, crates, pub.dev) | `/ds-repo --oss-ready` + manual publish — neither ds-deploy nor ds-launch |
 
 ## Contract
 
 - Orchestrator — zero own analysis, consumes `ds/audit/findings.md` as SSOT. FRC+DSC enforced. State: `ds/audit/ship.json`.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - Findings absent or stale → invoke `/ds-blueprint` before any other delegation.
 - Artifacts: `ds/audit/findings.md` (via delegated skills) + own `ds/audit/report.md` (+ `ds/audit/report.html` under `--html`). No logs, traces, history, dumps.
 - Two-gate fix: Category A autonomous, Category B batched approval.
-- Project-type exclusivity: mobile → `/ds-mobile` authoritative (skip `/ds-compliance` overlap scopes); web/backend → `/ds-compliance` authoritative; library/CLI → skip UI-centric skills.
+- Project-type exclusivity: mobile → `/ds-mobile` authoritative (skip `/ds-compliance` overlap); web/backend → `/ds-compliance` authoritative; library/CLI → skip UI-centric skills.
 - Destructive ops forbidden. Approved Category B deletions → `/ds-commit` reversible commits.
 
 ## Arguments
@@ -26,16 +58,16 @@ Projects at every stage — raw idea, half-built scaffold, feature-complete but 
 | Flag | Effect |
 |------|--------|
 | `--preview` | Run Phase 0–1 only: classification, doc census, gap table, proposed sequence. No mutations. |
-| `--stage=X` | Override auto-classified stage: idea, spec-only, scaffold, implementation, review-pending, pre-launch, launched, frozen |
+| `--stage={x}` | Override auto-classified stage: idea, spec-only, scaffold, implementation, review-pending, pre-launch, launched, frozen |
 | `--html` | Additionally produce `ds/audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |
-| `--skip=X` | Comma-separated skills to skip (e.g., `--skip=ds-mobile,ds-analytics`) |
-| `--only=X` | Comma-separated skills to include (override classification defaults) |
+| `--skip={list}` | Comma-separated skills to skip (e.g. `--skip=ds-mobile,ds-analytics`) |
+| `--only={list}` | Comma-separated skills to include (override classification defaults) |
 | `--auto` | Run every phase; Category B items listed and skipped (needs-approval) |
 | `--force-approve` | Apply every Category B item without asking |
 | `--resume` | Resume from `ds/audit/ship.json` without prompt |
 | `--clean` | Delete existing state, start fresh |
 | `--clean-all` | Delete `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
-| `--no-pr-suggest` | Skip Phase 5c PR suggestion for this run (solo-dev main-only workflow) |
+| `--no-pr-suggest` | Skip Phase 5c PR suggestion (solo-dev main-only workflow) |
 
 Without flags: present mode menu (full / preview / resume).
 
@@ -66,53 +98,55 @@ Without flags: present mode menu (full / preview / resume).
 
 ## Execution Flow
 
+```
 P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs → P5 Launch Gates → [P5c PR Suggestion] → P6 Report → [Needs-Approval] → Summary
+```
 
 ### Phase 0: Assess
 
-1. **Recovery check:** DETECT `ds/audit/ship.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present + `--clean-all` → delete `ds/audit/` entirely, fresh. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → skip `done` phases + delegation steps, announce `[SHP] Resuming from Phase {N}, step {K}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`; add if missing.
+1. **Recovery check:** DETECT `ds/audit/ship.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present + `--clean-all` → delete `ds/audit/` entirely, fresh. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → skip `done` phases + delegation steps, announce `[SHP] Resuming from Phase {N}, step {K}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`.
 
 2. **State shape:**
-```json
-{
-  "stage": "implementation",
-  "project_type": "web",
-  "value_proposition": "...",
-  "promise_census": [{"source": "README.md#L23", "promise": "...", "implementation": "src/foo.ts:42 | absent"}],
-  "skill_sequence": ["ds-blueprint", "ds-review", "..."],
-  "current_phase": 2,
-  "delegation_queue": [{"phase": 2, "step": 1, "skill": "ds-blueprint", "status": "done"}, ...],
-  "category_A_count": 0,
-  "category_B_batch": [],
-  "approvals_resolved": false,
-  "git_hash": "..."
-}
-```
+   ```json
+   {
+     "stage": "implementation",
+     "project_type": "web",
+     "value_proposition": "...",
+     "promise_census": [{"source": "README.md#L23", "promise": "...", "implementation": "src/foo.ts:42 | absent"}],
+     "skill_sequence": ["ds-blueprint", "ds-review", "..."],
+     "current_phase": 2,
+     "delegation_queue": [{"phase": 2, "step": 1, "skill": "ds-blueprint", "status": "done"}, ...],
+     "category_A_count": 0,
+     "category_B_batch": [],
+     "approvals_resolved": false,
+     "git_hash": "..."
+   }
+   ```
 
 3. **Stage classification.** Signals:
    - idea: no source files, only `.md` / idea dump → stage = idea
    - spec-only: SPEC.md / PRD.md / detailed README but minimal source → stage = spec-only
-   - scaffold: source files present but entry point stub / TODO-only bodies → stage = scaffold
+   - scaffold: source present but entry point stub / TODO-only bodies → stage = scaffold
    - implementation: non-trivial source, tests may or may not exist, no CI yet → stage = implementation
    - review-pending: source + tests + CI but no deploy artifacts, recent commits → stage = review-pending
-   - pre-launch: review-pending + deploy config present (Dockerfile, CI deploy step, hosting config) → stage = pre-launch
+   - pre-launch: review-pending + deploy config (Dockerfile, CI deploy step, hosting config) → stage = pre-launch
    - launched: pre-launch + `CHANGELOG.md` with released versions / git tags → stage = launched
    - frozen: launched + no commits in past 180 days → stage = frozen
 
 4. **Document census** (table):
-```
-| Document                     | Status  | Size      | Last commit |
-|------------------------------|---------|-----------|-------------|
-| README.md                    | fresh   | 120 lines | 3 days ago  |
-| SPEC.md                      | stale   | 450 lines | 180 days ago|
-| docs/api.md                  | draft   | 30 lines  | 5 days ago  |
-| {AI instruction file}        | fresh   | 200 lines | 1 day ago   |
-| ds/audit/findings.md         | absent  | -         | -           |
-```
+   ```
+   | Document                     | Status  | Size      | Last commit |
+   |------------------------------|---------|-----------|-------------|
+   | README.md                    | fresh   | 120 lines | 3 days ago  |
+   | SPEC.md                      | stale   | 450 lines | 180 days ago|
+   | docs/api.md                  | draft   | 30 lines  | 5 days ago  |
+   | {AI instruction file}        | fresh   | 200 lines | 1 day ago   |
+   | ds/audit/findings.md         | absent  | -         | -           |
+   ```
 
 5. **Git posture.** Active branch, uncommitted changes, unpushed commits, last-activity date, frozen vs active signal.
 
-6. **Value proposition extraction.** From docs, extract the project's one-paragraph concrete promise. Surface to user: "I read this as: {paragraph}. Confirm before I measure everything against it? [Y/n]".
+6. **Value proposition extraction.** Extract project's one-paragraph concrete promise from docs. Surface: "I read this as: {paragraph}. Confirm before I measure everything against it? [Y/n]".
 
 7. **Promise census.** Extract every concrete capability claim from README / SPEC / docs/ / AI instruction file (per host — see ds-blueprint `references/detection.md` § Instruction Files) / blueprint profile. For each, query source (grep + LSP if available) for implementation. Classify:
    - `promised-not-implemented` — doc claims X; no matching module/function/endpoint
@@ -121,55 +155,55 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, performance targets, compliance scope, deprecated features, renamed modules. Ask. Wait.
 
-9. **Skill sequence proposal.** Combine stage + project type → propose the sequence per the matrix, adjusted by user answers. Show the plan; user confirms or trims.
+9. **Skill sequence proposal.** Combine stage + type → propose sequence per matrix, adjusted by user answers. Show plan; user confirms or trims.
 
-**Gate:** Value proposition confirmed. Skill sequence approved. `ds/audit/ship.json` has populated stage + type + promise census + sequence. No execution past this gate without approval. If fails (user cannot confirm value proposition or does not approve the sequence) → abort orchestration with message "ds-ship: aborted — value proposition or skill sequence not confirmed. Re-run after clarifying the project's purpose or use --stage=X to override classification." Do not proceed with vague or unconfirmed plan.
+**Gate:** Value proposition confirmed; skill sequence approved; `ds/audit/ship.json` populated with stage + type + promise census + sequence. No execution past this gate without approval. If fails (user cannot confirm vp or doesn't approve sequence) → abort orchestration with "ds-ship: aborted — value proposition or skill sequence not confirmed. Re-run after clarifying purpose or use `--stage=X` to override." Do not proceed with vague or unconfirmed plan.
 
 ### Phase 1: Ideal-vs-Current Gap
 
-1. **Delegate to `/ds-benchmark`** with the confirmed problem-space. Wait.
-2. **Re-read `ds/audit/findings.md`** for the `ideal-gap` scope after benchmark completes.
-3. **Merge with promise census.** `promised-not-implemented` entries join the gap table as `missing` with `source=promise`.
-4. **Approval batch.** Present all Category B gaps in one block — close / defer / intentional-deviation. For each intentional deviation, optionally invoke `/ds-docs --adr` to record the rationale.
+1. **Delegate to `/ds-benchmark`** with confirmed problem-space. Wait.
+2. **Re-read `ds/audit/findings.md`** for `ideal-gap` scope after benchmark completes.
+3. **Merge with promise census.** `promised-not-implemented` entries join gap table as `missing` with `source=promise`.
+4. **Approval batch.** Present all Category B gaps in one block — close / defer / intentional-deviation. For each intentional deviation, optionally invoke `/ds-docs --adr` to record rationale.
 
-**Gate:** Every Category B gap has a decision. Category A gaps queued for Phase 2 execution. If fails (user declines to decide on one or more B gaps) → mark undecided gaps as `deferred` in state.data.category_B_batch, add them to the report's "Awaiting User Decision" section, and continue to Phase 2 with Category A gaps only.
+**Gate:** Every Category B gap has a decision; Category A gaps queued for Phase 2. If fails (user declines to decide on one or more B gaps) → mark undecided as `deferred` in state.data.category_B_batch, add to report's "Awaiting User Decision" section, continue to Phase 2 with Category A only.
 
 ### Phase 2: Rule-Based Deep Audit (via delegation only)
 
-Sequenced per the approved plan. One skill at a time. Orchestration loop per delegation:
+Sequenced per approved plan. One skill at a time. Orchestration loop per delegation:
 
 1. **Pre-delegation note.** Append one line to `ds/audit/report.md` under `## Orchestration log`:
    `[P{N}.{K}] invoke {skill} — reason: {one sentence} — expected: findings update | fixes applied | metric produced`.
 
 2. **Update state.** `delegation_queue` entry → `in_progress`.
 
-3. **Invoke** the skill via the host tool's skill-invocation mechanism. Pass only documented arguments.
+3. **Invoke** the skill via host tool's skill-invocation mechanism. Pass only documented arguments.
 
-4. **Wait for done.** A delegated skill is considered complete when ANY of these holds: (a) its `ds/audit/<skill>.json` state file no longer exists, OR (b) its Summary line was emitted in chat output, OR (c) `ds/audit/findings.md` has new entries with the delegated skill's `source` since pre-delegation. If none holds within the user-driven turn (skill never reported back) → mark delegation as `failed` in the orchestration log, log `delegated skill {name} did not signal completion`, and proceed to next delegation. Never block waiting for a deletion event the orchestrator cannot observe.
+4. **Wait for done.** Delegated skill complete when ANY: (a) its `ds/audit/<skill>.json` no longer exists, OR (b) its Summary line emitted in chat output, OR (c) `ds/audit/findings.md` has new entries with delegated skill's `source` since pre-delegation. None holds within user-driven turn (skill never reported back) → mark delegation `failed` in orchestration log, log `delegated skill {name} did not signal completion`, proceed to next. Never block waiting for a deletion event the orchestrator cannot observe.
 
-5. **Re-read findings diff.** Only entries added since pre-delegation are new. Classify each as A or B using Phase 0 rules.
+5. **Re-read findings diff.** Only entries added since pre-delegation are new. Classify each A or B using Phase 0 rules.
 
-6. **Route.** A entries → apply inline if the delegated skill did not already apply. B entries → append to `category_B_batch`.
+6. **Route.** A entries → apply inline if delegated skill did not already apply. B entries → append to `category_B_batch`.
 
-7. **Mark done.** `delegation_queue` entry → `done`. Append result line to `## Orchestration log`:
+7. **Mark done.** `delegation_queue` entry → `done`. Append result line:
    `[P{N}.{K}] {skill} completed — A: {x}, B: {y}, deferred: {z}`.
 
-8. **Advance.** Next delegation in the queue → repeat from step 1. Queue empty → advance to next phase.
+8. **Advance.** Next delegation in queue → repeat from step 1. Queue empty → advance to next phase.
 
 **Default Phase 2 delegation order (adjusted by stage + type):**
 
 1. `/ds-blueprint` (if findings absent or stale — always first)
 2. `/ds-review --strategic` (architecture-level, 8 scopes)
 3. `/ds-review --tactical` (file-level, 9 scopes)
-4. Stack-specific: `/ds-backend`, `/ds-frontend`, `/ds-mobile` — but on mobile projects, `/ds-mobile` subsumes `/ds-compliance` security/privacy/regulatory; do not run both on the same scopes
+4. Stack-specific: `/ds-backend`, `/ds-frontend`, `/ds-mobile` — on mobile projects, `/ds-mobile` subsumes `/ds-compliance` security/privacy/regulatory; do not run both on the same scopes
 5. `/ds-compliance` (web/backend projects)
 6. `/ds-test`
 7. `/ds-fix`
 8. `/ds-analytics --privacy-audit` (only if analytics present)
 
-**Category B batch at end of Phase 2.** Present all B items with impact / effort / risk. Modes: interactive → Apply All / Review Each / Skip All / Defer. `--auto` without `--force-approve` → list + skip. `--force-approve` → apply all. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
+**Category B batch at end of Phase 2.** Present all B items with impact / effort / risk. Modes: interactive → Apply All / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL); `--auto` without `--force-approve` → list + skip; `--force-approve` → apply all. Applied B fixes flow back through owning skill (ds-review for code-level, ds-backend for API, etc.).
 
-**Gate:** Every queued delegation `done`. Every B item has a decision. `ds/audit/findings.md` reflects current state. If fails (a delegated skill did not signal completion or a B item has no decision) → log each incomplete delegation as `failed` in the orchestration log with reason "did not signal completion", mark undecided B items as `deferred`, and continue to Phase 3 with whatever findings were collected; do not block the orchestration on a single failed delegation.
+**Gate:** Every queued delegation `done`; every B item has decision; `ds/audit/findings.md` reflects current state. If fails (delegated skill did not signal completion or B item has no decision) → log each incomplete as `failed` in orchestration log with reason "did not signal completion", mark undecided B as `deferred`, continue to Phase 3 with collected findings; do not block on single failed delegation.
 
 ### Phase 3: Simplify
 
@@ -178,18 +212,18 @@ Sequenced per the approved plan. One skill at a time. Orchestration loop per del
 3. **Every simplify finding is Category B.** Present batch, user approves per scope.
 4. Approved items handled by ds-simplify (deletion + commit per batch).
 
-**Gate:** Every simplify finding has a decision; every approved deletion committed. If fails (ds-simplify delegation did not complete or a batch commit failed) → log the incomplete delegation in the orchestration log as `failed (simplify batch not committed)`, record affected simplify finding IDs in state.data.category_B_batch as `deferred`, and continue to Phase 4.
+**Gate:** Every simplify finding has decision; every approved deletion committed. If fails (ds-simplify delegation didn't complete or batch commit failed) → log incomplete delegation as `failed (simplify batch not committed)`, record affected IDs in state.data.category_B_batch as `deferred`, continue to Phase 4.
 
 ### Phase 4: Documentation Audit & Optimization
 
 **4a — Compact existing context-loaded docs.**
 
-Target any doc that acts as persistent context for the AI assistant or human readers: AI instruction files (per host — see ds-blueprint `references/detection.md` § Instruction Files for the full list); `README.md`; skill/prompt/agent definition files; large `docs/` files referenced from context-loading paths.
+Target any doc acting as persistent context for AI assistant or human readers: AI instruction files (per host — see ds-blueprint `references/detection.md` § Instruction Files); `README.md`; skill/prompt/agent definition files; large `docs/` files referenced from context-loading paths.
 
-For each such doc, per-file pass:
+Per-file pass:
 1. Preserve every concrete fact, instruction, pointer.
 2. Remove filler prose, redundant restatements, obsolete sections, verbose formatting where compact equivalents exist.
-3. Relocate misplaced information (e.g., runtime notes in the AI instruction file that belong in `docs/runtime.md`).
+3. Relocate misplaced information (e.g. runtime notes in AI instruction file that belong in `docs/runtime.md`).
 4. Compress: tables over prose, bullets over paragraphs, references over duplication.
 5. Measure: report before/after token estimate per rewritten doc.
 
@@ -199,12 +233,12 @@ Category: **A** for pure compaction that provably preserves content. **B** if an
 
 Delegate to `/ds-docs`:
 - Verify every claim against source (drift detection).
-- Confirm every feature promised in the spec is documented (feature-completeness complement of Phase 0's promise census).
+- Confirm every feature promised in spec is documented (feature-completeness complement of Phase 0 promise census).
 - Generate only the missing docs that deliver concrete value. No doc generated because "it's usually there."
 
 Optionally invoke `/ds-docs --adr` to record architectural decisions surfaced in Phase 1 or Phase 2.
 
-**Gate:** Every context-loading doc has before/after token count. Doc drift delta reported. If fails (a doc could not be read or token count tool is unavailable) → log the unprocessed doc as `skipped (unreadable)` in the orchestration log, estimate token count as "N/A", and continue; report the doc name in the Phase 6 report under a "Documentation gaps" note.
+**Gate:** Every context-loading doc has before/after token count; doc drift delta reported. If fails (doc unreadable or token count tool unavailable) → log unprocessed doc as `skipped (unreadable)` in orchestration log, estimate token count as "N/A", continue; report doc name in Phase 6 report under "Documentation gaps".
 
 ### Phase 5: Launch Gates
 
@@ -220,16 +254,16 @@ Triggered when `stage ∈ {pre-launch, launched}` or user explicitly requested s
 - Invoke `/ds-repo --oss-ready`.
 - Every OSS-readiness finding is Category B (most are user-visible).
 
-**Gate:** Every Phase 5 delegation `done`. All B items have decisions. If fails (a launch-gate skill — ds-devops, ds-deploy, ds-launch, or ds-repo — did not signal completion) → log the delegation as `failed` in the orchestration log, mark its B items as `deferred`, set ship-readiness flag to `no` in state for those gates, and continue to Phase 5c.
+**Gate:** Every Phase 5 delegation `done`; all B items have decisions. If fails (a launch-gate skill — ds-devops, ds-deploy, ds-launch, or ds-repo — didn't signal completion) → log as `failed` in orchestration log, mark its B items `deferred`, set ship-readiness flag `no` in state for those gates, continue to Phase 5c.
 
 ### Phase 5c: PR Suggestion [optional — suggestion only, never forces]
 
-Orchestrator never pushes or opens a PR on its own. This step **only suggests** when the git state makes a PR plausible; the user is always free to keep working main-only.
+Orchestrator never pushes or opens a PR on its own. This step **only suggests** when git state makes a PR plausible; user always free to keep working main-only.
 
 **Trigger conditions (all must hold):**
-1. Current branch is not `main` / `master` (user is already on a feature branch).
-2. Branch is ahead of its upstream by ≥1 commit (there is something to PR).
-3. `gh` CLI available and authenticated (otherwise skipping is automatic — no PR is possible).
+1. Current branch is not `main` / `master` (user already on feature branch).
+2. Branch is ahead of upstream by ≥1 commit (something to PR).
+3. `gh` CLI available + authenticated (otherwise skip automatic — no PR possible).
 4. `--no-pr-suggest` flag absent.
 
 **When triggered:**
@@ -238,14 +272,14 @@ Orchestrator never pushes or opens a PR on its own. This step **only suggests** 
 
 Response handling:
 - `y` → invoke `/ds-pr`, record result hash in state, include PR URL in Phase 6 report.
-- `n` → record `pr_suggested: declined (this run)` in state, continue to Phase 6. Next run will ask again.
+- `n` → record `pr_suggested: declined (this run)` in state, continue. Next run asks again.
 - `always-skip` → record `pr_suggestion: muted` in `ds/audit/ship.json`; subsequent runs skip this step until `--clean` or manual edit.
 
 **When NOT triggered (silent skip — no prompt, no noise):**
 
 | Situation | Rationale |
 |-----------|-----------|
-| On `main` / `master` with direct commits | Solo-dev main-only workflow is a valid style — don't nag |
+| On `main` / `master` with direct commits | Solo-dev main-only is a valid style — don't nag |
 | No upstream configured | Nothing to PR against |
 | Branch is up-to-date with upstream | Nothing new to PR |
 | `gh` unavailable | Can't open a PR anyway |
@@ -254,7 +288,7 @@ Response handling:
 
 **Report note:** Phase 6 report includes one line: `PR: {url} | declined-this-run | not-applicable ({reason}) | muted`.
 
-**Gate:** Decision recorded in state (yes / declined / not-applicable / muted). Step never blocks progression. If fails (user does not respond or response is unrecognizable) → record `pr_suggested: no_response` in state, treat as `declined (this run)`, and continue to Phase 6 without further prompting.
+**Gate:** Decision recorded in state (yes / declined / not-applicable / muted). Step never blocks progression. If fails (user doesn't respond or response unrecognizable) → record `pr_suggested: no_response`, treat as `declined (this run)`, continue without further prompting.
 
 ### Phase 6: Consolidated Report
 
@@ -318,7 +352,7 @@ type: {project-type}
 
 ## Next Trigger
 
-{When should ds-ship next run — e.g., "after feature X lands", "before 2026-Q3 public release", "quarterly hygiene".}
+{When should ds-ship next run — e.g. "after feature X lands", "before 2026-Q3 public release", "quarterly hygiene".}
 ```
 
 **`--html` flag: additionally write `ds/audit/report.html`.**
@@ -331,47 +365,58 @@ Self-contained, offline, ASCII-only. Sections:
 5. Ship-readiness gauge (0–100; based on open CRITICAL count + open B count).
 6. Each major section wrapped in `<details>` (collapsed by default).
 
-Inline CSS + inline SVG + inline Mermaid (statically rendered SVG, not JavaScript-rendered — so offline opens render instantly). No external CDN, no remote font, no remote script.
+Inline CSS + inline SVG + inline Mermaid (statically rendered SVG, not JavaScript-rendered — offline opens render instantly). No external CDN, no remote font, no remote script.
 
-**Gate:** `ds/audit/report.md` written. `ds/audit/report.html` written if `--html`. If fails → if `ds/audit/report.md` cannot be written (e.g., path unwritable), surface the error to the user and print the full report to chat output as fallback; if `ds/audit/report.html` fails (Mermaid render error or write failure), fall back to ASCII art flow in a `<pre>` block and flag in the report header — do not block Phase 7.
+**Gate:** `ds/audit/report.md` written; `ds/audit/report.html` written if `--html`. If fails → `report.md` unwritable → surface error, print full report to chat as fallback; `report.html` fails (Mermaid render error or write failure) → fall back to ASCII art flow in `<pre>` block, flag in report header — do not block Phase 7.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Remaining unresolved B items (rare — most resolved inline per phase). Present. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
+Remaining unresolved B items (rare — most resolved inline per phase). Present. Modes: `--auto` → list+skip; `--force-approve` → apply all; interactive → Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
 
-**Gate:** All needs-approval resolved. If fails (user declines to resolve one or more items) → mark unresolved items as `skipped (user declined)` in state, include them in the Phase 6 report's "Awaiting User Decision" section, and proceed to Phase 8 summary.
+**Gate:** All needs-approval resolved. If fails (user declines to resolve) → mark unresolved `skipped (user declined)`, include in Phase 6 report's "Awaiting User Decision" section, proceed.
 
 ### Phase 8: Summary
 
 FRC+DSC accounting. Output:
 
-`ds-ship: {OK|WARN|FAIL} | Stage: {stage} | A-fixed: N | B-applied: N | B-skipped: N | Deferred: N | Blockers: N | Ship-ready: {yes|no}`
+```
+ds-ship: {OK|WARN|FAIL} | Stage: {stage} | A-fixed: {n} | B-applied: {n} | B-skipped: {n} | Deferred: {n} | Blockers: {n} | Ship-ready: {yes|no}
+```
 
 On success: delete `ds/audit/ship.json`. Keep `ds/audit/findings.md` and `ds/audit/report.md` — they remain for follow-up runs. Use `--clean-all` to wipe `ds/audit/` entirely.
 
-**Gate:** Every A/B item has a disposition. Accounting balances. If fails (accounting does not balance) → identify items without a disposition, assign `failed (disposition missing)` to each, reprint the summary line with corrected counts, and set status to WARN so the imbalance is visible in the output.
+**Gate:** Every A/B item has disposition; accounting balances. If fails (accounting doesn't balance) → identify items without disposition, assign `failed (disposition missing)`, reprint summary with corrected counts, status WARN.
 
 ## Report Format
 
 See Phase 6 above.
 
+**Value Delivered:** 1-5 concrete ship-readiness outcomes. Example shapes (placeholders, not literal):
+
+- `{n} delegated skills run in milestone-correct order; {n} A items applied autonomously, {n} B items batched for approval — sequencing tax eliminated`
+- `Promise census: {n} claims in docs / README / SPEC verified against source; {n} promised-not-implemented, {n} implemented-not-documented surfaced — "ship-ready" is now evidence, not optimism`
+- `Cross-skill findings consolidated into ds/audit/report.md (+ optional offline HTML) — single artifact replaces N separate reports`
+- `Stage classification: {stage} → recommended sequence: {short-sequence} — next action is a single command, not a decision tree`
+
+Zero-change run: `Project already ship-ready for {stage} — no delegations triggered`.
+
 ## Quality Gates
 
-W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no unsourced prose. W2: after modifying docs, re-grep for references to moved content. W3: orchestrator never modifies source code directly — every mutation goes through a delegated skill. W4: re-read `ds/audit/findings.md` diff after every delegation. W5: uncertain classification → B. W6: every phase produces a visible entry in the orchestration log. W7: dedup findings across skills — ds-blueprint's finding wins on overlap with partial scanners. W8: quote every path in shell; orchestrator never interpolates user strings into commands. W9: state in `ds/audit/ship.json`, `ds/audit/` gitignored, state deleted on Summary.
+W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no unsourced prose. W2: after modifying docs, re-grep for references to moved content. W3: orchestrator never modifies source code directly — every mutation goes through a delegated skill. W4: re-read `ds/audit/findings.md` diff after every delegation. W5: uncertain classification → B. W6: every phase produces a visible entry in the orchestration log. W7: dedup findings across skills — ds-blueprint's finding wins on overlap with partial scanners. W8: quote every path in shell; orchestrator never interpolates user strings into commands. W9: state in `ds/audit/ship.json`, `ds/audit/` gitignored, state deleted on Summary. W10: orchestrator consumes `ds/audit/findings.md` as SSOT — never re-detects what delegated skills already covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
-- No destructive shortcuts: `--no-verify`, `reset --hard`, branch deletion are forbidden to the orchestrator; every blocker is surfaced, not bypassed.
+- No destructive shortcuts: `--no-verify`, `reset --hard`, branch deletion forbidden to orchestrator; every blocker surfaced, not bypassed.
 - Stop condition: same obstacle blocks 3 times → stop, write `## Blockers` section in report, exit with WARN.
 
 ## Error Recovery
 
 | Situation | Action |
 |-----------|--------|
-| Delegated skill unavailable | Surface the gap in report (`## Missing skills`), do NOT substitute with own analysis. Mark phase WARN. |
-| Delegated skill fails / errors | Record failure in orchestration log, continue to next delegation, do not mask the failure |
+| Delegated skill unavailable | Surface gap in report (`## Missing skills`); do NOT substitute with own analysis. Mark phase WARN. |
+| Delegated skill fails / errors | Record failure in orchestration log, continue to next, do not mask the failure |
 | Phase 0 ambiguity unresolved | Block — orchestrator will not proceed without value proposition and approved sequence |
 | User declines every B item | Proceed with A only; report Ship-ready: no with open B count |
 | Stage misclassified (user disagrees) | Accept `--stage=X` override, re-plan sequence, resume |
-| Findings file becomes stale mid-run (new commit) | Re-invoke `/ds-blueprint --refresh` before continuing the current phase |
+| Findings file becomes stale mid-run (new commit) | Re-invoke `/ds-blueprint --refresh` before continuing current phase |
 | `ds/audit/report.html` requested but Mermaid static render fails | Fall back to ASCII art flow in `<pre>` block; flag in report header |
 
 ## Edge Cases
@@ -384,4 +429,4 @@ W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no un
 | Mobile-only project | Phase 2 runs ds-mobile instead of ds-compliance for overlapping scopes |
 | Library/CLI (no UI) | Skip ds-frontend, ds-launch, ds-market; include ds-repo --oss-ready if public intent |
 | Multiple value propositions in docs | Ask user to confirm primary vp; note secondary as intentional scope |
-| Ship-ready already | Phase 0 detects zero B gaps, report becomes a maintenance snapshot — Phase 5 still runs launch checks to confirm |
+| Ship-ready already | Phase 0 detects zero B gaps, report becomes maintenance snapshot — Phase 5 still runs launch checks to confirm |

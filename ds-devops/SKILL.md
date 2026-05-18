@@ -11,36 +11,44 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 - User asks about dependency management, code signing, or CI quality gates
 - User asks why CI is failing or how to set up CI for a project
 
+### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+
+| ÇAĞIRIR | ÇAĞIRMAZ |
+|---------|----------|
+| "audit CI/CD pipeline", "review GitHub Actions workflows" | "deploy the app to infra" (→ ds-deploy) |
+| "set up code signing for releases" | "configure VPS / containers / SSL" (→ ds-deploy) |
+| "audit release pipeline + version bump workflow" | "audit repo settings / branch protection" (→ ds-repo) |
+| "dependency audit gate in CI" | "perform the dep upgrades" (→ ds-deps) |
+
 ## Contract
 
-- Every finding cites file and line — never infer or assume
-- Only audits CI/CD, signing, dependencies, and release pipelines
-- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
+- Every finding cites file and line — never infer or assume.
+- Only audits CI/CD, signing, dependencies, release pipelines.
+- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
 ## Arguments
 
 | Flag | Effect |
 |------|--------|
-| `--mode=<mode>` | `audit`, `audit+fix`, `quick-fix` |
-| `--scope=<domains>` | Comma-separated: ci, signing, deps, release-pipeline, or `all` |
+| `--mode={x}` | `audit`, `audit+fix`, `quick-fix` |
+| `--scope={x}` | Comma-separated: ci, signing, deps, release-pipeline, or `all` |
 | `--auto` | All scopes, no questions, single-line summary |
 | `--preview` | Dry run — show what would be checked without loading rules or scanning |
 | `--resume` | Resume from `ds/audit/devops.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
-Without flags: present mode and scope selection to the user.
+Without flags: present mode + scope selection to the user.
 
 ## Scopes
 
 | Scope | What It Checks |
 |-------|---------------|
-| ci | CI/CD pipeline presence, quality gates, format/analyze/test/build stages |
+| ci | CI/CD pipeline presence, quality gates, format / analyze / test / build stages |
 | signing | Code signing automation, certificate management, keystore security |
 | deps | Dependency audit gate, outdated detection, cross-dependency compatibility, breaking changes |
 | release-pipeline | Release automation, version bump workflow |
-
----
 
 ## Delegation
 
@@ -52,81 +60,78 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 ### Phase 1: Detect
 
-**Recovery check:** DETECT `ds/audit/devops.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read CI/signing/deps config, discard stale findings), skip `done` phases, announce `[OPS] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/devops.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read CI/signing/deps config, discard stale findings), skip `done` phases, announce `[OPS] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
 
-**State `data` shape:** `{ mode, scopes_selected, scopes_done[], ci_platform, toolchain, findings[{id, severity, file, line, scope, disposition}], fix_progress }`.
+**State `data`:** `{ mode, scopes_selected, scopes_done[], ci_platform, toolchain, findings[{id, severity, file, line, scope, disposition}], fix_progress }`.
 
-1. **IDU:** Profile → Project Map.Toolchain, Type+Stack, Config.deploy. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
-2. **Project type detection.** Search for config files:
+1. **IDU:** Profile → Project Map.Toolchain, Type + Stack, Config.deploy. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
 
-| Type | Detection |
-|------|-----------|
-| Flutter/Dart | `pubspec.yaml` with `flutter:` |
-| Node.js | `package.json` |
-| Python | `pyproject.toml`, `setup.py`, `requirements.txt` |
-| Go | `go.mod` |
-| Rust | `Cargo.toml` |
-| Java/Kotlin | `build.gradle`, `pom.xml` |
-| iOS | `*.xcodeproj`, `Package.swift` |
-| Android | `build.gradle` with `android {}` |
-| Monorepo | `lerna.json`, `nx.json`, `turbo.json`, workspace config |
+2. **Project type detection:**
 
-3. **CI detection.** Search for CI config files: `.github/workflows/`, `.gitlab-ci.yml`, `bitrise.yml`, `Jenkinsfile`, `.circleci/`, `azure-pipelines.yml`, `codemagic.yaml`.
+   | Type | Detection signal |
+   |------|------------------|
+   | Flutter / Dart | `pubspec.yaml` with `flutter:` |
+   | Node.js | `package.json` |
+   | Python | `pyproject.toml`, `setup.py`, `requirements.txt` |
+   | Go | `go.mod` |
+   | Rust | `Cargo.toml` |
+   | Java / Kotlin | `build.gradle`, `pom.xml` |
+   | iOS | `*.xcodeproj`, `Package.swift` |
+   | Android | `build.gradle` with `android {}` |
+   | Monorepo | `lerna.json`, `nx.json`, `turbo.json`, workspace config |
 
-4. **Dependency tooling.** Detect: `dependabot.yml`, `renovate.json`, lockfiles, `.nvmrc`, `.tool-versions`.
+3. **CI detection.** Search for `.github/workflows/`, `.gitlab-ci.yml`, `bitrise.yml`, `Jenkinsfile`, `.circleci/`, `azure-pipelines.yml`, `codemagic.yaml`.
+4. **Dependency tooling.** Detect `dependabot.yml`, `renovate.json`, lockfiles, `.nvmrc`, `.tool-versions`.
+5. **Mode selection.** No `--mode` → ask: Full Audit / Audit & Fix / Quick Fix.
+6. **Scope selection.** No `--scope` → ask which scopes to audit (default: all).
 
-5. **Mode selection.** No `--mode` flag → ask user:
-   - **Full Audit** — scan all scopes, report findings
-   - **Audit & Fix** — scan, review findings, then fix
-   - **Quick Fix** — scan and auto-fix, minimal review
-
-6. **Scope selection.** No `--scope` flag → ask which scopes to audit (default: all).
-
-**Gate:** Project type identified, CI platform detected, mode and scope confirmed. If fails → if project type cannot be determined from config signals, ask user directly: "What type of project is this? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; if CI platform cannot be detected, ask "Which CI platform do you use?"; if mode or scope remain unconfirmed after prompting, default to Full Audit / all scopes and announce the default.
+**Gate:** Project type + CI platform identified; mode and scope confirmed. If fails → undetermined type → "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce.
 
 ### Phase 2: Rule Loading
 
-Load [rules-devops.md](references/rules-devops.md). Rules are project-type-aware — skip rules that don't apply to detected stack.
+Load [references/rules-devops.md](references/rules-devops.md). Rules are project-type-aware — skip rules that don't apply to detected stack.
 
-**Gate:** Rules file loaded and filtered to detected project type; inapplicable rules excluded. If fails → if `references/rules-devops.md` cannot be read (missing or unreadable), surface a WARN "rules file unavailable — proceeding with built-in heuristics only" and continue the scan using the embedded rules in this skill; do not abort.
+**Gate:** Rules file loaded + filtered to detected project type; inapplicable rules excluded. If fails → rules file unreadable → WARN "rules file unavailable — proceeding with built-in heuristics only", continue scan using embedded rules; do not abort.
 
 ### Phase 3: Scan
 
-1. **Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → read findings matching scopes (ci, signing, deps, release-pipeline). For each match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
+1. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings matching scopes (ci, signing, deps, release-pipeline). Per match: verify still valid (re-read `{file}:{line}`); uncovered scopes → run full analysis.
 
-For each scope, scan codebase:
+For each scope:
 
-2. Search for relevant config and build files
-3. Search contents for violation patterns
-4. Read files to verify findings in context
-5. Skip rules that cannot be verified
+2. Search for relevant config + build files.
+3. Search contents for violation patterns.
+4. Read files to verify findings in context.
+5. Skip rules that cannot be verified.
 
 **Twelve-Factor pipeline checks ([references/principles.md §3](references/principles.md)):**
-- Factor 5 (Build/Release/Run): build artifact is immutable — no recompilation between staging and production. Same artifact promoted across environments. Flag if CI rebuilds from source per environment.
+
+- Factor 5 (Build/Release/Run): build artifact immutable — no recompilation between staging and production. Same artifact promoted across environments. Flag if CI rebuilds from source per environment.
 - Factor 12 (Admin processes): migrations / seeds / data backfills run as isolated one-off commands against the same release artifact. Flag if these are embedded in the deploy job or run on dev workstations.
 
 **Confidence:** HIGH = match + context verified. MEDIUM = pattern match, ambiguous. LOW = heuristic.
 
 **Skip patterns:** `# noqa`, `# intentional`, `# safe:`, test fixtures.
 
-**Findings verification** (audit and audit+fix modes, skip for quick-fix):
-- HIGH: auto-include
-- MEDIUM: present for review
-- LOW: shown as potential issues
+**Findings verification** (audit / audit+fix modes; quick-fix skips this):
 
-**Gate:** Every in-scope domain scanned, all findings recorded with severity and confidence. If fails → for any scope that could not be fully scanned (file unreadable, tool unavailable, unexpected format): mark that scope `partial` in `state.scopes_done`, record a MEDIUM finding "scan incomplete for scope {scope} — {reason}", and continue to Report with partial findings; do not silently omit the scope.
+- HIGH → auto-include
+- MEDIUM → present for review
+- LOW → shown as potential issues
+
+**Gate:** Every in-scope domain scanned; all findings recorded with severity + confidence. If fails → unscan-able scope (file unreadable, tool unavailable, unexpected format) → mark scope `partial` in state.scopes_done, record MEDIUM "scan incomplete for scope {scope} — {reason}", continue to Report; do not silently omit scope.
 
 ### Phase 4: Report
 
 ```
-## DevOps Audit Report — [project_name]
-Type: [project_type] | CI: [ci_platform] | Date: [today]
+## DevOps Audit Report — {project-name}
+Type: {project-type} | CI: {ci-platform} | Date: {today}
 
 ### Findings
-| # | Rule | Sev | File:Line | Issue | Impact | Fix | Conf |
+| # | Rule        | Sev      | File:Line       | Issue    | Impact   | Fix      | Conf   |
 
 ### Potential Issues (LOW confidence)
-| # | Rule | File:Line | Issue | Suggested Fix |
+| # | Rule        | File:Line       | Issue    | Suggested Fix     |
 
 ### Summary
 | Scope | CRITICAL | HIGH | MEDIUM | LOW | Total |
@@ -134,7 +139,7 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 
 **Severity:** CRITICAL > HIGH > MEDIUM > LOW. Uncertain → choose lower.
 
-**Gate:** Report presented to user with all findings, severities, and summary table. If fails → if any scope row is missing from the summary table, re-read `state.findings` for that scope, add a row with whatever count was recorded (or `0 findings` if none), and re-emit the report; do not proceed to Phase 5 until the table accounts for every selected scope.
+**Gate:** Report presented with all findings + severities + summary. If fails → missing scope row → re-read state.findings, add row with recorded count (or `0 findings`), re-emit report; do not proceed to Phase 5 until table accounts for every selected scope.
 
 ### Phase 5: Post-Report
 
@@ -144,26 +149,35 @@ Type: [project_type] | CI: [ci_platform] | Date: [today]
 | `audit+fix` | Auto-transition to fix |
 | `quick-fix` | Auto-apply all, summary only |
 
-**Gate:** User selected post-report action; mode-specific next step determined. If fails → if the user did not respond or dismissed the prompt, default to "Report only" (no fixes applied), announce the default, and proceed directly to Summary; do not block on the unanswered prompt.
+**Gate:** User selected post-report action; mode-specific next step determined. If fails → no response / dismissed prompt → default "Report only" (no fixes), announce default, proceed to Summary.
 
 ### Phase 6: Fix [SKIP if audit-only or --preview]
 
-1. Present fix plan (rule, severity, file, action, dependencies)
-2. Confirmation: quick-fix = proceed, audit+fix = ask
-3. Apply fixes grouped by file
-4. Present fix summary
+1. Present fix plan (rule, severity, file, action, dependencies).
+2. Confirmation: quick-fix proceeds; audit+fix asks.
+3. Apply fixes grouped by file.
+4. Present fix summary.
 
 ```
-ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
+ds-devops: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-**Gate:** Fixed + skipped + failed = total findings; every modified file re-read and verified. Every finding/action has a disposition. Accounting verified. If fails → any finding without a disposition: assign `skipped (accounting gap)`; any modified file that cannot be re-read: mark its fix as `failed (verify error)` and revert the file change; re-emit the summary as `WARN` if counts do not balance.
+**Gate:** `fixed + skipped + failed = total`; every modified file re-read and verified; every finding/action has a disposition. If fails → undisposed finding → `skipped (accounting gap)`; un-re-readable modified file → mark fix `failed (verify error)`, revert file change; counts imbalanced → status `WARN`.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → any item left unresolved after user interaction: mark it `skipped (no decision)` in `state.fix_progress` and continue to Summary; do not retry the prompt.
+**Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)` in state.fix_progress, continue; do not retry.
+
+**Value Delivered:** 1-5 concrete bullets, real pipeline outcomes only. Example shapes (placeholders, not literal):
+
+- `CI pipeline: {n} actions SHA-pinned (was `@v{x}` tag references) — supply-chain attack via action tag overwrite eliminated`
+- `Quality gates wired (lint → typecheck → test → build) with `concurrency` and `permissions: read` — broken releases caught before they hit users`
+- `Code signing automation: {n} secrets moved to GitHub Actions secret store — keystore no longer drifts between local + CI`
+- `Dep audit gate added — CVE in a transitive dep now blocks merge instead of landing in production`
+
+Zero-finding run: `CI/CD scope clean — pipeline meets reviewed checks`.
 
 ## Quality Gates
 
@@ -171,8 +185,8 @@ ds-devops: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
 2. Format preservation (indentation, config style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (correct CI syntax, valid config)
-5. **Shell quoting ([references/principles.md §5](references/principles.md)):** every shell script line in generated CI configs uses double-quoted variable references (`"$VAR"`, `"${VAR}"`). Reject metacharacter injection in dynamic values. Flag any unquoted user-data interpolation as CRITICAL.
-6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/devops.json` updated per scope, gitignored, deleted on successful Summary.
+5. **Shell quoting ([references/principles.md §5](references/principles.md)):** every shell line in generated CI configs uses double-quoted variable references (`"$VAR"`, `"${VAR}"`). Reject metacharacter injection in dynamic values. Flag unquoted user-data interpolation as CRITICAL.
+6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/devops.json` updated per scope, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

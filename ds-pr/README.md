@@ -40,5 +40,6 @@ Run `/ds-pr`, or ask to create a pull request.
 - **History tidy** — collapses WIP commits before publishing
 - **Net diff principle** — PR describes final state, not development journey
 - **Quality gates** — format + lint + test before creating PR
+- **Branch-protection-aware merge** — queries `gh api repos/.../branches/{base}/protection`; routes auto-merge / CI-check / hard-stop accordingly. Force-push to main is never proposed.
 - **Auto-merge** — squash merge + branch cleanup when CI passes
 - **Version annotation** — shows bump effect (feat → minor, fix → patch)

@@ -11,15 +11,22 @@ Most apps track everything (privacy violation) or nothing (flying blind). Skill 
 - User asks "what should I track" or "set up analytics"
 - User asks about retention, churn, funnels, or A/B testing
 
+### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+
+| ÇAĞIRIR | ÇAĞIRMAZ |
+|---------|----------|
+| "design event taxonomy", "set up analytics" | "audit code quality" (→ ds-review) |
+| "privacy audit of events" (event-PII scan) | "full GDPR/KVKK privacy compliance" (→ ds-compliance --privacy) |
+| "what should I track in v1" | "what features should I build" (→ ds-market) |
+| "design conversion funnel" | "improve conversion rate" (→ ds-tune) |
+
 ## Contract
 
-- Privacy-first: maximum insights with minimum data collection
-- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
+- Privacy-first: maximum insights with minimum data collection. Recommends privacy-respecting tools, no invasive tracking. Prefer self-hosted or minimal analytics over heavyweight SDKs. Focus on actionable metrics, not vanity metrics.
+- Generates event taxonomies, tracking plans, and dashboard specs — not tracking code.
+- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
-- Generates event taxonomies, tracking plans, and dashboard specs — not tracking code
-- **Maximum privacy:** recommends privacy-respecting tools, no invasive tracking
-- **Minimum dependencies:** prefer self-hosted or minimal analytics over heavyweight SDKs
-- **Maximum efficiency:** focus on actionable metrics, not vanity metrics
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
 ## Arguments
 
@@ -40,23 +47,23 @@ Without flags: present interactive mode selection.
 When `--privacy-audit` is active (or privacy concerns surface in `--audit` mode):
 
 1. **Announce scope narrowing:** "Privacy canonical owner is /ds-compliance. This run limits to event-property PII scan."
-2. **Scan only:** every event declaration (`track(...)`, `logEvent(...)`, `analytics.track(...)`, stack-native equivalents) — inspect the properties payload for PII patterns (email, phone, full name, national ID, address, IP when not anonymized, precise geolocation, biometric, health, financial data).
-3. **Do not emit findings on:** consent mechanisms, retention policies, regulatory framework mapping, data-subject-request endpoints. Those belong to `/ds-compliance`.
-4. **Write findings with scope `event-pii-scan` only** (not `privacy`). This lets `ds/audit/findings.md` consumers distinguish event-level scans from canonical privacy findings.
+2. **Scan only:** every event declaration (`track(...)`, `logEvent(...)`, `analytics.track(...)`, stack-native equivalents) — inspect properties payload for PII patterns (email, phone, full name, national ID, address, IP when not anonymized, precise geolocation, biometric, health, financial data).
+3. **Do not emit findings on:** consent mechanisms, retention policies, regulatory framework mapping, data-subject-request endpoints — those belong to `/ds-compliance`.
+4. **Write findings with scope `event-pii-scan` only** (not `privacy`). This distinguishes event-level scans from canonical privacy findings.
 
 ## Scopes
 
-### Event Taxonomy Scope
+### Event Taxonomy
 
 | Area | What It Covers |
 |------|---------------|
-| Naming | `object_actioned` in snake_case, past tense (e.g., `signup_completed`, `plan_upgraded`) |
-| Hierarchy | Area > Object > Action (e.g., `auth > password > reset_requested`) |
+| Naming | `{object}_{action}` in snake_case, past tense (e.g., `{noun}_{past-verb}`) |
+| Hierarchy | Area > Object > Action (e.g., `{area} > {object} > {action}`) |
 | Properties | Required vs optional per event, snake_case, units in name (`duration_seconds`), no PII |
 | Standards | Taxonomy versioning, deprecation with `_legacy` suffix, CI lint for convention |
-| Template | Starter event taxonomy covering auth, onboarding, core feature, subscription, referral, errors |
+| Template | Starter taxonomy covering auth, onboarding, core feature, subscription, referral, errors |
 
-### Funnel Scope
+### Funnel
 
 | Funnel | What It Covers |
 |--------|---------------|
@@ -66,18 +73,18 @@ When `--privacy-audit` is active (or privacy concerns surface in `--audit` mode)
 | Revenue | Free → Trial → Paid → Renewal / Upgrade |
 | Referral | Share action → Invite sent → Invite accepted |
 
-### Metrics Scope
+### Metrics
 
 | Category | Metrics |
 |----------|---------|
 | Engagement | DAU, MAU, DAU/MAU ratio, session length, screens/session |
 | Retention | Day 1/7/30 retention (targets: >40%, >20%, >10%), cohort curves, churn rate |
-| Churn signals | Leading indicators (login frequency drop, feature disuse), intervention triggers |
-| Revenue | MRR, ARR, ARPU, LTV formula (ARPU × gross margin / churn), NRR, Rule of 40 |
+| Churn signals | Leading indicators (login-frequency drop, feature disuse), intervention triggers |
+| Revenue | MRR, ARR, ARPU, LTV (ARPU × gross-margin / churn), NRR, Rule of 40 |
 | Quality | Crash-free rate, ANR rate, error rate, app rating |
 | Growth | Install rate, organic vs paid, viral coefficient (K-factor) |
 
-### Privacy Scope
+### Privacy
 
 | Check | What It Covers |
 |-------|---------------|
@@ -87,7 +94,7 @@ When `--privacy-audit` is active (or privacy concerns surface in `--audit` mode)
 | Tools | Privacy-respecting tool recommendations |
 | Compliance | GDPR consent, ATT (iOS), CCPA opt-out |
 
-Recommend analytics tool based on privacy requirements — see `references/tool-comparison.md`. Event taxonomy and privacy audit rules: [references/rules-analytics.md](references/rules-analytics.md).
+Tool recommendation by privacy posture → [references/tool-comparison.md](references/tool-comparison.md). Event taxonomy + privacy audit rules → [references/rules-analytics.md](references/rules-analytics.md).
 
 ## Delegation
 
@@ -99,101 +106,90 @@ Setup → Discover → Design/Audit → Generate → [Needs-Approval] → Summar
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `ds/audit/analytics.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read analytics inventory, discard stale detections), skip `done` phases, announce `[ANL] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/analytics.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read analytics inventory, discard stale detections), skip `done` phases, announce `[ANL] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
 
 **State `data` shape:** `{ mode, platform, goals[], inventory: {sdks[], events[]}, scopes_done[], taxonomy_generated, privacy_findings[{id, severity, disposition}] }`.
 
-1. Flags provided → proceed directly
-2. No flags → present interactive menu
-3. **IDU:** Profile → Config.data, Config.audience, Config.regulations, Type+Stack. Findings(privacy, coverage, noise, quality) → verify + use. Absent → own analysis.
-4. Detect platform (web, mobile, API) from project signals
-5. Detect existing analytics (search for analytics SDKs in dependencies)
-6. Ask: Which decisions will analytics inform? Options: feature prioritization, monetization, quality improvement, user retention
+1. Flags provided → proceed directly. No flags → interactive menu.
+2. **IDU:** Profile → Config.data, Config.audience, Config.regulations, Type+Stack. Findings(privacy, coverage, noise, quality) → verify + use. Absent → own analysis.
+3. Detect platform (web, mobile, API) from project signals.
+4. Detect existing analytics (search analytics SDKs in dependencies).
+5. Ask: Which decisions will analytics inform? Options: feature prioritization, monetization, quality improvement, user retention.
 
-**Gate:** Platform and goals confirmed. If fails → re-prompt user for the missing item (platform or decision-goals); if neither can be resolved after 2 prompts, default platform to `web` and goals to `feature prioritization` with a WARN note in state.data.goals.
+**Gate:** Platform + goals confirmed. If fails → re-prompt missing item; 2 prompts no response → default platform `web` + goal `feature prioritization` with WARN note in state.data.goals.
 
 ### Phase 2: Discover
 
-1. Search for analytics SDK imports and initialization
-2. Search for existing event tracking calls
-3. Search for existing dashboard/reporting configuration
-4. Build inventory: tracked events, tools in use, consent mechanism
+1. Search for analytics SDK imports + initialization.
+2. Search for existing event tracking calls.
+3. Search for existing dashboard/reporting configuration.
+4. Build inventory: tracked events, tools in use, consent mechanism.
 
-**Gate:** Current state mapped. If fails → no analytics SDK found in dependencies and no tracking calls detected; set state.data.inventory to empty baseline, add WARN "No analytics instrumentation detected", and proceed to Phase 3 (Design) rather than Phase 5 (Audit) regardless of flags.
+**Gate:** Current state mapped. If fails → no SDK + no tracking calls → set inventory empty, add WARN "No analytics instrumentation detected", proceed to Phase 3 (Design) regardless of flags.
 
 ### Phase 3: Design [--design]
 
-1. **Core events:** Generate essential events for app type:
-   - All apps: app_open, signup_complete, error_occurred
-   - SaaS: feature_used, subscription_started, subscription_cancelled
-   - E-commerce: product_viewed, cart_updated, purchase_completed
-   - Content: content_viewed, content_shared, content_saved
-2. **Naming convention:** `{object}_{action}` in snake_case
-   - Example: `transcript_created`, `subscription_started`, `settings_changed`
-3. **Event properties:** Per event, define:
-   - Required properties (always present)
-   - Optional properties (context-dependent)
-   - Forbidden properties (PII: email, name, IP, device ID)
-4. **Funnels:** Define 3-5 key funnels with conversion targets
-5. **Dashboards:** Recommend 1-2 dashboards with specific metrics
+1. **Core events** for app type:
+   - All apps: `app_open`, `signup_complete`, `error_occurred`
+   - SaaS: `feature_used`, `subscription_started`, `subscription_cancelled`
+   - E-commerce: `product_viewed`, `cart_updated`, `purchase_completed`
+   - Content: `content_viewed`, `content_shared`, `content_saved`
+2. **Naming convention:** `{object}_{action}` snake_case past tense (placeholder format, replace with project's actual events).
+3. **Event properties** per event: Required (always present) / Optional (context-dependent) / Forbidden (PII: email, name, IP, device ID).
+4. **Funnels:** define 3-5 key funnels with conversion targets.
+5. **Dashboards:** recommend 1-2 dashboards with specific metrics.
 
-**Gate:** Taxonomy covers all key user journeys with zero PII in properties. If fails → for each PII property found, replace it with a privacy-safe alternative (e.g., hashed ID instead of email) and re-check; for each uncovered journey, add a placeholder event entry marked `[INCOMPLETE]` in state.data.taxonomy_generated so consumers know coverage is partial.
+**Gate:** Taxonomy covers all key user journeys; zero PII in properties. If fails → replace each PII property with privacy-safe alternative (e.g., hashed ID); for each uncovered journey, add placeholder event marked `[INCOMPLETE]` so consumers know coverage is partial.
 
 ### Phase 4: Setup [--setup]
 
-1. Recommend analytics tool based on project needs and privacy requirements
+1. Recommend analytics tool based on project needs + privacy requirements.
 2. Generate integration pattern:
    - SDK initialization with consent check
    - Event helper module (centralized tracking, type-safe events)
    - Consent management integration
    - PII scrubbing middleware
-3. Generate testing approach:
-   - Debug mode for event verification
-   - Event validation in CI
+3. Generate testing approach: debug mode for event verification + event validation in CI.
 
-**Gate:** Integration guide complete and privacy-compliant. If fails → identify the non-compliant element (missing consent check, PII-capable SDK recommended, etc.); substitute a compliant alternative or add a mandatory TODO block at the exact insertion point in the guide marked `[PRIVACY-REQUIRED]`; flag the guide as `partial` in state.data and note the gap in the summary.
+**Gate:** Integration guide complete + privacy-compliant. If fails → identify non-compliant element (missing consent check, PII-capable SDK recommended); substitute compliant alternative or add mandatory TODO marked `[PRIVACY-REQUIRED]` at the exact insertion point; flag guide `partial`, note gap in summary.
 
 ### Phase 5: Audit [--audit]
 
-1. **Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → read findings matching scopes (privacy, coverage, noise, quality). Per match: verify still valid (re-read file:line), skip own analysis for verified scopes. Uncovered scopes → run full analysis.
-2. **Coverage check:** Map tracked events to user journeys — identify gaps
-3. **Privacy check:**
-   - PII in event properties? (emails, names, IPs, precise location)
-   - Consent mechanism present?
-   - Data retention configured?
-   - Third-party sharing documented?
-4. **Noise check:**
-   - Events tracked but never used in dashboards?
-   - Duplicate events?
-   - Events with >10 properties (too complex)?
-5. **Quality check:**
-   - Naming consistency?
-   - Missing required properties?
-   - Events without clear business purpose?
+1. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings matching scopes (privacy, coverage, noise, quality). Per match: verify still valid (re-read `{file}:{line}`); uncovered scopes → run full analysis.
+2. **Coverage:** map tracked events → user journeys, identify gaps.
+3. **Privacy:** PII in event properties? Consent present? Retention configured? Third-party sharing documented?
+4. **Noise:** events tracked-but-unused-in-dashboards? Duplicates? Events with >10 properties (too complex)?
+5. **Quality:** naming consistency? Missing required properties? Events without clear business purpose?
 
-**Gate:** Findings collected. If fails → one or more scopes could not be analyzed (e.g., no events file found for coverage check, no consent mechanism to inspect); mark those scopes as `inconclusive` in state.data.scopes_done, continue with successfully analyzed scopes, and flag each inconclusive scope in the audit output so the user knows which areas need manual review.
+**Gate:** Findings collected. If fails → unanalyzable scope (no events file, no consent mechanism to inspect) → mark as `inconclusive` in state.data.scopes_done, continue with the rest, flag each inconclusive scope in output for manual review.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → one or more needs_approval items have no decision recorded; re-present each unresolved item to the user with a forced binary prompt (Apply / Skip); if user declines to respond, mark as `skipped (no response)` and proceed.
+**Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt; no response → mark `skipped (no response)` and proceed.
 
 ### Phase 7: Summary
 
 ```
-ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: N defined | Gaps: N | Privacy: {OK|WARN} | Fixed: N | Skipped: N | Failed: N | Total: N
+ds-analytics: {OK|WARN|FAIL} | Mode: {design|setup|audit} | Events: {n} defined | Gaps: {n} | Privacy: {OK|WARN} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-**Design output:** Event taxonomy table + funnel definitions + dashboard spec.
-
-**Setup output:** Integration guide with code patterns.
-
-**Audit output:** Coverage map, privacy findings, noise findings.
+Per-mode output:
+- **Design:** event taxonomy table + funnel definitions + dashboard spec.
+- **Setup:** integration guide with code patterns.
+- **Audit:** coverage map + privacy findings + noise findings.
 
 FRC+DSC accounting.
 
-**Gate:** Summary printed with all metrics and recommendations. If fails → one or more metrics (Events count, Gaps count, Privacy status) could not be calculated; substitute `N/A` for each missing metric, print a partial summary with status `WARN`, and list which phases produced incomplete output so the user knows what to re-run.
+**Value Delivered:** 1-5 concrete bullets, real changes only. Example shapes (placeholders, not literal):
+
+- `{n} PII fields removed from event properties — user data no longer leaks into analytics pipeline / vendor systems`
+- `Event taxonomy of {n} events covers {m} core funnels — product decisions now have measurable inputs instead of intuition`
+- `Consent gate wired before SDK init — no event fires before user opts in (GDPR/ATT compliant)`
+- `{n} unused events deprecated with `_legacy` suffix — telemetry volume reduced, dashboard noise gone`
+
+**Gate:** Summary + Value Delivered emitted. If fails → uncomputable metric (Events/Gaps/Privacy) → substitute `N/A`, print partial summary with WARN, list incomplete phases.
 
 ## Quality Gates
 
@@ -203,17 +199,8 @@ FRC+DSC accounting.
 - **Least privilege for analytics SDK credentials ([references/principles.md §5](references/principles.md)):** write keys / API tokens scoped to write-only project IDs; read tokens never embedded in client code. Validate every event property at the tracking boundary — reject PII patterns before send.
 - Event naming follows consistent convention
 - Funnels have defined conversion targets
-- Every finding gets a disposition in the summary — zero silent drops (FRC)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/analytics.json` updated per scope + per deliverable, gitignored, deleted on successful Summary.
-
-## Error Recovery
-
-| Situation | Action |
-|-----------|--------|
-| No analytics SDK found | Start from design mode, recommend tool |
-| Multiple analytics tools | Ask which is primary, audit all for overlap |
-| No consent mechanism | Flag as HIGH, generate consent integration guide |
-| Unclear business goals | Ask: what 3 decisions will data inform? |
+- Every finding gets a disposition (FRC)
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/analytics.json` updated per scope + per deliverable, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Severity
 
@@ -224,6 +211,15 @@ FRC+DSC accounting.
 | MEDIUM | Naming inconsistency, tracking gaps, unused events |
 | LOW | Missing documentation, suboptimal tool choice |
 
+## Error Recovery
+
+| Situation | Action |
+|-----------|--------|
+| No analytics SDK found | Start from design mode, recommend tool |
+| Multiple analytics tools | Ask which is primary, audit all for overlap |
+| No consent mechanism | Flag HIGH, generate consent integration guide |
+| Unclear business goals | Ask: what 3 decisions will data inform? |
+
 ## Edge Cases
 
 | Scenario | Behavior |
@@ -232,4 +228,4 @@ FRC+DSC accounting.
 | Privacy-only audit | Focus solely on privacy scope, skip coverage/noise |
 | Server-side only (API) | Focus on request logging, error rates, not client events |
 | Regulated industry | Flag additional compliance requirements (HIPAA, PCI) |
-| iOS with ATT | Include App Tracking Transparency flow, SKAdNetwork 4.0/AdAttributionKit conversion values, PrivacyInfo.xcprivacy manifest validation |
+| iOS with ATT | Include ATT flow, SKAdNetwork 4.0 / AdAttributionKit conversion values, PrivacyInfo.xcprivacy manifest validation |

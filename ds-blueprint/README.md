@@ -42,3 +42,8 @@ Run `/ds-blueprint`, or ask to assess your project health.
 - **Score tracking** — delta and trend across runs
 - **Auto-detected instruction file** — embeds profile in your AI tool's instruction file (CLAUDE.md / AGENTS.md / .cursorrules / .cursor/rules / .github/copilot-instructions.md / .windsurfrules / .aider.conf.yml — whichever your tool uses). Always in context.
 - **4 quality levels** — Prototype, MVP, Production, Enterprise
+- **W10 SSOT producer** — writes `ds/audit/findings.md` fresh on every run; downstream skills defer to it (no re-detection)
+- **Parallel-track planning** (Phase 2.5) — scopes grouped as read-only / AST / cross-file batches so AI hosts can plan concurrency consciously
+- **Penalty-based scoring** — `score = max(0, 100 - 25C - 10H - 3M - 1L)` with -50 per-dimension cap; cross-dimension coherence check (related-pair gap > 40 → re-evaluate)
+- **`filters_applied` audit field** — `findings.md` meta header surfaces skipped scopes, downgraded confidence, project-type detection, user overrides
+- **`--memory-cleanup` flag** (opt-in) — scans AI host memory index (`MEMORY.md`) for broken `[[link]]` references

@@ -14,7 +14,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 |--------|---------|
 | **26 skills** | One per real lifecycle moment — discover, build, improve, document, audit, ship |
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
-| **8 AI failure modes** | Hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk — every skill carries explicit mitigations (W1-W9) |
+| **11 AI failure modes** | Hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip — every skill carries explicit mitigations (W1-W11) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
 | **5 AI tools supported** | Claude Code, Cursor, GitHub Copilot, Windsurf, Aider — same skill, every host |
 | **2 namespaces, 1 root** | `ds/audit/` (gitignored, transient state) + `ds/<skill>/` (committed operational tooling) — nothing else leaks to your repo root |
@@ -62,7 +62,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 
 | Question | Skill |
 |----------|-------|
-| "Run a deep code audit — security, hygiene, architecture, perf." | [`/ds-review`](ds-review) — strategic + tactical scopes, file:line precision |
+| "Run a deep code audit — security, hygiene, architecture, perf." | [`/ds-review`](ds-review) — tactical + strategic + perf + meta-quality (SSOT / DRY / KISS / YAGNI / SoC) scopes, file:line precision |
 | "Strip dead code, single-caller helpers, premature abstractions." | [`/ds-simplify`](ds-simplify) — approved deletion, one reversible commit per group |
 | "Catch up on dependency upgrades safely." | [`/ds-deps`](ds-deps) — patch/minor automatic + major-with-migration approval |
 | "Format, lint, type-check, security-gate — in the right order." | [`/ds-fix`](ds-fix) — five quality passes, no skipping |
@@ -133,8 +133,12 @@ Add to `.gitignore` once: `ds/audit/`. Nothing leaks to repo root, no per-skill 
 Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orchestrated execution systems**:
 
 - **Multi-phase workflows** with explicit gates, mandatory-phase enforcement, error recovery
-- **8 AI weaknesses systematically addressed** — hallucination, scope creep, tunnel vision, confidence bias, memory decay, skip tendency, redundancy blindness, injection risk
+- **11 AI weaknesses systematically addressed** — hallucination, scope creep, tunnel vision, confidence bias, memory decay, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip
 - **Finding Resolution Completeness (FRC)** — every finding gets a disposition (fixed/skipped/failed), zero silent drops
+- **Error Ownership Gate (W11)** — detected errors get a concrete disposition; "pre-existing" / "out of scope" / "not my change" are never valid skip reasons
+- **Findings-SSOT Gate (W10)** — downstream skills defer to fresh `ds/audit/findings.md`, never re-detect what blueprint already covered
+- **Trigger Discipline** — every skill ships a ÇAĞIRIR / ÇAĞIRMAZ table; unscoped verbs (`improve`, `fix`, `audit`) alone are not valid triggers
+- **All-Affordance Rule** — every menu (scope, fix, approve, alternative path) offers an "all" option; CRITICAL findings + destructive actions still require per-item confirmation
 - **Inter-skill coordination** via `ds/audit/findings.md` + blueprint profile — share analysis, avoid duplicate work
 - **Token-efficient** — 10K token budget per skill, references loaded on demand
 - **Tool-agnostic** — works with any AI tool that accepts markdown instructions

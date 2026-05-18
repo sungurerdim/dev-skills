@@ -1,6 +1,6 @@
 # dev-skills
 
-Multi-phase AI coding assistant skills covering the full software lifecycle — gates, error recovery, and systematic mitigation of 8 known AI failure modes across Claude Code, Cursor, Copilot, Windsurf, and Aider.
+Multi-phase AI coding assistant skills covering the full software lifecycle — gates, error recovery, and systematic mitigation of 11 known AI failure modes across Claude Code, Cursor, Copilot, Windsurf, and Aider.
 
 ## Meta
 
@@ -31,13 +31,23 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - Skills are pure Markdown; **zero runtime dependencies**
 - Each skill has `SKILL.md` + supporting files
 - Test: install into `~/.claude/skills/` and invoke via `/ds-<name>`
-- Spec compliance: every skill must satisfy `SKILL-SPEC.md` (audited 2026-04-25)
+- Spec compliance: every skill must satisfy `SKILL-SPEC.md` (audited 2026-05-18 for v2: W10/W11, Trigger Discipline, All-Affordance Rule)
+- Self-audit: run `/full-review` (see `.claude/commands/full-review.md`) — 8 categories × ~56 checks against the v2 invariants
 
 ## Git Workflow
 
 - **Direct push to main** — no branch requirement
 - **Conventional commits** — `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
 - **Manual releases** — `gh release create vX.Y.Z --generate-notes`
+
+## v2 Invariants (2026-05-18)
+
+- **W10 Findings-SSOT Drift:** downstream consumers defer to fresh `ds/audit/findings.md`; never re-detect within blueprint's covered scopes.
+- **W11 Error Ownership Skip:** detected errors get a concrete disposition; reject reasons like `pre-existing`, `not my change`, `out of scope`, `too hard`, `will do later`.
+- **Trigger Discipline:** every `ds-*/SKILL.md` ships a `ÇAĞIRIR / ÇAĞIRMAZ` table. Unscoped verbs alone are not valid triggers.
+- **All-Affordance Rule:** every menu offers `all` / `tümü` / `apply-all` / `approve-all`. CRITICAL findings + destructive actions still require per-item confirmation.
+- **`/ds-review --meta-quality`:** SSOT / DRY / KISS / YAGNI / SoC principle audit with 3 consolidation paths per finding.
+- **Anti-overengineering 3-gate** screens every potential finding before reporting.
 
 ## Philosophy
 

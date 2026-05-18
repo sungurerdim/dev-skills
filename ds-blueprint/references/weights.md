@@ -57,6 +57,46 @@ Overall = sum(dimension_score x dimension_weight)
 
 Adjustments: prototype 30% relaxed, mvp 15% relaxed, production standard, enterprise 10% strict.
 
+## Penalty Formula and Caps
+
+Dimension scoring uses an explicit penalty-based formula:
+
+```
+base_score = 100
+penalty = 25 × CRITICAL_count + 10 × HIGH_count + 3 × MEDIUM_count + 1 × LOW_count
+dimension_score = max(0, base_score - penalty)
+```
+
+**Per-dimension cap:** A single dimension cannot lose more than 50 points from any one penalty class. Example: 10 HIGH findings = 100 raw penalty → capped at 50 → dimension score = max(0, 100 - 50) = 50. The cap prevents a single problematic category from collapsing a dimension to 0 when other categories are healthy.
+
+**Overall caps (already enforced):**
+- Any CRITICAL anywhere → overall ≤ 40
+- 3+ HIGH in any single dimension → that dimension ≤ 60
+- 3+ HIGH across all dimensions → overall ≤ 60
+
+The caps survive aggregation: the overall score is `min(weighted_sum, applicable_caps)`.
+
+## Cross-Dimension Coherence Check
+
+Adjacent dimensions should move together. A 40+ point gap between related dimensions usually means the baseline is wrong, not that one dimension is genuinely 40 points better than its neighbor.
+
+**Related-dimension pairs (flag gap > 40):**
+
+| Pair | Why correlated |
+|------|----------------|
+| Code Quality ↔ Architecture | Bad architecture surfaces as code-quality issues; clean code rarely comes from messy structure |
+| Testing ↔ Resilience | Both reflect maturity in handling failure paths |
+| Security & Privacy ↔ Resilience | Defense-in-depth and reliability share patterns |
+| Stack Health ↔ DX | Outdated stack typically degrades developer experience |
+| Documentation ↔ Architecture | Documented systems are usually thoughtfully designed |
+
+When a gap > 40 is detected:
+
+1. Re-read signals from the higher-scoring dimension (often optimistic)
+2. Re-read signals from the lower-scoring dimension (often missing context)
+3. Adjust whichever has weaker evidence
+4. If both are well-evidenced, the gap is real — note in the dashboard under "Anomalies: {dim_a} {score_a} vs {dim_b} {score_b}, gap {n}"
+
 ## Score Calibration Checks
 
 | Check | Expected | Action if Failed |
@@ -65,7 +105,8 @@ Adjustments: prototype 30% relaxed, mvp 15% relaxed, production standard, enterp
 | No dimension at 100 | Unless 0 findings in that scope | Suspicious for large codebases |
 | CRITICAL consistency | Any CRITICAL → overall < 80 | Weights are wrong |
 | Delta sanity | Score change between runs < 30 per dimension | Major refactor or scoring drift |
-| Cross-dimension coherence | High architecture + Low code quality = suspicious | Flag if gap > 40 points |
+| Cross-dimension coherence | Related-dimension pairs (table above) within 40 points | Re-read evidence for both, adjust the one with weaker signals; persistent gap → flag as anomaly in dashboard |
+| Per-dimension penalty cap | Max -50 from any single severity class | Cap kicks in automatically; record in audit field |
 
 ## Status Thresholds
 

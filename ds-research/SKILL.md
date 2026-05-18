@@ -11,11 +11,22 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 - User asks "what's the best way to...", "compare X vs Y", or "what are the options for..."
 - User needs evidence-based analysis with source verification
 
+### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+
+| ÇAĞIRIR | ÇAĞIRMAZ |
+|---------|----------|
+| "compare X vs Y", "find best library for {task}" | "implement what you find" (→ manual / target skill) |
+| "research auth best practices" | "design auth flow concretely" (→ ds-backend --design) |
+| "academic / multi-source comparison" | "marketing competitor analysis" (→ ds-market) |
+| "investigate solutions with CRAAP scoring" | "decide the implementation" (→ user owns the choice) |
+
 ## Contract
 
 - Searches both local codebase files and web sources.
+- Only includes verified, accessible sources and URLs. Presents T5/T6 with confidence caveats. Resolves contradictions when sources disagree. Cites specific source tiers in every synthesis.
 - Standalone. Uses blueprint when available; own analysis when absent.
 - FRC+DSC enforced.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
 ## Arguments
 
@@ -28,8 +39,6 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 
 Without flags: present depth selection to user.
 
-Only include verified, accessible sources and URLs. Present T5/T6 sources with confidence caveat. Resolve contradictions when sources disagree. Cite specific source tiers in every synthesis.
-
 ## Delegation
 
 **Owns:** research, craap-plus-reliability-scoring, source-verification, claim-verification | **Delegates:** none | **Receives:** ds-benchmark → competitor research engine; ds-ship → Phase 1; ds-cv → market research; ds-solve → web research during backtrack
@@ -40,105 +49,102 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 
 ### Phase 1: Setup [SKIP with flags]
 
-**Recovery check (deep mode):** DETECT `ds/audit/research.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read tracked source batches, discard fetched sources with stale CRAAP evidence), skip `done` phases, announce `[RSC] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Output, delete state. Initialize state on fresh deep run — verify `ds/audit/*.json` in `.gitignore`, append if missing.
+**Recovery check (deep mode):** DETECT `ds/audit/research.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read tracked source batches, discard fetched sources with stale CRAAP evidence), skip `done` phases, announce `[RSC] Resuming from Phase {N}: {name}.` On successful Output, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh deep start.
 
-**State `data` shape (deep mode):** `{ depth, scopes, query, search_batches[{track, queries, results[], done}], sources_scored[{url, tier, score}], synthesis_draft }`.
+**State `data` (deep mode):** `{ depth, scopes, query, search_batches[{track, queries, results[], done}], sources_scored[{url, tier, score}], synthesis_draft }`.
 
-1. **Depth selection.** If no `--quick`/`--deep` flag, ask:
-   - **Quick** — T1-T2 sources only, fast results
-   - **Standard** — T1-T4 sources, balanced depth
-   - **Deep** — all tiers, 20+ sources, resumable
+1. **Depth selection.** No flag → ask: Quick (T1-T2, fast) / Standard (T1-T4, balanced) / Deep (all tiers, 20+ sources, resumable).
+2. **Scope selection.** Ask areas: Local codebase / Security-CVE / Changelog-releases / Dependencies.
 
-2. **Scope selection.** Ask what areas to search:
-   - Local codebase, Security/CVE, Changelog/releases, Dependencies
-
-**Gate:** Depth and search scope selected. If fails → if the user provides no depth or scope selection after one re-prompt, default to Standard depth (T1-T4) with all scopes enabled, warn the user, and proceed.
+**Gate:** Depth + scope selected. If fails → no selection after one re-prompt → default Standard (T1-T4) all scopes, warn user, proceed.
 
 ### Phase 2: Parse Query
 
-**Findings file check:** If `ds/audit/findings.md` exists, check for relevant findings providing research context. Use project type and stack from findings metadata.
+**IDU:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis. Findings file fresh → use project type and stack from metadata.
 
-**IDU:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis.
+Extract from arguments: concepts, tech domain, comparison mode, search mode (troubleshoot / changelog / security).
 
-Extract from arguments: concepts, tech domain, comparison mode, search mode (troubleshoot/changelog/security).
+**Date handling:** resolve current date from system context. Include explicitly in every search query to prevent stale results (e.g., `"{topic} {current-year}"`).
 
-**Date handling:** Resolve current date from system context. Include explicitly in every search query to prevent stale results (e.g., "React 19 migration guide 2026").
-
-**Gate:** Query parsed into concepts, domain, and search mode with current date resolved. If fails → if the query is too broad or ambiguous to extract concepts (e.g., single-word query with no domain context), ask the user to narrow the scope with 1-2 specific sub-questions before proceeding; if current date cannot be resolved from system context, use the date provided in the session context and proceed.
+**Gate:** Query parsed into concepts + domain + search mode + current date. If fails → too broad/ambiguous (single-word, no domain) → ask user for 1-2 specific sub-questions before proceeding; current date unresolved → use session-context date.
 
 ### Phase 3: Research
 
-Search in batches of 2 search queries, applying CRAAP+ methodology from [references/craap.md](references/craap.md):
+Search in batches of 2 queries, applying CRAAP+ methodology from [references/craap.md](references/craap.md):
 
 | Track | What | When |
 |-------|------|------|
 | Local codebase | Search project files | If focus includes local |
 | T1: Official docs | Search official sites | Always |
-| T2: GitHub/changelogs | Search github.com | Always |
-| T3: Technical blogs | Search general | Standard+ |
-| T4: Community (SO/Reddit) | Search stackoverflow, reddit | Standard+ |
-| Security (NVD/CVE/Snyk) | Dependency mode per CRAAP+ | If security query |
+| T2: GitHub / changelogs | Search github.com | Always |
+| T3: Technical blogs | Search general web | Standard+ |
+| T4: Community (SO / Reddit) | stackoverflow, reddit | Standard+ |
+| Security (NVD / CVE / Snyk) | Dependency-mode per CRAAP+ | If security query |
 | Comparison A/B | Full search + analyze + synthesize | If comparison detected |
 
-Per source found:
-1. Assign tier (T1-T6) based on source type
-2. Apply modifiers (freshness, authority, cross-verification)
-3. Calculate CRAAP+ score (Currency 20%, Relevance 25%, Authority 25%, Accuracy 20%, Purpose 10%)
-4. Discard sources scoring <50
-5. **Authority override for security topics ([references/principles.md §5](references/principles.md)):** for queries about CVEs, secure coding, threat models, or cryptography, T1 authoritative sources (OWASP, NIST, CVE/NVD, vendor security advisories) ALWAYS rank above T3+ blogs and Stack Overflow answers regardless of CRAAP+ score delta. Security truth is authoritative, not democratic.
+Per source: (1) assign tier T1-T6 by source type, (2) apply modifiers (freshness, authority, cross-verification), (3) calculate CRAAP+ score (Currency 20%, Relevance 25%, Authority 25%, Accuracy 20%, Purpose 10%), (4) discard sources scoring <50, (5) **Authority override for security topics ([references/principles.md §5](references/principles.md)):** for queries about CVEs, secure coding, threat models, or cryptography, T1 authoritative sources (OWASP, NIST, CVE/NVD, vendor security advisories) ALWAYS rank above T3+ blogs regardless of CRAAP+ delta. Security truth is authoritative, not democratic.
 
-**Gate:** At least one source with CRAAP+ score >=50 found per search track. If fails → for any track that yields no source scoring >=50, mark that track as `low-confidence` in `state.data.search_batches`, include the best-scoring source found (even if <50) with an explicit confidence caveat, and note in the synthesis that the track's evidence is unverified; do not discard the track silently — surface it in the Phase 6 output with a recommendation for manual verification.
+**Gate:** ≥1 source with CRAAP+ ≥50 per track. If fails → any track yields no qualifying source → mark `low-confidence` in state.data.search_batches, include best-scoring source found (even <50) with explicit caveat, note in synthesis that track's evidence is unverified, surface in Phase 6 output with recommendation for manual verification.
 
 ### Phase 4: Synthesize
 
-Validate outputs: verify all claims cite sources, check for contradictions, remove unsupported assertions. T1-T2 sources: resolve conflicts. T3+: aggregate.
+Verify all claims cite sources; check contradictions; remove unsupported assertions. T1-T2: resolve conflicts. T3+: aggregate.
 
-**Mandatory saturation gate:** After each batch, if 3+ T1/T2 sources agree, skip remaining lower-tier searches.
+**Mandatory saturation gate:** after each batch, if 3+ T1/T2 sources agree, skip remaining lower-tier searches.
 
-**Gate:** All claims cite sources and contradictions resolved. If fails → for any claim that cannot be tied to a source with CRAAP+ score >=50, remove the claim from the synthesis or explicitly flag it as "[unverified — no qualifying source found]"; for contradictions between T1/T2 sources that cannot be resolved, present both positions with their respective sources and confidence scores and let the user decide — record the unresolved contradiction in `state.data.synthesis_draft` as a knowledge gap.
+**Gate:** All claims cite sources; contradictions resolved. If fails → claim without qualifying source → remove or flag `[unverified — no qualifying source]`; unresolved T1/T2 contradictions → present both with sources and confidence scores, record as knowledge gap in state.data.synthesis_draft.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → record the unresolved item with disposition `pending-user-decision`, proceed to Output with status WARN, and list all unresolved needs_approval items at the bottom of the output.
+**Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → record unresolved as `pending-user-decision`, proceed to Output with WARN, list at bottom.
 
 ### Phase 6: Output
 
-Executive summary, evidence hierarchy (primary T1-T2, supporting T3-T4), contradictions resolved, knowledge gaps, recommendation (DO/AVOID/CONSIDER).
+Executive summary, evidence hierarchy (primary T1-T2, supporting T3-T4), contradictions resolved, knowledge gaps, recommendation (DO / AVOID / CONSIDER).
 
 **Source format (compact):**
+
 ```
 Sources:
-  [{tier}] {Tn}|{score}|{domain}|{title}
-  [{tier}] {Tn}|{score}|{domain}|{title}
-  ...
+  [{band}] T{n}|{score}|{domain}|{title}
+  [{band}] T{n}|{score}|{domain}|{title}
 ```
 
 Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
 
-**Summary format:**
+**Summary:**
+
 ```
-ds-research: {OK|WARN|FAIL} | Sources: N | CRAAP+ avg: {score} | Claims: N verified | Fixed: N | Skipped: N | Failed: N | Total: N
+ds-research: {OK|WARN|FAIL} | Sources: {n} | CRAAP+ avg: {score} | Claims: {n} verified | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-**Gate:** Output includes executive summary, evidence hierarchy, and source list with tier/score. If fails → if the synthesis is incomplete (no T1/T2 sources found across all tracks), emit a partial output stating "Insufficient high-quality sources found — results below are low-confidence" followed by the best available evidence; mark overall status as WARN in the summary line; in deep mode, preserve `state.data.synthesis_draft` so the session can be resumed with `--resume` once additional sources are available.
+**Value Delivered:** 1-5 concrete bullets, real research outcomes only. Example shapes (placeholders, not literal):
+
+- `{n} sources gathered across T1-T6 tiers ({tier-breakdown}) with CRAAP+ scoring — synthesis is evidence-weighted, not first-result-wins`
+- `Contradictions across sources surfaced ({n} disagreements) — decision-maker sees the disagreement, not a fabricated consensus`
+- `T5/T6 sources flagged with confidence caveats — low-credibility blog posts no longer cited as authoritative`
+
+Zero-result run: `No credible sources found in budget — query refined and re-run, or escalated as unanswerable in scope`.
+
+**Gate:** Output includes summary + evidence hierarchy + source list with tier/score. If fails → no T1/T2 sources across all tracks → emit partial output stating "Insufficient high-quality sources found — results below are low-confidence" with best evidence; status WARN; deep mode → preserve synthesis_draft for `--resume`.
 
 ## Quality Gates
 
-- Every claim cites at least one source with CRAAP+ score ≥50
+- Every claim cites at least one source with CRAAP+ ≥50
 - Contradictory sources noted explicitly with confidence assessment
-- Only cite actually retrieved and verified sources and URLs
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: deep-mode state written per phase, gitignored, deleted on successful Output. Deep mode only — quick/standard are atomic.
+- Only cite actually retrieved and verified sources / URLs
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: deep-mode state per phase, gitignored, deleted on successful Output. Quick/standard atomic. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 
 | Situation | Action |
 |-----------|--------|
-| No web search results | Fall back to local codebase and documentation search |
-| All sources score below CRAAP+ threshold | Report as low-confidence, recommend manual verification |
-| Source URL returns 404 or is inaccessible | Mark source as unverified, note in output |
-| Contradictory high-tier sources | Present both positions with confidence assessment, let user decide |
+| No web search results | Fall back to local codebase + docs search |
+| All sources score below CRAAP+ threshold | Report low-confidence, recommend manual verification |
+| Source URL returns 404 / inaccessible | Mark unverified, note in output |
+| Contradictory high-tier sources | Present both with confidence assessment, let user decide |
 
 ## Edge Cases
 

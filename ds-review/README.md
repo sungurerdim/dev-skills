@@ -2,7 +2,7 @@
 
 Code review catches what tests miss — security holes, dead code, wrong abstractions, and performance traps hiding in plain sight. Skill scans for all of them with file:line precision.
 
-**Tactical file-level fixes + strategic architecture analysis + deep performance profiling. 25+ scopes.**
+**Tactical fixes + strategic architecture + deep performance profiling + principle-based meta-quality (SSOT / DRY / KISS / YAGNI / SoC). 30+ scopes.**
 
 ## Install
 
@@ -33,12 +33,16 @@ Run `/ds-review`, or ask to review your code quality.
 | **Tactical** (default) | File-level: security, hygiene, types, performance, privacy |
 | **Strategic** | Architecture-level: patterns, coupling, testing, production readiness |
 | **Performance** | Deep profiling: bundle size, startup time, memory, caching, Core Web Vitals |
+| **Meta-Quality** | Principle audit: SSOT / DRY / KISS / YAGNI / SoC + criteria-fit baselines + 3 consolidation paths per finding |
 
 ## Features
 
-- 9 tactical scopes (97 checks) + 8 strategic scopes (92 checks) + 8 perf scopes
+- 9 tactical scopes (97 checks) + 8 strategic scopes (92 checks) + 8 perf scopes + 5 meta-quality scopes + 4 aliases
+- Anti-overengineering 3-gate screens every finding before reporting (false-positive guard)
 - Score calculation per scope with CRITICAL/HIGH caps
-- Needs-approval protocol for cross-module changes
+- Needs-approval protocol for cross-module changes with reason validator (rejects "pre-existing" / "out of scope" / "too hard" / "not my change")
+- CRITICAL escalation: every CRITICAL finding re-verified ±20 lines before reporting
 - Loop mode: re-run until clean (max 3 iterations)
 - Education per fix: why, avoid, prefer
-- Performance mode: bundle, startup, runtime, caching, network, Web Vitals, mobile, DB
+- Meta-quality: criteria-fit baselines per project type; 3-path proposals (Minimal / Moderate / Structural) with effort / impact / risk
+- Cross-scope deduplication: same file:line → merge; within 10 lines + same issue → merge

@@ -12,14 +12,25 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 - User asks "how healthy is this project" or "what should I improve"
 - First time working on new project (suggest profile creation)
 
+### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+
+| ÇAĞIRIR | ÇAĞIRMAZ |
+|---------|----------|
+| "score project health", "what should I improve first" | "fix the issues" (→ ds-review or ds-fix) |
+| "create project profile", "refresh blueprint" | "research industry best practices" (→ ds-research) |
+| "blueprint dashboard, 9 dimensions" | "release-candidate report" (→ ds-ship) |
+| "where is this codebase weakest" | "competitor comparison" (→ ds-benchmark) |
+
 ## Contract
 
-- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
+- Scores project health across 9 dimensions — signal counting, not file:line finding lists. Only modifies the profile section of the instruction file; suggests next steps but never invokes other skills or fixes code.
+- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
-- Scores project health across 9 dimensions — signal counting, not file:line finding lists
-- Only modifies instruction file's blueprint profile section — never touches other content
-- Suggests next steps; never invokes other skills or fixes code directly.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - **Completeness requirement (SSOT):** `ds/audit/findings.md` is the single source of truth for every fix skill. Other skills skip their own detection when blueprint findings exist. Blueprint MUST detect ALL issues in each in-scope dimension — a missing finding will not be fixed downstream.
+- **SSOT runtime enforcement (W10):** Every downstream consumer (ds-review, ds-fix, ds-simplify, ds-compliance, ds-mobile, etc.) MUST defer to a fresh `ds/audit/findings.md` (`git_hash == HEAD`, age ≤ 7 days). Fresh → consumers verify + apply only; they do NOT re-detect within blueprint's owned scopes. Stale or missing → consumer invokes `/ds-blueprint --refresh` or `--preview --scope=all` and waits before continuing. Re-detection within a covered scope is a W10 violation.
+- **Overwrite-only persistence (SKILL-SPEC §10.1):** state, findings, profile rewritten every run — never appended. Run history lives in `git log -- <instruction-file>`, not in profile or any `ds/audit/` file. Append-only artifacts forbidden anywhere.
+- **Dev-Value Gate on every profile line:** the instruction file is re-read on every AI turn — every byte costs every future model read. A profile line is written only if it makes AI engineering measurably better on every turn for the next 6 months. Anything else (timestamps, score deltas, owner info, descriptions, philosophy) goes to README / CHANGELOG / git log / terminal summary instead.
 
 ## Arguments
 
@@ -29,25 +40,26 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 | `--preview` | Analyze + dashboard, no changes |
 | `--init` | Profile creation/refresh only (no analysis) |
 | `--refresh` | Re-scan profile (decisions preserved) |
-| `--scope=X` | Specific area: stack, stack-fitness, deps, dx, external-tooling, structure, code, architecture, docs, spec-alignment, memory, all |
+| `--scope={x}` | Specific area: stack, stack-fitness, deps, dx, external-tooling, structure, code, architecture, docs, spec-alignment, memory, all |
 | `--resume` | Resume from `ds/audit/blueprint.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
+| `--clean` | Delete existing state, start fresh |
+| `--memory-cleanup` | Optional phase: scan AI agent memory index (`MEMORY.md`) for stale `[[link]]` references + offer consolidation. Default OFF — opt-in only |
 
-Without flags: present mode selection to the user.
+Without flags: present mode selection.
 
 ## Profile Storage
 
-Profile embedded in project's AI instruction file between `## Blueprint Profile` and `## End Blueprint Profile` heading markers. Markdown headings are universally preserved by every tool — no risk of being stripped during processing.
+Profile embedded in project's AI instruction file between `## Blueprint Profile` and `## End Blueprint Profile` heading markers. Markdown headings are universally preserved by every tool.
 
-**Legacy marker migration:** If profile exists with non-standard markers (HTML comments like `<!-- *-start -->` / `<!-- *-end -->`, or variant headings like `## X Blueprint Profile`), migrate it:
+**Legacy marker migration:** profile exists with non-standard markers (HTML comments like `<!-- *-start -->` / `<!-- *-end -->`, or variant headings like `## X Blueprint Profile`):
 1. Read existing content between legacy markers
-2. Replace markers with standard `## Blueprint Profile` / `## End Blueprint Profile` headings
+2. Replace with standard `## Blueprint Profile` / `## End Blueprint Profile` headings
 3. Preserve all existing content (scores, config, project map, run history)
 4. Remove old markers
 
-**Instruction file detection** — search for known AI instruction files (see [references/detection.md](references/detection.md) § Instruction Files for full list). Use first match. None found: ask user which tool they use, then create appropriate file.
+**Instruction file detection** — search for known AI instruction files (see [references/detection.md](references/detection.md) § Instruction Files). Use first match. None found: ask which tool user uses, create appropriate file.
 
-**Profile format** — minimal, AI-parseable, calibration-only. Run history, score deltas, status messages NEVER go here. They live in `git log -- <instruction-file>`, `ds/audit/findings.md`, and terminal summaries.
+**Profile format** — minimal, AI-parseable, calibration-only. Run history, score deltas, status messages NEVER go here. They live in `git log -- <instruction-file>`, `ds/audit/findings.md`, terminal summaries.
 
 ```markdown
 ## Blueprint Profile
@@ -71,38 +83,32 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 ```
 
 **Format rules:**
-- One value per line, key-value pairs only. No prose, no headers within the block, no tables, no lists with bullets.
-- AI parses by `{key}: {value}` line-shape — every consumer reads the line it needs in O(1).
-- `Modules:` and `External:` use `;` as separator so the block stays one line per concern.
-- `Scores:` is a single line with short keys — the dashboard rendering happens in chat output, not in the profile.
+- One value per line, key-value pairs only. No prose, no headers within the block, no tables, no bullets.
+- AI parses by `{key}: {value}` line-shape — every consumer reads its line in O(1).
+- `Modules:` and `External:` use `;` separator so the block stays one line per concern.
+- `Scores:` is single line with short keys — dashboard renders in chat output, not in the profile.
 
-**Why this minimal:**
-- Context-loaded files must not accumulate. Every byte in the profile costs every future model read.
-- Run history, deltas, and per-skill summaries are forbidden in this block — `git log -- <instruction-file>` is the authoritative trend log.
-- The profile is calibration data, not a dashboard. The dashboard renders in chat output during the run.
+**Why this minimal:** context-loaded files must not accumulate. Every byte costs every future read. Run history + deltas + per-skill summaries forbidden — `git log -- <instruction-file>` is the trend log. The profile is calibration data, not a dashboard.
 
 **Read/write rules:**
-- Only modify content between `## Blueprint Profile` and `## End Blueprint Profile` headings — never touch anything outside them
+- Only modify content between `## Blueprint Profile` and `## End Blueprint Profile` headings — never touch anything outside.
 - **Profile detection order** (check before any write):
   1. Search for standard markers: `## Blueprint Profile` ... `## End Blueprint Profile`
   2. Search for legacy markers: HTML comment pairs (`<!-- *-start -->` ... `<!-- *-end -->`) or variant headings containing "Blueprint Profile"
-  3. Standard markers found → update in place (preserve all calibration lines, rewrite only the `Scores:` line)
-  4. Legacy markers found → **do not touch legacy block**. Write new standard profile separately (below legacy block or at end of file). Then compare:
+  3. Standard found → update in place (preserve all calibration lines, rewrite only the `Scores:` line)
+  4. Legacy found → **do not touch legacy block**. Write new standard profile separately (below legacy or at end of file). Compare:
      - Read both profiles line by line (Type/Stack/Target, Priorities, Constraints, Data, Audience, Deploy, Entry, Modules, Data Flow, External, Toolchain, Ideal, Scores)
-     - Identify content in legacy profile NOT covered by new profile (e.g., custom config notes, historical run entries, project map details)
-     - Report to user:
-       - New profile covers everything: "New profile covers all content from legacy block. You can safely remove the legacy block."
-       - Legacy has unique content: "These items exist in legacy profile but not in new one: {list}. Consider preserving them before removing legacy block."
-     - Never delete or modify legacy block — user decides when to remove it
-  5. NO markers found → append new profile section at end of instruction file
-  6. **Never write second standard profile into file that already has one** — always detect and update existing standard profile
-- Instruction file does not exist: create it with profile section only
-- Other skills read profile by searching for `## Blueprint Profile` heading first, then legacy markers as fallback, in known instruction file locations
-- When updating existing standard profile: preserve all `Type/Stack/Target/Priorities/Constraints/Data/Audience/Deploy/Entry/Modules/Data Flow/External/Toolchain/Ideal` lines. Update only the `Scores:` line. Re-detect Project Map only with `--refresh` flag.
-- Legacy migration: profiles containing `### Last Run`, `### Run History`, `### Current Scores` (table), or any other prose block → rewrite to the minimal key-value format above. Report `{n} legacy lines rotated to git log` in summary. The information is preserved in `git log -- <instruction-file>` — never re-injected into the profile.
-**Deduplication on inject:**
+     - Identify legacy content NOT covered by new (custom config notes, historical run entries, project map details)
+     - Report to user — new covers everything: "New profile covers all content from legacy block. You can safely remove the legacy block." Legacy has unique: "These items exist in legacy profile but not in new one: {list}. Consider preserving them before removing legacy block."
+     - Never delete or modify legacy block — user decides when to remove.
+  5. NO markers found → append new profile at end of instruction file
+  6. **Never write second standard profile into a file that already has one** — always detect and update.
+- Instruction file does not exist: create with profile section only.
+- Other skills read profile by searching for `## Blueprint Profile` heading first, then legacy markers as fallback, in known instruction file locations.
+- Updating existing standard profile: preserve all `Type/Stack/Target/Priorities/Constraints/Data/Audience/Deploy/Entry/Modules/Data Flow/External/Toolchain/Ideal` lines. Update only the `Scores:` line. Re-detect Project Map only with `--refresh`.
+- Legacy migration: profiles containing `### Last Run`, `### Run History`, `### Current Scores` (table), or any prose block → rewrite to minimal key-value format. Report `{n} legacy lines rotated to git log` in summary. Information preserved in `git log -- <instruction-file>` — never re-injected.
 
-Deduplicate findings by file:line — same issue within 10 lines → merge, keep highest severity.
+**Deduplication on inject:** dedupe findings by file:line — same issue within 10 lines → merge, keep highest severity.
 
 ## Delegation
 
@@ -110,56 +116,45 @@ Deduplicate findings by file:line — same issue within 10 lines → merge, keep
 
 ## Execution Flow
 
+```
 Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest] → Update Profile → [Needs-Approval] → Summary
+```
 
-**Mandatory phases** (no brackets — always execute, always produce output):
-- **Assess** — scan codebase, record findings
-- **Consolidate** — score dimensions, write `ds/audit/findings.md`
-- **Dashboard** — display score table with delta and gap analysis
-- **Update Profile** — update the `Scores:` line only; preserve all other profile lines unless `--refresh`
-- **Summary** — print summary line with FRC accounting
-
-Skipping any mandatory phase is an execution bug. Every mandatory phase produces user-visible output.
+**Mandatory phases** (always execute, always produce output): Assess, Consolidate, Dashboard, Update Profile, Summary. Skipping a mandatory phase is an execution bug.
 
 ### Phase 1: Discovery [PARALLEL]
 
-**Recovery check:** DETECT `ds/audit/blueprint.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently). Resume → RE-VERIFY `in_progress` phase (re-scan modified scopes, keep completed scopes), skip `done` phases, announce `[BP] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start, append if missing.
+**Recovery check:** DETECT `ds/audit/blueprint.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently). Resume → RE-VERIFY `in_progress` phase (re-scan modified scopes, keep completed scopes), skip `done` phases, announce `[BP] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
 
-**State `data` shape:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line}]}, profile_written: bool, scores: {dimension: score}, instruction_file }`.
+**State `data`:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line}]}, profile_written: bool, scores: {dimension: score}, instruction_file }`.
 
-1. **Mode selection.** No flags provided → ask user:
-   - **Full Analysis** — assess all dimensions, score, dashboard, suggest next steps
-   - **Preview Only** — analyze + dashboard, no changes
-   - **Init Profile** — create/refresh project profile only
-   - **Refresh Profile** — re-scan profile, preserve decisions
-3. Search for `## Blueprint Profile` heading in known instruction files (see Profile Storage detection table). Read existing profile to detect incremental vs full run.
-4. Detect project using three-step process from [references/detection.md](references/detection.md):
-   - Step 1: Identify stack from manifest files (pubspec.yaml, package.json, go.mod, etc.)
-   - Step 2: Determine project type from secondary signals (framework deps, config files, directory structure)
-   - Step 3: Note supplementary stacks (Docker, shell scripts, CI platform, task runners)
-   - Also detect: toolchain, tests, data sensitivity, git status
+1. **Mode selection.** No flags → ask: Full Analysis / Preview Only / Init Profile / Refresh Profile.
+2. Search for `## Blueprint Profile` heading in known instruction files. Read existing profile to detect incremental vs full run.
+3. Detect project (three-step process from [references/detection.md](references/detection.md)):
+   - Step 1: stack from manifest files (pubspec.yaml, package.json, go.mod, etc.)
+   - Step 2: project type from secondary signals (framework deps, config, directory structure)
+   - Step 3: supplementary stacks (Docker, shell scripts, CI, task runners)
+   - Also: toolchain, tests, data sensitivity, git status
 
 **Decision tree:**
-1. Profile exists AND not --init/--refresh: Phase 3 (incremental)
-2. Profile exists AND --refresh: Phase 2 (re-ask, preserve decisions)
-3. No profile AND --init: Phase 2 (create profile, stop)
-4. No profile AND not --init: Phase 2 (create profile, ask to continue)
+1. Profile exists + not --init/--refresh → Phase 3 (incremental)
+2. Profile exists + --refresh → Phase 2 (re-ask, preserve decisions)
+3. No profile + --init → Phase 2 (create, stop)
+4. No profile + not --init → Phase 2 (create, ask to continue)
 
-**Gate:** Mode selected, project type detected, instruction file located or creation path determined. If fails → project type could not be detected (no recognized manifest files, empty repo) and user did not respond to type prompt; default project type to `generic`, set mode to `Full Analysis`, set instruction file creation path to `CLAUDE.md`, add WARN note `"Project type undetected — defaulted to generic"` in state.data, and proceed.
+**Gate:** Mode selected; project type detected; instruction file located or creation path determined. If fails → type undetectable (no manifest, empty repo) + no user response to type prompt → default `generic`, mode `Full Analysis`, instruction file `CLAUDE.md`, WARN `"Project type undetected — defaulted to generic"` in state.data, proceed.
 
 ### Phase 2: Init Flow (no profile OR --init/--refresh)
 
-Ask user two sets of questions:
-
 **Project Identity:**
-- What category best describes this project? (auto-detected type shown, options: Frontend, Backend, Developer Tool, Infrastructure)
-- What quality level? (Prototype, MVP, Production, Enterprise)
-- What kind of data does it handle? (Personal info, Sensitive data, Auth credentials, No sensitive data)
+- Category? (auto-detected shown: Frontend / Backend / Developer Tool / Infrastructure)
+- Quality level? (Prototype / MVP / Production / Enterprise)
+- Data handled? (Personal info / Sensitive data / Auth credentials / None)
 
 **Strategy:**
-- Focus areas for improvement? (Security, Code Quality, Architecture, Documentation)
-- Constraints? (Keep framework, Preserve public APIs, Minimize new dependencies, No restrictions)
-- Who uses this project? (Public users, Internal team, Other developers, Local/undecided)
+- Focus areas? (Security / Code Quality / Architecture / Documentation)
+- Constraints? (Keep framework / Preserve public APIs / Minimize new dependencies / None)
+- Users? (Public / Internal team / Other developers / Local-undecided)
 
 **Data fallback:** PII/credential pattern scan finds nothing → explicitly ask: "Does this project process user data? (Yes — describe data types / No)". Ensures `Config.data` is never empty by inference alone.
 
@@ -169,23 +164,37 @@ Ask user two sets of questions:
 |----------|---------|
 | Project type | Auto-detected |
 | Quality | Production |
-| Data | Search for PII/credential patterns. Scan finds nothing → default to "No sensitive data" but add note: "PII scan negative — verify manually if project handles user data indirectly (e.g., via external APIs)" |
+| Data | PII/credential scan; nothing → "No sensitive data" + note "PII scan negative — verify manually if project handles user data indirectly (e.g. via external APIs)" |
 | Priorities | Security + Code Quality |
 | Constraints | Keep framework/language |
 | Audience | Auto-detect (Dockerfile → container, CI → cloud, else local) |
 | Deployment | Auto-detect from Docker/cloud/serverless signals |
 
-Write profile to detected instruction file (see Profile Storage). Calculate ideal metrics from `references/weights.md` based on detected project type. Quality-level descriptions in [references/quality-levels.md](references/quality-levels.md).
+Write profile to detected instruction file. Calculate ideal metrics from `references/weights.md`. Quality-level descriptions in [references/quality-levels.md](references/quality-levels.md).
 
-**Gate:** Profile written to instruction file with all sections populated. If fails → instruction file write failed (permissions error, path invalid, or user-provided tool does not support file creation); save profile content to a temporary file at `ds/audit/blueprint-profile-draft.md`, display the full profile text in chat for the user to paste manually, and surface the write error with the target path.
+**Gate:** Profile written with all sections. If fails → write failed (permissions, invalid path, tool doesn't support file creation) → save profile to `ds/audit/blueprint-profile-draft.md`, display full text in chat for manual paste, surface write error with target path.
+
+### Phase 2.5: Parallel-Track Planning [PARALLEL]
+
+Group 9 dimensions × 24 scopes by execution cost so the run plans concurrency consciously.
+
+| Batch | Scopes | Concurrency | Why |
+|-------|--------|-------------|-----|
+| **Read-only** | hygiene, types, doc-sync, dx, docs, spec-alignment, stack, stack-fitness, external-tooling | Parallel — pure grep/file-read, no AST | Cheapest scans, no shared state |
+| **AST** | architecture, patterns, cross-cutting, maintainability, simplify, ai-architecture, performance | Parallel — shared LSP/AST cache | Share parse work across detectors |
+| **Cross-file** | security, privacy, ai-hygiene, robustness, production-readiness, testing, functional-completeness | Serial — each batch may modify findings index | Order matters for dedup |
+
+The skill MUST plan batches up front (`state.data.batches`) and announce before starting. AI hosts route parallelism — the spec declares which scopes are safe to run together.
+
+**Gate:** Batches planned + announced. If fails (no detectable scopes) → mark plan empty, proceed to Summary with WARN.
 
 ### Phase 3: Assess (scan, record, score — don't fix)
 
-Blueprint scans **entire codebase** and records every finding with file:line to `ds/audit/findings.md`. Scores dimensions from these findings but does NOT fix anything. Other skills read `ds/audit/findings.md` and handle fixes — eliminates duplicate analysis.
+Blueprint scans **entire codebase** and records every finding with file:line to `ds/audit/findings.md`. Scores dimensions from these findings but does NOT fix. Other skills read `ds/audit/findings.md` and handle fixes — eliminates duplicate analysis.
 
-**Completeness requirement:** Fix skills skip their own detection when `ds/audit/findings.md` exists, so blueprint must detect ALL issues within each dimension. Missing finding = won't be fixed.
+**Completeness requirement:** fix skills skip own detection when `ds/audit/findings.md` exists → blueprint must detect ALL issues within each dimension. Missing finding = won't be fixed.
 
-**Dimension → Scope mapping:** Blueprint scores 9 dimensions but writes findings with granular scope names so consumers can filter precisely:
+**Dimension → Scope mapping:**
 
 | Dimension | Findings Scope(s) |
 |-----------|------------------|
@@ -201,65 +210,65 @@ Blueprint scans **entire codebase** and records every finding with file:line to 
 
 **Assessment method per dimension:**
 
-| Dimension | What to scan | Patterns to detect |
-|-----------|-------------|-------------------|
-| Security & Privacy | All source files | Hardcoded secrets (API keys, tokens, passwords in string literals), `eval()`/`Function()` with dynamic input, SQL string concatenation, missing parameterized queries, missing auth middleware on protected routes, PII in log statements, weak crypto (MD5, SHA1, DES, ECB), missing HTTPS enforcement, CORS wildcard in production, missing CSRF protection, missing input validation/sanitization, missing rate limiting |
-| Code Quality | All source files | Unused imports/vars/functions, missing type annotations on public APIs, deep nesting (>3 levels), duplicated code blocks (>10 lines), dead code (unreachable branches), magic numbers, overly long functions (>50 lines), overly long files (>500 lines), empty catch/except blocks, TODO/FIXME/HACK comments older than 30 days. **ai-hygiene:** AI-generated boilerplate (verbose wrappers, unnecessary abstractions, over-engineered helpers), placeholder comments ("This function does X"), redundant error handling layers. **doc-sync:** Inline doc comments that contradict actual function signature, stale parameter descriptions, wrong return type in docstrings. |
-| Architecture | Import graph + structure | **SOLID violations ([references/principles.md §2](references/principles.md)):** SRP (module changes for >1 reason — multiple unrelated concerns in same file), OCP (new behavior added by editing stable code instead of extending), LSP (subtype narrows postcondition or throws unhandled exception), ISP (consumer forced to depend on members it doesn't use — fat interfaces), DIP (high-level module imports concrete low-level — should depend on abstraction). **GRASP:** Information Expert (logic placed away from its data), Low Coupling (>7 unrelated peer imports), High Cohesion (unrelated exports in same module). Plus: circular dependencies, god classes (>10 public methods or >300 lines), feature envy, layer violations (UI importing DB directly), missing dependency injection, inconsistent error handling, inconsistent naming. **maintainability:** High change coupling (files that always change together but aren't co-located), shotgun surgery (single logical change requires edits in 5+ files), missing abstraction boundaries. **ai-architecture:** AI-specific: prompt templates scattered (should be centralized), missing retry/fallback for AI API calls, hardcoded model names, missing token budget management. |
-| Performance | All source files | N+1 queries (DB call inside loop), blocking calls in async context, missing pagination on list endpoints, missing database indexes (query patterns without matching index), large file reads without streaming, missing caching on repeated expensive operations, unbounded collection growth, synchronous I/O in hot paths |
-| Resilience | All source + config | Missing error handling on external calls, missing timeout configuration, missing retry with backoff, no graceful shutdown handler, no health check endpoint, unbounded queue/buffer growth, missing circuit breaker on external services, no fallback for failed dependencies, missing input size limits. **production-readiness:** Missing structured logging, debug endpoints exposed, missing rate limiting on public endpoints, no graceful degradation under load, missing deployment health checks. |
-| Testing | Test files + config | **Test discipline ([references/principles.md §7](references/principles.md)):** Test Pyramid signal (unit-heavy / integration-medium / E2E-light — flag inverted pyramid as HIGH); AAA structure absent (test bodies that don't separate Arrange / Act / Assert); test names that don't describe behavior (`test_1` vs `should_reject_negative_quantity`); unrealistic test data (`a@b.c`, `$1`, length-1 collections); coverage configured as a goal (target percentage) rather than a diagnostic reporter. Plus: test file count vs source count ratio, missing test runner config, missing coverage config, untested modules, missing negative/boundary test cases (empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day), test isolation issues (shared mutable state), flaky test indicators (sleep/delay, time-dependent assertions). **functional-completeness:** Missing error paths (only happy path implemented), missing input validation edge cases, TODO/FIXME markers indicating unfinished features, stub/placeholder implementations. |
-| Stack Health | Manifests + lockfiles | Missing lockfile, outdated dependencies (major versions behind), deprecated packages, known CVEs in dependencies (run audit command), missing `.nvmrc`/`.tool-versions`, inconsistent dependency versions across workspace packages. **stack-fitness:** every major dependency evaluated against the stated goal — obsolete (unmaintained, archived, last release >24 months), oversized-for-purpose (enterprise framework for a 2-module project), duplicate (two libraries serving the same purpose, e.g., lodash + ramda, axios + got), misaligned-with-goal (server-side library pulled into a browser-only project). Cite the goal from blueprint profile `Config.priorities`. |
-| DX | Root files + config | Missing/incomplete README, missing CONTRIBUTING.md, missing CI config, missing env.example, missing setup/dev scripts, missing Makefile/Taskfile, missing .editorconfig, inconsistent config file formats. **external-tooling:** GitHub Actions workflows, PR automations (auto-merge bots, reviewer assignment), CI scripts, pre-commit hooks, release automation — each evaluated for goal-fitness. Unused workflows, workflows referencing deleted actions, duplicate workflows (two deploy paths to the same target), automations added by templates but never triggered, goal-misaligned automations (e.g., iOS signing workflow on a non-iOS project). |
-| Documentation | Doc files + source | Missing doc files vs ideal for project type, README sections missing (install, usage, API, contributing), API doc gaps (undocumented public endpoints/functions), doc↔code drift (stale paths, renamed functions, changed defaults, removed features still documented), broken internal links, outdated version references, stale dependency version claims, architectural claims that don't match code. **spec-alignment:** promise census — extract every concrete capability promised in README / SPEC.md / docs/ / AI instruction file (per host — see [references/detection.md](references/detection.md) § Instruction Files) / blueprint profile. For each promise, search source for its implementation. Classify: **promised-not-implemented** (doc mentions feature X; grep of source shows no matching module/function/endpoint), **implemented-not-documented** (code has feature X but no doc section mentions it), **drift** (both exist but behavior diverges — default changed, signature changed, flag removed). |
+| Dimension | Scan | Patterns |
+|-----------|------|----------|
+| Security & Privacy | All source | Hardcoded secrets ({api-key-shape}, {token-shape}, password literals), `eval()`/`Function()` with dynamic input, SQL string concat, missing parameterized queries, missing auth middleware on protected routes, PII in log statements, weak crypto (MD5, SHA1, DES, ECB), missing HTTPS, CORS wildcard, missing CSRF, missing input validation, missing rate limiting |
+| Code Quality | All source | Unused imports/vars/functions, missing type annotations on public APIs, nesting >3, duplicated blocks >10 lines, dead code, magic numbers, functions >50 lines, files >500 lines, empty catch, stale TODO/FIXME/HACK >30 days. **ai-hygiene:** AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers. **doc-sync:** inline doc contradicts signature, stale param descriptions, wrong return type. |
+| Architecture | Import graph + structure | **SOLID violations ([references/principles.md §2](references/principles.md)):** SRP (module changes for >1 reason), OCP (new behavior added by editing stable code), LSP (subtype narrows postcondition or throws unhandled), ISP (consumer forced to depend on unused members), DIP (high-level imports concrete low-level). **GRASP:** Information Expert (logic away from data), Low Coupling (>7 unrelated peer imports), High Cohesion (unrelated exports same module). Plus: circular deps, god classes (>10 public methods or >300 lines), feature envy, layer violations, missing DI, inconsistent error handling, inconsistent naming. **maintainability:** change coupling, shotgun surgery (single change requires 5+ file edits), missing abstraction boundaries. **ai-architecture:** prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget. |
+| Performance | All source | N+1 queries (DB call in loop), blocking calls in async, missing pagination on lists, missing DB indexes, large file reads without streaming, missing caching, unbounded collection growth, synchronous I/O in hot paths |
+| Resilience | Source + config | Missing error handling on external calls, missing timeout config, missing retry-with-backoff, no graceful shutdown, no health check, unbounded queue/buffer, missing circuit breaker, no fallback for failed deps, missing input size limits. **production-readiness:** missing structured logging, debug endpoints exposed, missing rate limiting, no graceful degradation under load, missing deployment health checks. |
+| Testing | Tests + config | **Test discipline ([references/principles.md §7](references/principles.md)):** Test Pyramid signal (unit-heavy / integration-medium / E2E-light — inverted pyramid = HIGH); AAA structure absent; non-behavior test names (`test_1` vs `should_reject_negative_quantity`); unrealistic data (`a@b.c`, `$1`, length-1 collections); coverage configured as goal (target %) rather than diagnostic. Plus: test count vs source ratio, missing runner config, missing coverage config, untested modules, missing negative/boundary cases (empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day), test isolation (shared mutable state), flaky indicators (sleep/delay, time-dependent assertions). **functional-completeness:** missing error paths, missing input validation edge cases, TODO/FIXME markers for unfinished, stub/placeholder implementations. |
+| Stack Health | Manifests + lockfiles | Missing lockfile, outdated deps (major versions behind), deprecated packages, known CVEs in deps (run audit), missing `.nvmrc`/`.tool-versions`, inconsistent dep versions across workspace. **stack-fitness:** every major dep evaluated vs stated goal — obsolete (unmaintained, archived, last release >24 months), oversized-for-purpose (enterprise framework for 2-module project), duplicate (two libraries serving same purpose, e.g. {alt-1} + {alt-2}), misaligned (server-side library pulled into browser-only project). Cite goal from `Config.priorities`. |
+| DX | Root files + config | Missing/incomplete README, missing CONTRIBUTING.md, missing CI config, missing env.example, missing setup/dev scripts, missing Makefile/Taskfile, missing .editorconfig, inconsistent config formats. **external-tooling:** GitHub Actions workflows, PR automations (auto-merge bots, reviewer assignment), CI scripts, pre-commit hooks, release automation — each evaluated for goal-fitness. Unused workflows, workflows referencing deleted actions, duplicate workflows (two paths to same target), automations added by templates but never triggered, goal-misaligned (e.g. iOS signing workflow on non-iOS project). |
+| Documentation | Doc files + source | Missing doc files vs ideal for type, README sections missing (install, usage, API, contributing), API doc gaps (undocumented public endpoints/functions), doc↔code drift (stale paths, renamed functions, changed defaults, removed features still documented), broken internal links, outdated version refs, stale dep version claims, architectural claims that don't match code. **spec-alignment:** promise census — extract every concrete capability promised in README / SPEC.md / docs/ / AI instruction file (per host — see [references/detection.md](references/detection.md) § Instruction Files) / blueprint profile. For each promise, search source for implementation. Classify: **promised-not-implemented** (doc mentions feature X; grep shows no module/function/endpoint), **implemented-not-documented** (code has X but no doc mentions), **drift** (both exist but behavior diverges — default changed, signature changed, flag removed). |
 
-**False positive prevention (mandatory for every signal):**
+**False-positive prevention (mandatory for every signal):**
 
-Before counting any pattern match as signal, verify it passes ALL applicable checks:
-- **Exclude test files:** Skip matches in `test/`, `tests/`, `__tests__/`, `*_test.*`, `*.spec.*`, `*.test.*`
-- **Exclude comments:** Pattern inside comment (`//`, `#`, `/* */`, `<!-- -->`), skip
-- **Exclude string literals in tests:** Secret patterns in test fixtures or example data, skip
-- **Exclude generated files:** Skip files in `generated/`, `*.g.dart`, `*.gen.go`, `*.pb.go`, auto-generated headers
+Before counting any pattern match as signal, verify it passes ALL applicable:
+- **Exclude tests:** skip matches in `test/`, `tests/`, `__tests__/`, `*_test.*`, `*.spec.*`, `*.test.*`
+- **Exclude comments:** pattern inside comment (`//`, `#`, `/* */`, `<!-- -->`), skip
+- **Exclude string literals in tests:** secret patterns in test fixtures or example data, skip
+- **Exclude generated:** skip files in `generated/`, `*.g.dart`, `*.gen.go`, `*.pb.go`, auto-generated headers
 - **Skip patterns:** `# noqa`, `# intentional`, `# safe:`, `_` prefix, `TYPE_CHECKING` blocks, test fixtures, generated files
-- **Verify context:** For security signals, read 3 lines around match — value from env/config/vault → skip
+- **Verify context:** for security signals, read 3 lines around match — value from env/config/vault → skip
 
-**Confidence:** HIGH = verified match + context confirmed (count as full signal), MEDIUM = pattern match, ambiguous context (count as 0.5 signal), LOW = heuristic only (skip, do not count). Only HIGH and MEDIUM written to `ds/audit/findings.md`.
+**Confidence:** HIGH = match + context confirmed (full signal). MEDIUM = pattern, ambiguous context (0.5 signal). LOW = heuristic (skip). Only HIGH + MEDIUM written to `ds/audit/findings.md`.
 
-Scoring formula from [references/scopes.md](references/scopes.md), dimension weights from [references/weights.md](references/weights.md). For user-facing types (web, mobile, desktop): also check i18n setup and a11y basics.
+Scoring formula from [references/scopes.md](references/scopes.md), dimension weights from [references/weights.md](references/weights.md). For user-facing types (web, mobile, desktop): also check i18n + a11y basics.
 
-**User-facing project gate:** Project type is web, mobile, desktop, or game — additionally check:
+**User-facing project gate:** type is web, mobile, desktop, or game → additionally check:
 - i18n setup present (framework-native catalog, at least 1 locale file)
 - Default locales configured (minimum: en + project owner's locale)
 - a11y basics (semantic labels on interactive elements, contrast ratio, screen reader support)
 - Responsive layout (breakpoints or adaptive layout)
 
-Flag missing items as HIGH severity. Skip this gate for cli, library, api, iac, devtool project types.
+Flag missing items as HIGH severity. Skip for cli, library, api, iac, devtool.
 
-**Gate:** All 9 dimensions scanned. Every signal has file:line evidence. False positive checks applied. If fails → one or more dimensions could not be fully scanned (codebase too large, binary-only files, or access denied); mark each incomplete dimension in state.data.findings_per_scope with `confidence: inconclusive`, continue scoring with available signals only, and flag the incomplete dimensions in the dashboard with `[PARTIAL SCAN]` so the user knows those scores are lower-bound estimates.
+**Gate:** All 9 dimensions scanned; every signal has file:line evidence; false-positive checks applied. If fails → dimension(s) un-scan-able (codebase too large, binary-only files, access denied) → mark each incomplete in state.data.findings_per_scope with `confidence: inconclusive`, continue scoring with available signals only, flag in dashboard with `[PARTIAL SCAN]` so user knows scores are lower-bound.
 
 ### Phase 3.1: Project Map
 
-Build from Discovery + Assess results:
+Build from Discovery + Assess:
 
-1. **Entry point:** Identify main entry file(s) and framework
-2. **Modules:** List each top-level module directory with role, file count, and key files with their responsibilities. Depth: enough for new developer to understand architecture, not full file listing.
-3. **Data Flow:** Trace primary user-facing flow end-to-end (e.g., request → auth → process → store → respond). Include intermediate systems (queues, caches, external services).
-4. **External:** List runtime dependencies with purpose (not dev tools). Group: databases, caches, queues, auth providers, third-party APIs.
-5. **Toolchain:** Format/lint tools, test framework, CI platform, container setup.
+1. **Entry point:** main entry file(s) + framework.
+2. **Modules:** each top-level module dir with role, file count, key files + responsibilities. Depth: enough for new developer to understand, not full listing.
+3. **Data Flow:** trace primary user-facing flow end-to-end (e.g. {source}→auth→process→store→{sink}). Include intermediate systems (queues, caches, external services).
+4. **External:** runtime dependencies with purpose (not dev tools). Group: databases, caches, queues, auth, third-party APIs.
+5. **Toolchain:** format/lint, test framework, CI platform, container.
 
-**Gate:** Project map generated with entry points, modules, data flow, and external dependencies. If fails → entry point or data flow could not be determined (no main file, no framework signals, no import graph); write the project map with `unknown` placeholders for unresolvable fields, add a WARN note `"Project map incomplete — manual review required for: {list of unknown fields}"` in the profile, and continue with the partial map.
+**Gate:** Project map generated with entry, modules, data flow, externals. If fails → entry or flow undeterminable (no main file, no framework signals, no import graph) → write map with `unknown` placeholders, WARN `"Project map incomplete — manual review required for: {list}"` in profile, continue with partial map.
 
 ### Phase 4: Consolidate
 
-**Mandatory.** Always score dimensions AND write `ds/audit/findings.md` — never skip.
+**Mandatory.** Always score dimensions AND write `ds/audit/findings.md`.
 
-1. Apply dimension score aggregation and weight matrix from [references/weights.md](references/weights.md). Run score calibration checks.
-2. **Score calibration checks** — verify scoring sanity before presenting:
-   - Overall score range 20-95 for real projects (0 or 100 suspicious — re-verify)
+1. Apply dimension score aggregation + weight matrix from [references/weights.md](references/weights.md). Run calibration checks.
+2. **Score calibration checks** — verify sanity before presenting:
+   - Overall in 20-95 for real projects (0 or 100 suspicious — re-verify)
    - No individual dimension at 100 (re-check for missed signals)
-   - CRITICAL finding present → overall must be < 80 (if not, scoring error)
-   - Adjacent dimension delta < 30 (e.g., architecture 90 but code quality 50 → investigate)
-   - Any check fails → re-read flagged dimension's signals and adjust
+   - CRITICAL finding present → overall must be < 80 (else scoring error)
+   - Adjacent dimension delta < 30 (e.g. architecture 90 but code quality 50 → investigate)
+   - Any fail → re-read flagged dimension's signals + adjust
 3. Write `ds/audit/findings.md` in this format:
    ```
    <!-- findings-meta
@@ -275,48 +284,46 @@ Build from Discovery + Assess results:
    |----|----------|----------|------|------|-------|-------|
    | {id} | {severity} | {A|B} | {file} | {line} | {scope} | {title} |
    ```
-   Every finding must include file:line so fix skills can act on it directly. The `Category` column is A when the fix conforms to the current architecture/plan, B when it changes architecture/scope/capability/user-promise/dependency.
-4. **Verify completeness:** Count distinct scope values in `ds/audit/findings.md`. Expected count is 24 (security, privacy, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, performance, robustness, production-readiness, testing, functional-completeness, stack, stack-fitness, dx, external-tooling, docs, spec-alignment — plus the `ideal-gap` scope produced by `/ds-benchmark` when it runs). Count < 24 → identify missing scopes and re-run assessment for those scopes before proceeding. Missing scope = fix skills skip detection for that scope → missed issues.
+   Every finding includes file:line so fix skills can act directly. Category A when fix conforms to current architecture/plan; B when it changes architecture/scope/capability/user-promise/dependency.
+4. **Verify completeness:** count distinct scopes in `ds/audit/findings.md`. Expected: 24 (the 23 scopes above + `ideal-gap` scope produced by `/ds-benchmark` when it runs). Count < 24 → identify missing scopes and re-run assessment for those before proceeding. Missing scope = fix skills skip detection → missed issues.
 
-**Gate:** All 9 dimension scores calculated. Calibration checks passed. `ds/audit/findings.md` written with all 24 scopes verified present. If fails → calibration check found a suspicious score (e.g., dimension at 100, or CRITICAL finding with overall ≥ 80); re-read flagged dimension signals and adjust score; if `ds/audit/findings.md` is missing scopes, re-run the assessment for each missing scope before writing the file; if the file write fails, surface the OS error and ask user to resolve before proceeding.
+**Gate:** All 9 scores calculated; calibration passed; `ds/audit/findings.md` written with all 24 scopes verified. If fails → calibration suspicious score (dimension at 100, CRITICAL with overall ≥80) → re-read flagged signals + adjust; missing scopes → re-run assessment for each before writing; write fails → surface OS error, ask user to resolve.
 
 ### Phase 5: Dashboard
 
-**Mandatory.** Always display dashboard — never skip, even in `--auto` mode.
-
-Display blueprint dashboard:
+**Mandatory.** Always display, even in `--auto`.
 
 ```
 Project: {name} | Type: {type} | Stack: {stack} | Target: {quality}
 
 | Dimension          | Score | Prev | Delta | Target | Gap  | Status |
 |--------------------|-------|------|-------|--------|------|--------|
-| {dimension}        | {n}   | {n}  | {+/-n}| {n}   | {n}  | {status}|
-| ...                |       |      |       |        |      |        |
-| Overall            | {n}   | {n}  | {+/-n}| {n}   | {n}  | {status}|
+| {dimension}        | {n}   | {n}  | {+/-n}| {n}    | {n}  | {status}|
+| ...                |       |      |       |        |      |         |
+| Overall            | {n}   | {n}  | {+/-n}| {n}    | {n}  | {status}|
 
 Findings written to ds/audit/findings.md ({n} signals across {n} dimensions)
 ```
 
-Previous scores exist in profile: show Prev and Delta columns. First run: omit Prev/Delta columns.
+Previous scores exist: show Prev + Delta. First run: omit those columns.
 
-For dimensions below target, list top priority findings with IDs:
+For dimensions below target, list top findings with IDs:
 ```
 Dimensions below target:
 {n}. {dimension} (score: {n}, target: {n}, gap: {n}) — {n} signals
    {finding-ID} {severity}: {short description}
 ```
 
-Any dimension dropped (negative delta), explain why:
+Any dimension dropped (negative delta), explain:
 ```
 Score changes: {dimension} {delta}: {brief cause}
 ```
 
-**Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), and gap analysis. `ds/audit/findings.md` write confirmed. If fails → `ds/audit/findings.md` write could not be confirmed (e.g., file system error after Phase 4); retry write once; if still failing, print the dashboard with a `[WARN: findings.md not written]` header so the user sees the scores but knows downstream consumers cannot use them until the file is resolved.
+**Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), gap analysis; `ds/audit/findings.md` write confirmed. If fails → write unconfirmed (filesystem error after Phase 4) → retry once; still failing → print dashboard with `[WARN: findings.md not written]` header so user sees scores but knows downstream consumers cannot use them until resolved.
 
-### Phase 6: Suggest (skip if --preview)
+### Phase 6: Suggest [SKIP if --preview]
 
-List dimensions below target with signal counts. No skill-specific commands — findings file is interface. Any fix tool or skill can consume it.
+List dimensions below target with signal counts. No skill-specific commands — findings file is interface.
 
 ```
 Dimensions below target:
@@ -328,44 +335,71 @@ Dimensions below target:
 → ds/audit/findings.md written with {n} signals. Run your preferred fix tool/skill to resolve.
 ```
 
-In `--auto` mode: print as part of summary, no interaction.
+In `--auto`: print as part of summary, no interaction.
 
-**Gate:** Suggestions generated for all below-target dimensions. If fails → all dimensions are at or above target (no below-target dimensions); print a single confirmation line `"All dimensions at or above target — no suggestions needed"` and proceed to Phase 7.
+**Gate:** Suggestions generated for all below-target dimensions. If fails → all dimensions at/above target → print `"All dimensions at or above target — no suggestions needed"`, proceed.
 
 ### Phase 7: Update Profile
 
-**Mandatory.** Always update profile — never skip.
+**Mandatory.** Always update.
 
-1. Rewrite the `Scores:` line in the instruction file's blueprint section (between markers) — single line, key-value form.
-2. If a legacy `### Last Run`, `### Run History`, or `### Current Scores` (table) block exists from a previous version, rewrite the entire profile to the current minimal key-value format. Report `{n} legacy lines rotated to git log` in summary. Never re-inject historical run data.
-3. Previous scores existed: display delta table in chat (Prev / Curr / Δ). Trend over >1 run → read from `git log -- <instruction-file>`, never from an accumulated block.
+1. Rewrite the `Scores:` line — single line, key-value form.
+2. Legacy `### Last Run`, `### Run History`, `### Current Scores` (table) block exists from previous version → rewrite entire profile to current minimal key-value format. Report `{n} legacy lines rotated to git log` in summary. Never re-inject historical run data.
+3. Previous scores existed: display delta table in chat (Prev / Curr / Δ). Trend over >1 run → read from `git log -- <instruction-file>`, never from accumulated block.
+4. **Dev-Value Gate (SKILL-SPEC §10.1):** every existing profile line must answer "would an AI assistant, reading this on every turn for 6 months, do meaningfully better engineering because of it?" with yes. Check each line against forbidden patterns (timestamps, score deltas, run dates, owner info, descriptions, onboarding, philosophy, vendor notes, file-by-file change notes). Forbidden found → strip before write. Report `{n} dev-value-gate lines stripped`.
+5. **Context-budget guard:** after write, count lines between markers. > 25 → compress: merge multi-key lines (e.g. Type + Stack + Target into one), drop External entries with no purpose, drop Modules entries with role `(0)` or zero files. Re-count. Still > 25 → surface WARN with offending line indices.
 
-**Gate:** Profile rewritten in minimal key-value format. Legacy blocks rotated if present. No run-history data in the instruction file. If fails → instruction file write failed or file is read-only; print the updated `Scores:` line in chat so the user can paste it manually, note the target file and marker positions, and set state.data.profile_written to false so subsequent runs know the profile is stale.
+**Gate:** Profile rewritten in minimal key-value format; legacy blocks rotated; no run-history in instruction file; Dev-Value Gate applied (forbidden lines stripped); profile ≤ 25 lines. If fails → write failed or file read-only → print updated `Scores:` line in chat for manual paste, note target file + marker positions, set state.data.profile_written false so subsequent runs know profile is stale; > 25 after compression → surface overshoot as WARN with offending line indices.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
-Present needs_approval items with risk context. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
+Present items with risk context. `--auto` → list+skip. `--force-approve` → apply all. Interactive → Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
 
-**Gate:** All needs_approval items resolved. If fails → one or more needs_approval items have no decision recorded; re-present each unresolved item with a forced binary prompt (Apply / Skip); if user declines to respond, mark as `skipped (no response)` and proceed.
+**Gate:** All items resolved. If fails → unresolved → re-present each with forced binary prompt; user declines → mark `skipped (no response)`, proceed.
+
+### Phase 8.5: Memory Cleanup [--memory-cleanup]
+
+Optional phase. Scans AI agent memory index (`MEMORY.md` under host's project-memory directory — Claude Code: `~/.claude/projects/<hash>/memory/MEMORY.md`; equivalent for other hosts) and surfaces stale entries.
+
+1. Open `MEMORY.md`. Absent or under 200 lines → skip with note "Memory index under threshold — no cleanup needed".
+2. Parse `[[link]]` references. For each link, check if matching file exists in memory directory.
+3. Group findings:
+   - **Broken links** — `[[name]]` with no matching file. Likely deleted memory.
+   - **Stale entries** — files referenced by zero `[[link]]`s (orphans).
+   - **Truncated** — index over 200 lines (Claude Code truncation threshold).
+4. Present consolidation menu: `Delete broken links / Remove orphan files / Trim index / All / Skip`.
+5. Apply only what user approves. Every change reversible (memory dir is under user's home, not the repo).
+
+**Gate:** Cleanup applied or user declined. If fails (memory dir not found) → skip silently, note "MEMORY.md not located — pass `--memory-cleanup` only when running inside a host that uses MEMORY.md".
 
 ### Phase 9: Summary
 
-**Mandatory.** Always print summary line — never skip.
+**Mandatory.** Always print.
 
-`blueprint: {OK|WARN|FAIL} | Health: {before}->{after}/{target} | Fixed: N | Skipped: N | Failed: N | Total: N | Score: {n}/100`
+```
+blueprint: {OK|WARN|FAIL} | Health: {before}→{after}/{target} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n} | Score: {n}/100
+```
 
 FRC+DSC accounting.
 
-Status: OK (overall >= target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression).
+Status: OK (overall ≥ target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression).
 
-**Gate:** Summary printed with before/after scores and next steps. If fails → before or after scores could not be computed (Phase 4 produced no scores, or previous scores absent from profile); print summary with available scores only, substitute `N/A` for missing before/after values, set status to `WARN`, and note which phases need re-running to complete the assessment.
+**Gate:** Summary printed with before/after + next steps. If fails → scores uncomputable (Phase 4 produced no scores, or previous scores absent from profile) → print with available scores, substitute `N/A` for missing, status `WARN`, note which phases need re-running.
+
+**Value Delivered:** 1-5 concrete scoring outcomes. Example shapes (placeholders, not literal):
+
+- `Project scored across 9 dimensions ({weakest-dim} {score}, target {target}) — focus is no longer guesswork; lowest-scoring dimension is the next investment`
+- `{n} signals written to ds/audit/findings.md — downstream skills (ds-review, ds-fix, ds-simplify) skip their own detection and act directly`
+- `Stack-fitness: {obsolete-or-oversized-dep} flagged — replacement candidate proposed with effort estimate`
+
+Zero-finding run: `All 9 dimensions at or above target — no investment needed this cycle`.
 
 ## Quality Gates
 
 - Every signal cites file:line — skip signals without evidence
 - Only count signals from source code — exclude test, generated, vendored files
 - Score reflects verified signals only — uncertain signals reduce to 0.5 weight
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/blueprint.json` updated per scope, gitignored, deleted on successful Summary.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/blueprint.json` updated per scope, gitignored, deleted on successful Summary. W10: SSOT producer — writes `ds/audit/findings.md` fresh on every run; consumers MUST defer to it. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

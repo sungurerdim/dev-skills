@@ -57,3 +57,6 @@ rm -rf /tmp/dev-skills
 - Stack-fitness + external-tooling scopes consumed from `/ds-blueprint`
 - `--html` produces self-contained, offline, ASCII-only visual report
 - Project-type-aware routing (mobile / web / backend / library / CLI)
+- **Milestone-gate triggers** — release-candidate, pre-launch, post-incident (not generic "audit everything")
+- **Two-confirmation cascade** — intent + scope must both be approved before any delegated skill runs (`--auto` records both as auto-approved)
+- **Target-based delegation routing** — App Store → `/ds-launch`, server/container/k8s → `/ds-deploy`, library → `/ds-repo --oss-ready`. ds-ship never decides between ds-deploy and ds-launch on its own.

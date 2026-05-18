@@ -144,6 +144,63 @@ Skills that produce or touch configuration MUST:
 
 ---
 
+## §10 — Anti-Overengineering Guard (3-gate)
+
+Every potential finding (whether from tactical, strategic, perf, or meta-quality mode) MUST pass all three gates before being reported. Failing any one gate = silent discard.
+
+1. **Does it break something currently working?** No → discard.
+2. **Does it mislead a future reader?** No → discard.
+3. **Is the added complexity worth its keep?** Yes → discard.
+
+A finding survives the gate only when the answer to questions 1+2 is "yes" AND the answer to question 3 is "no". This is the most aggressive false-positive filter in the suite — it suppresses noise that would otherwise dominate output on mature codebases.
+
+**Calibration:** When in doubt about gate 3 (is the complexity worth it?), default to "yes, it's worth it" → discard. The user can always lower the bar by widening scope; a noisy report wastes more attention than a missed nice-to-have.
+
+**Sources:** Hunt & Thomas — Pragmatic Programmer (KISS / YAGNI tension); John Ousterhout — *A Philosophy of Software Design* (deep modules); Brooks — *No Silver Bullet*.
+
+---
+
+## §11 — Cross-Scope Deduplication
+
+When multiple detectors flag the same site, apply these rules before emitting findings:
+
+1. **Same file:line** → merge into one finding. Concatenate the matched scope names. Keep the highest severity.
+2. **Within 10 lines** → merge if the underlying issue is the same (the user perceives it as one fix). Cite the leading line:column.
+3. **Contradictory findings** (one says "delete", another says "extract") → keep the higher-confidence finding, discard the other. If tied, prefer the less destructive proposal.
+
+Apply this pass after Phase 2 Analyze and again after Phase 3a Analyze-Principles (`--meta-quality` mode). The output of either phase must not contain duplicates by these rules.
+
+**Why:** Repeated reporting of the same site under different scope labels inflates counts, exhausts user attention, and breaks the FRC+DSC accounting (the same site cannot have two final dispositions).
+
+---
+
+## §12 — Needs-Approval Reason Discipline
+
+Every `needs-approval` and `skipped` finding MUST cite a concrete blocker. The blocker is parsed against an explicit reject list — match → reason is rejected → finding is re-routed.
+
+**Concrete blocker examples (accepted):**
+
+- "API-contract change — caller `foo()` in `pkg/x` expects the old signature"
+- "Cross-module dependency — `mod_a` consumed by 7 unrelated callers; refactor exceeds review scope"
+- "Runtime behavior uncertainty — timezone handling depends on host OS, needs user input"
+- "Regulated change — schema migration on user table, requires compliance review"
+
+**Rejected reasons (rewrite or fix inline):**
+
+| Rejected pattern | Why rejected | What to do instead |
+|------------------|--------------|-------------------|
+| `already existed`, `pre-existing` | Not a blocker — Error Ownership Gate (W11) applies | Fix inline or cite concrete blocker |
+| `not my change`, `unrelated to task` | Boy-Scout rule (bounded) covers same-file fixes | Fix in current file; flag out-of-file as separate finding |
+| `out of scope` | Vague — define the actual scope edge | Cite which scope: "exceeds `--scope=hygiene` boundary into `architecture`" |
+| `too hard`, `complex`, `will do later` | Difficulty is not a blocker | Cite the specific obstacle (API contract, dependency, runtime uncertainty) |
+| `not sure how` | Uncertainty is research, not deferral | Either research and decide, or invoke `/ds-research`; do not park |
+
+**Enforcement:** Before writing a finding's disposition, the skill parses the reason against the reject list. Match → either (a) downgrade `needs-approval` to `apply` and fix inline, (b) escalate to user with a concrete-blocker prompt, or (c) rewrite the reason. The skill MUST NOT report status `OK` while any disposition still carries a rejected reason.
+
+**Source:** dev-rules.md — Error Ownership Gate (W11).
+
+---
+
 ## §9 — Authoritative Source URLs (consolidated)
 
 | Source | URL |

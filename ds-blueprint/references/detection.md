@@ -198,6 +198,37 @@ These coexist with primary stack. Detect but do not use for project type classif
 | `Justfile` | just (task runner) | Note in profile (Toolchain: just) |
 | `Taskfile.yml` | Task (task runner) | Note in profile (Toolchain: Task) |
 
+## Audit Fields (mandatory in findings.md meta header)
+
+Every `ds/audit/findings.md` write MUST include a `filters_applied` block in the meta header. This makes silent project-type misidentification or scope skips visible to consumers.
+
+**Required schema:**
+
+```markdown
+<!-- findings-meta
+git_hash: {HEAD}
+timestamp: {ISO 8601}
+source: {skill-name(s)}
+scopes: {comma-separated list of analyzed scopes}
+filters_applied:
+  - skipped_scope: {scope_name} — reason: {short reason}
+  - downgraded: {scope_name} — from {original_confidence} to {final_confidence} — reason: {short reason}
+  - project_type: {detected_type} (confidence: {high|medium|low})
+  - overrides: {user-supplied overrides, or "none"}
+-->
+```
+
+**When each filter applies:**
+
+| Filter | When recorded |
+|--------|---------------|
+| `skipped_scope` | Detector unavailable, project-type-driven skip (e.g., mobile project skips ds-compliance overlap), `--scope=` exclusion |
+| `downgraded` | Confidence reduced from HIGH→MEDIUM or MEDIUM→LOW due to weak evidence |
+| `project_type` | Always written. Confidence reflects how unambiguous the manifest signals were. |
+| `overrides` | User passed `--type=`, `--scope=`, `--quality=` or set blueprint profile constraints that altered defaults |
+
+**Why this matters:** A consumer skill reading the findings file can detect "this run skipped the security scope because mobile-project routing kicked in" without re-running detection. Without `filters_applied`, downstream skills cannot distinguish "scope was clean" from "scope was never checked."
+
 ## Conflict Resolution
 
 | Scenario | Resolution |

@@ -22,7 +22,7 @@ Every SKILL.md follows this section sequence:
 | # | Section | Required | Purpose |
 |---|---------|----------|---------|
 | 1 | Title + Tagline | Yes | One-line skill identity |
-| 2 | Triggers | Yes | When to auto-activate this skill |
+| 2 | Triggers | Yes | When to auto-activate this skill. MUST include `ÇAĞIRIR / ÇAĞIRMAZ` table (3-5 rows) — see §2 Trigger Discipline |
 | 3 | Contract | Yes | Behavioral boundaries and guarantees |
 | 4 | Arguments | Yes | Flags, modes, defaults |
 | 5 | Scopes | If applicable | What the skill inspects or generates |
@@ -30,7 +30,7 @@ Every SKILL.md follows this section sequence:
 | 7 | Execution Flow | Yes | Phase overview (single line) |
 | 8 | Phases | Yes | Numbered phases with steps. Qualifying skills (3+ phases, non-trivial compute) MUST include the canonical Recovery Check block as the first step of the Setup phase. See [State Management](#state-management). |
 | 9 | Report Format | If applicable | Output structure |
-| 10 | Quality Gates | Yes | Compact W1-W8 one-liner + skill-specific gates only |
+| 10 | Quality Gates | Yes | Compact W1-W11 one-liner + skill-specific gates only |
 | 11 | Error Recovery | Only if domain-specific | Standard recovery is baseline — omit if no additions |
 | 12 | Severity | Only if domain-specific | Standard 4 levels are baseline — omit if no additions |
 | 13 | Edge Cases | Yes | Boundary conditions and fallbacks |
@@ -242,6 +242,58 @@ Reasoning-capable models (Claude 4.x, o3-mini) reason adaptively by default. For
 
 See [references/ai-instruction-patterns.md](references/ai-instruction-patterns.md) for full research.
 
+### Trigger Discipline
+
+Every SKILL.md's `Triggers` section MUST satisfy:
+
+1. **Explicit scope** — trigger phrases always specify the intent. `"improve"` alone is not a trigger; `"improve performance"` (→ ds-review --perf), `"improve test coverage"` (→ ds-test), `"clean up dead code"` (→ ds-simplify).
+2. **ÇAĞIRIR / ÇAĞIRMAZ table** — every SKILL.md MUST include a 3-5 row table contrasting valid vs invalid trigger phrases. Format:
+
+   ```markdown
+   ### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+
+   | ÇAĞIRIR | ÇAĞIRMAZ |
+   |---------|----------|
+   | "improve performance" | "improve" (too broad) |
+   | "{specific intent}" | "{broad intent that belongs to another skill}" |
+   ```
+
+3. **No skill claims an unscoped verb.** "improve", "fix", "clean up", "audit" are not standalone triggers — they must be combined with a domain that exactly one skill owns.
+4. **Cross-skill consistency** — when two skills could plausibly handle the same phrase, the ÇAĞIRMAZ row in each lists the other's matching phrase as the disqualifier.
+
+**Rationale:** Unscoped triggers cause multi-skill cascade activation. The ÇAĞIRIR/ÇAĞIRMAZ table is the runtime gate users and AI consumers read to decide invocation.
+
+### Interaction Discipline
+
+Skills that present choices to the user (scope selection, fix application, approval review, alternative paths) MUST follow:
+
+1. **Choices over interrogation** — present a menu of options, not free-text questions. Each option states what it does.
+2. **Default visible** — when a default exists, mark it `(recommended)` on the option label.
+3. **No nested prompts** — a single Phase asks at most one menu. Multi-decision phases batch their decisions or split into sub-phases.
+4. **`(Cancel)` always last** — every menu includes an explicit cancel/skip option so the user is never trapped.
+
+### All-Affordance Rule
+
+Every menu, list, or selection point that a skill presents to the user MUST include an **"all"** affordance (synonym: `tümü`, `apply-all`, `approve-all`, `all matching`) when more than one item is available.
+
+| Interaction point | Required "all" affordance | Example label |
+|-------------------|---------------------------|---------------|
+| Scope selection (analyze/scan entry) | `all` — scan every defined scope for this mode | `All scopes (recommended)` |
+| Fix application (Apply phase) | `apply-all` — apply every fix-eligible finding | `Apply all (CRITICAL findings remain gated)` |
+| Needs-approval review | `approve-all` — apply every needs-approval item except CRITICAL | `Approve all (excludes CRITICAL)` |
+| Alternative path selection (e.g., meta-quality Path A/B/C) | per-path "apply to all matching findings" | `Path B — apply to all matching findings` |
+| Producer selection (e.g., ds-deps multi-package update) | `all safe minor/patch` | `Update all safe minor/patch (recommended)` |
+
+**Rules:**
+
+1. "All" affordance is **always visible** but is **not the default** unless the skill's recommendation policy says so explicitly.
+2. **Destructive scope** — when "all" would trigger destructive actions (rm, force-push, drop, schema migration, credential rotation), each item in the batch STILL requires a separate final confirmation. "All" approves intent, not bypass.
+3. **Secret exclusion** — when "all" stages files (`git add -A`-style flows), `.env`, `*.pem`, `credentials.*`, `secrets.*`, and lockable variants are excluded automatically. The summary surfaces the exclusion list.
+4. **CRITICAL findings are never auto-included in `approve-all`** — they always require a separate, explicit confirmation per finding.
+5. **Single-option menus are exempt.** A menu with one option does not need an "all" affordance.
+
+**Why:** Users routinely prefer maximum coverage in a single action when scanning, fixing, or approving. The absence of an "all" affordance forces serial decisions, drives skipped scopes, and produces inconsistent runs across skills.
+
 ---
 
 ## 3. AI Weakness Mitigation
@@ -376,6 +428,34 @@ Eight systematic weaknesses observed in AI coding assistants. Each skill must ad
 - Hash mismatch prompts user (or respects `--resume`) — never silently continues with stale state.
 
 **Recovery:** On any phase completion, write state before advancing. On successful summary, delete state. On hash mismatch, surface the change.
+
+### W10: Findings-SSOT Drift
+
+**Definition:** A downstream consumer skill re-detects issues that ds-blueprint has already classified in `ds/audit/findings.md`. The same finding is reported twice (once by blueprint, once by the consumer), inflating counts and contradicting the SSOT promise.
+
+**Detection signals:** Consumer skill emits its own scope analysis when a fresh `ds/audit/findings.md` covers that scope. Same `file:line` appears in two different skill summaries with different IDs. Consumer skill ignores `git_hash` freshness check.
+
+**Prevention rules:**
+- Before scanning any scope, check `ds/audit/findings.md`: fresh (`git_hash == HEAD`, age ≤ 7 days) AND scope listed → **verify + apply only**, never re-detect.
+- Stale or missing findings → invoke `/ds-blueprint --preview --scope=all` (or `--refresh`), wait, re-read. Do NOT silently fall through to own detection.
+- Consumer summary MUST cite the producing skill of each finding (`source: ds-blueprint` from meta header) so duplicates are visible.
+- If consumer adds new scope-level findings beyond what blueprint produced, append to `ds/audit/findings.md` with the consumer skill name as `source` and matching `git_hash`.
+
+**Recovery:** On a duplicate `file:line` hit, keep the higher-severity record and drop the other. On hash mismatch, bootstrap blueprint refresh before continuing. On staleness > 7 days, treat findings as advisory and trigger refresh.
+
+### W11: Error Ownership Skip
+
+**Definition:** A real error detected during a skill's run (compile error, lint error, type error, test failure, runtime bug, security issue) is bypassed with non-blocker rationale like "pre-existing", "not in scope", "not my change", "will do later" — leaving the codebase in a broken state and shifting cost to the next maintainer.
+
+**Detection signals:** `needs_approval` or `skipped` disposition with reason matching `already existed`, `not my change`, `out of scope`, `too hard`, `will do later`, `pre-existing`, `unrelated to task`. Skill completes with status OK while a CRITICAL/HIGH error remains unfixed.
+
+**Prevention rules:**
+- Every detected real error (compile/lint/type/test/runtime/security) gets exactly one disposition: `fixed`, `failed`, or `needs-approval` with a **concrete blocker**.
+- Concrete blocker = one of: API-contract change, cross-module dependency that exceeds scope, runtime behavior uncertainty requiring user knowledge, regulated change requiring human review. Anything else is not a blocker.
+- Reason validator MUST reject these patterns (parse `skipped`/`needs-approval` reasons): `already existed`, `not my change`, `pre-existing`, `out of scope`, `too hard`, `will do later`, `unrelated`. Match → escalate to user or fix inline.
+- A skill MUST NOT report status `OK` if any in-session error is parked with a rejected reason.
+
+**Recovery:** On a parked error with rejected reason → either (a) fix inline if within tactical scope, or (b) rewrite the reason as a concrete blocker, or (c) escalate to user with the actual obstacle stated.
 
 ---
 
@@ -684,6 +764,58 @@ Status codes:
 - **FAIL** — CRITICAL finding unresolved, or execution error
 
 **Accounting gate:** The summary MUST satisfy `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total`. If the equation does not balance, the skill has a bug.
+
+### Value Delivered Statement
+
+Every skill that modifies code, generates artifacts, recommends specific fixes, or otherwise produces work-output MUST print a `Value Delivered` block **after** the Summary line and before the run exits.
+
+**Purpose.** The Summary line shows what mechanically happened (5 fixes applied, 2 needs-approval). The Value Delivered block answers the user's actual question: "was running this worth it?" — in concrete, codebase-specific terms that make the user say "good thing I ran this."
+
+**Format:**
+
+```
+Value Delivered:
+- {Concrete benefit — what problem was prevented, what cost was avoided, what capability was gained}
+- {…}
+- {…}
+```
+
+**Rules:**
+
+1. **1-5 bullets max.** Pick the ones that would matter to the user; do not pad.
+2. **Each bullet maps to real changes applied.** Speculative or hypothetical benefits ("you might catch bugs faster") are forbidden — only state what actually happened.
+3. **User-facing phrasing.** Frame as the user's outcome, not the skill's action. `"3 hardcoded API keys removed — credentials no longer leak into git history on next commit"`, not `"applied secret-removal rule 3 times"`.
+4. **Concrete units when possible.** Lines saved, files cleaned, tests added, vulnerabilities closed, hours/days estimated. No marketing language ("supercharge", "10x", "best-in-class").
+5. **Zero-change runs:** if nothing was applied (clean codebase or `--preview` mode), emit one bullet: `No changes applied — codebase is clean on {scopes scanned}` or `Preview only — {n} findings would be fixed; re-run without --preview to apply.`
+6. **Severity-weighted ordering.** List CRITICAL/HIGH-impact wins first, then MEDIUM, then LOW.
+7. **No filler.** "Improved code quality" is filler — replace with "5 cyclomatic-complexity violations resolved in `pkg/auth`; auth module now within 15-CCN budget."
+
+**Examples — good:**
+
+```
+Value Delivered:
+- 3 hardcoded API keys removed from src/config/*.ts — credentials no longer leak into git history on next commit
+- 4 N+1 queries fixed in pkg/orders — order-list endpoint p95 latency expected to drop from ~800ms to ~120ms (estimated from query plan)
+- 12 unused exports deleted from lib/utils — bundle size reduced ~6KB, faster module load
+```
+
+```
+Value Delivered:
+- 1 CRITICAL: SQL injection vector closed in src/api/search.ts:47 — search endpoint no longer concatenates user input into raw SQL
+- 7 missing await detected in async handlers — promise rejections will now propagate to error middleware instead of silently dropping
+```
+
+**Examples — bad (do not emit these):**
+
+```
+- Improved code quality                                ❌ filler
+- Made the codebase healthier                          ❌ vague
+- You can now ship faster                              ❌ speculative
+- Applied 12 fixes across 8 files                      ❌ just restates Summary line
+- Leverage best-in-class patterns for clean code       ❌ marketing
+```
+
+**Gate:** Skill exits with a Value Delivered block following the Summary line. If fails (skill produced no fix-output and is not in `--preview` mode) → emit `No changes applied — codebase is clean on {scopes}`. A skill that completes a fix run without a Value Delivered block is a spec violation.
 
 ---
 
@@ -1069,7 +1201,7 @@ Same meaning, fewer tokens. Apply these compression patterns without losing prec
 | Phase header + Goal merge | `### Phase N: {Name}\n\n**Goal:** {desc}` | `### Phase N: {Name} — {desc}` | ~40% |
 | IDU check inline | 6-8 lines of findings + blueprint check | 1-2 line: `**IDU:** Profile → {fields}. Findings({scopes}) → verify + use. Absent → own analysis.` | ~70% |
 | Needs-Approval boilerplate | 6-8 lines per skill | 3 lines: header + modes on one line + gate | ~55% |
-| Quality Gates (W1-W8) | 6-10 line itemized list | Compact one-liner per weakness (see template) | ~55% |
+| Quality Gates (W1-W11) | 6-10 line itemized list | Compact one-liner per weakness (see template) | ~55% |
 | Error Recovery (standard-only) | 6-8 line table with generic rows | Omit section — standard recovery is baseline | 100% |
 | Severity (standard-only) | 8-10 line table repeating 4 levels | Omit section — standard severity is baseline | 100% |
 | FRC+DSC in contract | 2 separate bullet items | Single: `FRC+DSC enforced.` | ~50% |
@@ -1080,6 +1212,49 @@ Same meaning, fewer tokens. Apply these compression patterns without losing prec
 **Rule:** If a phrase can be shortened without changing what the AI model executes, shorten it. Measure by: does the compressed version produce identical behavior?
 
 **Ceiling:** Never compress below readability for a human reviewer. The skill author must still understand the instruction on first read.
+
+### Optimization Patterns (behavior-preserving, model-agnostic)
+
+Drawn from 2026 prompting research across Anthropic Skills, OpenAI GPT-5 prompting guide, Google Gemini 3 prompting guide, and Chroma Context Rot study. Apply these patterns when editing any SKILL.md. **Behavior MUST NOT change** — flags, scopes, gates (pass + fail arms), phase numbers, reference links, Quality Gates W1-W11, FRC+DSC, Trigger Discipline tables, Contract clauses (Standalone, FRC+DSC, Pre-existing W11, Exempt notes) all stay intact.
+
+| # | Pattern | Before → After |
+|---|---------|----------------|
+| 1 | **Prose → table** | "There are nine scopes — security covers …, privacy covers …, hygiene covers …" → single-line table rows |
+| 2 | **Sentence merge** | Three sentences restating one rule → one imperative sentence |
+| 3 | **Imperative voice** | "It is recommended that fixes be verified" → "Verify each fix" |
+| 4 | **De-duplicate** | Same rule in Phase body + Gate + Output → keep at the most relevant location, cross-ref elsewhere |
+| 5 | **Schema compaction** | 10-line example block → 5-line essential schema (only fields a consumer reads) |
+| 6 | **Contract single-pass** | "Standalone. Uses blueprint…" + "Uses blueprint when available…" → one line |
+| 7 | **Header cleanup** | "**The first thing the skill does is:**" → numbered step |
+| 8 | **Gate-arm compactness** | "If fails → if X happens and user doesn't respond after 2 prompts, default to Y, record reason …" → "If fails → default to Y; record reason in state" |
+| 9 | **Critical-rules tail** | Critical constraints buried in Phase body → restate concisely in Quality Gates one-liner (Gemini 3 + Chroma research: model drops early-buried constraints) |
+| 10 | **Positive framing** | "Don't reformat untouched code" → "Modify only task-required lines" (positive framing is 2-5× more reliable across model families) |
+
+**Cross-model neutrality.** Default syntax: markdown headings (`##`, `###`), numbered lists, tables, fenced code blocks. Reserve XML tags (`<role>`, `<task>`) for skills that explicitly target a single model family — most skills should not need them. Tested on Claude 4.x, GPT-5.x, Gemini 3, Llama 4, Mistral.
+
+**Anti-contradiction discipline.** OpenAI Prompt Optimizer rejects internally inconsistent prompts (`"always X"` and elsewhere `"never X"` both in the same skill) because contradictions inflate reasoning cost and degrade output. When editing a SKILL.md, grep your own skill for the same noun used with conflicting verbs; reconcile to one rule.
+
+**Verbosity caps in instructions.** Explicit length caps reduce GPT-5/Claude 4.x output noise:
+
+| Instruction context | Recommended cap |
+|---------------------|-----------------|
+| Phase step description | 1 sentence, imperative |
+| Phase Gate body | 2 sentences (pass condition + If-fails arm) |
+| Trigger Discipline table | 3-5 rows |
+| Quality Gates one-liner | W1-W11 each ≤ 12 words |
+| Output schema example | ≤ 10 lines, only consumer-read fields |
+| Severity / Edge Cases table | ≤ 8 rows, ≤ 60 chars per cell |
+
+**Size targets (after optimization, behavior unchanged):**
+
+| Skill class | Target SKILL.md size | Hard ceiling |
+|-------------|----------------------|--------------|
+| Orchestrator (ds-ship) | 280-350 lines | 500 |
+| Multi-mode auditor (ds-review, ds-mobile, ds-compliance) | 280-380 lines | 500 |
+| Single-mode skill | 180-260 lines | 400 |
+| Atomic / git-driven (ds-commit, ds-pr, ds-fix, ds-init) | 180-240 lines | 350 |
+
+When a SKILL.md exceeds the hard ceiling, the fix is references/, not deletion. Move detailed rules into `references/*.md` and link from SKILL.md.
 
 ---
 
@@ -1134,6 +1309,14 @@ Before releasing any skill, verify:
 - [ ] Every `**Gate:**` line includes an `If fails → {recovery action}` arm — no gate states only the pass condition
 - [ ] Every phase has either a structured output (table, JSON, summary line) or a stated "no output, internal phase" note
 - [ ] No phrases that force chain-of-thought on reasoning models (e.g., "think step by step", "reason carefully", "consider all options"). Reasoning emerges from explicit step decomposition.
+- [ ] Quality Gates one-liner includes W1 through W11 (or explicitly marks the gates that are not applicable, e.g., `W9: not applicable — exempt from state protocol`).
+- [ ] Triggers section includes an explicit `ÇAĞIRIR / ÇAĞIRMAZ` table (3-5 rows) — no unscoped verbs.
+- [ ] Every user-facing menu offers an `all` (or `tümü` / `apply-all` / `approve-all`) affordance when more than one option exists. Destructive actions still require per-item confirmation.
+- [ ] Contract section contains the line: `Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.`
+- [ ] No artifact accumulates across runs — every state file, findings file, report file, and profile section is rewritten on each run (overwrite-only).
+- [ ] Skill never writes to the context-loaded instruction file (`CLAUDE.md` / `.cursorrules` / `.github/copilot-instructions.md` / `.windsurfrules` / `.aider.conf.yml` / `AGENTS.md` / etc.) outside the Blueprint Profile markers, and never adds timestamps, score deltas, run history, philosophy, or anything that fails the Dev-Value Gate (see §10.1).
+- [ ] Blueprint Profile section stays ≤ 25 lines after the skill writes; every line maps to a documented consumer behavior (no dead lines).
+- [ ] Skill prints a `Value Delivered` block after the Summary line in every run that modifies code, generates artifacts, or recommends fixes. Each bullet maps to a real applied change — concrete, user-facing, no filler (see §5 Value Delivered Statement).
 
 ---
 
@@ -1198,6 +1381,55 @@ Forbidden writes:
 | Run history / Last Run lines | Burns context on every model read | `git log -- <instruction-file>` |
 | Per-skill status, score deltas, run summaries | Same | `ds/audit/findings.md`, terminal summary, `git log` |
 | Append-only changelog entries | Cumulative context pollution | `CHANGELOG.md` (a real, separate doc) |
+
+**Overwrite-Only Persistence (every artifact, every run).** No skill grows a file across runs. Every persisted artifact follows this rule:
+
+| Artifact | Write semantic |
+|----------|---------------|
+| `ds/audit/<skill>.json` (state) | Overwrite per phase status change. Deleted on successful Summary. |
+| `ds/audit/findings.md` | Overwrite within the writer's scopes; rows for other scopes preserved. Deleted when zero entries remain. |
+| `ds/audit/report.md` (orchestrator) | Overwrite per run. |
+| Blueprint profile section (instruction file) | Overwrite only `Scores:` line per run; other lines change only with explicit `--refresh`. |
+| `ds/<skill>/results.tsv` or similar operational log (rare; only `ds/tune/`) | Overwrite-tail allowed (e.g., one experiment row per entry) — never duplicates, never per-session header rows. Trim to last N entries when N is the skill's stated cap. |
+
+**Append-only is forbidden anywhere.** No timestamped log files, no per-run history files, no "session-{date}" copies, no "run-N.json" snapshots. History lives in `git log`, period. If the skill needs trend data, it reads `git log -- <artifact>` rather than reading an accumulated in-file block.
+
+**Context-Loaded File Budget (Dev-Value Gate).** "Context-loaded instruction file" = the file the AI host re-reads on every turn (Claude Code: `CLAUDE.md`, Cursor: `.cursorrules` / `.cursor/rules/*.md`, Copilot: `.github/copilot-instructions.md`, Windsurf: `.windsurfrules`, Aider: `.aider.conf.yml`, OpenAI Codex: `AGENTS.md`).
+
+Only the Blueprint Profile section is written by skills. Every line of that section MUST pass the **Dev-Value Gate**:
+
+> Would an AI assistant, reading this single line on every turn for the next 6 months, do meaningfully better engineering on THIS codebase because of it?
+
+If the answer is "no" → the line does not belong in the instruction file. Move it to `ds/audit/findings.md`, terminal output, `git log`, or `CHANGELOG.md`.
+
+**Hard ceiling: 25 lines for the entire Blueprint Profile section.** Profiles exceeding this MUST be compressed (e.g., merge `Modules:` and `Data Flow:` into one line, drop low-value External entries) before write completes.
+
+**Forbidden in the profile (Dev-Value Gate failures):**
+
+| Forbidden line | Why it fails the gate | Where it goes |
+|----------------|----------------------|---------------|
+| Timestamps, run dates, "last updated" | Not actionable; AI doesn't decide differently because of a date | `git log -- <instruction-file>` |
+| Score deltas, trend arrows | Last run's delta is irrelevant to next decision; current scores suffice | Terminal summary + `git log` |
+| Score histories / sparklines | Bloat — current scores already inform priority | `git log` |
+| "Owner: user@example.com", maintainer info | Already in repo metadata / `CODEOWNERS` | `.github/CODEOWNERS` |
+| Project description / pitch / tagline | Belongs to README, not to per-turn instructions | `README.md` |
+| Onboarding / setup steps | One-time read; not per-turn | `README.md` or `docs/dev/` |
+| Aspirational TODO list | Not present-state; not actionable | `ds/audit/findings.md` |
+| Quotes / philosophy / values | Aesthetic; not decision-altering | `CONTRIBUTING.md` or `README.md` |
+| Detailed CI / deploy commands | Looked up once, not every turn | `Makefile` / `docs/ops/` |
+| File-by-file change notes | Burns context every turn for one-off info | `git log -p` |
+| Vendor changelogs, dependency notes | Read on demand | `CHANGELOG.md` / dependency docs |
+
+**Allowed in the profile (every line earns its keep):**
+
+`Type:` + `Stack:` + `Target:` (severity calibration) — `Priorities:` + `Constraints:` + `Data:` + `Regulations:` + `Audience:` + `Deploy:` (scope ordering and routing) — `Entry:` + `Modules:` + `Data Flow:` + `External:` + `Toolchain:` (per-turn architectural awareness) — `Ideal:` (gap reference) — `Scores:` (current health, focus next-step decisions).
+
+Each line maps to a downstream skill behavior (see [§6 Inter-Skill Data Utilization](#inter-skill-data-utilization-idu)). A line with no consumer is dead weight — delete it.
+
+**Enforcement.** ds-blueprint Phase 7 (Update Profile) MUST:
+1. Count current profile line count after write.
+2. Line count > 25 → re-compress (merge multi-key lines, drop External entries with no `purpose:` field, drop Modules entries with role `(0)` or zero files).
+3. Re-count. Still > 25 → surface the overshoot in the summary as a WARN with the offending line indices, so the user can prune.
 
 ### 10.2 Delegation Contract
 

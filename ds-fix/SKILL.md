@@ -11,17 +11,27 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 - User asks to run type checker, check types, or fix type errors
 - User asks to scan for secrets or audit dependencies
 
+### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+
+| ÇAĞIRIR | ÇAĞIRMAZ |
+|---------|----------|
+| "run formatter, linter, type checker", "fix lint errors" | "review architecture / patterns" (→ ds-review --strategic) |
+| "scan for hardcoded secrets / dep CVEs" | "full regulatory security audit" (→ ds-compliance --security) |
+| "format + l10n consistency check" | "generate translations / new locales" (→ manual / external) |
+| "fix all auto-fixable issues across stack" | "design a new API" (→ ds-backend) |
+
 ## Contract
 
 - Runs automated fixers in safe, deterministic order: l10n → format → typecheck → lint → security
-- Format always runs before lint so auto-formatting does not introduce new lint issues
-- Only reports findings in `--check` mode — zero file modifications
+- Format always runs before lint (auto-formatting must not introduce new lint issues)
+- `--check` mode: report only, zero modifications
 - Missing tools skipped with a warning — never fails due to absent optional tooling
 - Re-validates after fix to confirm fix worked
 - Reports counts, not verbose output
 - Does NOT perform manual code review, architecture analysis, or refactoring
-- Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
+- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - **Exempt from state protocol:** tool-driven, fast, independent passes — re-running repeats idempotent fixes. No `ds/audit/fix.json` written.
 
 ## Arguments
@@ -31,6 +41,7 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 | (none) | Fix all scopes |
 | `--check` | Report only, no modifications |
 | `--scope=X,Y` | Specific scope(s), comma-separated |
+| `--skip-if-clean` | Run only scopes whose check-mode reports issues. Default `true` when invoked by another skill (ds-commit / ds-pr / ds-ship gates), `false` when user-invoked. |
 
 ## Scopes
 
@@ -47,6 +58,16 @@ Default: all five scopes in order.
 ## Delegation
 
 **Owns:** format, lint, typecheck, l10n, secret-scan-quick, dep-quick-check | **Delegates:** ds-deps → deps-upgrade-execution; ds-review → code-level quality fixes | **Receives:** ds-commit → pre-commit gates; ds-pr → pre-PR gates
+
+## Tool Install Policy (applied to every scope below)
+
+When a scope's tool (formatter, linter, typecheck binary, l10n generator, audit command) is unavailable, every scope follows the same flow — no per-scope re-statement:
+
+1. Offer to install: show install command (e.g., `{install-command-for-tool}`), ask **"Install and continue?"**.
+2. User accepts → install, re-run that scope.
+3. User declines → mark scope `⚠ Skipped (tool unavailable, declined install)` in summary; continue with next scope.
+4. System-level tools (requiring manual install, e.g., `{compiler-or-runtime}`) → show install instructions, skip scope.
+5. Filesystem access error → mark scope `WARN` with the specific OS error.
 
 ## Execution Flow
 
@@ -75,37 +96,35 @@ Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 | `mix.exs` | elixir |
 | `build.sbt` | scala |
 
-**Tier 2 — Supplementary stacks** (run only applicable tools, never sole detected stack):
+**Tier 2 — Supplementary stacks** (applicable tools only, never sole detected stack):
 
-| Signal | Stack | Condition to activate |
+| Signal | Stack | Activation condition |
 |--------|-------|----------------------|
-| `CMakeLists.txt` or `Makefile` | c-cpp | **Only if** `.c`, `.cpp`, `.cc`, or `.h` source files exist in `src/` or project root. A `Makefile` without C/C++ sources is just a task runner — skip. |
-| `*.sh` files | shell | **Only if** 3+ `.sh` files exist, or a `scripts/` directory with `.sh` files. A single `setup.sh` does not make this a shell project. |
-| `*.tf` files | terraform | High confidence — `.tf` extension is unique to Terraform. Treat as primary if no other stack detected. |
-| `Dockerfile` / `docker-compose.yml` | docker | **Always supplementary.** Run hadolint/trivy alongside primary stack, never as sole stack. |
+| `CMakeLists.txt` / `Makefile` | c-cpp | Only if `.c/.cpp/.cc/.h` source exists in `src/` or root. `Makefile` without C/C++ sources = task runner only — skip. |
+| `*.sh` files | shell | Only if 3+ `.sh` files OR `scripts/` with `.sh` files. A single `setup.sh` does not make this a shell project. |
+| `*.tf` files | terraform | High confidence — unique extension. Treat as primary if no other stack. |
+| `Dockerfile` / `docker-compose.yml` | docker | Always supplementary. Run hadolint/trivy alongside primary stack. |
 
-**Disambiguation rules:**
-- Only Tier 2 stacks detected (e.g., just Dockerfile + shell scripts): run security scope universally, run Tier 2 tools for their specific files only.
-- Tier 1 + Tier 2 detected: run full toolchain for Tier 1, supplementary tools for Tier 2.
-- Terraform exception: `*.tf` is only manifest → treat as primary (iac project).
+**Disambiguation:**
 
-Per stack: load matching toolchain from `references/toolchains.md`.
+- Tier 2 only (e.g., Dockerfile + shell) → run security scope universally, Tier 2 tools for their files only.
+- Tier 1 + Tier 2 → full toolchain for Tier 1, supplementary tools for Tier 2.
+- `*.tf` only → treat as primary (iac project).
 
-**Gate:** At least one stack detected or security-only mode. If fails → no stack detected and no manifests found: run security scope only (universal secret scan + dependency audit where tools are available), announce "No stack detected — running security scope only", and skip all other scopes.
+Per stack: load toolchain from [references/toolchains.md](references/toolchains.md).
+
+**Gate:** ≥1 stack detected or security-only mode. If fails → no manifests; run security scope only (universal secret scan + dep audit where available), announce "No stack detected — running security scope only", skip other scopes.
 
 ### Phase 2: L10n [scope: l10n]
 
-Stack-specific localization generation and validation.
-
 1. Detect l10n framework from project config and dependencies
-2. Generate localization files if stack supports it (e.g., `flutter gen-l10n`)
+2. Generate localization files if stack supports it (e.g., `{l10n-generator-command}`)
 3. Cross-check translation keys: all locale files must have same keys as base locale
-4. Check placeholder consistency: `{name}` in base must exist in all translations
-5. Check for encoding issues (mojibake patterns from cp1252→UTF-8 double-encoding)
-6. **Fix mode:** generate files, stage generated output
-7. **Check mode:** report mismatches only
+4. Check placeholder consistency: `{placeholder-token}` in base must exist in all translations
+5. Check encoding issues (mojibake patterns from cp1252→UTF-8 double-encoding)
+6. **Fix mode:** generate files, stage generated output. **Check mode:** report mismatches only.
 
-Example l10n frameworks per stack:
+L10n frameworks per stack:
 
 | Stack | Framework | Key files |
 |-------|-----------|-----------|
@@ -121,51 +140,39 @@ Example l10n frameworks per stack:
 | elixir | Gettext | `priv/gettext/*.po` |
 | scala | Play i18n / Java ResourceBundle | `conf/messages.*`, `*.properties` |
 
-Skip silently if no l10n framework detected.
+No framework detected → skip silently.
 
-**Gate:** L10n files generated/validated or no l10n framework detected. If fails → if the l10n generation tool (e.g., `flutter gen-l10n`) is not installed, offer to install it (show install command), ask "Install and continue?"; user declines → skip l10n scope, warn in summary; if key mismatches persist after one fix attempt, report the specific mismatched keys in the summary and mark scope `WARN` rather than aborting.
+**Gate:** L10n files generated/validated, or no framework. If fails → tool unavailable: apply Tool Install Policy; persistent key mismatches after one fix attempt → report mismatched keys, mark scope `WARN`, don't abort.
 
 ### Phase 3: Format [scope: format]
 
-Per stack: run canonical formatter.
-
 1. Look up format tool from `references/toolchains.md`
-2. Tool unavailable → offer to install (see Error Recovery); declined or system-level tool → skip scope.
-3. **Fix mode:** run fix command
-4. **Check mode:** run check command, report exit code
-5. Non-default formatter (e.g., Biome instead of Prettier for Node) → detect from config files and use that instead
+2. **Fix mode:** run fix command. **Check mode:** run check command, report exit code.
+3. Non-default formatter (e.g., `{alt-formatter}` instead of `{default-formatter}`) → detect from config files and use that.
 
-**Gate:** Format clean before proceeding to lint. If fails → if the formatter tool is unavailable, offer to install it (show install command), ask "Install and continue?"; user declines or system-level tool → skip format scope, warn in summary, and proceed to typecheck; if the formatter exits non-zero after running (format errors remain), report the file count and proceed to typecheck — do not block the pipeline on residual format issues.
+**Gate:** Format clean before proceeding to lint. If fails → tool unavailable: apply Tool Install Policy; formatter exits non-zero after run → report file count, proceed to typecheck (don't block pipeline on residual format issues).
 
 ### Phase 4: Typecheck [scope: typecheck]
-
-Per stack: run static type checker if one is configured.
 
 1. Look up typecheck tool from `references/toolchains.md`
 2. Detect if type checking is configured (e.g., `tsconfig.json` for Node, type hints in Python)
 3. No type checker configured → skip silently
-4. Run type checker. Type checkers are read-only — they report but don't auto-fix.
+4. Run type checker (read-only — they report but don't auto-fix)
 5. Report error count and top issues
 
-Example: Python project with `pyproject.toml` containing `[tool.mypy]` or `[tool.pyright]` → run configured checker. No config → skip.
-
-**Gate:** Type checker reports zero errors or no type checker configured. If fails → if the type checker binary is missing, offer to install it (show install command), ask "Install and continue?"; user declines → skip typecheck scope, warn in summary; if type errors are reported and cannot be auto-fixed (type checkers are read-only), record the error count in the summary table and proceed to lint — type errors do not block subsequent scopes.
+**Gate:** Type checker reports zero errors, or no type checker configured. If fails → tool missing: apply Tool Install Policy; type errors un-fixable (read-only checker) → record error count, proceed to lint (type errors don't block subsequent scopes).
 
 ### Phase 5: Lint [scope: lint]
 
-Per stack: run canonical linter with auto-fix.
-
 1. Look up lint tool from `references/toolchains.md`
-2. Tool unavailable → offer to install (see Error Recovery); declined or system-level tool → skip scope.
-3. **Fix mode:** run fix command, then re-run check to verify
-4. **Check mode:** run check command only, report issues
-5. Non-default linter (e.g., Biome instead of ESLint) → detect from config and use that
+2. **Fix mode:** run fix command, then re-run check to verify. **Check mode:** run check command only, report issues.
+3. Non-default linter → detect from config and use that.
 
-Stack-specific extra checks (search file contents, not tool-dependent):
+**Stack-specific extra checks** (content-based, not tool-dependent):
 
-| Stack | Pattern | Location | Suggestion |
-|-------|---------|----------|------------|
-| flutter | `print(` | outside test files | Use structured logger (e.g., `AppLogger`) |
+| Stack | Pattern | Where | Suggestion |
+|-------|---------|-------|------------|
+| flutter | `print(` | outside test files | Use structured logger (e.g., `{logger-class}`) |
 | node | `console.log` | in `src/` | Use structured logger |
 | python | `print(` | in `src/` | Use `logging` module |
 | go | `fmt.Println` | in non-main packages | Use structured logger (e.g., `slog`) |
@@ -175,13 +182,13 @@ Stack-specific extra checks (search file contents, not tool-dependent):
 | elixir | `IO.inspect` / `IO.puts` | in `lib/` | Use `Logger` module |
 | scala | `println` | in `src/main/` | Use structured logger (e.g., `slf4j`) |
 
-**Gate:** Lint re-check passes after auto-fix or check-mode issues reported. If fails → if the linter tool is unavailable, offer to install it (show install command), ask "Install and continue?"; user declines → skip lint scope, warn in summary; if the re-check still shows unfixable errors after auto-fix, report the residual error count and file:line for each, mark scope as `WARN`, and proceed to security — do not re-run lint a second time.
+**Gate:** Lint re-check passes after auto-fix, or check-mode issues reported. If fails → tool unavailable: apply Tool Install Policy; unfixable errors after auto-fix → report residual count + file:line each, mark scope `WARN`, proceed to security (don't re-run lint).
 
 ### Phase 6: Security [scope: security]
 
 Two sub-phases: universal secret scan + stack-specific dependency audit.
 
-**6a. Secret Scan (all stacks):**
+**6a. Secret scan (all stacks):**
 
 Search project files for these patterns, excluding `.git/`, `node_modules/`, `build/`, `.dart_tool/`, `vendor/`, `__pycache__/`, `bin/`, `obj/`, `_build/`, `deps/`, `.terraform/`, `target/`:
 
@@ -194,53 +201,56 @@ Search project files for these patterns, excluding `.git/`, `node_modules/`, `bu
 | `ghp_[a-zA-Z0-9]{36}` | GitHub PAT |
 | `xox[baprs]-[a-zA-Z0-9-]+` | Slack token |
 
-**6b. Dependency Audit (per stack):**
+**6b. Dependency audit (per stack):** look up audit command from `references/toolchains.md`. Tool unavailable → skip with warning.
 
-Look up audit command from `references/toolchains.md`. Tool not installed → skip with warning.
-
-**Gate:** Secret scan and dependency audit completed with findings classified. If fails → if the dependency audit tool (e.g., `npm audit`, `pip-audit`) is not installed, skip the dependency sub-phase, warn in summary ("dependency audit skipped — tool unavailable"); secret scan uses built-in pattern matching only (no external tool required) and must always complete — if it fails due to filesystem access error, surface the specific error and mark scope `WARN`; any confirmed secret finding is always CRITICAL and must not be suppressed.
+**Gate:** Secret scan + dep audit completed with classifications. If fails → dep audit tool missing: skip dep sub-phase, warn in summary; secret scan is built-in pattern matching (no external tool) and must always complete — filesystem access error → mark scope `WARN`. Any confirmed secret = CRITICAL, never suppressed.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
 
-**Gate:** All needs_approval items resolved (applied → fixed/failed, declined → skipped). If fails → any item left unresolved after user interaction: mark it `skipped (no decision)` and proceed to Summary; do not retry the prompt.
+**Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt per item; no response → mark `skipped (no response)` and proceed.
 
 ### Phase 8: Summary
 
-Print a markdown table:
+Per-scope status table:
 
 ```
-| Scope     | Status   | Details          |
-|-----------|----------|------------------|
-| L10n      | ✓/✗/⊘/⚠ | count or message |
-| Format    | ✓/✗/⊘/⚠ | files fixed      |
-| Typecheck | ✓/✗/⊘/⚠ | errors found     |
-| Lint      | ✓/✗/⊘/⚠ | issues found     |
-| Security  | ✓/✗/⊘/⚠ | findings         |
+| Scope     | Status   | Details                |
+|-----------|----------|------------------------|
+| L10n      | ✓/✗/⊘/⚠ | {count or message}     |
+| Format    | ✓/✗/⊘/⚠ | {files-fixed} fixed    |
+| Typecheck | ✓/✗/⊘/⚠ | {errors-found} errors  |
+| Lint      | ✓/✗/⊘/⚠ | {issues-found} issues  |
+| Security  | ✓/✗/⊘/⚠ | {findings} findings    |
 ```
 
-Legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped)
+Legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped).
 
-Output summary line:
+`ds-fix: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}` — FRC+DSC accounting.
 
-```
-ds-fix: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N
-```
+**Value Delivered:** 1-5 concrete bullets, real changes only. Example shapes (placeholders, not literal):
 
-FRC+DSC accounting.
+- `{n} hardcoded secrets intercepted in {scope-paths} — credentials no longer leak into git history on next commit`
+- `{n} type errors surfaced in `{module-path}` — runtime crashes prevented before users hit them`
+- `{n} format violations auto-fixed across {n} files — diff-noise eliminated on next code review`
 
-**Gate:** Summary table rendered with status per scope and totals. If fails → any scope missing from the table: add it with status `⊘ (skipped)` and detail "not reached"; re-emit the summary as `WARN`; since ds-fix is exempt from state protocol, no state file is preserved — re-run the skill to retry any skipped scopes.
+Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scopes`.
+
+**Gate:** Summary table emitted + Value Delivered block. If fails → any scope missing from the table → add with `⊘ (skipped, detail: not reached)`, re-emit as `WARN`; ds-fix is state-exempt, so re-run the skill to retry skipped scopes.
 
 ## Quality Gates
 
 - Format runs before lint — never reverse this order
-- After fix, re-run check to verify fix worked. Re-check fails → report as unresolved.
-- Only report findings in `--check` mode — verify diff is empty after check run
-- Secret findings are always CRITICAL — never auto-fix, always report. Surface rotation guidance: "rotate this credential immediately, then add the variable name (placeholder value) to `.env.example`" ([references/principles.md §8](references/principles.md)).
-- When fix modifies security-critical or business-logic code: check if a regression test exists for the affected path; if absent, add a MEDIUM finding "regression test missing for {file}:{line} fix path" before completing ([references/principles.md §7](references/principles.md)).
-- Scope boundary: only run scopes user requested (or all if none specified)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, tool-driven, see Contract).
+- After fix, re-run check to verify. Re-check fails → report as unresolved.
+- `--check` mode: only report; verify diff is empty after check run.
+- **Secrets always CRITICAL** — never auto-fix, always report. Surface rotation guidance: "rotate this credential immediately, then add the variable name (placeholder value) to `.env.example`" ([references/principles.md §8](references/principles.md)).
+- **Regression-test gate:** fix modifies security-critical or business-logic code → check if a regression test exists for the affected path; if absent, add MEDIUM finding `regression test missing for {file}:{line} fix path` before completing ([references/principles.md §7](references/principles.md)).
+- Scope boundary: only run scopes user requested (or all if none specified).
+- **CRITICAL escalation (second-pass verification):** any CRITICAL secret finding re-verified before reporting — re-read file ±20 lines, check skip patterns (`# noqa`, test fixtures, generated files, env-loader patterns). Insufficient evidence → downgrade to HIGH. CRITICAL reserved for confirmed exposures.
+- **Educational output triple:** every applied fix includes three lines beside "what changed": `why:` (impact if unfixed), `avoid:` (anti-pattern), `prefer:` (correct pattern). Single-line counts/messages exempt — applies to per-finding fix records.
+- **needs_approval reason validator:** parse every `skipped` / `needs-approval` reason against the reject list in [ds-review/references/principles.md §12](../ds-review/references/principles.md). Match → reason rejected, item re-routed (fix inline or escalate). Status `OK` forbidden while any rejected-reason item remains.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, tool-driven). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Severity
 
@@ -257,18 +267,11 @@ FRC+DSC accounting.
 |----------|----------|
 | Unknown stack | Run security scope only (universal), skip others |
 | Multiple stacks in monorepo | Detect all, run each stack's tools in its subdirectory |
-| Tool not installed | Warn once per tool, skip, continue with next |
+| Tool not installed | Tool Install Policy (above) — warn once per tool, skip, continue |
 | Formatter and linter conflict | Formatter wins (runs first), linter adapts |
-| No l10n framework detected | Skip l10n silently |
-| No type checker configured | Skip typecheck silently |
-| `--check` with `--scope=format` | Run format check only, exit code indicates pass/fail |
-| Large repo (>10K files) | Run tools with default file filtering, don't override excludes |
+| No l10n framework | Skip l10n silently |
+| No type checker | Skip typecheck silently |
+| `--check` with `--scope=format` | Run format check only, exit code = pass/fail |
+| Large repo (>10K files) | Default file filtering, don't override excludes |
 | Pre-existing config (`.eslintrc`, `ruff.toml`, etc.) | Respect project config — never override with defaults |
-
-## Error Recovery
-
-| Situation | Action |
-|-----------|--------|
-| Tool not installed (e.g., formatter, linter) | Offer to install: show install command (e.g., `pip install ruff`, `npm install -D eslint`), ask "Install and continue?" User accepts → install, re-run scope. User declines → skip scope, warn in summary. System-level tools (e.g., `go`, `rustfmt`) requiring manual install → show install instructions, skip scope. |
 | Lock file conflict | Warn, skip dependency operations |
-| Formatter and linter disagree | Run formatter first, then linter |
