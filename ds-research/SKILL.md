@@ -135,7 +135,7 @@ Zero-result run: `No credible sources found in budget — query refined and re-r
 - Every claim cites at least one source with CRAAP+ ≥50
 - Contradictory sources noted explicitly with confidence assessment
 - Only cite actually retrieved and verified sources / URLs
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: deep-mode state per phase, gitignored, deleted on successful Output. Quick/standard atomic. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: deep-mode state per phase, gitignored, deleted on successful Output. Quick/standard atomic. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W13: weight sources by verified reliability (CRAAP+), not by authority or confident phrasing; on user pushback, re-check the source before revising a conclusion.
 
 ## Error Recovery
 

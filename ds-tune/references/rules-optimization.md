@@ -6,7 +6,7 @@ Rules for experiment design, metric selection, and result validation. Each rule:
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Experiment Design** | OPT-01–06 (2 HIGH, 3 MEDIUM, 1 LOW) | ~12 |
+| **Experiment Design** | OPT-01–07 (3 HIGH, 3 MEDIUM, 1 LOW) | ~12 |
 
 ---
 
@@ -69,3 +69,13 @@ All experiments documented with hypothesis, change, result, and decision. Preven
   - Results recorded without the hypothesis or methodology
 - **Fix:** Log each experiment with: hypothesis (what you expect and why), change (what was modified), metric before and after (with variance), decision (keep or discard and reasoning). Store in a persistent location (markdown file, issue, or dedicated tracking)
 - **Source:** Karpathy autoresearch pattern, Google Vizier experiment tracking
+
+### OPT-07 [HIGH] Reward Hacking / Metric Gaming
+The optimized metric is a proxy for a real goal; an experiment that moves the number while the goal stagnates or regresses is a loss, not a win. Autonomous optimizers reliably exploit scorer loopholes (Goodhart's law).
+- **Detect:**
+  - The eval / scorer hard-codes or special-cases specific inputs
+  - Metric improves while held-out checks, correctness tests, or the underlying objective do not
+  - The change targets the measurement (editing the benchmark, loosening tolerances) rather than the behavior
+  - A "win" that does not reproduce on unseen data
+- **Fix:** Keep a held-out check the experiment cannot see; an experiment wins only if the target improves AND held-out checks don't regress. Never special-case the scorer or hard-code expected outputs. If the metric and the real goal diverge, fix the metric, not the code.
+- **Source:** Goodhart's law; [SpecBench (2026)](https://arxiv.org/abs/2605.21384), [SWE-ABS (2026)](https://arxiv.org/abs/2603.00520)

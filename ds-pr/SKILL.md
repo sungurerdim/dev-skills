@@ -202,7 +202,7 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 - PR description describes net diff — not journey of individual commits
 - Every quality gate check (format, lint, test) gets a disposition in summary (FRC)
 - Conventional commit type on PR title matches net diff classification
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W13: the PR description reflects the verified net diff, not the author's claims about it; don't soften or inflate findings to match the PR narrative or reviewer authority.
 
 ## Error Recovery
 
