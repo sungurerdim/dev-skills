@@ -3,7 +3,7 @@
 | Section | Rules |
 |---------|-------|
 | **Container Security** | DEP-01 to DEP-05 (2 CRITICAL, 3 HIGH) |
-| **Deployment Patterns** | DEP-06 to DEP-10 (1 HIGH, 2 MEDIUM, 2 LOW) |
+| **Deployment Patterns** | DEP-06 to DEP-11 (2 HIGH, 2 MEDIUM, 2 LOW) |
 
 ## Container Security
 
@@ -158,3 +158,18 @@ COPY . .                                  # source code (changes frequently)
 **Why:** Dev/prod parity catches environment-specific bugs early. New contributors can run full stack with single command.
 
 **Source:** Docker Compose docs, deployment-patterns.md (Docker Compose for Production)
+
+### DEP-11 | HIGH | Insecure Production Defaults
+
+**Detect:** Permissive or debug-friendly configuration shipped to production:
+- `Access-Control-Allow-Origin: *` together with credentials
+- IAM `"Action": "*"` or a security group open to `0.0.0.0/0`
+- `verify=False` / `rejectUnauthorized: false` / disabled certificate checks
+- Missing security headers (CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`)
+- `DEBUG=true` or stack traces returned in responses
+
+Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenzai 2026 found 0 of 15 AI-built apps set basic security headers.
+
+**Fix:** Least-privilege IAM with specific resource ARNs + restricted CIDR; explicit CORS origin allowlist (never `*` with credentials); keep TLS verification on; set security headers on every response; debug off, with structured errors that don't leak internals.
+
+**Source:** [Veracode GenAI 2026](https://www.veracode.com/blog/genai-security-and-vibe-coding/), [Tenzai 2026](https://blog.tenzai.com/bad-vibes-comparing-the-secure-coding-capabilities-of-popular-coding-agents/)

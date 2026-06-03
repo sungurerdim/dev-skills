@@ -6,7 +6,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Security** | SEC-01–11 (4 BLOCKER, 5 CRITICAL, 2 MAJOR) | ~12 |
+| **Security** | SEC-01–12 (4 BLOCKER, 5 CRITICAL, 3 MAJOR) | ~12 |
 | **Privacy** | PRV-01–05 (2 BLOCKER, 2 CRITICAL, 1 MAJOR) | ~120 |
 | **Regulatory Compliance** | PRV-06–19 (9 BLOCKER, 5 CRITICAL) | ~165 |
 
@@ -118,6 +118,17 @@ API endpoints protected against abuse.
 - **Fix:** Rate limit auth endpoints (5-10 req/min). General API rate limiting (100-1000 req/min per user). Use `express-rate-limit`, `slowapi`, or API gateway rate limiting. Return `429 Too Many Requests` with `Retry-After` header
 - **Impact:** Unprotected auth endpoints enable credential stuffing and brute-force attacks
 - **Source:** OWASP API Security Top 10
+
+### SEC-12 [MAJOR] License & IP Contamination
+AI assistants can emit near-verbatim third-party or copyleft code without attribution.
+- **Detect:**
+  - No license / SCA scan on AI-assisted PRs
+  - Copyleft (GPL/AGPL) code entering a permissively-licensed project
+  - Large verbatim blocks of unknown provenance
+  - AI assistance not recorded where org or licensing policy requires it
+- **Fix:** Run a license/SCA scan (FOSSA, ScanCode) on AI-assisted PRs; flag copyleft entering permissive code. Verify provenance of large verbatim AI output before merge; prefer generating from your own interfaces. Record AI assistance where policy requires an authorship/provenance note.
+- **Impact:** In *Doe v. GitHub* most claims were dismissed but an open-source-license-violation claim survives; the EU AI Act (Reg. 2024/1689) GPAI transparency duties applied Aug 2025, with full applicability 2 Aug 2026.
+- **Source:** [Doe v. GitHub case updates](https://githubcopilotlitigation.com/case-updates.html); [EU AI Act (EC)](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
 
 ---
 
