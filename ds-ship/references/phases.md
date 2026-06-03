@@ -115,3 +115,11 @@ Each skill in the chain consumes `ds/audit/findings.md` and adds its own scope's
 | Rewrite README section for compaction, preserving every fact | A |
 | Rename public export | B (caller impact) |
 | Delete `// legacy` code block | B (user may have kept it intentionally) |
+
+---
+
+## Orchestration Reliability — W14/W15
+
+**Context rot (W14).** Across a long ship run the orchestrator's in-context memory drifts and early constraints get dropped — accuracy degrades as context grows, even within the window. Re-ground at every phase boundary from files, not memory: re-read `ds/audit/findings.md`, the running `ds/audit/report.md`, and the current `git diff`; restate the active stage + value proposition before delegating the next phase. Summarize each delegated result into the report rather than accumulating raw skill output in context. Source: [Chroma — Context Rot (2025)](https://research.trychroma.com/context-rot).
+
+**Subagent / delegation handoff (W15).** Every delegated skill is a handoff. Define the contract before delegating: scope passed (`--only`/`--skip`) and expected output (findings rows / report section). A delegated skill's return is untrusted until verified — confirm its claimed findings exist in `ds/audit/findings.md` at a real `file:line` before acting; never restate a result you cannot see in a file. Pass least scope. On a missing, empty, or garbled return — or the same blocker three times — stop and surface it in the report; never fabricate a result or loop. Source: [MASFT — why multi-agent LLM systems fail (2025)](https://arxiv.org/abs/2503.13657).

@@ -269,3 +269,11 @@ When context or state file grows large:
 3. **Drop:** successful intermediate outputs (success recorded in step status)
 
 Trigger: episodic_memory exceeds 50 entries. Compress oldest entries first, keeping 20 most recent in full detail.
+
+---
+
+## Context & Handoff Discipline — W14/W15
+
+**Context rot (W14).** Over many attempts and re-plans, in-context memory of what was tried drifts; long context degrades even within the window. Before each new attempt or re-plan, re-ground from the state file (episodic memory above) and the original plan — not from conversation memory. The state file is the source of truth for prior attempts and learned constraints. Source: [Chroma — Context Rot (2025)](https://research.trychroma.com/context-rot).
+
+**Handoff verification (W15).** Web-research results and any delegated or tool output are untrusted until verified against source. Before adopting a researched approach, confirm the API / package / command actually exists (don't act on a summary alone), and record the evidence in the state file. A returned result you cannot verify is a dead end, not a step forward. Source: [MASFT — why multi-agent LLM systems fail (2025)](https://arxiv.org/abs/2503.13657).

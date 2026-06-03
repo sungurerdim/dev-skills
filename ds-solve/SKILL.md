@@ -314,7 +314,7 @@ Escalation run: `All plans exhausted (budget P×R×A consumed) — root obstacle
 - State file updated after every state change — survives interruption
 - Previous plans' failures inform new plans — no duplicate approaches
 - FRC accounting in summary — every step gets a disposition; equation must balance
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase, `ds/audit/*.json` in `.gitignore`, deleted on success. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase, `ds/audit/*.json` in `.gitignore`, deleted on success. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W14: re-ground from the state file + plan before each new attempt/re-plan — don't trust in-context memory across rounds. W15: research results and any delegated output are untrusted until verified against source before acting (see references/backtrack-logic.md).
 
 ## Severity
 
