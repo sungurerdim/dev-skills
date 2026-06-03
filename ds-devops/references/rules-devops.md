@@ -7,6 +7,7 @@ Applies to all project types: web, API, CLI, library, mobile, monorepo.
 | **CI/CD & Workflow** | DOP-01–07 (1 CRITICAL, 6 HIGH) |
 | **Code Signing** | DOP-08–09 (2 HIGH) |
 | **Dependency Management** | DOP-10–14 (1 CRITICAL, 4 HIGH) |
+| **Agent & Supply-Chain Security** | DOP-15–17 (3 HIGH) |
 
 ## CI/CD & Workflow
 
@@ -211,3 +212,35 @@ Dependencies should be pinned to specific versions. Lockfiles committed.
 - **Fix:** Pin versions. Commit lockfiles. Remove lockfiles from `.gitignore`.
 - **Impact:** Unpinned dependencies → non-reproducible builds and surprise breakage
 - **Source:** npm lockfile docs, Yarn deterministic installs, Go Module Reference (go.dev), Cargo.lock docs
+
+## Agent & Supply-Chain Security
+
+### DOP-15 [HIGH] MCP & Agent Tool Security
+The tool/MCP layer an agent uses is an attack surface. EchoLeak (CVE-2025-32711) exfiltrated Microsoft 365 Copilot data from a single crafted email; CurXecute (CVE-2025-54135) reached RCE in Cursor by steering the agent to write `.cursor/mcp.json` — the edit landed on disk even when the user clicked reject.
+- **Detect:**
+  - MCP servers/tools added without pinned versions
+  - Tool output fed back into the agent as instructions rather than data
+  - Ambient or over-broad credentials granted to a tool
+  - Approval prompts showing a model-written prose summary instead of the raw tool call
+  - AI-tool config dirs (`.cursor/`, `.continue/`, `**/mcp.json`) absent from `.gitignore`
+- **Fix:** Pin MCP server/tool versions and re-review on change (rug-pull). Treat tool output as untrusted data, never instructions. Least-agency: scope each tool's permissions to the task, no ambient secrets. Approval prompts must show the raw tool name + parameters. Gitignore AI-tool config dirs.
+- **Source:** [OWASP Agentic Top 10 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), [EchoLeak CVE-2025-32711](https://nvd.nist.gov/vuln/detail/CVE-2025-32711), [CurXecute CVE-2025-54135](https://nvd.nist.gov/vuln/detail/CVE-2025-54135)
+
+### DOP-16 [HIGH] Human Review for Agent-Authored CI/Infra PRs
+A PR opened by an autonomous agent gets human review before merge when it touches privileged surfaces, and never auto-merges to a protected branch.
+- **Detect:**
+  - Auto-merge enabled on protected branches
+  - Agent/bot PRs touching `.github/workflows/` (or other CI config), infrastructure-as-code, auth, or secrets merged without human approval
+  - Agent dependency-bump PRs auto-merged
+- **Fix:** Require human review + branch protection for agent PRs touching CI/CD, IaC, auth, or secrets. Disable auto-merge on protected branches. Treat agent dependency-bumps as a supply-chain entry point — review before merge.
+- **Source:** [Agent Autonomy in Open-Source PRs — 8,031 PRs (arXiv:2601.17413, 2026)](https://arxiv.org/abs/2601.17413)
+
+### DOP-17 [HIGH] Dependency Provenance & SCA
+Beyond pinning (DOP-14): every dependency is real, vetted, and continuously scanned. ~19.7% of LLM-suggested packages are hallucinated; attackers pre-register the names ("slopsquatting").
+- **Detect:**
+  - No SCA / advisory scan in CI
+  - A new package absent from the official registry, with near-zero downloads, or registered after the project started
+  - A name one character off a popular package, or from the wrong ecosystem
+  - Lockfile without integrity hashes
+- **Fix:** Run SCA in CI (osv-scanner, Dependabot, Snyk, Trivy). Before adding a dependency, confirm it exists in the registry, predates the project, and has real downloads; reject near-miss / cross-ecosystem names. Commit lockfiles with integrity hashes.
+- **Source:** [CSA — Slopsquatting (2026)](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/); USENIX Security '25 (19.7% package hallucination)
