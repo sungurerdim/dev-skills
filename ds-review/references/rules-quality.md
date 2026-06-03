@@ -6,7 +6,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Architecture & Code Quality** | ARC-01–10 (3 CRITICAL, 6 MAJOR, 1 MINOR) | ~12 |
+| **Architecture & Code Quality** | ARC-01–11 (3 CRITICAL, 7 MAJOR, 1 MINOR) | ~12 |
 | **Testing** | TST-01–06 (1 CRITICAL, 5 MAJOR) | ~105 |
 
 ---
@@ -105,6 +105,12 @@ Cyclomatic complexity <= 15. Function <= 50 lines. Nesting <= 3. Parameters <= 4
 - **Detect:** Functions exceeding limits. Deep nesting. Long parameter lists
 - **Fix:** Extract functions. Early returns. Parameter objects. Composed functions
 - **Source:** SonarQube, ESLint complexity rules
+
+### ARC-11 [MAJOR] Duplication Drift
+Reused logic lives in one place. AI-assisted churn drove copy/pasted lines from 8.3% to 12.3% while "moved" (refactored) lines fell from 24.1% to 9.5% (2020→2024) — regenerating beats reusing by default.
+- **Detect:** Near-identical functions or blocks differing only in literals. A new helper that duplicates an existing one. Code rewritten within two weeks of being added (high churn). Search: clone detectors `jscpd`, `pmd cpd`, or LSP "find similar".
+- **Fix:** Reuse or extend the existing implementation instead of regenerating. Consolidate clones to a single source of truth. Three similar lines are fine; a fourth copy means extract.
+- **Source:** GitClear — AI Copilot Code Quality 2025 (https://www.gitclear.com/ai_assistant_code_quality_2025_research)
 
 ---
 
