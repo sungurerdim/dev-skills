@@ -1015,6 +1015,17 @@ These ten principles appear across the most authoritative sources, have the wide
 
 ---
 
+**AI-Generated Code & Supply-Chain Security (2026)**
+
+AI assistants carry a distinct security profile — verify, don't trust:
+- **Review AI output as untrusted.** ~45% of AI-generated samples carry a known weakness (Veracode 2026); AI PRs average ~1.7× more issues, including up to 2.74× more security findings (CodeRabbit Dec 2025). Run SAST + SCA + secret scanning on AI-assisted PRs.
+- **Defeat slopsquatting.** ~19.7% of LLM-suggested packages are hallucinated and attackers pre-register the names (USENIX 2025; CSA 2026). Before importing, confirm the package exists in the official registry with real age + downloads, predates the project, and is pinned in the lockfile.
+- **Reject insecure defaults.** AI favors permissive config — `Access-Control-Allow-Origin: *` with credentials, IAM `*`, `verify=False`, missing security headers, `DEBUG=true`. Require an explicit reason for any config that disables a check or widens access.
+- **Restrict agent / MCP tools.** Pin MCP server/tool versions (rug-pull defense); grant least agency (no ambient credentials); treat tool output as data, not instructions; approval prompts must show the raw tool call. EchoLeak (CVE-2025-32711) and CurXecute (CVE-2025-54135) show the blast radius.
+- **Sources:** [Veracode GenAI 2026](https://www.veracode.com/blog/genai-security-and-vibe-coding/), [CSA Slopsquatting 2026](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/), [CodeRabbit 2025](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report), [GitGuardian 2026](https://blog.gitguardian.com/the-state-of-secrets-sprawl-2026/), [OWASP Agentic Top 10 2026](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), [EchoLeak](https://nvd.nist.gov/vuln/detail/CVE-2025-32711), [CurXecute](https://nvd.nist.gov/vuln/detail/CVE-2025-54135)
+
+---
+
 ### 2.8 Process
 
 ---

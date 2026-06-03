@@ -135,8 +135,12 @@ Sources:
 ## 6. Security: AI-Generated Code Risks
 
 ### Statistics
-- Veracode 2025: 45% of AI code has security vulnerabilities
-- CodeRabbit Dec 2025: 2.74x higher vulnerability rate vs human code
+- Veracode 2025: ~45% of AI-generated code carries a security weakness
+- CodeRabbit Dec 2025 (470 PRs): AI code has ~1.7x more issues overall (10.83 vs 6.45 per PR), 2.29x more concurrency-control errors, 2.25x more logic errors, and up to 2.74x more security findings
+- USENIX 2025: 19.7% of LLM-suggested packages are hallucinated (43% reproducibly) — the basis for slopsquatting
+- GitGuardian 2026: AI-assisted commits leak secrets at 3.2% vs a 1.5% baseline (~2x); 28.65M secrets hit public GitHub in 2025
+- GitClear 2025: copy/pasted code rose 8.3%→12.3% while "moved" (refactored) code fell 24.1%→9.5% (2020→2024); churn rose 3.1%→5.7%
+- METR 2025: the task length AI completes at 50% reliability has doubled roughly every 7 months
 
 ### Common Vulnerability Types
 1. Missing input validation
@@ -160,6 +164,12 @@ Sources:
 Sources:
 - [Towards Data Science: Security Debt Crisis](https://towardsdatascience.com/the-reality-of-vibe-coding-ai-agents-and-the-security-debt-crisis/)
 - [Invicti: Vibe Coding Security Checklist](https://www.invicti.com/blog/web-security/vibe-coding-security-checklist-how-to-secure-ai-generated-apps)
+- [CodeRabbit: State of AI vs Human Code Generation (Dec 2025)](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report)
+- [Veracode: GenAI Code Security (2026)](https://www.veracode.com/blog/genai-security-and-vibe-coding/)
+- [GitClear: AI Copilot Code Quality 2025](https://www.gitclear.com/ai_assistant_code_quality_2025_research)
+- [GitGuardian: State of Secrets Sprawl 2026](https://blog.gitguardian.com/the-state-of-secrets-sprawl-2026/)
+- [CSA: Slopsquatting & the AI Supply Chain (2026)](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/)
+- [METR: Measuring AI Ability to Complete Long Tasks (2025)](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/)
 
 ---
 
