@@ -298,7 +298,7 @@ Every menu, list, or selection point that a skill presents to the user MUST incl
 
 ## 3. AI Weakness Mitigation
 
-Eight systematic weaknesses observed in AI coding assistants. Each skill must address applicable weaknesses through explicit rules.
+Seventeen weaknesses observed in AI coding assistants. **W1–W11 are universal** — every skill must address all that apply through explicit rules. **W12–W17 are domain-specific** — each names the skills it applies to, and only those skills must carry it. Each skill addresses its applicable weaknesses through explicit rules.
 
 ### W1: Hallucination
 
@@ -456,6 +456,113 @@ Eight systematic weaknesses observed in AI coding assistants. Each skill must ad
 - A skill MUST NOT report status `OK` if any in-session error is parked with a rejected reason.
 
 **Recovery:** On a parked error with rejected reason → either (a) fix inline if within tactical scope, or (b) rewrite the reason as a concrete blocker, or (c) escalate to user with the actual obstacle stated.
+
+---
+
+The following are **domain-specific** — only the skills named in **Applies to** must carry them.
+
+### W12: Specification Gaming / Reward Hacking
+
+**Applies to:** ds-test, ds-tune, ds-benchmark.
+
+**Definition:** Satisfying the literal test, metric, or reward while violating intent — special-casing known test inputs, hard-coding expected outputs, or optimizing the eval instead of the goal.
+
+**Detection signals:** Code branches on specific test values or IDs. A passing test whose assertion never exercises real behavior. A tuned metric improves while the underlying task does not.
+
+**Prevention rules:**
+- Verify against the described intent and cases beyond the provided suite — never special-case known inputs or hard-code expected outputs to pass.
+- A metric is a proxy (Goodhart): confirm the real goal moved, not just the number.
+- ds-tune ratchet: an experiment wins only if it improves the target without degrading held-out checks.
+
+**Recovery:** Re-derive the test from the requirement; add a held-out case the code has not seen. Discard reward-hacking edits.
+
+**Source:** [SWE-ABS — 19.78% of "solved" tasks semantically wrong (2026)](https://arxiv.org/abs/2603.00520); [SpecBench (2026)](https://arxiv.org/abs/2605.21384).
+
+### W13: Sycophancy / Authority Deference
+
+**Applies to:** ds-review, ds-research, ds-pr.
+
+**Definition:** Abandoning a correct, evidence-backed position under user pushback, or deferring to authority claims (PR text, code comments, "the senior dev said") instead of judging the artifact by its behavior.
+
+**Detection signals:** A finding dropped after "are you sure?" with no new evidence. A review that accepts a PR's claims about itself. Severity lowered to please rather than to match evidence.
+
+**Prevention rules:**
+- On pushback, re-verify from source; a correct position needs counter-evidence to overturn, not assertion.
+- Judge code by what it does (read it, run it), not by what a PR description, comment, or commit message claims.
+- Treat authorship/authority cues as irrelevant to severity — redacting them recovers missed findings.
+
+**Recovery:** Re-read the cited `file:line`; restate the finding with its evidence, or withdraw it only when the evidence is shown wrong.
+
+**Source:** [BrokenMath — GPT-5 29% sycophantic (2025)](https://arxiv.org/abs/2510.04721); [AI code-review authorship bias — redaction recovers 68.75% of missed vulns (2026)](https://arxiv.org/abs/2603.18740).
+
+### W14: Context Rot
+
+**Applies to:** ds-ship, ds-solve (any multi-phase run).
+
+**Definition:** Accuracy degrades as the working context grows — even within the model's window — so constraints, instructions, or earlier findings stated early get silently dropped. Distinct from W4 Memory Decay (post-compression staleness).
+
+**Detection signals:** Later phases ignore a constraint stated up front. A re-derived fact contradicts an earlier verified finding. A long run drifts from the original target.
+
+**Prevention rules:**
+- Front-load task constraints; restate the active goal at each phase boundary.
+- Re-ground every ~20 tool calls: re-read the spec, `ds/audit/findings.md`, and the current diff rather than trusting in-context memory.
+- Summarize intermediate results instead of accumulating raw output; keep the working set small.
+
+**Recovery:** Rebuild the active context from files (spec, findings, diff), not from conversation memory.
+
+**Source:** [Chroma — Context Rot, 18-model study (2025)](https://research.trychroma.com/context-rot).
+
+### W15: Subagent / Handoff Failure
+
+**Applies to:** ds-ship, ds-solve (skills that delegate to phases or subagents).
+
+**Definition:** Treating data returned by a delegated phase or subagent as ground truth — specifications, scopes, or findings get distorted or lost across the handoff and errors compound silently.
+
+**Detection signals:** A delegated phase's summary is acted on without verifying it against files. Scope passed to a subagent is wider than the task. A subagent's claimed result has no `file:line` to confirm it.
+
+**Prevention rules:**
+- Define the handoff contract up front: inputs given, scope allowed, output shape expected.
+- A subagent's return is untrusted until verified — re-check its `file:line` claims against source before acting (ties to W1, W8).
+- Least scope on delegation: never grant a downstream phase more than its task needs.
+- On a missing/garbled return or exceeded turn budget, stop and escalate — never fabricate or loop.
+
+**Recovery:** Re-run the handoff with a tighter contract, or verify the returned data against source and correct it.
+
+**Source:** [MASFT — why multi-agent LLM systems fail, 1,600+ traces (2025)](https://arxiv.org/abs/2503.13657).
+
+### W16: Dependency Hallucination / Slopsquatting
+
+**Applies to:** ds-deps, ds-init.
+
+**Definition:** Adding a package that does not exist, or an attacker's typosquat of a hallucinated name — ~19.7% of LLM-suggested packages are hallucinated, and attackers pre-register the common ones ("slopsquatting").
+
+**Detection signals:** Import of a package absent from the lockfile. A "well-known" package with near-zero downloads or a registration date after the project started. A name one character off, or from the wrong ecosystem.
+
+**Prevention rules:**
+- Before adding any dependency, confirm it exists in the official registry, was registered before your project began, and has real download history.
+- The package must be (or become) pinned in the lockfile with an integrity hash; never import from memory.
+- Treat a cross-ecosystem or near-miss name as a suspected slopsquat until proven; prefer the maintained, widely-used option.
+
+**Recovery:** Remove the unverified dependency; re-resolve from a known-good source or an explicitly approved package.
+
+**Source:** [USENIX Security '25 — 19.7% package hallucination](https://www.usenix.org/conference/usenixsecurity25/technical-sessions); [CSA — Slopsquatting (2026)](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/).
+
+### W17: Slop / Duplication Drift
+
+**Applies to:** ds-review, ds-simplify.
+
+**Definition:** Regenerating near-duplicate code instead of reusing an existing implementation — copy/pasted lines rose 8.3%→12.3% while moved/refactored code fell 24.1%→9.5% (2020→2024) as AI assistance spread.
+
+**Detection signals:** A new function nearly identical to one already in the codebase. Repeated blocks differing only in literals. Churn: code rewritten within two weeks of being added.
+
+**Prevention rules:**
+- Before generating new code, grep for an existing implementation; reuse or extend it over regenerating a near-duplicate.
+- Three similar lines beat a premature abstraction — but a fourth copy means extract, don't paste again.
+- ds-simplify collapses duplicates to a single source of truth; ds-review flags clone clusters.
+
+**Recovery:** Replace the duplicate with a call to the canonical implementation; consolidate clones into one.
+
+**Source:** [GitClear — AI Copilot Code Quality 2025 (copy/paste 8.3%→12.3%, refactor 24.1%→9.5%)](https://www.gitclear.com/ai_assistant_code_quality_2025_research).
 
 ---
 
@@ -1618,7 +1725,7 @@ Adopted across all artifact-producing skills (`ds-init`, `ds-fix`, `ds-deploy`, 
 |-----------|--------------|----------|----------------|-------------|
 | **Clarity** | All phases numbered, gates explicit, zero ambiguity | Most phases clear, minor ambiguity | Some phases vague, missing gates | Unstructured prose |
 | **Universality** | Zero tool-specific refs, full capability abstraction | 1-2 minor tool refs, mostly abstract | Multiple tool refs, partial abstraction | Tool-specific throughout |
-| **Weakness Mitigation** | All 8 weaknesses addressed with inline rules | 5-7 weaknesses addressed | 3-4 weaknesses addressed | Weaknesses not considered |
+| **Weakness Mitigation** | All applicable weaknesses (W1–W11 + domain-specific W12–W17) addressed with inline rules | Most applicable addressed | Some applicable addressed | Weaknesses not considered |
 | **Token Efficiency** | SKILL.md ≤300 lines, references externalized | ≤400 lines, partial externalization | ≤500 lines, minimal externalization | >500 lines or no references |
 | **Completeness** | All applicable sections present, edge cases covered | Most sections present, basic edge cases | Key sections missing | Incomplete specification |
 | **User Isolation** | Defaults documented, conflicts handled, validation present | Most defaults, basic conflict handling | Some defaults, no conflict handling | No user isolation |

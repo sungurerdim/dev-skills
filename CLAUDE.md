@@ -1,6 +1,6 @@
 # dev-skills
 
-Multi-phase AI coding assistant skills covering the full software lifecycle — gates, error recovery, and systematic mitigation of 11 known AI failure modes across Claude Code, Cursor, Copilot, Windsurf, and Aider.
+Multi-phase AI coding assistant skills covering the full software lifecycle — gates, error recovery, and systematic mitigation of 17 known AI failure modes (W1–W11 universal + W12–W17 domain-specific) across Claude Code, Cursor, Copilot, Windsurf, and Aider.
 
 ## Meta
 

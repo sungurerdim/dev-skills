@@ -6,7 +6,7 @@
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
 
-**dev-skills are multi-phase execution systems** — quality gates, error recovery, systematic mitigation of 8 known AI weaknesses — covering the entire software lifecycle from project scaffolding to store launch.
+**dev-skills are multi-phase execution systems** — quality gates, error recovery, systematic mitigation of 17 known AI weaknesses — covering the entire software lifecycle from project scaffolding to store launch.
 
 ### Proof
 
@@ -14,7 +14,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 |--------|---------|
 | **26 skills** | One per real lifecycle moment — discover, build, improve, document, audit, ship |
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
-| **11 AI failure modes** | Hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip — every skill carries explicit mitigations (W1-W11) |
+| **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
 | **5 AI tools supported** | Claude Code, Cursor, GitHub Copilot, Windsurf, Aider — same skill, every host |
 | **2 namespaces, 1 root** | `ds/audit/` (gitignored, transient state) + `ds/<skill>/` (committed operational tooling) — nothing else leaks to your repo root |
@@ -133,7 +133,7 @@ Add to `.gitignore` once: `ds/audit/`. Nothing leaks to repo root, no per-skill 
 Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orchestrated execution systems**:
 
 - **Multi-phase workflows** with explicit gates, mandatory-phase enforcement, error recovery
-- **11 AI weaknesses systematically addressed** — hallucination, scope creep, tunnel vision, confidence bias, memory decay, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip
+- **17 AI weaknesses systematically addressed** — W1–W11 universal (hallucination, scope creep, tunnel vision, confidence bias, memory decay, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip) + W12–W17 domain-specific (spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift)
 - **Finding Resolution Completeness (FRC)** — every finding gets a disposition (fixed/skipped/failed), zero silent drops
 - **Error Ownership Gate (W11)** — detected errors get a concrete disposition; "pre-existing" / "out of scope" / "not my change" are never valid skip reasons
 - **Findings-SSOT Gate (W10)** — downstream skills defer to fresh `ds/audit/findings.md`, never re-detect what blueprint already covered
