@@ -198,3 +198,24 @@ Per-stack test framework detection and commands. Load only the section matching 
 
 **Detection:** `scalatest` in build.sbt → ScalaTest. `munit` → MUnit.
 **Test directory:** `src/test/scala/`.
+
+---
+
+## Mutation Testing (verify the suite, not just coverage) — W12
+
+Coverage proves a line executed; **mutation testing proves a test would fail if the behavior broke**. A suite that passes while mutants survive is test theater — exactly the reward-hacking failure W12 guards against. Run mutation analysis on critical modules and investigate every survived mutant.
+
+| Stack | Tool | Run |
+|-------|------|-----|
+| JS / TS | Stryker | `npx stryker run` |
+| Python | mutmut / cosmic-ray | `mutmut run` |
+| Go | gremlins | `gremlins unleash` |
+| Rust | cargo-mutants | `cargo mutants` |
+| JVM | PIT (pitest) | `./gradlew pitest` |
+| C# / .NET | Stryker.NET | `dotnet stryker` |
+| Ruby | mutant | `bundle exec mutant run` |
+| PHP | Infection | `./vendor/bin/infection` |
+
+**Gate:** on touched critical code the mutation score must not regress. A survived mutant means a missing assertion — add the test that kills it; never weaken or whitelist the mutant set to raise the score.
+
+**Source:** [Stryker Mutator](https://stryker-mutator.io/); [PIT](https://pitest.org/).

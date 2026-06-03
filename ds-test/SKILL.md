@@ -226,7 +226,7 @@ Audit-only run: `{n} test-quality findings (missing AAA, unrealistic data, no bo
 
 ## Quality Gates
 
-### Value Rule (most important)
+### Value Rule (most important) — W12 (anti reward-hacking)
 
 Every test MUST justify its existence by addressing a **concrete, specific risk**. Before writing any test, answer: "What bug would this catch?" If the answer is vague or "none really", skip the test.
 
@@ -269,7 +269,7 @@ When analyzing existing tests, flag those that provide no concrete value:
 - **AAA structure ([references/principles.md §7](references/principles.md)):** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
 - **Regression-before-fix ([references/principles.md §7](references/principles.md)):** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
 - **Coverage as diagnostic ([references/principles.md §7](references/principles.md)):** never write a coverage target into generated test configs; configure coverage as a reporter only. The diagnostic is "what did we miss?", not "did we hit X%?".
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/test.json` updated per file processed, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/test.json` updated per file processed, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W12: every test verifies described intent + a case beyond the given suite — never special-case known inputs or assert hard-coded outputs to pass.
 
 ## Error Recovery
 

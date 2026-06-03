@@ -7,7 +7,7 @@ Rules for initial project structure, configuration, and tooling setup. Each rule
 | Section | Rules | Line |
 |---------|-------|------|
 | **Structure** | SCF-01–04 (2 HIGH, 2 MEDIUM) | ~12 |
-| **Configuration** | SCF-05–08 (2 HIGH, 1 MEDIUM, 1 LOW) | ~58 |
+| **Configuration** | SCF-05–09 (3 HIGH, 1 MEDIUM, 1 LOW) | ~58 |
 
 ---
 
@@ -79,7 +79,16 @@ Lockfile committed from first install. → reproducible builds across environmen
   - **Go:** go.sum
 - **Source:** Package manager documentation, 12-Factor App
 
-### SCF-06 [HIGH] Environment Template
+### SCF-06 [HIGH] Dependency Provenance
+Every dependency added during scaffolding is real and trusted. → no hallucinated or typosquatted package enters the project. ~19.7% of LLM-suggested packages don't exist; attackers pre-register the names ("slopsquatting").
+- **Detect:**
+  - Package absent from the official registry, or with near-zero downloads / a registration date after the project started
+  - A name one character off a popular package, or from the wrong ecosystem
+  - Dependency added to the manifest but missing from the lockfile
+- **Fix:** Before adding, confirm the package exists in the official registry, predates the project, and has real download history; pin it in the lockfile with an integrity hash. Reject near-miss / cross-ecosystem names; prefer the maintained, widely-used option.
+- **Source:** [CSA — Slopsquatting (2026)](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/); USENIX Security '25 (19.7% package hallucination)
+
+### SCF-07 [HIGH] Environment Template
 .env.example documents all required environment variables with placeholder values. Real .env never committed.
 - **Detect:**
   - .env file tracked in git (secrets exposed)
@@ -89,7 +98,7 @@ Lockfile committed from first install. → reproducible builds across environmen
 - **Fix:** Create .env.example with every required variable using placeholder values (DATABASE_URL=postgresql://user:pass@localhost:5432/dbname). Add .env to .gitignore. Document which variables are required vs optional
 - **Source:** 12-Factor App (III. Config)
 
-### SCF-07 [MEDIUM] README From Day One
+### SCF-08 [MEDIUM] README From Day One
 README communicates project purpose, quick start, and contribution guide. Projects with quality READMEs receive significantly more engagement.
 - **Detect:**
   - No README.md or empty/default README
@@ -99,7 +108,7 @@ README communicates project purpose, quick start, and contribution guide. Projec
 - **Impact:** Projects with structured READMEs receive 4x more engagement
 - **Source:** GitHub research on README impact
 
-### SCF-08 [LOW] License File
+### SCF-09 [LOW] License File
 LICENSE file in repository root. Required for open source; clarifies terms for private projects.
 - **Detect:**
   - No LICENSE or LICENSE.md file in root
