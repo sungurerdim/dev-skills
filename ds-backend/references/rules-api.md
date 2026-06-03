@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **API Design** | API-01 to API-10 (5 HIGH, 3 MEDIUM, 2 LOW) | ~12 |
+| **API Design** | API-01 to API-12 (1 CRITICAL, 6 HIGH, 3 MEDIUM, 2 LOW) | ~12 |
 
 ---
 
@@ -261,3 +261,22 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 **Impact:** Prevents denial-of-service via deeply nested or expensive queries. Eliminates N+1 database access patterns in resolvers.
 
 **Source:** [Apollo GraphQL Best Practices](https://www.apollographql.com/docs/apollo-server/performance/), api-architecture-patterns.md Sections 1 and 8
+
+### API-11 SSRF Protection on URL Fetches [CRITICAL]
+
+**Detect:** Server-side fetch of a user-supplied URL (webhook, link preview, image/PDF proxy, "import from URL") without host validation. Search: `requests.get(`, `fetch(`, `axios.get(`, `http.get(`, `URL(` with a host taken from request input. Every agent in Tenzai's 2026 study introduced SSRF in a URL-preview feature (100% rate).
+
+**Fix:** Validate the target before fetching:
+- Block private / loopback / link-local + cloud-metadata ranges: RFC 1918 (`10/8`, `172.16/12`, `192.168/16`), `127/8`, `169.254/16`, `::1`, and `169.254.169.254`.
+- Prefer a host allowlist; allow `https` only; disable `file:`/`gopher:`/`ftp:` schemes.
+- Re-validate after every redirect; resolve DNS once and connect to that resolved IP (defeats DNS rebinding).
+
+**Source:** [CWE-918](https://cwe.mitre.org/data/definitions/918.html), [Tenzai 2026](https://blog.tenzai.com/bad-vibes-comparing-the-secure-coding-capabilities-of-popular-coding-agents/)
+
+### API-12 Server-Side Input Validation [HIGH]
+
+**Detect:** Validation only on the client. Handlers consuming request body/query/params without a schema validator. Request fields mass-assigned to a model/entity.
+
+**Fix:** Validate every external input against an explicit schema at the boundary (zod / pydantic / JSON Schema / Bean Validation); reject by default; allowlist writable fields. Re-check authorization server-side regardless of UI state.
+
+**Source:** [OWASP API Security Top 10 — API3/API4](https://owasp.org/API-Security/editions/2023/en/0x11-t10/)

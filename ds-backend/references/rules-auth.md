@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Authentication** | AUTH-01 to AUTH-10 (2 CRITICAL, 3 HIGH, 2 MEDIUM, 3 LOW) | ~12 |
+| **Authentication** | AUTH-01 to AUTH-11 (3 CRITICAL, 3 HIGH, 2 MEDIUM, 3 LOW) | ~12 |
 
 ---
 
@@ -291,3 +291,11 @@ Implementation rules:
 **Why:** Social login reduces signup friction (one-tap vs form-fill). Apple Sign In mandatory for iOS apps offering any third-party login. Proper implementation prevents account fragmentation and provider lock-in.
 
 **Source:** [Apple Sign In Guidelines](https://developer.apple.com/sign-in-with-apple/), [Google Identity Services](https://developers.google.com/identity), [App Store Review Guidelines 4.8](https://developer.apple.com/app-store/review/guidelines/#sign-in-with-apple)
+
+### AUTH-11 Object-Level Authorization (BOLA) — Cross-User Test [CRITICAL]
+
+**Detect:** A handler loads a resource by an ID from the request without confirming it belongs to the authenticated user. Search: lookups by `id`/`uuid` from params/body with no ownership guard (`WHERE user_id = :current_user`) or policy check. This is the most common AI-introduced access flaw (OWASP API1).
+
+**Fix:** Enforce ownership (or RBAC/ABAC) on every object access, server-side. Add the cross-user regression test: as user A, create resource `R`; as user B, request `R` by its ID; assert `403`/`404`, never `200`. Apply equally to indirect references (filenames, storage keys, sequential IDs).
+
+**Source:** [OWASP API1: BOLA](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/), [CVE-2025-48757](https://nvd.nist.gov/vuln/detail/CVE-2025-48757)
