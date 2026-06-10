@@ -28,7 +28,7 @@ context-aware commit messages.
 
 **Why:** Repos with compelling READMEs receive 4x more stars and 6x more contributors. First line determines whether a visitor reads further or bounces. Pain-point hook → immediate recognition and relevance.
 
-**Source:** Launch research (rivereditor.com, GitHub analysis), .launch-research.md Pattern 6
+**Source:** Launch research (rivereditor.com, GitHub analysis) — [references/launch-research.md](https://github.com/sungurerdim/dev-skills/blob/main/references/launch-research.md) Pattern 6
 
 ---
 
@@ -163,7 +163,7 @@ See [Express docs](https://expressjs.com/en/guide/routing.html)
 
 **Why:** Badge walls create visual noise and delay reader from reaching content that determines whether they will use or contribute to project. Screenshots increase stars approximately 42%; excessive badges do opposite.
 
-**Source:** Launch research (README best practices), .launch-research.md Pattern 6
+**Source:** Launch research (README best practices) — [references/launch-research.md](https://github.com/sungurerdim/dev-skills/blob/main/references/launch-research.md) Pattern 6
 
 ---
 

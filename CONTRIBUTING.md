@@ -4,8 +4,8 @@ Thanks for your interest in contributing to dev-skills! This guide covers how to
 
 ## How to Contribute
 
-- **Report a bug** — Open an issue using the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md)
-- **Request a skill** — Open an issue using the [skill request template](.github/ISSUE_TEMPLATE/skill_request.md)
+- **Report a bug** — Open an issue describing the affected skill, steps to reproduce, and expected behavior
+- **Request a skill** — Open an issue describing the workflow the skill would cover and why existing skills don't
 - **Fix a bug or improve a skill** — Fork, fix, and open a PR
 - **Add a new skill** — Follow the structure below, then open a PR
 
@@ -53,8 +53,8 @@ Types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`
 1. Fork the repository and create a feature branch
 2. Follow the skill structure and quality standards above
 3. Update the root README.md skill table if adding a new skill
-4. Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md)
-5. Ensure your skill passes a self-audit: run `/ds-compliance` on your own skill folder
+4. Describe in the PR what the skill does and which quality standards it satisfies
+5. Verify your skill conforms to [SKILL-SPEC.md](SKILL-SPEC.md) before submitting
 
 ## Questions?
 

@@ -189,7 +189,7 @@ After failed attempt:
   "objective": "description of what to achieve",
   "args": ["--budget=3x3x5"],
   "git_hash": "a3f9c21",
-  "timestamp": "2026-04-22T14:33:00Z",
+  "timestamp": "{timestamp}",
   "phases": [
     { "id": 1, "name": "Setup",    "status": "done" },
     { "id": 2, "name": "Plan",     "status": "done" },

@@ -13,7 +13,7 @@ We will acknowledge receipt within 48 hours and provide a fix timeline.
 ## Scope
 
 - All `SKILL.md` files and `references/*.md` rule definitions
-- Installation scripts and recommended commands in README files
+- Install commands documented in README files
 - Any code generation templates within skills
 
 ## Out of Scope

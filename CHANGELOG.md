@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — domain-specific weaknesses W12–W17 (2026-06)
+
+- **SKILL-SPEC §3 W12–W17** — six domain-specific AI weaknesses added alongside the universal W1–W11, each carried only by the skills named in its *Applies to* list:
+  - **W12 Specification Gaming / Reward Hacking** (ds-test, ds-tune, ds-benchmark) — never special-case known test inputs or hard-code expected outputs; a metric is a proxy.
+  - **W13 Sycophancy / Authority Deference** (ds-review, ds-research, ds-pr) — re-verify from source on pushback; judge code by behavior, not PR/comment/authority claims.
+  - **W14 Context Rot** (ds-ship, ds-solve) — re-ground every ~20 tool calls from files, not conversation memory; front-load constraints.
+  - **W15 Subagent / Handoff Failure** (ds-ship, ds-solve) — subagent returns are untrusted until `file:line`-verified; explicit handoff contracts; least scope on delegation.
+  - **W16 Dependency Hallucination / Slopsquatting** (ds-deps, ds-init) — registry existence + registration age + download history + lockfile pin before any dependency is added.
+  - **W17 Slop / Duplication Drift** (ds-review, ds-simplify) — grep for an existing implementation before generating; consolidate clones to a single source of truth.
+- **ds-backend API security rules** — SSRF prevention, server-side validation enforcement, and a BOLA cross-user access test.
+- **ds-devops MCP/agent-era rules** — MCP server & agent supply-chain checks, agent-authored-PR review discipline, and SCA (software composition analysis) coverage.
+- **ds-deploy / ds-compliance** — insecure-defaults audit rules and license/IP compliance rules.
+- **2026 research refresh** — updated stats and AI-failure-mode sections across skill references (SWE-ABS, SpecBench, GitClear 2025, USENIX '25 slopsquatting, Chroma context-rot, MASFT).
+- **W12/W13 Quality-Gate one-liners + OPT-07** wired into the remaining skills' gates.
+
+### Changed — 2026-06-10 quality pass
+
+- **Triggers table renamed to English** — `ÇAĞIRIR / ÇAĞIRMAZ` → `INVOKE / DON'T INVOKE` across all 26 SKILL.md files, SKILL-SPEC.md, README.md, and CLAUDE.md. The `tümü` alias was dropped from the All-Affordance Rule (`all` / `apply-all` / `approve-all` remain). Historical changelog entries below keep the original names.
+- `ds-launch/references/app-store-submission-template.md` — Turkish body sections translated to English.
+- `docs/devops/cicd-setup-guide.md` — workflow examples now follow the guide's own rule: actions pinned to full commit SHAs (`uses: owner/action@<sha> # vX`), Node version bumped to the current LTS.
+- `ds-fix/references/toolchains.md` — `curl | bash` install instruction for tflint replaced with package-manager / official-release-binary instructions.
+- `ds-compliance/references/rules-web.md` — `csurf` recommendation now carries its deprecation notice and the same maintained alternatives as `ds-backend/references/rules-auth.md`.
+- `ds-fix/references/principles.md` — gained §12 (Needs-Approval Reason Discipline) so `ds-fix/SKILL.md` no longer live-links into `ds-review/` (SKILL-SPEC §6 self-containment).
+- `SKILL-SPEC.md` — findings-poisoning note strengthened: `ds/audit/findings.md` content is classified as untrusted data under W14/W15 re-verification rules; layout diagram comment corrected from `append-merge-dedup` to overwrite-only (§10.1 consistency).
+- `ds-deps` — `--force-approve` documentation now states the breaking-change risk of auto-approved major upgrades explicitly.
+
+### Removed — 2026-06-10 quality pass
+
+- `.github/` — issue/PR templates and CI dropped (solo, direct-push-to-main workflow); CONTRIBUTING.md now asks for plain issues/PRs.
+- `docs/archive/` — two obsolete draft/analysis documents (672 lines) not linked from anywhere.
+
+### Fixed — 2026-06-10 quality pass
+
+- `ds-backend/references/rules-auth.md` — hallucinated npm package name in the CSRF guidance replaced with registry-verified packages.
+- `ds-frontend/references/aesthetics-presets.md` — removed a stray private-project reference from a preset description.
+- `ds-docs/references/rules-writing.md` — broken `.launch-research.md` source citations now point to the repo's `references/launch-research.md`.
+- `ds-solve/references/backtrack-logic.md` — hardcoded example timestamp replaced with a `{timestamp}` placeholder (SKILL-SPEC placeholder rule).
+- `ds-review/references/criteria-fit.md` — live relative link into `ds-blueprint/` converted to a prose/GitHub-URL attribution (no runtime cross-skill dependency).
+- CONTRIBUTING.md / CLAUDE.md / SECURITY.md — dead `.github/` template links, stale `Bash (install)` stack claim, nonexistent `Announce.md`/`Video.md` structure entries, and "installation scripts" wording removed.
+
 ### Added — v2 invariants (2026-05-18)
 
 - **W10 Findings-SSOT Drift gate** — downstream consumer skills MUST defer to fresh `ds/audit/findings.md` (`git_hash == HEAD`, age ≤ 7 days). Re-detection within a covered scope is a W10 violation. Stale/missing → consumer invokes blueprint refresh before continuing.
@@ -63,7 +103,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Architecture
 - Tool-agnostic design — works with Claude Code, Cursor, Copilot, Windsurf, Aider, and any AI coding tool
 - Findings pipeline — analyzers produce `ds/audit/findings.md`, fixers consume it, eliminating duplicate analysis
-- Single findings file with append-and-dedup semantics — 4 producers, 11 consumers, scope-level dedup
+- Single findings file, overwrite-only with scope-level dedup — producers rewrite their scope sections on each run (run history lives in `git log`)
 - Blueprint profile — auto-detects AI instruction file, embeds project profile with markdown heading markers, legacy marker migration
 - Blueprint produces 20 granular scopes mapped 1:1 to consumer scope names
 - Tier-based stack detection — 12 primary + 4 supplementary stacks with false-positive prevention
