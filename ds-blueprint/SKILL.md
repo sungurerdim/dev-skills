@@ -77,7 +77,7 @@ Toolchain: {tools} | CI: {ci} | Container: {container-or-none}
 
 Ideal: coupling={n} cohesion={n} complexity={n} coverage={n}%
 
-Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n} docs={n} overall={n}
+Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n} docs={n} overall={n} model={model-id}
 
 ## End Blueprint Profile
 ```
@@ -86,7 +86,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 - One value per line, key-value pairs only. No prose, no headers within the block, no tables, no bullets.
 - AI parses by `{key}: {value}` line-shape — every consumer reads its line in O(1).
 - `Modules:` and `External:` use `;` separator so the block stays one line per concern.
-- `Scores:` is single line with short keys — dashboard renders in chat output, not in the profile.
+- `Scores:` is single line with short keys — dashboard renders in chat output, not in the profile. `model=` key records the AI model that performed the assessment (e.g. `model=claude-fable-5`); use `model=unknown` when not determinable. Enables model-uplift attribution — score deltas across model generations traceable via `git log` of this line.
 
 **Why this minimal:** context-loaded files must not accumulate. Every byte costs every future read. Run history + deltas + per-skill summaries forbidden — `git log -- <instruction-file>` is the trend log. The profile is calibration data, not a dashboard.
 
@@ -305,7 +305,7 @@ Project: {name} | Type: {type} | Stack: {stack} | Target: {quality}
 Findings written to ds/audit/findings.md ({n} signals across {n} dimensions)
 ```
 
-Previous scores exist: show Prev + Delta. First run: omit those columns.
+Previous scores exist: show Prev + Delta. First run: omit those columns. When previous `model=` differs from current, label each delta column as model-attributed (e.g. `Δ vs previous (model {prev-model} → {curr-model})`) so score movement is attributable to the model change, not code change alone.
 
 For dimensions below target, list top findings with IDs:
 ```
@@ -343,7 +343,7 @@ In `--auto`: print as part of summary, no interaction.
 
 **Mandatory.** Always update.
 
-1. Rewrite the `Scores:` line — single line, key-value form.
+1. Rewrite the `Scores:` line — single line, key-value form. Include `model={model-id}` (model performing this assessment, from host/session context; `model=unknown` if not determinable).
 2. Legacy `### Last Run`, `### Run History`, `### Current Scores` (table) block exists from previous version → rewrite entire profile to current minimal key-value format. Report `{n} legacy lines rotated to git log` in summary. Never re-inject historical run data.
 3. Previous scores existed: display delta table in chat (Prev / Curr / Δ). Trend over >1 run → read from `git log -- <instruction-file>`, never from accumulated block.
 4. **Dev-Value Gate (SKILL-SPEC §10.1):** every existing profile line must answer "would an AI assistant, reading this on every turn for 6 months, do meaningfully better engineering because of it?" with yes. Check each line against forbidden patterns (timestamps, score deltas, run dates, owner info, descriptions, onboarding, philosophy, vendor notes, file-by-file change notes). Forbidden found → strip before write. Report `{n} dev-value-gate lines stripped`.

@@ -147,6 +147,12 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 | Age rating | Verify questionnaire completeness, new 13+/16+/18+ tiers | MEDIUM |
 | SDK + build requirements | Check minimum SDK version (iOS 26 SDK required from April 2026) | MEDIUM |
 | ATT + Privacy Manifests | App Tracking Transparency prompt, SDK `PrivacyInfo.xcprivacy` validation | HIGH |
+| IAP external-payment | StoreKit/Play Billing present alongside Stripe/PayPal/checkout URLs for digital content, or "pay on our website" / "subscribe at" strings pointing off-store (Guideline 3.1.1; Play Payments policy) | CRITICAL |
+| Restore purchases | Non-consumable IAP or subscription imports detected but no restore-purchases call / UI entry point found (Guideline 3.1.2) | HIGH |
+| Sign in with Apple | Google/Facebook/Twitter auth SDK detected without `com.apple.developer.applesignin` entitlement or `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | HIGH |
+| Reviewer-access gap | Login/auth flow detected but `ds/launch/submission-notes-apple.txt` absent or missing demo-credentials section — reviewer will hit a login wall with no way through | HIGH |
+| App completeness / remote gating | Primary feature classes wrapped in remote-config / feature-flag conditions with no guaranteed-on default — app may appear non-functional to reviewer (Guideline 2.1; Play deceptive-behavior policy) | HIGH |
+| Content-vs-rating | Gambling SDK, loot-box pattern, open `WebView` with no URL restriction, or UGC text-input detected alongside an age-rating declaration of 4+ / Everyone — declared rating inconsistent with detected content signals | MEDIUM |
 | Review timing | Apple: 24-48h typical. Google: 1-7 days (first app longer). | INFO |
 
 ### Release

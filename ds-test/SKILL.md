@@ -21,6 +21,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | "generate E2E tests", "update tests after refactor" | "audit test discipline at architecture level" (→ ds-review --strategic --scope=testing) |
 | "why is this test failing — fix the test" | "fix the code so the test passes" (→ ds-fix or manual) |
 | "add regression test for this bug" | "audit functional completeness" (→ ds-review --strategic) |
+| "capture current behavior before I refactor this", "baseline this module" | "refactor the module" (→ ds-fix or manual after baseline is green) |
 
 ## Contract
 
@@ -47,6 +48,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | `--setup` | Set up test framework and infrastructure |
 | `--prune` | Find and delete low-value tests, replace with meaningful ones |
 | `--scope={path}` | Limit to specific file, directory, or module |
+| `--baseline[=path]` | Characterization baseline: capture current actual behavior of a legacy module before refactoring; tests assert what the code DOES today, not what it should do. Optional `=path` narrows to a specific file, directory, or module. |
 | `--auto` | No questions, generate + run + fix cycle |
 | `--resume` | Resume from `ds/audit/test.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
@@ -69,7 +71,7 @@ Default: `unit` + `integration`. E2E and snapshot require explicit `--e2e` or `-
 
 ## Execution Flow
 
-Setup → [Generate / Update / Run+Fix] → Verify → [Needs-Approval] → Summary
+Setup → [Generate / Update / Run+Fix / Baseline] → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
@@ -183,6 +185,19 @@ If no test framework exists:
 
 **Gate:** Example test passes with installed framework. If fails → install succeeded but example fails → collect runner error, surface "Framework installed but example test failed: {error}. Check {framework} configuration or run {test-command} manually to diagnose." Exit with WARN — do not generate tests over a broken setup.
 
+### Phase 2e: Baseline [--baseline]
+
+Capture current actual behavior of a legacy module as a characterization baseline before any refactoring begins. Tests assert what the code DOES today; correctness is assessed separately.
+
+1. **Identify surface:** collect the target module's public interface (exported functions, class/struct methods, CLI commands, API endpoints). If `=path` provided, narrow to that path only; otherwise use the directory or module that contains the changed code.
+2. **Generate characterization tests:** for each surface member, drive it with realistic inputs including boundary cases (empty, null, max-size, unicode, boundary numerics). Record the ACTUAL outputs — whatever the code returns today — as expected values in the assertions. When current behavior appears incorrect (e.g., off-by-one, wrong default, silent swallow of an error), STILL assert it; tag the test with the comment `// characterization: documents current behavior, not intent` and raise a Category B finding (`needs-approval`) so the user decides fix-vs-keep before refactoring.
+3. **Run to green:** execute the characterization suite. A failing characterization test means the captured expectation is wrong — fix the TEST to match actual output, never modify the source. Repeat until all characterization tests pass.
+4. **Report:** surface-coverage % (ratio of public surface members with at least one characterization test) + a list of oddities raised as Category B findings.
+
+**Note — not assertion-weakening:** asserting observed (possibly wrong) behavior with a `characterization: documents current behavior, not intent` tag and a Category B finding is the correct pattern. It is NOT the same as silently relaxing an assertion to pass. The intent is documented capture + user decision gate, never silent acceptance.
+
+**Gate:** All characterization tests green AND surface-coverage % reported. If any characterization test cannot be made green after 3 iterations (e.g., output is stateful or side-effectful in an unresolvable way) → record `{ test, status: "unresolvable", reason }` in state.data.failures, write a Category B finding describing the untestable surface, continue with remaining members.
+
 ### Phase 3: Verify
 
 After any generate/update/fix:
@@ -292,3 +307,5 @@ When analyzing existing tests, flag those that provide no concrete value:
 | E2E requires running server | Check for dev server script, start it, run tests, stop it |
 | Coverage tool not configured | Skip coverage analysis, suggest setup |
 | `--auto` with failing app tests | Write findings to `ds/audit/findings.md`, fix the test, not the source code |
+| `--baseline` and output is nondeterministic (time, random, UUID) | Inject/freeze seams (fixed clock, seeded RNG, mocked UUID) before capturing; if seams are unavailable, assert invariant properties (type, range, non-null) instead of exact values — document the invariant-only assertion with the `// characterization:` tag |
+| `--baseline` and source module has no public interface (all private/internal) | Report as Category B finding: "No public surface to baseline — refactoring this module without tests is high-risk"; suggest making key behaviors accessible for testing or adding internal test hooks |

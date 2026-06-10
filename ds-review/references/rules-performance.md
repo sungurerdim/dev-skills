@@ -9,6 +9,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | **Performance** | PRF-01–07 (1 CRITICAL, 6 MAJOR) | ~12 |
 | **Client-Side Performance** | PRF-08–10 (3 MAJOR) | ~78 |
 | **Network & API** | NET-01–05, NET-07 (6 MAJOR) | ~115 |
+| **Cost** | COST-01–06 (6 MAJOR) | ~185 |
 
 ---
 
@@ -177,3 +178,74 @@ Structured logging with correlation IDs. Request tracing across services.
   - No error rate monitoring
 - **Fix:** Generate unique request ID per request. Pass through all service calls. Log: request_id, method, path, status, duration, user_id (hashed). Use structured JSON logging. Integrate with APM (Datadog, New Relic, OpenTelemetry)
 - **Source:** OpenTelemetry Specification, Google SRE Book (Monitoring Distributed Systems), Datadog APM Guide
+
+---
+
+## Cost
+
+### COST-01 [MAJOR] Unbatched/Uncached Paid API Calls
+Repeated identical calls to paid APIs without memoization or batching waste budget and increase latency.
+- **Detect:**
+  - Same prompt or input sent to LLM/geocoding/search API multiple times within a request or session without a cache layer
+  - LLM calls with long, static system prompts and no prompt-caching header (Anthropic: `cache_control`, OpenAI: prompt caching)
+  - Batch API available (LLM batch inference, geocoding batch endpoint) but single-item requests used where latency allows
+  - Largest model (e.g. GPT-4o, Claude Opus) called for classification, extraction, or short summarization tasks a smaller model handles
+- **Fix:** Add memoization keyed on request content (hash of prompt + params). Enable provider prompt-caching headers on static system-prompt prefixes. Route classification/extraction/short-gen tasks to a cheaper model tier. Use batch endpoints for bulk, non-interactive workloads
+- **Impact:** LLM prompt caching typically reduces cost 50–90% on static prefix; model right-sizing 5–20×; missed batching can multiply per-item cost 10–100×
+- **Source:** Anthropic Prompt Caching Docs, OpenAI Batch API, Google Maps Geocoding Batch
+
+### COST-02 [MAJOR] Cloud Egress Waste
+Cross-region/cross-AZ data transfer and origin-served assets generate avoidable egress charges.
+- **Detect:**
+  - Service A (region us-east-1) calls Service B (region eu-west-1) on every request — cross-region transfer billed per GB
+  - Static assets (images, JS, CSS) served from compute origin (EC2, Cloud Run, App Engine) instead of CDN or object storage
+  - Database read replica in a different AZ/region than the application, fetching large result sets on hot paths
+  - Large binary blobs stored in DB and served via API response body instead of pre-signed object-storage URLs
+- **Fix:** Co-locate services that exchange high-volume data in the same region/AZ. Serve static/media assets from CDN (CloudFront, Cloud CDN, Fastly) or object storage with direct pre-signed URLs. Move read replicas to the same AZ as the application tier. Return pre-signed URLs instead of proxying blobs through compute
+- **Impact:** Cross-region egress typically $0.02–$0.09/GB; CDN origin-pull is a one-time cost, subsequent cache hits are free or near-free
+- **Source:** AWS Data Transfer Pricing, GCP Network Egress Pricing, CDN Best Practices (MDN)
+
+### COST-03 [MAJOR] Oversized Infra Defaults
+Instance sizes or provisioned capacity far above observed load incur idle spend.
+- **Detect:**
+  - CPU utilization consistently < 20% on provisioned instances (check CloudWatch, Cloud Monitoring, Datadog)
+  - RDS/Cloud SQL provisioned IOPS at maximum with actual IOPS < 30% of provisioned
+  - Always-on staging/dev/preview environments running 24/7 without a shutdown schedule
+  - Kubernetes requests/limits set to defaults (1 CPU, 512Mi) without profiling — either over-provisioned or a future OOM
+- **Fix:** Right-size instances to next tier down when p95 CPU < 20% and p95 memory < 50% for 7+ days. Set RDS to autoscaling storage + gp3 instead of provisioned IOPS unless throughput-bound. Add start/stop schedules to non-prod environments (AWS Instance Scheduler, GCP resource policies). Profile containers under load and set requests/limits to observed p99 + 20% headroom
+- **Impact:** Idle EC2/GCE instances at m5.2xlarge vs m5.large = 4× cost; dev environments running nights/weekends = ~66% waste
+- **Source:** AWS Compute Optimizer, GCP Recommender, FinOps Foundation Right-Sizing Guide
+
+### COST-04 [MAJOR] Missing Lifecycle Policies
+Objects, logs, artifacts, and backups retained indefinitely accumulate unbounded storage cost.
+- **Detect:**
+  - S3/GCS/Azure Blob buckets with no lifecycle rule (check bucket policy or IaC)
+  - CloudWatch Logs / Cloud Logging log groups with retention set to "Never expire"
+  - CI/CD artifact stores (S3, GCS, Artifactory) retaining every build artifact with no TTL
+  - Database backups kept beyond documented retention window with no automated deletion
+  - Docker image registry (ECR, GCR, Docker Hub) accumulating all tags with no deletion policy
+- **Fix:** Set S3/GCS lifecycle rules: transition to Infrequent Access after 30 days, Glacier after 90 days, delete after retention window. Set log group retention to ≤ 90 days for non-compliance workloads (adjust for regulatory requirements). Add CI artifact expiration (e.g., keep last 10 builds or 30 days). Define and automate backup retention (typically 7–35 days). Add ECR/GCR lifecycle policy to delete untagged images and old non-production tags
+- **Impact:** S3 Standard ~$0.023/GB/month; Glacier ~$0.004/GB/month; logs with no TTL on a busy service can accumulate hundreds of GB/month
+- **Source:** AWS S3 Lifecycle Policies, GCP Object Lifecycle Management, AWS CloudWatch Logs Retention, ECR Lifecycle Policies
+
+### COST-05 [MAJOR] Polling Where Push Exists
+Interval polling against APIs that offer webhooks, server-sent events, or streams wastes requests and budget.
+- **Detect:**
+  - `setInterval` / `sleep` loop calling a REST endpoint to check for state changes when the provider documents a webhook or event subscription
+  - Database polling loop (`SELECT … WHERE status = 'pending'` on a timer) when a DB-level notification (`LISTEN/NOTIFY` in Postgres, change streams in MongoDB/DynamoDB) is available
+  - Mobile app polling a backend for push-like data instead of using FCM/APNs/WebSocket
+  - Third-party API (GitHub, Stripe, Twilio, SendGrid) polled for event status when the provider offers webhooks
+- **Fix:** Replace polling loops with webhook receivers or event subscriptions for provider APIs. Use `LISTEN/NOTIFY` (Postgres), DynamoDB Streams, or Change Data Capture for DB-level events. Switch mobile to push notifications (FCM/APNs) or a persistent WebSocket/SSE channel. Where polling is unavoidable (no push available), apply exponential backoff and cap frequency to the minimum acceptable staleness
+- **Impact:** 1-second polling = 86,400 API calls/day per client; webhook = 1 call per event. At $0.0004/1k calls (Twilio, SendGrid tiers), high-frequency polling can add hundreds of dollars/month
+- **Source:** Webhook.site Best Practices, Stripe Webhooks Guide, PostgreSQL LISTEN/NOTIFY, Google FCM
+
+### COST-06 [MAJOR] Pay-Per-Use Amplification
+N+1 patterns, unthrottled retries, and unbounded fan-out multiply metered API calls.
+- **Detect:**
+  - Loop calling a paid API once per item (geocoding every address individually, enriching each record separately) when a batch endpoint exists
+  - Retry logic on a metered endpoint with no backoff or jitter — failed requests retried immediately at full rate
+  - Fan-out job that spawns one worker/task per input item with no concurrency cap, triggering unbounded parallel API calls on a burst workload
+  - Event consumer that re-processes the same message multiple times due to missing idempotency key on the downstream paid API call
+- **Fix:** Batch paid API calls to the provider's batch endpoint (geocoding, enrichment, LLM). Add exponential backoff + jitter on all retries against metered endpoints (delay * 2^attempt + random(0, delay)). Cap worker fan-out concurrency (semaphore, p-limit, bounded thread pool). Add idempotency keys on paid API calls inside event consumers to prevent double-billing on redelivery
+- **Impact:** N+1 against a $0.005/call API on 10,000 records = $50 vs $0.05 with batching; unbounded retry storm on a metered endpoint can exhaust a monthly budget in minutes
+- **Source:** AWS SQS Exactly-Once Processing, Stripe Idempotency Keys, Google Maps Batching Guide, Exponential Backoff and Jitter (AWS Architecture Blog)

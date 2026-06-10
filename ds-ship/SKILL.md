@@ -15,6 +15,7 @@ ds-ship activates at **explicit milestone gates**, not as a generic "audit every
 - User preparing an OSS release
 - User wants to resume a long-untouched project and doesn't remember the next step
 - User asks for "promise vs reality", a stack-fitness review, or a visual status report
+- **Model-uplift gate** — a significantly more capable AI model is now in use; user wants the project re-audited through the new model's eyes, with score deltas attributed to the model change (run with `--uplift`)
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -24,6 +25,7 @@ ds-ship activates at **explicit milestone gates**, not as a generic "audit every
 | "post-incident full audit" | "fix lint errors" (→ ds-fix) |
 | "bring this dormant project back" + dormant signals (>90 days) | "improve performance" (→ ds-review --perf) |
 | "promise vs reality across the whole project" | "what dependencies are outdated" (→ ds-deps) |
+| "a new model is out — re-optimize the whole project" (`--uplift`) | "optimize one metric with the new model" (→ ds-tune) |
 
 ### Cascade activation — two-confirmation gate
 
@@ -59,6 +61,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 |------|--------|
 | `--preview` | Run Phase 0–1 only: classification, doc census, gap table, proposed sequence. No mutations. |
 | `--stage={x}` | Override auto-classified stage: idea, spec-only, scaffold, implementation, review-pending, pre-launch, launched, frozen |
+| `--uplift` | Model-uplift run: force `/ds-blueprint --refresh` as the first delegation regardless of findings freshness; Phase 6 report adds a Score Delta line — previous vs current `Scores:` line (via `git log` of the instruction file), model-attributed |
 | `--html` | Additionally produce `ds/audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |
 | `--skip={list}` | Comma-separated skills to skip (e.g. `--skip=ds-mobile,ds-analytics`) |
 | `--only={list}` | Comma-separated skills to include (override classification defaults) |
@@ -312,6 +315,7 @@ type: {project-type}
 - Awaiting user decision (Category B): {M}
 - Ship-ready: yes | no ({K} blockers remain)
 - Doc token reduction: {before} → {after} ({%})
+- Score delta (`--uplift` runs only): overall {prev} → {now} (model {prev-model} → {curr-model})
 - Security baseline ([references/principles.md §5](references/principles.md)): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
 - PR: {url} | declined-this-run | not-applicable ({reason}) | muted
 
@@ -352,7 +356,7 @@ type: {project-type}
 
 ## Next Trigger
 
-{When should ds-ship next run — e.g. "after feature X lands", "before 2026-Q3 public release", "quarterly hygiene".}
+{When should ds-ship next run — e.g. "after feature X lands", "before 2026-Q3 public release", "quarterly hygiene", "next frontier-model upgrade (`--uplift`)".}
 ```
 
 **`--html` flag: additionally write `ds/audit/report.html`.**

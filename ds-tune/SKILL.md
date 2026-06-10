@@ -81,7 +81,7 @@ Determine these values:
 | Field | Description |
 |-------|-------------|
 | `target_file` | Single file the agent will modify |
-| `metric` | Primary measurable signal (e.g. {wer}, {accuracy}, {latency_ms}, {pass_rate}, {bundle_kb}) |
+| `metric` | Primary measurable signal (e.g. {wer}, {accuracy}, {latency_ms}, {pass_rate}, {bundle_kb}, {cost_per_run}, {tokens_per_request}) |
 | `direction` | `lower` or `higher` — which direction is better |
 | `secondary` | Optional second metric for monitoring (not for keep/discard decisions) |
 | `bench_cmd` | Command to run evaluation |

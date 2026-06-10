@@ -99,6 +99,7 @@ Deep performance analysis beyond tactical `performance` scope.
 | Web Vitals | LCP, INP, CLS for web projects |
 | Mobile | Widget rebuild optimization, const constructors, image sizing, list virtualization |
 | Database | Query performance, N+1 detection, connection pooling, index usage |
+| Cost | Paid API/LLM call efficiency, cloud egress/cross-region transfer, oversized infra defaults, storage/log lifecycle policies, polling-vs-webhook waste |
 
 **Scope boundary:** performance-specific deep dive. Produces optimization recs with estimated impact. Fixes only low-risk (const constructors, unused imports, memoization). High-impact changes (architecture, caching strategy) → `needs_approval`.
 

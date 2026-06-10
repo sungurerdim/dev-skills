@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — model-uplift workflow + coverage-gap closure (2026-06)
+
+- **ds-ship `--uplift`** — model-uplift gate: new trigger + flag; forces `/ds-blueprint --refresh` as the first delegation; Phase 6 report gains a model-attributed Score Delta line; "next frontier-model upgrade" added to Next Trigger examples.
+- **ds-blueprint `model=` key** — `Scores:` line now records the assessing model (`model={model-id}`, fallback `unknown`); dashboard labels deltas as model-attributed when the model changed; score history stays attributable via `git log` of the line.
+- **ds-review Cost scope** — `--perf` gains a Cost category; `references/rules-performance.md` gains COST-01–06 (paid-API caching/batching/model right-sizing, cloud egress, oversized infra defaults, missing lifecycle policies, polling-vs-push, pay-per-use amplification).
+- **ds-launch active store checks** — 6 new active detections: IAP external-payment (Guideline 3.1.1, CRITICAL), restore purchases (3.1.2), Sign in with Apple (4.8), reviewer-access gap, app completeness / remote gating (2.1), content-vs-rating consistency.
+- **ds-test `--baseline`** — characterization-baseline mode (Phase 2e): capture current actual behavior of a legacy module before refactoring; apparent bugs asserted as-is with `// characterization:` tag + Category B finding; nondeterminism and no-public-surface edge cases covered.
+- **ds-tune cost metrics** — `{cost_per_run}`, `{tokens_per_request}` added to the example metric list.
+
 ### Added — domain-specific weaknesses W12–W17 (2026-06)
 
 - **SKILL-SPEC §3 W12–W17** — six domain-specific AI weaknesses added alongside the universal W1–W11, each carried only by the skills named in its *Applies to* list:
