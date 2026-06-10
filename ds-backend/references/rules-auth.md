@@ -146,7 +146,7 @@ Keep JWT payloads small: `sub`, `iss`, `aud`, `exp`, `iat`, `jti`, and role/scop
 
 **Multi-stack examples:**
 
-- **Node/Express:** `csurf` middleware (deprecated; use `csrf-csrf` or `lusitania`) + `SameSite=Lax` cookies
+- **Node/Express:** `csurf` middleware (deprecated; use `csrf-csrf` or `csrf-sync`) + `SameSite=Lax` cookies
 - **Python/Django:** Built-in CSRF middleware (enabled by default)
 - **Python/FastAPI:** Manual CSRF token in cookie + header comparison
 - **Go/Gin:** `gorilla/csrf` middleware

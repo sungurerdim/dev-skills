@@ -213,7 +213,7 @@ Per-stack toolchain lookup for ds-fix. Load only the section matching the detect
 | Lint | tflint | `tflint --fix` | `tflint --init && tflint` |
 | Security | trivy | N/A (read-only) | `trivy config .` |
 
-**Install:** `brew install terraform tflint trivy` (macOS) or follow official install docs. `terraform` via HashiCorp APT/YUM repos. `tflint`: `curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash`. `trivy`: `apt install trivy` (Aqua Security repo).
+**Install:** `brew install terraform tflint trivy` (macOS) or follow official install docs. `terraform` via HashiCorp APT/YUM repos. `tflint`: `brew install tflint` (macOS) or official release binaries (Linux — see github.com/terraform-linters/tflint/releases). `trivy`: `apt install trivy` (Aqua Security repo).
 **Manifest:** `*.tf` files, `*.tfvars`
 **Config:** `.tflint.hcl`, `.trivy.yaml`
 **Detection:** `terraform` CLI required for fmt/validate. `tflint` separate install. `trivy` separate install (replaces deprecated `tfsec`).

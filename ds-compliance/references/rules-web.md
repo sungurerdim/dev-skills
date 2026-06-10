@@ -52,7 +52,7 @@ State-changing operations protected against cross-site request forgery.
   - `SameSite` cookie attribute missing
   - No CSRF middleware configured
   - Search: POST/PUT/DELETE handlers without CSRF validation
-- **Fix:** Use `SameSite=Strict` or `SameSite=Lax` cookies. CSRF tokens for form submissions. Verify `Origin`/`Referer` headers. Use framework CSRF middleware (csurf, Django CSRF, Spring CSRF)
+- **Fix:** Use `SameSite=Strict` or `SameSite=Lax` cookies. CSRF tokens for form submissions. Verify `Origin`/`Referer` headers. Use framework CSRF middleware (Node/Express: `csrf-csrf` or `csrf-sync` — `csurf` is deprecated; Django CSRF, Spring CSRF)
 - **Source:** OWASP CSRF Prevention Cheat Sheet
 
 ---

@@ -41,27 +41,29 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 24, cache: npm }
       - run: npm ci && npm run lint
   test:
     needs: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 24, cache: npm }
       - run: npm ci && npm test
   build:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 24, cache: npm }
       - run: npm ci && npm run build
 ```
+
+The remaining templates in this guide use version tags (`@v4`) for readability — in real workflows, pin every action to a full commit SHA as shown above.
 
 ### Auto-Deploy Staging / Manual Production Deploy
 
@@ -105,7 +107,7 @@ Use `fail-fast: true` so a failure in one cell cancels the rest immediately:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy: { fail-fast: true, matrix: { node-version: [20, 22] } }
+    strategy: { fail-fast: true, matrix: { node-version: [22, 24] } }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -269,7 +271,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+        with: { node-version: 24 }
       - run: npm install @commitlint/cli @commitlint/config-conventional
       - run: npx commitlint --from ${{ github.event.pull_request.base.sha }}
 ```
@@ -403,7 +405,7 @@ jobs:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 24, cache: npm }
       - run: npm ci
       - run: npx turbo run lint test build --filter='...[origin/main]'
         env: { TURBO_TOKEN: "${{ secrets.TURBO_TOKEN }}", TURBO_TEAM: "${{ vars.TURBO_TEAM }}" }
@@ -420,7 +422,7 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: nrwl/nx-set-shas@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 24, cache: npm }
       - run: npm ci && npx nx affected -t lint test build
 ```
 

@@ -29,7 +29,7 @@ rm -rf /tmp/dev-skills
 /ds-deps --preview        # classify only, no upgrade
 /ds-deps --dry-run        # classify + security scan, no writes
 /ds-deps --auto           # apply safe groups, skip majors (needs-approval)
-/ds-deps --force-approve  # apply every classified upgrade including majors
+/ds-deps --force-approve  # apply every upgrade incl. majors (breaking-change risk)
 /ds-deps --scope=security # security advisories only
 ```
 
