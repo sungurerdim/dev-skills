@@ -11,9 +11,9 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 - User asks "are there any orphan files", "is anything unused", or "is this overengineered"
 - After large refactor or feature removal — suggest a simplify pass
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "remove dead code", "find orphan files", "kill overengineering" | "audit security / privacy" (→ ds-compliance) |
 | "is this overengineered (single-caller, premature abstraction)" | "score project architecture" (→ ds-blueprint) |

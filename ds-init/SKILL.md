@@ -11,9 +11,9 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 - User says "set up a new project" or "initialize project structure"
 - User starts a greenfield project
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "scaffold a new {framework} project" | "audit existing project for health" (→ ds-blueprint) |
 | "create CI / Docker / test boilerplate from zero" | "deploy the app" (→ ds-deploy) |

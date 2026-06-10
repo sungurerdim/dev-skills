@@ -11,9 +11,9 @@
 - User asks about store listing, screenshots, privacy labels, or release notes
 - User asks "how do I publish my app" or "prepare for App Store"
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "submit to App Store / Play Store / Mac App Store" | "deploy backend to VPS / container" (→ ds-deploy) |
 | "App Store privacy labels (store-correctness check)" | "full GDPR/KVKK privacy compliance" (→ ds-compliance --privacy) |

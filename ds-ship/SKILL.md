@@ -16,9 +16,9 @@ ds-ship activates at **explicit milestone gates**, not as a generic "audit every
 - User wants to resume a long-untouched project and doesn't remember the next step
 - User asks for "promise vs reality", a stack-fitness review, or a visual status report
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "is this ready to ship", "finalize the release", "pre-launch audit" | "audit my code" (→ ds-review), "audit the docs" (→ ds-docs) |
 | "post-incident full audit" | "fix lint errors" (→ ds-fix) |

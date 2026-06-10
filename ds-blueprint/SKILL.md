@@ -12,9 +12,9 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 - User asks "how healthy is this project" or "what should I improve"
 - First time working on new project (suggest profile creation)
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "score project health", "what should I improve first" | "fix the issues" (→ ds-review or ds-fix) |
 | "create project profile", "refresh blueprint" | "research industry best practices" (→ ds-research) |

@@ -11,9 +11,9 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 - Environment or configuration issues that resist straightforward fixes
 - User explicitly asks for exhaustive/adaptive problem solving
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "make X work", "fix this integration", "migrate from A to B" | "audit project health for overview" (→ ds-blueprint) |
 | "exhaustive multi-plan problem-solving" | "research solutions without trying them" (→ ds-research) |

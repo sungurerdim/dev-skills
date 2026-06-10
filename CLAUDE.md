@@ -7,7 +7,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - **Status:** active
 - **Owner:** sungurerdim
 - **License:** MIT
-- **Stack:** Markdown (skills) + Bash (install)
+- **Stack:** Markdown only — zero runtime dependencies
 - **Skill count:** 26
 - **Tool support:** Claude Code, Cursor, Copilot, Windsurf, Aider
 
@@ -19,8 +19,6 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | `SKILL-SPEC.md` | Authoritative skill format spec — every `ds-*` must conform |
 | `docs/` | Topic-organized references (backend, frontend, devops, compliance, business, launch, methodology, infrastructure) |
 | `references/` | Source material (`software-best-practices.md`, `launch-research.md`) |
-| `Announce.md` | Launch copy |
-| `Video.md` | Demo video script |
 
 ## Skills (26)
 
@@ -32,7 +30,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - Each skill has `SKILL.md` + supporting files
 - Test: install into `~/.claude/skills/` and invoke via `/ds-<name>`
 - Spec compliance: every skill must satisfy `SKILL-SPEC.md` (audited 2026-05-18 for v2: W10/W11, Trigger Discipline, All-Affordance Rule)
-- Self-audit: run `/full-review` (see `.claude/commands/full-review.md`) — 8 categories × ~56 checks against the v2 invariants
+- Self-audit: run `/full-review` (local command, not in repo) — 8 categories × ~56 checks against the v2 invariants
 
 ## Git Workflow
 
@@ -44,8 +42,8 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 
 - **W10 Findings-SSOT Drift:** downstream consumers defer to fresh `ds/audit/findings.md`; never re-detect within blueprint's covered scopes.
 - **W11 Error Ownership Skip:** detected errors get a concrete disposition; reject reasons like `pre-existing`, `not my change`, `out of scope`, `too hard`, `will do later`.
-- **Trigger Discipline:** every `ds-*/SKILL.md` ships a `ÇAĞIRIR / ÇAĞIRMAZ` table. Unscoped verbs alone are not valid triggers.
-- **All-Affordance Rule:** every menu offers `all` / `tümü` / `apply-all` / `approve-all`. CRITICAL findings + destructive actions still require per-item confirmation.
+- **Trigger Discipline:** every `ds-*/SKILL.md` ships an `INVOKE / DON'T INVOKE` table. Unscoped verbs alone are not valid triggers.
+- **All-Affordance Rule:** every menu offers `all` / `apply-all` / `approve-all`. CRITICAL findings + destructive actions still require per-item confirmation.
 - **`/ds-review --meta-quality`:** SSOT / DRY / KISS / YAGNI / SoC principle audit with 3 consolidation paths per finding.
 - **Anti-overengineering 3-gate** screens every potential finding before reporting.
 

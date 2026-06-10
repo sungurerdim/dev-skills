@@ -13,9 +13,9 @@ Code review catches what tests miss — security holes, dead code, wrong abstrac
 
 Four modes: `--tactical` for file-level quality fixes, `--strategic` for architecture-level assessment, `--perf` for deep performance profiling, `--meta-quality` for principle-based holistic audit (SSOT/DRY/KISS/YAGNI/SoC + criteria-fit + consolidation paths).
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "improve code quality (tactical)", "review my architecture (strategic)" | "format and lint only" (→ ds-fix) |
 | "deep performance profiling" | "set up perf budget + CI gate" (→ ds-launch --perf-budget) |

@@ -11,9 +11,9 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 - User asks "make this faster", "improve accuracy", "reduce bundle size", or similar
 - User asks to set up a self-improving loop
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "make this faster", "optimize bundle size", "self-improving loop" | "audit performance once (no loop)" (→ ds-review --perf) |
 | "100+ experiments for one metric" | "set performance budget + CI gate" (→ ds-launch --perf-budget) |

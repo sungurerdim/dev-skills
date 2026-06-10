@@ -11,9 +11,9 @@ Most apps track everything (privacy violation) or nothing (flying blind). Skill 
 - User asks "what should I track" or "set up analytics"
 - User asks about retention, churn, funnels, or A/B testing
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "design event taxonomy", "set up analytics" | "audit code quality" (→ ds-review) |
 | "privacy audit of events" (event-PII scan) | "full GDPR/KVKK privacy compliance" (→ ds-compliance --privacy) |

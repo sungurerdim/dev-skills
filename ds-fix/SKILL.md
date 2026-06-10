@@ -11,9 +11,9 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 - User asks to run type checker, check types, or fix type errors
 - User asks to scan for secrets or audit dependencies
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "run formatter, linter, type checker", "fix lint errors" | "review architecture / patterns" (→ ds-review --strategic) |
 | "scan for hardcoded secrets / dep CVEs" | "full regulatory security audit" (→ ds-compliance --security) |
@@ -249,7 +249,7 @@ Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scope
 - Scope boundary: only run scopes user requested (or all if none specified).
 - **CRITICAL escalation (second-pass verification):** any CRITICAL secret finding re-verified before reporting — re-read file ±20 lines, check skip patterns (`# noqa`, test fixtures, generated files, env-loader patterns). Insufficient evidence → downgrade to HIGH. CRITICAL reserved for confirmed exposures.
 - **Educational output triple:** every applied fix includes three lines beside "what changed": `why:` (impact if unfixed), `avoid:` (anti-pattern), `prefer:` (correct pattern). Single-line counts/messages exempt — applies to per-finding fix records.
-- **needs_approval reason validator:** parse every `skipped` / `needs-approval` reason against the reject list in [ds-review/references/principles.md §12](../ds-review/references/principles.md). Match → reason rejected, item re-routed (fix inline or escalate). Status `OK` forbidden while any rejected-reason item remains.
+- **needs_approval reason validator:** parse every `skipped` / `needs-approval` reason against the reject list in [references/principles.md §12](references/principles.md). Match → reason rejected, item re-routed (fix inline or escalate). Status `OK` forbidden while any rejected-reason item remains.
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, tool-driven). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Severity

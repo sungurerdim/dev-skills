@@ -11,9 +11,9 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 - User asks about dependency management, code signing, or CI quality gates
 - User asks why CI is failing or how to set up CI for a project
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "audit CI/CD pipeline", "review GitHub Actions workflows" | "deploy the app to infra" (→ ds-deploy) |
 | "set up code signing for releases" | "configure VPS / containers / SSL" (→ ds-deploy) |

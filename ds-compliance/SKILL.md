@@ -15,9 +15,9 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 
 Covers 80+ rules across 8 compliance domains.
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "GDPR/KVKK/CCPA/HIPAA audit", "regulatory compliance check" | "audit code quality" (→ ds-review) |
 | "OWASP Top 10 security scan" | "fix lint errors / format" (→ ds-fix) |

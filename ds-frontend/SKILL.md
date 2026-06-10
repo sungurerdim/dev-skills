@@ -12,9 +12,9 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 - User asks to create or generate a design system, design tokens
 - Project contains frontend framework indicators (React, Vue, Svelte, Angular, Flutter, RN, SwiftUI, Compose)
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "audit design system / tokens / hardcoded colors" | "audit business logic" (→ ds-review) |
 | "WCAG / a11y technical audit (contrast, focus, ARIA)" | "regulatory a11y framing (EAA, ADA)" (→ ds-compliance --a11y) |

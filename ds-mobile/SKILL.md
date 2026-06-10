@@ -11,9 +11,9 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - User asks about app store compliance, release readiness, or store submission
 - Project contains `pubspec.yaml` (Flutter), `react-native` in `package.json`, `*.xcodeproj`, or Android `build.gradle` with `android {}` block
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "Flutter / iOS / Android / React-Native app audit" | "audit backend API" (→ ds-backend) |
 | "mobile permissions audit", "release readiness for App Store" | "web-app privacy compliance" (→ ds-compliance --privacy) |

@@ -10,9 +10,9 @@ ATS rejects most CVs before a human ever sees them. This skill generates ones th
 - User asks to create, update, or review a CV or resume
 - User asks to align LinkedIn profile with their CV
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "generate ATS-compatible CV", "review my CV" | "audit my project for portfolio" (→ ds-blueprint) |
 | "align LinkedIn profile with CV" | "personal brand marketing" (→ ds-market) |

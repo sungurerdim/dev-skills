@@ -11,9 +11,9 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 - User asks about stale branches, repo hygiene, or team structure
 - User asks to set up a new repository or fix repo configuration
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "audit repo settings", "set up branch protection" | "audit code quality inside the repo" (→ ds-review) |
 | "configure CODEOWNERS, OSS-ready files" | "license / regulatory research" (→ ds-research) |

@@ -137,7 +137,7 @@ Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orches
 - **Finding Resolution Completeness (FRC)** — every finding gets a disposition (fixed/skipped/failed), zero silent drops
 - **Error Ownership Gate (W11)** — detected errors get a concrete disposition; "pre-existing" / "out of scope" / "not my change" are never valid skip reasons
 - **Findings-SSOT Gate (W10)** — downstream skills defer to fresh `ds/audit/findings.md`, never re-detect what blueprint already covered
-- **Trigger Discipline** — every skill ships a ÇAĞIRIR / ÇAĞIRMAZ table; unscoped verbs (`improve`, `fix`, `audit`) alone are not valid triggers
+- **Trigger Discipline** — every skill ships an INVOKE / DON'T INVOKE table; unscoped verbs (`improve`, `fix`, `audit`) alone are not valid triggers
 - **All-Affordance Rule** — every menu (scope, fix, approve, alternative path) offers an "all" option; CRITICAL findings + destructive actions still require per-item confirmation
 - **Inter-skill coordination** via `ds/audit/findings.md` + blueprint profile — share analysis, avoid duplicate work
 - **Token-efficient** — 10K token budget per skill, references loaded on demand

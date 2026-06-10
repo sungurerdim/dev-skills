@@ -11,9 +11,9 @@ Solo developers build great products but can't get anyone to notice. This skill 
 - User asks "how do I market my app" or "write marketing copy"
 - User asks about launch strategy, social media, or landing page
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "marketing strategy, growth tactics, positioning" | "store-specific metadata only" (→ ds-launch --listing) |
 | "write taglines / landing-page copy / Product Hunt post" | "user-research for tracking taxonomy" (→ ds-analytics) |

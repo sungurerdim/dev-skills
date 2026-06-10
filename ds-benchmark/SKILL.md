@@ -11,9 +11,9 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 - User asks "am I doing this the right way" or "how do leading projects solve this"
 - User preparing an OSS release and wants a credible positioning story
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "compare with competitors", "what would ideal look like" | "audit my own code quality" (→ ds-review) |
 | "ideal-vs-current gap table" | "score project health from inside" (→ ds-blueprint) |

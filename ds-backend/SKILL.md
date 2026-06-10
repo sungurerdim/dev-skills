@@ -11,9 +11,9 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 - User asks about REST/GraphQL design, migration strategy, or RBAC
 - User asks "review my API" or "design my database schema"
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "design REST API", "design database schema" | "implement the endpoint code" (→ manual / ds-fix) |
 | "review OpenAPI spec", "audit DB migration" | "audit OWASP / regulatory security" (→ ds-compliance --security) |

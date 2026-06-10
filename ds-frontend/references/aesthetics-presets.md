@@ -28,7 +28,7 @@ This file is loaded by `/ds-frontend` when invoked with `--aesthetic=<preset>`. 
 
 ## Preset Definitions (excerpt — full token files referenced)
 
-### `warm-trust` (Akis sektör template applier'a uygun)
+### `warm-trust` (suited to trust-sensitive service sectors — health, care, appointments)
 
 ```yaml
 mood: >

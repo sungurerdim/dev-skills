@@ -13,9 +13,9 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 - User asks "why is this test failing" or "update tests after refactor"
 - After a refactor or feature change, suggest updating affected tests
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "write tests for this function", "improve test coverage" | "framework setup decisions for greenfield" (→ ds-init or ds-research) |
 | "generate E2E tests", "update tests after refactor" | "audit test discipline at architecture level" (→ ds-review --strategic --scope=testing) |

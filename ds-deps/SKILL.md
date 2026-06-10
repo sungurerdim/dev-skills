@@ -11,9 +11,9 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 - User says "bring this project back to life" on a dormant repo
 - After `npm audit` / `pip-audit` / `cargo audit` surfaces advisories
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "upgrade my dependencies", "is anything outdated" | "audit code quality" (→ ds-review) |
 | "security advisory upgrade" (npm/pip/cargo audit triage) | "audit full CI pipeline" (→ ds-devops) |
@@ -37,7 +37,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 | `--preview` | Classify + report, no upgrade |
 | `--scope={x}` | Specific group: patch, minor, major, security, all |
 | `--auto` | Apply safe-patch + safe-minor; list majors, skip without asking |
-| `--force-approve` | Apply every classified upgrade including majors |
+| `--force-approve` | Apply every classified upgrade including majors — majors can ship breaking changes; expect to fix call sites |
 | `--dry-run` | Classifier + security scan only, skip upgrade execution |
 | `--resume` | Resume from `ds/audit/deps.json` without prompt |
 | `--clean` | Delete existing state, start fresh |

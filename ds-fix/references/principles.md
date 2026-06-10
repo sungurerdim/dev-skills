@@ -144,6 +144,33 @@ Skills that produce or touch configuration MUST:
 
 ---
 
+## §12 — Needs-Approval Reason Discipline
+
+Every `needs-approval` and `skipped` finding MUST cite a concrete blocker. The blocker is parsed against an explicit reject list — match → reason is rejected → finding is re-routed.
+
+**Concrete blocker examples (accepted):**
+
+- "API-contract change — caller `foo()` in `pkg/x` expects the old signature"
+- "Cross-module dependency — `mod_a` consumed by 7 unrelated callers; refactor exceeds review scope"
+- "Runtime behavior uncertainty — timezone handling depends on host OS, needs user input"
+- "Regulated change — schema migration on user table, requires compliance review"
+
+**Rejected reasons (rewrite or fix inline):**
+
+| Rejected pattern | Why rejected | What to do instead |
+|------------------|--------------|-------------------|
+| `already existed`, `pre-existing` | Not a blocker — Error Ownership Gate (W11) applies | Fix inline or cite concrete blocker |
+| `not my change`, `unrelated to task` | Boy-Scout rule (bounded) covers same-file fixes | Fix in current file; flag out-of-file as separate finding |
+| `out of scope` | Vague — define the actual scope edge | Cite which scope: "exceeds `--scope=hygiene` boundary into `architecture`" |
+| `too hard`, `complex`, `will do later` | Difficulty is not a blocker | Cite the specific obstacle (API contract, dependency, runtime uncertainty) |
+| `not sure how` | Uncertainty is research, not deferral | Either research and decide, or invoke `/ds-research`; do not park |
+
+**Enforcement:** Before writing a finding's disposition, the skill parses the reason against the reject list. Match → either (a) downgrade `needs-approval` to `apply` and fix inline, (b) escalate to user with a concrete-blocker prompt, or (c) rewrite the reason. The skill MUST NOT report status `OK` while any disposition still carries a rejected reason.
+
+**Source:** dev-rules.md — Error Ownership Gate (W11).
+
+---
+
 ## §9 — Authoritative Source URLs (consolidated)
 
 | Source | URL |

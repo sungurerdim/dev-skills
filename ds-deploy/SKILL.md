@@ -11,9 +11,9 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 - User asks about Docker, VPS, SSL, monitoring, or incident response
 - User asks "how do I deploy this" or "review my Dockerfile"
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "deploy this to a VPS / container / k8s" | "submit app to App Store / Play Store" (→ ds-launch) |
 | "configure SSL, monitoring, backups, alerts" | "audit CI pipeline" (→ ds-devops) |

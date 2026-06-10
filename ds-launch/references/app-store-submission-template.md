@@ -141,7 +141,7 @@ Skill MUST ask these — they cannot be reliably auto-detected:
 
 ---
 
-## Common Rejection Cookbook (Hazır Cevaplar)
+## Common Rejection Cookbook (Ready-Made Replies)
 
 These are the top 5 reject reasons. Each has a copy-paste reply that references back to the original submission notes.
 
@@ -193,78 +193,78 @@ These are the top 5 reject reasons. Each has a copy-paste reply that references 
 
 ---
 
-## Pre-Submission Self-Audit (zorunlu — submit edilemeden önce)
+## Pre-Submission Self-Audit (mandatory — before any submit)
 
-Skill bu maddeleri PASS/FAIL ile değerlendirir:
+The skill evaluates each item as PASS/FAIL:
 
-- [ ] **Account deletion flow** in-app erişilebilir (Guideline 5.1.1(v))
-- [ ] **Privacy Policy URL** canlı + KVKK/GDPR/CCPA bölümleri var (HTTP 200 verify)
-- [ ] **Support URL** canlı, gerçek e-posta yanıtlanıyor
-- [ ] **Privacy Manifest** (`PrivacyInfo.xcprivacy`) iOS bundle'da
-- [ ] **Required Reason API** beyanları tam
-- [ ] **Apple Sign-In** (3rd-party social login varsa zorunlu — Guideline 4.8)
-- [ ] **IAP sandbox** gerçek satın alma akışı test edildi
-- [ ] **Backend production** çalışıyor (review reviewer gerçek transaction yapacak)
-- [ ] **Crash-free** son 50 oturum (TestFlight/Play Internal'da)
-- [ ] **Screen recording** çekildi (60-90 sn, 1080p, MP4 H.264)
-- [ ] **Demo account credentials** üretildi (tek kullanımlık)
-- [ ] **AI services list** tam ve lisans/kaynak URL'leri doğrulandı
+- [ ] **Account deletion flow** reachable in-app (Guideline 5.1.1(v))
+- [ ] **Privacy Policy URL** live + contains KVKK/GDPR/CCPA sections (HTTP 200 verify)
+- [ ] **Support URL** live, with a real monitored email behind it
+- [ ] **Privacy Manifest** (`PrivacyInfo.xcprivacy`) present in the iOS bundle
+- [ ] **Required Reason API** declarations complete
+- [ ] **Apple Sign-In** (mandatory if any 3rd-party social login exists — Guideline 4.8)
+- [ ] **IAP sandbox** real purchase flow tested
+- [ ] **Backend production** up (the reviewer will perform real transactions)
+- [ ] **Crash-free** for the last 50 sessions (on TestFlight/Play Internal)
+- [ ] **Screen recording** captured (60-90 s, 1080p, MP4 H.264)
+- [ ] **Demo account credentials** generated (single-use)
+- [ ] **AI services list** complete, with license/source URLs verified
 
-CRITICAL eksiklik varsa SKILL submit etmeyi durdurur ve eksiklikleri raporlar.
+If any CRITICAL item is missing, the skill stops the submission and reports the gaps.
 
 ---
 
-## Screen Recording Şot Listesi (Apple Guideline 2.1 zorunlu)
+## Screen Recording Shot List (mandatory for Apple Guideline 2.1)
 
-| # | Kare | Süre | Detay |
-|---|------|------|-------|
-| 1 | App launch | 2-3 sn | Splash → home |
-| 2 | Sign-in flow (her provider) | 8-10 sn each | OIDC native diyalogları görünmeli |
-| 3 | Hassas izin prompt'ları | 3 sn each | Mic / Camera / Location / Contacts |
-| 4 | Core feature flow | 10-30 sn | Ana iş akışı end-to-end |
-| 5 | Paid content / IAP flow | 15-20 sn | Sandbox satın alma + balance update |
-| 6 | UGC: report + block | 5 sn each | Kullanıcı içeriği varsa zorunlu |
-| 7 | History / saved data view | 3 sn | Daha önce yapılmış iş |
-| 8 | **Account deletion flow** | 10 sn | Settings → Delete Account → confirm |
+| # | Shot | Duration | Detail |
+|---|------|----------|--------|
+| 1 | App launch | 2-3 s | Splash → home |
+| 2 | Sign-in flow (each provider) | 8-10 s each | Native OIDC dialogs must be visible |
+| 3 | Sensitive permission prompts | 3 s each | Mic / Camera / Location / Contacts |
+| 4 | Core feature flow | 10-30 s | Main workflow end-to-end |
+| 5 | Paid content / IAP flow | 15-20 s | Sandbox purchase + balance update |
+| 6 | UGC: report + block | 5 s each | Mandatory if user-generated content exists |
+| 7 | History / saved data view | 3 s | Previously created work |
+| 8 | **Account deletion flow** | 10 s | Settings → Delete Account → confirm |
 
-Toplam: 60-120 saniye, 1080p, MP4 (H.264). Yükleme: TestFlight build attachment veya unlisted YouTube link.
+Total: 60-120 seconds, 1080p, MP4 (H.264). Upload: TestFlight build attachment or unlisted YouTube link.
 
-iOS kayıt: QuickTime Player → New Movie Recording → Camera dropdown → iPhone.
-Android kayıt: `adb shell screenrecord --bit-rate 8000000 /sdcard/{{APP_NAME}}-flow.mp4`.
+iOS recording: QuickTime Player → New Movie Recording → Camera dropdown → iPhone.
+Android recording: `adb shell screenrecord --bit-rate 8000000 /sdcard/{{APP_NAME}}-flow.mp4`.
 
 ---
 
 ## Google Play Adaptation
 
-Google Play **App Review Notes** alanı yok. Bunun yerine:
+Google Play has no **App Review Notes** field. Use these equivalents instead:
 
-| Apple field | Google Play karşılığı |
-|-------------|----------------------|
+| Apple field | Google Play equivalent |
+|-------------|------------------------|
 | App Review Notes | "App access" → "All functionality available" + Test Account Credentials |
 | Privacy Nutrition Label | "Data safety" form |
 | Sign-In Information | "Test Account Credentials" |
 | Demo Account Required | "Login required" toggle |
 
-Ek Google'a özgü gereksinimler:
-- "Data safety" formunda **Ephemeral** toggle (server'da kalıcı yoksa)
-- Permissions Declaration (Manifest'te) `RECORD_AUDIO` / `CAMERA` / `LOCATION` için use case açıklaması zorunlu
+Additional Google-specific requirements:
+- **Ephemeral** toggle in the "Data safety" form (when nothing persists server-side)
+- Permissions Declaration (in the Manifest) — a use-case explanation is mandatory for `RECORD_AUDIO` / `CAMERA` / `LOCATION`
 
 ---
 
 ## Re-Submission Workflow
 
-Reject geldiyse:
+On a rejection:
 
-1. Reviewer'ın tam olarak hangi guideline'a refere ettiğini çıkar (e-posta'da Guideline X.Y.Z formatında)
-2. Bu dosyanın "Common Rejection Cookbook" bölümünden ilgili hazır cevabı kopyala
-3. **Reject yalnızca bilgi eksikliği** ise → "Reply" et, hazır cevabı yapıştır + "no code change in this resubmission" not düş
-4. **Reject kod değişikliği gerektiriyorsa** → düzelt → yeni build → yeni TestFlight/Internal upload → re-submission notes alanına: `RESUBMISSION — {{REJECT_REASON}}. Addressed by: {{CHANGE}}. See section X of original submission notes.`
+1. Extract the exact guideline the reviewer references (in the email, in `Guideline X.Y.Z` format)
+2. Copy the matching ready-made reply from this file's "Common Rejection Cookbook" section
+3. **If the reject is information-only** → "Reply", paste the ready-made answer + note "no code change in this resubmission"
+4. **If the reject requires a code change** → fix → new build → new TestFlight/Internal upload → in the re-submission notes field: `RESUBMISSION — {{REJECT_REASON}}. Addressed by: {{CHANGE}}. See section X of original submission notes.`
 
 ---
 
-## Versiyonlama
+## Versioning
 
-Her release'de `ds/launch/submission-meta.yml` güncelle:
+Update `ds/launch/submission-meta.yml` on every release:
 
 ```yaml
 version: "1.0.0"
@@ -282,7 +282,7 @@ backend_production_health: green
 sandbox_iap_verified: true
 ```
 
-`ds/launch/submission-meta.yml` versiyon kontrolünde tutulur (Category B — komitlenmiş, audit trail).
+`ds/launch/submission-meta.yml` is kept under version control (Category B — committed, audit trail).
 
 ---
 

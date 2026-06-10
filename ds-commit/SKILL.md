@@ -10,9 +10,9 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 - User asks to commit, stage and commit, save work as a commit
 - Trigger only on explicit commit request — staging alone is not a commit request
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "commit my changes", "save my work as a commit" | "create a pull request" (→ ds-pr) |
 | "split this into atomic conventional commits" | "format my code" (→ ds-fix) |

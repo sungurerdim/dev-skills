@@ -11,9 +11,9 @@ Documentation drifts from code the moment it's written. This skill detects the g
 - User asks "what docs are missing" or "is the README up to date"
 - User asks to verify documentation accuracy against source code
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "audit documentation gaps", "is README up to date" | "audit code quality" (→ ds-review) |
 | "generate API docs from source" | "write marketing copy / landing page" (→ ds-market) |

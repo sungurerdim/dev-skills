@@ -11,9 +11,9 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 - User asks "what's the best way to...", "compare X vs Y", or "what are the options for..."
 - User needs evidence-based analysis with source verification
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "compare X vs Y", "find best library for {task}" | "implement what you find" (→ manual / target skill) |
 | "research auth best practices" | "design auth flow concretely" (→ ds-backend --design) |

@@ -6,7 +6,7 @@ Project-type-specific baselines for `/ds-review --meta-quality --criteria-fit`. 
 
 A monorepo web-app and a 200-line CLI tool have different reasonable expectations. Reporting "you have 4 SSOT violations" is meaningless without a yardstick. Baselines convert raw counts into "above/at/below expected for this project type."
 
-The baselines below are calibrated against the [`references/weights.md`](../../ds-blueprint/references/weights.md) project-type definitions used by `/ds-blueprint`. Same taxonomy, same calibration.
+The baselines below are calibrated against the project-type definitions in ds-blueprint's `references/weights.md` (https://github.com/sungurerdim/dev-skills/blob/main/ds-blueprint/references/weights.md). Same taxonomy, same calibration.
 
 ## Baselines
 

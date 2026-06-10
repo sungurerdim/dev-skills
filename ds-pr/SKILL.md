@@ -11,9 +11,9 @@ PR descriptions that list every commit instead of net change create noise, confu
 - User says "create PR", "open PR", or "submit for review"
 - After successful commit, suggest PR creation if on a feature branch
 
-### Triggers — ÇAĞIRIR / ÇAĞIRMAZ
+### Triggers — INVOKE / DON'T INVOKE
 
-| ÇAĞIRIR | ÇAĞIRMAZ |
+| INVOKE | DON'T INVOKE |
 |---------|----------|
 | "open a pull request", "create PR for this branch" | "commit my changes" (→ ds-commit) |
 | "tidy commit history before PR + push" | "format my code" (→ ds-fix) |
