@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dev-skills — Production-Readiness Guide</title>
+<meta name="description" content="Which dev-skills to run, in which order, to make your project production-ready. Filtered by project type and stage.">
+<style>
+:root{--bg:#fafafa;--card:#fff;--ink:#1a1a1a;--muted:#666;--line:#e4e4e4;--accent:#0b6e4f;--accent-ink:#fff;--chip:#eef5f2}
+@media(prefers-color-scheme:dark){:root{--bg:#111;--card:#1b1b1b;--ink:#eee;--muted:#9a9a9a;--line:#2c2c2c;--accent:#2fa37c;--accent-ink:#0c0c0c;--chip:#1f2b26}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:32px 16px 64px}
+main{max-width:740px;margin:0 auto}
+h1{font-size:1.7rem;margin-bottom:4px}
+.sub{color:var(--muted);margin-bottom:24px}
+.shortcut{background:var(--card);border:1px solid var(--accent);border-radius:10px;padding:14px 16px;margin-bottom:28px;font-size:.95rem}
+.shortcut code{background:var(--chip);padding:1px 6px;border-radius:5px;font-size:.9em}
+.flabel{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 8px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 16px;font-size:.92rem;cursor:pointer}
+.pill.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#plan{margin-top:30px}
+.step{display:flex;gap:14px;margin-bottom:14px}
+.num{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;margin-top:14px}
+.card{flex:1;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 16px}
+.card h3{font-size:1.02rem;margin-bottom:2px}
+.card .note{display:inline-block;background:var(--chip);color:var(--accent);border-radius:6px;padding:1px 8px;font-size:.78rem;margin-left:6px;vertical-align:2px}
+.rows{display:grid;grid-template-columns:max-content 1fr;gap:7px 12px;margin-top:10px;align-items:start}
+.tag{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-radius:5px;padding:2px 8px;margin-top:1px;white-space:nowrap;justify-self:start}
+.t-does{background:#e3edf9;color:#1d5ca8}
+.t-gain{background:#e2f3e8;color:#1c7a3f}
+.t-closes{background:#fcebe6;color:#b4421f}
+@media(prefers-color-scheme:dark){.t-does{background:#16273d;color:#7eb3f0}.t-gain{background:#142e1d;color:#6fce93}.t-closes{background:#391d14;color:#f0967a}}
+.row{font-size:.9rem}
+.row.does{color:var(--ink)}
+.row.gain{font-weight:600}
+.row.closes{color:var(--muted);font-style:italic}
+.always{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);font-size:.9rem;color:var(--muted)}
+.always code{background:var(--chip);color:var(--accent);padding:1px 6px;border-radius:5px}
+footer{margin-top:30px;font-size:.82rem;color:var(--muted)}
+footer a{color:var(--accent)}
+#printsel{display:none;font-weight:700;margin:14px 0 6px}
+@media(max-width:430px){body{padding:20px 10px 48px}.step{gap:9px}.num{flex-basis:24px;height:24px;font-size:.8rem}.card{padding:11px 12px}.rows{grid-template-columns:1fr;gap:2px 0}.tag{margin-top:7px}}
+@media print{
+ body{background:#fff;color:#000;padding:0;font-size:13px}
+ .pills,.flabel,.shortcut,footer{display:none}
+ #printsel{display:block}
+ .step{break-inside:avoid;page-break-inside:avoid}
+ .card{border-color:#bbb}
+ .num{background:#333;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .tag{border:1px solid #999;background:none!important;color:#333!important}
+ .row.closes{color:#444}
+ .always{color:#333}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Production-Readiness Guide</h1>
+<p class="sub">Pick your project type and stage. You get the exact skill sequence — what each one does, what you gain, which gap it closes. Nothing else.</p>
+
+<div class="shortcut"><strong>Shortcut:</strong> run <code>/ds-ship</code> once — it classifies your project, proposes this same sequence, runs it with your approval, and consolidates one report. This guide is the map behind that command.</div>
+
+<div class="flabel">Project type</div>
+<div class="pills" id="types"></div>
+<div class="flabel">Stage</div>
+<div class="pills" id="stages"></div>
+
+<div id="printsel"></div>
+<div id="plan"></div>
+
+<div class="always">
+<strong>Anytime, any stage:</strong>
+<code>/ds-solve</code> when a problem resists a single-pass fix ·
+<code>/ds-commit</code> for every commit ·
+<code>/ds-pr</code> when opening a pull request ·
+<code>/ds-research</code> before any big decision.
+Dormant project? <code>/ds-blueprint</code> then <code>/ds-deps --security-only</code> first.
+</div>
+
+<footer>Part of <a href="https://github.com/sungurerdim/dev-skills">dev-skills</a> — 26 markdown-only skills, zero runtime dependencies. Sequences mirror the <code>/ds-ship</code> orchestration matrix.</footer>
+</main>
+
+<script>
+const S = {
+ "ds-research":{w:"Parallel web research with source-reliability tiers and citations.",b:"Decisions grounded in verified sources, not model memory.",g:"Hallucinated or outdated claims steering the project."},
+ "ds-benchmark":{w:"Researches 5–10 comparable projects, synthesizes the ideal architecture, produces a dimension-by-dimension gap table.",b:"An external ideal to measure against — you decide which gaps to close.",g:"Project “ideal” drifting toward internal taste."},
+ "ds-init":{w:"Scaffolds production-ready structure: CI, test setup, linting, Docker stubs, env templates.",b:"Day-one quality infrastructure for any stack.",g:"New projects starting with no CI, no tests, no linting."},
+ "ds-blueprint":{w:"Scores project health across 9 dimensions and writes the findings file every fix skill consumes.",b:"Exact focus order + a single source of truth for all later fixes.",g:"Improving without measuring; every skill re-analyzing from scratch."},
+ "ds-review":{w:"Tactical (file-level) and strategic (architecture) code review with file:line findings.",b:"Security holes, dead code and wrong abstractions caught before they ship.",g:"Everything tests miss."},
+ "ds-test":{w:"Generates, updates, runs and fixes tests following your project's own patterns.",b:"Tests that assert real behavior and survive refactors.",g:"Mock-everything, assert-nothing AI test suites."},
+ "ds-frontend":{w:"Design-system audit: tokens, component states, accessibility, responsive layout, theming.",b:"Consistent, accessible UI enforced in code.",g:"Hardcoded colors, missing focus states, broken dark mode."},
+ "ds-backend":{w:"API design, database schema and auth architecture in one pass.",b:"Endpoints, schemas and auth that survive the first migration.",g:"Inconsistent naming, missing pagination, no auth strategy."},
+ "ds-mobile":{w:"145+ rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin, React Native).",b:"Store-blocking issues caught before review, not during it.",g:"Permission abuse, missing accessibility, hardcoded keys."},
+ "ds-compliance":{w:"80+ rules across 8 domains: OWASP security, privacy law, data protection, i18n.",b:"Fines, breaches and rejections prevented with file:line precision.",g:"A missing privacy policy or unpatched XSS."},
+ "ds-simplify":{w:"Detects dead exports, single-caller helpers, orphan modules, premature abstractions; you approve every deletion.",b:"A smaller, clearer codebase — zero silent deletion.",g:"Overengineering that doesn't pay rent."},
+ "ds-fix":{w:"Format, lint, type-check, l10n and security scan — five passes in the correct order, results verified.",b:"Mechanical quality settled in one command.",g:"AI skipping formatters, lint errors and type checks."},
+ "ds-docs":{w:"Detects doc gaps, verifies every claim against source code, generates only what's missing.",b:"Docs that match the code — drift surfaced, not shipped.",g:"Documentation drifting the moment it's written."},
+ "ds-devops":{w:"Audits CI/CD pipelines, code signing, dependency management, deployment config.",b:"Release-pipeline integrity proven before you depend on it.",g:"Broken CI and unsigned builds silently eroding quality."},
+ "ds-deploy":{w:"Audits and generates containerization, TLS, health checks, monitoring, incident runbook.",b:"Production-grade infrastructure instead of first-deploy surprises.",g:"Bloated images, no SSL, no monitoring."},
+ "ds-launch":{w:"Store-submission / web-launch / publish checks, listing optimization, release strategy.",b:"Preventable rejections caught before you submit.",g:"~40% of store submissions delayed by avoidable errors."},
+ "ds-repo":{w:"Audits and fixes repo settings: branch protection, CODEOWNERS, policies, metadata.",b:"A hardened, contributor-ready repository.",g:"Unprotected main, stale branches, missing CODEOWNERS."},
+ "ds-market":{w:"Positioning, copy and a growth playbook for indie products.",b:"A launch people actually notice.",g:"Great product, zero distribution."},
+ "ds-tune":{w:"Runs 100+ autonomous experiments against a measurable metric, keeps only what improves it.",b:"Optimization with an audit trail instead of gut feeling.",g:"Slow, subjective manual tuning."},
+ "ds-analytics":{w:"Designs a privacy-first minimum event taxonomy, funnels and user insights.",b:"Maximum insight without privacy violations.",g:"Tracking everything (illegal) or nothing (blind)."},
+ "ds-deps":{w:"Classifies every dependency safe-patch / safe-minor / review-major; applies safe groups with per-group commits and a rollback plan.",b:"Dependencies stay current without breakage roulette.",g:"Security advisories piling up in dormant projects."}
+};
+const TYPES=["Web App","Backend / API","Mobile App","CLI Tool","Library / Package"];
+const STAGES=["Kickstart","Development","Launch","Live"];
+const note=(s,n)=>({s,n});
+const P={
+ "Kickstart":{all:[note("ds-research","ground the idea"),note("ds-benchmark","define the ideal"),note("ds-init","scaffold CI + tests + lint"),note("ds-blueprint","baseline score"),note("ds-fix","clean first pass")]},
+ "Development":{
+  "Web App":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test","ds-frontend","ds-backend","ds-compliance","ds-simplify","ds-fix","ds-docs"],
+  "Backend / API":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test","ds-backend","ds-compliance","ds-simplify","ds-fix","ds-docs"],
+  "Mobile App":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test",note("ds-mobile","replaces ds-compliance on mobile"),note("ds-frontend","if UI-heavy"),"ds-simplify","ds-fix","ds-docs"],
+  "CLI Tool":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test","ds-simplify","ds-fix","ds-docs"],
+  "Library / Package":[note("ds-blueprint","fresh findings first"),"ds-review",note("ds-test","aim high coverage"),"ds-simplify","ds-fix",note("ds-docs","API docs are the product")]},
+ "Launch":{
+  "Web App":["ds-devops","ds-deploy",note("ds-launch","web launch checks"),"ds-repo",note("ds-market","public products")],
+  "Backend / API":["ds-devops","ds-deploy","ds-repo"],
+  "Mobile App":["ds-devops",note("ds-deploy","only if you own the backend"),note("ds-launch","store submission"),"ds-repo"],
+  "CLI Tool":["ds-devops",note("ds-repo","--oss-ready if public")],
+  "Library / Package":["ds-devops",note("ds-repo","--oss-ready, then publish to the registry yourself")]},
+ "Live":{
+  "Web App":["ds-tune","ds-analytics","ds-deps"],
+  "Backend / API":["ds-tune",note("ds-analytics","if events are tracked"),"ds-deps"],
+  "Mobile App":["ds-tune","ds-analytics","ds-deps"],
+  "CLI Tool":[note("ds-tune","if you have a measurable metric"),"ds-deps"],
+  "Library / Package":["ds-deps",note("ds-tune","if you have a measurable metric")]}
+};
+let type=TYPES[0],stage=STAGES[0];
+function pills(el,items,cur,set){el.innerHTML="";items.forEach(x=>{const b=document.createElement("button");b.className="pill"+(x===cur?" on":"");b.textContent=x;b.onclick=()=>{set(x);render()};el.appendChild(b)})}
+function render(){
+ pills(document.getElementById("types"),TYPES,type,v=>type=v);
+ pills(document.getElementById("stages"),STAGES,stage,v=>stage=v);
+ document.getElementById("printsel").textContent=`Plan: ${type} — ${stage}`;
+ const list=(P[stage].all||P[stage][type]).map(x=>typeof x==="string"?{s:x}:x);
+ document.getElementById("plan").innerHTML=list.map((x,i)=>{
+  const k=S[x.s];
+  return `<div class="step"><div class="num">${i+1}</div><div class="card">
+   <h3><code>/${x.s}</code>${x.n?`<span class="note">${x.n}</span>`:""}</h3>
+   <div class="rows">
+   <span class="tag t-does">Does</span><div class="row does">${k.w}</div>
+   <span class="tag t-gain">You gain</span><div class="row gain">${k.b}</div>
+   <span class="tag t-closes">Closes</span><div class="row closes">${k.g}</div>
+   </div></div></div>`}).join("");
+}
+render();
+</script>
+</body>
+</html>
