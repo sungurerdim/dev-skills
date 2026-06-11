@@ -11,6 +11,7 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 - User asks for project profile, health score, or quality dashboard
 - User asks "how healthy is this project" or "what should I improve"
 - First time working on new project (suggest profile creation)
+- A verification-infrastructure gap (no CI, no tests, no linter) surfaces during any task (suggest audit — don't auto-invoke)
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -20,6 +21,7 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 | "create project profile", "refresh blueprint" | "research industry best practices" (→ ds-research) |
 | "blueprint dashboard, 9 dimensions" | "release-candidate report" (→ ds-ship) |
 | "where is this codebase weakest" | "competitor comparison" (→ ds-benchmark) |
+| "project has no CI/tests — what else is missing?" | "scaffold CI from zero on a greenfield project" (→ ds-init) |
 
 ## Contract
 
@@ -30,6 +32,7 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 - **Completeness requirement (SSOT):** `ds/audit/findings.md` is the single source of truth for every fix skill. Other skills skip their own detection when blueprint findings exist. Blueprint MUST detect ALL issues in each in-scope dimension — a missing finding will not be fixed downstream.
 - **SSOT runtime enforcement (W10):** Every downstream consumer (ds-review, ds-fix, ds-simplify, ds-compliance, ds-mobile, etc.) MUST defer to a fresh `ds/audit/findings.md` (`git_hash == HEAD`, age ≤ 7 days). Fresh → consumers verify + apply only; they do NOT re-detect within blueprint's owned scopes. Stale or missing → consumer invokes `/ds-blueprint --refresh` or `--preview --scope=all` and waits before continuing. Re-detection within a covered scope is a W10 violation.
 - **Overwrite-only persistence (SKILL-SPEC §10.1):** state, findings, profile rewritten every run — never appended. Run history lives in `git log -- <instruction-file>`, not in profile or any `ds/audit/` file. Append-only artifacts forbidden anywhere.
+- **Human-action items:** findings whose remediation requires human-only access (branch protection, CI/repo secrets, store or account setup, key rotation, purchases) are surfaced as a distinct `Human actions` block in Dashboard and repeated in Summary — never silently dropped, never marked fixed by the AI.
 - **Dev-Value Gate on every profile line:** the instruction file is re-read on every AI turn — every byte costs every future model read. A profile line is written only if it makes AI engineering measurably better on every turn for the next 6 months. Anything else (timestamps, score deltas, owner info, descriptions, philosophy) goes to README / CHANGELOG / git log / terminal summary instead.
 
 ## Arguments
@@ -319,6 +322,12 @@ Any dimension dropped (negative delta), explain:
 Score changes: {dimension} {delta}: {brief cause}
 ```
 
+Findings requiring human-only access exist → list them (omit block when none):
+```
+Human actions (AI cannot perform these):
+- {finding-ID}: {action} — where: {settings-page/console/account} | why: {risk if skipped}
+```
+
 **Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), gap analysis; `ds/audit/findings.md` write confirmed. If fails → write unconfirmed (filesystem error after Phase 4) → retry once; still failing → print dashboard with `[WARN: findings.md not written]` header so user sees scores but knows downstream consumers cannot use them until resolved.
 
 ### Phase 6: Suggest [SKIP if --preview]
@@ -383,6 +392,8 @@ blueprint: {OK|WARN|FAIL} | Health: {before}→{after}/{target} | Fixed: {n} | S
 FRC+DSC accounting.
 
 Status: OK (overall ≥ target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression).
+
+Open human-action items exist → repeat them after the summary line (`Human actions open: {n} — {comma-list of IDs}`); they carry over every run until the user resolves or dismisses them.
 
 **Gate:** Summary printed with before/after + next steps. If fails → scores uncomputable (Phase 4 produced no scores, or previous scores absent from profile) → print with available scores, substitute `N/A` for missing, status `WARN`, note which phases need re-running.
 
