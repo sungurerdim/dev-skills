@@ -6,10 +6,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 
 ## Triggers
 
-- User runs `/ds-deploy`
-- User asks to deploy, containerize, or set up infrastructure
-- User asks about Docker, VPS, SSL, monitoring, or incident response
-- User asks "how do I deploy this" or "review my Dockerfile"
+- User runs `/ds-deploy`, asks to deploy, containerize, or set up infrastructure, asks about Docker, VPS, SSL, monitoring, or incident response, or asks "how do I deploy this" / "review my Dockerfile"
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -102,18 +99,15 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 1. **IDU:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
 2. Flags → proceed directly. No flags → interactive menu.
-3. Detect deployment signals: `Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`.
-4. Detect target: VPS, PaaS, serverless, container orchestration.
+3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`) + target: VPS, PaaS, serverless, container orchestration.
 
 **Gate:** Mode + context confirmed. If fails → re-present interactive menu; context absent (no Dockerfile, no target detected) → "What is your deployment target? (VPS / PaaS / serverless / container)" — abort with WARN if no response after 3 prompts.
 
 ### Phase 2: Discover
 
 1. **Findings file check:** `ds/audit/findings.md` fresh → use relevant findings.
-2. Search for deployment configs (Dockerfile, compose, CI deploy steps).
-3. Search for monitoring configs (Sentry DSN, logging config, health endpoints).
-4. Search for env vars + secrets management.
-5. Build inventory: services, ports, volumes, external dependencies.
+2. Search for deployment configs (Dockerfile, compose, CI deploy steps), monitoring configs (Sentry DSN, logging config, health endpoints), env vars + secrets management.
+3. Build inventory: services, ports, volumes, external dependencies.
 
 **Gate:** Inventory complete. If fails → undiscoverable configs logged as `{ file, status: "not_found" }`, mark inventory `partial`, continue with what was found; surface MEDIUM "incomplete inventory — some deployment configs could not be located".
 
@@ -121,45 +115,12 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 Apply rules from [references/rules-deployment.md](references/rules-deployment.md) (container security, deployment patterns) + [references/rules-monitoring.md](references/rules-monitoring.md) (observability, alerting).
 
-**Dockerfile audit:**
+- **Dockerfile audit:** base image uses specific tag (not `latest`); multi-stage build (separate build + runtime stages); non-root user in runtime stage; `.dockerignore` exists covering `.git`, `node_modules`, `.env`, test files; layer ordering — deps before source code (cache efficiency); no secrets in build args or environment.
+- **Infrastructure audit:** SSH key-only auth, no root login; firewall rules — only required ports open; backup config exists + tested; SSL/TLS A+ on SSL Labs; no exposed debug endpoints or admin panels.
+- **Monitoring audit:** health check endpoint returns meaningful status; structured logging configured (not `console.log` in production); crash reporting has PII redaction; alerting on critical metrics.
+- **Cost audit:** current infrastructure costs analyzed; over-provisioned resources identified; free tier alternatives suggested where applicable; cost calculated at different scale points.
 
-1. Base image uses specific tag (not `latest`).
-2. Multi-stage build (separate build + runtime stages).
-3. Non-root user in runtime stage.
-4. `.dockerignore` exists; covers `.git`, `node_modules`, `.env`, test files.
-5. Layer ordering: deps before source code (cache efficiency).
-6. No secrets in build args or environment.
-
-**Infrastructure audit:**
-
-1. SSH key-only auth, no root login.
-2. Firewall rules: only required ports open.
-3. Backup config exists + tested.
-4. SSL/TLS: A+ on SSL Labs.
-5. No exposed debug endpoints or admin panels.
-
-**Monitoring audit:**
-
-1. Health check endpoint returns meaningful status.
-2. Structured logging configured (not `console.log` in production).
-3. Crash reporting has PII redaction.
-4. Alerting on critical metrics.
-
-**Cost audit:**
-
-1. Current infrastructure costs analyzed.
-2. Over-provisioned resources identified.
-3. Free tier alternatives suggested where applicable.
-4. Cost calculated at different scale points.
-
-**Twelve-Factor gates ([references/principles.md §3](references/principles.md)):**
-
-- Stateless processes (Factor 6) — no in-memory state survives restart; sessions in shared store
-- Build/Release/Run separation (Factor 5) — release artifact immutable, never recompiled between envs
-- Dev/prod parity (Factor 10) — same backing service types (no SQLite-in-dev, Postgres-in-prod)
-- Logs to stdout (Factor 11) — no log file paths in app config; aggregator captures stream
-- Port binding (Factor 7) — port from `$PORT`, never hardcoded
-- Admin tasks (migrations, seeds) as one-off commands (Factor 12), never embedded in deploy job
+**Twelve-Factor gates ([references/principles.md §3](references/principles.md)):** stateless processes (Factor 6) — no in-memory state survives restart, sessions in shared store; Build/Release/Run separation (Factor 5) — release artifact immutable, never recompiled between envs; dev/prod parity (Factor 10) — same backing service types (no SQLite-in-dev, Postgres-in-prod); logs to stdout (Factor 11) — no log file paths in app config, aggregator captures stream; port binding (Factor 7) — port from `$PORT`, never hardcoded; admin tasks (migrations, seeds) as one-off commands (Factor 12), never embedded in deploy job.
 
 **Reliability gates ([references/principles.md §4](references/principles.md)):** timeout on every external call (DB, HTTP, queue); retry with exponential backoff on transient failures (idempotent ops only); circuit breaker on high-volume external deps; liveness + readiness probes; graceful shutdown (drain → flush → exit).
 
@@ -181,20 +142,13 @@ Present generated files for review before writing.
 
 ### Phase 5: Monitor Setup [--monitor]
 
-1. Structured logging configuration (JSON format, log levels).
-2. Crash reporting setup with PII redaction rules.
-3. Health check endpoint implementation.
-4. Uptime monitoring configuration.
-5. Alert rules (error rate > 5%, response time > 2s, disk > 80%).
+Structured logging configuration (JSON format, log levels); crash reporting setup with PII redaction rules; health check endpoint implementation; uptime monitoring configuration; alert rules (error rate > 5%, response time > 2s, disk > 80%).
 
 **Gate:** Monitoring configs valid + PII redaction configured. If fails → PII redaction missing → block writing crash-reporting config, prompt user to confirm redaction rules before proceeding; invalid config → fix inline + re-validate once; still invalid → skip, record `status: "failed (invalid config)"`, continue.
 
 ### Phase 6: Incident Response [--incident]
 
-1. Incident severity classification (P1-P4).
-2. Detection → triage → mitigate → communicate → post-mortem procedure.
-3. Post-mortem template.
-4. Rollback procedure documentation.
+Incident severity classification (P1-P4); detection → triage → mitigate → communicate → post-mortem procedure; post-mortem template; rollback procedure documentation.
 
 **Gate:** Procedure covers all severity levels. If fails → missing severity coverage → generate stubs with `# TODO: fill in escalation contact and mitigation steps` placeholder, record in state.configs_generated with `status: "partial"`, surface HIGH finding "incomplete incident procedure — severity levels {missing} need review".
 
@@ -225,11 +179,9 @@ Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list 
 
 ## Quality Gates
 
-- Every Dockerfile uses specific base image tags (not `latest`)
-- Every docker-compose includes health checks + restart policies
+- Every Dockerfile uses specific base image tags (not `latest`); every docker-compose includes health checks + restart policies
 - Every generated config preserves existing environment variables
-- Monitoring setup includes PII redaction
-- SSL configuration targets A+ rating
+- Monitoring setup includes PII redaction; SSL configuration targets A+ rating
 - Backup strategy includes verification + offsite storage
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/deploy.json` updated per mode + per config generated, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 

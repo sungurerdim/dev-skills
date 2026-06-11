@@ -6,10 +6,7 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 
 ## Triggers
 
-- User runs `/ds-fix`
-- User asks to format code, run linters, fix lint errors, or fix code quality issues
-- User asks to run type checker, check types, or fix type errors
-- User asks to scan for secrets or audit dependencies
+- User runs `/ds-fix`, asks to format code, run linters / fix lint errors or code quality issues, run type checker / fix type errors, scan for secrets, or audit dependencies
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -22,13 +19,11 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 
 ## Contract
 
-- Runs automated fixers in safe, deterministic order: l10n → format → typecheck → lint → security
-- Format always runs before lint (auto-formatting must not introduce new lint issues)
-- `--check` mode: report only, zero modifications
-- Missing tools skipped with a warning — never fails due to absent optional tooling
-- Re-validates after fix to confirm fix worked
-- Reports counts, not verbose output
-- Does NOT perform manual code review, architecture analysis, or refactoring
+- Runs automated fixers in safe, deterministic order: l10n → format → typecheck → lint → security. Format always runs before lint (auto-formatting must not introduce new lint issues).
+- `--check` mode: report only, zero modifications.
+- Missing tools skipped with a warning — never fails due to absent optional tooling.
+- Re-validates after fix to confirm fix worked. Reports counts, not verbose output.
+- Does NOT perform manual code review, architecture analysis, or refactoring.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
@@ -61,13 +56,7 @@ Default: all five scopes in order.
 
 ## Tool Install Policy (applied to every scope below)
 
-When a scope's tool (formatter, linter, typecheck binary, l10n generator, audit command) is unavailable, every scope follows the same flow — no per-scope re-statement:
-
-1. Offer to install: show install command (e.g., `{install-command-for-tool}`), ask **"Install and continue?"**.
-2. User accepts → install, re-run that scope.
-3. User declines → mark scope `⚠ Skipped (tool unavailable, declined install)` in summary; continue with next scope.
-4. System-level tools (requiring manual install, e.g., `{compiler-or-runtime}`) → show install instructions, skip scope.
-5. Filesystem access error → mark scope `WARN` with the specific OS error.
+Scope's tool (formatter, linter, typecheck binary, l10n generator, audit command) unavailable → same flow for every scope, no per-scope re-statement: (1) offer install — show command (e.g., `{install-command-for-tool}`), ask **"Install and continue?"**; accept → install, re-run scope; decline → mark scope `⚠ Skipped (tool unavailable, declined install)` in summary, continue with next scope. (2) System-level tools (manual install, e.g., `{compiler-or-runtime}`) → show install instructions, skip scope. (3) Filesystem access error → mark scope `WARN` with the specific OS error.
 
 ## Execution Flow
 
@@ -105,24 +94,13 @@ Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 | `*.tf` files | terraform | High confidence — unique extension. Treat as primary if no other stack. |
 | `Dockerfile` / `docker-compose.yml` | docker | Always supplementary. Run hadolint/trivy alongside primary stack. |
 
-**Disambiguation:**
-
-- Tier 2 only (e.g., Dockerfile + shell) → run security scope universally, Tier 2 tools for their files only.
-- Tier 1 + Tier 2 → full toolchain for Tier 1, supplementary tools for Tier 2.
-- `*.tf` only → treat as primary (iac project).
-
-Per stack: load toolchain from [references/toolchains.md](references/toolchains.md).
+**Disambiguation:** Tier 2 only (e.g., Dockerfile + shell) → run security scope universally, Tier 2 tools for their files only; Tier 1 + Tier 2 → full toolchain for Tier 1, supplementary tools for Tier 2; `*.tf` only → treat as primary (iac project). Per stack: load toolchain from [references/toolchains.md](references/toolchains.md).
 
 **Gate:** ≥1 stack detected or security-only mode. If fails → no manifests; run security scope only (universal secret scan + dep audit where available), announce "No stack detected — running security scope only", skip other scopes.
 
 ### Phase 2: L10n [scope: l10n]
 
-1. Detect l10n framework from project config and dependencies
-2. Generate localization files if stack supports it (e.g., `{l10n-generator-command}`)
-3. Cross-check translation keys: all locale files must have same keys as base locale
-4. Check placeholder consistency: `{placeholder-token}` in base must exist in all translations
-5. Check encoding issues (mojibake patterns from cp1252→UTF-8 double-encoding)
-6. **Fix mode:** generate files, stage generated output. **Check mode:** report mismatches only.
+Detect l10n framework from project config + dependencies; generate localization files if stack supports it (e.g., `{l10n-generator-command}`); cross-check translation keys (all locale files must have same keys as base locale); check placeholder consistency (`{placeholder-token}` in base must exist in all translations); check encoding issues (mojibake patterns from cp1252→UTF-8 double-encoding). **Fix mode:** generate files, stage generated output. **Check mode:** report mismatches only.
 
 L10n frameworks per stack:
 
@@ -146,27 +124,19 @@ No framework detected → skip silently.
 
 ### Phase 3: Format [scope: format]
 
-1. Look up format tool from `references/toolchains.md`
-2. **Fix mode:** run fix command. **Check mode:** run check command, report exit code.
-3. Non-default formatter (e.g., `{alt-formatter}` instead of `{default-formatter}`) → detect from config files and use that.
+Look up format tool from `references/toolchains.md`. **Fix mode:** run fix command. **Check mode:** run check command, report exit code. Non-default formatter (e.g., `{alt-formatter}` instead of `{default-formatter}`) → detect from config files and use that.
 
 **Gate:** Format clean before proceeding to lint. If fails → tool unavailable: apply Tool Install Policy; formatter exits non-zero after run → report file count, proceed to typecheck (don't block pipeline on residual format issues).
 
 ### Phase 4: Typecheck [scope: typecheck]
 
-1. Look up typecheck tool from `references/toolchains.md`
-2. Detect if type checking is configured (e.g., `tsconfig.json` for Node, type hints in Python)
-3. No type checker configured → skip silently
-4. Run type checker (read-only — they report but don't auto-fix)
-5. Report error count and top issues
+Look up typecheck tool from `references/toolchains.md`; detect if type checking is configured (e.g., `tsconfig.json` for Node, type hints in Python) — none configured → skip silently. Run type checker (read-only — reports but doesn't auto-fix); report error count + top issues.
 
 **Gate:** Type checker reports zero errors, or no type checker configured. If fails → tool missing: apply Tool Install Policy; type errors un-fixable (read-only checker) → record error count, proceed to lint (type errors don't block subsequent scopes).
 
 ### Phase 5: Lint [scope: lint]
 
-1. Look up lint tool from `references/toolchains.md`
-2. **Fix mode:** run fix command, then re-run check to verify. **Check mode:** run check command only, report issues.
-3. Non-default linter → detect from config and use that.
+Look up lint tool from `references/toolchains.md`. **Fix mode:** run fix command, then re-run check to verify. **Check mode:** run check command only, report issues. Non-default linter → detect from config and use that.
 
 **Stack-specific extra checks** (content-based, not tool-dependent):
 
@@ -186,11 +156,7 @@ No framework detected → skip silently.
 
 ### Phase 6: Security [scope: security]
 
-Two sub-phases: universal secret scan + stack-specific dependency audit.
-
-**6a. Secret scan (all stacks):**
-
-Search project files for these patterns, excluding `.git/`, `node_modules/`, `build/`, `.dart_tool/`, `vendor/`, `__pycache__/`, `bin/`, `obj/`, `_build/`, `deps/`, `.terraform/`, `target/`:
+**6a. Secret scan (all stacks):** search project files for these patterns, excluding `.git/`, `node_modules/`, `build/`, `.dart_tool/`, `vendor/`, `__pycache__/`, `bin/`, `obj/`, `_build/`, `deps/`, `.terraform/`, `target/`:
 
 | Pattern | Description |
 |---------|-------------|
@@ -213,19 +179,7 @@ Search project files for these patterns, excluding `.git/`, `node_modules/`, `bu
 
 ### Phase 8: Summary
 
-Per-scope status table:
-
-```
-| Scope     | Status   | Details                |
-|-----------|----------|------------------------|
-| L10n      | ✓/✗/⊘/⚠ | {count or message}     |
-| Format    | ✓/✗/⊘/⚠ | {files-fixed} fixed    |
-| Typecheck | ✓/✗/⊘/⚠ | {errors-found} errors  |
-| Lint      | ✓/✗/⊘/⚠ | {issues-found} issues  |
-| Security  | ✓/✗/⊘/⚠ | {findings} findings    |
-```
-
-Legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped).
+Per-scope status table `| Scope | Status | Details |` — one row each for L10n ({count or message}), Format ({files-fixed} fixed), Typecheck ({errors-found} errors), Lint ({issues-found} issues), Security ({findings} findings). Status legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped).
 
 `ds-fix: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}` — FRC+DSC accounting.
 
@@ -242,11 +196,10 @@ Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scope
 ## Quality Gates
 
 - Format runs before lint — never reverse this order
-- After fix, re-run check to verify. Re-check fails → report as unresolved.
-- `--check` mode: only report; verify diff is empty after check run.
+- After fix, re-run check to verify; re-check fails → report as unresolved. `--check` mode: only report; verify diff is empty after check run.
+- Scope boundary: only run scopes user requested (or all if none specified).
 - **Secrets always CRITICAL** — never auto-fix, always report. Surface rotation guidance: "rotate this credential immediately, then add the variable name (placeholder value) to `.env.example`" ([references/principles.md §8](references/principles.md)).
 - **Regression-test gate:** fix modifies security-critical or business-logic code → check if a regression test exists for the affected path; if absent, add MEDIUM finding `regression test missing for {file}:{line} fix path` before completing ([references/principles.md §7](references/principles.md)).
-- Scope boundary: only run scopes user requested (or all if none specified).
 - **CRITICAL escalation (second-pass verification):** any CRITICAL secret finding re-verified before reporting — re-read file ±20 lines, check skip patterns (`# noqa`, test fixtures, generated files, env-loader patterns). Insufficient evidence → downgrade to HIGH. CRITICAL reserved for confirmed exposures.
 - **Educational output triple:** every applied fix includes three lines beside "what changed": `why:` (impact if unfixed), `avoid:` (anti-pattern), `prefer:` (correct pattern). Single-line counts/messages exempt — applies to per-finding fix records.
 - **needs_approval reason validator:** parse every `skipped` / `needs-approval` reason against the reject list in [references/principles.md §12](references/principles.md). Match → reason rejected, item re-routed (fix inline or escalate). Status `OK` forbidden while any rejected-reason item remains.

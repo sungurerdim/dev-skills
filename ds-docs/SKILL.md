@@ -6,10 +6,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 
 ## Triggers
 
-- User runs `/ds-docs`
-- User asks to check, generate, or improve documentation
-- User asks "what docs are missing" or "is the README up to date"
-- User asks to verify documentation accuracy against source code
+- User runs `/ds-docs`, asks to check, generate, or improve documentation, asks "what docs are missing" / "is the README up to date", or asks to verify documentation accuracy against source code
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -61,22 +58,16 @@ Without flags: present mode selection to the user.
 
 ### ADR scope (activated by `--adr` flag or when `adr` scope is explicitly selected)
 
-**Structure:** `docs/adr/NNNN-{kebab-slug}.md` with sequential zero-padded numbering starting at `0001`.
-
-**Template:**
+**Structure + template:** `docs/adr/NNNN-{kebab-slug}.md`, sequential zero-padded numbering from `0001`:
 
 ```markdown
 # ADR NNNN: {Title}
-
 **Status:** proposed | accepted | deprecated | superseded-by NNNN
 **Date:** YYYY-MM-DD
-
 ## Context
 {One paragraph: forces at play — technical, political, social, project-level — that pressured this decision.}
-
 ## Decision
 {One paragraph: the choice taken. Active voice. Specific.}
-
 ## Consequences
 {Bullet list: positive + negative consequences, known and anticipated.}
 ```
@@ -117,10 +108,9 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 Scan existing docs, detect project type, assess completeness. Apply quality rules from [references/rules-writing.md](references/rules-writing.md):
 
-1. Search for doc files: `README.md`, `CONTRIBUTING.md`, `docs/*`, `CHANGELOG.md`, `API.md`, `DEPLOY.md`.
-2. Per found doc: read + assess completeness (0-100%).
-3. Detect project type from config files.
-4. Check doc-sync: README drift, API signature mismatch, deprecated refs, broken links.
+1. Search for doc files (`README.md`, `CONTRIBUTING.md`, `docs/*`, `CHANGELOG.md`, `API.md`, `DEPLOY.md`); per found doc, read + assess completeness (0-100%).
+2. Detect project type from config files.
+3. Check doc-sync: README drift, API signature mismatch, deprecated refs, broken links.
 
 **Gate:** Project type detected + existing docs inventoried with completeness scores. If fails → undetermined type → prompt user "What type? (cli / library / api / web / mobile / desktop / monorepo / other)"; unreadable doc → record `{ file, completeness: 0, status: "unreadable" }`, continue inventory.
 
@@ -151,8 +141,6 @@ Missing docs = HIGH; incomplete (<70%) = MEDIUM.
 
 **Verify scope (doc vs code sync) — the most critical scope:** finds lies in documentation. For every testable claim, search source to confirm or deny.
 
-**What to verify:**
-
 | Claim type | How to verify |
 |-----------|--------------|
 | CLI flags / arguments | Search source for flag definitions (argparse, cobra, clap, commander) |
@@ -168,11 +156,7 @@ Missing docs = HIGH; incomplete (<70%) = MEDIUM.
 | Performance claims | Verify benchmarks / metrics against implementation |
 | Security claims | Verify stated security features exist in code |
 
-**Verification process:**
-
-1. Parse each doc into testable claims (every code block, table row, flag, path, number, link).
-2. Per claim, search codebase for referenced entity.
-3. Classify:
+**Verification process:** parse each doc into testable claims (every code block, table row, flag, path, number, link); per claim, search codebase for the referenced entity; classify:
 
 | Result | Classification | Action |
 |--------|---------------|--------|
@@ -182,13 +166,7 @@ Missing docs = HIGH; incomplete (<70%) = MEDIUM.
 | Source has something doc doesn't mention | **Gap** — undocumented feature | MEDIUM, suggest adding |
 | Link returns 404 or target heading missing | **Broken link** | HIGH |
 
-4. Report:
-
-```
-| # | Type                            | Doc File:Line   | Claim    | Actual   | Severity |
-|---|---------------------------------|-----------------|----------|----------|----------|
-| {n}| {Drift/Stale/Gap/Broken}       | {file}:{line}   | {claim}  | {actual} | {sev}    |
-```
+Report table: `| # | Type (Drift/Stale/Gap/Broken) | Doc File:Line | Claim | Actual | Severity |`
 
 **Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are highest-drift-risk.
 
@@ -202,14 +180,7 @@ Display plan (target files, sections, sources). Ask: Generate All / High Priorit
 
 ### Phase 5: Generate Documentation (skip if --preview)
 
-Generate following these principles:
-
-1. Extract from code, don't invent — read source for actual signatures/endpoints/configs.
-2. Brevity over verbosity — every sentence earns its place.
-3. Scannable format — headers, bullets, tables, copy-pasteable commands.
-4. Action-oriented — focus on what reader needs to do.
-
-Source mandate: every documented flag, endpoint, or config value MUST be verified by searching source before inclusion.
+Principles: extract from code, don't invent — read source for actual signatures/endpoints/configs; brevity over verbosity — every sentence earns its place; scannable format — headers, bullets, tables, copy-pasteable commands; action-oriented — focus on what the reader needs to do. Source mandate: every documented flag, endpoint, or config value MUST be verified by searching source before inclusion.
 
 **Compliance scope (when scope = compliance):**
 
@@ -235,21 +206,13 @@ Compliance template structures (scan codebase for data flows, third-party SDKs, 
 
 ### Phase 7: Summary
 
-```
-docs complete
-=============
-| Scope     | Status      | File         | Lines |
-|-----------|-------------|--------------|-------|
-| {scope}   | {status}    | {file}       | {n}   |
-
-Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
-```
+Per-scope table `| Scope | Status | File | Lines |`, then:
 
 `docs: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
 Total findings = 0 → include "All {n} scopes evaluated: 0 findings" confirmation. Distinguishes clean result from skipped analysis.
 
-**Profile update:** ds-docs does NOT modify the blueprint profile. Documentation dimension score is recalculated by ds-blueprint on next run. Run history is in `git log` + terminal summary — never re-injected into context-loaded files.
+**Profile update:** ds-docs does NOT modify the blueprint profile — documentation dimension score is recalculated by ds-blueprint on next run. Run history is in `git log` + terminal summary — never re-injected into context-loaded files.
 
 **Value Delivered:** 1-5 concrete bullets, real doc outcomes only. Example shapes (placeholders, not literal):
 

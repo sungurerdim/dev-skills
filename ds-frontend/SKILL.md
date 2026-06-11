@@ -6,10 +6,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 ## Triggers
 
-- User runs `/ds-frontend`
-- User asks to audit UI quality, check design system, review components, review frontend
-- User asks about accessibility, WCAG, contrast, dark mode, responsive, design tokens
-- User asks to create or generate a design system, design tokens
+- User runs `/ds-frontend`, asks to audit UI quality / design system / components / frontend, asks about accessibility, WCAG, contrast, dark mode, responsive, design tokens, or asks to create a design system / design tokens
 - Project contains frontend framework indicators (React, Vue, Svelte, Angular, Flutter, RN, SwiftUI, Compose)
 
 ### Triggers — INVOKE / DON'T INVOKE
@@ -79,11 +76,7 @@ Default: all scopes.
 
 ## Aesthetic Presets
 
-When `--aesthetic={preset}` is set, the skill loads the preset from [references/aesthetics-presets.md](references/aesthetics-presets.md) and:
-
-1. `design` mode → populates `tokens.json` with preset palette + typography + spacing + shadow + radius
-2. `audit` / `audit+fix` → adds preset-specific lint rules from `forbidden` list (e.g. `{preset-id}` flags `{forbidden-pattern-1}`, `{forbidden-pattern-2}`)
-3. Records `state.data.aesthetic` for resume
+`--aesthetic={preset}` → load preset from [references/aesthetics-presets.md](references/aesthetics-presets.md): `design` mode → populate `tokens.json` with preset palette + typography + spacing + shadow + radius; `audit` / `audit+fix` → add preset-specific lint rules from `forbidden` list (e.g. `{preset-id}` flags `{forbidden-pattern-1}`, `{forbidden-pattern-2}`); record `state.data.aesthetic` for resume.
 
 | ID | Best For | Anchor Color |
 |----|----------|--------------|
@@ -105,9 +98,7 @@ When `--aesthetic={preset}` is set, the skill loads the preset from [references/
 
 ## Execution Flow
 
-```
 Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [Design] → Summary
-```
 
 ### Phase 1: Detect
 
@@ -133,8 +124,7 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
 2. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings matching frontend scopes, skip redundant analysis. Stale/absent → own full analysis.
 3. **IDU:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 4. **Design system detection.** Search for: CSS custom properties (`:root { --color-* }`), Tailwind config, CSS modules theme; styled-components / Emotion / MUI / Chakra theme; Flutter `ThemeData`/`ColorScheme`; SwiftUI Color assets; Compose `MaterialTheme`; `tokens.json`/`tokens.yaml`/`design-tokens.*`.
-5. **Mode selection.** Ask or use flags: Audit / Audit & Fix / Design / Custom.
-6. **Scope parsing.** Map selection to reference files. Default: all.
+5. **Mode + scope.** Ask or use flags: Audit / Audit & Fix / Design / Custom; map scope selection to reference files (default: all).
 
 **Gate:** Framework identified; design system state cataloged (exists/partial/absent); mode + scope confirmed. If fails → framework undetectable → prompt "Which frontend framework?" (offer list); no response → fall back to plain HTML/CSS, announce; design system inconclusive → record `design_system: "unknown"`, proceed (missing tokens surface as findings).
 
@@ -159,31 +149,15 @@ Load matching reference file per in-scope domain:
 | (style-mode) | [controlled-vs-innovative.md](references/controlled-vs-innovative.md) |
 | (aesthetic) | [aesthetics-presets.md](references/aesthetics-presets.md) |
 
-**Large scope (3+ scopes):** progress checklist + persistent findings artifact. Max 2 parallel scans.
+**Large scope (3+ scopes):** progress checklist + persistent findings artifact; max 2 parallel scans. **Per scope:** search relevant files → search violation patterns → read context → classify CAT-1 (auto-fixable) or CAT-2 (needs approval). **Confidence:** HIGH = match + context verified; MEDIUM = pattern match, ambiguous; LOW = heuristic.
 
-**Per scope:** search relevant files → search violation patterns → read context → classify CAT-1 (auto-fixable) or CAT-2 (needs approval).
-
-**Confidence:** HIGH = match + context verified. MEDIUM = pattern match, ambiguous. LOW = heuristic.
-
-**False-positive prevention:** skip tokens inside comments, generated files (`*.g.dart`, `*.gen.*`), test fixtures, vendor/`node_modules`. Skip patterns: `/* noqa */`, `// intentional`, `// safe:`.
-
-**Recovery (context lost):** check progress checklist → read findings artifact → resume from first incomplete scope.
+**False-positive prevention:** skip tokens inside comments, generated files (`*.g.dart`, `*.gen.*`), test fixtures, vendor/`node_modules`. Skip patterns: `/* noqa */`, `// intentional`, `// safe:`. **Recovery (context lost):** check progress checklist → read findings artifact → resume from first incomplete scope.
 
 **Gate:** Every in-scope check evaluated; findings recorded with severity + confidence + category. If fails → scope unscan-able (reference missing, files unreadable) → mark scope `partial` in `state.scopes_done`, add MEDIUM "scan incomplete for scope {scope} — {reason}", continue; reference missing → WARN, proceed with embedded rules.
 
 ### Phase 4: Report
 
-```
-## Frontend Design Quality Report — {project-name}
-Framework: {framework} | Scanned: {scopes} | Date: {today}
-Design System: {exists|partial|absent}
-
-### Findings
-| # | Rule | Sev | File:Line | Issue | Fix | Conf |
-
-### Summary
-| Scope | CRITICAL | HIGH | MEDIUM | LOW | Total |
-```
+Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {framework} | Scanned: {scopes} | Date: {today}` + `Design System: {exists|partial|absent}`. Findings table `| # | Rule | Sev | File:Line | Issue | Fix | Conf |`; summary table `| Scope | CRITICAL | HIGH | MEDIUM | LOW | Total |`.
 
 **Gate:** Report with findings + severities + summary. If fails → missing scope row → re-read `state.findings`, add row with recorded counts (or `0`), re-emit; do not proceed until every selected scope appears.
 
@@ -191,8 +165,7 @@ Design System: {exists|partial|absent}
 
 1. **Plan.** Group by file, order CRITICAL → HIGH → MEDIUM → LOW.
 2. **Execute.** CAT-1: hardcoded color → token; missing `alt` → add; contrast → adjust to 4.5:1; missing `:focus-visible` → add outline; missing `aria-label` → add from context.
-3. **Verify.** Re-read each modified file.
-4. **Record.** applied/failed/skipped.
+3. **Verify + record.** Re-read each modified file; record applied/failed/skipped.
 
 **Gate:** `fixed + failed + skipped = total`; every modified file re-read. If fails → file un-re-readable → mark fix `failed (verify error)`, revert; undisposed finding → `skipped (accounting gap)`; counts imbalanced → status `WARN`.
 
@@ -233,10 +206,9 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 
 1. Every finding cites file:line — verified by reading actual code
 2. Only modify UI-layer code (styles, components, tokens, ARIA) — business logic untouched
-3. Every finding gets a disposition — zero silent drops (FRC)
-4. Every scope check evaluated and accounted for — zero silent omissions (DSC)
-5. After fix, re-read modified file to verify
-6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/frontend.json` updated per scope + artifact, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+3. Every finding gets a disposition — zero silent drops (FRC); every scope check evaluated and accounted for — zero silent omissions (DSC)
+4. After fix, re-read modified file to verify
+5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/frontend.json` updated per scope + artifact, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

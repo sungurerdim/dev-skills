@@ -6,10 +6,7 @@
 
 ## Triggers
 
-- User runs `/ds-launch`
-- User asks to submit to app store, prepare for launch, or manage releases
-- User asks about store listing, screenshots, privacy labels, or release notes
-- User asks "how do I publish my app" or "prepare for App Store"
+- User runs `/ds-launch`, asks to submit to app store, prepare for launch, or manage releases — or about store listing, screenshots, privacy labels, release notes, "how do I publish my app"
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -22,8 +19,7 @@
 
 ## Contract
 
-- Covers store account setup, listing metadata, review preparation, release management.
-- Generates checklists + metadata — does NOT submit to stores directly.
+- Covers store account setup, listing metadata, review preparation, release management; generates checklists + metadata — does NOT submit to stores directly.
 - Minimal liability + maximum privacy + maximum automation: store-compliant metadata + common rejection flags; privacy labels with minimal data-collection focus; version management + release notes generation + staged rollout.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
@@ -50,9 +46,7 @@ No flags → interactive mode selection (setup, listing, aso, privacy, review, s
 
 ### Perf Budget Mode (`--perf-budget`)
 
-Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational namespace) + wires CI enforcement to read from that path. The file is a functional CI gate — Category B, user-approved, version-controlled — not transient state.
-
-**Schema:**
+Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational namespace) + wires CI enforcement to read from that path — a functional CI gate (Category B, user-approved, version-controlled), not transient state. Keep only sections fitting the project type; default values from blueprint profile `Config.priorities` + industry baselines.
 
 ```json
 {
@@ -62,17 +56,11 @@ Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational names
 }
 ```
 
-Keep only sections fitting the project type. Default values from blueprint profile `Config.priorities` + industry baselines.
-
-**CI enforcement:** delegate to `/ds-devops` to add CI step running project's native perf tool (Lighthouse CI, k6, Firebase Test Lab, etc.) + compare to `ds/launch/perf-budget.json`. Over-budget → CI fails with offending metric(s) named.
-
-Budget authoring is Category B (commits project to enforceable numbers). CI wiring is Category A once budget exists.
+**CI enforcement:** delegate to `/ds-devops` to add a CI step running the project's native perf tool (Lighthouse CI, k6, Firebase Test Lab, etc.) + compare to `ds/launch/perf-budget.json`; over-budget → CI fails with offending metric(s) named. Budget authoring is Category B (commits project to enforceable numbers); CI wiring is Category A once budget exists.
 
 ## Scopes
 
-### Store Setup
-
-Verify store account setup complete. Check: developer account active, app ID registered, signing configured.
+**Store Setup:** verify store account setup complete — developer account active, app ID registered, signing configured.
 
 ### Listing
 
@@ -110,7 +98,7 @@ Verify store account setup complete. Check: developer account active, app ID reg
 
 ### Submission-Notes (`--submission-notes`)
 
-Generates the **App Review Information → Notes** body upfront so reviewer never sends a Guideline 2.1 information request. Each follow-up round-trip costs **+24-48 hours**; supplying everything in first submission eliminates them.
+Generates the **App Review Information → Notes** body upfront so reviewer never sends a Guideline 2.1 information request — each follow-up round-trip costs **+24-48 hours**; supplying everything in first submission eliminates them.
 
 | Section | Auto-detected | User-confirmed |
 |---------|--------------|---------------|
@@ -126,9 +114,7 @@ Generates the **App Review Information → Notes** body upfront so reviewer neve
 | Regulated industry | default "N/A" | confirm or override |
 | Reviewer-only contact | — | required input |
 
-**Output:** `ds/launch/submission-notes-apple.txt` + `ds/launch/submission-notes-google.txt` + `ds/launch/submission-meta.yml` (audit trail, committed). Generic template + cookbook of pre-written reject replies in [references/app-store-submission-template.md](references/app-store-submission-template.md).
-
-**Pre-submission self-audit:** mode runs `--review` active-detection scan first. Any CRITICAL → submission notes not generated until fixed. WARN if HIGH findings present but not blocking.
+**Output:** `ds/launch/submission-notes-apple.txt` + `ds/launch/submission-notes-google.txt` + `ds/launch/submission-meta.yml` (audit trail, committed). Generic template + cookbook of pre-written reject replies in [references/app-store-submission-template.md](references/app-store-submission-template.md). **Pre-submission self-audit:** mode runs `--review` active-detection scan first — any CRITICAL → submission notes not generated until fixed; WARN if HIGH findings present but not blocking.
 
 ### Review (Active Detection)
 
@@ -181,53 +167,35 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 
 1. Flags → proceed directly. No flags → interactive menu.
 2. **IDU:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
-3. Detect platform from project signals (`pubspec.yaml` → mobile, `package.json` → web, etc.).
-4. Detect current launch stage: pre-submission, in-review, post-launch.
+3. Detect platform from project signals (`pubspec.yaml` → mobile, `package.json` → web, etc.) + current launch stage: pre-submission, in-review, post-launch.
 
 **Gate:** Platform + mode confirmed. If fails → ambiguous platform → prompt iOS / Android / Web / All, record in state.data.platform; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
 
 ### Phase 2: Detect Current State
 
-Search for store-related configs, version info, existing privacy policy / ToS, CI/CD release workflows. Build inventory of what exists vs missing.
+Search for store-related configs, version info, existing privacy policy / ToS, CI/CD release workflows; build inventory of what exists vs missing.
 
 **Gate:** Inventory complete. If fails → record what was found in state.data.inventory as partial; mark missing config type (store configs, version info, privacy policy, CI workflows) as absent rather than unknown; proceed to Phase 3 — missing entries become FAIL findings in review scope.
 
 ### Phase 3: Generate [setup, listing, aso, privacy, review, submission-notes]
 
-**Store setup:** platform-specific account setup checklist; certificate / signing key guide; TestFlight / Internal Testing steps.
-
-**Listing metadata:** final store-ready app description (short + long; if `[DRAFT]` descriptions exist, refine them). Keyword research framework, screenshot size requirements, localization checklist.
-
-**Listing template structure:**
-
-- **Short description** (80 chars max) per language — per-locale keyword optimization, not literal translation
-- **Full description** with consistent section structure across all languages: How it works (3-5 steps); Key features (bullet list, benefit-first: `"Get {benefit}"` not `"Has {feature}"`); Privacy/security highlights (if applicable); Pricing/plans (if applicable)
-- **Privacy highlight table** (maps directly to Apple Privacy Labels + Google Data Safety):
-
-  | Data Type | Collected | Shared with 3rd Party | Purpose |
-  |-----------|-----------|----------------------|---------|
-  | {type} | Yes/No | Yes/No | {purpose} |
-
-- **Review notes** for store review teams: special permission justifications, demo credentials (if needed), features requiring network, consumable vs subscription IAP model
-- **Screenshot narrative** (6 recommended covering full journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
-
-**ASO mode:** competitor keyword analysis, title/subtitle optimization, category placement recommendation, A/B variant suggestions.
-
-**Release automation safety ([references/principles.md §8](references/principles.md)):** any generated release-automation file (Fastlane, `Matchfile`, CI workflow, signing scripts) MUST externalize credentials to env vars. Generate `.env.example` placeholders for: keystore passwords, App Store Connect API keys, Play Console JSON keys, signing identities, OAuth client secrets. Never embed actual values in committed files. Commit message gate: scan generated files for high-entropy strings before suggesting commit.
-
-**Privacy labels:** scan codebase for data collection → map to Apple/Google categories → generate declaration guide → flag code/label discrepancies.
-
-**Submission notes (`--submission-notes`):** run pre-submission self-audit (12-item checklist from references/app-store-submission-template.md). Block on CRITICAL findings. Auto-detect AI services / auth providers / IAP presence; prompt user for license + hosting per AI service, reviewer-only contact, screen recording URL. Generate per-platform notes (`ds/launch/submission-notes-{apple,google}.txt`) following proactive template. Persist `ds/launch/submission-meta.yml` (committed, audit trail). Include "Common Rejection Cookbook" (5 prewritten reply templates for Guidelines 2.1 / 5.1.1(v) / 3.1.1 / 4.8 / 5.1.2 / 5.1.1(i)) so re-submission is one-step.
-
-**Review preparation (active scan — not just a checklist):** scan project for top rejection triggers. Each check produces PASS/FAIL with file:line references. Scope checks listed in §Review (Active Detection) above. Per check: search codebase, produce evidence-cited finding with severity.
+- **Store setup:** platform-specific account setup checklist; certificate / signing key guide; TestFlight / Internal Testing steps.
+- **Listing metadata:** final store-ready app description (short + long; refine existing `[DRAFT]` descriptions). Keyword research framework, screenshot size requirements, localization checklist. Template structure:
+  - Short description (80 chars max) per language — per-locale keyword optimization, not literal translation; full description with consistent sections across all languages: How it works (3-5 steps), Key features (bullet list, benefit-first: `"Get {benefit}"` not `"Has {feature}"`), Privacy/security highlights + Pricing/plans (if applicable)
+  - Privacy highlight table `| Data Type | Collected (Yes/No) | Shared with 3rd Party (Yes/No) | Purpose |` — maps directly to Apple Privacy Labels + Google Data Safety
+  - Review notes for store review teams: special permission justifications, demo credentials (if needed), features requiring network, consumable vs subscription IAP model
+  - Screenshot narrative (6 recommended, full journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
+- **ASO mode:** competitor keyword analysis, title/subtitle optimization, category placement recommendation, A/B variant suggestions.
+- **Release automation safety ([references/principles.md §8](references/principles.md)):** any generated release-automation file (Fastlane, `Matchfile`, CI workflow, signing scripts) MUST externalize credentials to env vars. Generate `.env.example` placeholders for: keystore passwords, App Store Connect API keys, Play Console JSON keys, signing identities, OAuth client secrets. Never embed actual values in committed files. Commit message gate: scan generated files for high-entropy strings before suggesting commit.
+- **Privacy labels:** scan codebase for data collection → map to Apple/Google categories → generate declaration guide → flag code/label discrepancies.
+- **Submission notes (`--submission-notes`):** run pre-submission self-audit (12-item checklist from references/app-store-submission-template.md); block on CRITICAL findings. Auto-detect AI services / auth providers / IAP presence; prompt user for license + hosting per AI service, reviewer-only contact, screen recording URL. Generate per-platform notes (`ds/launch/submission-notes-{apple,google}.txt`) following proactive template; persist `ds/launch/submission-meta.yml` (committed, audit trail). Include "Common Rejection Cookbook" (5 prewritten reply templates for Guidelines 2.1 / 5.1.1(v) / 3.1.1 / 4.8 / 5.1.2 / 5.1.1(i)) so re-submission is one-step.
+- **Review preparation (active scan — not just a checklist):** scan project for top rejection triggers; each check produces an evidence-cited PASS/FAIL finding with severity + file:line. Scope checks listed in §Review (Active Detection) above.
 
 **Gate:** All listing, ASO, review artifacts generated. If fails → identify failed artifact (listing metadata, ASO, privacy labels, review scan), log to state.data.metadata_generated with `status: failed`, mark phase `partial`, continue with rest; surface failed artifacts in Phase 6 summary as WARN "manual completion required". Live policy fetch failures (App Store Connect, Play Console) → use fallback values, annotate artifact "(fallback values used — verify before submission)".
 
 ### Phase 4: Release Management [release, post-launch]
 
-**Version management:** check current version, suggest bump (patch/minor/major), generate release notes from commits, generate staged rollout strategy.
-
-**Post-launch monitoring:** checklist covering crash-free rate targets, store rating tracking, review response, download monitoring, update cadence, force-update thresholds.
+**Version management:** check current version, suggest bump (patch/minor/major), generate release notes from commits + staged rollout strategy. **Post-launch monitoring:** checklist covering crash-free rate targets, store rating tracking, review response, download monitoring, update cadence, force-update thresholds.
 
 **Gate:** Release artifacts generated. If fails → un-generatable release artifact (version bump, release notes, staged rollout, post-launch checklist) → log as `failed` in state.data.metadata_generated, proceed with successful ones, list failures in summary with "manual action required".
 
@@ -258,12 +226,9 @@ Zero-change run: `Submission package already complete — no missing fields`.
 
 ## Quality Gates
 
-- Every store listing element meets platform character limits
-- Privacy labels match actual code behavior (verified by codebase scan)
-- Pre-review checklist has zero CRITICAL items
-- Version numbers are valid semver with incrementing build numbers
-- Release notes are user-friendly (not developer jargon)
-- Every finding gets a disposition (FRC)
+- Every store listing element meets platform character limits; privacy labels match actual code behavior (verified by codebase scan)
+- Pre-review checklist has zero CRITICAL items; version numbers are valid semver with incrementing build numbers
+- Release notes are user-friendly (not developer jargon); every finding gets a disposition (FRC)
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/launch.json` updated per mode + per artifact, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery

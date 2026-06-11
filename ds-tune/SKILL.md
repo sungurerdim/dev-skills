@@ -43,9 +43,7 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 
 ## Execution Flow
 
-```
 Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] → Loop
-```
 
 ### Phase 1: Discovery
 
@@ -53,9 +51,7 @@ Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] �
 
 **State `data`:** `{ target_file, metric, direction, secondary, bench_cmd, budget_sec, tag, tune_dir: "ds/tune/", baseline: {value, commit}, branch, experiment_count, last_experiment_idx }`.
 
-**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize.
-
-**IDU:** Profile → Ideal Metrics, Type + Stack. Findings() → verify + use. Absent → own analysis.
+**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize. **IDU:** Profile → Ideal Metrics, Type + Stack. Findings() → verify + use. Absent → own analysis.
 
 Ask ONE question:
 
@@ -69,12 +65,9 @@ Wait for answer. Only proceed after receiving it.
 
 Work autonomously — do not ask more questions. Apply experiment design rules from [references/rules-optimization.md](references/rules-optimization.md).
 
-1. Read project root: README, package files, entry points, test files, benchmarks.
-2. Understand project stack, structure, purpose.
-3. Map user's goal to measurable metric(s).
-4. Identify ONE target file most relevant to goal.
-5. Identify or create an evaluation method (existing tests, benchmark script, or new eval).
-6. Check for existing test data and fixtures.
+1. Read project root (README, package files, entry points, test files, benchmarks); understand stack, structure, purpose.
+2. Map user's goal to measurable metric(s); identify ONE target file most relevant to goal.
+3. Identify or create an evaluation method (existing tests, benchmark script, or new eval); check for existing test data and fixtures.
 
 Determine these values:
 
@@ -94,17 +87,12 @@ Determine these values:
 Show summary:
 
 ```
-Project:    {project-name}
-Goal:       {user-goal in their words}
-File:       {target_file}
-Metric:     {metric} ({direction}: lower/higher is better)
-Bench:      {bench_cmd}
-Budget:     {budget_sec} seconds / experiment
+Project: {project-name} | Goal: {user-goal in their words}
+File: {target_file} | Metric: {metric} ({direction}: lower/higher is better)
+Bench: {bench_cmd} | Budget: {budget_sec} seconds / experiment
 ```
 
-Test data missing → state what will be created.
-
-Ask: "Confirm? (yes / suggest changes)"
+Test data missing → state what will be created. Ask: "Confirm? (yes / suggest changes)"
 
 **Gate:** User confirmed. If fails (user suggests changes) → apply requested changes to plan (target_file, metric, bench_cmd, budget_sec), redisplay updated summary, ask re-confirmation; user asks to abort → exit cleanly without creating `ds/tune/` files.
 
@@ -132,17 +120,11 @@ set -e
 cd "$(dirname "$0")/.."
 {eval_command} > ds/tune/run.log 2>&1
 ```
-
 Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, output metrics as `{metric}:    {value}` (grep-able), complete within `budget_sec`.
 
 **`ds/tune/eval`** — Project-specific evaluation (Python, Bash, or project language). Must output metrics in exact format: `{metric}:    {value}`. If test data doesn't exist, create minimal fixtures.
 
-**`ds/tune/results.tsv`** — Initialize with header:
-```
-timestamp	commit	status	{metric}	{secondary}	duration	description
-```
-
-Column notes: `timestamp` ISO 8601. `duration` is `HH:MM:SS` (wall-clock).
+**`ds/tune/results.tsv`** — Initialize with header `timestamp	commit	status	{metric}	{secondary}	duration	description`. Column notes: `timestamp` ISO 8601; `duration` is `HH:MM:SS` (wall-clock).
 
 **`ds/tune/program.md`** — Agent instructions generated from template below with all project-specific values filled in.
 
@@ -150,18 +132,10 @@ Column notes: `timestamp` ISO 8601. `duration` is `HH:MM:SS` (wall-clock).
 
 ### Phase 5: Baseline
 
-1. Run `bash ds/tune/bench.sh`.
-2. Extract metrics: search for `{metric}:` in `ds/tune/run.log`.
-3. Record baseline in `results.tsv`.
-4. Commit `ds/tune/`: `git add ds/tune/ && git commit -m "autotune: setup with baseline"`.
-5. Create branch: `git checkout -b autotune/{tag}`.
-6. Write `ds/audit/tune.json` with canonical envelope + baseline snapshot in `data`.
-
-Report:
-```
-Baseline:  {metric} = {value}
-Branch:    autotune/{tag}
-```
+1. Run `bash ds/tune/bench.sh`; extract metrics by searching for `{metric}:` in `ds/tune/run.log`; record baseline in `results.tsv`.
+2. Commit `ds/tune/`: `git add ds/tune/ && git commit -m "autotune: setup with baseline"`; create branch: `git checkout -b autotune/{tag}`.
+3. Write `ds/audit/tune.json` with canonical envelope + baseline snapshot in `data`.
+4. Report: `Baseline: {metric} = {value} | Branch: autotune/{tag}`
 
 **Gate:** Baseline measured and committed. If fails (`bench.sh` returns non-zero or no metric line found in `ds/tune/run.log`) → show raw log to user, surface specific error (missing metric line, eval script crash, missing dependency), exit with WARN "ds-tune: baseline measurement failed — fix ds/tune/eval or ds/tune/bench.sh and re-run"; do not proceed to the Loop with an unmeasured baseline.
 
@@ -173,20 +147,10 @@ Branch:    autotune/{tag}
 
 ### Phase 7: Loop
 
-Execute loop defined in `ds/tune/program.md`. Follow it exactly:
+Execute the experiment loop defined in `ds/tune/program.md` (steps 1-9 below in the template). Follow it exactly, with two skill-side rules layered on top:
 
-1. Read and analyze target file. What could improve the metric?
-2. Form a hypothesis. One change per experiment.
-3. Edit target file with experimental idea.
-4. Commit: `git add {target_file} && git commit -m "description of change"`.
-5. Run: `bash ds/tune/bench.sh`.
-6. Read results: search for `{metric}:` in `ds/tune/run.log`.
-7. Append to `ds/tune/results.tsv` (tab-separated): `{ISO8601_timestamp}\t{commit_7char}\t{status}\t{metric}\t{secondary}\t{HH:MM:SS}\t{description}`.
-8. Decision:
-   - Metric improved AND no test regressions (run full test suite, not just bench) → KEEP. Branch advances.
-   - Metric same or worse OR any previously passing test now fails → DISCARD. Run: `git reset HEAD~1 --hard`. (Per [references/principles.md §7](references/principles.md): a metric win that breaks tests is still a regression.)
-9. Update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`.
-10. Go to step 1. Continue without interruption.
+- **Decision (template step 8, strengthened):** metric improved AND no test regressions (run full test suite, not just bench) → KEEP, branch advances. Metric same or worse OR any previously passing test now fails → DISCARD: `git reset HEAD~1 --hard`. (Per [references/principles.md §7](references/principles.md): a metric win that breaks tests is still a regression.)
+- **After each experiment:** update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`.
 
 **Gate:** Each experiment produces exactly one row in `results.tsv` with status `keep|discard|crash`. Loop exits when (a) user interrupts, (b) context exceeds 85% of model token limit (check after each iteration), or (c) `experiment_count` reaches `--budget` if specified. If `bench.sh` returns non-zero and no metric line parseable → log a `crash` row, continue to next experiment. If `git reset --hard` fails during DISCARD → stop loop, surface git state, ask user to clean up before resuming.
 
@@ -252,35 +216,21 @@ Repeat forever:
 ## `/ds-tune run` — Resume
 
 1. Read `ds/audit/tune.json` — verify `skill: ds-tune`, `version: 1`, `git_hash` vs HEAD (prompt on mismatch).
-2. Verify `ds/tune/` folder exists, read `ds/tune/.autotune.json`.
-3. Read `ds/tune/program.md`.
-4. Read `ds/tune/results.tsv` — find current baseline (last `keep` entry).
-5. Check current git branch — not on `autotune/*` → checkout the branch.
-6. Resume loop from `ds/tune/program.md`, announce `[TUN] Resuming from experiment {N+1}, current best = {metric}={value}`.
+2. Verify `ds/tune/` folder exists; read `ds/tune/.autotune.json`, `ds/tune/program.md`, and `ds/tune/results.tsv` (current baseline = last `keep` entry).
+3. Check current git branch — not on `autotune/*` → checkout the branch.
+4. Resume loop from `ds/tune/program.md`, announce `[TUN] Resuming from experiment {N+1}, current best = {metric}={value}`.
 
 ## `/ds-tune status` — Results
 
-1. Read `ds/tune/results.tsv`.
-2. Display summary:
+Read `ds/tune/results.tsv`, display summary:
 
 ```
-Total experiments:  {count}
-Kept:               {kept_count}
-Discarded:          {discarded_count}
-Crashed:            {crashed_count}
-Hit rate:           {kept/total}%
+Total experiments: {count} | Kept: {kept_count} | Discarded: {discarded_count} | Crashed: {crashed_count} | Hit rate: {kept/total}%
+Baseline: {first keep metric} | Best: {best metric} | Improvement: {improvement}%
+Total time: {sum of durations, HH:MM:SS} | Avg per experiment: {avg HH:MM:SS}
+First experiment: {earliest timestamp} | Last experiment: {latest timestamp}
 
-Baseline:           {first keep metric}
-Best:               {best metric}
-Improvement:        {improvement}%
-
-Total time:         {sum of durations, HH:MM:SS}
-Avg per experiment: {avg duration HH:MM:SS}
-First experiment:   {earliest timestamp}
-Last experiment:    {latest timestamp}
-
-Last 5 experiments:
-{last 5 rows from results.tsv as table}
+Last 5 experiments: {last 5 rows from results.tsv as table}
 ```
 
 Summary line:
@@ -288,7 +238,7 @@ Summary line:
 ds-tune: {OK|WARN|FAIL} | Experiments: {n} | Best: {metric_value} | Improvement: {delta} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-3. Show git log of kept improvements: `git log --oneline autotune/{tag} | head -10`.
+Then show git log of kept improvements: `git log --oneline autotune/{tag} | head -10`.
 
 **Value Delivered:** 1-5 concrete optimization outcomes. Example shapes (placeholders, not literal):
 

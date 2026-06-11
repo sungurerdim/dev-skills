@@ -160,22 +160,16 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 
 ### Phase 2: Analyze
 
-**Findings bootstrap rule.** Before any analysis:
-1. `ds/audit/findings.md` absent → invoke `/ds-blueprint --preview --scope=all`, wait for completion, re-read. Skill owns detection SSOT; re-implementing it here is duplicate work.
-2. `ds/audit/findings.md` exists but `git_hash` ≠ HEAD → invoke `/ds-blueprint --refresh`, wait for completion, re-read.
-3. `ds/audit/findings.md` exists + fresh → proceed.
+**Findings bootstrap rule** (before any analysis — blueprint owns detection SSOT; re-implementing it here is duplicate work):
+1. `ds/audit/findings.md` absent → invoke `/ds-blueprint --preview --scope=all`, wait for completion, re-read.
+2. Exists but `git_hash` ≠ HEAD → invoke `/ds-blueprint --refresh`, wait for completion, re-read.
+3. Exists + fresh → proceed.
 
 Auto-invoke MAY be skipped via `--no-bootstrap` for testing — then review runs own scope analysis.
 
-**Findings file check:** if `ds/audit/findings.md` exists + `git_hash` matches HEAD, filter findings by active scopes. Per matching finding:
-1. Read file:line + surrounding context (±10 lines).
-2. Verify finding still valid (code may have changed).
-3. Confirmed → add to fix list. False positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved`, record in state with reason; both count as Skipped in FRC accounting.
-4. After verification, proceed to fix confirmed.
+**Findings file check:** `ds/audit/findings.md` exists + `git_hash` matches HEAD → filter findings by active scopes. Per matching finding: read file:line + surrounding context (±10 lines); verify finding still valid (code may have changed); confirmed → add to fix list; false positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved`, record in state with reason; both count as Skipped in FRC accounting. Then fix confirmed findings. Skip own analysis for scopes covered by findings file; scopes NOT covered → run own analysis below.
 
-Skip own analysis for scopes covered by findings file. Scopes NOT in findings file → run own analysis below.
-
-**If no findings file after bootstrap or `--no-bootstrap`:** analyze in parallel-planned batches. Group scopes by cost — read-only (parallel), AST-based (parallel sharing LSP cache), opus-grade reasoning (serial). Announce plan before starting.
+**If no findings file after bootstrap or `--no-bootstrap`:** analyze in parallel-planned batches grouped by cost. Announce plan before starting.
 
 | Batch | Active scopes (subset of selected) | Concurrency |
 |-------|-----------------------------------|-------------|
@@ -187,11 +181,7 @@ Skip own analysis for scopes covered by findings file. Scopes NOT in findings fi
 
 **Strategic analysis:** evaluate patterns across codebase, flag structural issues even if not auto-fixable, question consistency not just correctness.
 
-Cross-scope dedup: merge findings at same file:line, keep highest severity.
-
-**Skip patterns:** `# noqa`, `# intentional`, `# safe:`, `_` prefix, `TYPE_CHECKING`, platform guards, test fixtures.
-
-Wait for all batches before proceeding.
+Cross-scope dedup: merge findings at same file:line, keep highest severity. **Skip patterns:** `# noqa`, `# intentional`, `# safe:`, `_` prefix, `TYPE_CHECKING`, platform guards, test fixtures. Wait for all batches before proceeding.
 
 **Gate:** Findings = 0 → print `"All {N} checks evaluated across {scopes}: 0 findings"`, skip to summary. Distinguishes clean from skipped. If fails (analysis incomplete or bootstrap `/ds-blueprint` didn't return) → mark affected scopes `inconclusive` in state, log "bootstrap incomplete — scopes {names} unanalyzed", proceed to summary with partial results + WARN status.
 
@@ -210,9 +200,7 @@ Calculate gaps: current vs ideal for coupling, cohesion, complexity, coverage. P
 | mobile | <55% | >65% | <12 | 65%+ |
 | devtool | <35% | >75% | <10 | 80%+ |
 
-Display Current vs Ideal table. Technology assessment: evaluate key decisions OK / Questionable / Problematic (with evidence). Include only Questionable/Problematic.
-
-Categorize recs by effort/impact: Quick Win → Moderate → Complex → Major.
+Display Current vs Ideal table. Technology assessment: evaluate key decisions OK / Questionable / Problematic (with evidence) — include only Questionable/Problematic. Categorize recs by effort/impact: Quick Win → Moderate → Complex → Major.
 
 **Gate:** Current vs Ideal table + categorized recs produced. If fails → metric uncomputable (coverage tool absent, coupling analysis incomplete) → insert `?` in Current column with note "metric unavailable — {reason}", output partial table, continue; do not block on missing metrics.
 
@@ -248,9 +236,7 @@ For each finding from Phase 3a, generate 3 paths from [references/path-proposals
 - **Path B — Moderate:** extract a shared module / helper
 - **Path C — Structural:** unify the API / abstraction at a higher level
 
-Each path includes: estimated effort (hours), impact (scope reach), risk (regression surface), rollback approach.
-
-Present paths grouped by finding. User selects per-finding: `Path A / B / C / Skip / Apply same path to all matching findings`.
+Each path includes: estimated effort (hours), impact (scope reach), risk (regression surface), rollback approach. Present paths grouped by finding. User selects per-finding: `Path A / B / C / Skip / Apply same path to all matching findings`.
 
 **Gate:** Every finding has selected path or explicit `Skip`. If fails → assign `skip (no path selected)`, proceed.
 
@@ -262,20 +248,11 @@ Print findings table (ID, severity, title, file:line). Ask: Fix All (recommended
 
 ### Phase 5: Apply [SKIP if --preview]
 
-Apply fixes grouped by file:
-- Different files: parallel
-- Same file: sequential (re-read after each edit)
-- Minimal diff, preserve surrounding style
-- Before adding any import/API, verify it exists in codebase or deps
-- Cross-module change → `needs_approval`
+Apply fixes grouped by file: different files parallel; same file sequential (re-read after each edit); minimal diff, preserve surrounding style; before adding any import/API, verify it exists in codebase or deps; cross-module change → `needs_approval`.
 
 After all fixes: run available lint/type/test checks. New errors introduced → repeat fix-verify (max 3 iterations).
 
-**Loop mode (`--loop`):** after applying:
-1. Re-read modified files + direct dependents (importers, callers).
-2. Re-analyze for new findings caused by fixes (cascade breakage).
-3. New findings → apply fixes.
-4. Max 3 iterations. Still issues after 3 → report remaining and stop.
+**Loop mode (`--loop`):** after applying: (1) re-read modified files + direct dependents (importers, callers); (2) re-analyze for new findings caused by fixes (cascade breakage); (3) new findings → apply fixes; (4) max 3 iterations — still issues after 3 → report remaining and stop.
 
 Per fix, include education: **why** (impact if unfixed), **avoid** (anti-pattern), **prefer** (correct pattern).
 
@@ -283,10 +260,7 @@ Per fix, include education: **why** (impact if unfixed), **avoid** (anti-pattern
 
 ### Phase 5a: Needs-Approval Review [CONDITIONAL]
 
-Items flagged `needs_approval` (cross-module changes, architectural decisions):
-- `--auto` without `--force-approve`: list items, skip, note in summary
-- `--force-approve`: apply all
-- Interactive: present items, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+Items flagged `needs_approval` (cross-module changes, architectural decisions): `--auto` without `--force-approve` → list items, skip, note in summary; `--force-approve` → apply all; interactive → present items, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
 
 **Gate:** All resolved (applied, skipped, deferred). If fails → user declined → mark unresolved `deferred` in state.data.needs_approval, disposition `deferred (user did not respond)`, proceed.
 
@@ -298,12 +272,7 @@ Any CRITICAL → flag for manual review before auto-fixing. Interactive mode: sh
 
 ### Phase 6: Loop (--loop flag, tactical only)
 
-Applied > 0:
-1. Cascade check — verify dependent files don't need updates.
-2. Re-analyze modified + cascade-affected files.
-3. Re-apply for new findings.
-
-Max 3 iterations. Summary shows per-iteration breakdown.
+Applied > 0: (1) cascade check — verify dependent files don't need updates; (2) re-analyze modified + cascade-affected files; (3) re-apply for new findings. Max 3 iterations. Summary shows per-iteration breakdown.
 
 **Gate:** Zero new findings on re-analysis, or max 3 reached. If fails (new findings after 3) → record remaining in state.data.findings disposition `open (loop exhausted)`, summary status WARN, report count of unresolved cascade findings.
 
@@ -316,7 +285,6 @@ refactor complete (tactical)
 | Scope          | Findings | Fixed | Skipped | Failed |
 |----------------|----------|-------|---------|--------|
 | {scope}        |   {n}    |  {n}  |   {n}   |  {n}   |
-| ...            |          |       |         |        |
 | Total          |   {n}    |  {n}  |   {n}   |  {n}   |
 
 Fixed: {n} | Skipped: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
@@ -331,7 +299,6 @@ refactor complete (strategic)
 | Metric     | Current | Ideal | Gap  |
 |------------|---------|-------|------|
 | {metric}   | {n}     | {n}   | {n}  |
-| ...        |         |       |      |
 
 Recommendations by effort:
   Quick Win:  [{id}] {title}

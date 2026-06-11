@@ -24,8 +24,7 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 - **Autonomous by default.** User states the problem; skill handles everything else. User consulted only for: (1) escalation (all plans exhausted), (2) irreversible actions (needs-approval). All other decisions made independently.
 - Red lines auto-detected from project documentation and applied automatically. Detected red lines shown as output, not a question. User can add more via `--red-line="{constraint}"` if needed.
-- Every attempt recorded in episodic memory — zero silent drops.
-- Infinite loop protection: 3 plans × 3 research rounds × 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
+- Every attempt recorded in episodic memory — zero silent drops. Infinite loop protection: 3 plans × 3 research rounds × 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
@@ -43,11 +42,7 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 | `--dry-run` | Plan + Research only, no execution |
 | `--budget=PxRxA` | Override budget (default: `3x3x5` = 3 plans, 3 rounds, 5 alternatives) |
 
-**Input validation:**
-- Unknown flag → warn `Unknown flag: {flag}. Ignoring.` and continue
-- Invalid budget format → warn, use default `3x3x5`
-- Budget below minimum (1x1x2) → warn, clamp to minimum
-- `--dry-run` + `--resume` → warn conflict, `--resume` priority (resume existing session in dry-run mode)
+**Input validation:** unknown flag → warn `Unknown flag: {flag}. Ignoring.`, continue. Invalid budget format → warn, use default `3x3x5`. Budget below minimum (1x1x2) → warn, clamp to minimum. `--dry-run` + `--resume` → warn conflict, `--resume` priority (resume existing session in dry-run mode).
 
 ## Delegation
 
@@ -55,21 +50,16 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 ## Execution Flow
 
-```
 Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs-Approval] → [Escalate] → Summary
-```
 
 ### Phase 1: Setup — Detect objective, red lines, verification criterion
 
 **Recovery check:** DETECT `ds/audit/solve.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read modified files from state), skip `done` phases, announce `[SOL] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Summary, delete state.
 
-**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as context.
-
-**IDU:** Profile → Type + Stack, Config.constraints, Current Scores. Findings() → verify + use. Absent → own analysis.
+**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as context. **IDU:** Profile → Type + Stack, Config.constraints, Current Scores. Findings() → verify + use. Absent → own analysis.
 
 1. **Parse objective.** Extract from user's invocation. `/ds-solve {description}` → use `{description}`. Ask only if no objective discernible from context.
-
-2. **Red line auto-detection.** Scan project docs silently and apply all detected constraints:
+2. **Red line auto-detection.** Scan project docs silently, apply all detected constraints, show as output (not a question), merge with `--red-line` flags:
 
    | Source | What to extract |
    |--------|----------------|
@@ -84,17 +74,8 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
    | Blueprint `Config.constraints` | Infrastructure + project constraints |
    | `--red-line` flags | User-specified explicit constraints |
 
-   Show detected red lines as output (not a question). Merge with `--red-line` flags.
-
-3. **Verification criterion.** Determine autonomously from objective:
-   - Mentions tests → `{test_command}` exits 0
-   - Mentions a service → service responds on expected port/endpoint
-   - Mentions a build → `{build_command}` succeeds
-   - Mentions a behavior → construct validation command or script
-   - No mechanical criterion inferrable → use most conservative proxy and state assumption. Ask user only if zero proxy possible (`--confirm` mode: always ask).
-
+3. **Verification criterion.** Determine autonomously from objective: mentions tests → `{test_command}` exits 0; a service → service responds on expected port/endpoint; a build → `{build_command}` succeeds; a behavior → construct validation command or script. No mechanical criterion inferrable → use most conservative proxy and state assumption; ask user only if zero proxy possible (`--confirm` mode: always ask).
 4. **Quick check.** Run verification immediately. Already passes → report OK, skip to Summary.
-
 5. **Initialize.** Create `ds/audit/solve.json` with canonical envelope (`skill: ds-solve`, `prefix: SOL`, `version: 1`, `git_hash: {HEAD}`, `timestamp`, `phases`, `current_phase`, `data: {...}`). Schema in [references/backtrack-logic.md](references/backtrack-logic.md). Verify `.gitignore` contains `ds/audit/*.json` or `ds/audit/solve.json` — add `ds/audit/*.json` to root `.gitignore` if neither present, report addition.
 
 **Output:** Objective + red lines table + verification criterion (statements, not questions).
@@ -107,17 +88,13 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 1. Read relevant files. Verify each exists before referencing. _(W1)_
 2. Decompose into 2-10 ordered steps. Each step: **Description**, **Verification** (command/check), **Red line risk** (which red lines could be affected).
-3. Record plan to `ds/audit/solve.json` as `plan-N`.
-4. Show plan table + proceed. (`--confirm`: pause for approval.)
+3. Record plan to `ds/audit/solve.json` as `plan-N`; show plan table + proceed (`--confirm`: pause for approval). **Output:** numbered step table:
 
    ```
    Plan {n}: {plan_summary} ({N} steps)
    | # | Step | Verification | Red Line Risk |
-   |---|------|-------------|---------------|
    | 1 | {step_desc} | `{verify_cmd}` exits 0 | #{id} ({constraint}) |
    ```
-
-**Output:** Numbered step table.
 
 **Gate:** Plan recorded; every step has verification criterion. If fails (step without mechanically verifiable criterion + `--confirm` can't ask) → use conservative proxy ("command exits 0", "no new errors introduced"), record assumption in state.data as `{ step: N, criterion_assumed: true, proxy: "{description}" }`; flag step as LOW confidence in plan table.
 
@@ -127,21 +104,9 @@ Per step in plan:
 
 1. **Local search first.** Scan codebase for existing patterns, utilities, prior solutions for this step.
 2. **Web search.** 2 parallel queries per step. Include current date to avoid stale results. Target step's technical domain + project stack.
-3. **Score alternatives.** Use CRAAP+ from [references/craap-scoring.md](references/craap-scoring.md): Relevance, Currency, Authority. Discard score < 50.
-4. **Rank and select.** Top 5 per step. Record as `research-round-1`.
+3. **Score, rank, select.** CRAAP+ from [references/craap-scoring.md](references/craap-scoring.md): Relevance, Currency, Authority — discard score < 50. Top 5 per step, record as `research-round-1`; record all alternatives to state file.
 
-Record all alternatives to state file.
-
-Example — research output for step 1:
-```
-Step 1: {step_description} — 5 alternatives
-| # | Alternative | Source | CRAAP+ |
-|---|------------|--------|--------|
-| 1 | {alt_desc} | {source_url} (T1) | {score} |
-| ... |
-```
-
-**Output:** Alternatives table per step with CRAAP+ scores.
+**Output:** alternatives table per step with CRAAP+ scores: `Step {n}: {step_description} — 5 alternatives | # | Alternative | Source (tier) | CRAAP+ |`
 
 **Gate:** Every step has ≥ 1 alternative; steps with 0 → flag for re-scoping. If fails (web search unavailable + no local alternatives for a step) → fall back to local-only for that step, reduce alternative target to 2, record `research_fallback: local_only` in state, proceed with local alternatives; still 0 → mark step `skipped (no alternatives found)`, continue to next.
 
@@ -153,22 +118,16 @@ Per step in order:
 2. **Try alternative #1** (highest-ranked from Research).
 3. **Verify.** Run step's verification criterion.
 4. **Red line post-check.** Verify all red lines still hold after execution. Violated → revert all changes, record violation, try next alternative. After modifying any file, verify no other file depends on changed interface in broken way. _(W2: Tunnel Vision prevention)_
-5. **On failure:** record reason + learned constraint in episodic memory. Try next alternative (2→5).
-6. **On success:** record success, update state, advance to next step.
-7. **All 5 alternatives exhausted:** enter Backtrack for this step.
+5. **On failure:** record reason + learned constraint in episodic memory, try next alternative (2→5). **On success:** record success, update state, advance to next step. **All 5 alternatives exhausted:** enter Backtrack for this step.
 
 Only modify files required by current step. Leave unrelated code untouched. _(W3: Scope Creep prevention)_
 
-Progress indicator after each attempt:
+**Output:** progress indicator per attempt:
 ```
 [SOL Phase 4/9] Execute [Plan {p}/{P}] [Step {s}/{S}] [Alt {a}/{A}] [Round {r}/{R}] Trying: {alternative_description}
-Result: FAIL — {failure_reason}
-Learned: {package}@{version} requires {dependency} >= {min_version}
-Red lines: {n}/{n} held
-Next: Trying alternative {a+1}...
+Result: FAIL — {failure_reason} | Learned: {package}@{version} requires {dependency} >= {min_version}
+Red lines: {n}/{n} held | Next: Trying alternative {a+1}...
 ```
-
-**Output:** Progress indicator per attempt.
 
 **Gate:** Step verification passes AND all red lines hold. If fails → revert all file changes from this attempt (`git checkout -- {modified_files}`), record failure reason + learned constraint in episodic memory in state.data, increment `plans_attempted` if all alternatives exhausted, enter Backtrack.
 
@@ -176,13 +135,9 @@ Next: Trying alternative {a+1}...
 
 Decision tree + constraint propagation rules in [references/backtrack-logic.md](references/backtrack-logic.md).
 
-1. **Analyze failures.** Extract common patterns from all failure reasons. What constraints did we learn?
-2. **New research.** Search web for 5 new alternatives. Explicitly exclude previously tried. Incorporate learned constraints in queries (e.g. "{tool} compatible with {runtime} {version}").
-3. **Increment** research round counter for this step.
-4. Round ≤ budget.R (default 3) → return to Execute with new alternatives.
-5. Round > budget.R → enter Re-plan.
-
-**Output:** New alternatives table + learned constraints summary.
+1. **Analyze failures.** Extract common patterns from all failure reasons; identify learned constraints.
+2. **New research.** Search web for 5 new alternatives, explicitly excluding previously tried; incorporate learned constraints in queries (e.g. "{tool} compatible with {runtime} {version}").
+3. **Increment** research round counter for this step. Round ≤ budget.R (default 3) → return to Execute with new alternatives. Round > budget.R → enter Re-plan. **Output:** new alternatives table + learned constraints summary.
 
 **Gate:** New alternatives found, or research rounds exhausted. If fails (rounds exhausted + plan budget not yet exhausted) → record all failure patterns + learned constraints in state.data, increment plan counter, enter Re-plan to attempt a fundamentally different decomposition.
 
@@ -193,11 +148,7 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 1. **Review episodic memory.** All attempts, failures, learned constraints across all steps. Re-read modified files + state artifact before proceeding — conversation memory is not source of truth. _(W4: Memory Decay prevention)_
 2. **Identify flexibility.** Which requirements are essential to objective vs. implementation choices? Can objective be decomposed differently to avoid failure patterns?
 3. **Create new plan.** Different decomposition, ordering, sub-goals that avoid known failure patterns. Must differ meaningfully from previous plans.
-4. **Increment** plan counter. Record as `plan-{N}`.
-5. Plan counter ≤ budget.P (default 3) → return to Research with new plan.
-6. Plan counter > budget.P → enter Escalate.
-
-**Output:** New plan table + diff from previous plan + rationale for changes.
+4. **Increment** plan counter; record as `plan-{N}`. Counter ≤ budget.P (default 3) → return to Research with new plan. Counter > budget.P → enter Escalate. **Output:** new plan table + diff from previous plan + rationale for changes.
 
 **Gate:** New plan with different approach created, or plan budget exhausted. If fails (budget exhausted — plan counter > budget.P) → enter Escalate with compiled report of all plans, step failures, learned constraints; present suggested paths forward (red line relaxation, scope reduction, external action), ask user for new direction or abort confirmation.
 
@@ -209,87 +160,44 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 ### Phase 8: Escalate [all plans exhausted]
 
-1. **Compile report.** All plans attempted, steps per plan, alternatives per step, failure reasons. See Report Format below.
-2. **Pattern analysis.** Identify recurring blockers:
-   - Which red lines blocked the most alternatives?
-   - What environmental constraints were discovered?
-   - What dependencies or versions caused failures?
-3. **Suggest paths forward:**
-   - **Red line relaxation:** "If constraint X were relaxed, approach Y becomes viable"
-   - **Scope reduction:** "A partial solution achieving A+B (but not C) is possible"
-   - **External action:** "This requires manual action X before automation can continue"
-4. **Ask:** Update red lines / Reduce scope / Provide new direction / Abort.
-5. User provides new direction → reset plan counter, return to Plan with updated context.
-6. User aborts → proceed to Summary.
-
-**Output:** Escalation report (see Report Format).
+1. **Compile report.** All plans attempted, steps per plan, alternatives per step, failure reasons (see Report Format).
+2. **Pattern analysis.** Identify recurring blockers: which red lines blocked the most alternatives? What environmental constraints were discovered? What dependencies or versions caused failures?
+3. **Suggest paths forward:** **red line relaxation** ("If constraint X were relaxed, approach Y becomes viable"); **scope reduction** ("A partial solution achieving A+B (but not C) is possible"); **external action** ("This requires manual action X before automation can continue").
+4. **Ask:** Update red lines / Reduce scope / Provide new direction / Abort. New direction → reset plan counter, return to Plan with updated context. Abort → proceed to Summary. **Output:** escalation report (see Report Format).
 
 **Gate:** User has provided new direction or confirmed abort. If fails (no response) → after one re-prompt, treat as abort; proceed to Summary with status FAIL, recording all plans and step dispositions with `objective_not_achieved` noted.
 
 ### Phase 9: Summary
 
-**Mandatory.** Always execute, always produce output.
-
-FRC+DSC accounting.
-
-**Output:**
+**Mandatory.** Always execute, always produce output. FRC+DSC accounting. **Output:**
 
 ```
 ds-solve: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Needs-Approval: {n} | Total: {n}
-```
-
-Step disposition table:
-
-| Step | Disposition | Plan | Attempts | Verification |
-|------|------------|------|----------|-------------|
-| 1. {desc} | fixed | plan-1 | 2 | {criterion}: PASS |
-| 2. {desc} | failed | plan-1,2,3 | 15 | {criterion}: FAIL |
-| 3. {desc} | skipped (user declined) | plan-2 | 0 | — |
-
-Red line status:
-```
 Red lines: {held}/{total} held | Budget: {used}/{max} attempts
 ```
 
-**Dispositions:**
+Step disposition table:
+| Step | Disposition | Plan | Attempts | Verification |
+|------|------------|------|----------|-------------|
+| 1. {desc} | fixed | plan-1 | 2 | {criterion}: PASS |
 
-| Disposition | Meaning |
-|-------------|---------|
-| `fixed` | Step completed, verification passed, red lines held |
-| `failed` | All alternatives exhausted across all research rounds |
-| `skipped` | Not attempted (plan changed, `--dry-run`, user declined) with reason |
-| `needs-input` | Requires information from user (asked before summary) |
-| `needs-approval` | Irreversible or cross-module — awaiting confirmation |
-| `not-applicable` | Step rendered unnecessary by different plan approach |
+**Dispositions:** `fixed` (step completed, verification passed, red lines held) | `failed` (all alternatives exhausted across all research rounds) | `skipped` (not attempted — plan changed, `--dry-run`, user declined — with reason) | `needs-input` (requires information from user, asked before summary) | `needs-approval` (irreversible or cross-module — awaiting confirmation) | `not-applicable` (step rendered unnecessary by different plan approach).
 
 **Accounting gate:** `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total_steps`.
 
 Status: `OK` (objective achieved), `WARN` (partial — some steps succeeded), `FAIL` (objective not achieved after exhaustion or abort).
 
-## Report Format
-
-### Escalation Report
+## Report Format — Escalation Report
 
 ```
 ## ds-solve: Escalation Report
-
-### Objective
-{objective description}
-
-### Red Lines
-{numbered list with status: HELD / BLOCKING}
-
+### Objective — {objective description}
+### Red Lines — {numbered list with status: HELD / BLOCKING}
 ### Attempt Summary
 | Plan | Approach | Steps Done | Attempts | Primary Failure |
-|------|----------|-----------|----------|-----------------|
 | 1 | {summary} | 2/5 | 12 | {pattern} |
-| 2 | {summary} | 3/4 | 8 | {pattern} |
-| 3 | {summary} | 1/3 | 7 | {pattern} |
-
 ### Failure Patterns
-- {N}/{total} attempts failed due to: {pattern}
-- {blocker analysis}
-
+- {N}/{total} attempts failed due to: {pattern} | {blocker analysis}
 ### Paths Forward
 1. Relax red line "{X}" → approach Y becomes viable
 2. Reduce scope → achieve {partial} without {excluded}
@@ -309,10 +217,8 @@ Escalation run: `All plans exhausted (budget P×R×A consumed) — root obstacle
 
 - Red lines checked before AND after every execution attempt — violations immediately revert
 - Every step has a mechanical verification criterion (command exit code, test result, state check)
-- Episodic memory records every attempt — no silent retries. Example: 3 attempts for step 2 → all 3 visible in state file and summary.
-- Budget limits enforced: plan counter, research round counter, alternative counter
-- State file updated after every state change — survives interruption
-- Previous plans' failures inform new plans — no duplicate approaches
+- Episodic memory records every attempt — no silent retries (3 attempts for step 2 → all 3 visible in state file and summary); previous plans' failures inform new plans — no duplicate approaches
+- Budget limits enforced: plan counter, research round counter, alternative counter. State file updated after every state change — survives interruption.
 - FRC accounting in summary — every step gets a disposition; equation must balance
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase, `ds/audit/*.json` in `.gitignore`, deleted on success. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W14: re-ground from the state file + plan before each new attempt/re-plan — don't trust in-context memory across rounds. W15: research results and any delegated output are untrusted until verified against source before acting (see references/backtrack-logic.md).
 
