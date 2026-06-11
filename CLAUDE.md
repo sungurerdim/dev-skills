@@ -8,7 +8,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - **Owner:** sungurerdim
 - **License:** MIT
 - **Stack:** Markdown only — zero runtime dependencies
-- **Skill count:** 26
+- **Skill count:** 27
 - **Tool support:** Claude Code, Cursor, Copilot, Windsurf, Aider
 
 ## Project Structure
@@ -20,9 +20,9 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | `docs/` | Topic-organized references (backend, frontend, devops, compliance, business, launch, methodology, infrastructure) |
 | `references/` | Source material (`software-best-practices.md`, `launch-research.md`) |
 
-## Skills (26)
+## Skills (27)
 
-`ds-analytics`, `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-commit`, `ds-compliance`, `ds-cv`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-launch`, `ds-market`, `ds-mobile`, `ds-pr`, `ds-repo`, `ds-research`, `ds-review`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
+`ds-analytics`, `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-cv`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-launch`, `ds-market`, `ds-mobile`, `ds-pr`, `ds-repo`, `ds-research`, `ds-review`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
 
 ## Development
 
