@@ -225,22 +225,13 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 
 ## Quality Gates
 
-1. **No cascading breakage** — verify no broken imports/references after fixes
+1. **No cascading breakage** — verify no broken imports/references after fixes; fix breaks another file → revert, mark failed, continue
 2. **Format preservation** — match existing indentation + code style
 3. **Scope boundary** — only touch lines task requires
 4. **Platform consistency** — fixes use correct platform API
 5. **Artifact-first recovery** — re-read files before + after editing
 6. **FRC** — every finding gets a disposition in summary
 7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/mobile.json` updated per scope, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
-
-## Error Recovery
-
-| Situation | Action |
-|-----------|--------|
-| Platform detection fails | Ask user to specify manually |
-| Reference file fails to load | Skip affected domain, mark N/A |
-| Fix breaks another file | Revert fix, flag as failed, continue |
-| Context lost mid-audit (large scope) | Resume from progress checklist + `ds/audit/findings.md` |
 
 ## Edge Cases
 

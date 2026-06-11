@@ -89,15 +89,7 @@ Invoke `/ds-research` with:
 
 Target count from `--competitors` (default 7). Too few after filtering → expand search with alternative phrasings; still too few → proceed with available set, flag low-sample-size.
 
-Per competitor:
-
-| Field | Description |
-|-------|-------------|
-| Name + URL | Project identity |
-| CRAAP+ tier | T1 (authoritative) / T2 (supporting) / T3 (inspirational) |
-| Strengths | Concrete dimensions handled well |
-| Weaknesses | Concrete dimensions where they fall short |
-| Architecture signal | Public info on stack / module layout / data model |
+Per competitor record: Name + URL (project identity); CRAAP+ tier — T1 (authoritative) / T2 (supporting) / T3 (inspirational); Strengths (concrete dimensions handled well); Weaknesses (concrete dimensions where they fall short); Architecture signal (public info on stack / module layout / data model).
 
 **Gate:** ≥3 competitors at T1+T2 each with strengths/weaknesses. If fails → `/ds-research` returned fewer than 3 T1+T2 sources → expand search with synonyms, retry once; still insufficient → proceed with available set, flag `low-sample-size: true` in state.data.competitors, note "Ideal synthesis may be speculative due to limited comparables" in report.
 
@@ -110,15 +102,7 @@ Per dimension (architecture / stack / data-model / ux / security / privacy / ope
 3. Write one-paragraph ideal per dimension: concrete, opinionated, no hedging.
 4. **Security/privacy ideal ([references/principles.md §5](references/principles.md)):** the synthesized ideal MUST reflect the security baseline regardless of competitor convergence — boundary validation at every system boundary, least privilege for credentials, no secrets in source, defense in depth (never single-control), vetted crypto only (no custom, no MD5/SHA1/DES/ECB). Competitor consensus contradicts baseline → baseline wins; flag deviation as finding.
 
-Output `ideal` block in state (JSON-shaped):
-
-```
-{
-  "architecture": "{one-paragraph ideal — concrete pattern + data flow}",
-  "stack": "{one-paragraph ideal stack}",
-  ...
-}
-```
+Output `ideal` block in state (JSON-shaped): `{"architecture": "{one-paragraph ideal — concrete pattern + data flow}", "stack": "{one-paragraph ideal stack}", ...}` — one key per active scope.
 
 **Gate:** Every active scope has an ideal paragraph. If fails → insufficient competitor signals for a dimension (all T3 or inaccessible) → write `[LOW CONFIDENCE]`-tagged placeholder using only security baseline; flag dimensions as `speculative` in state.data.ideal; note them in gap table header.
 

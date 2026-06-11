@@ -52,7 +52,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 1. Verify `git` available
 2. Verify git repo: `git rev-parse --git-dir`
-3. Verify not detached HEAD: `git branch --show-current`
+3. Verify not detached HEAD: `git branch --show-current` — detached → stop, suggest creating a branch first
 4. `git fetch origin` (best-effort); on main/master behind upstream → `git pull origin {branch}` silently
 
 **Branch management:**
@@ -66,12 +66,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 - **IDU:** Profile → Toolchain. Findings(commit-relevant) → context for grouping. Absent → own detection.
 - **Always:** secret scan + large file check.
-- **Always: repo completeness check** — untracked source files referenced by tracked code:
-  1. List untracked: `git ls-files --others --exclude-standard`
-  2. Filter to source extensions (`.ts/.tsx/.js/.jsx/.go/.py/.dart/.rs/.rb/.php/.ex/.scala/.cs/.c/.cpp/.h/.swift/.vue/.svelte`); exclude build output, lockfiles, generated.
-  3. Grep tracked files for filename references + relative path patterns.
-  4. Referenced-but-untracked → ask: **"Used by your code but not tracked — CI will fail. Stage them?"** Options: Stage all (recommended) / Review each / Skip.
-  5. Approve → `git add`, include in commit. Skip → warn "CI will likely fail".
+- **Always: repo completeness check** — untracked source files referenced by tracked code: list untracked (`git ls-files --others --exclude-standard`), filter to source extensions (`.ts/.tsx/.js/.jsx/.go/.py/.dart/.rs/.rb/.php/.ex/.scala/.cs/.c/.cpp/.h/.swift/.vue/.svelte`; exclude build output, lockfiles, generated), grep tracked files for filename references + relative path patterns. Referenced-but-untracked → ask **"Used by your code but not tracked — CI will fail. Stage them?"**: Stage all (recommended) / Review each / Skip. Approve → `git add`, include in commit. Skip → warn "CI will likely fail".
 - **Code files:** format + lint (no tests) on changed files only. Tool unavailable → offer install, ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`.
 - **Docs/config only:** skip code checks.
 - **Format/lint modifications:** include in the same commit, not separate.
@@ -119,15 +114,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 4. **Order when splitting:** `deps` → `config` → `src` → `test` → `docs` → `ci/infra`. Each commit must leave project buildable.
 
-5. **Display plan table:**
-
-```
-| # | Type     | Title                            | Files |
-|---|----------|----------------------------------|-------|
-| 1 | {type}   | {commit-description}             | {n}   |
-```
-
-Amending: append `(amend → {short-hash})`.
+5. **Display plan table:** `| # | Type | Title | Files |` — one row per planned commit; amending → append `(amend → {short-hash})` to the title.
 
 **Gate:** Plan table displayed. If fails → empty `git diff` (no changes, no referenced-untracked); report "Nothing to commit — working tree clean" and exit.
 
@@ -164,7 +151,7 @@ No approval question — plan table was shown. Stage files → build message →
 | End users can do something they **couldn't**? | `feat` | `refactor`/`chore` |
 | Was something **broken** and now works? | `fix` | `refactor`/`chore` |
 
-**Common misclassifications** (uncertain → non-bumping type):
+**Common misclassifications:**
 
 | Change | Looks like | Actually |
 |--------|-----------|----------|
@@ -183,16 +170,7 @@ No approval question — plan table was shown. Stage files → build message →
 | `chore(deps): bump {package} from {old-version} to {new-version}` | `chore: update packages` — which package? what version? |
 | `test({scope}): add {specific-test-target} tests` | `test: add tests` — for what? |
 
-**Body — include only when:** "why" is not obvious from title; trade-offs were considered; multi-file non-obvious reason; breaking change needs migration. Otherwise skip. Format: 1-3 lines, blank line after title, wrap at 72, explain WHY not WHAT.
-
-Body shape (placeholders):
-
-```
-{type}({scope}): {title}
-
-{1-2 sentences on why this change is needed and what trade-off was chosen}.
-{Optional: migration / config hint, e.g., "Requires migration {migration-id}"}.
-```
+**Body — include only when:** "why" is not obvious from title; trade-offs were considered; multi-file non-obvious reason; breaking change needs migration. Otherwise skip. Format: 1-3 lines, blank line after title, wrap at 72, explain WHY not WHAT; optional migration/config hint (e.g., "Requires migration {migration-id}").
 
 **Trailers/footers:** one `Co-Authored-By: {ai-model-name} <{provider-email}>`; breaking → `BREAKING CHANGE: {description}`; references → `Closes #{issue}`, `Fixes #{issue}`.
 
@@ -234,15 +212,6 @@ Zero-change run: `Nothing to commit — working tree clean`.
 - Conventional type matches litmus test
 - **Secret scan covers message body + trailers ([references/principles.md §5](references/principles.md)):** same pattern detection on proposed message + body + footer. A leak in the message is as visible as one in source.
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, git-driven). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
-
-## Error Recovery
-
-| Situation | Action |
-|-----------|--------|
-| Pre-commit hook fails | Show output, ask: fix and retry / skip hook (risk-explained) |
-| Rebase conflict during fixup | Abort, fall back to new commit, warn |
-| Formatter/linter unavailable | Skip silently, proceed |
-| Detached HEAD | Stop, suggest creating branch first |
 
 ## Edge Cases
 
