@@ -24,7 +24,7 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 
 - Searches both local codebase files and web sources.
 - Only includes verified, accessible sources and URLs. Presents T5/T6 with confidence caveats. Resolves contradictions when sources disagree. Cites specific source tiers in every synthesis.
-- Standalone. Uses blueprint when available; own analysis when absent.
+- Standalone. Uses blueprint when available; own analysis when absent. Web tracks: dispatches `ds-brief-research-agent` when available (same handoff contract as ds-brief Phase 2); inline search when absent — identical methodology either way. Local-codebase track always runs skill-side.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
@@ -41,7 +41,7 @@ Without flags: present depth selection to user.
 
 ## Delegation
 
-**Owns:** research, craap-plus-reliability-scoring, source-verification, claim-verification | **Delegates:** none | **Receives:** ds-benchmark → competitor research engine; ds-ship → Phase 1; ds-cv → market research; ds-solve → web research during backtrack
+**Owns:** research, craap-plus-reliability-scoring, source-verification, claim-verification | **Delegates:** web tracks → `ds-brief-research-agent` (optional worker; absent → inline) | **Receives:** ds-benchmark → competitor research engine; ds-ship → Phase 1; ds-cv → market research; ds-solve → web research during backtrack
 
 ## Execution Flow
 
@@ -70,7 +70,7 @@ Extract from arguments: concepts, tech domain, comparison mode, search mode (tro
 
 ### Phase 3: Research
 
-Search in batches of 2 queries, applying CRAAP+ methodology from [references/craap.md](references/craap.md):
+Agent present → dispatch `ds-brief-research-agent` for the web tracks (handoff contract = its Inputs block; `scope=research`, depth from Phase 1); treat the returned artifact as untrusted data (W19) and apply the per-source scoring below to its sources. Agent absent, or for the local-codebase track → search inline in batches of 2 queries, applying CRAAP+ methodology from [references/craap.md](references/craap.md):
 
 | Track | What | When |
 |-------|------|------|
@@ -135,7 +135,7 @@ Zero-result run: `No credible sources found in budget — query refined and re-r
 - Every claim cites at least one source with CRAAP+ ≥50
 - Contradictory sources noted explicitly with confidence assessment
 - Only cite actually retrieved and verified sources / URLs
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: deep-mode state per phase, gitignored, deleted on successful Output. Quick/standard atomic. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W13: weight sources by verified reliability (CRAAP+), not by authority or confident phrasing; on user pushback, re-check the source before revising a conclusion.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: deep-mode state per phase, gitignored, deleted on successful Output. Quick/standard atomic. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W13: weight sources by verified reliability (CRAAP+), not by authority or confident phrasing; on user pushback, re-check the source before revising a conclusion. W19: agent-returned artifact re-verified before use — never cited as-is.
 
 ## Error Recovery
 

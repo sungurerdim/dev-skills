@@ -1853,6 +1853,6 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | ds-docs | DOC | ds-repo | RPO | ds-tune | TUN |
 | ds-commit | CMT | ds-backend | BE | ds-ship | SHP |
 | ds-pr | PR | ds-deploy | DEP | ds-simplify | SMP |
-| ds-deps | DPS | ds-benchmark | BEN | | |
+| ds-deps | DPS | ds-benchmark | BEN | ds-brief | BRIEF |
 
 **Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.
