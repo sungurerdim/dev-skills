@@ -17,6 +17,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 |------|---------|
 | `ds-<name>/` | One directory per skill (ds-init, ds-fix, ds-review, ds-deploy, etc.) |
 | `SKILL-SPEC.md` | Authoritative skill format spec — every `ds-*` must conform |
+| `agents/` | Shared agent definitions (`ds-research-agent` — worker for ds-research + ds-brief); install to the host agent dir, e.g. `~/.claude/agents/` |
 | `docs/` | Topic-organized references (backend, frontend, devops, compliance, business, launch, methodology, infrastructure) |
 | `references/` | Source material (`software-best-practices.md`, `launch-research.md`) |
 

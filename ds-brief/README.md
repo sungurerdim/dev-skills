@@ -4,7 +4,7 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 
 ## What it does
 
-- Researches deeply via a dedicated worker agent (`ds-brief-research-agent`), or inline if the agent isn't available.
+- Researches deeply via a dedicated worker agent (`ds-research-agent`), or inline if the agent isn't available.
 - Confirms every datum twice (≥2 independent sources), flags single-source data, and lists what stayed unknown.
 - Builds one HTML file: all CSS+JS+data inline, system fonts, **no network calls** — opens offline, prints to clean PDF.
 - SSOT: every number/date lives once in a `CONFIG` object; edit one place, the whole document updates.
@@ -47,7 +47,7 @@ references/
 assets/
   brief-template.html          canonical offline print/PDF-safe skeleton (clone + fill)
 ~/.claude/agents/
-  ds-brief-research-agent.md   deep sourced web-research worker
+  ds-research-agent.md   deep sourced web-research worker
 ```
 
 ## Scopes
