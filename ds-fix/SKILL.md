@@ -1,3 +1,8 @@
+---
+name: ds-fix
+description: Universal code quality fix — format, lint, type-check, l10n, and security scan for any stack. Use when the user asks to fix code quality, run formatters/linters/type-checks, or scan for secrets.
+---
+
 # /ds-fix
 
 AI assistants skip formatting, ignore lint errors, and never run type checks. This skill runs all five quality passes in the correct order and verifies the result.

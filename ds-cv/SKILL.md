@@ -1,3 +1,8 @@
+---
+name: ds-cv
+description: CV generator — professional, ATS-compatible HTML CV plus a LinkedIn companion guide. Use when creating or updating a resume/CV or optimizing a LinkedIn profile.
+---
+
 # /ds-cv
 
 ATS rejects most CVs before a human ever sees them. This skill generates ones that pass.

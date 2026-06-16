@@ -1,3 +1,8 @@
+---
+name: ds-deps
+description: Dependency upgrade loop — classify each dependency as safe-patch/safe-minor/review-major, apply safe groups with per-group commits, surface majors with migration notes and rollback. Use when upgrading dependencies or auditing for outdated/vulnerable packages.
+---
+
 # /ds-deps
 
 Dormant projects rot dependencies: security advisories accumulate, majors pile up, minors become major deltas. Manual upgrade is slow and error-prone; skipping it multiplies later migration cost.

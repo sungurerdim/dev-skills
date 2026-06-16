@@ -1,3 +1,8 @@
+---
+name: ds-benchmark
+description: Ideal-vs-current gap analysis — research 5-10 comparable projects, synthesize the ideal architecture, produce a dimension-by-dimension gap table. Use when benchmarking against best-in-class or deciding which architectural gaps to close.
+---
+
 # /ds-benchmark
 
 Teams drift toward internal tastes — architecture that made sense to the original author doesn't match where the problem space has landed. Without an explicit external benchmark, the project's "ideal" is whatever the last contributor felt.

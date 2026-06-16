@@ -1,3 +1,8 @@
+---
+name: ds-analytics
+description: Privacy-first analytics — event taxonomy, funnel design, user insights. Use when adding analytics, defining events/metrics, designing funnels, or interpreting user behavior.
+---
+
 # /ds-analytics
 
 Most apps track everything (privacy violation) or nothing (flying blind). Skill designs minimum event taxonomy for maximum insight — privacy-first.

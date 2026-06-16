@@ -1,3 +1,8 @@
+---
+name: ds-test
+description: Universal test skill — generate, update, run, and fix tests for any stack. Use when writing, repairing, or running tests, or improving coverage.
+---
+
 # /ds-test
 
 AI-generated tests often mock everything, assert nothing useful, and break on the first refactor. Skill generates tests that follow project's patterns and verifies they actually pass.

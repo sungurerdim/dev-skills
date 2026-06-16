@@ -1,3 +1,8 @@
+---
+name: ds-compliance
+description: Security and regulatory compliance — OWASP, privacy laws, data protection, web security, i18n. Use when auditing for security/privacy compliance, GDPR/KVKK, or pre-release legal review.
+---
+
 # /ds-compliance
 
 Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 80+ rules across 8 compliance domains with file:line precision.

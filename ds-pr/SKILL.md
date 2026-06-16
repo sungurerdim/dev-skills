@@ -1,3 +1,8 @@
+---
+name: ds-pr
+description: Smart pull requests — Conventional Commit title and clean body for release-please. Use when opening or formatting a pull request.
+---
+
 # /ds-pr
 
 PR descriptions that list every commit instead of net change create noise, confuse reviewers, and break changelogs. This skill describes what the diff actually shows.

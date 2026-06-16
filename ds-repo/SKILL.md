@@ -1,3 +1,8 @@
+---
+name: ds-repo
+description: Repository health — audit and configure repo settings, branch policies, hygiene, metadata, team, and structure. Use when setting up or auditing repository configuration.
+---
+
 # /ds-repo
 
 Unprotected main branches, stale branches piling up, missing CODEOWNERS, no branch policies — most repos are misconfigured from day one. This skill audits and fixes it.

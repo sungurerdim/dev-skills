@@ -1,3 +1,8 @@
+---
+name: ds-docs
+description: Documentation gap analysis — identify missing docs and generate what is needed. Use when documentation is incomplete, or the user asks to write/improve README, API docs, or guides.
+---
+
 # /ds-docs
 
 Documentation drifts from code the moment it's written. This skill detects the gaps, verifies claims against source code, and generates what's missing.

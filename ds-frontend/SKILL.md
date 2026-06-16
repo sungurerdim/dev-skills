@@ -1,3 +1,8 @@
+---
+name: ds-frontend
+description: Frontend design quality — design-system audit, token enforcement, component states, accessibility, responsive layout, theming. Use when building or reviewing UI for design consistency, a11y, or responsiveness.
+---
+
 # /ds-frontend
 
 Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode — design systems exist to prevent these. This skill enforces them in code.

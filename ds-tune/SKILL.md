@@ -1,3 +1,8 @@
+---
+name: ds-tune
+description: Autonomous optimization — iterate on any project with a measurable metric (Karpathy autoresearch pattern). Use when optimizing toward a metric via automated experiment loops.
+---
+
 # /ds-tune
 
 Manual optimization is slow — 8-10 experiments per day, subjective judgment, no audit trail. Skill runs 100+ experiments autonomously, keeping only what measurably improves.

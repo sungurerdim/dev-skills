@@ -1,3 +1,8 @@
+---
+name: ds-solve
+description: Adaptive problem solver — plan, execute, research alternatives, backtrack on failure, and re-plan. Use for hard, multi-step problems that need persistence, mechanical verification, and backtracking.
+---
+
 # /ds-solve
 
 Problems that resist single-pass fixes — environment conflicts, integration failures, migration breakage — need adaptive iteration: plan, try, research, backtrack, re-plan. Skill exhausts every viable path before giving up.

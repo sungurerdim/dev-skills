@@ -1,3 +1,8 @@
+---
+name: ds-backend
+description: Backend architecture — API design, database schema, authentication. Use when designing or reviewing a backend, REST/GraphQL APIs, data models, or auth flows.
+---
+
 # /ds-backend
 
 AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, and schemas that don't survive first migration. Skill designs all three layers correctly from start.

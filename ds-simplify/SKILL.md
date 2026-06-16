@@ -1,3 +1,8 @@
+---
+name: ds-simplify
+description: Approved simplification — overengineering hygiene with one approval batch and zero silent deletion. Use when removing complexity, dead code, or overengineering safely.
+---
+
 # /ds-simplify
 
 Codebases accumulate dead exports, single-caller helpers, fallback branches, orphan modules, and premature abstractions. Each one earns a spot in context without earning its keep. Skill detects each class, presents a delete-or-keep table with concrete reasons, and applies only what the user approves.

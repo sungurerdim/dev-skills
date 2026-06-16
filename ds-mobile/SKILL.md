@@ -1,3 +1,8 @@
+---
+name: ds-mobile
+description: Mobile app quality audit — 145+ rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native). Use when auditing a mobile app for quality or release readiness.
+---
+
 # /ds-mobile
 
 Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 145+ rules before you submit.

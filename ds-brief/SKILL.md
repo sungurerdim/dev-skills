@@ -1,3 +1,8 @@
+---
+name: ds-brief
+description: Data-backed brief — research, source, double-verify, and render a visually rich single-file HTML report. Use when the user wants a sourced, fact-checked brief or report on a topic.
+---
+
 # /ds-brief
 
 AI reports fabricate sources, repeat data instead of single-sourcing it, and produce output that neither prints nor exports to PDF. This skill double-confirms every datum across ≥2 independent sources and produces a single-file, offline, print+PDF-ready HTML brief.

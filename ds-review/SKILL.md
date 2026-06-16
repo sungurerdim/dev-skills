@@ -1,3 +1,8 @@
+---
+name: ds-review
+description: Code improvement — tactical fixes plus strategic architecture alignment. Use when reviewing code for bugs, quality, or architectural fit.
+---
+
 # /ds-review
 
 Code review catches what tests miss — security holes, dead code, wrong abstractions, and performance traps hiding in plain sight. Skill scans for all of them with file:line precision.

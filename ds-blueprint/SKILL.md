@@ -1,3 +1,8 @@
+---
+name: ds-blueprint
+description: Project health system — profile-based assessment, transformation, and progress tracking. Use when assessing overall project health, planning a transformation, or tracking improvement over time.
+---
+
 # /ds-blueprint
 
 Can't improve what you don't measure. Skill scores project across 9 dimensions and tells you exactly where to focus next.

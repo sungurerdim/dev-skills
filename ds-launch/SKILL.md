@@ -1,3 +1,8 @@
+---
+name: ds-launch
+description: Store and release management — store submission, listing optimization, release strategy, post-launch monitoring. Use when preparing an app-store release or planning a launch.
+---
+
 # /ds-launch
 
 ~40% of iOS submissions get delayed or rejected for preventable errors. This skill scans your project and flags them before you submit.

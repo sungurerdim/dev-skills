@@ -1,3 +1,8 @@
+---
+name: ds-devops
+description: DevOps audit — CI/CD pipelines, code signing, dependency management, deployment config for any stack. Use when auditing or setting up CI/CD and release infrastructure.
+---
+
 # /ds-devops
 
 Broken CI pipelines, unsigned builds, and outdated dependencies silently erode release quality. This skill audits your entire DevOps setup and flags what needs fixing.

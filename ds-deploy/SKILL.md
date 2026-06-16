@@ -1,3 +1,8 @@
+---
+name: ds-deploy
+description: Deployment and infrastructure — containerization, deployment, monitoring, incident response. Use when deploying an app, setting up containers/monitoring, or planning incident response.
+---
+
 # /ds-deploy
 
 First deploy often means bloated Docker images, no health checks, no SSL, and no monitoring. This skill audits and generates production-ready infrastructure configs.

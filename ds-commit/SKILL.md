@@ -1,3 +1,8 @@
+---
+name: ds-commit
+description: Smart commits — quality gates, atomic grouping, Conventional Commits formatting. Use when committing changes, grouping a working tree into atomic commits, or writing commit messages.
+---
+
 # /ds-commit
 
 AI commits are vague ("update code"), bundle unrelated changes, and skip pre-commit checks. Skill reads diff, groups changes logically, and writes precise conventional commit messages.

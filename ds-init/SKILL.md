@@ -1,3 +1,8 @@
+---
+name: ds-init
+description: Project scaffolding — generate production-ready project structure for any stack. Use when starting a new project or bootstrapping a repo skeleton.
+---
+
 # /ds-init
 
 New projects start with no CI, no test setup, no linting, and inconsistent structure. This skill scaffolds all of it from day one.

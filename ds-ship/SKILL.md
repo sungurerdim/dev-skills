@@ -1,3 +1,8 @@
+---
+name: ds-ship
+description: Ship orchestrator — classify the project, plan and delegate the skill sequence, consolidate findings, and produce an audit report. Use when running an end-to-end ship/audit pipeline across multiple skills.
+---
+
 # /ds-ship
 
 Projects at every stage — raw idea, half-built scaffold, unlaunched, long-dormant — accumulate gaps: broken doc promises, outdated stacks, missing launch gates, abstractions that don't pay rent. Invoking the right ds-* skills in the right order is its own cognitive tax.

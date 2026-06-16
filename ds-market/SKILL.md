@@ -1,3 +1,8 @@
+---
+name: ds-market
+description: Marketing and growth — positioning, copy generation, and growth tactics for indie and solo-dev products. Use when crafting positioning, marketing copy, or a growth plan.
+---
+
 # /ds-market
 
 Solo developers build great products but can't get anyone to notice. This skill generates positioning, copy, and growth playbook to change that.
