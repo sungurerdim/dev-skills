@@ -22,8 +22,8 @@ Extended reference for `/ds-ship` phase internals. Loaded only when a phase requ
 | mobile | ds-mobile (authoritative for security / privacy / regulatory / a11y) | ds-compliance for those scopes |
 | web | ds-compliance + ds-frontend (a11y impl) + ds-backend | ds-mobile |
 | backend-only | ds-compliance + ds-backend + ds-devops + ds-deploy | ds-frontend, ds-mobile |
-| library | ds-test (high coverage) + ds-docs (API-heavy) + ds-repo --oss-ready | ds-launch, ds-market, ds-frontend |
-| CLI | ds-test + ds-docs + ds-repo | ds-frontend, ds-launch, ds-market |
+| library | ds-test (high coverage) + ds-docs (API-heavy) + ds-repo --oss-ready | ds-launch, ds-frontend |
+| CLI | ds-test + ds-docs + ds-repo | ds-frontend, ds-launch |
 
 ## Phase 6 — HTML Report Structure
 

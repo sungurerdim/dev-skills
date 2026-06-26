@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed — catalog focus: extract off-domain skills (2026-06)
+
+- **ds-cv, ds-market, ds-analytics moved out** to a separate companion repo (`dev-skills-extra`, private) — these career/marketing/product-analytics workflows diluted the core coding-toolkit identity. dev-skills is now 25 coding-lifecycle skills, each with a distinct concrete benefit. All cross-references (README, CLAUDE, SKILL-SPEC ownership/boundary/prefix tables, ds-ship sequences, sibling DON'T-INVOKE pointers, `docs/guide.html` plan map) updated so nothing dangles; DON'T-INVOKE pointers to the moved skills now read `→ external / manual`.
+
 ### Added — ds-issue: GitHub-Issues lifecycle in one skill (2026-06)
 
 - **ds-issue** (new skill, prefix `ISS`) — the full GitHub-Issues loop, record side and work side, in four modes:

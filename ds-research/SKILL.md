@@ -22,7 +22,7 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 |---------|----------|
 | "compare X vs Y", "find best library for {task}" | "implement what you find" (→ manual / target skill) |
 | "research auth best practices" | "design auth flow concretely" (→ ds-backend --design) |
-| "academic / multi-source comparison" | "marketing competitor analysis" (→ ds-market) |
+| "academic / multi-source comparison" | "marketing competitor analysis" (→ external / manual) |
 | "investigate solutions with CRAAP scoring" | "decide the implementation" (→ user owns the choice) |
 
 ## Contract
@@ -46,7 +46,7 @@ Without flags: present depth selection to user.
 
 ## Delegation
 
-**Owns:** research, craap-plus-reliability-scoring, source-verification, claim-verification | **Delegates:** web tracks → `ds-research-agent` (optional worker; absent → inline) | **Receives:** ds-benchmark → competitor research engine; ds-ship → Phase 1; ds-cv → market research; ds-solve → web research during backtrack
+**Owns:** research, craap-plus-reliability-scoring, source-verification, claim-verification | **Delegates:** web tracks → `ds-research-agent` (optional worker; absent → inline) | **Receives:** ds-benchmark → competitor research engine; ds-ship → Phase 1; ds-solve → web research during backtrack
 
 ## Execution Flow
 

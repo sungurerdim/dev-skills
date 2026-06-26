@@ -1,13 +1,12 @@
 # Launch Research — Strategy, Voice & Positioning
 
-Repository-level reference. Captures the case studies and 2026 verification data that informed the dev-skills suite's voice, positioning, and structural choices. Treat this as the "why" behind decisions documented in `SKILL-SPEC.md`, the root `README.md`, and `ds-market` / `ds-launch` / `ds-cv`.
+Repository-level reference. Captures the case studies and 2026 verification data that informed the dev-skills suite's voice, positioning, and structural choices. Treat this as the "why" behind decisions documented in `SKILL-SPEC.md`, the root `README.md`, and `ds-launch`.
 
 When this file says a pattern was "applied", check the corresponding skill or doc to verify the live implementation — case studies become stale faster than the patterns they validate.
 
 Last updated: 2026-03-23
 
 **How this fits the suite:**
-- `ds-market` — operationalizes Part 1 patterns + Part 2 verifications + Part 3 tactics (contrarian hook formula, philosophy template, AEO guidance, build-in-public, multi-launch PH).
 - `ds-launch` — operationalizes Part 3 ASO updates (screenshot caption indexing, CPP expansion, portrait video, intent-driven discovery).
 - `README.md` (root) + per-skill READMEs — apply Part 4 voice rules (forbidden words, allowed power words) and structure (hook → one-liner → proof → quick start → philosophy → curated overview).
 - `SKILL-SPEC.md` §2 (Skill Voice) — codifies Part 4 voice rules as a spec-level constraint every skill must satisfy.
@@ -310,7 +309,7 @@ Below fold:  Technical details, full docs, contributing, license
 | Philosophy as "worldview" | Philosophy as **sharp beliefs with metrics** | Research confirms: quantified beliefs > abstract worldview |
 | Compact overview | **Curated overview with pipeline visualization** | Reduces choice paralysis (Zara's 12 presets principle applied to skill listing) |
 
-### The Ideal Copy Framework (for ds-market to teach)
+### The Ideal Copy Framework
 
 **Level 1: Hook (Contrarian or Pain-First)**
 - Contrarian: "[Status quo] is broken. Here's what actually works."
@@ -355,26 +354,11 @@ Below fold:  Technical details, full docs, contributing, license
 
 | Skill | Current Opening | Ideal Opening |
 |-------|----------------|---------------|
-| ds-market | "Marketing & Growth — Strategy, copy generation, and growth tactics." | "Solo developers build great products but can't get anyone to notice. This skill fixes that." |
 | ds-launch | "Store & Release Management — Store submission, listing optimization..." | "75% of app store rejections are preventable. This skill catches them before you submit." |
-| ds-cv | "CV Generator — Professional, ATS-compatible HTML CV with LinkedIn companion guide." | "ATS rejects most CVs before a human ever sees them. This skill generates ones that pass." |
 
 ---
 
 ## Part 5: Gap Analysis — Ideal vs Current Skills
-
-### ds-market/SKILL.md
-
-| Gap | Severity | Detail |
-|-----|----------|--------|
-| Feature-first opening | HIGH | Violates anti-pattern #1 (feature-focused opening) |
-| No contrarian hook teaching | HIGH | Copy mode generates taglines but doesn't teach the most viral pattern |
-| No philosophy statement template | HIGH | Research confirms philosophy > features (Linear, Tailwind, Rails) |
-| Missing "Proof" layer in copy | MEDIUM | Demo video converts 7.2x more (interactive); skill doesn't guide users toward proof |
-| No AEO guidance | MEDIUM | 357% YoY AI search growth; ds-market mentions AEO in 1 line |
-| Build-in-public absent from SKILL | MEDIUM | Growth scope covers organic/referral/community but not build-in-public |
-| Missing "Forbidden words" list | LOW | Skill generates copy without guardrails against marketing-speak |
-| Landing page structure outdated | LOW | Standard Hero/Features/CTA; should incorporate proof + philosophy layers |
 
 ### ds-launch/SKILL.md
 
@@ -385,13 +369,6 @@ Below fold:  Technical details, full docs, contributing, license
 | ASO algorithm updates | MEDIUM | Screenshot text indexing (June 2025), CPP expansion, intent-driven search not reflected |
 | Portrait video optimization | LOW | Google Play: 7% higher watch time for portrait; not mentioned |
 | Multi-launch PH strategy | LOW | Not in scope but relevant for post-launch growth |
-
-### ds-cv/SKILL.md
-
-| Gap | Severity | Detail |
-|-----|----------|--------|
-| Clinical opening | LOW | Already the most opinionated skill; opening is the only flat part |
-| No other significant gaps | — | Skill already follows Zara patterns naturally |
 
 ### docs/business/marketing-strategy-guide.md
 

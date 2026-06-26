@@ -22,8 +22,8 @@ AI reports fabricate sources, repeat data instead of single-sourcing it, and pro
 |---------|----------|
 | "prepare a sourced report/guide on {topic}" | "just find the sources, no report" (→ ds-research) |
 | "turn these URLs into one summarized HTML" (`--summarize`) | "implement the code / write the feature" (→ target skill) |
-| "printable / PDF-exportable briefing document" | "generate a CV/resume" (→ ds-cv) |
-| "double-confirmed, visually rich brief" | "competitor/market analysis dashboard" (→ ds-market) |
+| "printable / PDF-exportable briefing document" | "generate a CV/resume" (→ external / manual) |
+| "double-confirmed, visually rich brief" | "competitor/market analysis dashboard" (→ external / manual) |
 
 ## Contract
 

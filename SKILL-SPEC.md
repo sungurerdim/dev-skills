@@ -973,9 +973,6 @@ The boundaries below define **primary ownership** — which skill provides the d
 | ds-backend | API design + database schema + auth architecture: audit, design, spec, migrate | Full backend review: REST/GraphQL, DB, auth |
 | ds-deploy | Deployment + infrastructure + monitoring + incident response | Containerization, VPS, SSL, monitoring, cost, incident |
 | ds-launch | Store submission + release management + post-launch monitoring | Store listing, privacy labels, review prep, staged rollout |
-| ds-market | Marketing strategy + copy generation + growth | Strategic guidance: positioning, channels, copy, growth |
-| ds-analytics | Privacy-first analytics: event taxonomy, funnels, metrics, audit | Analytics design, tool integration, privacy audit |
-| ds-cv | Professional CV generation: ATS-compatible HTML, metric verification, LinkedIn alignment | Full CV workflow: gather, verify, generate, audit, deploy |
 | ds-frontend | Frontend design quality: design system, tokens, components, states, a11y, responsive, theming | Full UI audit + design system generation for any framework |
 | ds-tune | Autonomous optimization: measurable metric loop, 100+ experiments, keep only improvements | Full optimization workflow for any measurable metric |
 | ds-solve | Adaptive problem-solving: multi-plan backtracking, web research, constraint preservation | Full iterative solve with 3-layer budget ({P} plans x {R} rounds x {A} alternatives) |
@@ -995,9 +992,7 @@ Where scopes overlap between skills, each skill handles the full scope independe
 | Performance | ds-review --perf (deep profiling), ds-review --tactical (basic perf checks) | --tactical catches common patterns. --perf does deep analysis (bundle, startup, memory, Web Vitals). |
 | Deployment/CI | ds-devops (CI/CD audit), ds-deploy (infra + deploy + monitoring) | ds-devops owns pipeline audit. ds-deploy owns infrastructure, containerization, monitoring, incident response. |
 | Store readiness | ds-mobile (mobile-specific audit), ds-launch (store submission + release) | ds-mobile audits app quality. ds-launch handles store listing, privacy labels, review prep, release management. |
-| Analytics/tracking | ds-analytics (event taxonomy, privacy), ds-compliance (tracking consent) | ds-analytics designs tracking. ds-compliance audits consent mechanisms. |
 | API design | ds-backend (API + DB + auth design), ds-review (code quality) | ds-backend owns API/DB/auth architecture. ds-review handles code-level quality fixes. |
-| Marketing copy | ds-market (strategy + copy), ds-launch (store listing copy) | ds-market generates marketing strategy and copy. ds-launch focuses on store-specific metadata. |
 | UI/UX quality | ds-frontend (design system), ds-mobile (mobile UX), ds-review (code quality), ds-compliance (a11y law) | ds-frontend owns design tokens, component states, responsive, theming. ds-mobile owns mobile-specific UX (gestures, permissions, store). ds-review owns code-level quality. ds-compliance owns regulatory a11y (EAA, ADA). |
 
 ### Inter-Skill Communication
@@ -1102,8 +1097,6 @@ All scopes from all skills can appear in findings. The analyzer does not need to
 | deployment, infra, monitoring | ds-deploy | ds-deploy (own config gen) |
 | store, release, privacy-labels (store-label-correctness only) | ds-launch | ds-launch (own metadata gen) |
 | perf-budget | ds-launch --perf-budget | ds-devops (CI wiring) |
-| marketing, growth | ds-market | ds-market (strategy only) |
-| analytics, event taxonomy, event-pii-scan | ds-analytics | ds-analytics (own design/setup) |
 | scaffolding, project init | ds-init | ds-init (own generation) |
 | perf-profiling (deep) | ds-review --perf | ds-review (own analysis + fixes) |
 | tokens, components, states, a11y (design), responsive, theming | ds-blueprint, ds-frontend | ds-frontend (audit + fix + design) |
@@ -1148,7 +1141,7 @@ Producer skills MUST ensure their output is maximally useful for downstream cons
    - **Header** (Type, Stack, Target): used by all consumers for detection skip and severity calibration
    - **Config.priorities**: ds-review (scope ordering), ds-docs (generation priority)
    - **Config.constraints**: ds-deploy (infra limits), ds-repo (settings), ds-compliance (scope)
-   - **Config.data + regulations**: ds-compliance (regulation framework + PII types), ds-analytics (privacy), ds-backend (auth), ds-mobile (store compliance)
+   - **Config.data + regulations**: ds-compliance (regulation framework + PII types), ds-backend (auth), ds-mobile (store compliance)
    - **Config.audience + deploy**: ds-docs (tone), ds-launch (store requirements), ds-deploy (target), ds-devops (pipeline)
    - **Project Map.Toolchain**: ds-fix (formatter/linter), ds-test (test framework), ds-devops (CI platform)
    - **Project Map.Modules + External**: ds-backend (API structure), ds-docs (what to document), ds-deploy (dependencies)
@@ -1205,7 +1198,6 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 | ds-devops | **Project Map.Toolchain** → skip CI detection, use stated CI platform. **Type + Stack** → select correct pipeline templates. | ci, signing, deps |
 | ds-mobile | **Config.data** → know privacy requirements for store compliance. **Config.deploy** → know build pipeline (CI, signing). **Current Scores** → focus on lowest dimensions. | mobile-specific scopes |
 | ds-backend | **Project Map.Modules** → know API structure, skip architecture discovery. **Config.data** → know auth/data requirements. **Project Map.External** → know existing DB/cache/queue. | api, db, auth |
-| ds-analytics | **Config.data** → know privacy constraints for tracking design. **Config.audience** → context for event taxonomy. **Config.regulations** → compliance requirements for analytics. | analytics, privacy |
 | ds-launch | **Config.audience** → know store requirements. **Config.deploy** → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
 | ds-frontend | **Config.priorities** → order scope execution. **Type + Stack** → select framework-specific patterns. **Current Scores** → focus on lowest-scoring UX dimensions. | tokens, components, states, a11y, responsive, theming |
 | ds-solve | **Type + Stack** → research query context. **Config.constraints** → automatic red lines. **Current Scores** → weak dimensions near objective. | — (context consumer, not scope producer) |
@@ -1869,14 +1861,13 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | Skill | Prefix | Skill | Prefix | Skill | Prefix |
 |-------|--------|-------|--------|-------|--------|
 | ds-init | INI | ds-launch | LCH | ds-research | RSC |
-| ds-fix | FIX | ds-compliance | CMP | ds-market | MKT |
-| ds-test | TST | ds-frontend | FE | ds-analytics | ANL |
-| ds-review | REV | ds-mobile | MOB | ds-cv | CV |
-| ds-blueprint | BP | ds-devops | OPS | ds-solve | SOL |
-| ds-docs | DOC | ds-repo | RPO | ds-tune | TUN |
-| ds-commit | CMT | ds-backend | BE | ds-ship | SHP |
-| ds-pr | PR | ds-deploy | DEP | ds-simplify | SMP |
-| ds-deps | DPS | ds-benchmark | BEN | ds-brief | BRIEF |
-| ds-issue | ISS | | | | |
+| ds-fix | FIX | ds-compliance | CMP | ds-solve | SOL |
+| ds-test | TST | ds-frontend | FE | ds-tune | TUN |
+| ds-review | REV | ds-mobile | MOB | ds-ship | SHP |
+| ds-blueprint | BP | ds-devops | OPS | ds-simplify | SMP |
+| ds-docs | DOC | ds-repo | RPO | ds-brief | BRIEF |
+| ds-commit | CMT | ds-backend | BE | ds-issue | ISS |
+| ds-pr | PR | ds-deploy | DEP | | |
+| ds-deps | DPS | ds-benchmark | BEN | | |
 
 **Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.

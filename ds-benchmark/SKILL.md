@@ -22,7 +22,7 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 |---------|----------|
 | "compare with competitors", "what would ideal look like" | "audit my own code quality" (→ ds-review) |
 | "ideal-vs-current gap table" | "score project health from inside" (→ ds-blueprint) |
-| "OSS positioning research vs alternatives" | "marketing positioning / copy" (→ ds-market) |
+| "OSS positioning research vs alternatives" | "marketing positioning / copy" (→ external / manual) |
 | "am I doing this the right way" | "fix the issues you find" (→ ds-review / ds-fix) |
 
 ## Contract

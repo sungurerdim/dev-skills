@@ -26,7 +26,7 @@ Covers 80+ rules across 8 compliance domains.
 |---------|----------|
 | "GDPR/KVKK/CCPA/HIPAA audit", "regulatory compliance check" | "audit code quality" (→ ds-review) |
 | "OWASP Top 10 security scan" | "fix lint errors / format" (→ ds-fix) |
-| "privacy compliance audit (consent, retention, DSR)" | "design event taxonomy" (→ ds-analytics) |
+| "privacy compliance audit (consent, retention, DSR)" | "design event taxonomy" (→ external / manual) |
 | "CSP/CORS/XSS/CSRF audit" | "mobile app store privacy labels" (→ ds-mobile / ds-launch) |
 
 ## Contract
@@ -77,7 +77,7 @@ Every secret is its own needs-approval item. `--auto` lists them, marks all `ski
 
 ## Delegation
 
-**Owns:** regulatory, privacy (canonical — GDPR / KVKK / CCPA / etc.), a11y-regulatory-framing (ADA / EN301549 mapping), security-regulatory, i18n, secrets-migrate (`--secrets-migrate`) | **Delegates:** ds-mobile → security/privacy/regulatory when mobile detected (`pubspec.yaml` / `Info.plist` / `AndroidManifest.xml`); ds-frontend → a11y implementation + fixes; ds-analytics → event-property PII scan | **Receives:** ds-ship → Phase 2 regulatory pass
+**Owns:** regulatory, privacy (canonical — GDPR / KVKK / CCPA / etc.), a11y-regulatory-framing (ADA / EN301549 mapping), security-regulatory, i18n, secrets-migrate (`--secrets-migrate`) | **Delegates:** ds-mobile → security/privacy/regulatory when mobile detected (`pubspec.yaml` / `Info.plist` / `AndroidManifest.xml`); ds-frontend → a11y implementation + fixes | **Receives:** ds-ship → Phase 2 regulatory pass
 
 ## Execution Flow
 
@@ -108,7 +108,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 6. **Overlap routing (runtime enforcement — OVERLAP-1, -2, -4):**
    - **Mobile project detected** (`pubspec.yaml` with `flutter:` OR `Info.plist` OR `AndroidManifest.xml`) → invoke `/ds-mobile --scope=security,privacy,regulatory`, wait for completion, read its `ds/audit/findings.md` updates, remove `security/privacy/regulatory` from active scope. Keep only non-mobile-covered scopes (a11y, i18n, web, network, perf, arch) locally. Rationale: ds-mobile authoritative; running both duplicates findings.
    - **a11y scope active + project has frontend** (framework detected in `package.json` / equivalent) → announce delegation: "a11y implementation + fixes delegated to /ds-frontend. This run keeps regulatory framing only (ADA / EN301549 mapping)." Mark a11y `framing-only`; emit only regulatory-mapping findings.
-   - **Privacy scope active** → canonical owner. Announce: "/ds-launch --privacy narrows to store-label-correctness; /ds-analytics --privacy-audit narrows to event-property PII scan. This run emits canonical privacy findings."
+   - **Privacy scope active** → canonical owner. Announce: "/ds-launch --privacy narrows to store-label-correctness. This run emits canonical privacy findings, including event-property PII scanning."
 
 **Gate:** Project type identified; mode + scope confirmed; regulatory frameworks resolved; overlap routing applied. If fails → type undetected + no `--type` response → default `web`, announce, proceed; regulatory ambiguous after detection → present detected signals, require explicit framework selection before proceeding.
 

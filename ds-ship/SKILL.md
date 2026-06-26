@@ -68,7 +68,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 | `--stage={x}` | Override auto-classified stage: idea, spec-only, scaffold, implementation, review-pending, pre-launch, launched, frozen |
 | `--uplift` | Model-uplift run: force `/ds-blueprint --refresh` as first delegation regardless of findings freshness; Phase 6 report adds model-attributed Score Delta line — previous vs current `Scores:` line via `git log` of the instruction file |
 | `--html` | Additionally produce `ds/audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |
-| `--skip={list}` | Comma-separated skills to skip (e.g. `--skip=ds-mobile,ds-analytics`) |
+| `--skip={list}` | Comma-separated skills to skip (e.g. `--skip=ds-mobile,ds-launch`) |
 | `--only={list}` | Comma-separated skills to include (override classification defaults) |
 | `--auto` | Run every phase; Category B items listed and skipped (needs-approval) |
 | `--force-approve` | Apply every Category B item without asking |
@@ -89,7 +89,7 @@ Without flags: present mode menu (full / preview / resume).
 | implementation | ds-blueprint → ds-review → ds-test → ds-simplify → ds-fix |
 | review-pending | ds-review → ds-compliance OR ds-mobile → ds-frontend/backend → ds-simplify |
 | pre-launch | ds-devops → ds-deploy → ds-launch → ds-repo (--oss-ready on public intent) |
-| launched | ds-tune → ds-analytics → ds-deps (periodic hygiene) |
+| launched | ds-tune → ds-deps (periodic hygiene) |
 | frozen | ds-blueprint → ds-deps (security-only) |
 
 | Project type | Additional rules |
@@ -97,7 +97,7 @@ Without flags: present mode menu (full / preview / resume).
 | mobile | ds-mobile authoritative for security/privacy/regulatory; ds-frontend only for UI/UX where applicable; skip ds-compliance on scopes ds-mobile owns |
 | web (SSR/SPA) | ds-frontend + ds-backend + ds-compliance all run |
 | backend-only | ds-backend + ds-devops + ds-deploy; skip ds-frontend |
-| library | ds-test (high coverage) + ds-docs (API-heavy) + ds-repo --oss-ready; skip ds-launch, ds-market |
+| library | ds-test (high coverage) + ds-docs (API-heavy) + ds-repo --oss-ready; skip ds-launch |
 | CLI | ds-test + ds-docs + ds-repo; skip ds-frontend, ds-launch |
 
 ## Delegation
@@ -183,7 +183,6 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 5. `/ds-compliance` (web/backend projects)
 6. `/ds-test`
 7. `/ds-fix`
-8. `/ds-analytics --privacy-audit` (only if analytics present)
 
 **Category B batch at end of Phase 2.** Present all B items with impact / effort / risk. Modes: interactive → Apply All / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL); `--auto` without `--force-approve` → list + skip; `--force-approve` → apply all. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
 
@@ -346,6 +345,6 @@ W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no un
 | Monorepo | Classify per workspace; run orchestration per workspace; aggregate report with workspace-prefixed sections |
 | Frozen project (no commits >180d) | Phase 0 flags frozen; default skip of ds-launch; run ds-deps security-only |
 | Mobile-only project | Phase 2 runs ds-mobile instead of ds-compliance for overlapping scopes |
-| Library/CLI (no UI) | Skip ds-frontend, ds-launch, ds-market; include ds-repo --oss-ready if public intent |
+| Library/CLI (no UI) | Skip ds-frontend, ds-launch; include ds-repo --oss-ready if public intent |
 | Multiple value propositions in docs | Ask user to confirm primary vp; note secondary as intentional scope |
 | Ship-ready already | Phase 0 detects zero B gaps, report becomes maintenance snapshot — Phase 5 still runs launch checks to confirm |

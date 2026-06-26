@@ -18,7 +18,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 | INVOKE | DON'T INVOKE |
 |---------|----------|
 | "audit documentation gaps", "is README up to date" | "audit code quality" (→ ds-review) |
-| "generate API docs from source" | "write marketing copy / landing page" (→ ds-market) |
+| "generate API docs from source" | "write marketing copy / landing page" (→ external / manual) |
 | "verify docs against code (no drift)" | "test the documented examples" (→ ds-test) |
 | "write ADR for this decision" | "research industry best practices" (→ ds-research) |
 

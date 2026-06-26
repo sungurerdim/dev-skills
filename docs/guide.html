@@ -100,9 +100,7 @@ const S = {
  "ds-deploy":{w:"Audits and generates containerization, TLS, health checks, monitoring, incident runbook.",b:"Production-grade infrastructure instead of first-deploy surprises.",g:"Bloated images, no SSL, no monitoring."},
  "ds-launch":{w:"Store-submission / web-launch / publish checks, listing optimization, release strategy.",b:"Preventable rejections caught before you submit.",g:"~40% of store submissions delayed by avoidable errors."},
  "ds-repo":{w:"Audits and fixes repo settings: branch protection, CODEOWNERS, policies, metadata.",b:"A hardened, contributor-ready repository.",g:"Unprotected main, stale branches, missing CODEOWNERS."},
- "ds-market":{w:"Positioning, copy and a growth playbook for indie products.",b:"A launch people actually notice.",g:"Great product, zero distribution."},
  "ds-tune":{w:"Runs 100+ autonomous experiments against a measurable metric, keeps only what improves it.",b:"Optimization with an audit trail instead of gut feeling.",g:"Slow, subjective manual tuning."},
- "ds-analytics":{w:"Designs a privacy-first minimum event taxonomy, funnels and user insights.",b:"Maximum insight without privacy violations.",g:"Tracking everything (illegal) or nothing (blind)."},
  "ds-deps":{w:"Classifies every dependency safe-patch / safe-minor / review-major; applies safe groups with per-group commits and a rollback plan.",b:"Dependencies stay current without breakage roulette.",g:"Security advisories piling up in dormant projects."}
 };
 const TYPES=["Web App","Backend / API","Mobile App","CLI Tool","Library / Package"];
@@ -117,15 +115,15 @@ const P={
   "CLI Tool":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test","ds-simplify","ds-fix","ds-docs"],
   "Library / Package":[note("ds-blueprint","fresh findings first"),"ds-review",note("ds-test","aim high coverage"),"ds-simplify","ds-fix",note("ds-docs","API docs are the product")]},
  "Launch":{
-  "Web App":["ds-devops","ds-deploy",note("ds-launch","web launch checks"),"ds-repo",note("ds-market","public products")],
+  "Web App":["ds-devops","ds-deploy",note("ds-launch","web launch checks"),"ds-repo"],
   "Backend / API":["ds-devops","ds-deploy","ds-repo"],
   "Mobile App":["ds-devops",note("ds-deploy","only if you own the backend"),note("ds-launch","store submission"),"ds-repo"],
   "CLI Tool":["ds-devops",note("ds-repo","--oss-ready if public")],
   "Library / Package":["ds-devops",note("ds-repo","--oss-ready, then publish to the registry yourself")]},
  "Live":{
-  "Web App":["ds-tune","ds-analytics","ds-deps"],
-  "Backend / API":["ds-tune",note("ds-analytics","if events are tracked"),"ds-deps"],
-  "Mobile App":["ds-tune","ds-analytics","ds-deps"],
+  "Web App":["ds-tune","ds-deps"],
+  "Backend / API":["ds-tune","ds-deps"],
+  "Mobile App":["ds-tune","ds-deps"],
   "CLI Tool":[note("ds-tune","if you have a measurable metric"),"ds-deps"],
   "Library / Package":["ds-deps",note("ds-tune","if you have a measurable metric")]}
 };
