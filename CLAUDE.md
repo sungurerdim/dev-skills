@@ -23,9 +23,9 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 
 ## Skills (29)
 
-`ds-analytics`, `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-cv`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-market`, `ds-mobile`, `ds-pr`, `ds-repo`, `ds-research`, `ds-resolve`, `ds-review`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
+`ds-analytics`, `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-cv`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-market`, `ds-mobile`, `ds-pr`, `ds-repo`, `ds-research`, `ds-review`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
 
-`ds-issue` + `ds-resolve` are the GitHub-Issues-centric pair: verified/deduped intake and code-verified status (`ds-issue`), issue-bound execution with impact-mapping and code-proven close (`ds-resolve`). Both read an optional per-project `.dev-skills/issue-ops.json` adapter; standalone via auto-detect when absent. Prefixes `ISS` / `RSL` (SKILL-SPEC appendix).
+`ds-issue` is the single GitHub-Issues-centric skill covering the whole lifecycle in four modes: intake (default) · `--sweep` dedup · `--status` code-verified done-audit · `--do #N` issue-bound execution (re-verify → impact-map → implement → code-proven close). State-exempt (zero local footprint — GitHub + git are the durable record). Reads an optional per-project `.dev-skills/issue-ops.json` adapter; standalone via auto-detect when absent. Prefix `ISS` (SKILL-SPEC appendix).
 
 ## Development
 

@@ -1,4 +1,4 @@
-# Impact-surface map (ds-resolve)
+# Impact-surface map (ds-issue `--do`)
 
 Before any code changes, enumerate the **touched · linked · affected** set. The output is a code-map contract: an explicit affected-set that every later phase is checked against. A change that breaks a node in this set is not done. Skipping this map is how a one-file "fix" silently breaks five callers.
 

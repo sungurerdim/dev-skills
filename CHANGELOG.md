@@ -6,12 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-### Added — GitHub-Issues-centric toolkit: ds-issue + ds-resolve (2026-06)
+### Added — ds-issue: GitHub-Issues lifecycle in one skill (2026-06)
 
-- **ds-issue** (new skill, prefix `ISS`) — verified issue intake + dedup sweep + code-verified status. Three modes: `(default)` intake turns a raw note into one well-formed issue only after a dedup sweep (open + closed + history docs) and a false-positive gate (symptom reproduced against code read this run) both pass; `--sweep` reports duplicate/overlap/redundant/obsolete clusters across the whole set; `--status` audits done-ness **from code** (buckets: done & code-verified · claimed-done-but-unproven · in-progress · not-started · blocked), read-only. Issue body uses conditional blocks (no dead content), machine-checkable Done, exactly 1 type + 1 priority from the live label set, sub-issue split over the bounded-task threshold. Carries W1–W11 + W13.
-- **ds-resolve** (new skill, prefix `RSL`) — issue-bound executor: one issue in, `Closes #N` out. Phases: re-verify root cause (stale → stop, never "fix" a non-problem) → impact-surface map (callers · consumers · serialization · schema · i18n/a11y/compliance · project hazard checklist) → internal bounded plan → implement + verify each unit → aggregate done-signal green + regression test for fixes → close with code-proven evidence + doctrine-lockstep note. `--dry-run` stops after planning and posts the impact map + plan as an issue comment, changing no files. Carries W1–W11 + W14/W15/W17.
-- **Project adapter** — both skills read an optional committed `.dev-skills/issue-ops.json` (repo slug, doctrine doc paths, label taxonomy, audit→issue-type map, done-signal command, hazard checklist, history docs); absent → auto-detect repo/done-signal/criteria. Self-contained: each skill carries its own `references/` (github-features, verification, adapter + issue-template / impact-surface); the small doctrine overlap is duplicated by design per the standalone rule.
-- **SKILL-SPEC** — registered prefixes `ISS` (ds-issue) / `RSL` (ds-resolve); added ds-issue to W13, ds-resolve to W14/W15/W17 *Applies to* lists. Skill count 27 → 29.
+- **ds-issue** (new skill, prefix `ISS`) — the full GitHub-Issues loop, record side and work side, in four modes:
+  - `(default)` **intake** — a raw note becomes one well-formed issue only after a dedup sweep (open + closed + history docs) and a false-positive gate (symptom reproduced against code read this run) both pass. Conditional-block body (no dead content), machine-checkable Done, exactly 1 type + 1 priority from the live label set, sub-issue split over the bounded threshold.
+  - `--sweep` — duplicate/overlap/redundant/obsolete clusters across the whole set, with recommended merges/closures.
+  - `--status` — done-ness audited **from code** (buckets: done & code-verified · claimed-done-but-unproven · in-progress · not-started · blocked), read-only.
+  - `--do #N` — execute one issue end-to-end: re-verify root cause (stale → stop, never "fix" a non-problem) → impact-surface map (callers · consumers · serialization · schema · i18n/a11y/compliance · project hazard checklist) → internal bounded plan → implement + verify each unit → aggregate done-signal green + regression test for fixes → close with code-proven evidence + doctrine-lockstep note. `--dry-run` posts the plan as a comment, changes no files.
+- **Zero local footprint** — state-exempt: writes no `ds/audit/` state and no temp files; the GitHub issue + its comments + git are the durable record (`gh` bodies pass via heredoc). The audit trail is the issue's comments, not a local log.
+- **Project adapter** — optional committed `.dev-skills/issue-ops.json` (repo slug, doctrine doc paths, label taxonomy, audit→issue-type map, done-signal, hazard checklist, history docs); absent → auto-detect repo/done-signal/criteria. Self-contained `references/` (github-features, verification, issue-template, impact-surface, adapter).
+- **SKILL-SPEC** — registered prefix `ISS`; ds-issue carries W13 + W14/W15/W17 *Applies to*.
 
 ### Added — model-uplift workflow + coverage-gap closure (2026-06)
 

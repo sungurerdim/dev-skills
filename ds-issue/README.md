@@ -31,6 +31,8 @@ Requires the `gh` CLI, authenticated (`gh auth login`).
 | `/ds-issue <raw note>` | Intake: turn a raw note/bug/idea into a verified, deduped, confirmed issue |
 | `/ds-issue --sweep` | Sweep the whole tracker for duplicate/overlap/redundant/obsolete clusters |
 | `/ds-issue --status` | Code-verified done-audit (read-only) — what's done, claimed-but-unproven, in-progress, blocked |
+| `/ds-issue --do #N` | Execute issue #N end-to-end (re-verify → impact map → implement → code-proven close) |
+| `/ds-issue --do #N --dry-run` | Plan only — impact map + plan posted as a comment; no files changed |
 
 ## Project adapter (optional)
 
@@ -42,11 +44,9 @@ Drop `.dev-skills/issue-ops.json` in the repo to sharpen the skill with your rep
 - **False-positive gate** — reproduces the symptom against current code; unreproducible → no issue, reports the missing evidence
 - **Grounded anchors** — every `file:line`/symbol in the body is read this run, never assumed
 - **Code-verified status** — `--status` answers done-ness from the codebase, not from the closed flag or comments
-- **Bounded issues** — over-large work is split into sub-issues, not one mega-issue
+- **End-to-end execution** — `--do #N` re-verifies the root cause (stale → stops), maps the full impact surface (callers/consumers/sync/schema/i18n + project hazards), implements in bounded units, and closes with code-proven evidence
+- **Bounded work** — over-large issues split into sub-issues; execution units stay ≤5 files
 - **No dead content** — body is functional only: Problem, Scope + non-goals, machine-checkable Done
-- **Confirm-before-create** — nothing is created or edited without explicit confirmation
+- **Confirm-before-create/close** — nothing is created, edited, or closed without explicit confirmation
+- **Zero local footprint** — writes no files; the GitHub issue + its comments + git are the durable record (no `ds/audit/`, no temp files)
 - **Standalone** — works with or without a project adapter
-
-## Pairs with
-
-`ds-resolve` — execute an issue end-to-end (re-verify → impact map → plan → implement → code-verified close). `ds-issue --status` reads the close-evidence comments `ds-resolve` leaves.

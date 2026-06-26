@@ -91,7 +91,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 |----------|-------|
 | "Turn this note/bug/idea into a real issue — verified, deduped, no dead content." | [`/ds-issue`](ds-issue) — reproduces the symptom against code, sweeps open+closed for duplicates, machine-checkable Done |
 | "Which issues are actually done — proven from code — and which are claimed but unproven?" | [`/ds-issue --status`](ds-issue) — code-verified done-audit, read-only |
-| "Do issue #N end-to-end and close it with proof." | [`/ds-resolve`](ds-resolve) — re-verify root cause → impact-surface map → bounded plan → implement → code-proven close |
+| "Do issue #N end-to-end and close it with proof." | [`/ds-issue --do #N`](ds-issue) — re-verify root cause → impact-surface map → bounded plan → implement → code-proven close |
 
 ### Ship — get changes out the door
 

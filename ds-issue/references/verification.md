@@ -39,3 +39,32 @@ For each open + recently-closed issue, prove done-ness from the codebase — nev
 ## Anti-sycophancy (W13)
 
 A symptom you reproduced stays reproduced under "are you sure?" — withdraw it only when shown wrong by evidence (a fresh read, a passing test), never by assertion. Likewise, a `claimed-done-but-unproven` verdict is not softened to "done" because the issue is closed; the closed flag is a claim, the code is the evidence.
+
+## Execution verification (`--do`)
+
+Three checkpoints when executing an issue: **root-cause re-verify** (before any edit), **per-unit verify** (after each bounded unit), **aggregate verify** (before close). All judge from code/signals run this run.
+
+### Root-cause re-verify (before any edit) [GATE]
+
+An issue ages; the codebase moves under it. Confirm the problem still holds before touching anything.
+
+1. Read the cited anchors — still say what the issue claims? Symbol still there? Typed code → language server first.
+2. Reproduce the symptom (faulty path for a bug; genuine absence by exhaustive search for a missing feature; current ≠ expected for a regression).
+3. Check it isn't already done — another change may have resolved it; read the change site, run the Done-signal.
+4. Decide: still open + reproduced → proceed to impact map; already resolved → close as completed with that evidence, skip implementation; stale (anchors don't match, problem moved/gone) → **stop**, report what you read and why it no longer holds. Never fabricate a fix for a non-problem. The issue body is a claim, not ground truth.
+
+### Per-unit verify (after each bounded unit)
+
+1. Run the unit's named signal — the test it adds, the build, the lint, an observed effect. Self-assessment is not proof.
+2. After modifying an interface, re-check the impact-map callers for that symbol.
+3. Signal red → fix within the unit before advancing; un-fixable in-unit → record a concrete blocker (API-contract change / cross-module scope / needs user knowledge / regulated change) and escalate. "Pre-existing" / "out of scope" are not blockers.
+
+### Aggregate verify (before close) [GATE]
+
+1. Run the full done-signal (adapter's `doneSignal`, e.g. `npm run check`) — green required; per-unit greens can compose into a red.
+2. Fix-type issue → a regression test must exist for the fixed path; absent → add it (delegate to ds-test) before close.
+3. Re-read the diff: only task-required lines, no drive-by reformatting, affected-set callers intact. Red aggregate → fix and re-run; never close red.
+
+### Close evidence
+
+The close comment proves done-ness from code, mirroring what a later `--status` audit re-verifies independently: signals run + result, the change site `file:line`, and the doctrine-lockstep note (which rule/ADR/SSOT row added/extended/referenced, or "not needed: <reason>"). A close comment asserting "done" without a runnable signal will be bucketed `claimed-done-but-unproven` — so make it provable.
