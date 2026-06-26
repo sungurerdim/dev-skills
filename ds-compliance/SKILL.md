@@ -101,7 +101,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 3. **Stack detection.** Framework, language, architecture pattern, auth, DB, ORM, API style, testing, CI/CD, i18n, deployment.
 
-4. **Mode selection.** No `--mode` → ask: Audit Only / Audit & Fix / Quick Fix.
+4. **Mode selection.** No `--mode` → present a menu covering every mode, each with a one-line what-it-does: Audit Only (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / (Cancel). A disambiguating flag (e.g. `--mode`, `--secrets-migrate`) skips the menu.
 
 5. **Scope selection.** No `--scope` → ask which domains (default: all applicable). Regulatory scope: detect frameworks (GDPR, KVKK, CCPA, etc.) from codebase patterns, confirm.
 
@@ -188,15 +188,15 @@ Architecture: {detected-summary}
 
 **Overwrite prevention:** before generating/modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if target exists. Exists → do NOT overwrite — show diff between existing + proposed, ask: "Update existing / Keep existing / Show diff".
 
-1. Present fix plan grouped by category (CAT-1 auto-fixable, CAT-2 pre-approved).
-2. Confirmation: `quick-fix` → apply all, summary only; `audit+fix` → show plan, ask proceed/cancel; `audit` → ask which severities.
+1. Present fix plan — one line per fix (`[severity] title — file:line`) grouped by category/severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
+2. Confirmation: `quick-fix` → apply all, summary only; `audit+fix` → show plan, offer Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / proceed / cancel; `audit` → ask which severities.
 3. Apply fixes grouped by file. Different files in parallel, same file sequential.
 
 **Gate:** All standard fixes attempted; each recorded. If fails → CAT-1 fix unappliable (file write error, merge conflict, generated doc exists + user chose "Keep existing") → record `failed` in state.data.fix_progress with specific error, continue with remaining, surface all failed IDs in Phase 8 summary.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → re-present each with forced binary prompt (Apply / Skip); user declines → mark `skipped (no response)`, proceed.
 

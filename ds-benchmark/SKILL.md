@@ -134,11 +134,11 @@ Write gap entries to `ds/audit/findings.md` with `scope=ideal-gap` and `category
 
 ### Phase 6: Approve
 
-Present every Category B gap in one block:
+Present every Category B gap in one block — one scannable line per gap (`dimension · gap_type · current → proposal`) grouped by dimension with counts, and state the question (`Decide these N gaps?`):
 
 > "These gaps change architecture or scope. For each: **Close** (commit to fixing), **Defer** (note but leave for later), **Intentional deviation** (record as ADR — we chose not to match the ideal)."
 
-Modes: `--auto` → list all, mark `skipped (needs-approval)`. `--force-approve` → mark all `close`. Interactive → per row.
+Modes: `--auto` → list all, mark `skipped (needs-approval)`. `--force-approve` → mark all `close`. Interactive → per row, plus per-dimension bulk (`Close all <dimension>`) alongside a total `Close all`; "all" = exactly the displayed set.
 
 Per "Intentional deviation" → offer `/ds-docs --adr` to record rationale (so future contributors see *why*).
 

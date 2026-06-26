@@ -85,7 +85,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 2. **Platform confirmation.** Ambiguous → ask user.
 3. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings matching mobile scopes, skip redundant analysis. Stale/absent → own full analysis.
 4. **IDU:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
-5. **Mode selection.** Ask or use flags: Audit / Audit & Fix / Quick Fix / Release Ready / Custom.
+5. **Mode selection.** No flag → present a menu covering every mode, each with a one-line what-it-does: Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / Release Ready — 100-point scoring + manual gates / Custom — pick scopes / (Cancel). A disambiguating flag (e.g. `--mode`, `--release-ready`) skips the menu.
 6. **Scope parsing.** Default: `audit` mode, all domains.
 7. **Custom scope** (if Custom): ask for domains + mode.
 8. **Regulatory framework detection** (security/regulatory/store/all):
@@ -195,15 +195,15 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 
-1. **Plan.** Read findings, apply severity filter, group by file, identify dependencies. Present CAT-1 + CAT-2 (pre-approved).
-2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask; `release-ready` → show auto-fixable vs guidance split.
+1. **Plan.** Read findings, apply severity filter, group by file, identify dependencies. Present CAT-1 + CAT-2 (pre-approved) — one line per fix (`[severity] title — file:line`) grouped by severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
+2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask (Apply all / per-severity bulk `Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item); `release-ready` → show auto-fixable vs guidance split.
 3. **Execute.** Apply grouped by file. Re-read before + after each edit. Record applied/failed/skipped.
 
 **Gate:** All standard fixes attempted; each recorded. If fails → fix unattempt-able (file unreadable, edit error) → record `failed` in `state.data.findings[].disposition`, revert any partial edit via re-read + restore, continue; list failed fixes in Phase 9 summary with reason.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → record `pending-user-decision` in `state.data.findings[].disposition`, proceed to Summary with status WARN, list unresolved items prominently.
 

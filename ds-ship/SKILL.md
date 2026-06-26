@@ -77,7 +77,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 | `--clean-all` | Delete `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
 | `--no-pr-suggest` | Skip Phase 5c PR suggestion (solo-dev main-only workflow) |
 
-Without flags: present mode menu (full / preview / resume).
+Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Full (recommended) — full ship cascade across phases / Preview — plan only, no delegated changes / Resume — continue from saved state / (Cancel). A disambiguating flag skips the menu.
 
 ## Project Type ↔ Skill Sequence (Phase 0 default plan)
 
@@ -184,7 +184,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 6. `/ds-test`
 7. `/ds-fix`
 
-**Category B batch at end of Phase 2.** Present all B items with impact / effort / risk. Modes: interactive → Apply All / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL); `--auto` without `--force-approve` → list + skip; `--force-approve` → apply all. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
+**Category B batch at end of Phase 2.** Present all B items — one line each (`[severity] title — file:line · impact/effort/risk · owner`) grouped by owning skill with counts; state the question (`Decide these N items?`). Modes: interactive → Apply all / per-owner bulk (`Apply all ds-review` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL; "all" = exactly the displayed set); `--auto` without `--force-approve` → list + skip; `--force-approve` → apply all. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
 
 **Gate:** Every queued delegation `done`; every B item has a decision; `ds/audit/findings.md` reflects current state. If fails → log each incomplete delegation as `failed (did not signal completion)`, mark undecided B as `deferred`, continue to Phase 3 with collected findings; never block on a single failed delegation.
 
@@ -289,7 +289,7 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Remaining unresolved B items (rare — most resolved inline per phase). Present. Modes: `--auto` → list+skip; `--force-approve` → apply all; interactive → Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+Remaining unresolved B items (rare — most resolved inline per phase). Modes: `--auto` → list+skip; `--force-approve` → apply all; interactive → state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All needs-approval resolved. If fails (user declines) → mark unresolved `skipped (user declined)`, include in report's "Awaiting User Decision" section, proceed.
 

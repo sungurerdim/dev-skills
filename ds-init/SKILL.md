@@ -47,7 +47,7 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 | `--full` | Full production structure (CI, Docker, testing, docs) |
 | `--dry-run` | Show what would be created without writing files |
 
-No flags → interactive menu: "What type of project are you scaffolding?" — [Web App] React/Next.js/Vue/Svelte frontend / [API] REST/GraphQL backend service / [Mobile] Flutter/React Native mobile app / [CLI] command-line tool / [Library] reusable package/module / [Monorepo] multi-package workspace.
+No flags → up-front interactive menu covering every project type, each with a one-line what-it-does (no default — type is user-driven): "What type of project are you scaffolding?" — [Web App] React/Next.js/Vue/Svelte frontend / [API] REST/GraphQL backend service / [Mobile] Flutter/React Native mobile app / [CLI] command-line tool / [Library] reusable package/module / [Monorepo] multi-package workspace / (Cancel). A disambiguating flag (`--type`) skips the menu.
 
 ## Scopes
 
@@ -144,7 +144,7 @@ Per [references/rules-scaffold.md](references/rules-scaffold.md). Generate indep
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt per item; no response → mark `skipped (no response)`, proceed.
 

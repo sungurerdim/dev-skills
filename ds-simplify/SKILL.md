@@ -78,7 +78,7 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 3. **Findings file check:** `ds/audit/findings.md` fresh → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Absent/stale → own scan.
 
-4. **Mode selection.** No flags → ask: Full Scan (all scopes), Preview (no approval), Single Scope (choose one).
+4. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel). A disambiguating flag skips the menu.
 
 5. **Project detection.** Identify language(s) + LSP availability. LSP present (TypeScript, Go, Python, Dart, Rust) → use `findReferences` / `documentSymbol`. LSP absent → grep fallback.
 
@@ -175,8 +175,8 @@ Write findings to `ds/audit/findings.md` with `scope=simplify` and `category` co
 
 All findings are Category B — every deletion requires approval.
 
-1. Present full table.
-2. Offer: **Apply All** / **Review Each** / **Skip All** / **Apply by Scope**.
+1. Present full table — one line per row (`type · target — file:line`) grouped by scope with counts; state the question (`Delete these N items?`). "All" = exactly the displayed set.
+2. Offer: **Apply All** / **Apply by Scope** (per-scope bulk alongside the total) / **Review Each** / **Skip All**.
 3. Apply All → all rows → `delete`. Skip All → all → `skipped (user declined)`. Review Each → per-row `keep | delete | defer`. Apply by Scope → per-scope bulk.
 4. `--auto` without `--force-approve`: list all, mark `skipped (needs-approval)`.
 5. `--force-approve`: all rows → `delete`.

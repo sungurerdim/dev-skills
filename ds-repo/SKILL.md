@@ -132,7 +132,7 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
 1. Verify `git` + `gh` CLI available and authenticated — `git` required; `gh` required for settings/protection scopes.
 2. Detect repo info via GitHub API: name, default branch, visibility, description, topics, license, homepage, plan.
 3. **IDU:** Profile → {Type + Stack, Config.constraints}. Findings({repo}) → verify + use. Absent → own analysis.
-4. **Mode selection.** No flags → ask: Full Audit / Audit & Fix / Scoped (pick scopes).
+4. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Audit (recommended) — scan every scope, report / Audit & Fix — scan + fix everything / Scoped — pick scopes / OSS-ready — OSS-readiness scope / (Cancel). A disambiguating flag (e.g. `--scope`, `--oss-ready`, `--auto`, `--preview`) skips the menu.
 5. **Scope selection.** Scoped mode or no `--scope` with Audit & Fix → ask which scopes.
 
 **Gate:** Repo info retrieved + mode/scopes selected. If fails → `gh` unavailable/unauthenticated → skip settings + protection scopes, warn, proceed with hygiene/metadata/structure/team using local git only; API error → record what was retrievable, continue; no mode/scope selection → default Full Audit across all scopes.
@@ -189,7 +189,7 @@ Per finding, assign disposition:
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → record `pending-user-decision`, proceed to Summary with WARN, list unresolved in disposition table.
 

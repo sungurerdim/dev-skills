@@ -72,7 +72,7 @@ Setup → Research → Verify → Build Report → [Needs-Approval] → Output
 
 **State `data`:** `{ depth, scope, topic, currentDate, artifactPath, sources_supplied[], findings_path, needs_approval[], html_path }`.
 
-1. **Depth + scope.** No flag → ask: Quick (fast, T1-T2) / Standard (balanced) / Deep (parallel workers, resumable); scope research / summarize.
+1. **Depth + scope.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — balanced / Quick — fast, T1-T2 / Deep — parallel workers, resumable / (Cancel); then scope research / summarize. A disambiguating flag (`--quick`/`--deep`/`--summarize`) skips the menu.
 2. **Topic parse + date.** Extract concepts/comparison from the request. Resolve `currentDate` from host context; inject into every search query to avoid stale results.
 
 **Gate:** topic + scope + currentDate resolved. If fails → too broad/ambiguous → ask 1 clarifying question; no answer after one re-prompt → assume Standard/research with the literal topic, warn, proceed (currentDate → host date).
@@ -103,7 +103,7 @@ Clone `assets/brief-template.html`; do not generate HTML from scratch. Fill: `CO
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item (low-confidence claim kept, dead link, single-source datum surfaced) with context; ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** state the question (`Approve these N items?`) and present each item compactly (one line `[type] detail — source/location`) grouped by type (low-confidence claim · dead link · single-source datum) with counts; ask Apply all / per-type bulk (`Apply all dead links` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** all items resolved. If fails → record unresolved as `pending-user-decision`, proceed to Output with WARN, list at bottom.
 

@@ -45,7 +45,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 | `--resume` | Resume from `ds/audit/deploy.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
-Without flags: present interactive mode selection.
+Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — review existing deployment setup / Generate — Dockerfile + CI deploy configs / Checklist — production-readiness checklist / Monitor — monitoring/logging/alerting setup / Incident — incident response / Cost — infra cost analysis / (Cancel). A disambiguating flag skips the menu.
 
 ## Scopes
 
@@ -159,7 +159,7 @@ Incident severity classification (P1-P4); detection → triage → mitigate → 
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue to Summary; do not retry.
 

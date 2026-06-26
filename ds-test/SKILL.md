@@ -181,7 +181,7 @@ After any generate/update/fix: (1) run full test suite (or scoped subset); (2) a
 
 ### Phase 4: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → unresolved → mark `skipped (no response)` and proceed.
 
@@ -224,7 +224,7 @@ Every test MUST justify its existence by addressing a **concrete, specific risk*
 **Prune phase (`--prune` or part of `--auto`):** flag existing tests that provide no concrete value:
 
 1. Search for tests asserting only: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, or 1:1 reimplementation of source code.
-2. Present flagged tests as table `| # | Test | File:Line | Reason | Action |`; ask: **Delete all** / **Review each** / **Keep all**. `--auto`: delete silently, report count in summary.
+2. Present flagged tests as table `| # | Test | File:Line | Reason | Action |` grouped by Reason with counts; state the question (`Delete these N tests?`). Ask: **Delete all** / **Delete all <reason>** (per-reason bulk alongside the total) / **Review each** / **Keep all**. "All" = exactly the displayed set. `--auto`: delete silently, report count in summary.
 3. **Replacement rule:** after deleting a low-value test, check if file/module now has meaningful untested logic. Yes → generate a valuable replacement test targeting a real risk.
 
 ### Other Gates

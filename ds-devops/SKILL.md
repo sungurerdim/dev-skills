@@ -87,7 +87,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 3. **CI detection.** Search for `.github/workflows/`, `.gitlab-ci.yml`, `bitrise.yml`, `Jenkinsfile`, `.circleci/`, `azure-pipelines.yml`, `codemagic.yaml`.
 4. **Dependency tooling.** Detect `dependabot.yml`, `renovate.json`, lockfiles, `.nvmrc`, `.tool-versions`.
-5. **Mode selection.** No `--mode` → ask: Full Audit / Audit & Fix / Quick Fix.
+5. **Mode selection.** No `--mode` → present a menu covering every mode, each with a one-line what-it-does: Full Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, summary only / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu.
 6. **Scope selection.** No `--scope` → ask which scopes to audit (default: all).
 
 **Gate:** Project type + CI platform identified; mode and scope confirmed. If fails → undetermined type → "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce.
@@ -158,8 +158,8 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 
 ### Phase 6: Fix [SKIP if audit-only or --preview]
 
-1. Present fix plan (rule, severity, file, action, dependencies).
-2. Confirmation: quick-fix proceeds; audit+fix asks.
+1. Present fix plan — one line per fix (rule, `[severity]`, file:line, action) grouped by severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
+2. Confirmation: quick-fix proceeds; audit+fix asks — Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / proceed / cancel.
 3. Apply fixes grouped by file.
 4. Present fix summary.
 
@@ -171,7 +171,7 @@ ds-devops: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)` in state.fix_progress, continue; do not retry.
 

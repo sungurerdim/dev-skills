@@ -104,7 +104,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 **State `data`:** `{ mode, scopes_selected, project_type, docs_inventory[{file, completeness}], gaps[], docs_generated[], verifications_done[] }`.
 
-1. **Mode selection.** No flags → ask: Auto (detect + analyze + generate all) / Preview (analyze only) / Scoped (pick scopes).
+1. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Auto (recommended) — detect + analyze + generate all / Preview — analyze only, no writes / Scoped — pick scopes / ADR — scan + maintain numbered ADR files / (Cancel). A disambiguating flag (e.g. `--adr`) skips the menu.
 2. **Scope selection.** Not Auto/Preview → ask: which areas (Core: readme+changelog / Technical: api+dev / User-facing: user+ops); how to handle existing (Fill gaps / Refine / Verify claims / Update all).
 
 **Gate:** Mode and scope selected, or flags parsed. If fails → no response after two attempts → default Auto + all scopes; announce `[DOC] No selection received — defaulting to Auto mode, all scopes.`
@@ -205,7 +205,7 @@ Compliance template structures (scan codebase for data flows, third-party SDKs, 
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue to Summary; do not retry.
 

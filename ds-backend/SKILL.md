@@ -48,7 +48,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | `--resume` | Resume from `ds/audit/backend.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
-Without flags: present interactive mode selection.
+Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — review existing API/DB/auth for issues / Design — design new endpoints, schema, or auth flow / (Cancel). A disambiguating flag (`--audit`/`--design`/`--scope`/`--auto`) skips the menu.
 
 ## Scopes
 
@@ -181,7 +181,7 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → forced binary re-prompt; no response → `skipped (no response)` and proceed.
 

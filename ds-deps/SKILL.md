@@ -47,7 +47,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 | `--resume` | Resume from `ds/audit/deps.json` without prompt |
 | `--clean` | Delete existing state, start fresh |
 
-Without flags: present mode menu.
+Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Upgrade safe groups (recommended) — apply safe-patch + safe-minor, surface majors / Preview — classify + report, no upgrade / Scoped — pick a group (patch/minor/major/security) / Dry-run — classifier + security scan only / (Cancel). A disambiguating flag skips the menu.
 
 ## Scopes
 
@@ -183,8 +183,8 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 
 **Review-major group (requires approval):**
 
-1. Present every entry with: current → proposed, breaking notes, migration steps (from changelog), rollback path.
-2. Modes: **Apply All** / **Review Each** / **Skip All** / **Defer**. `--auto` without `--force-approve` → skip all, mark needs-approval. `--force-approve` → apply all.
+1. Present every entry — one line each (`name: current → proposed · breaking?`) grouped by package class with counts; state the question (`Upgrade which of these N majors?`). "All" = exactly the displayed set. Full detail (breaking notes, migration steps from changelog, rollback path) under each entry.
+2. Modes: **Apply All** / **Apply all safe minor/patch** (per-class bulk alongside the total) / **Review Each** / **Skip All** / **Defer**. `--auto` without `--force-approve` → skip all, mark needs-approval. `--force-approve` → apply all.
 3. Per approved major: apply bump, run **full** test suite (not quick); fail → revert + mark failed; pass → commit.
 4. One commit per major: `chore(deps): upgrade {name} to {major-version}`. Body: breaking notes + migration link.
 
@@ -199,7 +199,7 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 
 Dominant in this skill. Present all Category B items (every review-major + every removal) in one block.
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** Every B item has a decision (applied → fixed/failed, or explicitly skipped). If fails → undecided after prompt (dismissed/timed out) → mark `skipped (no decision)` in state.group_status, continue to Summary; do not re-prompt.
 

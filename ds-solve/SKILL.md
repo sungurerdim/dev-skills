@@ -159,7 +159,7 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** state the question (`Approve these N steps?`) and present each item compactly grouped by risk with counts (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply all / per-risk bulk (`Apply all {risk}` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → `fixed`/`failed`, declined → `skipped`). If fails (no response) → mark unresolved `skipped (user did not respond)` in state.data, continue.
 

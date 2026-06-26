@@ -47,7 +47,7 @@ description: Store and release management — store submission, listing optimiza
 | `--resume` | Resume from `ds/audit/launch.json` without prompting |
 | `--clean` | Delete existing state and start fresh |
 
-No flags → interactive mode selection (setup, listing, aso, privacy, review, submission-notes, release, post-launch, perf-budget).
+No flags → present an up-front menu covering every mode, each with a one-line what-it-does — Setup (recommended) — launch-readiness setup / Listing — store listing copy / ASO — keyword + listing optimization / Privacy — store privacy labels / Review — pre-submission active-detection scan / Submission-notes — reviewer notes + reject replies / Release — release process / Post-launch — post-launch monitoring / Perf-budget — performance budget / (Cancel). A disambiguating flag skips the menu.
 
 ### Perf Budget Mode (`--perf-budget`)
 
@@ -206,7 +206,7 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present with risk context, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → record unresolved as `pending-user-decision`, proceed to Summary with WARN, list prominently.
 

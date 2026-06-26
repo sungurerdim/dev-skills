@@ -157,7 +157,7 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 2. **State `data`:** `{ mode, scopes_selected, scopes_done[], findings[{id, severity, file, line, scope, title, disposition}], fixed_count, failed_count, needs_approval[] }`.
 3. Pre-flight: check if git repo (optional, warn if not).
 4. **IDU:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
-5. **Mode selection.** No mode flag → ask: Tactical / Strategic / Performance / Meta-Quality / All (tactical → strategic → meta-quality sequentially, skip --perf unless explicit).
+5. **Mode selection.** No mode flag → present a menu covering every mode, each with a one-line what-it-does: All (recommended) — tactical → strategic → meta-quality sequentially (skip --perf unless explicit) / Tactical — file-level quality fixes / Strategic — architecture-level assessment / Performance — deep perf profiling / Meta-Quality — principle-based holistic audit / (Cancel). A disambiguating mode flag skips the menu.
 6. **Scope selection.** No `--scope` → ask which scopes (default: all for selected mode).
 7. Uncommitted changes detected → ask: continue / stash first / cancel.
 
@@ -247,7 +247,7 @@ Each path includes: estimated effort (hours), impact (scope reach), risk (regres
 
 ### Phase 4: Plan Review [SKIP if --auto]
 
-Print findings table (ID, severity, title, file:line). Ask: Fix All (recommended) / By Severity / Review Each / Report Only.
+Print findings table — one line per finding (ID, severity, title, file:line) grouped by severity with counts; state the question (`Fix which of these N findings?`). Ask: Fix All (recommended) / By Severity (per-severity bulk `Fix all CRITICAL`/`Fix all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Report Only. "All" = exactly the displayed set.
 
 **Gate:** User selected plan action. If fails → re-present once; no selection after 2 attempts → default Report Only, note in state.data.plan_action.
 
@@ -265,7 +265,7 @@ Per fix, include education: **why** (impact if unfixed), **avoid** (anti-pattern
 
 ### Phase 5a: Needs-Approval Review [CONDITIONAL]
 
-Items flagged `needs_approval` (cross-module changes, architectural decisions): `--auto` without `--force-approve` → list items, skip, note in summary; `--force-approve` → apply all; interactive → present items, ask Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+Items flagged `needs_approval` (cross-module changes, architectural decisions): `--auto` without `--force-approve` → list items, skip, note in summary; `--force-approve` → apply all; interactive → state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All resolved (applied, skipped, deferred). If fails → user declined → mark unresolved `deferred` in state.data.needs_approval, disposition `deferred (user did not respond)`, proceed.
 

@@ -122,7 +122,7 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 
 **State `data`:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line}]}, profile_written: bool, scores: {dimension: score}, instruction_file }`.
 
-1. **Mode selection.** No flags → ask: Full Analysis / Preview Only / Init Profile / Refresh Profile.
+1. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Analysis (recommended) — detect + analyze every dimension / Preview Only — analyze, no profile write / Init Profile — seed a fresh profile / Refresh Profile — re-score an existing profile / (Cancel). A disambiguating flag skips the menu.
 2. Search for `## Blueprint Profile` heading in known instruction files; read existing profile to detect incremental vs full run.
 3. Detect project via three-step process from [references/detection.md](references/detection.md): (1) stack from manifest files (pubspec.yaml, package.json, go.mod, etc.); (2) project type from secondary signals (framework deps, config, directory structure); (3) supplementary stacks (Docker, shell scripts, CI, task runners). Also: toolchain, tests, data sensitivity, git status.
 
@@ -321,7 +321,7 @@ In `--auto`: print as part of summary, no interaction.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
-Present items with risk context. `--auto` → list+skip. `--force-approve` → apply all. Interactive → Apply All / Review Each / Skip All. `approve-all` excludes CRITICAL.
+`--auto` → list+skip. `--force-approve` → apply all. Interactive → present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → re-present each with forced binary prompt; user declines → mark `skipped (no response)`, proceed.
 
