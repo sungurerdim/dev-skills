@@ -12,7 +12,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 
 | Number | Meaning |
 |--------|---------|
-| **26 skills** | One per real lifecycle moment — discover, build, improve, document, audit, track, ship |
+| **26 skills** | One per real lifecycle moment — discover, build, improve, document, comply, track, ship |
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
@@ -77,7 +77,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Detect doc drift, fill gaps, verify claims against source, write ADRs." | [`/ds-docs`](ds-docs) — drift detection + generation + Architecture Decision Records |
 | "Turn a topic or URLs into a sourced, printable, single-file HTML brief." | [`/ds-brief`](ds-brief) — every datum 2×-confirmed or visibly flagged |
 
-### Audit & decide
+### Comply — privacy & regulatory
 
 | Question | Skill |
 |----------|-------|
@@ -109,7 +109,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | Goal | Order |
 |------|-------|
 | **Resume any project** | `/ds-ship` (lets it pick the order for you) |
-| **New project** | `ds-init` → `ds-blueprint` → `ds-test` → `ds-commit` |
+| **New project** | `ds-init` → `ds-quality` → `ds-blueprint` → `ds-test` → `ds-commit` |
 | **Existing project hygiene** | `ds-blueprint` → `ds-review --tactical` → `ds-simplify` → `ds-fix` → `ds-test` → `ds-commit` |
 | **Pre-launch** | `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
 | **Solo-dev daily loop** | `ds-fix` → `ds-test` → `ds-commit` → `ds-pr` |
@@ -120,7 +120,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 
 ## Shared artifact namespace — `ds/`
 
-Everything dev-skills produces lives under one top-level directory:
+Least footprint by default: **most skills write nothing.** A skill creates a file only when it genuinely needs one — git/GitHub-backed skills (ds-commit, ds-pr, ds-issue) keep no local state at all. Anything that *is* produced lives under one top-level directory:
 
 ```
 <repo-root>/
@@ -129,9 +129,9 @@ Everything dev-skills produces lives under one top-level directory:
       findings.md         ← shared findings across skills
       report.md           ← ds-ship consolidated report
       report.html         ← optional, ds-ship --html
-      <skill>.json        ← per-skill state for resumable skills
-    <skill>/              ← committed, user-facing operational tooling
-      ...                 ← scripts, configs, audit logs (only skills that need them — e.g. ds/tune/, ds/mobile/, ds/launch/, ds/cv/)
+      <skill>.json        ← state ONLY for long autonomous skills (ds-tune, ds-solve, ds-ship, ds-blueprint)
+    <skill>/              ← committed — genuine user deliverables only (scripts/configs/outputs the user keeps), never logs
+      ...                 ← e.g. ds/tune/, ds/mobile/, ds/launch/
   .gitignore              ← contains the line `ds/audit/`
 ```
 

@@ -63,6 +63,13 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 - **`/ds-review --meta-quality`:** SSOT / DRY / KISS / YAGNI / SoC principle audit with 3 consolidation paths per finding.
 - **Anti-overengineering 3-gate** screens every potential finding before reporting.
 
+## v3 additions (2026-06)
+
+- **Up-Front Mode Menu:** multi-mode skills present the choice covering every scenario (with `(recommended)` + `(Cancel)`) when no disambiguating flag is passed.
+- **Category Bulk Affordance:** menus offer per-group bulk (`all CRITICAL` / `all HIGH` / `all <type>`) **alongside** the total "all" — never replacing it.
+- **Selection Transparency:** every approval states the exact question and shows every item compactly (severity + title + file:line); "all" = exactly the displayed set, never a bare count.
+- **Least-footprint state:** prefer no state; only long autonomous non-git/GitHub-backed loops persist to `ds/audit/`. Git/GitHub-backed skills (ds-commit, ds-pr, ds-issue) are state-exempt.
+
 ## Philosophy
 
 - Every dependency is a future breaking change
