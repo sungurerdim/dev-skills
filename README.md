@@ -1,7 +1,7 @@
 # dev-skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/skills-27-blue)]()
+[![Skills](https://img.shields.io/badge/skills-29-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
@@ -12,7 +12,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 
 | Number | Meaning |
 |--------|---------|
-| **27 skills** | One per real lifecycle moment — discover, build, improve, document, audit, ship |
+| **29 skills** | One per real lifecycle moment — discover, build, improve, document, audit, track, ship |
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
@@ -84,6 +84,14 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Am I privacy/regulatory compliant? GDPR, KVKK, CCPA, accessibility law?" | [`/ds-compliance`](ds-compliance) — 80+ rules, file:line precision |
 | "Design event taxonomy that's privacy-respecting and actually useful." | [`/ds-analytics`](ds-analytics) — minimum-collection schema, PII scan |
 | "I have a product but no positioning, no copy, no growth plan." | [`/ds-market`](ds-market) — marketing strategy + draft copy |
+
+### Track — manage work as GitHub issues
+
+| Question | Skill |
+|----------|-------|
+| "Turn this note/bug/idea into a real issue — verified, deduped, no dead content." | [`/ds-issue`](ds-issue) — reproduces the symptom against code, sweeps open+closed for duplicates, machine-checkable Done |
+| "Which issues are actually done — proven from code — and which are claimed but unproven?" | [`/ds-issue --status`](ds-issue) — code-verified done-audit, read-only |
+| "Do issue #N end-to-end and close it with proof." | [`/ds-resolve`](ds-resolve) — re-verify root cause → impact-surface map → bounded plan → implement → code-proven close |
 
 ### Ship — get changes out the door
 
@@ -166,7 +174,7 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 rm -rf /tmp/dev-skills
 ```
 
-Install one skill, several, or all 26 — they are independent.
+Install one skill, several, or all 29 — they are independent.
 
 ## How skills work
 

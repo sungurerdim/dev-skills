@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — GitHub-Issues-centric toolkit: ds-issue + ds-resolve (2026-06)
+
+- **ds-issue** (new skill, prefix `ISS`) — verified issue intake + dedup sweep + code-verified status. Three modes: `(default)` intake turns a raw note into one well-formed issue only after a dedup sweep (open + closed + history docs) and a false-positive gate (symptom reproduced against code read this run) both pass; `--sweep` reports duplicate/overlap/redundant/obsolete clusters across the whole set; `--status` audits done-ness **from code** (buckets: done & code-verified · claimed-done-but-unproven · in-progress · not-started · blocked), read-only. Issue body uses conditional blocks (no dead content), machine-checkable Done, exactly 1 type + 1 priority from the live label set, sub-issue split over the bounded-task threshold. Carries W1–W11 + W13.
+- **ds-resolve** (new skill, prefix `RSL`) — issue-bound executor: one issue in, `Closes #N` out. Phases: re-verify root cause (stale → stop, never "fix" a non-problem) → impact-surface map (callers · consumers · serialization · schema · i18n/a11y/compliance · project hazard checklist) → internal bounded plan → implement + verify each unit → aggregate done-signal green + regression test for fixes → close with code-proven evidence + doctrine-lockstep note. `--dry-run` stops after planning and posts the impact map + plan as an issue comment, changing no files. Carries W1–W11 + W14/W15/W17.
+- **Project adapter** — both skills read an optional committed `.dev-skills/issue-ops.json` (repo slug, doctrine doc paths, label taxonomy, audit→issue-type map, done-signal command, hazard checklist, history docs); absent → auto-detect repo/done-signal/criteria. Self-contained: each skill carries its own `references/` (github-features, verification, adapter + issue-template / impact-surface); the small doctrine overlap is duplicated by design per the standalone rule.
+- **SKILL-SPEC** — registered prefixes `ISS` (ds-issue) / `RSL` (ds-resolve); added ds-issue to W13, ds-resolve to W14/W15/W17 *Applies to* lists. Skill count 27 → 29.
+
 ### Added — model-uplift workflow + coverage-gap closure (2026-06)
 
 - **ds-ship `--uplift`** — model-uplift gate: new trigger + flag; forces `/ds-blueprint --refresh` as the first delegation; Phase 6 report gains a model-attributed Score Delta line; "next frontier-model upgrade" added to Next Trigger examples.

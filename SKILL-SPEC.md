@@ -480,7 +480,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W13: Sycophancy / Authority Deference
 
-**Applies to:** ds-review, ds-research, ds-pr.
+**Applies to:** ds-review, ds-research, ds-pr, ds-issue.
 
 **Definition:** Abandoning a correct, evidence-backed position under user pushback, or deferring to authority claims (PR text, code comments, "the senior dev said") instead of judging the artifact by its behavior.
 
@@ -497,7 +497,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W14: Context Rot
 
-**Applies to:** ds-ship, ds-solve (any multi-phase run).
+**Applies to:** ds-ship, ds-solve, ds-resolve (any multi-phase run).
 
 **Definition:** Accuracy degrades as the working context grows — even within the model's window — so constraints, instructions, or earlier findings stated early get silently dropped. Distinct from W4 Memory Decay (post-compression staleness).
 
@@ -514,7 +514,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W15: Subagent / Handoff Failure
 
-**Applies to:** ds-ship, ds-solve (skills that delegate to phases or subagents).
+**Applies to:** ds-ship, ds-solve, ds-resolve (skills that delegate to phases or subagents).
 
 **Definition:** Treating data returned by a delegated phase or subagent as ground truth — specifications, scopes, or findings get distorted or lost across the handoff and errors compound silently.
 
@@ -549,7 +549,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W17: Slop / Duplication Drift
 
-**Applies to:** ds-review, ds-simplify.
+**Applies to:** ds-review, ds-simplify, ds-resolve.
 
 **Definition:** Regenerating near-duplicate code instead of reusing an existing implementation — copy/pasted lines rose 8.3%→12.3% while moved/refactored code fell 24.1%→9.5% (2020→2024) as AI assistance spread.
 
@@ -1854,5 +1854,6 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | ds-commit | CMT | ds-backend | BE | ds-ship | SHP |
 | ds-pr | PR | ds-deploy | DEP | ds-simplify | SMP |
 | ds-deps | DPS | ds-benchmark | BEN | ds-brief | BRIEF |
+| ds-issue | ISS | ds-resolve | RSL | | |
 
 **Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.
