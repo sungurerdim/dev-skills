@@ -23,7 +23,20 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 
 ## Skills (25)
 
-`ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-mobile`, `ds-pr`, `ds-repo`, `ds-research`, `ds-review`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
+**Family map** — every skill on one screen; each row is one distinct job (no overlap after the off-domain extraction):
+
+| Family | Skills | Each one's unique job |
+|--------|--------|-----------------------|
+| **Discover** | `ds-research` · `ds-benchmark` · `ds-blueprint` | multi-source research · external gap-analysis vs comparables · internal 9-dim health score |
+| **Build** | `ds-init` · `ds-backend` · `ds-frontend` · `ds-mobile` | scaffold from zero · API+DB+auth design · design-system/a11y · mobile release audit |
+| **Improve** | `ds-review` · `ds-simplify` · `ds-fix` · `ds-test` · `ds-deps` · `ds-tune` · `ds-solve` | audit (flag) · safe deletion · format/lint/type passes · real tests · dep upgrades · metric optimization loop · hard-problem backtracking |
+| **Document** | `ds-docs` · `ds-brief` | doc drift+ADRs · printable sourced HTML brief |
+| **Comply** | `ds-compliance` | regulatory/privacy/a11y/security audit |
+| **Track** | `ds-issue` | GitHub issues: file · sweep · status · do (4 modes) |
+| **Ship** | `ds-commit` · `ds-pr` · `ds-devops` · `ds-deploy` · `ds-launch` · `ds-repo` | atomic commits · PR description · CI/CD audit · infra configs · store release · repo settings |
+| **Orchestrate** | `ds-ship` | classify stage → sequence + delegate the above |
+
+Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-mobile`, `ds-pr`, `ds-repo`, `ds-research`, `ds-review`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
 
 `ds-issue` is the single GitHub-Issues-centric skill covering the whole lifecycle in four modes: intake (default) · `--sweep` dedup · `--status` code-verified done-audit · `--do #N` issue-bound execution (re-verify → impact-map → implement → code-proven close). State-exempt (zero local footprint — GitHub + git are the durable record). Reads an optional per-project `.dev-skills/issue-ops.json` adapter; standalone via auto-detect when absent. Prefix `ISS` (SKILL-SPEC appendix).
 
