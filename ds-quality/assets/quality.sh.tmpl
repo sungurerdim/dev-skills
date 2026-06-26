@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Single quality entry point — managed by ds-quality.
+# Fail-fast, in order: format-check -> lint -> type-check -> tests.
+# Runnable by a human: `bash scripts/quality.sh`. Exits non-zero on the first failure.
+#
+# ds-quality fills the `step` lines below with the REAL commands for the detected stack
+# (see the skill's references/toolchains.md) and removes the ones whose tools don't exist.
+# Each step runs a single shell command string so pipelines (e.g. gofmt -l) work.
+
+set -uo pipefail
+
+step() {
+  # step "<name>" "<shell command>"
+  local name="$1"; shift
+  local cmd="$1"
+  printf '\n=== [quality] %s ===\n' "$name"
+  if eval "$cmd"; then
+    printf '[quality] %s: OK\n' "$name"
+  else
+    local code=$?
+    printf '[quality] %s: FAILED (exit %s)\n' "$name" "$code" >&2
+    exit "$code"
+  fi
+}
+
+# --- BEGIN generated checks (keep only those whose tools exist) ---------------
+# Examples (replace with the detected stack's real commands):
+#   step "format" "npx prettier --check ."
+#   step "lint"   "npx eslint ."
+#   step "type"   "npx tsc --noEmit"
+#   step "test"   "npm test"
+#
+#   step "format" "dart format --output=none --set-exit-if-changed ."
+#   step "lint"   "flutter analyze"
+#   step "test"   "flutter test"
+#
+#   step "format" "ruff format --check ."
+#   step "lint"   "ruff check ."
+#   step "type"   "mypy ."
+#   step "test"   "pytest -q"
+#
+#   step "format" 'test -z "$(gofmt -l .)"'
+#   step "lint"   "go vet ./..."
+#   step "type"   "go build ./..."
+#   step "test"   "go test ./..."
+#
+#   step "format" "cargo fmt --check"
+#   step "lint"   "cargo clippy -- -D warnings"
+#   step "type"   "cargo check"
+#   step "test"   "cargo test"
+# --- END generated checks -----------------------------------------------------
+
+printf '\n[quality] all checks passed\n'

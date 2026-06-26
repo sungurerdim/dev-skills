@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — ds-quality: deterministic local quality gate (2026-06)
+
+- **ds-quality** (prefix `QAL`) — adopted into the core suite (was a standalone skill): installs a local, no-CI Stop-hook verify-loop that BLOCKS "done" until one quality entry point (format → lint → type → test) passes green; bootstraps missing tooling, idempotent, non-destructive. Distinct from ds-fix (which *runs* the passes once) — ds-quality owns the always-on *enforcement mechanism* and delegates one-shot fixing to ds-fix. Brought to current SKILL-SPEC conformance (Contract, FRC+DSC, Quality-Gates W1–W11, Report Format, Edge Cases, state-exempt). Catalog 25 → 26.
+
 ### Changed — catalog focus: extract off-domain skills (2026-06)
 
 - **ds-cv, ds-market, ds-analytics moved out** to a separate companion repo (`dev-skills-extra`, private) — these career/marketing/product-analytics workflows diluted the core coding-toolkit identity. dev-skills is now 25 coding-lifecycle skills, each with a distinct concrete benefit. All cross-references (README, CLAUDE, SKILL-SPEC ownership/boundary/prefix tables, ds-ship sequences, sibling DON'T-INVOKE pointers, `docs/guide.html` plan map) updated so nothing dangles; DON'T-INVOKE pointers to the moved skills now read `→ external / manual`.
