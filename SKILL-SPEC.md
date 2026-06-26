@@ -291,8 +291,28 @@ Every menu, list, or selection point that a skill presents to the user MUST incl
 3. **Secret exclusion** — when "all" stages files (`git add -A`-style flows), `.env`, `*.pem`, `credentials.*`, `secrets.*`, and lockable variants are excluded automatically. The summary surfaces the exclusion list.
 4. **CRITICAL findings are never auto-included in `approve-all`** — they always require a separate, explicit confirmation per finding.
 5. **Single-option menus are exempt.** A menu with one option does not need an "all" affordance.
+6. **Category bulk affordances** — whenever items carry a natural grouping (severity, type, scope, safety class), the menu offers a bulk option **per group in addition to the total "all"**: e.g. `Apply all CRITICAL`, `Apply all HIGH`, `Apply all <type>`, alongside `Apply all`. The total "all" is never replaced by category options — both are always present. This lets the user clear a whole class in one action without losing the single-action-for-everything path. (CRITICAL category bulk still confirms per item per rule 2/4.)
 
 **Why:** Users routinely prefer maximum coverage in a single action when scanning, fixing, or approving. The absence of an "all" affordance forces serial decisions, drives skipped scopes, and produces inconsistent runs across skills.
+
+### Up-Front Mode Menu
+
+Every **multi-mode / multi-function** skill (more than one mode, scope, or operation) MUST present the choice **up front** when the user does not pass a disambiguating flag — never silently auto-pick one path.
+
+1. The menu **covers every scenario** the skill supports (one row per mode/scope), each with a one-line "what it does" so the choice is unambiguous.
+2. A **recommended** default is marked `(recommended)` but is not auto-selected without showing the menu, unless the user passed an explicit flag.
+3. The menu includes the All-Affordance options (`all scopes` / `everything`) and `(Cancel)` last.
+4. When a flag already disambiguates (e.g. `--status`, `--scope=x`), the menu is skipped — the flag IS the choice.
+
+### Selection Transparency Rule
+
+Every point where the skill asks the user to choose or approve MUST make **exactly what is being asked** unmistakable, and present the items **compactly and completely** so approval is transparent.
+
+1. **State the question** — a one-line header naming the decision and its consequence: `Approve these 7 fixes? (applies to working tree)`, not a bare list.
+2. **Show every item being approved, compact** — one scannable line per item with its identity + severity/type + location: `[CRITICAL] SQL injection — src/api/search.ts:47`. Never ask the user to approve a count ("apply 12 fixes?") without the enumerated list behind it.
+3. **Group long lists** by category with counts (`CRITICAL (2) · HIGH (5) · MEDIUM (5)`) so a large set stays readable; the per-item lines remain available under each group.
+4. **No hidden scope** — if "all" expands to items not shown, that is a spec violation; the set approved is exactly the set displayed.
+5. **Truncation is explicit** — if a list is genuinely too long to show in full, show the first N per group and state `(+M more — show all? )`; never silently drop items from the approval view.
 
 ---
 
@@ -665,15 +685,16 @@ Not all phases are required. Skills select the phases relevant to their workflow
 
 ### State Management
 
-Prescriptive resumability protocol for every skill with 3+ phases AND at least one phase that reads source files or performs non-trivial work.
+**Prefer no state — least footprint.** A skill writes a state file only when resumability genuinely needs one. If the run's progress is already durable in an external system — git staging area, commits, a GitHub issue + its comments, a PR, or the generated artifact itself — the skill is **state-exempt**: it writes nothing to `ds/audit/`, uses no temp files, and re-grounds on resume by re-reading that external record. Most skills should be exempt.
 
-**Qualifying eligibility:** A skill MUST implement this protocol when it has 3+ phases AND any of the following is true:
-- a phase reads >5 source files, OR
-- a phase has >3 sub-steps, OR
-- typical wall-clock execution exceeds 30s, OR
-- the skill produces findings or artifacts that another skill consumes downstream.
+**Qualifying eligibility (the narrow case that DOES persist):** A skill implements the resumability protocol only when **all** of these hold:
+- 3+ phases AND a long autonomous loop (typical wall-clock minutes, or 20+ tool calls), AND
+- progress is **not** already durable in an external system (not git/GitHub/PR-backed, not a single regenerable artifact), AND
+- losing mid-run progress would force expensive re-work (large multi-scope analysis, 100+ experiments).
 
-Skills that are idempotent, atomic, or git-driven (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) are exempt — their Contract section MUST state the exemption reason.
+In practice only long autonomous skills qualify (e.g. `ds-tune` experiment loops, `ds-solve` backtracking, `ds-ship` multi-phase orchestration, `ds-blueprint` full-codebase scoring). Everything else is exempt.
+
+**Exempt skills** (idempotent, atomic, git-driven, or externally-durable) write no state — their Contract section states the one-line exemption reason. Examples: `ds-init`, `ds-fix`, `ds-commit`, `ds-pr` (git-driven), `ds-issue` (GitHub issue + comments + git are the durable record).
 
 **Recovery-check exemption from `[SKIP]` annotations:** Even when a phase is annotated `[SKIP if --auto]` or `[SKIP if {flag}]`, the Recovery Check (step 1 of Setup phase for qualifying skills) MUST execute unconditionally. Annotate the phase header `[SKIP if --auto — except step 1 Recovery Check]` so the AI does not skip the recovery step in `--auto` mode. A skipped recovery on a resumed session causes silent state corruption.
 
@@ -1418,7 +1439,9 @@ Before releasing any skill, verify:
 - [ ] No phrases that force chain-of-thought on reasoning models (e.g., "think step by step", "reason carefully", "consider all options"). Reasoning emerges from explicit step decomposition.
 - [ ] Quality Gates one-liner includes W1 through W11 (or explicitly marks the gates that are not applicable, e.g., `W9: not applicable — exempt from state protocol`).
 - [ ] Triggers section includes an explicit `INVOKE / DON'T INVOKE` table (3-5 rows) — no unscoped verbs.
-- [ ] Every user-facing menu offers an `all` (or `apply-all` / `approve-all`) affordance when more than one option exists. Destructive actions still require per-item confirmation.
+- [ ] Every user-facing menu offers an `all` (or `apply-all` / `approve-all`) affordance when more than one option exists, **plus a per-category bulk option** (all-CRITICAL / all-HIGH / all-<type>) whenever items carry a natural grouping. Destructive actions + CRITICAL still require per-item confirmation.
+- [ ] Multi-mode / multi-function skill presents an **up-front mode menu covering every scenario** (one row per mode, one-line "what it does", `(recommended)` marked, `(Cancel)` last) when no disambiguating flag is passed.
+- [ ] Every selection/approval point **states the exact question** and **shows every item being approved compactly** (one scannable line each: identity + severity/type + location), grouped with counts when long — never approve a bare count, never expand "all" to unshown items.
 - [ ] Contract section contains the line: `Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.`
 - [ ] No artifact accumulates across runs — every state file, findings file, report file, and profile section is rewritten on each run (overwrite-only).
 - [ ] Skill never writes to the context-loaded instruction file (`CLAUDE.md` / `.cursorrules` / `.github/copilot-instructions.md` / `.windsurfrules` / `.aider.conf.yml` / `AGENTS.md` / etc.) outside the Blueprint Profile markers, and never adds timestamps, score deltas, run history, philosophy, or anything that fails the Dev-Value Gate (see §10.1).
@@ -1431,12 +1454,12 @@ Before releasing any skill, verify:
 
 ### 10.1 Artifact Discipline
 
-**Single top-level: `ds/`.** Two sub-namespaces inside it. Nothing else leaks to repo root.
+**Single top-level: `ds/`.** One central location for everything any skill produces — exactly two sub-namespaces inside it, nothing else, nowhere else (no per-skill dotfiles, no repo-root droppings, no scattered logs). A skill that needs no artifact creates none.
 
 | Sub-namespace | Visibility | Lifetime | Purpose |
 |---------------|-----------|----------|---------|
-| `ds/audit/` | gitignored | transient (deleted on successful run) | State, findings, reports — internal to a run |
-| `ds/<skill>/` | committed | persistent | User-facing operational tooling — scripts users invoke, configs they edit, audit logs they read |
+| `ds/audit/` | gitignored | transient (deleted on successful run) | State, findings, reports — internal to a run; only the narrow set of state-qualifying skills writes here |
+| `ds/<skill>/` | committed | persistent | **Genuine user deliverables only** — scripts the user invokes, configs they edit, generated outputs they keep (e.g. a generated CV, launch artifacts). Never logs, run-history, or state. A skill writes here only if it produces a real artifact the user keeps. |
 
 ```
 <repo-root>/
