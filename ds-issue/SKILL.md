@@ -11,7 +11,7 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 
 ## Triggers
 
-- User runs `/ds-issue`, asks to open / file / refine an issue, sweep for duplicates, check what's actually done (from code), or **do** a specific issue end-to-end (`--do #N`).
+- User runs `/ds-issue`, asks to open / file / refine an issue, sweep for duplicates, check what's actually done (from code), **do** a specific issue end-to-end (`--do #N`), or work through **all** open issues in sequence (`--do --all`).
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -21,12 +21,14 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 | "are there duplicate issues? sweep the tracker" | "run linters / fix quality" (→ ds-fix) |
 | "what's actually done vs claimed? verify from code" | "design the architecture for X" (→ ds-backend) |
 | "do issue #142 end-to-end and close it with proof" | "solve this open-ended hard problem" (→ ds-solve — no issue contract) |
+| "work through every open issue and close each with proof" (`--do --all`) | "do all the things" (no issue scope → ds-ship) |
 
 ## Contract
 
-- One skill for the full issue lifecycle in four modes: `(default)` intake · `--sweep` dedup/reconcile · `--status` code-verified done-audit (read-only) · `--do #N` execute one issue end-to-end.
+- One skill for the full issue lifecycle in four modes: `(default)` intake · `--sweep` dedup/reconcile · `--status` code-verified done-audit (read-only) · `--do #N` execute one issue end-to-end (`--do --all` = every open issue, in priority order).
 - **Intake** creates ONE well-formed issue only after a dedup sweep (open + closed + history) and a false-positive (reproduce-against-code) gate both pass.
 - **`--do`** executes exactly one issue: re-verify root cause (stale → stop) → impact-surface map → internal bounded plan → implement + verify each unit → aggregate done-signal green → close with code-proven evidence. `--do #N --dry-run` stops after planning.
+- **`--do --all`** runs the same per-issue flow over every open issue in priority order (CRITICAL→LOW, then issue number), confirming each issue's changes before applying; a stale / blocked / aggregate-red issue is recorded and skipped, the loop continues, and the run ends with a per-issue outcome table. `--do --all --dry-run` plans every issue without changing files.
 - Every `file:line`/symbol/version traces to something read this run — no memory claims.
 - **State-exempt — zero local footprint.** GitHub (the issue, its comments, the closed flag) + git are the durable record; nothing is written to `ds/audit/` and no temp files are used (issue/comment/PR bodies pass to `gh` via heredoc, not a written file). Resuming = re-reading the issue + its comments + `git diff`.
 - `--status` and `--do --dry-run` mutate no code; intake/sweep/`--do` create/edit/close only after explicit user confirmation.
@@ -42,7 +44,8 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 | `--sweep` | Dedup/reconcile the whole set; report clusters + recommended merges/closures |
 | `--status` | Code-verified done-audit of open + recently-closed issues; read-only |
 | `--do #N` | Execute issue #N end-to-end and close with code-proven evidence |
-| `--dry-run` | With `--do`: plan only — impact map + plan posted as an issue comment, no files changed |
+| `--do --all` | Execute every open issue end-to-end, in priority order; confirm each issue's changes before applying; skip-and-record stale/blocked/red issues and continue; end with a per-issue outcome table |
+| `--dry-run` | With `--do`: plan only — impact map + plan posted as an issue comment, no files changed (with `--all`: plan every open issue, change nothing) |
 
 ## Scopes
 
@@ -63,7 +66,8 @@ Setup + Load → [mode menu if ambiguous] → dispatch by mode → [intake | swe
 ### Phase 1: Setup + Load
 
 1. Load the adapter if present (repo slug, doctrine docs, label taxonomy, audit→type map, done-signal, hazard checklist, history docs); absent → auto-detect: repo from `git remote`/`gh repo view`; done-signal from lockfile+scripts; criteria from a root AI-instruction file. See [references/adapter.md](references/adapter.md).
-2. **Mode menu (up-front, covers every scenario)** — a flag (`--sweep`/`--status`/`--do #N`) or a clear raw note IS the choice → skip the menu. Otherwise present one row per mode: `File a new issue from a note (recommended)` · `Sweep the tracker for duplicates (--sweep)` · `Audit what's actually done, from code (--status)` · `Do an issue end-to-end (--do #N)` · `(Cancel)`. Each row states what it does so the choice is unambiguous.
+2. **Mode menu (up-front, covers every scenario)** — a flag (`--sweep`/`--status`/`--do #N`/`--do --all`) or a clear raw note IS the choice → skip the menu. Otherwise present one row per mode: `File a new issue from a note (recommended)` · `Sweep the tracker for duplicates (--sweep)` · `Audit what's actually done, from code (--status)` · `Do issue(s) end-to-end — one #N or all open (--do)` · `(Cancel)`. Each row states what it does so the choice is unambiguous.
+   - **Do-mode target sub-selection** — when `Do issue(s)` is chosen and no number was given, ask one target question: `Which? [#N — a specific issue] · [All open, in priority order (--do --all)] · (Cancel)`. This is the "all" affordance, placed exactly where scope is chosen; `All` confirms each issue's changes per item (destructive — All-Affordance rule 2). A number passed up front (`--do #N`/`--do --all`) skips this sub-selection.
 3. No recovery/state step — this skill writes no state (Contract). Re-grounding = re-read the issue + comments + `git diff`.
 
 **Gate:** repo slug + done-signal resolved. If fails → ask the user for the `owner/repo` slug + done-signal command, record for this run, continue.
@@ -101,8 +105,9 @@ Setup + Load → [mode menu if ambiguous] → dispatch by mode → [intake | swe
 
 **Gate:** every issue lands in one bucket with evidence. If fails (anchor unreadable / signal unavailable) → bucket `claimed-done-but-unproven` with the reason; never assume done.
 
-### Phase 6: Execute issue [--do #N]
+### Phase 6: Execute issue [--do #N | --do --all]
 
+0. **Batch entry [--do --all only]** — enumerate every open issue (`gh issue list --state open`), order CRITICAL→HIGH→MEDIUM→LOW then ascending issue number (priority from labels; unlabeled → MEDIUM). Show the queue transparently — one compact line per issue (`#N · priority · title`) with the count — and confirm the queue once before starting. Then run steps 1-6 for each issue in order, treating each issue as an independent unit: confirm that issue's changes before applying (per-item, destructive), and after each issue record its outcome (`closed` / `skipped-stale` / `skipped-blocked` / `red`) and continue to the next — one issue's blocker never aborts the queue. Re-ground from the issue + `git diff` at each issue boundary (W14). `--dry-run` → plan every issue, change nothing. Single `--do #N` → skip this step, run steps 1-6 once.
 1. **Re-verify root cause** [GATE] — confirm the issue's problem still holds against current code (read anchors, reproduce); also confirm it isn't already done. Stale/resolved → stop and report (or close as completed with the proving evidence); never "fix" a non-problem. See [references/verification.md](references/verification.md).
 2. **Impact-surface map** [GATE] — enumerate touched·linked·affected across the six axes; run the hazard checklist (each item affected-with-path or N/A-with-reason). Emit the explicit affected-set. See [references/impact-surface.md](references/impact-surface.md).
 3. **Plan (internal)** — bounded units (≤ ~5 files each); each names the gap it closes + its verify signal; map issue-type → relevant audits. `--dry-run` → post impact map + plan as an issue comment, **stop, change no files.**
@@ -110,21 +115,22 @@ Setup + Load → [mode menu if ambiguous] → dispatch by mode → [intake | swe
 5. **Aggregate gate** [GATE] — full done-signal green (per-unit greens can compose to red); fix-type → regression test present (add via ds-test if absent); diff in-scope only.
 6. **Close with evidence** — `Closes #N` in commit/PR or `gh issue close --reason completed`; post a comment with code-proven evidence (signals run + result, change site) **and** the doctrine-lockstep note (which rule/ADR/SSOT row added/extended/referenced, or "not needed: <reason>").
 
-**Gate:** each `[GATE]` sub-step passes (root cause re-verified, affected-set complete, aggregate green) before the issue is closed with evidence. If fails → stale issue: stop and report; aggregate red: fix and re-run, never close red; close blocked by open PR: leave the evidence comment, mark `needs-approval`, report the pending merge.
+**Gate:** each `[GATE]` sub-step passes (root cause re-verified, affected-set complete, aggregate green) before the issue is closed with evidence. If fails → stale issue: stop and report; aggregate red: fix and re-run, never close red; close blocked by open PR: leave the evidence comment, mark `needs-approval`, report the pending merge. Under `--do --all` a failed gate stops only the current issue (record its outcome, move to the next) — never the whole queue.
 
 ## Report Format
 
 - **Intake:** drafted body + labels, then the URL on create. `ds-issue: {OK|WARN|FAIL} | Created: N | Refined: N | Dropped-as-dup: N | Total: N`.
 - **Sweep:** `| Cluster | Issues | Kind | Recommendation |`.
 - **Status:** `| # | Title | Bucket | Evidence |` + `done-verified · unproven · in-progress · not-started · blocked` counts.
-- **Do:** impact map `| Axis | Affected set | How found |` + hazard table; plan `| # | Unit | Gap | Signal | Files |`; then `ds-issue --do #N: {OK|WARN|FAIL} | Units: n/N | Aggregate: {green|red} | Issue #N {closed|open}`.
+- **Do (`--do #N`):** impact map `| Axis | Affected set | How found |` + hazard table; plan `| # | Unit | Gap | Signal | Files |`; then `ds-issue --do #N: {OK|WARN|FAIL} | Units: n/N | Aggregate: {green|red} | Issue #N {closed|open}`.
+- **Do (`--do --all`):** the queue, then per-issue outcomes `| # | Title | Priority | Outcome | Evidence |` (outcome ∈ `closed · skipped-stale · skipped-blocked · red`); then `ds-issue --do --all: {OK|WARN|FAIL} | Issues: closed n / skipped m / red k of N`.
 
 Every run ends with the summary line + a **Value Delivered** block (1-5 concrete bullets — e.g. "candidate matched #142, avoided a duplicate"; "race in sync write closed, 12 callers re-checked, regression test added"). Zero-change → `No issue created — duplicates #N` / `Status audit only — nothing mutated` / `Plan only — N units, M hazards; no files changed`.
 
 ## Quality Gates
 
 - **Dedup-before-create**, **false-positive gate**, **confirm-before-create/close** — never create/close unconfirmed; unreproducible symptom → no issue.
-- **`--do` re-verify before edit** — stale/resolved issue → stop, never fix a non-problem.
+- **`--do` re-verify before edit** — stale/resolved issue → stop, never fix a non-problem. **`--do --all`** confirms the queue once, then each issue's changes per item; a blocked/stale/red issue is recorded and skipped, the queue continues, never aborts.
 - **Impact map before plan**; **bounded units** (≤~5 files); **per-unit then aggregate** verify; **regression test for fixes**; **close = code-proven** + doctrine-lockstep note.
 - **Read-only modes** (`--status`, `--do --dry-run`) mutate nothing.
 - **Up-front mode menu** when no flag/clear intent; **transparent selection** — every sweep cluster / close shows the exact items compactly (`#N · state · title`), grouped with counts, with per-category bulk + apply-all + per-item; never act on unshown items.
@@ -145,6 +151,9 @@ Every run ends with the summary line + a **Value Delivered** block (1-5 concrete
 | Estimate exceeds bounded task | Propose sub-issues / task-list |
 | `--do` issue already resolved | Close as completed with proving evidence; skip implementation |
 | `--do` issue is stale | Stop; report with evidence; don't fabricate a fix |
+| `--do --all`, no open issues | Report `nothing to do — 0 open issues`; mutate nothing |
+| `--do --all`, one issue stale/blocked/red | Record its outcome, continue the queue; surface it in the per-issue outcome table |
+| `--do --all`, repeated failures across issues | After 3 consecutive issues fail the same way, stop the queue and report the systemic blocker (don't burn the whole backlog) |
 | `--do` untyped code (no language server) | grep-based references; flag affected-set confidence lower |
 | `--do` aggregate red after units green | Composed regression — fix and re-run; never close red |
 | Security/payments/crypto/migration touched | Top-tier care + line-by-line-review note in the close comment |

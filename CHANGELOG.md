@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — ds-issue `--do --all`: batch execution over the open backlog (2026-06)
+
+- **`ds-issue --do --all`** — runs the existing per-issue `--do` flow (re-verify → impact-surface map → bounded plan → implement+verify → code-proven close) over **every open issue in priority order** (CRITICAL→LOW, then ascending number). Surfaces the queue transparently (`#N · priority · title`) and confirms it once; each issue's changes are still confirmed **per item** (destructive — All-Affordance rule 2). A stale / blocked / aggregate-red issue is recorded and skipped, the queue continues (never aborts on one issue), and the run ends with a per-issue outcome table (`closed · skipped-stale · skipped-blocked · red`). After 3 consecutive same-cause failures the queue stops with the systemic blocker. `--do --all --dry-run` plans every issue without changing files. The up-front mode menu stays 4 rows: `--do #N` and `--do --all` collapse into one `Do issue(s) end-to-end` row, with the one/all scope picked in a target sub-selection (where the "all" affordance lives). Triggers/Arguments/Phase 6/Report/Edge-Cases coverage; README + CLAUDE updated.
+
 ### Added — ds-quality: deterministic local quality gate (2026-06)
 
 - **ds-quality** (prefix `QAL`) — adopted into the core suite (was a standalone skill): installs a local, no-CI Stop-hook verify-loop that BLOCKS "done" until one quality entry point (format → lint → type → test) passes green; bootstraps missing tooling, idempotent, non-destructive. Distinct from ds-fix (which *runs* the passes once) — ds-quality owns the always-on *enforcement mechanism* and delegates one-shot fixing to ds-fix. Brought to current SKILL-SPEC conformance (Contract, FRC+DSC, Quality-Gates W1–W11, Report Format, Edge Cases, state-exempt). Catalog 25 → 26.
