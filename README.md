@@ -47,6 +47,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Has someone else solved this? What does the literature say?" | [`/ds-research`](ds-research) — searches, scores source reliability, cites file:line |
 | "What do the best projects in this space look like? Where do we fall short?" | [`/ds-benchmark`](ds-benchmark) — synthesizes the ideal from 5–10 comparables, produces gap table |
 | "How healthy is this codebase? What's the lowest-hanging fruit?" | [`/ds-blueprint`](ds-blueprint) — scores 9 dimensions, writes findings every other skill consumes |
+| "I have a feature idea — get me an executable, test-gated plan." | [`/ds-pipeline`](ds-pipeline) — conducts the Spec Kit chain with blocking gates; every task ships with a verify command |
 
 ### Build — start something new
 
@@ -115,6 +116,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | **Pre-launch** | `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
 | **Solo-dev daily loop** | `ds-fix` → `ds-test` → `ds-commit` → `ds-pr` |
 | **Stuck on a hard bug** | `ds-solve` |
+| **Idea → executable plan** | `ds-pipeline` → hand `specs/{feature}/tasks.md` to your executor |
 | **Public OSS release** | `ds-docs` → `ds-repo --oss-ready` → `ds-launch` |
 
 `/ds-blueprint` is the recommended first run on any unfamiliar codebase — it writes `ds/audit/findings.md` that every later skill reads to skip redundant scans.
