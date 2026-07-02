@@ -14,9 +14,9 @@ A reported symptom becomes an issue only if it is reproduced or confirmed agains
    - Not reproduced → **do not create.** Report: what you looked at, why the symptom didn't appear, what evidence would confirm it (a failing test, a repro step, a screenshot).
    - Pure-decision (no code change — a product/policy call) → route to `needs-decision` with an ADR-stub note; skip reproduction.
 
-**Output:** a one-line verdict per anchor (`confirmed @ path:line` / `stale — code reads X` / `not found`) and an overall reproduced / not-reproduced / pure-decision.
+**Output:** a one-line verdict per anchor (`confirmed @ path:line` / `stale — code reads X` / `not found`) and an overall reproduced / not-reproduced / pure-decision. A successful reproduction is **captured as a recipe** (exact command/steps + observed vs expected + anchor verdicts) and written into the body's Evidence/repro block — the evidence that justified creating the issue is the same evidence the executor re-runs at `--do`, not a discovery to repeat.
 
-## Done-from-code audit (Phase 6, `--status`)
+## Done-from-code audit (Phase 5, `--status`)
 
 For each open + recently-closed issue, prove done-ness from the codebase — never from the closed flag or a "done ✅" comment.
 
@@ -49,7 +49,7 @@ Three checkpoints when executing an issue: **root-cause re-verify** (before any 
 An issue ages; the codebase moves under it. Confirm the problem still holds before touching anything.
 
 1. Read the cited anchors — still say what the issue claims? Symbol still there? Typed code → language server first.
-2. Reproduce the symptom (faulty path for a bug; genuine absence by exhaustive search for a missing feature; current ≠ expected for a regression).
+2. Reproduce the symptom — body carries an Evidence/repro recipe → run it first; absent → derive one (faulty path for a bug; genuine absence by exhaustive search for a missing feature; current ≠ expected for a regression).
 3. Check it isn't already done — another change may have resolved it; read the change site, run the Done-signal.
 4. Decide: still open + reproduced → proceed to impact map; already resolved → close as completed with that evidence, skip implementation; stale (anchors don't match, problem moved/gone) → **stop**, report what you read and why it no longer holds. Never fabricate a fix for a non-problem. The issue body is a claim, not ground truth.
 
@@ -67,4 +67,4 @@ An issue ages; the codebase moves under it. Confirm the problem still holds befo
 
 ### Close evidence
 
-The close comment proves done-ness from code, mirroring what a later `--status` audit re-verifies independently: signals run + result, the change site `file:line`, and the doctrine-lockstep note (which rule/ADR/SSOT row added/extended/referenced, or "not needed: <reason>"). A close comment asserting "done" without a runnable signal will be bucketed `claimed-done-but-unproven` — so make it provable.
+The close comment proves done-ness from code, mirroring what a later `--status` audit re-verifies independently: **one evidence line per Done item** (that item's signal run + result — a Done item without its evidence line is uncovered, and an uncovered item means the issue does not close), the change site `file:line`, and the doctrine-lockstep note (which rule/ADR/SSOT row added/extended/referenced, or "not needed: <reason>"). A close comment asserting "done" without a runnable signal will be bucketed `claimed-done-but-unproven` — so make it provable.

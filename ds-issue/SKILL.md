@@ -49,7 +49,7 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 
 ## Scopes
 
-**Intake checklist (DSC — every check, every run):** 1. dedup (vs open+closed+history → duplicate/overlap/redundant/obsolete/net-new) · 2. reproduce (symptom confirmed against current code, anchors spot-checked) · 3. criteria (conflict with red-lines/rules flagged) · 4. size (vs bounded threshold → one issue or sub-issues) · 5. body (functional only, non-goals present) · 6. labels (exactly 1 type + 1 priority + optional status, from live set) · 7. self-check (every claim anchored, Done machine-checkable).
+**Intake checklist (DSC — every check, every run):** 1. dedup (vs open+closed+history → duplicate/overlap/redundant/obsolete/net-new) · 2. reproduce (symptom confirmed against current code, anchors spot-checked; the reproduction captured as a recipe into the body) · 3. criteria (conflict with red-lines/rules flagged) · 4. size (vs bounded threshold → one issue or sub-issues; design still open → ds-pipeline first) · 5. body (functional only, non-goals present; fix → Evidence/repro block; behavioral Done criteria as EARS sentences; each Step carries `— verify: command → expected`) · 6. labels (exactly 1 type + 1 priority + optional status, from live set) · 7. self-check (every claim anchored, Done machine-checkable).
 
 **Status buckets (per issue):** done & code-verified · claimed-done-but-unproven · in-progress · not-started · blocked.
 
@@ -57,7 +57,7 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 
 ## Delegation
 
-**Owns:** issue intake, dedup sweep, code-verified status audit, end-to-end issue execution with impact-mapping + code-proven close | **Delegates:** ds-fix → format/lint/type passes; ds-test → regression-test generation; ds-pr → opening a PR; ds-commit → atomic commit grouping; heavy code search → read-only search subagent (verify its `file:line` returns) | **Receives:** ds-blueprint → fresh `ds/audit/findings.md` it may read instead of re-scanning
+**Owns:** issue intake, dedup sweep, code-verified status audit, end-to-end issue execution with impact-mapping + code-proven close | **Delegates:** ds-fix → format/lint/type passes; ds-test → regression-test generation; ds-pr → opening a PR; ds-commit → atomic commit grouping; ds-pipeline → spec-first planning when a feature's design is still open; heavy code search → read-only search subagent (verify its `file:line` returns) | **Receives:** ds-blueprint → fresh `ds/audit/findings.md` it may read instead of re-scanning
 
 ## Execution Flow
 
@@ -92,7 +92,7 @@ Setup + Load → [mode menu if ambiguous] → dispatch by mode → [intake | swe
 ### Phase 4: Compose + Create [intake] [GATE]
 
 1. Criteria check — flag conflicts with red-lines/rules; never propose out-of-criteria work.
-2. Over the bounded threshold → propose sub-issues / task-list, not one mega-issue.
+2. Over the bounded threshold → propose sub-issues / task-list, not one mega-issue. Design/architecture still open (the "how" needs decisions, not just work) → route to ds-pipeline for the spec chain first, then file sub-issues from its tasks.
 3. Fill the body template (conditional blocks; terse for small issues) — [references/issue-template.md](references/issue-template.md). Labels from the live set (`gh label list`): exactly 1 type + 1 priority + optional status.
 4. Self-check (every claim anchored, Done machine-checkable, non-goals present, no dead content, within bound). Show the draft, confirm, then create (`gh issue create --body-file <(heredoc)`) or edit a raw issue. Return the URL.
 
@@ -110,10 +110,10 @@ Setup + Load → [mode menu if ambiguous] → dispatch by mode → [intake | swe
 0. **Batch entry [--do --all only]** — enumerate every open issue (`gh issue list --state open`), order CRITICAL→HIGH→MEDIUM→LOW then ascending issue number (priority from labels; unlabeled → MEDIUM). Show the queue transparently — one compact line per issue (`#N · priority · title`) with the count — and confirm the queue once before starting. Then run steps 1-6 for each issue in order, treating each issue as an independent unit: confirm that issue's changes before applying (per-item, destructive), and after each issue record its outcome (`closed` / `skipped-stale` / `skipped-blocked` / `red`) and continue to the next — one issue's blocker never aborts the queue. Re-ground from the issue + `git diff` at each issue boundary (W14). `--dry-run` → plan every issue, change nothing. Single `--do #N` → skip this step, run steps 1-6 once.
 1. **Re-verify root cause** [GATE] — confirm the issue's problem still holds against current code (read anchors, reproduce); also confirm it isn't already done. Stale/resolved → stop and report (or close as completed with the proving evidence); never "fix" a non-problem. See [references/verification.md](references/verification.md).
 2. **Impact-surface map** [GATE] — enumerate touched·linked·affected across the six axes; run the hazard checklist (each item affected-with-path or N/A-with-reason). Emit the explicit affected-set. See [references/impact-surface.md](references/impact-surface.md).
-3. **Plan (internal)** — bounded units (≤ ~5 files each); each names the gap it closes + its verify signal; map issue-type → relevant audits. `--dry-run` → post impact map + plan as an issue comment, **stop, change no files.**
+3. **Plan (internal)** — bounded units (≤ ~5 files each); each names the gap it closes + its verify signal; the issue's Steps map 1:1 to units when present; **coverage check: every Done item of the issue maps to ≥1 unit** — an unowned criterion means the plan is incomplete. Map issue-type → relevant audits. `--dry-run` → post impact map + plan as an issue comment, **stop, change no files.**
 4. **Implement + verify each** — one unit at a time, modifying only required lines; prove each with its signal before the next; re-check affected-set callers after each interface change. Detected errors get a concrete disposition (not "pre-existing").
 5. **Aggregate gate** [GATE] — full done-signal green (per-unit greens can compose to red); fix-type → regression test present (add via ds-test if absent); diff in-scope only.
-6. **Close with evidence** — `Closes #N` in commit/PR or `gh issue close --reason completed`; post a comment with code-proven evidence (signals run + result, change site) **and** the doctrine-lockstep note (which rule/ADR/SSOT row added/extended/referenced, or "not needed: <reason>").
+6. **Close with evidence** — `Closes #N` in commit/PR or `gh issue close --reason completed`; post a comment with code-proven evidence (**one evidence line per Done item**: that item's signal run + result; plus change site) **and** the doctrine-lockstep note (which rule/ADR/SSOT row added/extended/referenced, or "not needed: <reason>"). An uncovered Done item → the issue stays open.
 
 **Gate:** each `[GATE]` sub-step passes (root cause re-verified, affected-set complete, aggregate green) before the issue is closed with evidence. If fails → stale issue: stop and report; aggregate red: fix and re-run, never close red; close blocked by open PR: leave the evidence comment, mark `needs-approval`, report the pending merge. Under `--do --all` a failed gate stops only the current issue (record its outcome, move to the next) — never the whole queue.
 
@@ -131,7 +131,7 @@ Every run ends with the summary line + a **Value Delivered** block (1-5 concrete
 
 - **Dedup-before-create**, **false-positive gate**, **confirm-before-create/close** — never create/close unconfirmed; unreproducible symptom → no issue.
 - **`--do` re-verify before edit** — stale/resolved issue → stop, never fix a non-problem. **`--do --all`** confirms the queue once, then each issue's changes per item; a blocked/stale/red issue is recorded and skipped, the queue continues, never aborts.
-- **Impact map before plan**; **bounded units** (≤~5 files); **per-unit then aggregate** verify; **regression test for fixes**; **close = code-proven** + doctrine-lockstep note.
+- **Impact map before plan**; **bounded units** (≤~5 files); **Done-coverage in plan** — every Done item owned by ≥1 unit; **per-unit then aggregate** verify; **regression test for fixes**; **close = code-proven** — one evidence line per Done item + doctrine-lockstep note.
 - **Read-only modes** (`--status`, `--do --dry-run`) mutate nothing.
 - **Up-front mode menu** when no flag/clear intent; **transparent selection** — every sweep cluster / close shows the exact items compactly (`#N · state · title`), grouped with counts, with per-category bulk + apply-all + per-item; never act on unshown items.
 - **No dead content**; **one type + one priority** from the live label set.
@@ -149,6 +149,7 @@ Every run ends with the summary line + a **Value Delivered** block (1-5 concrete
 | Symptom can't be reproduced | Don't create; report missing evidence |
 | Pure-decision, no code change | `needs-decision` + ADR-stub; skip reproduction |
 | Estimate exceeds bounded task | Propose sub-issues / task-list |
+| Feature with open design decisions | Route to ds-pipeline (spec chain) first; file sub-issues from its tasks — never a mega-issue guessing the "how" |
 | `--do` issue already resolved | Close as completed with proving evidence; skip implementation |
 | `--do` issue is stale | Stop; report with evidence; don't fabricate a fix |
 | `--do --all`, no open issues | Report `nothing to do — 0 open issues`; mutate nothing |
