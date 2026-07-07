@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — installer + consistency CI (2026-07)
+
+- **`install.sh`** — one-command install/sync/verify: copies only runtime files (skill dirs + `agents/`) into `~/.claude` (or `--project DIR`); per-skill `--skills a,b` selection; `--check` reports drift against the repo (version-stamped via `.dev-skills-version`); `--uninstall`; idempotent, `rsync --delete` per skill so removed files never linger in the installed copy.
+- **`scripts/check-consistency.sh` + GitHub Actions CI** — zero-dependency consistency gate on every push/PR: skill count == README badge, SKILL.md ≤500 / README ≤80, exactly one spec-parseable Delegation line per skill, no duplicate `Owns:` tokens, state recovery protocol only in the 4 qualifying skills, no W-numbers beyond W17, INVOKE/DON'T INVOKE table present everywhere, canonical `ds/audit/` gitignore pattern.
+
 ### Changed — repo-wide consistency overhaul (2026-07)
 
 - **SKILL-SPEC contradictions resolved** — `findings.md` scoped-overwrite semantics clarified; single authoritative producer per scope + verified-consumer model; frontmatter `name`+`description` legalized; ownership/utilization tables completed to all 27 skills; FRC disposition tokens normalized.

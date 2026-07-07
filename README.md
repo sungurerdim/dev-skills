@@ -19,7 +19,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 | **5 AI tools supported** | Claude Code, Cursor, GitHub Copilot, Windsurf, Aider — same skill, every host |
 | **2 namespaces, 1 root** | `ds/audit/` (gitignored, transient state) + `ds/<skill>/` (committed operational tooling) — nothing else leaks to your repo root |
 
-> **Quick start:** `git clone https://github.com/sungurerdim/dev-skills.git /tmp/ds && cp -r /tmp/ds/ds-review ~/.claude/skills/ds-review && rm -rf /tmp/ds`
+> **Quick start:** `git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills && ./install.sh`
 > Then run `/ds-review` in Claude Code (or copy into your tool of choice — see [Install](#install)).
 
 ## What we believe
@@ -157,7 +157,18 @@ Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orches
 
 ## Install
 
-Copy any skill folder to your AI tool's instructions directory:
+**Claude Code — one command (install, update, verify):**
+
+```bash
+git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
+./install.sh                                # all 27 skills + shared agent -> ~/.claude
+./install.sh --skills ds-review,ds-commit  # or only the ones you want
+./install.sh --check                        # later: installed copy in sync with the repo?
+```
+
+The installer copies **only runtime files** (skill dirs + agents) — spec and docs never enter your context path. Re-running syncs: files removed from a skill in the repo are removed from the installed copy too. Update = `git pull && ./install.sh`.
+
+**Other tools — copy any skill folder manually:**
 
 ```bash
 git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
