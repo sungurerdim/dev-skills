@@ -32,6 +32,7 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 
 ## Arguments
 
@@ -41,8 +42,6 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 | `--scope={x}` | Comma-separated: ci, signing, deps, release-pipeline, or `all` |
 | `--auto` | All scopes, no questions, single-line summary |
 | `--preview` | Dry run — show what would be checked without loading rules or scanning |
-| `--resume` | Resume from `ds/audit/devops.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
 
 Without flags: present mode + scope selection to the user.
 
@@ -51,23 +50,19 @@ Without flags: present mode + scope selection to the user.
 | Scope | What It Checks |
 |-------|---------------|
 | ci | CI/CD pipeline presence, quality gates, format / analyze / test / build stages |
-| signing | Code signing automation, certificate management, keystore security |
+| signing | Code signing automation, certificate management, keystore security, build provenance / artifact attestation |
 | deps | Dependency audit gate, outdated detection, cross-dependency compatibility, breaking changes |
 | release-pipeline | Release automation, version bump workflow |
 
 ## Delegation
 
-**Owns:** ci, signing, deps-audit, pipeline-structure | **Delegates:** ds-deps → deps-upgrade-execution; ds-deploy → infra / container / TLS / monitoring | **Receives:** ds-ship → Phase 5 infra chain
+**Owns:** ci, signing, deps-audit, pipeline-structure | **Delegates:** ds-deps → deps-upgrade-execution; ds-deploy → infra / container / TLS / monitoring | **Receives:** ds-deploy → CI pipeline structure verification; ds-ship → Phase 5 infra chain
 
 ## Execution Flow
 
 Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summary
 
 ### Phase 1: Detect
-
-**Recovery check:** DETECT `ds/audit/devops.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read CI/signing/deps config, discard stale findings), skip `done` phases, announce `[OPS] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ mode, scopes_selected, scopes_done[], ci_platform, toolchain, findings[{id, severity, file, line, scope, disposition}], fix_progress }`.
 
 1. **IDU:** Profile → Project Map.Toolchain, Type + Stack, Config.deploy. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
 
@@ -124,7 +119,7 @@ For each scope:
 - MEDIUM → present for review
 - LOW → shown as potential issues
 
-**Gate:** Every in-scope domain scanned; all findings recorded with severity + confidence. If fails → unscan-able scope (file unreadable, tool unavailable, unexpected format) → mark scope `partial` in state.scopes_done, record MEDIUM "scan incomplete for scope {scope} — {reason}", continue to Report; do not silently omit scope.
+**Gate:** Every in-scope domain scanned; all findings recorded with severity + confidence. If fails → unscan-able scope (file unreadable, tool unavailable, unexpected format) → mark scope `partial`, record MEDIUM "scan incomplete for scope {scope} — {reason}", continue to Report; do not silently omit scope.
 
 ### Phase 4: Report
 
@@ -144,7 +139,7 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 
 **Severity:** CRITICAL > HIGH > MEDIUM > LOW. Uncertain → choose lower.
 
-**Gate:** Report presented with all findings + severities + summary. If fails → missing scope row → re-read state.findings, add row with recorded count (or `0 findings`), re-emit report; do not proceed to Phase 5 until table accounts for every selected scope.
+**Gate:** Report presented with all findings + severities + summary. If fails → missing scope row → re-read the collected findings, add row with recorded count (or `0 findings`), re-emit report; do not proceed to Phase 5 until table accounts for every selected scope.
 
 ### Phase 5: Post-Report
 
@@ -173,7 +168,7 @@ ds-devops: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
-**Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)` in state.fix_progress, continue; do not retry.
+**Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue; do not retry.
 
 **Value Delivered:** 1-5 concrete bullets, real pipeline outcomes only. Example shapes (placeholders, not literal):
 
@@ -191,7 +186,7 @@ Zero-finding run: `CI/CD scope clean — pipeline meets reviewed checks`.
 3. Scope boundary (only touch required lines)
 4. Stack consistency (correct CI syntax, valid config)
 5. **Shell quoting ([references/principles.md §5](references/principles.md)):** every shell line in generated CI configs uses double-quoted variable references (`"$VAR"`, `"${VAR}"`). Reject metacharacter injection in dynamic values. Flag unquoted user-data interpolation as CRITICAL.
-6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/devops.json` updated per scope, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

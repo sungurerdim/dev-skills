@@ -1,8 +1,8 @@
 # ds-mobile
 
-Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 145+ rules before you submit.
+Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 171 rules before you submit.
 
-**Audit your mobile app against 145+ rules across 13 domains, fix violations, and score release readiness.**
+**Audit your mobile app against 171 rules across 13 domains, fix violations, and score release readiness.**
 
 Works with Flutter, SwiftUI, Kotlin/Compose, and React Native.
 
@@ -45,13 +45,13 @@ Run `/ds-mobile`, or ask to review your mobile app.
 | Security | 11 |
 | Privacy | 5 |
 | Regulatory (GDPR, KVKK, CCPA...) | 13 |
-| Store Compliance | 20 |
-| UX | 26 |
-| Visual Design | 24 |
+| Store Compliance | 21 |
+| UX | 27 |
+| Visual Design | 25 |
 | Accessibility | 12 |
 | Architecture | 10 |
 | Testing | 6 |
-| Performance | 7 |
+| Performance | 9 |
 | Network | 7 |
 | Internationalization | 4 |
 | Release Readiness | 21 |

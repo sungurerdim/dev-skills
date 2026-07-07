@@ -2,7 +2,7 @@
 
 > **Why named presets:** Generic prompts ("make it modern", "make it clean") produce homogeneous AI-generated UIs — same Inter font, same purple-gradient, same rounded cards. A named aesthetic encodes a complete design vocabulary so the model can disambiguate.
 >
-> Inspired by `wilwaldon/Claude-Code-Frontend-Design-Toolkit`, generalized for tool-agnostic use.
+> Inspired by an open-source frontend design-token toolkit originally built for AI pair-programming workflows, generalized here for tool-agnostic use.
 
 This file is loaded by `/ds-frontend` when invoked with `--aesthetic=<preset>`. Each preset defines: **palette** (color), **typography**, **spacing**, **motion**, **shadow**, **border**, **iconography**, and a one-paragraph **mood description** that acts as a prompt anchor.
 

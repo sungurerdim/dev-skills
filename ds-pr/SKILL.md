@@ -50,7 +50,7 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 
 ## Delegation
 
-**Owns:** pull-request, net-diff-analysis, pr-title, pr-description | **Delegates:** ds-fix → pre-PR gates; ds-commit → staging before PR | **Receives:** none
+**Owns:** pull-request, net-diff-analysis, pr-title, pr-description | **Delegates:** ds-fix → pre-PR gates; ds-commit → staging before PR | **Receives:** ds-issue → PR opening after issue execution
 
 ## Execution Flow
 
@@ -92,13 +92,13 @@ If >3 unpushed commits, offer to tidy: squash into logical commits based on net 
 
 **Gate:** Commits tidied (or skipped) and pushed to remote. If fails → if the tidy (git reset --mixed) fails, run `git reset --hard $ORIG_HEAD` to restore the branch and push the original commits as-is with a warning; if the push fails (rejected, no upstream), stop with error "Push failed — run `git push -u origin {branch}` manually and then retry /ds-pr".
 
-### Phase 2: Quality Gates (entire project)
+### Phase 2: Quality Gates (changed files only)
 
-Run format, lint, and test across entire project. Auto-fix all fixable issues. Detect toolchain from config files. Skip silently if tool unavailable.
+Run format, lint, and test scoped to the PR's changed files (`git diff {base}...HEAD --name-only`) — a full-project pass is `/ds-fix`'s job, not this skill's. Auto-fix all fixable issues on that file set. Detect toolchain from config files. Skip silently if tool unavailable.
 
 Run in order (stop on failure): Format -> Lint -> Secret scan -> Test.
 Format/lint changed files → commit as `chore: format and lint fixes`.
-Tests fail → stop. Only create PR when all tests pass.
+Tests fail → stop. Only create PR when tests covering the changed files pass.
 
 **Secret scan ([references/principles.md §5](references/principles.md)):** Run secret-pattern detection on all changed files (same patterns as ds-fix security scope) before opening the PR. Any match → FAIL the gate. PR creation must not put credentials in front of human reviewers.
 

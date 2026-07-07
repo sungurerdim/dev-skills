@@ -45,7 +45,7 @@ Default scope: all uncommitted changes (staged + unstaged + untracked).
 
 ## Delegation
 
-**Owns:** git-commit, conventional-commits, commit-quality, commit-grouping | **Delegates:** ds-fix → format/lint/typecheck pre-commit gates | **Receives:** ds-deps → per-group upgrade commit; ds-simplify → post-approval delete commit; ds-review → fix commit
+**Owns:** git-commit, conventional-commits, commit-quality, commit-grouping | **Delegates:** ds-fix → format/lint/typecheck pre-commit gates | **Receives:** ds-deps → per-group upgrade commit; ds-simplify → post-approval delete commit; ds-review → fix commit; ds-issue → atomic commit grouping
 
 ## Execution Flow
 
@@ -125,7 +125,11 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 ### Phase 3: Execute (skip if --preview)
 
-No approval question — plan table was shown. Stage files → build message → commit.
+No approval question — plan table was shown.
+
+**Secret-pattern exclusion:** when staging "all uncommitted changes" (default scope), auto-exclude files matching `.env`, `.env.*`, `*.pem`, `*.key`, `credentials.*`, `secrets.*` before `git add`; list excluded files in the Phase 6 summary. User can override a specific file by naming it explicitly (`git add {file}` / re-run with `--staged-only` after manually staging it) — the exclusion is filename-pattern-based, not content-based, and never silently drops a file the user explicitly asked to include.
+
+Stage files → build message → commit.
 
 **Title format:** `{type}({scope}): {description}`
 
@@ -179,7 +183,7 @@ No approval question — plan table was shown. Stage files → build message →
 
 **Trailers/footers:** one `Co-Authored-By: {ai-model-name} <{provider-email}>`; breaking → `BREAKING CHANGE: {description}`; references → `Closes #{issue}`, `Fixes #{issue}`.
 
-**Gate:** Commits created in conventional format with `Co-Authored-By:`. If fails → pre-commit hook rejected; show output, ask "Fix and retry (recommended) / Commit anyway (--no-verify, explain risk)"; bypass → add WARN note in summary.
+**Gate:** Commits created in conventional format with `Co-Authored-By:`. If fails → pre-commit hook rejected; show output, ask "Fix and retry (recommended) / Commit anyway (--no-verify, explain risk)"; bypass → add WARN note in summary. Secret-pattern file explicitly re-added by user → stage exactly that file, keep the rest of the pattern excluded.
 
 ### Phase 4: Verify
 
@@ -197,7 +201,7 @@ No approval question — plan table was shown. Stage files → build message →
 
 `ds-commit: {OK|WARN|FAIL} | Commits: {n} | Files: {n} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-FRC+DSC accounting. Commit hashes + branch + next-step hint (push or PR).
+FRC+DSC accounting. Commit hashes + branch + next-step hint (push or PR). Secret-pattern exclusions (if any): `{file}` list excluded from staging by filename pattern.
 
 **Value Delivered:** 1-5 concrete bullets, real changes only. Example shapes (placeholders, not literal output):
 

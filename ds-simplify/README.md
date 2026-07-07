@@ -53,5 +53,5 @@ rm -rf /tmp/dev-skills
 - One batched approval block — no per-file prompts
 - Each approved batch is one reversible commit (rollback = `git revert`)
 - Post-delete test gate catches regressions before commit
-- Resumable via `ds/audit/simplify.json`
+- State-exempt — one reversible commit per approved batch is the durable record
 - LSP-first, grep fallback

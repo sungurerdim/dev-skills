@@ -1,13 +1,13 @@
 ---
 name: ds-mobile
-description: Mobile app quality audit — 145+ rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native). Use when auditing a mobile app for quality or release readiness.
+description: Mobile app quality audit — 171 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native). Use when auditing a mobile app for quality or release readiness.
 ---
 
 # /ds-mobile
 
-Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 145+ rules before you submit.
+Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 171 rules before you submit.
 
-**Mobile App Quality Audit** — 145+ rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native.
+**Mobile App Quality Audit** — 171 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native.
 
 ## Triggers
 
@@ -29,6 +29,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 
 - Audits mobile app quality; every finding cites file:line — never fabricates. Only touches mobile code; platform rules only on detected platforms.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
@@ -42,8 +43,6 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 | `--release-ready` | Shorthand for `--mode=release-ready` |
 | `--skip-manual` | Skip manual gates (release-ready) |
 | `--diff` | Compare with previous release report |
-| `--resume` | Resume from `ds/audit/mobile.json` without prompting |
-| `--clean` | Delete existing state, start fresh |
 
 No flags → present mode selection.
 
@@ -58,7 +57,7 @@ No flags → present mode selection.
 
 ## Delegation
 
-**Owns:** mobile-security, mobile-privacy, mobile-regulatory, mobile-ux, mobile-store, mobile-permissions, mobile-release, mobile-visual | **Delegates:** none (authoritative for mobile projects) | **Receives:** ds-compliance → security / privacy / regulatory on mobile projects
+**Owns:** mobile-security, mobile-privacy, mobile-regulatory, mobile-ux, mobile-store, mobile-permissions, mobile-release, mobile-visual | **Delegates:** none (authoritative for mobile projects) | **Receives:** ds-compliance → security / privacy / regulatory on mobile projects; ds-launch → mobile-specific store compliance
 
 ## Execution Flow
 
@@ -67,10 +66,6 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 ```
 
 ### Phase 1: Detect
-
-**Recovery check:** DETECT `ds/audit/mobile.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read files for pending findings, discard stale), skip `done` phases, announce `[MOB] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ platform, mode, scopes_selected, scopes_done[], frameworks_detected[], findings[{id, severity, file, line, scope, disposition}], fix_progress, release_ready_score }`.
 
 1. **Project detection.**
 
@@ -98,7 +93,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
    - `--diff`: read previous content of `ds/mobile/release.json` before overwriting, compute diff in memory, present in chat. Trend over >1 run → `git log -- ds/mobile/release.json` is authoritative — never a directory of stale per-run reports.
    - Fetch live policy data (see references/scoring.md)
 
-**Gate:** Platform identified; mode + scope confirmed; regulatory frameworks resolved. If fails → platform undetectable → prompt user (Flutter / RN / iOS / Android / Cross-platform), record in `state.data.platform`; mode/scope unconfirmed after prompt → default `audit` + `all`, warn; regulatory ambiguous → ask user to confirm before proceeding.
+**Gate:** Platform identified; mode + scope confirmed; regulatory frameworks resolved. If fails → platform undetectable → prompt user (Flutter / RN / iOS / Android / Cross-platform), record the detected platform; mode/scope unconfirmed after prompt → default `audit` + `all`, warn; regulatory ambiguous → ask user to confirm before proceeding.
 
 ### Phase 2: Architecture Discovery [SKIP if 1-2 domains]
 
@@ -112,7 +107,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 **Critical rule:** CAT-2 fixes are NEVER applied without user approval.
 
-**Gate:** Architecture confirmed; every rule classified CAT-1 / CAT-2; scope finalized with approved enhancements. If fails → no user corrections + no enhancement selections after one re-prompt → treat detected architecture as confirmed, classify unclassified rules as CAT-1, include zero CAT-2, record in `state.data.frameworks_detected`, proceed with note that architecture was auto-confirmed.
+**Gate:** Architecture confirmed; every rule classified CAT-1 / CAT-2; scope finalized with approved enhancements. If fails → no user corrections + no enhancement selections after one re-prompt → treat detected architecture as confirmed, classify unclassified rules as CAT-1, include zero CAT-2, record the detected architecture, proceed with note that architecture was auto-confirmed.
 
 ### Phase 3: Rule Loading
 
@@ -126,7 +121,7 @@ Load only reference files matching scope:
 | release (release-ready) | [rules-release.md](references/rules-release.md) |
 | release-ready scoring | [scoring.md](references/scoring.md) |
 
-**Gate:** All reference files for in-scope domains loaded; unloadable domains marked N/A. If fails → file unloadable → mark domains N/A in `state.data.scopes_done` reason "reference file unavailable", skip in Phase 4, surface in Phase 9 summary as "domains skipped: {list} — reference files not found".
+**Gate:** All reference files for in-scope domains loaded; unloadable domains marked N/A. If fails → file unloadable → mark domains N/A in the scopes-done tracking, reason "reference file unavailable", skip in Phase 4, surface in Phase 9 summary as "domains skipped: {list} — reference files not found".
 
 ### Phase 4: Scan
 
@@ -148,7 +143,7 @@ Load only reference files matching scope:
 
 **Recovery (context lost):** progress checklist → read `ds/audit/findings.md` → resume from first incomplete domain. Never re-scan completed.
 
-**Gate:** Every in-scope domain scanned; findings recorded with severity + confidence. If fails → re-read progress checklist + `ds/audit/findings.md`; resume from first incomplete; if a domain still fails after retry (file unreadable, context lost) → mark `partial` in `state.data.scopes_done` with collected findings, continue.
+**Gate:** Every in-scope domain scanned; findings recorded with severity + confidence. If fails → re-read progress checklist + `ds/audit/findings.md`; resume from first incomplete; if a domain still fails after retry (file unreadable, context lost) → mark `partial` in the scopes-done tracking with collected findings, continue.
 
 ### Phase 5: Report
 
@@ -191,7 +186,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 | `quick-fix` | Auto-apply all |
 | `release-ready` | Ask: Fix plan / Save report only / Guidance for key findings |
 
-**Gate:** User selected post-report action; mode-specific next step determined. If fails → no selection after one re-prompt → mode default: `audit` → Report only; `audit+fix` → Fix all; `quick-fix` → Auto-apply all; `release-ready` → Save report only. Record default in `state.data.fix_progress`.
+**Gate:** User selected post-report action; mode-specific next step determined. If fails → no selection after one re-prompt → mode default: `audit` → Report only; `audit+fix` → Fix all; `quick-fix` → Auto-apply all; `release-ready` → Save report only. Record the default choice made.
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 
@@ -199,13 +194,13 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask (Apply all / per-severity bulk `Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item); `release-ready` → show auto-fixable vs guidance split.
 3. **Execute.** Apply grouped by file. Re-read before + after each edit. Record applied/failed/skipped.
 
-**Gate:** All standard fixes attempted; each recorded. If fails → fix unattempt-able (file unreadable, edit error) → record `failed` in `state.data.findings[].disposition`, revert any partial edit via re-read + restore, continue; list failed fixes in Phase 9 summary with reason.
+**Gate:** All standard fixes attempted; each recorded. If fails → fix unattempt-able (file unreadable, edit error) → record `failed` as the finding's disposition, revert any partial edit via re-read + restore, continue; list failed fixes in Phase 9 summary with reason.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
-**Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → record `pending-user-decision` in `state.data.findings[].disposition`, proceed to Summary with status WARN, list unresolved items prominently.
+**Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → record `pending-user-decision` as the finding's disposition, proceed to Summary with status WARN, list unresolved items prominently.
 
 ### Phase 9: Summary
 
@@ -236,7 +231,7 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 4. **Platform consistency** — fixes use correct platform API
 5. **Artifact-first recovery** — re-read files before + after editing
 6. **FRC** — every finding gets a disposition in summary
-7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/mobile.json` updated per scope, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Edge Cases
 

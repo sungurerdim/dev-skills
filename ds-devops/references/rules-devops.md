@@ -7,7 +7,7 @@ Applies to all project types: web, API, CLI, library, mobile, monorepo.
 | **CI/CD & Workflow** | DOP-01–07 (1 CRITICAL, 6 HIGH) |
 | **Code Signing** | DOP-08–09 (2 HIGH) |
 | **Dependency Management** | DOP-10–14 (1 CRITICAL, 4 HIGH) |
-| **Agent & Supply-Chain Security** | DOP-15–17 (3 HIGH) |
+| **Agent & Supply-Chain Security** | DOP-15–18 (4 HIGH) |
 
 ## CI/CD & Workflow
 
@@ -244,3 +244,10 @@ Beyond pinning (DOP-14): every dependency is real, vetted, and continuously scan
   - Lockfile without integrity hashes
 - **Fix:** Run SCA in CI (osv-scanner, Dependabot, Snyk, Trivy). Before adding a dependency, confirm it exists in the registry, predates the project, and has real downloads; reject near-miss / cross-ecosystem names. Commit lockfiles with integrity hashes.
 - **Source:** [CSA — Slopsquatting (2026)](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/); USENIX Security '25 (19.7% package hallucination)
+
+### DOP-18 [HIGH] Build Provenance & Artifact Attestation
+Beyond pinning inputs (DOP-01 action SHA-pin, DOP-14 dependency pin): the build *output* itself needs a verifiable, signed record of how it was produced (SLSA-style provenance) so a consumer can confirm the artifact came from the claimed CI run and source commit, not a tampered build.
+- **Detect:** Release artifacts (binaries, container images, packages) published without a signed provenance/attestation record; no `actions/attest-build-provenance` (or equivalent SLSA provenance generator) step in the release job; consumers have no way to verify artifact-to-source-commit lineage.
+- **Fix:** Add a build-provenance step to the release job (GitHub: `actions/attest-build-provenance`, generates a signed SLSA-style attestation tied to the workflow run); publish the attestation alongside the artifact; document the verification command (`gh attestation verify`) in release notes.
+- **Impact:** Without signed provenance, a compromised build step or registry can substitute a malicious artifact and no one downstream can detect it.
+- **Source:** [SLSA Provenance](https://slsa.dev/spec/v1.0/provenance), [GitHub Artifact Attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds)

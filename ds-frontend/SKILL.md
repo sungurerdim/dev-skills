@@ -27,6 +27,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 - Audits UI/UX design quality across web ({web-frameworks}), mobile ({mobile-frameworks}), desktop ({desktop-frameworks}) — only touches UI-layer code (styles, components, tokens, ARIA); business + backend untouched.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
@@ -40,8 +41,6 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 | `--scope={list}` | Comma-separated scopes (table below) or `all` |
 | `--framework={f}` | Override detection: `react`, `vue`, `svelte`, `angular`, `flutter`, `swiftui`, `compose`, `rn` |
 | `--check` | Report only, zero modifications |
-| `--resume` | Resume from `ds/audit/frontend.json` without prompting |
-| `--clean` | Delete existing state, start fresh |
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — scan + report, no changes / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu.
 
@@ -81,7 +80,7 @@ Default: all scopes.
 
 ## Aesthetic Presets
 
-`--aesthetic={preset}` → load preset from [references/aesthetics-presets.md](references/aesthetics-presets.md): `design` mode → populate `tokens.json` with preset palette + typography + spacing + shadow + radius; `audit` / `audit+fix` → add preset-specific lint rules from `forbidden` list (e.g. `{preset-id}` flags `{forbidden-pattern-1}`, `{forbidden-pattern-2}`); record `state.data.aesthetic` for resume.
+`--aesthetic={preset}` → load preset from [references/aesthetics-presets.md](references/aesthetics-presets.md): `design` mode → populate `tokens.json` with preset palette + typography + spacing + shadow + radius; `audit` / `audit+fix` → add preset-specific lint rules from `forbidden` list (e.g. `{preset-id}` flags `{forbidden-pattern-1}`, `{forbidden-pattern-2}`).
 
 | ID | Best For | Anchor Color |
 |----|----------|--------------|
@@ -106,10 +105,6 @@ Default: all scopes.
 Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [Design] → Summary
 
 ### Phase 1: Detect
-
-**Recovery check:** DETECT `ds/audit/frontend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read files for pending findings, discard stale), skip `done` phases, announce `[FE] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ framework, mode, style_mode, aesthetic, scopes_selected, scopes_done[], design_system:{tokens_path, component_catalog}, findings[{id, severity, file, line, scope, disposition}], fix_progress, design_artifacts_generated[] }`.
 
 1. **Framework detection.**
 
@@ -158,13 +153,13 @@ Load matching reference file per in-scope domain:
 
 **False-positive prevention:** skip tokens inside comments, generated files (`*.g.dart`, `*.gen.*`), test fixtures, vendor/`node_modules`. Skip patterns: `/* noqa */`, `// intentional`, `// safe:`. **Recovery (context lost):** check progress checklist → read findings artifact → resume from first incomplete scope.
 
-**Gate:** Every in-scope check evaluated; findings recorded with severity + confidence + category. If fails → scope unscan-able (reference missing, files unreadable) → mark scope `partial` in `state.scopes_done`, add MEDIUM "scan incomplete for scope {scope} — {reason}", continue; reference missing → WARN, proceed with embedded rules.
+**Gate:** Every in-scope check evaluated; findings recorded with severity + confidence + category. If fails → scope unscan-able (reference missing, files unreadable) → mark scope `partial` in the scopes-done tracking, add MEDIUM "scan incomplete for scope {scope} — {reason}", continue; reference missing → WARN, proceed with embedded rules.
 
 ### Phase 4: Report
 
 Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {framework} | Scanned: {scopes} | Date: {today}` + `Design System: {exists|partial|absent}`. Findings table `| # | Rule | Sev | File:Line | Issue | Fix | Conf |`; summary table `| Scope | CRITICAL | HIGH | MEDIUM | LOW | Total |`.
 
-**Gate:** Report with findings + severities + summary. If fails → missing scope row → re-read `state.findings`, add row with recorded counts (or `0`), re-emit; do not proceed until every selected scope appears.
+**Gate:** Report with findings + severities + summary. If fails → missing scope row → re-read the collected findings, add row with recorded counts (or `0`), re-emit; do not proceed until every selected scope appears.
 
 ### Phase 5: Fix [SKIP if audit-only or --check]
 
@@ -186,7 +181,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 2. **Component catalog** — state coverage matrix, missing state recs, a11y compliance per component.
 3. **A11y checklist** — WCAG 2.2 AA list specific to detected framework + components.
 
-**Gate:** Artifacts generated and written; user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in `state.design_artifacts_generated`, continue.
+**Gate:** Artifacts generated and written; user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue.
 
 ### Phase 8: Summary
 
@@ -196,7 +191,7 @@ ds-frontend: {OK|WARN|FAIL} | Mode: {audit|audit+fix|design} | Fixed: {n} | Skip
 
 FRC+DSC accounting. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
-**Gate:** Summary rendered; equation balances. If fails → unaccounted finding → `skipped (accounting gap)`; still imbalanced → `WARN`, retain `ds/audit/frontend.json` for `--resume`.
+**Gate:** Summary rendered; equation balances. If fails → unaccounted finding → `skipped (accounting gap)`; still imbalanced → `WARN`, report the items needing reconciliation.
 
 **Value Delivered:** 1-5 concrete UI outcomes, real changes only. Example shapes (placeholders, not literal):
 
@@ -213,7 +208,7 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 2. Only modify UI-layer code (styles, components, tokens, ARIA) — business logic untouched
 3. Every finding gets a disposition — zero silent drops (FRC); every scope check evaluated and accounted for — zero silent omissions (DSC)
 4. After fix, re-read modified file to verify
-5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/frontend.json` updated per scope + artifact, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

@@ -10,7 +10,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | **Testing** | TST-01–06 (1 CRITICAL, 5 HIGH) | ~100 |
 | **Performance** | PRF-01–09 (1 CRITICAL, 8 HIGH) | ~160 |
 | **Network & Data** | NET-01–07 (2 CRITICAL, 5 HIGH) | ~214 |
-| **Internationalization & Logging** | DEV-04–06, DEV-09 (4 HIGH) | ~262 |
+| **Internationalization & Logging** | DEV-01–04 (4 HIGH) | ~262 |
 
 ---
 
@@ -295,7 +295,7 @@ Show sync state, last sync time, offline indicator.
 
 ## Internationalization & Logging
 
-### DEV-04 [HIGH] String Externalization (i18n)
+### DEV-01 [HIGH] String Externalization (i18n)
 All UI strings in resource files. Zero hardcoded.
 - **Detect:**
   - Search for: quoted strings in UI code that are user-visible (not keys, not log messages)
@@ -307,19 +307,19 @@ All UI strings in resource files. Zero hardcoded.
   - RN: react-intl / i18n-js
 - **Source:** Flutter Internationalization Guide, Android String Resources, Apple Localization Guide, react-intl
 
-### DEV-05 [HIGH] Locale-Aware Formatting
+### DEV-02 [HIGH] Locale-Aware Formatting
 Dates, numbers, currency formatted per locale.
 - **Detect:** Hardcoded date format (MM/DD/YYYY). Hardcoded currency symbol. Manual number formatting
 - **Fix:** Use Intl/DateFormat APIs with user locale
 - **Source:** ICU Formatting Guide, Android DateFormat, Apple NSDateFormatter, Flutter intl Package
 
-### DEV-06 [HIGH] Pluralization Rules
+### DEV-03 [HIGH] Pluralization Rules
 ICU message format. Languages have different rules (EN: 2, AR: 6, Slavic: 4).
 - **Detect:** Manual if/else for singular/plural. Hardcoded "1 item"/"X items"
 - **Fix:** ICU plural syntax in resource files. Test with complex-plural languages
 - **Source:** ICU, Unicode CLDR
 
-### DEV-09 [HIGH] Structured Logging
+### DEV-04 [HIGH] Structured Logging
 JSON logs. No secrets/PII. Correlation IDs.
 - **Detect:** Unstructured log messages. Sensitive data in logs (tokens, passwords, PII). No request correlation
 - **Fix:** Structured JSON format. Sanitize sensitive fields. Add correlation IDs. Define log levels (debug/info/warn/error)

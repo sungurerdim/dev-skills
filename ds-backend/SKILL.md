@@ -24,6 +24,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | "review OpenAPI spec", "audit DB migration" | "audit OWASP / regulatory security" (→ ds-compliance --security) |
 | "design auth flow with OAuth/RBAC" | "deploy auth service to production" (→ ds-deploy) |
 | "review my API for REST conformance" | "fix lint errors in handlers" (→ ds-fix) |
+| "audit API/DB/auth design conformance" | "generic code quality review (readability, duplication)" (→ ds-review) |
 
 ## Contract
 
@@ -32,6 +33,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 - Only suggests well-established patterns — no experimental or untested approaches.
 - Minimal liability + maximum privacy + minimum dependencies: auth recommendations prioritize managed services over DIY; data minimization in every schema (API responses expose only required fields); prefer platform-native auth over third-party SDKs where feasible.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
@@ -45,8 +47,6 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | `--migrate` | Generate or review database migrations |
 | `--scope={x}` | Specific scope: api, db, auth (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary |
-| `--resume` | Resume from `ds/audit/backend.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — review existing API/DB/auth for issues / Design — design new endpoints, schema, or auth flow / (Cancel). A disambiguating flag (`--audit`/`--design`/`--scope`/`--auto`) skips the menu.
 
@@ -102,16 +102,12 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `ds/audit/backend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-check endpoints/schemas inventory, discard stale findings), skip `done` phases, announce `[BE] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ mode, scopes_selected, inventory: {endpoints[], tables[], auth_flows[]}, scopes_done[], findings[{id, severity, scope, disposition}], artifacts_generated[] }`.
-
 1. Flags → proceed directly. No flags → interactive menu.
 2. **IDU:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
 3. Detect project stack (framework, ORM, auth library) by scanning config files + dependencies.
 4. Load relevant reference docs by detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md).
 
-**Gate:** Scope and mode confirmed. If fails → no flags + no menu response → default `--audit --scope=api,db,auth` with WARN in state.data.mode; announce defaulted scope before proceeding.
+**Gate:** Scope and mode confirmed. If fails → no flags + no menu response → default `--audit --scope=api,db,auth`, WARN, announce defaulted scope before proceeding.
 
 ### Phase 2: Discover
 
@@ -121,7 +117,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 4. Search for auth configuration (JWT secret usage, session config, OAuth setup).
 5. Build inventory: endpoints list, tables/models list, auth mechanisms.
 
-**Gate:** Inventory complete. No backend code found → switch to design mode. If fails → partial inventory → mark missing scopes `not-found` in state.data.inventory, proceed with detected scopes only, note skipped scopes in report.
+**Gate:** Inventory complete. No backend code found → switch to design mode. If fails → partial inventory → mark missing scopes `not-found` in the inventory, proceed with detected scopes only, note skipped scopes in report.
 
 ### Phase 3: Analyze [--audit mode]
 
@@ -158,7 +154,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity.
 
-**Gate:** Findings collected. 0 findings → skip to summary. If fails → unanalyzable scope → re-read source once; still unanalyzable (binary, generated-only) → mark `inconclusive` in state.data.findings, continue, surface in report.
+**Gate:** Findings collected. 0 findings → skip to summary. If fails → unanalyzable scope → re-read source once; still unanalyzable (binary, generated-only) → mark `inconclusive` in the findings list, continue, surface in report.
 
 ### Phase 4: Design [--design mode]
 
@@ -169,7 +165,7 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
    - **Auth:** flow diagram (text), token strategy, permission model
 3. Present design for user review + iteration.
 
-**Gate:** User approves design or requests changes. If fails → changes requested → apply, re-present; after 3 rounds with no approval → ask "Continue with current / Abort?"; honor choice, record in state.data.artifacts_generated.
+**Gate:** User approves design or requests changes. If fails → changes requested → apply, re-present; after 3 rounds with no approval → ask "Continue with current / Abort?"; honor choice, record in the generated-artifacts list.
 
 ### Phase 5: Spec [--spec mode]
 
@@ -215,16 +211,7 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 - OpenAPI spec validates against OpenAPI 3.0+ schema
 - Migration files include both `up` + `down` operations
 - Auth flows use current best practices (PKCE for public clients, not implicit flow)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/backend.json` updated per scope, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
-
-## Severity
-
-| Level | Meaning |
-|-------|---------|
-| CRITICAL | SQL injection, broken auth, exposed secrets, data loss in migration |
-| HIGH | Missing auth on endpoint, N+1 in hot path, no input validation |
-| MEDIUM | Inconsistent naming, missing pagination, suboptimal index |
-| LOW | Convention deviation, missing documentation |
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 
@@ -234,6 +221,15 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 | Framework not recognized | Use generic patterns, warn about framework-specific optimizations |
 | Multiple ORMs / auth libraries | Ask user which is primary |
 | Migration would cause data loss | Flag as CRITICAL, require explicit approval |
+
+## Severity
+
+| Level | Meaning |
+|-------|---------|
+| CRITICAL | SQL injection, broken auth, exposed secrets, data loss in migration |
+| HIGH | Missing auth on endpoint, N+1 in hot path, no input validation |
+| MEDIUM | Inconsistent naming, missing pagination, suboptimal index |
+| LOW | Convention deviation, missing documentation |
 
 ## Edge Cases
 

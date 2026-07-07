@@ -32,6 +32,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 
 ## Arguments
 
@@ -41,8 +42,6 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 | `--preview` | Audit only, no changes |
 | `--scope={x}` | Specific scope(s), comma-separated |
 | `--oss-ready` | OSS-readiness mode (see `oss-readiness` scope below) |
-| `--resume` | Resume from `ds/audit/repo.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
 
 No flags → present mode selection.
 
@@ -58,16 +57,17 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 4. **Delete branch on merge** — enabled (`delete_branch_on_merge=true`)
 5. **Auto-merge** — enabled (`allow_auto_merge=true`)
 
-### protection (4 checks)
+### protection (5 checks)
 
 1. **Branch protection enabled** — default branch has protection rules
 2. **Required reviews** — at least 1 required reviewer
 3. **Required status checks** — CI must pass before merge
 4. **Dismiss stale reviews** — enabled when new commits pushed
+5. **Ruleset coverage** — detect via `gh api repos/{owner}/{repo}/rulesets` alongside classic branch protection (`gh api repos/{owner}/{repo}/branches/{branch}/protection`); org plan supports repository rulesets and none exist → recommend migrating to rulesets (layered enforcement, bypass audit log); no ruleset support → classic branch protection is the valid fallback, not a finding
 
 ### hygiene (3 checks)
 
-1. **Stale branches** — no open PR + last commit > 7 days ago
+1. **Stale branches** — no open PR + last commit > 30 days ago
 2. **Merged branches** — already merged into default but not deleted
 3. **Orphan remotes** — remote-tracking refs whose upstream no longer exists
 
@@ -86,10 +86,11 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 1. **CODEOWNERS** — present for team repos (>1 contributor), N/A for solo
 2. **CONTRIBUTING.md** — present for public repos, N/A for private solo
 
-### structure (2 checks)
+### structure (3 checks)
 
 1. **`.gitignore` completeness** — IDE, OS, language-specific entries present
 2. **Config file sprawl** — no multiple competing configs for same tool
+3. **Codebase (Twelve-Factor #1)** — one repo tracks one deployable app across many deploys: repo hosts multiple unrelated deployable apps without workspace/monorepo tooling boundaries, or app code is duplicated across separate repos instead of shared via a package → flag
 
 ### oss-readiness (15 checks — activated by `--oss-ready` flag or explicit scope selection)
 
@@ -125,10 +126,6 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `ds/audit/repo.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-query GitHub API for changed settings), skip `done` phases, announce `[RPO] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ repo_info: {name, default_branch, visibility, plan}, scopes_selected, scopes_done[], checks_run[], findings[{id, severity, scope, check, disposition}], fixes_applied[] }`.
-
 1. Verify `git` + `gh` CLI available and authenticated — `git` required; `gh` required for settings/protection scopes.
 2. Detect repo info via GitHub API: name, default branch, visibility, description, topics, license, homepage, plan.
 3. **IDU:** Profile → {Type + Stack, Config.constraints}. Findings({repo}) → verify + use. Absent → own analysis.
@@ -147,7 +144,7 @@ Run every check in every selected scope per [references/rules-repo.md](reference
 
 Evaluate checks in order as listed in each scope.
 
-**Gate:** All checks in all selected scopes evaluated; zero silently omitted. If fails → unevaluable check (API unavailable, permissions, unsupported plan) → record `N/A` in state.data.checks_run with explicit reason; surface all N/A in Phase 3 gap table so they remain visible.
+**Gate:** All checks in all selected scopes evaluated; zero silently omitted. If fails → unevaluable check (API unavailable, permissions, unsupported plan) → record `N/A` with explicit reason; surface all N/A in Phase 3 gap table so they remain visible.
 
 ### Phase 3: Gap Analysis
 
@@ -164,7 +161,7 @@ Display findings table with ALL checks accounted:
 
 **Severity:** CRITICAL > HIGH > MEDIUM > LOW > INFO.
 
-**Gate:** Complete checklist table — every check from every scope appears. If fails → missing rows → re-query state.data.checks_run, reconstruct missing rows; unrecoverable → add row with `result: "ERROR: data unavailable"` rather than leaving absent.
+**Gate:** Complete checklist table — every check from every scope appears. If fails → missing rows → re-run the affected checks, reconstruct missing rows; unrecoverable → add row with `result: "ERROR: data unavailable"` rather than leaving absent.
 
 ### Phase 4: Plan Review [SKIP if --auto]
 
@@ -231,7 +228,7 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 - Every finding gets a disposition (FRC)
 - Every scope check evaluated and accounted for (DSC)
 - Destructive changes (branch deletion, permission changes) require confirmation unless `--auto`
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/repo.json` updated per scope + per API call, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

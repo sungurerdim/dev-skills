@@ -3,7 +3,7 @@
 | Section | Rules |
 |---------|-------|
 | **Container Security** | DEP-01 to DEP-05 (2 CRITICAL, 3 HIGH) |
-| **Deployment Patterns** | DEP-06 to DEP-11 (2 HIGH, 2 MEDIUM, 2 LOW) |
+| **Deployment Patterns** | DEP-06 to DEP-13 (2 HIGH, 4 MEDIUM, 2 LOW) |
 
 ## Container Security
 
@@ -173,3 +173,27 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 **Fix:** Least-privilege IAM with specific resource ARNs + restricted CIDR; explicit CORS origin allowlist (never `*` with credentials); keep TLS verification on; set security headers on every response; debug off, with structured errors that don't leak internals.
 
 **Source:** [Veracode GenAI 2026](https://www.veracode.com/blog/genai-security-and-vibe-coding/), [Tenzai 2026](https://blog.tenzai.com/bad-vibes-comparing-the-secure-coding-capabilities-of-popular-coding-agents/)
+
+---
+
+### DEP-12 | MEDIUM | Backing Services as Attached Resources (12-Factor #4)
+
+**Detect:** Database/cache/queue/mail connection hardwired to a specific host/instance in code or config (e.g., a literal hostname or local socket path) instead of a URL-style env var (`DATABASE_URL`, `REDIS_URL`, `SMTP_URL`).
+
+**Fix:** Attach every backing service via a URL-style config value read from the environment; swapping a local Postgres for a managed instance requires an env-var change only, no code change.
+
+**Why:** Hardwired backing services block environment promotion (dev → staging → prod) and make disaster recovery (swap to a standby) a code change instead of a config change.
+
+**Source:** *The Twelve-Factor App* — Factor IV: Backing Services (https://12factor.net/backing-services)
+
+---
+
+### DEP-13 | MEDIUM | Concurrency via Process Model (12-Factor #8)
+
+**Detect:** Scaling plan relies on a single larger process/instance (vertical scaling) rather than running more stateless replicas; no `replicas`/`scale` config in compose, Kubernetes, or PaaS manifest.
+
+**Fix:** Design the process stateless so it can run as N identical replicas behind a load balancer or orchestrator; set an explicit replica/scale count in the deployment manifest.
+
+**Why:** Vertical-only scaling has a hard ceiling and a single point of failure; horizontal scale-out via the process model is what makes zero-downtime deploys and elastic capacity possible.
+
+**Source:** *The Twelve-Factor App* — Factor VIII: Concurrency (https://12factor.net/concurrency)

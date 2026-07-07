@@ -53,4 +53,4 @@ rm -rf /tmp/dev-skills
 - Security advisories elevated to front of the queue
 - Removal candidates flagged (0 source references)
 - Monorepo workspace-aware
-- Resumable via `ds/audit/deps.json`
+- State-exempt — per-group commits are the resume checkpoints

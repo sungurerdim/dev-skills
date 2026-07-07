@@ -19,7 +19,7 @@ description: Store and release management — store submission, listing optimiza
 |---------|----------|
 | "submit to App Store / Play Store / Mac App Store" | "deploy backend to VPS / container" (→ ds-deploy) |
 | "App Store privacy labels (store-correctness check)" | "full GDPR/KVKK privacy compliance" (→ ds-compliance --privacy) |
-| "ASO keyword research, generate release notes" | "marketing copy / landing page" (→ external / manual marketing) |
+| "author a perf budget (LCP/INP/p99/bundle) + wire CI enforcement" | "fix the performance regression itself" (→ ds-review / ds-fix) |
 | "pre-review checklist (rejection prevention)" | "audit mobile app quality" (→ ds-mobile) |
 
 ## Contract
@@ -29,6 +29,7 @@ description: Store and release management — store submission, listing optimiza
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 
 ## Arguments
 
@@ -44,8 +45,6 @@ description: Store and release management — store submission, listing optimiza
 | `--post-launch` | Post-launch monitoring checklist |
 | `--perf-budget` | Author a formal perf budget (LCP, INP, p99, bundle size, startup) + wire CI enforcement via `/ds-devops` |
 | `--auto` | All modes, no questions, single-line summary |
-| `--resume` | Resume from `ds/audit/launch.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
 
 No flags → present an up-front menu covering every mode, each with a one-line what-it-does — Setup (recommended) — launch-readiness setup / Listing — store listing copy / ASO — keyword + listing optimization / Privacy — store privacy labels / Review — pre-submission active-detection scan / Submission-notes — reviewer notes + reject replies / Release — release process / Post-launch — post-launch monitoring / Perf-budget — performance budget / (Cancel). A disambiguating flag skips the menu.
 
@@ -166,21 +165,17 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 
 ### Phase 1: Setup
 
-**Recovery check:** DETECT `ds/audit/launch.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read store configs, discard stale checks), skip `done` phases, announce `[LCH] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ modes_invoked[], platform, stage, inventory: {configs[], metadata[]}, metadata_generated[], checklist_progress, review_findings[{id, severity, check, disposition}] }`.
-
 1. Flags → proceed directly. No flags → interactive menu.
 2. **IDU:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
 3. Detect platform from project signals (`pubspec.yaml` → mobile, `package.json` → web, etc.) + current launch stage: pre-submission, in-review, post-launch.
 
-**Gate:** Platform + mode confirmed. If fails → ambiguous platform → prompt iOS / Android / Web / All, record in state.data.platform; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
+**Gate:** Platform + mode confirmed. If fails → ambiguous platform → prompt iOS / Android / Web / All; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
 
 ### Phase 2: Detect Current State
 
 Search for store-related configs, version info, existing privacy policy / ToS, CI/CD release workflows; build inventory of what exists vs missing.
 
-**Gate:** Inventory complete. If fails → record what was found in state.data.inventory as partial; mark missing config type (store configs, version info, privacy policy, CI workflows) as absent rather than unknown; proceed to Phase 3 — missing entries become FAIL findings in review scope.
+**Gate:** Inventory complete. If fails → note what was found as partial; mark missing config type (store configs, version info, privacy policy, CI workflows) as absent rather than unknown; proceed to Phase 3 — missing entries become FAIL findings in review scope.
 
 ### Phase 3: Generate [setup, listing, aso, privacy, review, submission-notes]
 
@@ -196,13 +191,13 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 - **Submission notes (`--submission-notes`):** run pre-submission self-audit (12-item checklist from references/app-store-submission-template.md); block on CRITICAL findings. Auto-detect AI services / auth providers / IAP presence; prompt user for license + hosting per AI service, reviewer-only contact, screen recording URL. Generate per-platform notes (`ds/launch/submission-notes-{apple,google}.txt`) following proactive template; persist `ds/launch/submission-meta.yml` (committed, audit trail). Include "Common Rejection Cookbook" (5 prewritten reply templates for Guidelines 2.1 / 5.1.1(v) / 3.1.1 / 4.8 / 5.1.2 / 5.1.1(i)) so re-submission is one-step.
 - **Review preparation (active scan — not just a checklist):** scan project for top rejection triggers; each check produces an evidence-cited PASS/FAIL finding with severity + file:line. Scope checks listed in §Review (Active Detection) above.
 
-**Gate:** All listing, ASO, review artifacts generated. If fails → identify failed artifact (listing metadata, ASO, privacy labels, review scan), log to state.data.metadata_generated with `status: failed`, mark phase `partial`, continue with rest; surface failed artifacts in Phase 6 summary as WARN "manual completion required". Live policy fetch failures (App Store Connect, Play Console) → use fallback values, annotate artifact "(fallback values used — verify before submission)".
+**Gate:** All listing, ASO, review artifacts generated. If fails → identify failed artifact (listing metadata, ASO, privacy labels, review scan), record `status: failed`, mark phase `partial`, continue with rest; surface failed artifacts in Phase 6 summary as WARN "manual completion required". Live policy fetch failures (App Store Connect, Play Console) → use fallback values, annotate artifact "(fallback values used — verify before submission)".
 
 ### Phase 4: Release Management [release, post-launch]
 
 **Version management:** check current version, suggest bump (patch/minor/major), generate release notes from commits + staged rollout strategy. **Post-launch monitoring:** checklist covering crash-free rate targets, store rating tracking, review response, download monitoring, update cadence, force-update thresholds.
 
-**Gate:** Release artifacts generated. If fails → un-generatable release artifact (version bump, release notes, staged rollout, post-launch checklist) → log as `failed` in state.data.metadata_generated, proceed with successful ones, list failures in summary with "manual action required".
+**Gate:** Release artifacts generated. If fails → un-generatable release artifact (version bump, release notes, staged rollout, post-launch checklist) → log as `failed`, proceed with successful ones, list failures in summary with "manual action required".
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
@@ -227,14 +222,14 @@ Include checklist of remaining items before submission. FRC+DSC accounting.
 
 Zero-change run: `Submission package already complete — no missing fields`.
 
-**Gate:** Summary + Value Delivered printed with submission readiness status. If fails → write partial summary: completed phases, generated artifacts (even partial), open CRITICAL/HIGH findings, status FAIL with "Summary incomplete — state preserved in ds/audit/launch.json for resume."
+**Gate:** Summary + Value Delivered printed with submission readiness status. If fails → write partial summary: completed phases, generated artifacts (even partial), open CRITICAL/HIGH findings, status FAIL with "Summary incomplete — re-run to complete remaining phases."
 
 ## Quality Gates
 
 - Every store listing element meets platform character limits; privacy labels match actual code behavior (verified by codebase scan)
 - Pre-review checklist has zero CRITICAL items; version numbers are valid semver with incrementing build numbers
 - Release notes are user-friendly (not developer jargon); every finding gets a disposition (FRC)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/launch.json` updated per mode + per artifact, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

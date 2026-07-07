@@ -25,6 +25,7 @@ Logs must never contain passwords, tokens, credit card numbers, PII, or secrets.
 - **Detect:** `log.*password`, `log.*token`, `log.*secret`, `log.*credit_card`, `console.log(req.body)` (may contain credentials), `logger.info(f"User {user}")` where user object contains PII
 - **Fix:** Redact sensitive fields before logging. Use allowlists (log only known-safe fields), not blocklists. Mask PII: `email: j***@example.com`. Never log full request/response bodies — log sanitized summaries
 - **Source:** OWASP Logging Cheat Sheet, GDPR Art. 5(1)(f)
+- **Cross-ref:** [PRV-05](rules-compliance.md) (canonical, privacy scope) covers the same concern with a fuller PII-pattern table — when both `security`/`arch` and `privacy` scopes run together, report once under PRV-05.
 
 ### ARC-03 [CRITICAL] Structured Logging Format
 Logs must be structured (JSON) with consistent fields for security analysis.

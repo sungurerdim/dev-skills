@@ -30,6 +30,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 
 ## Arguments
 
@@ -42,8 +43,6 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 | `--incident` | Incident response: detection, triage, mitigation, post-mortem |
 | `--cost` | Analyze infra costs: identify over-provisioned resources, suggest right-sizing, calculate cost at 1x/10x/100x scale |
 | `--auto` | All modes, no questions, single-line summary |
-| `--resume` | Resume from `ds/audit/deploy.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — review existing deployment setup / Generate — Dockerfile + CI deploy configs / Checklist — production-readiness checklist / Monitor — monitoring/logging/alerting setup / Incident — incident response / Cost — infra cost analysis / (Cancel). A disambiguating flag skips the menu.
 
@@ -67,6 +66,8 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | Backup strategy | Database backups, file backups, backup testing, offsite storage |
 | Zero-downtime | Blue-green, rolling, canary deployment strategy |
 | Cost optimization | Resource right-sizing, free tier usage, unnecessary spend |
+| Backing services (12-Factor #4) | DB/cache/queue/mail attached as swappable resources via URL-style config (`DATABASE_URL`, `REDIS_URL`) — never hardwired to a specific instance |
+| Concurrency (12-Factor #8) | Scale-out via stateless process replicas behind a load balancer/orchestrator, not vertical single-process scaling |
 
 ### Monitoring
 
@@ -90,17 +91,13 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 
 ## Delegation
 
-**Owns:** deployment, infra, container, tls, monitoring, incident-runbook, cost | **Delegates:** ds-devops → CI pipeline structure (CI deploy step verified via ds-devops) | **Receives:** ds-ship → Phase 5 infra chain
+**Owns:** deployment, infra, container, tls, monitoring, incident-runbook, cost | **Delegates:** ds-devops → CI pipeline structure (CI deploy step verified via ds-devops) | **Receives:** ds-devops → infra / container / TLS / monitoring; ds-ship → Phase 5 infra chain
 
 ## Execution Flow
 
 Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
-
-**Recovery check:** DETECT `ds/audit/deploy.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read deployment configs, discard stale inventory), skip `done` phases, announce `[DEP] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ modes_invoked[], target, inventory: {services[], configs[], monitoring[]}, findings[{id, severity, area, disposition}], configs_generated[], checklist_progress }`.
 
 1. **IDU:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
 2. Flags → proceed directly. No flags → interactive menu.
@@ -125,7 +122,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 - **Monitoring audit:** health check endpoint returns meaningful status; structured logging configured (not `console.log` in production); crash reporting has PII redaction; alerting on critical metrics.
 - **Cost audit:** current infrastructure costs analyzed; over-provisioned resources identified; free tier alternatives suggested where applicable; cost calculated at different scale points.
 
-**Twelve-Factor gates ([references/principles.md §3](references/principles.md)):** stateless processes (Factor 6) — no in-memory state survives restart, sessions in shared store; Build/Release/Run separation (Factor 5) — release artifact immutable, never recompiled between envs; dev/prod parity (Factor 10) — same backing service types (no SQLite-in-dev, Postgres-in-prod); logs to stdout (Factor 11) — no log file paths in app config, aggregator captures stream; port binding (Factor 7) — port from `$PORT`, never hardcoded; admin tasks (migrations, seeds) as one-off commands (Factor 12), never embedded in deploy job.
+**Twelve-Factor gates ([references/principles.md §3](references/principles.md)):** stateless processes (Factor 6) — no in-memory state survives restart, sessions in shared store; Build/Release/Run separation (Factor 5) — release artifact immutable, never recompiled between envs; backing services (Factor 4) — DB/cache/queue/mail attached as URL-config resources (`DATABASE_URL`, `REDIS_URL`), swappable without code change; concurrency (Factor 8) — scale-out via stateless process replicas, never vertical single-process scaling; dev/prod parity (Factor 10) — same backing service types (no SQLite-in-dev, Postgres-in-prod); logs to stdout (Factor 11) — no log file paths in app config, aggregator captures stream; port binding (Factor 7) — port from `$PORT`, never hardcoded; admin tasks (migrations, seeds) as one-off commands (Factor 12), never embedded in deploy job.
 
 **Reliability gates ([references/principles.md §4](references/principles.md)):** timeout on every external call (DB, HTTP, queue); retry with exponential backoff on transient failures (idempotent ops only); circuit breaker on high-volume external deps; liveness + readiness probes; graceful shutdown (drain → flush → exit).
 
@@ -143,7 +140,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 
 Present generated files for review before writing.
 
-**Gate:** Generated files syntactically valid. If fails → identify invalid files, show syntax error, fix inline + re-validate; un-fixable after retry → skip writing, add to state.configs_generated with `status: "failed (syntax error)"`, surface raw error for manual correction.
+**Gate:** Generated files syntactically valid. If fails → identify invalid files, show syntax error, fix inline + re-validate; un-fixable after retry → skip writing, record `status: "failed (syntax error)"`, surface raw error for manual correction.
 
 ### Phase 5: Monitor Setup [--monitor]
 
@@ -155,7 +152,7 @@ Structured logging configuration (JSON format, log levels); crash reporting setu
 
 Incident severity classification (P1-P4); detection → triage → mitigate → communicate → post-mortem procedure; post-mortem template; rollback procedure documentation.
 
-**Gate:** Procedure covers all severity levels. If fails → missing severity coverage → generate stubs with `# TODO: fill in escalation contact and mitigation steps` placeholder, record in state.configs_generated with `status: "partial"`, surface HIGH finding "incomplete incident procedure — severity levels {missing} need review".
+**Gate:** Procedure covers all severity levels. If fails → missing severity coverage → generate stubs with `# TODO: fill in escalation contact and mitigation steps` placeholder, record `status: "partial"`, surface HIGH finding "incomplete incident procedure — severity levels {missing} need review".
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
@@ -180,7 +177,7 @@ ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | 
 
 Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list returned, no live config touched`.
 
-**Gate:** Summary + Value Delivered emitted; counts balance; every finding/action has disposition. If fails → undisposed finding → assign `skipped (accounting gap)`, re-emit as WARN; state file NOT deleted so partial run preserved for `--resume`.
+**Gate:** Summary + Value Delivered emitted; counts balance; every finding/action has disposition. If fails → undisposed finding → assign `skipped (accounting gap)`, re-emit as WARN; report the run as incomplete so the user can re-invoke.
 
 ## Quality Gates
 
@@ -188,7 +185,7 @@ Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list 
 - Every generated config preserves existing environment variables
 - Monitoring setup includes PII redaction; SSL configuration targets A+ rating
 - Backup strategy includes verification + offsite storage
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/deploy.json` updated per mode + per config generated, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

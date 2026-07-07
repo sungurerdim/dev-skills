@@ -31,6 +31,7 @@ ds-ship activates at **explicit milestone gates**, not as a generic "audit every
 | "bring this dormant project back" + dormant signals (>90 days) | "improve performance" (→ ds-review --perf) |
 | "promise vs reality across the whole project" | "what dependencies are outdated" (→ ds-deps) |
 | "a new model is out — re-optimize the whole project" (`--uplift`) | "optimize one metric with the new model" (→ ds-tune) |
+| "orchestrate the full ship cascade for this milestone" | "turn this feature idea into a plan" (→ ds-pipeline) |
 
 ### Cascade activation — two-confirmation gate
 
@@ -92,6 +93,8 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | launched | ds-tune → ds-deps (periodic hygiene) |
 | frozen | ds-blueprint → ds-deps (security-only) |
 
+**Feature-planning branch (independent of stage):** if the user's immediate ask is a new feature whose design is still open (no `specs/{feature}/spec.md` or equivalent plan exists) → route the planning leg to `/ds-pipeline {idea}` first, ahead of any implementation-oriented skill in the default sequence; resume the stage's default sequence once `specs/{feature}/tasks.md` exists.
+
 | Project type | Additional rules |
 |--------------|------------------|
 | mobile | ds-mobile authoritative for security/privacy/regulatory; ds-frontend only for UI/UX where applicable; skip ds-compliance on scopes ds-mobile owns |
@@ -148,7 +151,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, performance targets, compliance scope, deprecated features, renamed modules. Ask. Wait.
 
-9. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. Show plan; user confirms or trims.
+9. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. New feature with open design → insert `/ds-pipeline` first per the Feature-planning branch above. Show plan; user confirms or trims.
 
 **Gate:** Value proposition confirmed; skill sequence approved; `ds/audit/ship.json` populated with stage + type + promise census + sequence. No execution past this gate without approval. If fails → abort with "ds-ship: aborted — value proposition or skill sequence not confirmed. Re-run after clarifying purpose or use `--stage=X` to override." Never proceed on a vague or unconfirmed plan.
 

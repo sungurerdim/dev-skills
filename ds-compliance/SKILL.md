@@ -5,7 +5,7 @@ description: Security and regulatory compliance — OWASP, privacy laws, data pr
 
 # /ds-compliance
 
-Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 80+ rules across 8 compliance domains with file:line precision.
+Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 98 rules across 9 compliance domains with file:line precision.
 
 **Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and internationalization.
 
@@ -18,7 +18,7 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 - User asks about CSP, CORS, XSS, CSRF, or web security
 - User asks about internationalization compliance
 
-Covers 80+ rules across 8 compliance domains.
+Covers 98 rules across 9 compliance domains.
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -28,11 +28,13 @@ Covers 80+ rules across 8 compliance domains.
 | "OWASP Top 10 security scan" | "fix lint errors / format" (→ ds-fix) |
 | "privacy compliance audit (consent, retention, DSR)" | "design event taxonomy" (→ external / manual) |
 | "CSP/CORS/XSS/CSRF audit" | "mobile app store privacy labels" (→ ds-mobile / ds-launch) |
+| "a11y regulatory framing (ADA / EN301549 mapping)" | "implement a11y fixes (keyboard nav, contrast, ARIA)" (→ ds-frontend) |
 
 ## Contract
 
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- State-exempt: single regenerable report/audit.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - **Mobile-project overlap-skip (OVERLAP-4 runtime enforce):** When project signals mobile (`pubspec.yaml` with `flutter:`, `package.json` with `react-native`, `*.xcodeproj`, or `build.gradle` with `android {}`), default-skip security/privacy/regulatory — owned by `/ds-mobile`. Announce: "Mobile project detected — security/privacy/regulatory delegated to /ds-mobile". Override with `--scope=security,privacy,regulatory`.
@@ -42,11 +44,9 @@ Covers 80+ rules across 8 compliance domains.
 | Flag | Effect |
 |------|--------|
 | `--mode={x}` | `audit`, `audit+fix`, `quick-fix` |
-| `--scope={list}` | security, privacy, regulatory, web, network, arch, perf, i18n, or `all` |
+| `--scope={list}` | security, privacy, regulatory, web, network, arch, perf, a11y, i18n, or `all` |
 | `--type={t}` | Override auto-detection: `web`, `api`, `cli`, `library` |
 | `--secrets-migrate` | Interactive rotation / vault migration walkthrough for hardcoded secrets |
-| `--resume` | Resume from `ds/audit/compliance.json` without prompting |
-| `--clean` | Delete existing state, start fresh |
 
 Without flags: present mode selection.
 
@@ -72,12 +72,15 @@ Every secret is its own needs-approval item. `--auto` lists them, marks all `ski
 | privacy | Data collection, consent, retention, PII handling |
 | regulatory | GDPR, CCPA, KVKK, LGPD, PIPL, UK GDPR, HIPAA, framework-specific |
 | web | CSP, CORS, XSS, CSRF prevention |
+| network | TLS/transport security, API protection, DoS resilience |
+| arch | Audit logging, boundary/input validation, dependency security |
+| perf | Resource exhaustion prevention, query safety, resource cleanup (compliance-relevant subset) |
 | a11y | WCAG 2.2 AA, semantic labels, contrast, keyboard nav |
 | i18n | Locale support, RTL, number/date formatting |
 
 ## Delegation
 
-**Owns:** regulatory, privacy (canonical — GDPR / KVKK / CCPA / etc.), a11y-regulatory-framing (ADA / EN301549 mapping), security-regulatory, i18n, secrets-migrate (`--secrets-migrate`) | **Delegates:** ds-mobile → security/privacy/regulatory when mobile detected (`pubspec.yaml` / `Info.plist` / `AndroidManifest.xml`); ds-frontend → a11y implementation + fixes | **Receives:** ds-ship → Phase 2 regulatory pass
+**Owns:** regulatory, privacy (canonical — GDPR / KVKK / CCPA / etc.), a11y-regulatory-framing (ADA / EN301549 mapping), security-regulatory, i18n, secrets-migrate (`--secrets-migrate`) | **Delegates:** ds-mobile → security/privacy/regulatory when mobile detected (`pubspec.yaml` / `Info.plist` / `AndroidManifest.xml`); ds-frontend → a11y implementation + fixes | **Receives:** ds-launch → canonical privacy for store labels; ds-ship → Phase 2 regulatory pass
 
 ## Execution Flow
 
@@ -86,10 +89,6 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 ```
 
 ### Phase 1: Detect
-
-**Recovery check:** DETECT `ds/audit/compliance.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read files for pending findings, discard stale), skip `done` phases, announce `[CMP] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ mode, scopes_selected, scopes_done[], regulations_resolved[], findings[{id, severity, file, line, scope, cat, disposition}], fix_progress }`.
 
 1. **IDU:** Profile → Config.regulations, Config.data, Config.audience, Type+Stack. Findings(compliance scopes) → verify + use. Absent → own analysis.
 
@@ -123,7 +122,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
    - **CAT-2 Enhancement:** new layers/patterns not in current architecture — needs approval
 4. Present enhancement opportunities, ask which to include (default: none).
 
-**Gate:** Architecture confirmed; every rule classified CAT-1 / CAT-2; approved enhancements finalized. If fails → user unconfirmed (no response or rejection) → re-present detected architecture with brief explanation, ask once more; still unconfirmed → proceed with auto-detected, add WARN: `"Architecture unconfirmed — CAT-2 classifications may be inaccurate"` in state.data.
+**Gate:** Architecture confirmed; every rule classified CAT-1 / CAT-2; approved enhancements finalized. If fails → user unconfirmed (no response or rejection) → re-present detected architecture with brief explanation, ask once more; still unconfirmed → proceed with auto-detected, add WARN: `"Architecture unconfirmed — CAT-2 classifications may be inaccurate"` to the report.
 
 ### Phase 3: Rule Loading
 
@@ -140,7 +139,7 @@ Load reference files matching scope:
 | a11y | [rules-a11y.md](references/rules-a11y.md) |
 | i18n | [rules-i18n.md](references/rules-i18n.md) |
 
-**Gate:** All reference files for in-scope domains loaded; unloadable marked N/A. If fails → file missing → mark domain `N/A` in state.data.scopes_done, continue with available, surface missing path in report.
+**Gate:** All reference files for in-scope domains loaded; unloadable marked N/A. If fails → file missing → mark domain `N/A`, continue with available, surface missing path in report.
 
 ### Phase 4: Scan
 
@@ -158,7 +157,7 @@ Per in-scope domain:
 
 **Large scope (3+ domains):** numbered progress checklist + append findings to `ds/audit/findings.md` (add to `.gitignore`) — file exists with fresh `git_hash` → preserve findings from other scopes, append only your own. After each domain scan, append. Enables recovery on context loss.
 
-**Gate:** Every in-scope domain scanned; findings recorded with severity + confidence. If fails → domain(s) un-scan-able (no scannable source, access denied, reference N/A) → mark `inconclusive` in state.data.findings, continue with successful ones, list skipped domains in Phase 5 report.
+**Gate:** Every in-scope domain scanned; findings recorded with severity + confidence. If fails → domain(s) un-scan-able (no scannable source, access denied, reference N/A) → mark `inconclusive`, continue with successful ones, list skipped domains in Phase 5 report.
 
 ### Phase 5: Report
 
@@ -192,7 +191,7 @@ Architecture: {detected-summary}
 2. Confirmation: `quick-fix` → apply all, summary only; `audit+fix` → show plan, offer Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / proceed / cancel; `audit` → ask which severities.
 3. Apply fixes grouped by file. Different files in parallel, same file sequential.
 
-**Gate:** All standard fixes attempted; each recorded. If fails → CAT-1 fix unappliable (file write error, merge conflict, generated doc exists + user chose "Keep existing") → record `failed` in state.data.fix_progress with specific error, continue with remaining, surface all failed IDs in Phase 8 summary.
+**Gate:** All standard fixes attempted; each recorded. If fails → CAT-1 fix unappliable (file write error, merge conflict, generated doc exists + user chose "Keep existing") → record `failed` with specific error, continue with remaining, surface all failed IDs in Phase 8 summary.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
@@ -224,7 +223,7 @@ Zero-finding run: `Compliance scope clean — no regulatory or security findings
 2. Format preservation (indentation, code style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (use correct framework APIs)
-5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/compliance.json` updated per scope, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — state-exempt (single regenerable report). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 

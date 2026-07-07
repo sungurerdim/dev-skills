@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Database** | DB-01 to DB-08 (1 CRITICAL, 3 HIGH, 3 MEDIUM, 1 LOW) | ~12 |
+| **Database** | DB-01 to DB-09 (2 CRITICAL, 3 HIGH, 3 MEDIUM, 1 LOW) | ~12 |
 
 ---
 
@@ -224,3 +224,31 @@ Migrate from SQLite to PostgreSQL when: frequent `SQLITE_BUSY`, file size > 10 G
 **Why:** Choosing right database avoids premature complexity (over-engineering) or painful migrations later (under-engineering).
 
 **Source:** [DB-Engines comparison](https://db-engines.com/en/system/MySQL%3BPostgreSQL%3BSQLite), database-design-guide.md Database Selection section
+
+---
+
+### DB-09 Multi-Tenant Data Isolation [CRITICAL]
+
+**Detect:** Multi-tenant schema (shared tables with `tenant_id`/`org_id`/`account_id` column) where queries against tenant-scoped tables omit the tenant filter — hand-written `WHERE` clauses missing `tenant_id = ?`, ORM default scopes without a tenant guard, or row-level security (RLS) not enabled on tenant-scoped tables in Postgres.
+
+```
+# Vulnerable: no tenant filter, relies only on the primary key
+SELECT * FROM invoices WHERE id = $1
+
+# Vulnerable: ORM query built without tenant scope
+Invoice.find(params[:id])
+```
+
+**Fix:** Scope every query on a shared tenant-owned table by `tenant_id` — either enforce it in application code (ORM default scope / repository layer that always injects `tenant_id`) or enable Postgres row-level security as a defense-in-depth backstop:
+
+```sql
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON invoices
+  USING (tenant_id = current_setting('app.current_tenant')::uuid);
+```
+
+Never trust a client-supplied `tenant_id`; derive it from the authenticated session/JWT claim server-side.
+
+**Why:** A missing tenant filter lets one tenant read or modify another tenant's rows via a guessable/enumerable ID (IDOR at the data layer) — a full cross-tenant data breach, the most damaging class of bug in multi-tenant SaaS.
+
+**Source:** [OWASP: Insecure Direct Object References](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference), [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), database-design-guide.md Schema Design section

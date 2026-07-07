@@ -27,7 +27,8 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 
 ## Contract
 
-- Standalone; uses `ds/audit/findings.md` when fresh, own scan otherwise. State: `ds/audit/simplify.json`.
+- Standalone; uses `ds/audit/findings.md` when fresh, own scan otherwise.
+- State-exempt: one reversible commit per approved batch — git is the durable record.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - Detection only — zero deletion without approval batch. Every finding cites file:line + concrete ref count or pattern.
@@ -42,8 +43,6 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 | `--scope={x}` | Single scope: dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan, all |
 | `--auto` | All phases, list Category B items (every deletion is B), skip without asking |
 | `--force-approve` | Apply every pending deletion without asking |
-| `--resume` | Resume from `ds/audit/simplify.json` without prompt |
-| `--clean` | Delete existing state, start fresh |
 
 Without flags: present mode menu (full scan / preview / single scope).
 
@@ -72,15 +71,11 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 ### Phase 1: Setup
 
-1. **Recovery check:** DETECT `ds/audit/simplify.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` scope, skip `done` scopes, announce `[SMP] Resuming from Phase {N}: {name}`. On Summary success, delete state. Verify `ds/audit/` in `.gitignore`.
+1. **Findings file check:** `ds/audit/findings.md` fresh → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Absent/stale → own scan.
 
-2. **State:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, file, line, kind, evidence, proposal}]}, approval_decisions: {id: keep|delete|defer}, batch_commits: [hash], git_hash }`.
+2. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel). A disambiguating flag skips the menu.
 
-3. **Findings file check:** `ds/audit/findings.md` fresh → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Absent/stale → own scan.
-
-4. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel). A disambiguating flag skips the menu.
-
-5. **Project detection.** Identify language(s) + LSP availability. LSP present (TypeScript, Go, Python, Dart, Rust) → use `findReferences` / `documentSymbol`. LSP absent → grep fallback.
+3. **Project detection.** Identify language(s) + LSP availability. LSP present (TypeScript, Go, Python, Dart, Rust) → use `findReferences` / `documentSymbol`. LSP absent → grep fallback.
 
 **Gate:** Mode selected, LSP availability determined, scope list locked. If fails → user does not select a mode → re-present once; still no selection → default Preview (no deletion) with WARN in state.data.mode, proceed.
 
@@ -152,7 +147,7 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 
 **False positive prevention:** per signal, re-read 3 lines around match, verify no skip pattern (`# noqa`, `# intentional`, `# safe:`), exclude generated files (`*.g.*`, `*.pb.*`, `*.gen.*`).
 
-**Gate:** Every scope executed. Every finding has file:line evidence + proposal. If fails → scope unable to complete (LSP unavailable for dead-code, file unreadable) → log incomplete scope `{ scope, status: "inconclusive", reason }` to state.data.findings_per_scope, continue with remaining, note in Phase 3 report as "inconclusive — {reason}".
+**Gate:** Every scope executed. Every finding has file:line evidence + proposal. If fails → scope unable to complete (LSP unavailable for dead-code, file unreadable) → mark scope `inconclusive` with reason, continue with remaining, note in Phase 3 report as "inconclusive — {reason}".
 
 ### Phase 3: Report
 
@@ -181,9 +176,9 @@ All findings are Category B — every deletion requires approval.
 4. `--auto` without `--force-approve`: list all, mark `skipped (needs-approval)`.
 5. `--force-approve`: all rows → `delete`.
 
-Record every decision in `approval_decisions`. Batch pending deletions by scope.
+Record every decision. Batch pending deletions by scope.
 
-**Gate:** Every finding has a decision; accounting matches total. If fails → user declines approval prompt → mark all undecided as `skipped (user declined)` in state.data.approval_decisions, skip Phase 5 Execute, proceed to Phase 7 Summary.
+**Gate:** Every finding has a decision; accounting matches total. If fails → user declines approval prompt → mark all undecided as `skipped (user declined)`, skip Phase 5 Execute, proceed to Phase 7 Summary.
 
 ### Phase 5: Execute [skip if --preview or zero approvals]
 
@@ -192,11 +187,10 @@ Per approved batch:
 1. Apply the deletion / inline / compaction in-place.
 2. Re-run quick tests (`/ds-test --quick` if available; else `npm test --bail`, `go test ./...`, `pytest -x`, etc.). Test failure → revert batch, mark `failed (tests broke)`, continue to next scope.
 3. Invoke `/ds-commit --single` with: `refactor(simplify): remove {n} {scope} findings`. Record commit hash.
-4. Update state: move approved IDs to `done`.
 
 Parallel execution per scope allowed. One commit per scope-batch so user can revert a single scope cleanly.
 
-**Gate:** Every approved batch either committed or cleanly rolled back; no test failures left in-tree. If fails → tests break after batch deletion + rollback fails → `git revert {batch-commit-hash}`, mark `failed (tests broke, reverted)` in state.data.batch_commits, continue to next scope.
+**Gate:** Every approved batch either committed or cleanly rolled back; no test failures left in-tree. If fails → tests break after batch deletion + rollback fails → `git revert {batch-commit-hash}`, mark `failed (tests broke, reverted)`, continue to next scope.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
@@ -214,8 +208,6 @@ FRC+DSC accounting.
 
 `ds-simplify: {OK|WARN|FAIL} | Removed: {n} | Deferred: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-On success: delete `ds/audit/simplify.json`. If `ds/audit/` empties, remove directory.
-
 **Value Delivered:** 1-5 concrete bullets, real deletion outcomes only. Example shapes (placeholders, not literal):
 
 - `{n} dead exports / orphan modules deleted — {n} kB of unused code no longer in bundle, faster module load`
@@ -231,7 +223,7 @@ Zero-finding run: `No simplification opportunities detected — codebase is lean
 
 - Deletion is reversible: every batch ends in a git commit — rollback = `git revert {hash}`.
 - Framework contracts honored: do not delete exports required by framework (Next.js `generateMetadata`, React Server Component signatures, Dart widget `build`, etc.).
-- W1: cite file:line + reference count, never assume. W2: verify no new broken import after deletion. W3: only task-required lines — do not reformat adjacent code. W4: re-read file after context gap before deletion. W5: uncertain coupling → defer, not delete. W6: verify all scopes produced output. W7: dedup file:line — single finding for multi-scope hits, keep tightest proposal. W8: no raw shell interpolation. W9: state in `ds/audit/simplify.json`, `ds/audit/` gitignored, state deleted on Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W17: before proposing a new helper, grep for an existing one; consolidate near-duplicate clones to a single source of truth rather than leaving regenerated copies in place.
+- W1: cite file:line + reference count, never assume. W2: verify no new broken import after deletion. W3: only task-required lines — do not reformat adjacent code. W4: re-read file after context gap before deletion. W5: uncertain coupling → defer, not delete. W6: verify all scopes produced output. W7: dedup file:line — single finding for multi-scope hits, keep tightest proposal. W8: no raw shell interpolation. W9: not applicable — state-exempt (one reversible commit per approved batch is the durable record). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W17: before proposing a new helper, grep for an existing one; consolidate near-duplicate clones to a single source of truth rather than leaving regenerated copies in place.
 
 ## Error Recovery
 

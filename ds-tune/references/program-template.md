@@ -34,13 +34,15 @@ Repeat forever:
 2. Form a hypothesis: identify one specific change to {target_file} predicted to improve {metric}. State the change and predicted direction before editing.
 3. Edit {target_file} with your experimental idea.
 4. Commit: git add {target_file} && git commit -m "description of change"
-5. Run: bash ds/tune/bench.sh
-6. Read results: grep "^{metric}:" ds/tune/run.log
+5. Run: bash ds/tune/bench.sh. If `noisy` is true, repeat {runs_n} times (min 3) under identical conditions instead of once.
+6. Read results: grep "^{metric}:" ds/tune/run.log per run. `noisy: false` → single value. `noisy: true` → compute mean and standard deviation across the {runs_n} values (OPT-05).
 7. Append to ds/tune/results.tsv (tab-separated):
    {ISO8601_timestamp}\t{commit_7char}\t{status}\t{metric_value}\t{secondary_value}\t{HH:MM:SS}\t{description}
+   `noisy: true` → {metric_value} is `{mean}±{stddev}` and {description} states the run count.
 8. Decision:
-   - {metric} improved ({direction}) → KEEP. Branch advances.
-   - {metric} same or worse → DISCARD. Run: git reset HEAD~1 --hard
+   - `noisy: false`: {metric} improved ({direction}) → KEEP. Branch advances. Same or worse → DISCARD.
+   - `noisy: true`: KEEP only if the mean improved ({direction}) AND the improvement exceeds 2× the combined standard deviation of baseline and experiment (OPT-05 — otherwise it's noise, not a win). Otherwise → DISCARD.
+   - DISCARD in either case: git reset HEAD~1 --hard
 9. Go to step 1. Continue without interruption.
 
 ## Rules

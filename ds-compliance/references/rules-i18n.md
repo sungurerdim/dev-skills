@@ -46,6 +46,7 @@ JSON logs. No secrets/PII. Correlation IDs. Defined log levels.
   - Go: `slog` (stdlib) or `zap`
   - Sanitize sensitive fields. Add correlation IDs. Define levels: debug/info/warn/error
 - **Source:** Observability best practices, 12-Factor App
+- **Cross-ref:** Same check as [ARC-03](rules-arch.md) (canonical, arch scope) — when both `i18n` and `arch` scopes run together, report once under ARC-03.
 
 ### I18N-05 [MAJOR] RTL Layout Support
 Right-to-left text and layout must work correctly for Arabic, Hebrew, Persian, and Urdu users.

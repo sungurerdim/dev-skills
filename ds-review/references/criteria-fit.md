@@ -45,7 +45,7 @@ When a hard signal triggers, ask exactly once per scope:
 - All matching (recommended) — apply the same choice to every scope with mismatch
 ```
 
-User choice is recorded in `ds/audit/review.json` and (if `loosen` selected) surfaced as a recommendation to update the blueprint profile's `Config.constraints`.
+User choice (if `loosen` selected) is surfaced as a recommendation to update the blueprint profile's `Config.constraints` directly — no intermediate state file.
 
 ## Override semantics
 

@@ -50,4 +50,4 @@ rm -rf /tmp/dev-skills
 - Gap table with category (A: code-level / B: architecture-level)
 - Every B gap requires approval — no surprise refactors
 - Intentional deviations recorded as ADRs via `/ds-docs --adr`
-- Resumable via `ds/audit/benchmark.json`
+- State-exempt — single regenerable report/audit

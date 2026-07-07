@@ -118,6 +118,7 @@ API endpoints protected against abuse.
 - **Fix:** Rate limit auth endpoints (5-10 req/min). General API rate limiting (100-1000 req/min per user). Use `express-rate-limit`, `slowapi`, or API gateway rate limiting. Return `429 Too Many Requests` with `Retry-After` header
 - **Impact:** Unprotected auth endpoints enable credential stuffing and brute-force attacks
 - **Source:** OWASP API Security Top 10
+- **Cross-ref:** Same check as [NET-05](rules-network.md) (canonical, network scope) — when both `security` and `network` scopes run together, report once under NET-05.
 
 ### SEC-12 [MAJOR] License & IP Contamination
 AI assistants can emit near-verbatim third-party or copyleft code without attribution.

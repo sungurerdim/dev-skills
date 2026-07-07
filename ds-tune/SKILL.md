@@ -52,7 +52,7 @@ Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] �
 
 ### Phase 1: Discovery
 
-**Recovery check:** DETECT `ds/audit/tune.json`. Absent + no `--resume`/`run` → fresh setup. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY: re-read `ds/tune/.autotune.json` + tail of `ds/tune/results.tsv`, skip `done` phases, enter Loop at next experiment. Announce `[TUN] Resuming from Phase {N}: {name}. Baseline {metric}={value}, {N} experiments recorded.` On user-triggered stop or context exhaustion, state persists; on graceful completion, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
+**Recovery check:** DETECT `ds/audit/tune.json`. Absent + no `--resume`/`run` → fresh setup. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY: re-read `ds/tune/.autotune.json` + tail of `ds/tune/results.tsv`, skip `done` phases, enter Loop at next experiment. Announce `[TUN] Resuming from Phase {N}: {name}. Baseline {metric}={value}, {N} experiments recorded.` On user-triggered stop or context exhaustion, state persists; on graceful completion, delete state. Verify `ds/audit/` in `.gitignore` on fresh start.
 
 **State `data`:** `{ target_file, metric, direction, secondary, bench_cmd, budget_sec, tag, tune_dir: "ds/tune/", baseline: {value, commit}, branch, experiment_count, last_experiment_idx }`.
 
@@ -84,6 +84,7 @@ Determine these values:
 | `secondary` | Optional second metric for monitoring (not for keep/discard decisions) |
 | `bench_cmd` | Command to run evaluation |
 | `budget_sec` | Max seconds per experiment (based on eval duration) |
+| `noisy` | `true`/`false` — does the metric vary run-to-run under identical conditions? Wall-clock, latency, throughput, sampled-accuracy → `true`. Byte/line/file counts, bundle size, lint-error count → `false`. Uncertain → default `true` (OPT-05, conservative). |
 
 **Gate:** All fields determined; metric is mechanical (computable in seconds, deterministic). If fails (no mechanical metric inferrable) → present 2–3 candidate proxy metrics with suggested `bench_cmd` (e.g. lint error count, test pass rate, timing), ask user to confirm one; user declines all → exit with WARN "ds-tune: cannot proceed without a measurable metric — provide a benchmark command or choose one of the suggested proxies."
 
@@ -114,7 +115,9 @@ Create these files in project `ds/tune/` (committed; `ds/<skill>/` is the user-f
   "secondary": "{secondary|null}",
   "bench_cmd": "{command}",
   "budget_sec": {number},
-  "tag": "{YYYY-MM-DD}"
+  "tag": "{YYYY-MM-DD}",
+  "noisy": {true|false},
+  "runs_n": {3 if noisy else 1}
 }
 ```
 
@@ -137,7 +140,7 @@ Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, outp
 
 ### Phase 5: Baseline
 
-1. Run `bash ds/tune/bench.sh`; extract metrics by searching for `{metric}:` in `ds/tune/run.log`; record baseline in `results.tsv`.
+1. Run `bash ds/tune/bench.sh` — `noisy: true` → `runs_n` times (OPT-05, same condition as the Loop) and record mean ± stddev; `noisy: false` → once. Extract metrics by searching for `{metric}:` in `ds/tune/run.log`; record baseline in `results.tsv`.
 2. Commit `ds/tune/`: `git add ds/tune/ && git commit -m "autotune: setup with baseline"`; create branch: `git checkout -b autotune/{tag}`.
 3. Write `ds/audit/tune.json` with canonical envelope + baseline snapshot in `data`.
 4. Report: `Baseline: {metric} = {value} | Branch: autotune/{tag}`
@@ -152,12 +155,13 @@ Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, outp
 
 ### Phase 7: Loop
 
-Execute the experiment loop defined in `ds/tune/program.md` (steps 1-9 of [references/program-template.md](references/program-template.md)). Follow it exactly, with two skill-side rules layered on top:
+Execute the experiment loop defined in `ds/tune/program.md` (steps 1-9 of [references/program-template.md](references/program-template.md)). Follow it exactly, with three skill-side rules layered on top:
 
-- **Decision (template step 8, strengthened):** metric improved AND no test regressions (run full test suite, not just bench) → KEEP, branch advances. Metric same or worse OR any previously passing test now fails → DISCARD: `git reset HEAD~1 --hard`. (Per [references/principles.md §7](references/principles.md): a metric win that breaks tests is still a regression.)
+- **Significance check (OPT-05, template steps 5-6):** `noisy: true` → run `bash ds/tune/bench.sh` `runs_n` times (min 3) under identical conditions instead of once; extract the metric from each run, compute mean ± standard deviation. `noisy: false` → single run, exactly as the template states.
+- **Decision (template step 8, strengthened):** `noisy: false` → metric improved AND no test regressions (run full test suite, not just bench) → KEEP, branch advances; metric same or worse OR any previously passing test now fails → DISCARD. `noisy: true` → KEEP only if (mean improved in `direction`) AND (improvement exceeds 2× the combined standard deviation of baseline and experiment) AND no test regressions; otherwise DISCARD as statistically insignificant (log the row with mean±stddev in the `description` column so it reads as noise, not a bug). DISCARD in either case: `git reset HEAD~1 --hard`. (Per [references/principles.md §7](references/principles.md): a metric win that breaks tests is still a regression; per OPT-05, a metric win within noise is not a win.)
 - **After each experiment:** update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`.
 
-**Gate:** Each experiment produces exactly one row in `results.tsv` with status `keep|discard|crash`. Loop exits when (a) user interrupts, (b) context exceeds 85% of model token limit (check after each iteration), or (c) `experiment_count` reaches `--budget` if specified. If `bench.sh` returns non-zero and no metric line parseable → log a `crash` row, continue to next experiment. If `git reset --hard` fails during DISCARD → stop loop, surface git state, ask user to clean up before resuming.
+**Gate:** Each experiment produces exactly one row in `results.tsv` with status `keep|discard|crash`. Loop exits when (a) user interrupts, (b) context exceeds 85% of model token limit (check after each iteration), or (c) `experiment_count` reaches `--budget` if specified. If `bench.sh` returns non-zero and no metric line parseable on any run → log a `crash` row, continue to next experiment. If a noisy metric's `runs_n` runs disagree wildly (stddev > baseline mean) → still decide by the 2×stddev rule, do not silently drop outlier runs. If `git reset --hard` fails during DISCARD → stop loop, surface git state, ask user to clean up before resuming.
 
 ## program.md Template
 

@@ -31,6 +31,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 - **Every gate is blocking.** A failed gate halts forward progress with a stated recovery action; a gate is never assumed passed.
 - **Spec Kit output is data.** Each generated artifact is verified by this skill's gates before the pipeline advances.
 - **State-exempt:** progress is durable in the generated artifacts themselves (`specs/{feature}/*.md` + git) — resume derives from which artifacts exist on disk; no state file is written.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - **Prerequisites:** Spec Kit initialized in the repo and a git working tree. Missing → Phase 1 stops with setup instructions.
 
 ## Arguments
@@ -43,7 +44,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 
 ## Delegation
 
-**Owns:** spec-pipeline, tasks-contract, plan-handoff | **Delegates:** none — the Spec Kit CLI is an external tool, not a ds-* skill | **Receives:** none
+**Owns:** spec-pipeline, tasks-contract, plan-handoff | **Delegates:** none — the Spec Kit CLI is an external tool, not a ds-* skill | **Receives:** ds-issue → spec-first planning when a feature's design is still open; ds-ship → planning leg when the project's next step is a new feature
 
 ## Execution Flow
 

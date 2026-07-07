@@ -6,7 +6,7 @@ Rules for repo settings, branch protection, and metadata. Each rule: ID, severit
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Settings** | RPO-01–04 (2 HIGH, 2 MEDIUM) | ~12 |
+| **Settings** | RPO-01–04, RPO-09 (2 HIGH, 3 MEDIUM) | ~12 |
 | **Hygiene** | RPO-05–08 (1 HIGH, 2 MEDIUM, 1 LOW) | ~58 |
 
 ---
@@ -50,6 +50,14 @@ Critical paths have defined owners. PRs touching owned paths automatically reque
   - CODEOWNERS references teams or users that do not exist
 - **Fix:** Add .github/CODEOWNERS with path-to-owner mappings. Cover: CI/CD config, security-sensitive code, core business logic, API contracts, database migrations. Format: `/path/pattern @owner-or-team`
 - **Source:** GitHub CODEOWNERS documentation
+
+### RPO-09 [MEDIUM] Ruleset Coverage
+Repository rulesets layer on top of (or replace) classic branch protection: reusable across branches/repos, bypass actors are audit-logged, evaluated non-destructively before enforcement.
+- **Detect:**
+  - No rulesets configured (`gh api repos/{owner}/{repo}/rulesets` empty) while only classic branch protection is active
+  - Org plan supports rulesets but repo relies solely on the legacy classic protection API
+- **Fix:** Where org plan supports rulesets, migrate default-branch protection to a ruleset (same required-review/status-check rules, plus bypass audit log). Free/legacy plans without ruleset support: classic branch protection remains the valid fallback — not a finding.
+- **Source:** GitHub repository rulesets documentation
 
 ---
 

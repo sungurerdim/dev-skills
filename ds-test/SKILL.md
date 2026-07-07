@@ -35,6 +35,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 - Uses project's existing test framework — never introduces a new framework unless none exists; test files go in project's established test directory (auto-detected)
 - Does NOT fix application code to make tests pass — fixes the TEST if test is wrong, or reports app bug if app is wrong
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- **State-exempt:** generated/updated test files on disk are the progress record; re-running naturally resumes.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
@@ -42,7 +43,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 
 | Flag | Effect |
 |------|--------|
-| (none) | Interactive mode selection |
+| (none) | Show mode menu below |
 | `--generate` | Generate tests for uncovered code |
 | `--update` | Update existing tests to match current source code |
 | `--run` | Run tests, analyze failures, fix what's possible |
@@ -53,8 +54,23 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | `--scope={path}` | Limit to specific file, directory, or module |
 | `--baseline[=path]` | Characterization baseline: capture current actual behavior of a legacy module before refactoring; tests assert what the code DOES today, not what it should do. Optional `=path` narrows to a specific file, directory, or module. |
 | `--auto` | No questions, generate + run + fix cycle |
-| `--resume` | Resume from `ds/audit/test.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
+
+### Mode Menu (no mode flag passed)
+
+| Mode | What it does |
+|------|--------------|
+| Generate (recommended) | Generate tests for uncovered code |
+| Update | Update existing tests to match current source |
+| Run + Fix | Run tests, analyze failures, fix what's possible |
+| E2E | Generate or run E2E / integration tests |
+| Coverage | Analyze coverage gaps and fill them |
+| Setup | Set up test framework and infrastructure |
+| Prune | Find and delete low-value tests, replace with meaningful ones |
+| Baseline | Characterize a legacy module's current behavior before refactoring |
+| Full lifecycle (all) | Generate + run + fix in one autonomous pass (`--auto`) |
+| (Cancel) | Exit, no changes |
+
+Shown only when no mode flag is passed — any flag above (`--generate`, `--update`, `--run`, `--e2e`, `--coverage`, `--setup`, `--prune`, `--baseline`, `--auto`) disambiguates and skips the menu.
 
 ## Scopes
 
@@ -70,17 +86,13 @@ Default: `unit` + `integration`. E2E and snapshot require explicit `--e2e` or `-
 
 ## Delegation
 
-**Owns:** testing, coverage, test-generation, test-regression, e2e, functional-completeness (test side) | **Delegates:** none | **Receives:** ds-deps → post-upgrade test run; ds-review → test generation for findings; ds-tune → per-experiment test validation
+**Owns:** test-generation, test-run-fix, coverage, test-regression, e2e | **Delegates:** none | **Receives:** ds-deps → post-upgrade test run; ds-issue → regression-test generation; ds-tune → per-experiment test validation. Verified consumer of ds-blueprint findings (testing, functional-completeness): generates/fixes tests from them, does not re-produce scan findings.
 
 ## Execution Flow
 
 Setup → [Generate / Update / Run+Fix / Baseline] → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
-
-**Recovery check:** DETECT `ds/audit/test.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read source files referenced by pending generations, re-check generated test files exist), skip `done` phases, announce `[TST] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ mode, framework, files_queued[], files_processed[{file, tests_generated, status}], failures[{test, reason, disposition}], coverage_before, coverage_after }`.
 
 1. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings with `testing` scope; use to prioritize which modules need tests (skip own coverage analysis for covered scopes). Stale or absent → run own full analysis.
 2. **IDU:** Profile → {Ideal Metrics.Coverage, Project Map.Toolchain, Current Scores.Testing, Type + Stack}. Findings({testing}) → verify + use. Absent → own analysis.
@@ -120,7 +132,7 @@ Per uncovered source file (or scoped path):
 | API | 60%+ | 30%+ | 10%+ |
 | Library | 80%+ | 15%+ | 5%+ |
 
-**Gate:** Test files generated covering happy path + edge cases + error cases per target. If fails → source file has no testable public interface or unreadable → skip, record `{ file, status: "skipped", reason: "no public interface" }` in state.data.files_processed, continue with remaining files.
+**Gate:** Test files generated covering happy path + edge cases + error cases per target. If fails → source file has no testable public interface or unreadable → skip, note `{ file, status: "skipped", reason: "no public interface" }` for the summary, continue with remaining files.
 
 ### Phase 2b: Update [--update]
 
@@ -129,7 +141,7 @@ Per uncovered source file (or scoped path):
 3. Update test file: new params → update calls, add tests for new param edge cases; renamed method → update references; changed return type → update assertions; removed function → remove tests (with confirmation) or mark `skipped` with TODO; new function → generate new tests (per Phase 2a).
 4. Run updated tests to verify passing.
 
-**Gate:** Updated tests pass; no previously passing tests regressed. If fails → previously passing test now fails → do not weaken assertion; revert test file via `git checkout -- {test-file}`, record `{ test, reason: "regression after update", disposition: "reverted" }` in state.data.failures, write a finding to `ds/audit/findings.md` with scope `app-bugs` identifying the source change that broke the test.
+**Gate:** Updated tests pass; no previously passing tests regressed. If fails → previously passing test now fails → do not weaken assertion; revert test file via `git checkout -- {test-file}`, note `{ test, reason: "regression after update", disposition: "reverted" }` for the summary, write a finding to `ds/audit/findings.md` with scope `app-bugs` identifying the source change that broke the test.
 
 ### Phase 2c: Run + Fix [--run]
 
@@ -148,7 +160,7 @@ Per uncovered source file (or scoped path):
 
 **Critical rule:** test was passing before, fails after source change → SOURCE is likely wrong (regression), not the test. Keep assertions at full strength — fix test logic or report app bug.
 
-**Gate:** Test-side fixes verified passing or app bugs written to `ds/audit/findings.md`. If fails → test-side fix did not pass after 3 iterations → mark `failed (unfixable test-side issue)` in state.data.failures, leave test in best-attempt state, write app-bug finding to `ds/audit/findings.md` with captured output, continue to Phase 3.
+**Gate:** Test-side fixes verified passing or app bugs written to `ds/audit/findings.md`. If fails → test-side fix did not pass after 3 iterations → mark `failed (unfixable test-side issue)` for the summary, leave test in best-attempt state, write app-bug finding to `ds/audit/findings.md` with captured output, continue to Phase 3.
 
 ### Phase 2d: Framework Setup [--setup]
 
@@ -171,13 +183,13 @@ Capture current actual behavior of a legacy module as a characterization baselin
 
 **Note — not assertion-weakening:** asserting observed (possibly wrong) behavior with a `characterization: documents current behavior, not intent` tag and a Category B finding is the correct pattern — documented capture + user decision gate, never silent acceptance of a relaxed assertion.
 
-**Gate:** All characterization tests green AND surface-coverage % reported. If any characterization test cannot be made green after 3 iterations (e.g., output is stateful or side-effectful in an unresolvable way) → record `{ test, status: "unresolvable", reason }` in state.data.failures, write a Category B finding describing the untestable surface, continue with remaining members.
+**Gate:** All characterization tests green AND surface-coverage % reported. If any characterization test cannot be made green after 3 iterations (e.g., output is stateful or side-effectful in an unresolvable way) → note `{ test, status: "unresolvable", reason }` for the summary, write a Category B finding describing the untestable surface, continue with remaining members.
 
 ### Phase 3: Verify
 
 After any generate/update/fix: (1) run full test suite (or scoped subset); (2) all generated/modified tests must pass; (3) no previously passing test should now fail (regression check); (4) report coverage delta if coverage tool is configured.
 
-**Gate:** All generated tests pass; zero regressions. If fails → collect runner output per failing test, classify (test wrong / app wrong / environment / flaky). Fix test-side inline (max 3 iterations per test). App-bug failures → write to `ds/audit/findings.md` with scope `app-bugs`. Environment → surface setup instructions. Do not commit failing tests — record as `failing` in state.data.failures, report count in summary.
+**Gate:** All generated tests pass; zero regressions. If fails → collect runner output per failing test, classify (test wrong / app wrong / environment / flaky). Fix test-side inline (max 3 iterations per test). App-bug failures → write to `ds/audit/findings.md` with scope `app-bugs`. Environment → surface setup instructions. Do not commit failing tests — note as `failing` for the summary, report count in summary.
 
 ### Phase 4: Needs-Approval Review [needs_approval > 0]
 
@@ -238,7 +250,7 @@ Every test MUST justify its existence by addressing a **concrete, specific risk*
 - **AAA structure ([references/principles.md §7](references/principles.md)):** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
 - **Regression-before-fix ([references/principles.md §7](references/principles.md)):** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
 - **Coverage as diagnostic ([references/principles.md §7](references/principles.md)):** never write a coverage target into generated test configs; configure coverage as a reporter only. The diagnostic is "what did we miss?", not "did we hit X%?".
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/test.json` updated per file processed, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W12: every test verifies described intent + a case beyond the given suite — never special-case known inputs or assert hard-coded outputs to pass.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — generated/updated test files on disk are the progress record; re-running naturally resumes. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W12: every test verifies described intent + a case beyond the given suite — never special-case known inputs or assert hard-coded outputs to pass.
 
 ## Error Recovery
 

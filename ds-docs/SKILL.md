@@ -30,6 +30,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- State-exempt: generated docs on disk are the progress record; re-running naturally resumes.
 
 ## Arguments
 
@@ -41,8 +42,6 @@ Documentation drifts from code the moment it's written. This skill detects the g
 | `--adr` | ADR mode: scan architecture decisions, propose/maintain numbered ADR files under `docs/adr/` |
 | `--update` | Regenerate even if docs exist |
 | `--force-approve` | Auto-apply needs_approval items (structural changes) |
-| `--resume` | Resume from `ds/audit/docs.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
 
 Without flags: present mode selection to the user.
 
@@ -86,7 +85,7 @@ Without flags: present mode selection to the user.
 
 ## Delegation
 
-**Owns:** docs, doc-drift, feature-documentation, adr (`--adr` mode) | **Delegates:** none | **Receives:** ds-blueprint → docs scope findings; ds-ship → Phase 4b; ds-repo → CONTRIBUTING / LICENSE content generation
+**Owns:** doc-drift, feature-documentation, adr (`--adr` mode) | **Delegates:** none | **Receives:** ds-benchmark → ADR recording of accepted gap decisions; ds-ship → Phase 4b; ds-repo → CONTRIBUTING / LICENSE content generation. Verified consumer of ds-blueprint findings (docs scope): fills gaps from them, does not re-produce scan findings.
 
 ## Execution Flow
 
@@ -99,10 +98,6 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 **Gate:** IDU complete, findings loaded or own analysis planned. If fails → findings unreadable or stale `git_hash` → discard, proceed with own full analysis; profile absent → continue + note "no blueprint profile — using own analysis" in run header.
 
 ### Phase 1: Setup [SKIP if --auto]
-
-**Recovery check:** DETECT `ds/audit/docs.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-check docs files being generated, discard stale inventory), skip `done` phases, announce `[DOC] Resuming from Phase {N}: {name}.` On Summary success, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh start.
-
-**State `data`:** `{ mode, scopes_selected, project_type, docs_inventory[{file, completeness}], gaps[], docs_generated[], verifications_done[] }`.
 
 1. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Auto (recommended) — detect + analyze + generate all / Preview — analyze only, no writes / Scoped — pick scopes / ADR — scan + maintain numbered ADR files / (Cancel). A disambiguating flag (e.g. `--adr`) skips the menu.
 2. **Scope selection.** Not Auto/Preview → ask: which areas (Core: readme+changelog / Technical: api+dev / User-facing: user+ops); how to handle existing (Fill gaps / Refine / Verify claims / Update all).
@@ -228,14 +223,14 @@ Total findings = 0 → include "All {n} scopes evaluated: 0 findings" confirmati
 
 Zero-finding run: `Documentation in sync with source — no drift detected`.
 
-**Gate:** Summary + Value Delivered emitted; every finding has a disposition; accounting verified. If fails → missing disposition → assign `skipped (accounting gap)`; re-emit summary as `WARN`; do not delete `ds/audit/docs.json` so partial run is preserved for `--resume`.
+**Gate:** Summary + Value Delivered emitted; every finding has a disposition; accounting verified. If fails → missing disposition → assign `skipped (accounting gap)`; re-emit summary as `WARN`; generated docs already on disk stand as the partial run's progress record — a re-run picks up from what exists.
 
 ## Quality Gates
 
 - Every generated doc verified against source — no claims without file:line evidence
 - Only modify documentation files — never touch source code
 - Generated docs match project's existing documentation style
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/docs.json` updated per doc generated, gitignored, deleted on successful Summary. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — generated docs on disk are the durable progress record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
 
