@@ -2,7 +2,7 @@
 
 > **Scope:** Universally accepted, tool-agnostic, language-agnostic principles with concrete measurable impact and near-zero risk/downside.
 > **Date compiled:** 2026-04-25
-> **Total principles:** 112
+> **Total principles:** 110
 
 ---
 
@@ -1305,6 +1305,6 @@ The following practices were considered and excluded because they are methodolog
 
 ---
 
-*Total principles: 112 across 10 categories.*
+*Total principles: 110 across 10 categories.*
 *All principles pass the "concrete benefit + near-zero risk" bar.*
 *Reviewed against 24 distinct authoritative sources.*

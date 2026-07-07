@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed — repo-wide consistency overhaul (2026-07)
+
+- **SKILL-SPEC contradictions resolved** — `findings.md` scoped-overwrite semantics clarified; single authoritative producer per scope + verified-consumer model; frontmatter `name`+`description` legalized; ownership/utilization tables completed to all 27 skills; FRC disposition tokens normalized.
+- **State protocol narrowed** — only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist to `ds/audit/<skill>.json`; resumable-state machinery removed from the ~16 other skills that had carried it.
+- **Delegation matrix symmetry restored** — 13 line fixes across cross-skill delegation references.
+- **ds-quality rebuilt as a 3-arm hybrid** — Claude Code Stop-hook (stop-time) / Aider auto-lint+auto-test (edit-time) / universal git pre-commit (commit-time); golangci-lint coverage gap closed.
+- **ds-blueprint reference taxonomy regenerated** — 23-scope taxonomy.
+- **W18/W19 contamination removed** from ds-research, ds-brief, and shared agent definitions.
+- **ds-brief HTML template ASCII-neutralized.**
+- **ds-research artifactPath handoff gate added.**
+- **Verified rule counts corrected everywhere** — ds-compliance 98, ds-mobile 171, ds-frontend 48, engineering principles 110.
+- **Domain gaps closed** — multi-tenant DB rule, 12-Factor 1/4/8, SLSA provenance, GitHub Rulesets, ds-commit filename-based secret exclusion, ds-pr changed-files scope, ds-tune statistical significance, ds-test mode menu, `ds-ship` → `ds-pipeline` routing.
+- Root docs (README, CLAUDE, `docs/guide.html`, this file, `references/software-best-practices.md`) synced to the verified numbers above.
+
+### Added — ds-issue: implementation-contract intake (2026-07)
+
+- **ds-issue intake** — issue body now carries an Evidence/repro block (required for fix-type issues), EARS-phrased Done criteria on behavioral tasks, a per-step verify contract (`command → expected`), and anchored impact-surface hints.
+- **ds-issue `--do`** — plan-coverage check ensures every Done item is owned by ≥1 plan unit; close evidence maps 1:1 to Done items, an uncovered item blocks the close.
+- Design-open features now route to `ds-pipeline` instead of becoming a mega-issue.
+- Stale phase numbers fixed in references (self-check Phase 5→4, status-audit Phase 6→5).
+
 ### Added — ds-pipeline: spec pipeline conductor (2026-07)
 
 - **ds-pipeline** (new skill, prefix `PIPE`) — conducts the external [Spec Kit](https://github.com/github/spec-kit) chain (`specify → clarify → plan → tasks → analyze`) with blocking gates: zero open clarifications; deterministic tasks-contract (`- [ ] T{n}: … — verify: \`{command}\` → {expected}` on every task, `Gate:` per phase, EARS sentences on behavioral tasks); zero CRITICAL cross-artifact findings — then a scoped `spec({feature})` commit plus a one-line executor handoff. Planning-only (writes exclusively under `specs/` + `.specify/`), state-exempt (artifacts + git are the durable record), artifact-driven resume, `--fresh` regeneration with confirmation. Catalog 26 → 27.

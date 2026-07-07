@@ -29,7 +29,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 |--------|--------|-----------------------|
 | **Discover** | `ds-research` · `ds-benchmark` · `ds-blueprint` | multi-source research · external gap-analysis vs comparables · internal 9-dim health score |
 | **Build** | `ds-init` · `ds-backend` · `ds-frontend` · `ds-mobile` | scaffold from zero · API+DB+auth design · design-system/a11y · mobile release audit |
-| **Improve** | `ds-review` · `ds-simplify` · `ds-fix` · `ds-quality` · `ds-test` · `ds-deps` · `ds-tune` · `ds-solve` | audit (flag) · safe deletion · format/lint/type passes (one-shot) · quality-gate Stop-hook (enforce continuously) · real tests · dep upgrades · metric optimization loop · hard-problem backtracking |
+| **Improve** | `ds-review` · `ds-simplify` · `ds-fix` · `ds-quality` · `ds-test` · `ds-deps` · `ds-tune` · `ds-solve` | audit (flag) · safe deletion · format/lint/type passes (one-shot) · 3-arm quality gate — stop-time/edit-time/commit-time (enforce continuously) · real tests · dep upgrades · metric optimization loop · hard-problem backtracking |
 | **Document** | `ds-docs` · `ds-brief` | doc drift+ADRs · printable sourced HTML brief |
 | **Comply** | `ds-compliance` | regulatory/privacy/a11y/security audit |
 | **Track** | `ds-issue` | GitHub issues: file · sweep · status · do (4 modes) |
@@ -70,7 +70,7 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 - **Up-Front Mode Menu:** multi-mode skills present the choice covering every scenario (with `(recommended)` + `(Cancel)`) when no disambiguating flag is passed.
 - **Category Bulk Affordance:** menus offer per-group bulk (`all CRITICAL` / `all HIGH` / `all <type>`) **alongside** the total "all" — never replacing it.
 - **Selection Transparency:** every approval states the exact question and shows every item compactly (severity + title + file:line); "all" = exactly the displayed set, never a bare count.
-- **Least-footprint state:** prefer no state; only long autonomous non-git/GitHub-backed loops persist to `ds/audit/`. Git/GitHub-backed skills (ds-commit, ds-pr, ds-issue) are state-exempt.
+- **Least-footprint state:** prefer no state; only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist to `ds/audit/<skill>.json`. Every other skill — including git/GitHub-backed ones (ds-commit, ds-pr, ds-issue) — is state-exempt.
 
 ## Philosophy
 
