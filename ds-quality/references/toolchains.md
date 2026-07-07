@@ -64,14 +64,15 @@ Add `flutter_lints` (or `lints`) to `dev_dependencies` if not present. No tests 
 ## Go
 **Detect:** `go.mod`. Toolchain is built-in — no config to bootstrap.
 
-| Check | Command |
-|-------|---------|
-| format | `test -z "$(gofmt -l .)"` (fails if any file is unformatted; prints the offending files) |
-| vet/lint | `go vet ./...` |
-| type/build | `go build ./...` |
-| test | `go test ./...` |
+| Check | Command | Present when |
+|-------|---------|--------------|
+| format | `test -z "$(gofmt -l .)"` (fails if any file is unformatted; prints the offending files) | always |
+| lint | `golangci-lint run` | `golangci-lint` binary present AND a `.golangci.{yml,yaml,toml,json}` config exists |
+| vet | `go vet ./...` | always |
+| type/build | `go build ./...` | always |
+| test | `go test ./...` | always |
 
-Optional, only if present: `staticcheck ./...`. No tests → create a real `_test.go` with table-driven cases incl. boundaries.
+`golangci-lint` only wires in when both the binary and its config exist — never invented if the repo hasn't opted in. Optional, only if present and no golangci-lint config: `staticcheck ./...`. No tests → create a real `_test.go` with table-driven cases incl. boundaries.
 
 ---
 

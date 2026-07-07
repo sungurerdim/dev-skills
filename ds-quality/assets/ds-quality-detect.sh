@@ -61,6 +61,9 @@ fi
 # Go (toolchain built-in)
 if [ -f go.mod ]; then
   add 'test -z "$(gofmt -l .)"'
+  if have golangci-lint && { [ -f .golangci.yml ] || [ -f .golangci.yaml ] || [ -f .golangci.toml ] || [ -f .golangci.json ]; }; then
+    add "golangci-lint run"
+  fi
   add "go vet ./..."
   add "go build ./..."
   add "go test ./..."
