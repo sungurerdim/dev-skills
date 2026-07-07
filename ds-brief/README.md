@@ -14,11 +14,10 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 ```
 /ds-brief                         # asks depth + scope
 /ds-brief {topic}                 # research a topic → sourced HTML brief
-/ds-brief --deep {topic}          # parallel workers, all source tiers, resumable
+/ds-brief --deep {topic}          # parallel workers, all source tiers
 /ds-brief --quick {topic}         # fast, T1-T2 only
 /ds-brief --summarize <urls…>     # summarize given URLs/text (no discovery)
 /ds-brief --no-interactive {topic} # static, print-pure output
-/ds-brief --resume                # resume a deep run
 ```
 
 ## Output

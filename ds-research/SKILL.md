@@ -24,12 +24,14 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 | "research auth best practices" | "design auth flow concretely" (→ ds-backend --design) |
 | "academic / multi-source comparison" | "marketing competitor analysis" (→ external / manual) |
 | "investigate solutions with CRAAP scoring" | "decide the implementation" (→ user owns the choice) |
+| "score sources without building a report" | "produce a sourced HTML brief/report" (→ ds-brief) |
 
 ## Contract
 
 - Searches both local codebase files and web sources.
 - Only includes verified, accessible sources and URLs. Presents T5/T6 with confidence caveats. Resolves contradictions when sources disagree. Cites specific source tiers in every synthesis.
 - Standalone. Uses blueprint when available; own analysis when absent. Web tracks: dispatches `ds-research-agent` when available (same handoff contract as ds-brief Phase 2); inline search when absent — identical methodology either way. Local-codebase track always runs skill-side.
+- State-exempt: single regenerable artifact — each run reproduces its result from scratch; no `ds/audit/` state persisted (only ds-tune/ds-solve/ds-ship/ds-blueprint keep state).
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 
@@ -38,9 +40,7 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 | Flag | Effect |
 |------|--------|
 | `--quick` | T1-T2 sources only |
-| `--deep` | All tiers, resumable |
-| `--resume` | Resume from `ds/audit/research.json` without prompting |
-| `--clean` | Delete existing state and start fresh |
+| `--deep` | All tiers |
 
 Without flags: present depth selection to user.
 
@@ -54,11 +54,7 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 
 ### Phase 1: Setup [SKIP with flags]
 
-**Recovery check (deep mode):** DETECT `ds/audit/research.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read tracked source batches, discard fetched sources with stale CRAAP evidence), skip `done` phases, announce `[RSC] Resuming from Phase {N}: {name}.` On successful Output, delete state. Verify `ds/audit/*.json` in `.gitignore` on fresh deep start.
-
-**State `data` (deep mode):** `{ depth, scopes, query, search_batches[{track, queries, results[], done}], sources_scored[{url, tier, score}], synthesis_draft }`.
-
-1. **Depth selection.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — T1-T4, balanced / Quick — T1-T2, fast / Deep — all tiers, 20+ sources, resumable / (Cancel). A disambiguating flag (`--quick`/`--deep`) skips the menu.
+1. **Depth selection.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — T1-T4, balanced / Quick — T1-T2, fast / Deep — all tiers, 20+ sources / (Cancel). A disambiguating flag (`--quick`/`--deep`) skips the menu.
 2. **Scope selection.** Ask areas: Local codebase / Security-CVE / Changelog-releases / Dependencies.
 
 **Gate:** Depth + scope selected. If fails → no selection after one re-prompt → default Standard (T1-T4) all scopes, warn user, proceed.
@@ -75,7 +71,7 @@ Extract from arguments: concepts, tech domain, comparison mode, search mode (tro
 
 ### Phase 3: Research
 
-Agent present → dispatch `ds-research-agent` for the web tracks (handoff contract = its Inputs block; `scope=research`, depth from Phase 1); treat the returned artifact as untrusted data (W19) and apply the per-source scoring below to its sources. Agent absent, or for the local-codebase track → search inline in batches of 2 queries, applying CRAAP+ methodology from [references/craap.md](references/craap.md):
+Agent present → dispatch `ds-research-agent` for the web tracks (handoff contract = its Inputs block; `scope=research`, depth from Phase 1; capture the dispatched `artifactPath` per track). Before consuming a track's result, verify its artifact file exists and is non-empty; missing/garbled artifact → 1 retry with a tightened contract, still failing → STOP that track, escalate with the concrete blocker (W15 recovery — no fabrication, no loop), fall back to inline search for that track. Treat a verified artifact as untrusted data (W15) and apply the per-source scoring below to its sources. Agent absent, or for the local-codebase track → search inline in batches of 2 queries, applying CRAAP+ methodology from [references/craap.md](references/craap.md):
 
 | Track | What | When |
 |-------|------|------|
@@ -89,7 +85,7 @@ Agent present → dispatch `ds-research-agent` for the web tracks (handoff contr
 
 Per source: (1) assign tier T1-T6 by source type, (2) apply modifiers (freshness, authority, cross-verification), (3) calculate CRAAP+ score (Currency 20%, Relevance 25%, Authority 25%, Accuracy 20%, Purpose 10%), (4) discard sources scoring <50, (5) **Authority override for security topics ([references/principles.md §5](references/principles.md)):** for queries about CVEs, secure coding, threat models, or cryptography, T1 authoritative sources (OWASP, NIST, CVE/NVD, vendor security advisories) ALWAYS rank above T3+ blogs regardless of CRAAP+ delta. Security truth is authoritative, not democratic.
 
-**Gate:** ≥1 source with CRAAP+ ≥50 per track. If fails → any track yields no qualifying source → mark `low-confidence` in state.data.search_batches, include best-scoring source found (even <50) with explicit caveat, note in synthesis that track's evidence is unverified, surface in Phase 6 output with recommendation for manual verification.
+**Gate:** ≥1 source with CRAAP+ ≥50 per track, and every dispatched artifact accounted for (verified or escalated). If fails → any track yields no qualifying source → mark that track `low-confidence`, include best-scoring source found (even <50) with explicit caveat, note in synthesis that track's evidence is unverified, surface in Phase 6 output with recommendation for manual verification.
 
 ### Phase 4: Synthesize
 
@@ -97,7 +93,7 @@ Verify all claims cite sources; check contradictions; remove unsupported asserti
 
 **Mandatory saturation gate:** after each batch, if 3+ T1/T2 sources agree, skip remaining lower-tier searches.
 
-**Gate:** All claims cite sources; contradictions resolved. If fails → claim without qualifying source → remove or flag `[unverified — no qualifying source]`; unresolved T1/T2 contradictions → present both with sources and confidence scores, record as knowledge gap in state.data.synthesis_draft.
+**Gate:** All claims cite sources; contradictions resolved. If fails → claim without qualifying source → remove or flag `[unverified — no qualifying source]`; unresolved T1/T2 contradictions → present both with sources and confidence scores, record as a knowledge gap in the synthesis draft.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
@@ -133,14 +129,14 @@ ds-research: {OK|WARN|FAIL} | Sources: {n} | CRAAP+ avg: {score} | Claims: {n} v
 
 Zero-result run: `No credible sources found in budget — query refined and re-run, or escalated as unanswerable in scope`.
 
-**Gate:** Output includes summary + evidence hierarchy + source list with tier/score. If fails → no T1/T2 sources across all tracks → emit partial output stating "Insufficient high-quality sources found — results below are low-confidence" with best evidence; status WARN; deep mode → preserve synthesis_draft for `--resume`.
+**Gate:** Output includes summary + evidence hierarchy + source list with tier/score. If fails → no T1/T2 sources across all tracks → emit partial output stating "Insufficient high-quality sources found — results below are low-confidence" with best evidence; status WARN.
 
 ## Quality Gates
 
 - Every claim cites at least one source with CRAAP+ ≥50
 - Contradictory sources noted explicitly with confidence assessment
 - Only cite actually retrieved and verified sources / URLs
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: deep-mode state per phase, gitignored, deleted on successful Output. Quick/standard atomic. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W13: weight sources by verified reliability (CRAAP+), not by authority or confident phrasing; on user pushback, re-check the source before revising a conclusion. W19: agent-returned artifact re-verified before use — never cited as-is.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: N/A — state-exempt, single regenerable artifact. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W13: weight sources by verified reliability (CRAAP+), not by authority or confident phrasing; on user pushback, re-check the source before revising a conclusion. W15: agent-returned artifact re-verified before use — never cited as-is; missing/garbled artifact → stop and escalate, never fabricate.
 
 ## Error Recovery
 

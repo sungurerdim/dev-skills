@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr" data-theme="slate">
+<html lang="en" data-theme="slate">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -172,43 +172,43 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 </style>
 </head>
 <body>
-<a class="skip" href="#content">İçeriğe atla</a>
+<a class="skip" href="#content">Skip to content</a>
 
 <header class="top"><div class="wrap">
   <h1 data-cfg="title">{REPORT_TITLE}</h1>
   <p data-cfg="subtitle">{ONE_LINE_DESCRIPTION}</p>
   <div class="meta">
-    <span class="chip" id="confChip">Güven: <span data-cfg="confidence">{HIGH|MEDIUM|LOW}</span></span>
-    <span class="chip">2×-teyit: <span data-cfg="coveragePct">{NN}</span>%</span>
-    <span class="chip">Kaynak: <span data-cfg="sourceCount">{N}</span></span>
-    <span class="chip">Erişim: <span data-cfg="accessDate">{YYYY-MM-DD}</span></span>
+    <span class="chip" id="confChip">Confidence: <span data-cfg="confidence">{HIGH|MEDIUM|LOW}</span></span>
+    <span class="chip">2x-confirmed: <span data-cfg="coveragePct">{NN}</span>%</span>
+    <span class="chip">Sources: <span data-cfg="sourceCount">{N}</span></span>
+    <span class="chip">Accessed: <span data-cfg="accessDate">{YYYY-MM-DD}</span></span>
   </div>
 </div></header>
 
 <div class="disclaimer"><div class="wrap">
-  <span aria-hidden="true">⚠️</span>
-  <span data-cfg="disclaimer"><b>Bilgilendirme amaçlıdır; bağlayıcı/profesyonel danışmanlık değildir.</b> Veriler değişebilir; kararlarınızı resmî kaynaktan teyit edin.</span>
+  <span aria-hidden="true">[!]</span>
+  <span data-cfg="disclaimer"><b>For informational purposes only; not binding or professional advice.</b> Data may change; confirm decisions with the official source.</span>
 </div></div>
 
 <nav class="bar"><div class="wrap" id="navLinks">
-  <a class="navbtn" href="#ozet">Özet</a>
-  <a class="navbtn" href="#bulgular">Bulgular</a>
+  <a class="navbtn" href="#ozet">Summary</a>
+  <a class="navbtn" href="#bulgular">Findings</a>
   <a class="navbtn" href="#unknowns">Unknowns</a>
   <a class="navbtn" href="#sources">Sources</a>
   <span class="spacer"></span>
   <!-- ds-opt:theme -->
-  <label class="tool" title="Tema">
+  <label class="tool" title="Theme">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9z"/></svg>
-    <select id="theme" aria-label="Tema seç">
+    <select id="theme" aria-label="Select theme">
       <option value="slate">Slate</option><option value="teal">Teal</option><option value="emerald">Emerald</option>
       <option value="indigo">Indigo</option><option value="rose">Rose</option><option value="amber">Amber</option>
     </select>
   </label>
   <!-- /ds-opt:theme -->
   <!-- ds-opt:search -->
-  <label class="tool" title="Ara">
+  <label class="tool" title="Search">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-    <input id="q" type="search" placeholder="Ara…" autocomplete="off" aria-label="Raporda ara">
+    <input id="q" type="search" placeholder="Search..." autocomplete="off" aria-label="Search report">
   </label>
   <!-- /ds-opt:search -->
   <button class="printbtn" id="printBtn" type="button">
@@ -220,7 +220,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 <main class="wrap" id="content">
 
   <section class="sec" id="ozet">
-    <h2>Özet</h2>
+    <h2>Summary</h2>
     <p class="lead" data-cfg="summary">{EXECUTIVE_SUMMARY}</p>
     <div class="grid auto">
       <div class="card ok"><h3>{KEY_POINT_GROUP}</h3>
@@ -255,21 +255,21 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       </div>
 
       <!-- ds-opt:lawtext — verbatim official text (extracted byte-for-byte, never paraphrased) -->
-      <button class="lawbtn" type="button" data-law="law1">Kaynak metnini göster</button>
-      <div class="lawtext" id="law1">{VERBATIM_EXTRACTED_TEXT — byte-for-byte from the source, never paraphrased}
-        <span class="src">Kaynak: <a href="{URL}" target="_blank" rel="noopener">{official source title}</a> · Erişim: {YYYY-MM-DD}</span>
+      <button class="lawbtn" type="button" data-law="law1">Show source text</button>
+      <div class="lawtext" id="law1">{VERBATIM_EXTRACTED_TEXT - byte-for-byte from the source, never paraphrased}
+        <span class="src">Source: <a href="{URL}" target="_blank" rel="noopener">{official source title}</a> | Accessed: {YYYY-MM-DD}</span>
       </div>
       <!-- /ds-opt:lawtext -->
 
-      <div class="note warn"><b>Çelişki:</b> {source A: X} vs {source B: Y}. Öneri: {winner} (trustScore {n}).
-        <span class="src"><a href="{URL_A}" target="_blank" rel="noopener">A</a> · <a href="{URL_B}" target="_blank" rel="noopener">B</a></span>
+      <div class="note warn"><b>Contradiction:</b> {source A: X} vs {source B: Y}. Suggested: {winner} (trustScore {n}).
+        <span class="src"><a href="{URL_A}" target="_blank" rel="noopener">A</a> | <a href="{URL_B}" target="_blank" rel="noopener">B</a></span>
       </div>
     </div>
 
     <!-- negative / out-of-scope findings: card.bad + ul.cross; unsourced context carries the [unverified] badge -->
-    <div class="card bad"><h3>{KAPSAM DIŞI / RİSKLER}</h3>
+    <div class="card bad"><h3>{OUT OF SCOPE / RISKS}</h3>
       <ul class="cross"><li>{out-of-scope or negative item} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li></ul>
-      <p class="src">{context-only statement with no qualifying source} <span class="badge dogrulanmadi">doğrulanmadı</span></p>
+      <p class="src">{context-only statement with no qualifying source} <span class="badge dogrulanmadi">unverified</span></p>
     </div>
 
     <!-- ds-opt:strip — two-column strip packs related blocks side by side (shortens the page) -->
@@ -286,7 +286,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 
   <!-- ds-opt:calc — optional calculator; include only when the topic genuinely computes something.
        Build adds the topic-specific compute JS that writes #calcOut; otherwise prune this whole block. -->
-  <section class="sec" id="hesap"><h2>Hesaplayıcı</h2>
+  <section class="sec" id="hesap"><h2>Calculator</h2>
     <div class="calc">
       <div class="frow">
         <div class="field"><label for="in1">{input label}</label><input type="number" id="in1"></div>
@@ -298,26 +298,26 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 
   <section class="sec" id="unknowns">
     <h2>Unknowns / Uncertainties</h2>
-    <p class="lead">Aranan ama net cevabı bulunamayan noktalar — neyin arandığı ve neden açık kaldığı.</p>
+    <p class="lead">Points that were searched but not conclusively answered - what was searched and why it remains open.</p>
     <ul class="unknown" id="unknownList">
       <li><span class="q">{open question}</span><br>
-        <span class="why">Neden açık: {why}. Denenen kaynaklar: {triedSources}. Denenen sorgular: {triedQueries}.</span></li>
+        <span class="why">Why open: {why}. Tried sources: {triedSources}. Tried queries: {triedQueries}.</span></li>
     </ul>
   </section>
 
   <section class="sec" id="sources">
     <h2>Sources</h2>
     <div class="tblwrap"><table id="srcTable">
-      <thead><tr><th>#</th><th>Kaynak</th><th>Tür</th><th>Tier</th><th>Erişim</th></tr></thead>
+      <thead><tr><th>#</th><th>Source</th><th>Type</th><th>Tier</th><th>Accessed</th></tr></thead>
       <tbody id="srcBody">
-        <tr><td>1</td><td><a href="{URL}" target="_blank" rel="noopener">{title}</a></td><td>resmî</td><td>T1</td><td>{YYYY-MM-DD}</td></tr>
+        <tr><td>1</td><td><a href="{URL}" target="_blank" rel="noopener">{title}</a></td><td>official</td><td>T1</td><td>{YYYY-MM-DD}</td></tr>
       </tbody>
     </table></div>
   </section>
 
 </main>
 
-<footer><div class="wrap" data-cfg="footer">Kaynaklar erişim tarihine göredir · Tek dosya, tamamen çevrimdışı · Üretim: <span data-cfg="generatedAt">{ISO}</span></div></footer>
+<footer><div class="wrap" data-cfg="footer">Sources as of access date | Single file, fully offline | Generated: <span data-cfg="generatedAt">{ISO}</span></div></footer>
 
 <script>
 "use strict";
@@ -328,8 +328,8 @@ const CONFIG = {
   confidence:"{HIGH|MEDIUM|LOW}", coveragePct:"{NN}", sourceCount:"{N}",
   accessDate:"{YYYY-MM-DD}", generatedAt:"{ISO}",
   palette:"slate",   // default theme; one of THEMES keys
-  disclaimer:"Bilgilendirme amaçlıdır; bağlayıcı/profesyonel danışmanlık değildir. Veriler değişebilir; kararlarınızı resmî kaynaktan teyit edin.",
-  footer:"Kaynaklar erişim tarihine göredir · Tek dosya, tamamen çevrimdışı",
+  disclaimer:"For informational purposes only; not binding or professional advice. Data may change; confirm decisions with the official source.",
+  footer:"Sources as of access date | Single file, fully offline",
   someValue:"{N}"    // topic scalars referenced by [data-cfg]
 };
 

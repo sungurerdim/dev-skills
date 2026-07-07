@@ -43,7 +43,7 @@ discover (start-wide) → index/fetch → think-step → query/extract → cross
 ## Model routing & re-grounding
 
 - Worker = `sonnet` (synthesis quality beats doubling token budget). Fast single-look scope = `haiku`.
-- Re-ground every ~20 tool calls on long runs: refresh plan + artifact (W18). Persist the plan to state at the start of each round (W4 — if 200k is exceeded, context truncates; plan must survive).
+- Re-ground every ~20 tool calls on long runs: refresh plan + artifact (W14). Persist the plan to state at the start of each round (W4 — if 200k is exceeded, context truncates; plan must survive).
 
 ## Manual end-to-end test is mandatory
 
