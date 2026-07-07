@@ -467,7 +467,7 @@ Seventeen weaknesses observed in AI coding assistants. **W1–W11 are universal*
 
 **Definition:** A real error detected during a skill's run (compile error, lint error, type error, test failure, runtime bug, security issue) is bypassed with non-blocker rationale like "pre-existing", "not in scope", "not my change", "will do later" — leaving the codebase in a broken state and shifting cost to the next maintainer.
 
-**Detection signals:** `needs_approval` or `skipped` disposition with reason matching `already existed`, `not my change`, `out of scope`, `too hard`, `will do later`, `pre-existing`, `unrelated to task`. Skill completes with status OK while a CRITICAL/HIGH error remains unfixed.
+**Detection signals:** `needs-approval` or `skipped` disposition with reason matching `already existed`, `not my change`, `out of scope`, `too hard`, `will do later`, `pre-existing`, `unrelated to task`. Skill completes with status OK while a CRITICAL/HIGH error remains unfixed.
 
 **Prevention rules:**
 - Every detected real error (compile/lint/type/test/runtime/security) gets exactly one disposition: `fixed`, `failed`, or `needs-approval` with a **concrete blocker**.
@@ -534,7 +534,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W15: Subagent / Handoff Failure
 
-**Applies to:** ds-ship, ds-solve, ds-issue (skills that delegate to phases or subagents).
+**Applies to:** ds-ship, ds-solve, ds-issue, ds-research, ds-brief (skills that delegate to phases or subagents).
 
 **Definition:** Treating data returned by a delegated phase or subagent as ground truth — specifications, scopes, or findings get distorted or lost across the handoff and errors compound silently.
 
@@ -761,16 +761,15 @@ In practice only long autonomous skills qualify (e.g. `ds-tune` experiment loops
 - If absent → append `ds/audit/` to root `.gitignore` and report the addition.
 - Legacy patterns (`.ds-findings.md`, `.ds-*-state.json`) present → remove them and note the migration.
 
-**Exempt skills (atomic / git-driven):**
+**Exempt skills — everything outside the qualifying four.** Only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist state; the other 23 skills are exempt and state the one-line exemption reason in their Contract section. Canonical exemption classes:
 
-| Skill | Reason |
-|-------|--------|
-| ds-init | Idempotent scaffolding; re-running in the same project naturally resumes (existing files skipped). |
-| ds-fix | Tool-driven, fast, independent passes. State overhead does not pay off for a ~30s skill. |
-| ds-commit | Atomic, git-diff-driven, seconds-long. Git staging area is the natural state. |
-| ds-pr | Git history is the natural state; `git diff {base}...HEAD` always provides full context. |
-
-Exempt skills state the exemption (one sentence) in their Contract section.
+| Exemption class | Example skills | Reason |
+|-----------------|----------------|--------|
+| Idempotent / artifact-durable | ds-init, ds-test | Generated files on disk are the progress record; re-running naturally resumes. |
+| Atomic, seconds-long | ds-fix | Tool-driven independent passes; state overhead does not pay off. |
+| Git-driven | ds-commit, ds-pr, ds-deps | Staging area / history / per-group commits are the natural state. |
+| Externally durable | ds-issue | GitHub issue + comments + git are the durable record. |
+| Single regenerable artifact | ds-brief, ds-benchmark, ds-pipeline | Re-run regenerates the artifact; nothing to resume. |
 
 See [Appendix: Skill Prefix Registry](#appendix-skill-prefix-registry) for the canonical prefix per skill.
 
@@ -813,7 +812,7 @@ Every finding produced by an audit phase MUST appear in the summary with exactly
 
 **Rules:**
 
-1. Every finding gets exactly one disposition — `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total`
+1. Every finding gets exactly one disposition — `fixed + failed + skipped + needs-input + needs-approval + not-applicable = total`
 2. `needs-input` findings MUST trigger a question to the user before the summary phase. Present the finding context and ask for the required input. If the user provides input → attempt fix → `fixed` or `failed`. If the user declines → `skipped`.
 3. `needs-approval` findings MUST trigger a review step before the summary phase. Present all needs-approval items with context (why they are risky: cross-module, destructive, architectural). Ask: Apply All / Review Each / Skip All. `--auto` without `--force-approve` → list and skip. `--force-approve` → apply all without asking. If the user approves → attempt fix → `fixed` or `failed`. If the user skips → `skipped (user declined)`.
 4. `skipped` findings MUST include a parenthetical reason: `Skipped: 2 (1 platform limit, 1 user declined)`
@@ -891,7 +890,7 @@ Status codes:
 - **WARN** — some failures but no CRITICAL findings unresolved
 - **FAIL** — CRITICAL finding unresolved, or execution error
 
-**Accounting gate:** The summary MUST satisfy `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total`. If the equation does not balance, the skill has a bug.
+**Accounting gate:** The summary MUST satisfy `fixed + failed + skipped + needs-input + needs-approval + not-applicable = total`. If the equation does not balance, the skill has a bug.
 
 ### Value Delivered Statement
 
@@ -957,7 +956,7 @@ The boundaries below define **primary ownership** — which skill provides the d
 
 | Skill | Primary ownership | Standalone capability |
 |-------|-------------------|---------------------|
-| ds-compliance | Regulatory/compliance audit: GDPR, CCPA, KVKK, security standards, privacy, a11y, i18n | Full codebase scan for 160+ compliance rules |
+| ds-compliance | Regulatory/compliance audit: GDPR, CCPA, KVKK, security standards, privacy, a11y, i18n | Full codebase scan for 98 compliance rules |
 | ds-mobile | Mobile app quality: store compliance, UX, visual, permissions, release readiness | Full mobile audit across 13 domains |
 | ds-devops | CI/CD pipelines, code signing, dependency management, deployment | Full pipeline + dependency audit |
 | ds-repo | Repo settings, branch protection, hygiene, metadata, team, structure | Full repo health audit |
@@ -976,10 +975,20 @@ The boundaries below define **primary ownership** — which skill provides the d
 | ds-frontend | Frontend design quality: design system, tokens, components, states, a11y, responsive, theming | Full UI audit + design system generation for any framework |
 | ds-tune | Autonomous optimization: measurable metric loop, 100+ experiments, keep only improvements | Full optimization workflow for any measurable metric |
 | ds-solve | Adaptive problem-solving: multi-plan backtracking, web research, constraint preservation | Full iterative solve with 3-layer budget ({P} plans x {R} rounds x {A} alternatives) |
+| ds-simplify | Complexity reduction: dead code, single-caller helpers, premature abstractions, unused deps | Full simplification audit + approved deletion, one reversible commit per group |
+| ds-deps | Dependency upgrades: safe-patch/safe-minor/review-major classification, migration notes, rollback | Full upgrade workflow with per-group commits |
+| ds-quality | Continuous local quality enforcement: format/lint/type/test verify-loop wired to the host's hook mechanism | Hook install + verify-loop for any stack |
+| ds-benchmark | External gap analysis: ideal synthesis from 5-10 comparables, dimension-by-dimension gap table | Standalone research + gap analysis |
+| ds-brief | Sourced single-file HTML brief: research, double-verification, rendering | Standalone brief workflow |
+| ds-ship | Orchestration: stage classification, skill sequencing, consolidated report | Delegates all analysis (§10.3); consumes findings as SSOT |
+| ds-issue | GitHub issue lifecycle: verified intake, dedup sweep, code-verified status, issue-bound execution | Full issue workflow via GitHub CLI |
+| ds-pipeline | Spec pipeline conduction: Spec Kit chain with blocking gates, executor handoff | Planning-only conductor; never touches source |
 
 ### Overlap Resolution
 
-Where scopes overlap between skills, each skill handles the full scope independently when standalone. When multiple skills run together, `ds/audit/findings.md` prevents duplicate analysis.
+Where concerns overlap between skills, each skill handles the full concern independently when standalone. When multiple skills run together, `ds/audit/findings.md` prevents duplicate analysis.
+
+**Ownership vs. standalone analysis:** standalone independence is not ownership. Running alone, a skill may analyze whatever its job needs — but `Owns:` in its Delegation line lists only the scopes where it is the authoritative findings producer (§10.2 rule 2). Every other involvement is consumer-side (verify + fix) and belongs in `Receives:`.
 
 | Overlapping concern | Skills involved | Resolution |
 |--------------------|-----------------|------------|
@@ -1051,13 +1060,13 @@ Multiple skills produce findings. They all write to the same `ds/audit/findings.
 | Scenario | Behavior |
 |----------|----------|
 | File doesn't exist | Create new file with your scopes in the meta header |
-| File exists, same `git_hash` | **Append**: add your findings rows, add your scopes to the `scopes` list in meta header. Dedup: if a finding at the same file:line already exists, keep the one with higher severity. |
+| File exists, same `git_hash` | **Scoped overwrite**: rewrite your own scopes' rows from scratch; preserve other scopes' rows; add your scopes to the `scopes` list in meta header. Dedup: finding at the same file:line already present from another scope → keep the higher severity. Rows are never appended cumulatively. |
 | File exists, different `git_hash` | File is stale. If you are a full-codebase analyzer (ds-blueprint): overwrite entirely. If you are a partial analyzer (ds-compliance, ds-mobile, ds-test): overwrite only YOUR scopes — preserve findings from other scopes that are still valid. |
 | After consuming/fixing | Remove fixed entries from the file. Update scopes list if a scope is now fully resolved. Delete file when zero entries remain. |
 
 **Producer priority:** When ds-blueprint and another skill both write the same scope, ds-blueprint's findings take precedence (it scans the entire codebase). The other skill's findings are merged only for scopes ds-blueprint didn't cover.
 
-**Meta header after multi-producer append:**
+**Meta header after multi-producer write:**
 ```
 <!-- findings-meta
 git_hash: {HEAD}
@@ -1201,6 +1210,14 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 | ds-launch | **Config.audience** → know store requirements. **Config.deploy** → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
 | ds-frontend | **Config.priorities** → order scope execution. **Type + Stack** → select framework-specific patterns. **Current Scores** → focus on lowest-scoring UX dimensions. | tokens, components, states, a11y, responsive, theming |
 | ds-solve | **Type + Stack** → research query context. **Config.constraints** → automatic red lines. **Current Scores** → weak dimensions near objective. | — (context consumer, not scope producer) |
+| ds-simplify | **Config.constraints** → respect keep-constraints when proposing deletions. **Project Map.Toolchain** → verify deletions against build. | hygiene, simplify |
+| ds-deps | **Project Map.Toolchain** → package manager + lockfile directly. **Stack** → registry selection. | stack, stack-fitness, deps-upgrade |
+| ds-quality | **Project Map.Toolchain** → wire verify-loop commands without re-detection. | — (runs external tools) |
+| ds-benchmark | **Type + Stack + Ideal Metrics** → comparable selection + gap baseline. | ideal-gap (producer) |
+| ds-ship | Orchestrator — consumes the full profile + every findings scope (§10.3). | all scopes (consumer) |
+| ds-issue | **Type + Stack** → severity calibration on intake verification. Findings scopes → cross-check issue claims against code. | any scope (verification) |
+| ds-pipeline | **Type + Stack + Config.constraints** → planning context for the Spec Kit chain. | — (planning-only) |
+| ds-init, ds-commit, ds-pr, ds-research, ds-tune, ds-brief | — (no profile fields consumed beyond optional Type/Stack context) | — |
 | ds-repo | — (producer only) | — |
 | ds-blueprint | — (producer only, reads own profile for incremental updates) | — (producer only) |
 
@@ -1387,38 +1404,25 @@ The following must NOT appear in any SKILL.md:
 | Prohibited | Reason |
 |------------|--------|
 | Tool-specific API names (Glob, Grep, TaskCreate, AskUserQuestion) | Breaks portability |
-| YAML frontmatter (description, allowed-tools) | Tool-specific metadata — use Triggers section instead |
+| YAML frontmatter beyond `name` + `description` | Minimal host-discovery frontmatter (`name` + `description` only) is permitted — hosts without frontmatter support ignore it. Behavioral rules, tool lists, `allowed-tools`, or model routing in frontmatter break portability |
 | Model routing (haiku, sonnet, opus) | Platform-specific |
 | `Per X Rules:` cross-references | Assumes shared rule set |
 | Platform-specific SDK calls | Not universal |
 
 ### Capability Abstraction Checklist
 
-Before referencing any tool capability, rephrase as intent:
-
-| Intent | Acceptable Phrasing |
-|--------|--------------------|
-| Find files | "Search for files matching `pattern`" |
-| Search content | "Search file contents for `pattern`" |
-| Read file | "Read `file` to verify" |
-| Ask user | "Ask the user to choose" |
-| Run command | "Execute: `command`" |
-| Track state | "Record progress to survive context loss" |
-| Parallel work | "These steps are independent — run in parallel" |
+Before referencing any tool capability, rephrase as intent. The canonical intent → phrasing mapping is the Write This / Not This table in [§2 Capability Abstraction](#capability-abstraction) — apply it verbatim; do not maintain a second mapping.
 
 ### Graceful Degradation
 
-If a capability is unavailable in the target tool:
-- Skip silently if the capability is optional
-- Warn once and continue if the capability affects quality but not correctness
-- Stop with clear message only if the capability is essential
+If a capability is unavailable in the target tool, apply the degradation table in [§7 Graceful Degradation](#graceful-degradation): optional → skip silently; quality-affecting → warn once and continue; essential → stop with a clear message.
 
 ### Cross-Tool Verification Checklist
 
 Before releasing any skill, verify:
 
 - [ ] No tool-specific API names in SKILL.md
-- [ ] No YAML frontmatter
+- [ ] Frontmatter (if present) contains only `name` + `description` — no behavioral content, tool lists, or model routing
 - [ ] No model routing references
 - [ ] No cross-file references to shared rules
 - [ ] All instructions use capability abstraction
@@ -1566,7 +1570,7 @@ Every SKILL.md includes a `## Delegation` section as a **single pipe-separated l
 **Rules:**
 
 1. Every scope in `Owns:` matches the scope name used in `ds/audit/findings.md` (canonical token, lowercase, kebab-case).
-2. A scope claimed by more than one skill is a spec bug — exactly one skill is authoritative per scope.
+2. Exactly one skill is the authoritative findings **producer** per scope — a scope token appearing in two `Owns:` lists is a spec bug. Any other skill touches that scope only as a verified consumer (read → verify → fix), declared in `Receives:`, never in `Owns:`.
 3. A skill detecting signal in a scope it does not own → delegates, does not analyze.
 4. `Receives:` is the inverse of every other skill's `Delegates:` pointing at this skill — consistency holds across SKILL.md files.
 5. Empty side → write `none` explicitly. Never omit a field.
@@ -1814,11 +1818,11 @@ Phase1 → Phase2 → [Phase3] → Phase4 → Summary
 
 **Gate:** [Condition to proceed].
 
-### Phase N-1: Needs-Approval Review [needs_approval > 0]
+### Phase N-1: Needs-Approval Review [needs-approval > 0]
 
 Present needs_approval items with risk context. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
 
-**Gate:** All needs_approval items resolved.
+**Gate:** All needs-approval items resolved.
 
 ### Phase N: Summary
 
