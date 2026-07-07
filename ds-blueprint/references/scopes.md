@@ -2,42 +2,45 @@
 
 Blueprint uses these scopes for signal counting and scoring. Per scope, blueprint searches codebase for described patterns and counts matches. Detailed pattern definitions in SKILL.md Phase 3 assessment table.
 
-All analysis scopes used by /blueprint across 5 assessment tracks.
+All 23 analysis scopes used by `/ds-blueprint`, grouped into the 3 execution batches from Phase 2.5 (Parallel-Track Planning). A 24th scope, `ideal-gap`, is produced externally by `/ds-benchmark` (not scanned by blueprint itself) — Phase 4's completeness check expects 24 distinct scopes in `ds/audit/findings.md` once benchmark has run.
 
-## Optimize Scopes (Track A: Code Quality)
+## Read-Only Batch (parallel — pure grep/file-read, no AST)
+
+| Scope | ID Range | Focus |
+|-------|----------|-------|
+| hygiene | HYG-01 to HYG-20 | Unused imports/vars/functions, dead code, orphan files, duplicates, stale TODOs |
+| types | TYP-01 to TYP-10 | Type errors, missing annotations, untyped args, type:ignore without reason |
+| doc-sync | DCS-01 to DCS-06 | Inline doc contradicts signature, stale param descriptions, wrong return type |
+| dx | DX-01 to DX-10 | Missing/incomplete README, missing CONTRIBUTING.md, missing CI config, missing env.example, missing setup/dev scripts, missing Makefile/Taskfile, missing .editorconfig, inconsistent config formats |
+| docs | DOC-01 to DOC-10 | Missing doc files vs ideal for type, README sections missing (install, usage, API, contributing), API doc gaps, doc↔code drift (stale paths, renamed functions, changed defaults, removed features), broken internal links, outdated version refs, stale dep version claims, architectural claims that don't match code |
+| spec-alignment | SPA-01 to SPA-06 | Promise census across README / SPEC.md / docs/ / AI instruction file / blueprint profile: promised-not-implemented, implemented-not-documented, drift (behavior diverges from doc) |
+| stack | STK-01 to STK-10 | Missing lockfile, outdated deps (major versions behind), deprecated packages, known CVEs, missing `.nvmrc`/`.tool-versions`, inconsistent dep versions across workspace, runtime currency |
+| stack-fitness | SFT-01 to SFT-08 | Every major dep evaluated vs stated goal — obsolete (unmaintained, archived, last release >24mo), oversized-for-purpose, duplicate (two libs serving same purpose), misaligned (server-side lib pulled into browser-only project) |
+| external-tooling | EXT-01 to EXT-08 | GitHub Actions workflows, PR automations, CI scripts, pre-commit hooks, release automation evaluated for goal-fitness — unused workflows, workflows referencing deleted actions, duplicate workflows, template automations never triggered, goal-misaligned workflows |
+
+## AST Batch (parallel — shared LSP/AST cache)
+
+| Scope | ID Range | Focus |
+|-------|----------|-------|
+| architecture | ARC-01 to ARC-15 | Coupling/cohesion, circular deps, layer violations, god classes, SOLID/GRASP violations |
+| patterns | PAT-01 to PAT-15 | Inconsistent error handling/logging, SOLID/DRY violations, framework anti-patterns |
+| cross-cutting | XCT-01 to XCT-05 | Decision impact tracing across areas |
+| maintainability | MNT-01 to MNT-12 | Cyclomatic complexity, cognitive complexity, method length, nesting, change coupling, shotgun surgery |
+| simplify | SIM-01 to SIM-11 | Deep nesting, duplicate code, unnecessary abstractions, single-use wrappers |
+| ai-architecture | AIA-01 to AIA-10 | Prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget |
+| performance | PRF-01 to PRF-10 | N+1 queries, blocking in async, large file reads, missing pagination/cache/pool |
+
+## Cross-File Batch (serial — each pass may modify the findings index, order matters for dedup)
 
 | Scope | ID Range | Focus |
 |-------|----------|-------|
 | security | SEC-01 to SEC-12 | Secrets, injection, unsafe deserialization, eval, debug endpoints, weak crypto, CORS, path traversal, SSRF, auth bypass |
-| hygiene | HYG-01 to HYG-20 | Unused imports/vars/functions, dead code, orphan files, duplicates, stale TODOs |
-| types | TYP-01 to TYP-10 | Type errors, missing annotations, untyped args, type:ignore without reason |
-| simplify | SIM-01 to SIM-11 | Deep nesting, duplicate code, unnecessary abstractions, single-use wrappers |
-| performance | PRF-01 to PRF-10 | N+1 queries, blocking in async, large file reads, missing pagination/cache/pool |
+| privacy | PRV-01 to PRV-08 | PII exposure/logging, missing masking/consent/retention (canonical detail sourced from ds-compliance when available) |
+| ai-hygiene | AIH-01 to AIH-06 | AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers |
 | robustness | ROB-01 to ROB-10 | Missing timeout/retry, unbounded collections, null checks, resource cleanup |
-| privacy | PRV-01 to PRV-08 | PII exposure/logging, missing masking/consent/retention |
-
-## Review Scopes (Track B: Architecture, Track C: Production)
-
-| Scope | ID Range | Focus |
-|-------|----------|-------|
-| architecture | ARC-01 to ARC-15 | Coupling/cohesion, circular deps, layer violations, god classes |
-| patterns | PAT-01 to PAT-15 | Inconsistent error handling/logging, SOLID/DRY violations, framework anti-patterns |
-| cross-cutting | XCT-01 to XCT-05 | Decision impact tracing across areas |
-| testing | TST-01 to TST-10 | Coverage, critical path tests, test isolation, flaky indicators |
-| maintainability | MNT-01 to MNT-12 | Cyclomatic complexity, cognitive complexity, method length, nesting |
-| production-readiness | PRD-01 to PRD-07 | Health probes, graceful shutdown, config validation, observability |
-| functional-completeness | FUN-01 to FUN-18 | Missing CRUD/pagination, incomplete error handling, state gaps |
-| ai-architecture | AIA-01 to AIA-10 | Over-engineering, architectural drift, pattern inconsistency |
-
-## Audit Scopes (Track D: Documentation, Track E: Audit)
-
-| Scope | ID Range | Focus |
-|-------|----------|-------|
-| doc-sync | DOC-01 to DOC-08 | README drift, API mismatch, deprecated refs, broken links |
-| stack-assessment | STK-01 to STK-10 | Framework fitness, runtime currency, build tool match, redundant deps |
-| dependency-health | DEP-01 to DEP-10 | Abandoned packages, license conflicts, pinning, CVEs, supply chain |
-| dx-quality | DXQ-01 to DXQ-10 | Setup friction, env docs, script discoverability, CI/local parity |
-| project-structure | PST-01 to PST-10 | Directory conventions, naming consistency, config sprawl, gitignore |
+| production-readiness | PRD-01 to PRD-07 | Health probes, graceful shutdown, config validation, observability, debug endpoints exposed |
+| testing | TST-01 to TST-10 | Coverage, critical path tests, test isolation, flaky indicators, test pyramid signal |
+| functional-completeness | FUN-01 to FUN-18 | Missing CRUD/pagination, incomplete error handling, state gaps, TODO/FIXME markers for unfinished work, stub/placeholder implementations |
 
 ## Score Calculation
 

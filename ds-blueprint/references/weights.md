@@ -4,17 +4,19 @@
 
 | Dimension | Component Scopes | Aggregation |
 |-----------|-----------------|-------------|
-| Security & Privacy | security (60%), privacy (25%), robustness (15%) | Weighted avg, CRITICAL in any → max 40 |
-| Code Quality | hygiene (40%), types (35%), simplify (25%) | Weighted avg |
-| Architecture | architecture (35%), patterns (25%), cross-cutting (15%), maintainability (25%) | Weighted avg, worst-case floor: min(components) + 10 |
+| Security & Privacy | security (70%), privacy (30%) | Weighted avg, CRITICAL in any → max 40 |
+| Code Quality | hygiene (30%), types (25%), simplify (20%), ai-hygiene (15%), doc-sync (10%) | Weighted avg |
+| Architecture | architecture (30%), patterns (20%), cross-cutting (10%), maintainability (20%), ai-architecture (20%) | Weighted avg, worst-case floor: min(components) + 10 |
 | Performance | performance (100%) | Direct |
-| Resilience | robustness (50%), functional-completeness (50%) | Weighted avg |
-| Testing | testing (100%) | Direct |
-| Stack Health | stack-assessment (40%), dependency-health (40%), user-facing-defaults (20%) | Weighted avg. Non-UI project → redistribute |
-| DX | dx-quality (60%), project-structure (40%) | Weighted avg |
-| Documentation | doc-sync (100%) | Direct |
+| Resilience | robustness (60%), production-readiness (40%) | Weighted avg |
+| Testing | testing (60%), functional-completeness (40%) | Weighted avg |
+| Stack Health | stack (55%), stack-fitness (45%) | Weighted avg |
+| DX | dx (65%), external-tooling (35%) | Weighted avg |
+| Documentation | docs (65%), spec-alignment (35%) | Weighted avg |
 
 Overall = sum(dimension_score x dimension_weight)
+
+User-facing checks (i18n, a11y, responsive layout — Phase 3 "User-facing project gate") are surfaced as HIGH-severity findings directly, not as a separate weighted scope or dimension component.
 
 ## Weight Matrix by Project Type
 
