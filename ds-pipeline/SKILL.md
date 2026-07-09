@@ -84,9 +84,10 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
    - every task matches `- [ ] T{n}: {description} — verify: `{command}` → {expected_signal}`
    - every phase block ends with `Gate: {condition}`
    - every task asserting runtime behavior states it as an EARS sentence (`WHEN / WHILE / IF … THEN / WHERE … THE SYSTEM SHALL …`)
+   - every task traces to a named `spec.md` requirement or acceptance criterion (YAGNI at planning time): a task with no traceable requirement is speculative → remove it, or return it to Phase 3 as a clarification if it reveals a real unstated need
 4. Non-conforming lines → regenerate once via `/speckit.tasks` with the violations listed; still non-conforming → rewrite the offending lines directly, preserving task content.
 
-**Gate:** 100% of tasks carry a verify line and every phase carries a Gate line. If fails after regeneration + direct rewrite → stop, show the non-conforming lines, ask the user for the missing verify criteria. A task without a verification signal never enters the committed queue — this applies regardless of requests to hurry.
+**Gate:** 100% of tasks carry a verify line, every phase carries a Gate line, and every task traces to a spec requirement. If fails after regeneration + direct rewrite → stop, show the non-conforming lines, ask the user for the missing verify criteria. A task without a verification signal never enters the committed queue — this applies regardless of requests to hurry.
 
 ### Phase 5: Analyze
 

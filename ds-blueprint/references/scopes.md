@@ -2,7 +2,7 @@
 
 Blueprint uses these scopes for signal counting and scoring. Per scope, blueprint searches codebase for described patterns and counts matches. Detailed pattern definitions in SKILL.md Phase 3 assessment table.
 
-All 23 analysis scopes used by `/ds-blueprint`, grouped into the 3 execution batches from Phase 2.5 (Parallel-Track Planning). A 24th scope, `ideal-gap`, is produced externally by `/ds-benchmark` (not scanned by blueprint itself) — Phase 4's completeness check expects 24 distinct scopes in `ds/audit/findings.md` once benchmark has run.
+All 24 analysis scopes used by `/ds-blueprint`, grouped into the 3 execution batches from Phase 2.5 (Parallel-Track Planning). A 25th scope, `ideal-gap`, is produced externally by `/ds-benchmark` (not scanned by blueprint itself) — Phase 4's completeness check expects 25 distinct scopes in `ds/audit/findings.md` once benchmark has run.
 
 ## Read-Only Batch (parallel — pure grep/file-read, no AST)
 
@@ -28,6 +28,7 @@ All 23 analysis scopes used by `/ds-blueprint`, grouped into the 3 execution bat
 | maintainability | MNT-01 to MNT-12 | Cyclomatic complexity, cognitive complexity, method length, nesting, change coupling, shotgun surgery |
 | simplify | SIM-01 to SIM-11 | Deep nesting, duplicate code, unnecessary abstractions, single-use wrappers |
 | ai-architecture | AIA-01 to AIA-14 | Prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget; product-facing LLM features: untrusted input concatenated into prompts (injection surface), model output consumed without schema/shape validation, no eval or regression set for prompt changes, no per-call cost/usage tracking |
+| contract-consistency | CON-01 to CON-10 | System-wide lexicon + contract uniformity: same concept → same name (one verb per operation class across modules; domain terms uniform across layers), same word → same meaning, analogous functions share parameter order + options shape, consistent units/formats (time units, ID types, dates, boundary serialization casing), one return/error shape per layer (throw vs Result vs null never mixed within a layer), same operation with divergent signatures across modules (contract-drift twin of W17 duplication) |
 | performance | PRF-01 to PRF-10 | N+1 queries, blocking in async, large file reads, missing pagination/cache/pool |
 
 ## Cross-File Batch (serial — each pass may modify the findings index, order matters for dedup)

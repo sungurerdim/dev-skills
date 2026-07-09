@@ -1091,6 +1091,7 @@ All scopes from all skills can appear in findings. The analyzer does not need to
 | robustness, production-readiness | ds-blueprint | ds-review (tactical) |
 | architecture, patterns, cross-cutting | ds-blueprint | ds-review (strategic) |
 | maintainability, ai-architecture | ds-blueprint | ds-review (strategic) |
+| contract-consistency | ds-blueprint | ds-review (strategic) |
 | testing, functional-completeness | ds-blueprint, ds-review | ds-test (generates/updates tests based on findings) |
 | testing (run+fix) | ds-test (own execution) | ds-test (fixes test-side issues) |
 | stack | ds-blueprint | ds-review, ds-fix, ds-devops, ds-deps |
@@ -1201,7 +1202,7 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 
 | Consumer | Profile Field → Behavioral Change | Findings Scopes |
 |----------|----------------------------------|-----------------|
-| ds-review | **Config.priorities** → order scope execution by priority. **Config.quality** → prototype: skip LOW findings, enterprise: flag all. **Current Scores** → start with lowest-scoring dimensions. **Project Map.Toolchain** → know existing patterns, avoid suggesting incompatible tools. | security, hygiene, types, performance, architecture, patterns |
+| ds-review | **Config.priorities** → order scope execution by priority. **Config.quality** → prototype: skip LOW findings, enterprise: flag all. **Current Scores** → start with lowest-scoring dimensions. **Project Map.Toolchain** → know existing patterns, avoid suggesting incompatible tools. | security, hygiene, types, performance, architecture, patterns, contract-consistency |
 | ds-fix | **Project Map.Toolchain** → skip tool detection, use stated formatter/linter/typechecker directly. **Type + Stack** → select correct toolchain from references. | — (runs external tools) |
 | ds-test | **Ideal Metrics.Coverage** → set coverage threshold. **Project Map.Toolchain** → skip test framework detection. **Current Scores.Testing** → if low, prioritize coverage gaps. | testing |
 | ds-docs | **Config.audience** → tailor doc tone (public: user-friendly, developers: technical). **Project Map** → know modules/entry points to document. **Type** → select ideal doc set per project type. | docs |
@@ -1632,7 +1633,7 @@ Curated from 24 authoritative sources (12-Factor, SOLID, GRASP, Clean Code, Prag
 
 | # | Theme | One-line rule | How skills apply it |
 |---|-------|--------------|---------------------|
-| 1 | **Single Source of Truth (SSOT)** | Every fact has exactly one authoritative location. | Findings file is one. Blueprint profile is one. Conventions live in code, not duplicated in docs. |
+| 1 | **Single Source of Truth (SSOT)** | Every fact has exactly one authoritative location. | Findings file is one. Blueprint profile is one. Conventions live in code, not duplicated in docs (ds-docs flags SSOT-copies). One name per concept in code — ds-blueprint `contract-consistency` scope enforces the codebase lexicon. |
 | 2 | **Make change cheap** | Optimize for adaptability over perfection — requirements always change. | Skills propose minimal Category A fixes by default. Architecture changes are Category B (approval-gated). |
 | 3 | **Feedback speed** | Time-to-discovery of a defect dominates total cost. | Phase gates fail loudly. Quality gates run on every commit/PR, not weekly. |
 | 4 | **Fail fast and loudly** | A loud, early failure beats a silent, late one every time. | Skills surface blockers — never bypass with `--no-verify`, `reset --hard`, or hidden retries. Stop after 3 repeated failures (W2). |
@@ -1708,7 +1709,7 @@ Always-on rules that govern how skills propose work and write commits:
 
 | Rule | What it means in practice |
 |------|--------------------------|
-| **YAGNI** | Skills propose only what's needed for the stated goal — never speculate on hypothetical future needs. |
+| **YAGNI** | Skills propose only what's needed for the stated goal — never speculate on hypothetical future needs. ds-pipeline enforces it at planning time: every task traces to a spec requirement, speculative tasks never enter the committed queue. |
 | **DRY** | Skills detect duplication and propose extraction. Never tolerated above 3 instances of the same logic. |
 | **KISS** | When two solutions both satisfy requirements, the simpler one wins. Complexity must earn its place with measurable benefit. |
 | **Boy Scout Rule (bounded)** | Within the file you're editing, fix obvious adjacent issues. Outside that file → record as a finding, do not silently fix. (Bounded version of "leave it cleaner" that respects W3 Scope Creep.) |

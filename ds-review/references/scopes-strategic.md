@@ -2,7 +2,7 @@
 
 For concrete Detect/Fix patterns: architecture and testing scopes use `rules-quality.md`. Other scopes use structural analysis described in Focus column.
 
-Strategic, architecture-level analysis scopes. 8 scopes, 92 checks.
+Strategic, architecture-level analysis scopes. 9 scopes, 102 checks.
 
 ## Scope Definitions
 
@@ -16,6 +16,7 @@ Strategic, architecture-level analysis scopes. 8 scopes, 92 checks.
 | functional-completeness | FUN-01 to FUN-18 | Missing CRUD/pagination/filter, incomplete error handling, state transition gaps, caching/indexing strategy |
 | production-readiness | PRD-01 to PRD-07 | Health/readiness probes, graceful shutdown, config validation, secret injection method, container/deployment hygiene, observability, scaling bottlenecks |
 | cross-cutting | XCT-01 to XCT-05 | Decision impact tracing: how one architectural choice affects other areas. Only report concrete cross-area impacts with evidence at file:line |
+| contract-consistency | CON-01 to CON-10 | System-wide lexicon + contract uniformity: same concept same name (one verb per operation class; domain terms uniform across layers), same word same meaning, analogous functions share parameter order + options shape, consistent units/formats (time, IDs, dates, boundary casing), one return/error shape per layer, same operation with divergent signatures across modules (contract-drift twin of W17) |
 
 ## Score Calculation
 

@@ -6,7 +6,7 @@
 |-----------|-----------------|-------------|
 | Security & Privacy | security (70%), privacy (30%) | Weighted avg, CRITICAL in any → max 40 |
 | Code Quality | hygiene (30%), types (25%), simplify (20%), ai-hygiene (15%), doc-sync (10%) | Weighted avg |
-| Architecture | architecture (30%), patterns (20%), cross-cutting (10%), maintainability (20%), ai-architecture (20%) | Weighted avg, worst-case floor: min(components) + 10 |
+| Architecture | architecture (25%), patterns (20%), contract-consistency (15%), cross-cutting (10%), maintainability (15%), ai-architecture (15%) | Weighted avg, worst-case floor: min(components) + 10 |
 | Performance | performance (100%) | Direct |
 | Resilience | robustness (60%), production-readiness (40%) | Weighted avg |
 | Testing | testing (60%), functional-completeness (40%) | Weighted avg |

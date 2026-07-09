@@ -106,7 +106,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 ### Phase 3: Audit [--audit or default]
 
 1. Evaluate every scope checklist item (Scopes section) against the inventory — each check yields finding / pass / N/A with reason.
-2. Severity per the Severity table; benchmarks and thresholds from the loaded references.
+2. Severity per the Severity table; benchmarks and thresholds from the loaded references. Security baseline on billing surfaces ([references/principles.md §5](references/principles.md)): validate at every boundary, least privilege on provider credentials, no secrets in source; config discipline ([references/principles.md §8](references/principles.md)): prices/product IDs externalized to provider config, never hardcoded.
 3. Classify: **A** — code-level conformance to the already-chosen model (unverified webhook signature, client-only entitlement check, hardcoded price literal). **B** — model, tier, price, packaging, or promise changes (business decisions).
 4. Cross-check value proposition against blueprint `spec-alignment` findings when fresh — a promised-not-implemented paid feature is CRITICAL here (selling what doesn't exist).
 5. Write findings to `ds/audit/findings.md` (scoped overwrite: monetization, pricing, gtm).
@@ -116,7 +116,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 ### Phase 4: Plan [--plan or All]
 
 1. Generate `ds/productize/plan.md` (overwrite per run): chosen/recommended model with rationale + benchmark, tier table with prices and gates, billing-provider decision path, GTM checklist (landing, funnel events, launch steps), open business decisions as an explicit decision table.
-2. Every recommendation cites a rule ID from references or an inventory fact — no unsourced business advice.
+2. Every recommendation cites a rule ID from references or an inventory fact — no unsourced business advice. KISS/YAGNI ([references/principles.md §6](references/principles.md)): recommend the simplest stack that fits the stated revenue stage — no enterprise billing machinery, custom receipt servers, or multi-tier entitlement services pre-revenue.
 3. Present the plan's decision table to the user; record chosen options in the plan file.
 
 **Gate:** Plan written, decision table present. If fails → write unresolved decisions as `OPEN — needs owner decision` rows; plan ships with open rows rather than invented answers.

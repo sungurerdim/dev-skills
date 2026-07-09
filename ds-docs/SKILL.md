@@ -164,9 +164,10 @@ Missing docs = HIGH; incomplete (<70%) = MEDIUM.
 | Claim doesn't match source | **Drift** — doc outdated | HIGH, show diff |
 | Claim references something that doesn't exist | **Stale** — feature/file removed | CRITICAL, suggest removal |
 | Source has something doc doesn't mention | **Gap** — undocumented feature | MEDIUM, suggest adding |
+| Doc duplicates a code-owned fact (version literal, config default, port, dependency version) | **SSOT-copy** — value copied instead of referenced; drifts on next change | MEDIUM, replace with a reference to the owning source (file path, command, or manifest) |
 | Link returns 404 or target heading missing | **Broken link** | HIGH |
 
-Report table: `| # | Type (Drift/Stale/Gap/Broken) | Doc File:Line | Claim | Actual | Severity |`
+Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy) | Doc File:Line | Claim | Actual | Severity |`
 
 **Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are highest-drift-risk.
 

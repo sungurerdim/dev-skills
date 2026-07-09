@@ -183,7 +183,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 **Default Phase 2 delegation order (adjusted by stage + type):**
 
 1. `/ds-blueprint` (if findings absent or stale — always first)
-2. `/ds-review --strategic` (architecture-level, 8 scopes)
+2. `/ds-review --strategic` (architecture-level, 9 scopes)
 3. `/ds-review --tactical` (file-level, 9 scopes)
 4. Stack-specific: `/ds-backend`, `/ds-frontend`, `/ds-mobile` — on mobile projects `/ds-mobile` subsumes `/ds-compliance` security/privacy/regulatory; never run both on the same scopes
 5. `/ds-compliance` (web/backend projects)

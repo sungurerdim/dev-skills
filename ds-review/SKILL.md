@@ -72,7 +72,7 @@ Without flags: present mode selection.
 
 ### Strategic Scopes (--strategic)
 
-8 scopes, 92 checks. Definitions in [references/scopes-strategic.md](references/scopes-strategic.md). Detect/fix patterns for architecture and testing in [references/rules-quality.md](references/rules-quality.md).
+9 scopes, 102 checks. Definitions in [references/scopes-strategic.md](references/scopes-strategic.md). Detect/fix patterns for architecture and testing in [references/rules-quality.md](references/rules-quality.md).
 
 | Group | Scopes |
 |-------|--------|
@@ -136,7 +136,7 @@ Findings that fail all three are silently discarded — false-positive guard.
 
 ## Delegation
 
-**Owns:** perf-profiling (deep, `--perf` mode) | **Delegates:** ds-simplify → overengineering / dead-code / orphan / premature-abstraction; ds-blueprint → bootstrap when `ds/audit/findings.md` absent or stale | **Receives:** ds-fix → code-level quality fixes; ds-ship → Phase 2 rule audit. Verified consumer of ds-blueprint findings (hygiene, types, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, performance): verifies + fixes, does not re-produce.
+**Owns:** perf-profiling (deep, `--perf` mode) | **Delegates:** ds-simplify → overengineering / dead-code / orphan / premature-abstraction; ds-blueprint → bootstrap when `ds/audit/findings.md` absent or stale | **Receives:** ds-fix → code-level quality fixes; ds-ship → Phase 2 rule audit. Verified consumer of ds-blueprint findings (hygiene, types, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance): verifies + fixes, does not re-produce.
 
 ## Execution Flow
 

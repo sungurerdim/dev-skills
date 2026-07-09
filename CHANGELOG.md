@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — contract-consistency scope + principle hardening (2026-07)
+
+- **`ds-blueprint` `contract-consistency` scope (CON-01..10, 24th analysis scope)** — system-wide lexicon + contract uniformity: same concept same name (one verb per operation class, domain terms uniform across layers), same word same meaning, analogous functions share parameter order/options shape, consistent units/formats (time, IDs, dates, boundary casing), one return/error shape per layer, divergent duplicate contracts (contract-drift twin of W17). AST batch; Architecture dimension re-weighted (25/20/15/10/15/15). `ds-review --strategic` is the verified consumer (9 scopes, 102 checks).
+- **Principle hardening (§11)** — ds-productize now carries `references/principles.md` with targeted cites (§5 billing-surface security, §6 KISS/YAGNI on plan recommendations, §8 price/config externalization); ds-pipeline enforces YAGNI at planning time (every task traces to a spec requirement — speculative tasks never enter the committed queue); ds-docs flags **SSOT-copy** (docs duplicating code-owned facts instead of referencing the owning source); SKILL-SPEC §11.1/§11.6 name the new enforcement points.
+
 ### Added — paid-product coverage (2026-07)
 
 - **`ds-productize` (28th skill, prefix PTZ)** — paid-product readiness in three owned scopes: `monetization` (model fit, server-side entitlement enforcement, webhook signature verification, subscription lifecycle, cancellation parity), `pricing` (tier/decoy structure, annual framing, price externalization, commission/MoR fit), `gtm` (value proposition cross-checked against code, persona, conversion surface, privacy-first funnel events, launch plan). `--plan` produces the committed deliverable `ds/productize/plan.md`. Every benchmark cited per rule (`references/rules-monetization.md`, `references/rules-gtm.md`); business decisions are Category B; state-exempt.

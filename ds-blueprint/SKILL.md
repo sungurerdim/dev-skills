@@ -106,7 +106,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 
 ## Delegation
 
-**Owns:** security, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, performance, robustness, production-readiness, testing, functional-completeness, stack, dx, docs, spec-alignment, stack-fitness, external-tooling | **Delegates:** none (full-codebase SSOT producer; privacy scope produced by ds-compliance, canonical) | **Receives:** ds-review → bootstrap; ds-ship → Phase 0 bootstrap when findings absent or stale
+**Owns:** security, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance, robustness, production-readiness, testing, functional-completeness, stack, dx, docs, spec-alignment, stack-fitness, external-tooling | **Delegates:** none (full-codebase SSOT producer; privacy scope produced by ds-compliance, canonical) | **Receives:** ds-review → bootstrap; ds-ship → Phase 0 bootstrap when findings absent or stale
 
 ## Execution Flow
 
@@ -160,12 +160,12 @@ Write profile to detected instruction file. Calculate ideal metrics from `refere
 
 ### Phase 2.5: Parallel-Track Planning [PARALLEL]
 
-Group 9 dimensions × 24 scopes by execution cost — plan concurrency consciously.
+Group 9 dimensions × 25 scopes by execution cost — plan concurrency consciously.
 
 | Batch | Scopes | Concurrency | Why |
 |-------|--------|-------------|-----|
 | **Read-only** | hygiene, types, doc-sync, dx, docs, spec-alignment, stack, stack-fitness, external-tooling | Parallel — pure grep/file-read, no AST | Cheapest scans, no shared state |
-| **AST** | architecture, patterns, cross-cutting, maintainability, simplify, ai-architecture, performance | Parallel — shared LSP/AST cache | Share parse work across detectors |
+| **AST** | architecture, patterns, cross-cutting, maintainability, simplify, ai-architecture, contract-consistency, performance | Parallel — shared LSP/AST cache | Share parse work across detectors |
 | **Cross-file** | security, privacy, ai-hygiene, robustness, production-readiness, testing, functional-completeness | Serial — each batch may modify findings index | Order matters for dedup |
 
 Plan batches up front (`state.data.batches`) and announce before starting. AI hosts route parallelism — the spec declares which scopes are safe to run together.
@@ -182,7 +182,7 @@ Scan **entire codebase**, record every finding with file:line to `ds/audit/findi
 |-----------|------------------|
 | Security & Privacy | `security`, `privacy` |
 | Code Quality | `hygiene`, `types`, `simplify`, `ai-hygiene`, `doc-sync` |
-| Architecture | `architecture`, `patterns`, `cross-cutting`, `maintainability`, `ai-architecture` |
+| Architecture | `architecture`, `patterns`, `cross-cutting`, `maintainability`, `ai-architecture`, `contract-consistency` |
 | Performance | `performance` |
 | Resilience | `robustness`, `production-readiness` |
 | Testing | `testing`, `functional-completeness` |
@@ -196,7 +196,7 @@ Scan **entire codebase**, record every finding with file:line to `ds/audit/findi
 |-----------|------|----------|
 | Security & Privacy | All source | Hardcoded secrets ({api-key-shape}, {token-shape}, password literals), `eval()`/`Function()` with dynamic input, SQL string concat, missing parameterized queries, missing auth middleware on protected routes, PII in log statements, weak crypto (MD5, SHA1, DES, ECB), missing HTTPS, CORS wildcard, missing CSRF, missing input validation, missing rate limiting |
 | Code Quality | All source | Unused imports/vars/functions, missing type annotations on public APIs, nesting >3, duplicated blocks >10 lines, dead code, magic numbers, functions >50 lines, files >500 lines, empty catch, stale TODO/FIXME/HACK >30 days. **ai-hygiene:** AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers. **doc-sync:** inline doc contradicts signature, stale param descriptions, wrong return type. |
-| Architecture | Import graph + structure | **SOLID violations ([references/principles.md §2](references/principles.md)):** SRP (module changes for >1 reason), OCP (new behavior added by editing stable code), LSP (subtype narrows postcondition or throws unhandled), ISP (consumer forced to depend on unused members), DIP (high-level imports concrete low-level). **GRASP:** Information Expert (logic away from data), Low Coupling (>7 unrelated peer imports), High Cohesion (unrelated exports same module). Plus: circular deps, god classes (>10 public methods or >300 lines), feature envy, layer violations, missing DI, inconsistent error handling, inconsistent naming. **maintainability:** change coupling, shotgun surgery (single change requires 5+ file edits), missing abstraction boundaries. **ai-architecture:** prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget; product-facing LLM features: untrusted input concatenated into prompts (injection surface), model output consumed without schema/shape validation, no eval or regression set for prompt changes, no per-call cost/usage tracking. |
+| Architecture | Import graph + structure | **SOLID violations ([references/principles.md §2](references/principles.md)):** SRP (module changes for >1 reason), OCP (new behavior added by editing stable code), LSP (subtype narrows postcondition or throws unhandled), ISP (consumer forced to depend on unused members), DIP (high-level imports concrete low-level). **GRASP:** Information Expert (logic away from data), Low Coupling (>7 unrelated peer imports), High Cohesion (unrelated exports same module). Plus: circular deps, god classes (>10 public methods or >300 lines), feature envy, layer violations, missing DI, inconsistent error handling, inconsistent naming. **maintainability:** change coupling, shotgun surgery (single change requires 5+ file edits), missing abstraction boundaries. **ai-architecture:** prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget; product-facing LLM features: untrusted input concatenated into prompts (injection surface), model output consumed without schema/shape validation, no eval or regression set for prompt changes, no per-call cost/usage tracking. **contract-consistency:** same concept → same name (one verb per operation class: not fetch/get/load mixed for the same action; domain terms uniform across layers — not user/account/member for one entity), same word → same meaning everywhere, analogous functions share parameter order + options shape, consistent units/formats (time units, ID types, date/serialization casing at boundaries), one return/error shape per layer (throw vs Result vs null never mixed within a layer), same operation exposed with divergent signatures across modules. 3+ examples before flagging a lexicon pattern as systemic. |
 | Performance | All source | N+1 queries (DB call in loop), blocking calls in async, missing pagination on lists, missing DB indexes, large file reads without streaming, missing caching, unbounded collection growth, synchronous I/O in hot paths |
 | Resilience | Source + config | Missing error handling on external calls, missing timeout config, missing retry-with-backoff, no graceful shutdown, no health check, unbounded queue/buffer, missing circuit breaker, no fallback for failed deps, missing input size limits. **production-readiness:** missing structured logging, debug endpoints exposed, missing rate limiting, no graceful degradation under load, missing deployment health checks. |
 | Testing | Tests + config | **Test discipline ([references/principles.md §7](references/principles.md)):** Test Pyramid signal (unit-heavy / integration-medium / E2E-light — inverted pyramid = HIGH); AAA structure absent; non-behavior test names (`test_1` vs `should_reject_negative_quantity`); unrealistic data (`a@b.c`, `$1`, length-1 collections); coverage configured as goal (target %) rather than diagnostic. Plus: test count vs source ratio, missing runner config, missing coverage config, untested modules, missing negative/boundary cases (empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day), test isolation (shared mutable state), flaky indicators (sleep/delay, time-dependent assertions). **functional-completeness:** missing error paths, missing input validation edge cases, TODO/FIXME markers for unfinished, stub/placeholder implementations. |
@@ -244,7 +244,7 @@ Build from Discovery + Assess:
    git_hash: {HEAD}
    timestamp: {ISO 8601}
    source: ds-blueprint
-   scopes: security, privacy, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, performance, robustness, production-readiness, testing, functional-completeness, stack, stack-fitness, dx, external-tooling, docs, spec-alignment
+   scopes: security, privacy, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance, robustness, production-readiness, testing, functional-completeness, stack, stack-fitness, dx, external-tooling, docs, spec-alignment
    -->
 
    ## Findings
@@ -254,9 +254,9 @@ Build from Discovery + Assess:
    | {id} | {severity} | {A|B} | {file} | {line} | {scope} | {title} |
    ```
    Every finding includes file:line so fix skills can act directly. Category A when fix conforms to current architecture/plan; B when it changes architecture/scope/capability/user-promise/dependency.
-4. **Verify completeness:** count distinct scopes in `ds/audit/findings.md`. Expected: 24 (the 23 scopes above + `ideal-gap` scope produced by `/ds-benchmark` when it runs). Count < 24 → identify missing scopes and re-run assessment for those before proceeding. Missing scope = fix skills skip detection → missed issues.
+4. **Verify completeness:** count distinct scopes in `ds/audit/findings.md`. Expected: 25 (the 24 scopes above + `ideal-gap` scope produced by `/ds-benchmark` when it runs). Count < 25 → identify missing scopes and re-run assessment for those before proceeding. Missing scope = fix skills skip detection → missed issues.
 
-**Gate:** All 9 scores calculated; calibration passed; `ds/audit/findings.md` written with all 24 scopes verified. If fails → calibration suspicious score (dimension at 100, CRITICAL with overall ≥80) → re-read flagged signals + adjust; missing scopes → re-run assessment for each before writing; write fails → surface OS error, ask user to resolve.
+**Gate:** All 9 scores calculated; calibration passed; `ds/audit/findings.md` written with all 25 scopes verified. If fails → calibration suspicious score (dimension at 100, CRITICAL with overall ≥80) → re-read flagged signals + adjust; missing scopes → re-run assessment for each before writing; write fails → surface OS error, ask user to resolve.
 
 ### Phase 5: Dashboard
 
