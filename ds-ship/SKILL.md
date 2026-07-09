@@ -95,6 +95,8 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 
 **Feature-planning branch (independent of stage):** if the user's immediate ask is a new feature whose design is still open (no `specs/{feature}/spec.md` or equivalent plan exists) → route the planning leg to `/ds-pipeline {idea}` first, ahead of any implementation-oriented skill in the default sequence; resume the stage's default sequence once `specs/{feature}/tasks.md` exists.
 
+**Monetization branch (independent of stage):** if paid-product intent holds (stated in the Phase 0 ambiguity block, or billing/paywall surfaces detected in source) → insert `/ds-productize --audit` into Phase 2 after the stack-specific skills; no billing surface yet (greenfield) → `/ds-productize --plan` instead. Free/internal intent → skip entirely.
+
 | Project type | Additional rules |
 |--------------|------------------|
 | mobile | ds-mobile authoritative for security/privacy/regulatory; ds-frontend only for UI/UX where applicable; skip ds-compliance on scopes ds-mobile owns |
@@ -102,6 +104,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | backend-only | ds-backend + ds-devops + ds-deploy; skip ds-frontend |
 | library | ds-test (high coverage) + ds-docs (API-heavy) + ds-repo --oss-ready; skip ds-launch |
 | CLI | ds-test + ds-docs + ds-repo; skip ds-frontend, ds-launch |
+| paid product / SaaS intent | ds-productize joins Phase 2 per the Monetization branch; store execution stays with ds-launch, canonical privacy with ds-compliance |
 
 ## Delegation
 
@@ -149,7 +152,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
    - `implemented-not-documented` — code has X; no doc mentions it
    - `drift` — both exist; behavior diverges (default changed, signature changed, removed flag still listed)
 
-8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, performance targets, compliance scope, deprecated features, renamed modules. Ask. Wait.
+8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, monetization intent (free / paid product / internal), performance targets, compliance scope, deprecated features, renamed modules. Ask. Wait.
 
 9. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. New feature with open design → insert `/ds-pipeline` first per the Feature-planning branch above. Show plan; user confirms or trims.
 
@@ -184,8 +187,9 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 3. `/ds-review --tactical` (file-level, 9 scopes)
 4. Stack-specific: `/ds-backend`, `/ds-frontend`, `/ds-mobile` — on mobile projects `/ds-mobile` subsumes `/ds-compliance` security/privacy/regulatory; never run both on the same scopes
 5. `/ds-compliance` (web/backend projects)
-6. `/ds-test`
-7. `/ds-fix`
+6. `/ds-productize` (paid-product intent only — see Monetization branch)
+7. `/ds-test`
+8. `/ds-fix`
 
 **Category B batch at end of Phase 2.** Present all B items — one line each (`[severity] title — file:line · impact/effort/risk · owner`) grouped by owning skill with counts; state the question (`Decide these N items?`). Modes: interactive → Apply all / per-owner bulk (`Apply all ds-review` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL; "all" = exactly the displayed set); `--auto` without `--force-approve` → list + skip; `--force-approve` → apply all. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
 

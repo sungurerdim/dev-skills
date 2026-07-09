@@ -1,13 +1,13 @@
 ---
 name: ds-backend
-description: Backend architecture — API design, database schema, authentication. Use when designing or reviewing a backend, REST/GraphQL APIs, data models, or auth flows.
+description: Backend architecture — API design, database schema, authentication, data pipelines. Use when designing or reviewing a backend, REST/GraphQL APIs, data models, auth flows, or ingest/ETL pipelines.
 ---
 
 # /ds-backend
 
-AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, and schemas that don't survive first migration. Skill designs all three layers correctly from start.
+AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, schemas that don't survive first migration, and data pipelines that double-process on retry. Skill designs all four layers correctly from start.
 
-**Backend Design** — API design, database schema, and authentication architecture in a single skill.
+**Backend Design** — API design, database schema, authentication, and data-pipeline architecture in a single skill.
 
 ## Triggers
 
@@ -23,12 +23,12 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | "design REST API", "design database schema" | "implement the endpoint code" (→ manual / ds-fix) |
 | "review OpenAPI spec", "audit DB migration" | "audit OWASP / regulatory security" (→ ds-compliance --security) |
 | "design auth flow with OAuth/RBAC" | "deploy auth service to production" (→ ds-deploy) |
-| "review my API for REST conformance" | "fix lint errors in handlers" (→ ds-fix) |
-| "audit API/DB/auth design conformance" | "generic code quality review (readability, duplication)" (→ ds-review) |
+| "audit the data pipeline (ingest/ETL/cleaning/retention)" | "optimize one pipeline metric via experiments" (→ ds-tune) |
+| "audit API/DB/auth/data-pipeline design conformance" | "generic code quality review (readability, duplication)" (→ ds-review) |
 
 ## Contract
 
-- Covers three scopes: API design, database design, authentication.
+- Covers four scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve).
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams.
 - Only suggests well-established patterns — no experimental or untested approaches.
 - Minimal liability + maximum privacy + minimum dependencies: auth recommendations prioritize managed services over DIY; data minimization in every schema (API responses expose only required fields); prefer platform-native auth over third-party SDKs where feasible.
@@ -45,7 +45,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | `--design` | Design new endpoints, schema, or auth flow |
 | `--spec` | Generate OpenAPI spec, migration files, or auth documentation |
 | `--migrate` | Generate or review database migrations |
-| `--scope={x}` | Specific scope: api, db, auth (comma-separated) |
+| `--scope={x}` | Specific scope: api, db, auth, data-pipeline (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary |
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — review existing API/DB/auth for issues / Design — design new endpoints, schema, or auth flow / (Cancel). A disambiguating flag (`--audit`/`--design`/`--scope`/`--auto`) skips the menu.
@@ -79,6 +79,19 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | Backup | 3-2-1 rule, WAL archiving, restore testing |
 | Data privacy | PII classification, encryption at rest, GDPR right-to-erasure, retention |
 
+### Data Pipeline
+
+| Check Area | What It Covers |
+|------------|---------------|
+| Ingest validation | Schema/contract validation at every entry boundary, reject-by-default on malformed input |
+| Idempotency | Jobs and handlers safe to re-run; dedup keys on at-least-once delivery |
+| Cleaning & quality | Null/duplicate/range checks, quarantine path for bad records (never silent drop) |
+| Merge & dedup | Deterministic merge keys, conflict policy, no order-dependent results |
+| Incremental loads | Watermark/cursor-based increments, safe backfill, full-reload escape hatch |
+| Storage & retention | Raw vs derived separation, retention/archival policy, PII minimization in intermediate stores |
+| Observability | Per-job structured logs, failure alerts, row-count/freshness checks |
+| Lineage | Source→transform→sink traceable; transformations documented or self-describing |
+
 ### Auth
 
 | Check Area | What It Covers |
@@ -94,7 +107,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 
 ## Delegation
 
-**Owns:** api, db, auth, backend-architecture | **Delegates:** none | **Receives:** ds-ship → Phase 2 backend pass
+**Owns:** api, db, auth, data-pipeline, backend-architecture | **Delegates:** none | **Receives:** ds-ship → Phase 2 backend pass; ds-productize → billing data model + webhook endpoint security pass
 
 ## Execution Flow
 
@@ -105,9 +118,9 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 1. Flags → proceed directly. No flags → interactive menu.
 2. **IDU:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
 3. Detect project stack (framework, ORM, auth library) by scanning config files + dependencies.
-4. Load relevant reference docs by detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md).
+4. Load relevant reference docs by detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md), [references/rules-data-pipeline.md](references/rules-data-pipeline.md).
 
-**Gate:** Scope and mode confirmed. If fails → no flags + no menu response → default `--audit --scope=api,db,auth`, WARN, announce defaulted scope before proceeding.
+**Gate:** Scope and mode confirmed. If fails → no flags + no menu response → default `--audit --scope=api,db,auth,data-pipeline`, WARN, announce defaulted scope before proceeding.
 
 ### Phase 2: Discover
 
@@ -115,7 +128,8 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 2. Search for route/endpoint definitions, controller files, middleware.
 3. Search for DB schema files (migrations, models, entity definitions).
 4. Search for auth configuration (JWT secret usage, session config, OAuth setup).
-5. Build inventory: endpoints list, tables/models list, auth mechanisms.
+5. Search for pipeline surfaces: ingest jobs, ETL/transform scripts, schedulers/queues, batch scripts, data-quality checks.
+6. Build inventory: endpoints list, tables/models list, auth mechanisms, pipeline stages (ingest → clean → merge → store → serve).
 
 **Gate:** Inventory complete. No backend code found → switch to design mode. If fails → partial inventory → mark missing scopes `not-found` in the inventory, proceed with detected scopes only, note skipped scopes in report.
 
@@ -145,6 +159,15 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 3. CSRF protection on session-based auth.
 4. Password hashing uses bcrypt or argon2 (not MD5/SHA).
 5. OAuth redirect URIs strictly validated.
+
+**Data pipeline:**
+
+1. Every ingest boundary validates schema/contract; malformed input rejected or quarantined, never silently dropped.
+2. Every job/handler idempotent — re-run produces identical state; dedup keys on at-least-once delivery.
+3. Data-quality checks (null/duplicate/range) present between clean and merge stages.
+4. Incremental loads use watermarks/cursors; backfill path exists and is bounded.
+5. Retention policy per store; PII absent from intermediate/derived stores unless required (delegate canonical privacy to ds-compliance).
+6. Per-job structured logging + failure alerting; row-count or freshness check on critical sinks.
 
 **Cross-cutting checks:**
 
@@ -184,10 +207,10 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 ### Phase 7: Summary
 
 ```
-ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth} | Findings: {n} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
+ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth,data-pipeline} | Findings: {n} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-- **Audit output:** findings table grouped by scope (API / DB / Auth).
+- **Audit output:** findings table grouped by scope (API / DB / Auth / Data Pipeline).
 - **Design output:** generated artifacts list with locations.
 - **Spec output:** generated specification files with locations.
 
@@ -236,6 +259,7 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 | Scenario | Behavior |
 |----------|----------|
 | Serverless functions | Adapt checks for function-based routing |
+| Stream/queue pipeline (no batch jobs) | Apply pipeline checks to consumers: idempotent handlers, DLQ present, offset/ack semantics stated |
 | GraphQL only | Skip REST naming checks, focus on resolver patterns + schema design |
 | SQLite project | Skip replication/clustering checks, focus on WAL mode + connection handling |
 | No ORM (raw SQL) | Check for SQL injection, parameterized queries |

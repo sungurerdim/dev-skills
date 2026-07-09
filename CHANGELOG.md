@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — paid-product coverage (2026-07)
+
+- **`ds-productize` (28th skill, prefix PTZ)** — paid-product readiness in three owned scopes: `monetization` (model fit, server-side entitlement enforcement, webhook signature verification, subscription lifecycle, cancellation parity), `pricing` (tier/decoy structure, annual framing, price externalization, commission/MoR fit), `gtm` (value proposition cross-checked against code, persona, conversion surface, privacy-first funnel events, launch plan). `--plan` produces the committed deliverable `ds/productize/plan.md`. Every benchmark cited per rule (`references/rules-monetization.md`, `references/rules-gtm.md`); business decisions are Category B; state-exempt.
+- **`ds-backend` `data-pipeline` scope (4th layer)** — ingest validation, idempotent jobs, silent-drop quarantine, stage quality gates, deterministic merges, incremental loads, retention/PII minimization, job observability, bounded backfills (`references/rules-data-pipeline.md`, DP-01..DP-10).
+- **`ds-blueprint` `ai-architecture` extended (AIA-01..14)** — product-facing LLM feature checks: prompt-injection surface on untrusted input, unvalidated model output, missing eval/regression set for prompt changes, missing per-call cost/usage tracking.
+- **`ds-ship` Monetization branch** — Phase 0 ambiguity block now asks monetization intent (free / paid / internal); paid intent inserts `/ds-productize --audit` (greenfield: `--plan`) into Phase 2 after stack-specific skills. Store execution stays with ds-launch, canonical privacy with ds-compliance.
+
 ### Added — installer + consistency CI (2026-07)
 
 - **`install.sh`** — one-command install/sync/verify: copies only runtime files (skill dirs + `agents/`) into `~/.claude` (or `--project DIR`); per-skill `--skills a,b` selection; `--check` reports drift against the repo (version-stamped via `.dev-skills-version`); `--uninstall`; idempotent, `rsync --delete` per skill so removed files never linger in the installed copy.

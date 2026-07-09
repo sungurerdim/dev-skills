@@ -46,7 +46,7 @@ Without flags: present depth selection to user.
 
 ## Delegation
 
-**Owns:** research, craap-plus-reliability-scoring, source-verification, claim-verification | **Delegates:** web tracks → `ds-research-agent` (optional worker; absent → inline) | **Receives:** ds-benchmark → competitor research engine; ds-ship → Phase 1; ds-solve → web research during backtrack
+**Owns:** research, craap-plus-reliability-scoring, source-verification, claim-verification | **Delegates:** web tracks → `ds-research-agent` (optional worker; absent → inline) | **Receives:** ds-benchmark → competitor research engine; ds-ship → Phase 1; ds-solve → web research during backtrack; ds-productize → pricing/competitor evidence
 
 ## Execution Flow
 

@@ -1,7 +1,7 @@
 # dev-skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/skills-27-blue)]()
+[![Skills](https://img.shields.io/badge/skills-28-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
@@ -12,7 +12,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 
 | Number | Meaning |
 |--------|---------|
-| **27 skills** | One per real lifecycle moment — discover, build, improve, document, comply, track, ship |
+| **28 skills** | One per real lifecycle moment — discover, build, improve, document, comply, monetize, track, ship |
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
@@ -54,7 +54,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | Question | Skill |
 |----------|-------|
 | "Empty repo. Get me to a real project from zero." | [`/ds-init`](ds-init) — scaffold, CI, lint, tests from day one |
-| "Design my API + database + auth, end-to-end." | [`/ds-backend`](ds-backend) — three-layer design, no inconsistent naming |
+| "Design my API + database + auth + data pipeline, end-to-end." | [`/ds-backend`](ds-backend) — four-layer design, no inconsistent naming, no double-processing jobs |
 | "I need design tokens, component states, theming, a11y baseline." | [`/ds-frontend`](ds-frontend) — design system audit + generation |
 | "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 171 rules, 13 domains, release-readiness scoring |
 
@@ -83,6 +83,12 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | Question | Skill |
 |----------|-------|
 | "Am I privacy/regulatory compliant? GDPR, KVKK, CCPA, accessibility law?" | [`/ds-compliance`](ds-compliance) — 98 rules, file:line precision |
+
+### Monetize — turn it into a paid product
+
+| Question | Skill |
+|----------|-------|
+| "Make this a paid SaaS — model, pricing, billing integrity, GTM baseline." | [`/ds-productize`](ds-productize) — cited benchmarks, entitlement/webhook CRITICAL gates, decision-ready plan |
 
 ### Track — manage work as GitHub issues
 
@@ -114,6 +120,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | **New project** | `ds-init` → `ds-quality` → `ds-blueprint` → `ds-test` → `ds-commit` |
 | **Existing project hygiene** | `ds-blueprint` → `ds-review --tactical` → `ds-simplify` → `ds-fix` → `ds-test` → `ds-commit` |
 | **Pre-launch** | `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
+| **Paid product / SaaS** | `ds-productize` → `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
 | **Solo-dev daily loop** | `ds-fix` → `ds-test` → `ds-commit` → `ds-pr` |
 | **Stuck on a hard bug** | `ds-solve` |
 | **Idea → executable plan** | `ds-pipeline` → hand `specs/{feature}/tasks.md` to your executor |
@@ -161,7 +168,7 @@ Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orches
 
 ```bash
 git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
-./install.sh                                # all 27 skills + shared agent -> ~/.claude
+./install.sh                                # all 28 skills + shared agent -> ~/.claude
 ./install.sh --skills ds-review,ds-commit  # or only the ones you want
 ./install.sh --check                        # later: installed copy in sync with the repo?
 ```
@@ -186,11 +193,11 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 rm -rf /tmp/dev-skills
 ```
 
-Install one skill, several, or all 27 — they are independent.
+Install one skill, several, or all 28 — they are independent.
 
 ## Host support
 
-All 27 skills are capability-abstracted markdown — same instructions, any of the 5 hosts. The one exception is `ds-quality`, whose enforcement mechanism differs by host because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for the host matrix.
+All 28 skills are capability-abstracted markdown — same instructions, any of the 5 hosts. The one exception is `ds-quality`, whose enforcement mechanism differs by host because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for the host matrix.
 
 ## How skills work
 

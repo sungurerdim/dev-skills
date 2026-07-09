@@ -27,7 +27,7 @@ All 23 analysis scopes used by `/ds-blueprint`, grouped into the 3 execution bat
 | cross-cutting | XCT-01 to XCT-05 | Decision impact tracing across areas |
 | maintainability | MNT-01 to MNT-12 | Cyclomatic complexity, cognitive complexity, method length, nesting, change coupling, shotgun surgery |
 | simplify | SIM-01 to SIM-11 | Deep nesting, duplicate code, unnecessary abstractions, single-use wrappers |
-| ai-architecture | AIA-01 to AIA-10 | Prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget |
+| ai-architecture | AIA-01 to AIA-14 | Prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget; product-facing LLM features: untrusted input concatenated into prompts (injection surface), model output consumed without schema/shape validation, no eval or regression set for prompt changes, no per-call cost/usage tracking |
 | performance | PRF-01 to PRF-10 | N+1 queries, blocking in async, large file reads, missing pagination/cache/pool |
 
 ## Cross-File Batch (serial — each pass may modify the findings index, order matters for dedup)

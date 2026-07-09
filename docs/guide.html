@@ -78,7 +78,7 @@ footer a{color:var(--accent)}
 Dormant project? <code>/ds-blueprint</code> then <code>/ds-deps --security-only</code> first.
 </div>
 
-<footer>Part of <a href="https://github.com/sungurerdim/dev-skills">dev-skills</a> — 27 markdown-only skills, zero runtime dependencies. Sequences mirror the <code>/ds-ship</code> orchestration matrix.</footer>
+<footer>Part of <a href="https://github.com/sungurerdim/dev-skills">dev-skills</a> — 28 markdown-only skills, zero runtime dependencies. Sequences mirror the <code>/ds-ship</code> orchestration matrix.</footer>
 </main>
 
 <script>
@@ -90,7 +90,7 @@ const S = {
  "ds-review":{w:"Tactical (file-level) and strategic (architecture) code review with file:line findings.",b:"Security holes, dead code and wrong abstractions caught before they ship.",g:"Everything tests miss."},
  "ds-test":{w:"Generates, updates, runs and fixes tests following your project's own patterns.",b:"Tests that assert real behavior and survive refactors.",g:"Mock-everything, assert-nothing AI test suites."},
  "ds-frontend":{w:"Design-system audit: tokens, component states, accessibility, responsive layout, theming.",b:"Consistent, accessible UI enforced in code.",g:"Hardcoded colors, missing focus states, broken dark mode."},
- "ds-backend":{w:"API design, database schema and auth architecture in one pass.",b:"Endpoints, schemas and auth that survive the first migration.",g:"Inconsistent naming, missing pagination, no auth strategy."},
+ "ds-backend":{w:"API design, database schema, auth architecture and data pipelines in one pass.",b:"Endpoints, schemas, auth and pipelines that survive the first migration.",g:"Inconsistent naming, missing pagination, no auth strategy, jobs that double-process on retry."},
  "ds-mobile":{w:"171 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin, React Native).",b:"Store-blocking issues caught before review, not during it.",g:"Permission abuse, missing accessibility, hardcoded keys."},
  "ds-compliance":{w:"98 rules across 8 domains: OWASP security, privacy law, data protection, i18n.",b:"Fines, breaches and rejections prevented with file:line precision.",g:"A missing privacy policy or unpatched XSS."},
  "ds-simplify":{w:"Detects dead exports, single-caller helpers, orphan modules, premature abstractions; you approve every deletion.",b:"A smaller, clearer codebase — zero silent deletion.",g:"Overengineering that doesn't pay rent."},
@@ -99,6 +99,7 @@ const S = {
  "ds-devops":{w:"Audits CI/CD pipelines, code signing, dependency management, deployment config.",b:"Release-pipeline integrity proven before you depend on it.",g:"Broken CI and unsigned builds silently eroding quality."},
  "ds-deploy":{w:"Audits and generates containerization, TLS, health checks, monitoring, incident runbook.",b:"Production-grade infrastructure instead of first-deploy surprises.",g:"Bloated images, no SSL, no monitoring."},
  "ds-launch":{w:"Store-submission / web-launch / publish checks, listing optimization, release strategy.",b:"Preventable rejections caught before you submit.",g:"~40% of store submissions delayed by avoidable errors."},
+ "ds-productize":{w:"Paid-product readiness audit: monetization model, entitlement/webhook integrity, pricing/packaging, GTM baseline.",b:"Revenue readiness proven with the same rigor as code readiness.",g:"Paid features enforced client-only, pricing invented in release week, no funnel to learn from."},
  "ds-repo":{w:"Audits and fixes repo settings: branch protection, CODEOWNERS, policies, metadata.",b:"A hardened, contributor-ready repository.",g:"Unprotected main, stale branches, missing CODEOWNERS."},
  "ds-tune":{w:"Runs 100+ autonomous experiments against a measurable metric, keeps only what improves it.",b:"Optimization with an audit trail instead of gut feeling.",g:"Slow, subjective manual tuning."},
  "ds-deps":{w:"Classifies every dependency safe-patch / safe-minor / review-major; applies safe groups with per-group commits and a rollback plan.",b:"Dependencies stay current without breakage roulette.",g:"Security advisories piling up in dormant projects."},
@@ -119,9 +120,9 @@ const P={
   "CLI Tool":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test","ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
   "Library / Package":[note("ds-blueprint","fresh findings first"),"ds-review",note("ds-test","aim high coverage"),"ds-simplify","ds-fix",note("ds-docs","API docs are the product"),note("ds-brief","optional: shareable sourced report")]},
  "Launch":{
-  "Web App":["ds-devops","ds-deploy",note("ds-launch","web launch checks"),"ds-repo"],
-  "Backend / API":["ds-devops","ds-deploy","ds-repo"],
-  "Mobile App":["ds-devops",note("ds-deploy","only if you own the backend"),note("ds-launch","store submission"),"ds-repo"],
+  "Web App":[note("ds-productize","if you charge for it"),"ds-devops","ds-deploy",note("ds-launch","web launch checks"),"ds-repo"],
+  "Backend / API":[note("ds-productize","if you charge for it"),"ds-devops","ds-deploy","ds-repo"],
+  "Mobile App":[note("ds-productize","if you charge for it"),"ds-devops",note("ds-deploy","only if you own the backend"),note("ds-launch","store submission"),"ds-repo"],
   "CLI Tool":["ds-devops",note("ds-repo","--oss-ready if public")],
   "Library / Package":["ds-devops",note("ds-repo","--oss-ready, then publish to the registry yourself")]},
  "Live":{

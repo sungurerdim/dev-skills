@@ -761,7 +761,7 @@ In practice only long autonomous skills qualify (e.g. `ds-tune` experiment loops
 - If absent → append `ds/audit/` to root `.gitignore` and report the addition.
 - Legacy patterns (`.ds-findings.md`, `.ds-*-state.json`) present → remove them and note the migration.
 
-**Exempt skills — everything outside the qualifying four.** Only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist state; the other 23 skills are exempt and state the one-line exemption reason in their Contract section. Canonical exemption classes:
+**Exempt skills — everything outside the qualifying four.** Only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist state; the other 24 skills are exempt and state the one-line exemption reason in their Contract section. Canonical exemption classes:
 
 | Exemption class | Example skills | Reason |
 |-----------------|----------------|--------|
@@ -969,9 +969,10 @@ The boundaries below define **primary ownership** — which skill provides the d
 | ds-test | Test lifecycle: generate, update, run, fix, prune, coverage, E2E | Full test analysis + generation for 13 stacks |
 | ds-research | Multi-source research with CRAAP+ reliability scoring | Standalone research workflow |
 | ds-init | Project scaffolding: directory structure, CI, Docker, testing, editor config | Generate production-ready project structure for any stack |
-| ds-backend | API design + database schema + auth architecture: audit, design, spec, migrate | Full backend review: REST/GraphQL, DB, auth |
+| ds-backend | API design + database schema + auth architecture + data pipelines: audit, design, spec, migrate | Full backend review: REST/GraphQL, DB, auth, ingest/ETL |
 | ds-deploy | Deployment + infrastructure + monitoring + incident response | Containerization, VPS, SSL, monitoring, cost, incident |
 | ds-launch | Store submission + release management + post-launch monitoring | Store listing, privacy labels, review prep, staged rollout |
+| ds-productize | Paid-product readiness: monetization model + billing/entitlement integrity, pricing/packaging, GTM baseline | Full monetization/pricing/gtm audit + productization plan |
 | ds-frontend | Frontend design quality: design system, tokens, components, states, a11y, responsive, theming | Full UI audit + design system generation for any framework |
 | ds-tune | Autonomous optimization: measurable metric loop, 100+ experiments, keep only improvements | Full optimization workflow for any measurable metric |
 | ds-solve | Adaptive problem-solving: multi-plan backtracking, web research, constraint preservation | Full iterative solve with 3-layer budget ({P} plans x {R} rounds x {A} alternatives) |
@@ -1003,6 +1004,7 @@ Where concerns overlap between skills, each skill handles the full concern indep
 | Store readiness | ds-mobile (mobile-specific audit), ds-launch (store submission + release) | ds-mobile audits app quality. ds-launch handles store listing, privacy labels, review prep, release management. |
 | API design | ds-backend (API + DB + auth design), ds-review (code quality) | ds-backend owns API/DB/auth architecture. ds-review handles code-level quality fixes. |
 | UI/UX quality | ds-frontend (design system), ds-mobile (mobile UX), ds-review (code quality), ds-compliance (a11y law) | ds-frontend owns design tokens, component states, responsive, theming. ds-mobile owns mobile-specific UX (gestures, permissions, store). ds-review owns code-level quality. ds-compliance owns regulatory a11y (EAA, ADA). |
+| Paid-product readiness | ds-productize (monetization, pricing, gtm), ds-launch (store execution), ds-compliance (subscription law, privacy), ds-backend (billing code security), ds-benchmark (competitive research) | ds-productize owns the monetization/pricing/gtm audit + plan. ds-launch executes store/release. ds-compliance is canonical for legal/privacy. ds-backend owns billing data model + webhook security. ds-benchmark owns competitor architecture research. |
 
 ### Inter-Skill Communication
 
@@ -1102,7 +1104,8 @@ All scopes from all skills can appear in findings. The analyzer does not need to
 | ci, signing, deps, deploy | ds-devops | ds-devops (own fix), ds-deps (upgrade execution) |
 | deps-upgrade | ds-deps | ds-deps (own fix), ds-commit (per-group commit) |
 | mobile-specific scopes | ds-mobile | ds-mobile (own fix) |
-| api, db, auth design | ds-backend | ds-backend (own design/spec) |
+| api, db, auth, data-pipeline design | ds-backend | ds-backend (own design/spec) |
+| monetization, pricing, gtm | ds-productize | ds-productize (own audit + plan), ds-ship (Phase 2 on paid-product intent) |
 | deployment, infra, monitoring | ds-deploy | ds-deploy (own config gen) |
 | store, release, privacy-labels (store-label-correctness only) | ds-launch | ds-launch (own metadata gen) |
 | perf-budget | ds-launch --perf-budget | ds-devops (CI wiring) |
@@ -1206,8 +1209,9 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 | ds-deploy | **Config.deploy** → skip target detection, use stated method (Docker, VPS, PaaS). **Project Map.External** → know dependencies to configure (Redis, DB, etc.). **Config.constraints** → respect infra constraints. | deployment, infra, monitoring |
 | ds-devops | **Project Map.Toolchain** → skip CI detection, use stated CI platform. **Type + Stack** → select correct pipeline templates. | ci, signing, deps |
 | ds-mobile | **Config.data** → know privacy requirements for store compliance. **Config.deploy** → know build pipeline (CI, signing). **Current Scores** → focus on lowest dimensions. | mobile-specific scopes |
-| ds-backend | **Project Map.Modules** → know API structure, skip architecture discovery. **Config.data** → know auth/data requirements. **Project Map.External** → know existing DB/cache/queue. | api, db, auth |
+| ds-backend | **Project Map.Modules** → know API structure, skip architecture discovery. **Config.data** → know auth/data requirements. **Project Map.External** → know existing DB/cache/queue. | api, db, auth, data-pipeline |
 | ds-launch | **Config.audience** → know store requirements. **Config.deploy** → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
+| ds-productize | **Type + Stack** → platform routing (store IAP vs web checkout). **Config.audience** → B2B/B2C calibration. **Config.deploy** → checkout surface detection. | monetization, pricing, gtm (producer); spec-alignment (consumer) |
 | ds-frontend | **Config.priorities** → order scope execution. **Type + Stack** → select framework-specific patterns. **Current Scores** → focus on lowest-scoring UX dimensions. | tokens, components, states, a11y, responsive, theming |
 | ds-solve | **Type + Stack** → research query context. **Config.constraints** → automatic red lines. **Current Scores** → weak dimensions near objective. | — (context consumer, not scope producer) |
 | ds-simplify | **Config.constraints** → respect keep-constraints when proposing deletions. **Project Map.Toolchain** → verify deletions against build. | hygiene, simplify |
@@ -1873,5 +1877,6 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | ds-commit | CMT | ds-backend | BE | ds-issue | ISS |
 | ds-pr | PR | ds-deploy | DEP | ds-quality | QAL |
 | ds-deps | DPS | ds-benchmark | BEN | ds-pipeline | PIPE |
+| ds-productize | PTZ | | | | |
 
 **Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.

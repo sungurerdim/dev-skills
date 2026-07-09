@@ -1,8 +1,8 @@
 # ds-backend
 
-AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, and schemas that don't survive first migration. Skill designs all three layers correctly from start.
+AI-generated APIs ship with inconsistent naming, missing pagination, no auth strategy, schemas that don't survive first migration, and data pipelines that double-process on retry. Skill designs all four layers correctly from start.
 
-**API design, database schema review, and authentication architecture — audit, design, and spec generation.**
+**API design, database schema review, authentication architecture, and data-pipeline audit — audit, design, and spec generation.**
 
 ## Install
 
@@ -42,10 +42,11 @@ Run `/ds-backend`, or ask to review your API, database schema, or auth flow.
 | **API** | REST/GraphQL design, naming, status codes, pagination, OWASP API Top 10 |
 | **Database** | Schema design, indexing, migrations, query optimization, PII handling |
 | **Auth** | OAuth2/OIDC flows, JWT/session management, RBAC, social login, MFA |
+| **Data Pipeline** | Ingest validation, idempotent jobs, quality gates, retention, backfill safety, observability |
 
 ## Features
 
-- Three backend domains in one skill (API + DB + Auth)
+- Four backend domains in one skill (API + DB + Auth + Data Pipeline)
 - OpenAPI 3.0+ spec generation
 - Migration safety checks (no silent data loss)
 - OWASP API Top 10 security checks
