@@ -1,5 +1,6 @@
 # dev-skills
 
+[![CI](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/skills-28-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
@@ -170,7 +171,9 @@ Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orches
 git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
 ./install.sh                                # all 28 skills + shared agent -> ~/.claude
 ./install.sh --skills ds-review,ds-commit  # or only the ones you want
+./install.sh --project /path/to/other-repo  # install into that repo's .claude instead of ~/.claude
 ./install.sh --check                        # later: installed copy in sync with the repo?
+./install.sh --uninstall                    # remove installed dev-skills content
 ```
 
 The installer copies **only runtime files** (skill dirs + agents) — spec and docs never enter your context path. Re-running syncs: files removed from a skill in the repo are removed from the installed copy too. Update = `git pull && ./install.sh`.
@@ -222,7 +225,7 @@ Always-on behavioral guardrails that prevent mistakes between skill invocations 
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Community standards: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Report a vulnerability: [SECURITY.md](SECURITY.md).
 
 ## License
 
