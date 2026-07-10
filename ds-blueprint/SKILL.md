@@ -110,9 +110,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 
 ## Execution Flow
 
-```
 Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest] → Update Profile → [Needs-Approval] → Summary
-```
 
 **Mandatory phases** (always execute, always produce output): Assess, Consolidate, Dashboard, Update Profile, Summary. Skipping a mandatory phase is an execution bug.
 

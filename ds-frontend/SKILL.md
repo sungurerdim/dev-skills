@@ -98,7 +98,7 @@ Default: all scopes.
 
 ## Delegation
 
-**Owns:** tokens, components, states, a11y (implementation), responsive, theming, design-system | **Delegates:** none | **Receives:** ds-compliance → a11y implementation/fixes; ds-blueprint → frontend scope findings
+**Owns:** tokens, components, states, a11y (implementation), responsive, theming, design-system | **Delegates:** none | **Receives:** ds-compliance → a11y implementation/fixes; ds-blueprint → frontend scope findings; ds-ship → Phase 2 stack-specific delegation
 
 ## Execution Flow
 

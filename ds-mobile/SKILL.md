@@ -57,13 +57,11 @@ No flags → present mode selection.
 
 ## Delegation
 
-**Owns:** mobile-security, mobile-privacy, mobile-regulatory, mobile-ux, mobile-store, mobile-permissions, mobile-release, mobile-visual | **Delegates:** none (authoritative for mobile projects) | **Receives:** ds-compliance → security / privacy / regulatory on mobile projects; ds-launch → mobile-specific store compliance
+**Owns:** mobile-security, mobile-privacy, mobile-regulatory, mobile-ux, mobile-store, mobile-permissions, mobile-release, mobile-visual | **Delegates:** none (authoritative for mobile projects) | **Receives:** ds-compliance → security / privacy / regulatory on mobile projects; ds-launch → mobile-specific store compliance; ds-ship → Phase 2 stack-specific delegation
 
 ## Execution Flow
 
-```
 Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/Score] → [Needs-Approval] → Summary
-```
 
 ### Phase 1: Detect
 

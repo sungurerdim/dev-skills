@@ -112,9 +112,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 
 ## Execution Flow
 
-```
 P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs → P5 Launch Gates → [P5c PR Suggestion] → P6 Report → [Needs-Approval] → Summary
-```
 
 ### Phase 0: Assess
 

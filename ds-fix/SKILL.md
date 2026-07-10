@@ -57,7 +57,7 @@ Default: all five scopes in order.
 
 ## Delegation
 
-**Owns:** format, lint, typecheck, l10n, secret-scan-quick, dep-quick-check | **Delegates:** ds-deps → deps-upgrade-execution; ds-review → code-level quality fixes | **Receives:** ds-commit → pre-commit gates; ds-pr → pre-PR gates; ds-issue → format/lint/type passes during issue execution; ds-quality → verify-loop toolchain passes
+**Owns:** format, lint, typecheck, l10n, secret-scan-quick, dep-quick-check | **Delegates:** ds-deps → deps-upgrade-execution; ds-review → code-level quality fixes | **Receives:** ds-commit → pre-commit gates; ds-pr → pre-PR gates; ds-issue → format/lint/type passes during issue execution; ds-quality → verify-loop toolchain passes; ds-ship → Phase 2 rule audit
 
 ## Tool Install Policy (applied to every scope below)
 

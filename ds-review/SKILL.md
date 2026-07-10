@@ -76,7 +76,7 @@ Without flags: present mode selection.
 
 | Group | Scopes |
 |-------|--------|
-| Structure | architecture, patterns, cross-cutting |
+| Structure | architecture, patterns, cross-cutting, contract-consistency |
 | Quality | testing, maintainability |
 | Production Readiness | production-readiness |
 | Completeness | functional-completeness, ai-architecture |
@@ -84,6 +84,7 @@ Without flags: present mode selection.
 **Per-scope mandatory checks ([references/principles.md](references/principles.md)):**
 
 - **architecture, patterns:** evaluate by name — SOLID (SRP, OCP, LSP, ISP, DIP) and GRASP (Information Expert, Low Coupling >7 unrelated imports, High Cohesion). Cite violated principle in finding title ([references/principles.md §2](references/principles.md)).
+- **contract-consistency:** same concept → same name across the whole codebase (one verb per operation class, uniform domain terms across layers), same word → same meaning, analogous functions share parameter order/options shape, consistent units/formats at boundaries, one return/error shape per layer. Flag only after 3+ concrete examples of the same lexicon drift ([references/principles.md](references/principles.md)).
 - **production-readiness:** enumerate reliability patterns — flag missing timeout on every external call, retry-with-backoff on transient failures (idempotent ops only), circuit breaker on high-volume services, health checks (liveness + readiness), idempotency keys on externally-exposed write endpoints, graceful shutdown handler, structured logging (no raw `print`/`console.log` in production paths), fail-fast input validation at every system boundary ([references/principles.md §4](references/principles.md)).
 - **testing:** verify Test Pyramid (unit-heavy, E2E-light — inverted = HIGH), AAA presence, realistic test data, regression-test-before-fix discipline, coverage as diagnostic not goal ([references/principles.md §7](references/principles.md)).
 
@@ -141,14 +142,10 @@ Findings that fail all three are silently discarded — false-positive guard.
 ## Execution Flow
 
 **Tactical / Strategic / Perf:**
-```
 Setup → Analyze → [Gap Analysis] → [Plan] → Apply → [Needs-Approval] → Summary
-```
 
 **Meta-Quality:**
-```
 Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (gated) → [Needs-Approval] → Summary
-```
 
 ### Phase 1: Setup [SKIP if --auto]
 

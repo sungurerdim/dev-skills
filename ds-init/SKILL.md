@@ -62,7 +62,7 @@ No flags → up-front interactive menu covering every project type, each with a 
 
 ## Delegation
 
-**Owns:** scaffolding, project-init, ci-bootstrap, editor-config | **Delegates:** none | **Receives:** none
+**Owns:** scaffolding, project-init, ci-bootstrap, editor-config | **Delegates:** none | **Receives:** ds-ship → idea/spec-only/scaffold stage sequencing
 
 ## Execution Flow
 

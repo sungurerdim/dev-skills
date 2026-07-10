@@ -188,7 +188,7 @@ Step disposition table:
 
 **Dispositions:** `fixed` (step completed, verification passed, red lines held) | `failed` (all alternatives exhausted across all research rounds) | `skipped` (not attempted — plan changed, `--dry-run`, user declined — with reason) | `needs-input` (requires information from user, asked before summary) | `needs-approval` (irreversible or cross-module — awaiting confirmation) | `not-applicable` (step rendered unnecessary by different plan approach).
 
-**Accounting gate:** `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total_steps`.
+**Gate:** `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total_steps`.
 
 Status: `OK` (objective achieved), `WARN` (partial — some steps succeeded), `FAIL` (objective not achieved after exhaustion or abort).
 
