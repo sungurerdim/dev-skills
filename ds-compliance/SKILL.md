@@ -18,7 +18,7 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 - User asks about CSP, CORS, XSS, CSRF, or web security
 - User asks about internationalization compliance
 
-Covers 98 rules across 9 compliance domains.
+Covers 98 rules across 8 compliance domains.
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -84,9 +84,7 @@ Every secret is its own needs-approval item. `--auto` lists them, marks all `ski
 
 ## Execution Flow
 
-```
 Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summary
-```
 
 ### Phase 1: Detect
 
