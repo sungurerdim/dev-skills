@@ -13,6 +13,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+command -v rsync >/dev/null 2>&1 || { echo "rsync is required but not installed. Install it (e.g. 'brew install rsync' or 'apt install rsync') and re-run."; exit 1; }
+
 target="$HOME/.claude"
 mode="install"
 only=""
@@ -33,7 +35,9 @@ version_file="$skills_dir/.dev-skills-version"
 
 skill_list() {
   if [ -n "$only" ]; then
-    echo "$only" | tr ',' '\n'
+    echo "$only" | tr ',' '\n' | while IFS= read -r s; do
+      [[ "$s" =~ ^ds-[a-zA-Z0-9_-]+$ ]] && echo "$s" || echo "Skip: '$s' is not a valid ds-* skill name" >&2
+    done
   else
     ls -d ds-*/ | sed 's:/$::'
   fi
