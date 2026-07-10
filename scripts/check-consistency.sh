@@ -50,14 +50,17 @@ bogus=$(grep -rno 'W1[89]\|W2[0-9]' ds-*/SKILL.md ds-*/references ds-*/README.md
 [ -z "$bogus" ] || err "bogus W-numbers (registry is W1-W17):
 $bogus"
 
-# 7. Trigger Discipline: INVOKE / DON'T INVOKE table in every skill
+# 7. Trigger Discipline: INVOKE / DON'T INVOKE table (real table shape, not just the bare string)
 for f in ds-*/SKILL.md; do
-  grep -q "DON'T INVOKE" "$f" || err "$f missing INVOKE / DON'T INVOKE table"
+  header=$(grep -cE '^\| *INVOKE *\| *.*DON.T INVOKE.* *\|$' "$f")
+  [ "$header" -ge "1" ] || err "$f missing an INVOKE / DON'T INVOKE table header row"
 done
 
-# 8. Canonical gitignore pattern: ds/audit/ directory form, never ds/audit/*.json
-wrong=$(grep -rn 'ds/audit/\*\.json' ds-*/SKILL.md || true)
-[ -z "$wrong" ] || err "non-canonical .gitignore pattern:
+# 8. Canonical gitignore: repo's own .gitignore has the ds/audit/ directory form,
+#    and no SKILL.md documents a non-canonical variant (ds/audit/*.json, .ds-audit/, ds-audit/)
+grep -qxF 'ds/audit/' .gitignore || err ".gitignore missing canonical 'ds/audit/' line"
+wrong=$(grep -rnE 'ds/audit/\*\.json|\.ds-audit/|(^|[^/-])ds-audit/' ds-*/SKILL.md || true)
+[ -z "$wrong" ] || err "non-canonical .gitignore pattern documented:
 $wrong"
 
 if [ "$fail" = "0" ]; then
