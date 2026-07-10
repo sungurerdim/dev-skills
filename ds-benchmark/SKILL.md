@@ -154,6 +154,8 @@ Category A gaps recorded as findings but not executed here — consumers (ds-shi
 
 Resolved inline in Phase 6. If skipped via `--auto`, surface summary here with count.
 
+**Gate:** Every gap decided in Phase 6 has a disposition; zero left undecided. If fails → a gap was skipped during `--auto` → list it here with its default disposition (`deferred`) before Summary.
+
 ### Phase 9: Summary
 
 FRC+DSC accounting.

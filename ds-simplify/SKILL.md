@@ -196,6 +196,8 @@ Parallel execution per scope allowed. One commit per scope-batch so user can rev
 
 No separate needs-approval items beyond Phase 4 batch — every item was B.
 
+**Gate:** Every Phase 4 batch item resolved (committed or rolled back); none left pending. If fails → an item was left undecided in Phase 4 → surface it here for an explicit decision before Summary.
+
 ### Phase 7: Summary
 
 FRC+DSC accounting.
