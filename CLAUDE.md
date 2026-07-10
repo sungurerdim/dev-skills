@@ -79,3 +79,22 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 - Collect nothing you don't need
 - If a human is doing it repeatedly, it should be automated
 - Every decision minimizes YOUR legal exposure (not the vendor's)
+
+## Blueprint Profile
+
+Type: library | Stack: markdown | Target: production
+Priorities: code-quality, dx, docs | Constraints: zero-new-dependencies, keep-markdown-only
+Data: none | Regulations: none
+Audience: public, other-developers | Deploy: git-clone-plus-install-sh
+
+Entry: README.md (docs) ; install.sh (tooling)
+Modules: ds-*/=skill(28); agents/=shared-agent(1); docs/=reference-docs(9-dirs); references/=source-material(2); scripts/=ci-tooling(1)
+Data Flow: repo-clone→install.sh→~/.claude/skills→AI-host-invocation
+External: rsync(sync-tool, system-only)
+Toolchain: bash scripts/check-consistency.sh | CI: github-actions (consistency-only) | Container: none
+
+Ideal: coupling=low cohesion=high complexity=low coverage=n/a
+
+Scores: sec=92 quality=72 arch=65 perf=90 resil=45 test=55 stack=88 dx=78 docs=68 overall=73 model=claude-sonnet-5
+
+## End Blueprint Profile
