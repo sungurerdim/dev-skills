@@ -1,3 +1,8 @@
+---
+name: ds-quality
+description: Quality-by-Mechanism — installs a deterministic, local, no-CI quality gate (format → lint → type → test) enforced via a host-appropriate mechanism (Claude Code Stop hook, Aider auto-lint/test, or git pre-commit). Use when the user asks to enforce quality, set up a quality gate, or block "done" until checks pass, without relying on CI.
+---
+
 # /ds-quality
 
 Agents promise "done" without proof; code quality ends up depending on whether an
@@ -66,6 +71,8 @@ Detect toolchain → Establish quality signals → Single entry point → Enforc
 - Identify the host: `.aider.conf.yml` or an active Aider session → Aider; `~/.claude/` present / running inside Claude Code → Claude Code; neither → universal (git pre-commit).
 - **Report the detected stack + host before changing anything.**
 
+**Gate:** Stack, existing tooling, and host are all identified from real manifests/lockfiles/configs — never assumed. If fails → no manifest/lockfile detected (unknown stack) → ask the user which language/toolchain to target before proceeding; do not guess.
+
 ### Phase 2 — Establish the quality signals
 For the detected stack (see [references/toolchains.md](references/toolchains.md) for exact commands + bootstrap), ensure each EXISTS and RUNS; create minimal **standard** config only where missing, preferring tools already in the lockfile:
 1. **Formatter** in check-mode.
@@ -74,6 +81,8 @@ For the detected stack (see [references/toolchains.md](references/toolchains.md)
 4. **Test runner** with at least a smoke + boundary test. If NO tests exist, create a small **real** starter suite asserting actual behavior of a core module, including boundary cases (empty/null/max/edge). Mark thin coverage clearly. **Never fake tests.**
 
 No heavy new dependencies without justification. Standard, boring defaults only.
+
+**Gate:** Formatter, linter, type-checker (if the language supports one), and test runner each exist and run. If fails → a tool can't be installed (no package-manager access, network blocked) → report the specific gap, skip that signal, continue with the rest — never fake a missing check as passing.
 
 ### Phase 3 — Single quality entry point
 Exactly one command, fail-fast, in order **format-check → lint → type-check → tests**, exit non-zero on first failure, human-runnable:
@@ -85,6 +94,8 @@ Exactly one command, fail-fast, in order **format-check → lint → type-check 
 | neither | create `scripts/quality.sh` (from [assets/quality.sh.tmpl](assets/quality.sh.tmpl)) | `bash scripts/quality.sh` |
 
 The entry point runs only checks that actually exist for the detected stack. Never invent a check that has no tool. Verify a human can run it and it exits non-zero on failure.
+
+**Gate:** Single entry point exists, runs fail-fast in the required order, and exits non-zero on failure. If fails → no supported build system present and the template is unusable in this shell → surface the blocker and ask the user to specify an entry-point mechanism; do not fabricate a passing command.
 
 ### Phase 4 — Enforcement (select the arm, then wire it)
 Every arm enforces the **same** entry point from Phase 3 — they differ only in *when* they run it.
@@ -129,6 +140,8 @@ Arm A, stated honestly:** this enforces at commit time, not at "done"/stop time 
 report a task complete between an edit and the next commit; the gate only fires when `git commit`
 runs.
 
+**Gate:** The correct arm for the detected host is selected and wired without clobbering existing config. If fails → `jq` missing (Arm A), `.aider.conf.yml` unwritable (Arm B), or not a git repo (Arm C) → report the specific blocker per Edge Cases, fall back to `--run`-only enforcement — never silently skip enforcement.
+
 ### Phase 5 — Prove it works (demonstrate, don't claim)
 Run all three and show output, for whichever arm(s) were wired:
 1. **Green baseline:** run the quality command → exit 0.
@@ -142,6 +155,8 @@ Run all three and show output, for whichever arm(s) were wired:
      With the temp failure in place, the first call must emit `{"decision":"block",…}`; reverted, it must emit nothing and `exit 0`.
    - Arm B: confirm `.aider.conf.yml` parses (`aider --help` or a config dry-run) and the configured `lint-cmd`/`test-cmd` matches the Phase-3 entry point.
    - Arm C: `bash .git/hooks/pre-commit; echo "exit=$?"` with the temp failure in place → non-zero; reverted → zero.
+
+**Gate:** Green→red→green demonstrated for the quality command, and the wired arm's trigger test shown (block-on-red / pass-on-green). If fails → red state doesn't trigger the arm as expected → do not report enforcement as installed; mark it "wired but unverified" and surface the specific failure.
 
 ## Report Format
 
