@@ -1958,7 +1958,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 
 | Layer | Name | Count |
 |-------|------|-------|
-| A | Product & Market | 10 (A1–A10) |
+| A | Product & Market | 11 (A1–A11) |
 | B | Engineering | 6 (B1–B6) |
 | C | Trust & Compliance | 5 (C1–C5) |
 | D | Operations | 10 (D1–D10) |
@@ -1978,6 +1978,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | A8 | i18n/l10n | ds-fix (mechanical) + ds-compliance (rules) | Internationalization detection, localization readiness | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Portability/Compatibility |
 | A9 | Ecosystem integration (Google + Apple) | ds-blueprint (signal) + ds-backend/ds-compliance/ds-frontend/ds-launch/ds-mobile (conditional) | Google OAuth, Sign in with Apple, Limited Use, store disclosure | [Apple HIG](https://developer.apple.com/design/human-interface-guidelines) + [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) + [Google OAuth 2.0 Policies](https://developers.google.com/identity/protocols/oauth2/policies) |
 | A10 | API reference quality (OpenAPI/SDK/examples) | ds-docs (API doc completeness) + ds-backend (OpenAPI spec) | OpenAPI specification, SDK ergonomics, example quality | [OpenAPI Specification](https://spec.openapis.org/) |
+| A11 | Ecosystem openness (interop) | ds-backend (webhook/export/embed surface) + ds-compliance (portability crosscheck) + ds-productize (GTM/lock-in signal) | Webhook emission, standard-format export (ICS/CSV/JSON), embeddable surfaces, public API posture — anti-lock-in and data-portability (GDPR Art. 20) | [Standard Webhooks](https://www.standardwebhooks.com/) + [OpenAPI Specification](https://spec.openapis.org/) (public API posture) |
 | B1 | Code quality & simplicity | ds-review, ds-fix, ds-simplify, ds-quality | Format, lint, typecheck, complexity, dead code | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Maintainability |
 | B2 | Architectural health | ds-blueprint + ds-review --strategic | 9-dimension health scoring, architectural consistency | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Maintainability + Compatibility |
 | B3 | Testing & verification | ds-test | Test generation, coverage, test-fix, E2E scenarios, synthetic scale-envelope fixtures | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Reliability + [DORA](https://dora.dev/) change failure rate |

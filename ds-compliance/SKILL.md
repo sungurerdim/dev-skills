@@ -32,7 +32,7 @@ Covers 98 rules across 8 compliance domains.
 
 ## Contract
 
-**Dimensions:** C1 (canonical), C2 (canonical), C3 (regulatory), A7 (regulatory), A8 (rules), A9 (conditional ecosystem rules)
+**Dimensions:** C1 (canonical), C2 (canonical), C3 (regulatory), A7 (regulatory), A8 (rules), A9 (conditional ecosystem rules), A11 (portability crosscheck)
 **Framework alignment (advisory):** OWASP ASVS (C1), OWASP SAMM (C2) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).

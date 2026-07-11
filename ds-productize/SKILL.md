@@ -29,7 +29,7 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 
 ## Contract
 
-**Dimensions:** A1 (GTM), A2, A3 (funnel)
+**Dimensions:** A1 (GTM), A2, A3 (funnel), A11 (GTM signal)
 
 - Covers four scopes: monetization (model + billing/entitlement integrity), pricing (tiers + packaging), gtm (positioning + funnel baseline), analytics (funnel instrumentation — ops telemetry delegated to ds-deploy).
 - Audits and plans — generates findings and `ds/productize/plan.md`; payment-provider integration code itself is implemented by the user or ds-backend.
@@ -78,6 +78,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 4. Funnel instrumentation — acquisition→activation→revenue→retention events defined, object-action naming, privacy-first (no PII in properties, consent where required)
 5. Revenue metrics baseline — MRR/churn/trial-to-paid measurable from existing data; LTV:CAC computable once ads spend exists
 6. Launch plan — pre-launch checklist exists (waitlist/beta, announcement channels, press-kit basics) or is generated into the plan
+7. Ecosystem openness (A11, advisory) — webhook emission, standard export formats (ICS/CSV/JSON), embeddable surfaces, and public API posture flagged as an anti-lock-in GTM signal when absent on a product where competitors offer it; never a blocker (SKILL-SPEC §15) — technical implementation is ds-backend's A11 scope, this is the business-framing note only
 
 ## Delegation
 

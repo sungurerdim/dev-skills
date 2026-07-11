@@ -28,7 +28,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 
 ## Contract
 
-**Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design), D10 (admin API + stats)
+**Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design), D10 (admin API + stats), A11 (webhook/export/embed)
 **Framework alignment (advisory):** Google SRE PRR (D3, D4), OpenAPI Specification (A10), OWASP ASVS (C1) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Covers four scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve).
@@ -70,6 +70,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | Idempotency | `Idempotency-Key` header for non-idempotent POST |
 | Logging | Structured request logging (request ID, duration, status) |
 | Error-channel decision (D4, advisory) | Production crash/error reporting has an explicit decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only — see ds-compliance crosscheck), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding, never a blocker (SKILL-SPEC §15) |
+| Ecosystem openness (A11, advisory) | Webhook emission surface (versioned payload, HMAC signature verification, retry/backoff — aligned to the [Standard Webhooks](https://www.standardwebhooks.com/) spec where feasible) for state-change events; standard-format export endpoints (ICS/CSV/JSON, not just proprietary JSON) for user data; embeddable-surface posture (widget/iframe API) where the product has a natural embed use case. Product holds user data with no standard export path -> advisory portability finding (see ds-compliance crosscheck); never a blocker (SKILL-SPEC §15) |
 | Security | OWASP API Top 10 checks |
 
 ### Database

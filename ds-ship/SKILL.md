@@ -309,6 +309,7 @@ Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §
 | A8 | {audited | owner-skipped | unowned} | ds-fix (mechanical) + ds-compliance (rules) |
 | A9 | {N/A — integrations none | conditional — integrations active | unowned} | ds-blueprint (signal) + ds-backend/ds-compliance/ds-frontend/ds-launch/ds-mobile (conditional) |
 | A10 | {audited | owner-skipped | unowned} | ds-docs + ds-backend |
+| A11 | {audited | owner-skipped | unowned} | ds-backend + ds-compliance + ds-productize |
 | B1 | {audited | owner-skipped | unowned} | ds-review, ds-fix, ds-simplify, ds-quality |
 | B2 | {audited | owner-skipped | unowned} | ds-blueprint + ds-review --strategic |
 | B3 | {audited | owner-skipped | unowned} | ds-test |

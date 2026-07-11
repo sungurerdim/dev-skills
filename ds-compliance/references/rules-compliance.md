@@ -350,8 +350,9 @@ Users can export their data in machine-readable format.
 - **Detect:**
   - No data export feature
   - Search: absence of `data_export`, `download_my_data`, `portability` in account/settings
+  - A9/A11 crosscheck: a stated privacy-policy portability *promise* with no matching real endpoint/button in code (policy says "you can export your data" but no `data_export`/`download_my_data` implementation found) — CRITICAL, not just MEDIUM gap, since this is a legal claim contradicted by the product
 - **Fix:** Data export in JSON/CSV. "Download My Data" button. Response within 30 days (GDPR) or 45 days (CCPA)
-- **Source:** GDPR Art. 20
+- **Source:** GDPR Art. 20; extends A11 (ecosystem openness — ds-backend's standard-format export surface is the technical implementation this rule verifies)
 
 ### PRV-19 [CRITICAL] Consent Withdrawal [FRAMEWORK: GDPR,UK_GDPR,LGPD,PIPL,KVKK,PIPA,PDPA]
 Withdrawal as easy as giving consent.
