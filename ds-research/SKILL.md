@@ -28,6 +28,8 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 - Searches both local codebase files and web sources.
 - Only includes verified, accessible sources and URLs. Presents T5/T6 with confidence caveats. Resolves contradictions when sources disagree. Cites specific source tiers in every synthesis.
 - Standalone. Uses blueprint when available; own analysis when absent. Web tracks: dispatches `ds-research-agent` when available (same handoff contract as ds-brief Phase 2); inline search when absent — identical methodology either way. Local-codebase track always runs skill-side.
@@ -154,3 +156,4 @@ Zero-result run: `No credible sources found in budget — query refined and re-r
 | No web results | Fall back to local codebase search only |
 | All sources score <50 | Report low-confidence findings, recommend manual verification |
 | Query too broad | Ask user to narrow scope with specific sub-questions |
+

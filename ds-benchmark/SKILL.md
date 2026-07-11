@@ -27,6 +27,8 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 
 ## Contract
 
+**Dimensions:** A1 (market positioning)
+
 - Standalone; uses blueprint profile + `ds/audit/findings.md` when fresh to skip re-detection.
 - State-exempt: single regenerable report/audit.
 - FRC+DSC enforced.
@@ -203,3 +205,4 @@ Competitors: {n} (T1: {x}, T2: {y}, T3: {z})
 | Pinned constraint conflicts with every ideal | Record conflict as intentional-deviation with `"constrained by {reason}"` note |
 | Pre-launch project with empty codebase | Produce ideal-only report; gap table shows all rows as `missing` |
 | Public research unavailable for commercial competitors | Tier T2 sources higher; flag `commercial-closed` in weakness column |
+

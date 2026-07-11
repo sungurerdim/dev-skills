@@ -24,6 +24,8 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 
 ## Contract
 
+**Dimensions:** D3, D4, D7, A3 (ops)
+
 - Covers deployment, infrastructure hardening, monitoring, incident response.
 - Generates configuration files and checklists — does NOT execute deployment commands.
 - Minimal liability + maximum performance + minimum dependencies + maximum automation: generates configs for review (never auto-deploys to prod); optimizes Docker images, enables caching, configures health checks; prefers minimal infra (Caddy over Nginx+certbot, SQLite over managed DB where appropriate); CI/CD integration, automated SSL, automated backups.
@@ -214,3 +216,4 @@ Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list 
 | Monorepo | Ask which service to deploy, respect workspace boundaries |
 | Already on PaaS (Vercel / Railway) | Focus on platform-specific config, not VPS hardening |
 | GPU / ML workload | Include GPU container config, model serving patterns |
+

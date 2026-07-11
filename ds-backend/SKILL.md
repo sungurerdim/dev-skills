@@ -28,6 +28,8 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 
 ## Contract
 
+**Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules)
+
 - Covers four scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve).
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams.
 - Only suggests well-established patterns — no experimental or untested approaches.
@@ -52,7 +54,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 
 ## Scopes
 
-### API
+### API [Product DX]
 
 | Check Area | What It Covers |
 |------------|---------------|
@@ -104,6 +106,20 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | Social login | Provider integration, account linking, `sub` as stable identifier |
 | MFA | TOTP, WebAuthn / passkeys, recovery codes (hashed, single-use), SMS OTP deprecation |
 | API keys | Prefixed keys, hash-only storage, scoped permissions, rotation support |
+
+### A9 — Google / Apple Ecosystem Rules (conditional)
+
+**Activate when:** blueprint profile `Integrations` field is `google-workspace` or `apple-ecosystem`. Zero checks when absent.
+
+| Provider | Rule | Area |
+|----------|------|------|
+| Google | OAuth scope minimization — request only what the integration needs | API |
+| Google | Incremental authorization — request additional scopes per-feature | API |
+| Google | Verification + Limited Use compliance for sensitive/restricted scopes | API |
+| Google | API quota management + exponential backoff on 429 responses | API |
+| Google | Refresh token security — rotate on reuse, secure storage | API |
+| Apple | Token verification — validate `identityToken` (RS256, `aud`, `iss`, expiry) | API |
+| Apple | Private Relay email — use `sub` as stable identifier, not email | API |
 
 ## Delegation
 
@@ -264,3 +280,5 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 | SQLite project | Skip replication/clustering checks, focus on WAL mode + connection handling |
 | No ORM (raw SQL) | Check for SQL injection, parameterized queries |
 | Microservices | Ask which service to analyze, check inter-service auth |
+
+

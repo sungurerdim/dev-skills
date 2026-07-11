@@ -27,6 +27,8 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 
 ## Contract
 
+**Dimensions:** B4 (contributor), D8
+
 - Only manages repository settings and structure — not code quality.
 - Every recommendation cites a specific setting or file.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
@@ -250,3 +252,4 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 | Empty repository | Skip hygiene, minimal metadata check |
 | Free private plan | Mark protection + auto-merge checks as N/A with reason |
 | needs-input in `--auto` mode | Skip with `⚠ SKIPPED (requires input)` — list prominently in summary |
+

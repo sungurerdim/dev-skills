@@ -27,6 +27,8 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 
 ## Contract
 
+**Dimensions:** C4, D9 (semver)
+
 - Standalone; uses `ds/audit/findings.md` (stack, deps scopes) when fresh, own audit otherwise.
 - **State-exempt:** per-group commits are git checkpoints; re-run continues from remaining groups.
 - FRC+DSC enforced.
@@ -251,3 +253,4 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 | Git-sourced dep (no registry) | Skip, list as `skipped (git dep, manual upgrade only)` |
 | Dep used only in devDependencies | Standard classification; note `dev-only` in plan |
 | Major with seamless migration (no breaking notes) | Still `review-major` — majors are always B regardless of changelog |
+

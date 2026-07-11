@@ -27,6 +27,8 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 
 ## Contract
 
+**Dimensions:** B1 (simplification)
+
 - Standalone; uses `ds/audit/findings.md` when fresh, own scan otherwise.
 - State-exempt: one reversible commit per approved batch — git is the durable record.
 - FRC+DSC enforced.
@@ -247,3 +249,4 @@ Zero-finding run: `No simplification opportunities detected — codebase is lean
 | Large codebase (>5k files) | Apply saturation gate: after 2 scopes with consistent patterns, narrow next scope to highest-density directories |
 | Public library with `exports` field | Treat every exported symbol as live for dead-code scope |
 | Single-caller is a test file | Mark `not-applicable (test-only helper)` |
+

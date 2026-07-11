@@ -53,6 +53,8 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 - Orchestrator — zero own analysis, consumes `ds/audit/findings.md` as SSOT. FRC+DSC enforced. State: `ds/audit/ship.json`.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - Findings absent or stale → invoke `/ds-blueprint` before any other delegation.
@@ -150,9 +152,11 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
    - `implemented-not-documented` — code has X; no doc mentions it
    - `drift` — both exist; behavior diverges (default changed, signature changed, removed flag still listed)
 
-8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, monetization intent (free / paid product / internal), performance targets, compliance scope, deprecated features, renamed modules. Ask. Wait.
+8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, monetization intent (free / paid product / internal), performance targets, compliance scope, deprecated features, renamed modules, **ecosystem integrations (Google Workspace / Apple ecosystem / none)**. Ask. Wait.
 
-9. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. New feature with open design → insert `/ds-pipeline` first per the Feature-planning branch above. Show plan; user confirms or trims.
+9. **Integration signal reading.** Read blueprint profile's `Integrations:` field. If `google-workspace` or `apple-ecosystem`, note which skills have conditional A9 rules (ds-backend, ds-mobile, ds-compliance, ds-launch, ds-frontend) and include these in the Dimension Coverage table as `conditional (integrations active)`. If absent or `none`, note A9 as `N/A (integrations signal: none)`.
+
+10. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. New feature with open design → insert `/ds-pipeline` first per the Feature-planning branch above. Show plan; user confirms or trims.
 
 **Gate:** Value proposition confirmed; skill sequence approved; `ds/audit/ship.json` populated with stage + type + promise census + sequence. No execution past this gate without approval. If fails → abort with "ds-ship: aborted — value proposition or skill sequence not confirmed. Re-run after clarifying purpose or use `--stage=X` to override." Never proceed on a vague or unconfirmed plan.
 
@@ -286,6 +290,43 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 
 ## Next Trigger
 {When should ds-ship next run — e.g. "after feature X lands", "quarterly hygiene", "next frontier-model upgrade (--uplift)"}
+
+## Dimension Coverage
+| Dimension | Status | Owning Skill | Notes |
+|-----------|--------|-------------|-------|
+| A1 | {audited | owner-skipped | unowned} | ds-benchmark + ds-productize |
+| A2 | {audited | owner-skipped | unowned} | ds-productize |
+| A3 | {audited | owner-skipped | unowned} | ds-productize + ds-deploy |
+| A4 | {audited | owner-skipped | unowned} | ds-launch |
+| A5 | {audited | owner-skipped | unowned} | ds-frontend (ux) |
+| A6 | {audited | owner-skipped | unowned} | ds-frontend |
+| A7 | {audited | owner-skipped | unowned} | ds-frontend (impl) + ds-compliance (regulatory) |
+| A8 | {audited | owner-skipped | unowned} | ds-fix (mechanical) + ds-compliance (rules) |
+| A9 | {N/A — integrations none | conditional — integrations active | unowned} | blueprint signal + conditional rules (5 skills) |
+| A10 | {audited | owner-skipped | unowned} | ds-docs + ds-backend |
+| B1 | {audited | owner-skipped | unowned} | ds-review, ds-fix, ds-simplify, ds-quality |
+| B2 | {audited | owner-skipped | unowned} | ds-blueprint + ds-review --strategic |
+| B3 | {audited | owner-skipped | unowned} | ds-test |
+| B4 | {audited | owner-skipped | unowned} | ds-blueprint + ds-repo |
+| B5 | {audited | owner-skipped | unowned} | ds-backend + ds-docs |
+| B6 | {audited | owner-skipped | unowned} | ds-docs |
+| C1 | {audited | owner-skipped | unowned} | ds-compliance + 4 execution skills |
+| C2 | {audited | owner-skipped | unowned} | ds-compliance |
+| C3 | {audited | owner-skipped | unowned} | ds-compliance + ds-docs + ds-repo |
+| C4 | {audited | owner-skipped | unowned} | ds-deps |
+| C5 | {audited | owner-skipped | unowned} | ds-docs + ds-repo |
+| D1 | {audited | owner-skipped | unowned} | ds-review --perf + ds-launch --perf-budget + ds-tune |
+| D2 | {audited | owner-skipped | unowned} | ds-review --perf + ds-deploy --cost |
+| D3 | {audited | owner-skipped | unowned} | ds-backend + ds-deploy |
+| D4 | {audited | owner-skipped | unowned} | ds-deploy + ds-backend |
+| D5 | {audited | owner-skipped | unowned} | ds-backend |
+| D6 | {audited | owner-skipped | unowned} | ds-devops + ds-launch |
+| D7 | {audited | owner-skipped | unowned} | ds-deploy |
+| D8 | {audited | owner-skipped | unowned} | ds-repo |
+| D9 | {audited | owner-skipped | unowned} | ds-deps + ds-review |
+| E | N/A (carrier) | ds-ship, ds-pipeline, etc. | Process carriers — not quality dimensions |
+
+Status values: `audited` (skill ran and produced findings), `owner-skipped` (skill exists but was not invoked), `unowned` (no skill claims this dimension). ⚠️ Unowned dimensions MUST be flagged with an explicit warning prefix in the report summary.
 ```
 
 **`--html`: additionally write `ds/audit/report.html`** — self-contained, offline, ASCII-only. Sections: (1) header with stage gauge; (2) orchestration flow — inline Mermaid diagram, nodes per phase + delegated skill, edges for ordering, approval gates as diamonds; (3) findings heatmap — severity × scope grid, background color by count, ASCII-safe hex; (4) Category A/B counters (bar); (5) ship-readiness gauge 0–100 from open CRITICAL + open B count; (6) major sections in `<details>` (collapsed). Inline CSS + inline SVG + statically rendered Mermaid SVG (not JavaScript-rendered). No external CDN, remote font, or remote script.
@@ -353,3 +394,5 @@ W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no un
 | Library/CLI (no UI) | Skip ds-frontend, ds-launch; include ds-repo --oss-ready if public intent |
 | Multiple value propositions in docs | Ask user to confirm primary vp; note secondary as intentional scope |
 | Ship-ready already | Phase 0 detects zero B gaps, report becomes maintenance snapshot — Phase 5 still runs launch checks to confirm |
+
+

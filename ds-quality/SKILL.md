@@ -31,6 +31,8 @@ auto-lint/auto-test, or a universal git pre-commit hook for everyone else.
 
 ## Contract
 
+**Dimensions:** B1 (quality enforcement)
+
 - Installs a deterministic, local, no-CI quality gate: one entry point (format → lint → type → test) + a host-appropriate enforcement arm that blocks "done" (or the commit) until it passes green; bootstraps missing tooling when asked.
 - **Enforcement mechanism is host-dependent — no single claim covers every host.** Claude Code: Stop hook, stop-time, full-strength (existing behavior, unchanged). Aider: `.aider.conf.yml` auto-lint/auto-test, edit-time. Any other host (Cursor, Copilot, Windsurf, plain terminal): git `pre-commit` hook, commit-time — weaker than stop-time, since an agent can still narrate "done" between an edit and the next commit; documented honestly, not hidden.
 - Modes are flag-disambiguated (`--install`/`--run`/`--check`/`--status`/`--disable`/`--project-hook`/`--uninstall`/`--arm`); no flag = bootstrap this repo. When invoked with no flag and intent is ambiguous, present an up-front menu covering every mode (`(recommended)` default + `(Cancel)`).
@@ -186,3 +188,4 @@ Report: detected stack + host · existed-vs-added per signal · the exact entry-
 | husky / `pre-commit` framework present (Arm C) | Add the entry-point command as a step in the existing manager's config; don't write `.git/hooks/pre-commit` directly (it would be overwritten) |
 | Language has no type-checker | Skip the type step; entry point runs only checks that exist |
 | Repo/host you don't trust | Do not enable any arm — every arm executes the marker/config command as code |
+

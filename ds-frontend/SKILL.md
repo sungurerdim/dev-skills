@@ -25,6 +25,8 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 ## Contract
 
+**Dimensions:** A5 (ux scope), A6 (UI), A7 (implementation), A9 (conditional ecosystem rules)
+
 - Audits UI/UX design quality across web ({web-frameworks}), mobile ({mobile-frameworks}), desktop ({desktop-frameworks}) — only touches UI-layer code (styles, components, tokens, ARIA); business + backend untouched.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
@@ -52,12 +54,22 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | components | Component API quality, naming, composition, reuse, AI-friendly docs | rules-components.md |
 | solid | SOLID/GRASP in components: SRP, OCP, ISP, DIP, Low Coupling, High Cohesion ([references/principles.md §2](references/principles.md)) | rules-components.md |
 | states | empty/loading/error/success/disabled/hover/focus/active coverage | rules-components.md |
+| ux | Nielsen 10 usability heuristics, onboarding/first-use flow audit, integrate with states scope | rules-ux.md |
 | a11y | WCAG 2.2 AA, ARIA patterns (APG), keyboard nav, contrast, screen reader | rules-accessibility.md |
 | responsive | Layout overflow, breakpoints, container queries, fluid typography | rules-responsive.md |
 | theming | Dark mode, `light-dark()`, color-scheme, semantic tokens, theme switching | rules-design-system.md |
 | config | Env-consumed values externalized; `.env.example` updated; no secrets in source ([references/principles.md §8](references/principles.md)) | rules-design-system.md |
 
 Default: all scopes.
+
+### A9 — Google / Apple Ecosystem Rules (conditional)
+
+**Activate when:** blueprint profile `Integrations` field is `google-workspace` or `apple-ecosystem`. Zero checks when absent.
+
+| Provider | Rule | Scope |
+|----------|------|-------|
+| Google | Official button/flow standards — use Google Identity branding (G-button, Google One Tap, Credential Manager) | tokens, components |
+| Apple | Apple HIG Sign-in — Apple's `ASAuthorizationAppleIDButton`, SF Symbols, human-interface guidelines | tokens, components |
 
 ## Modes
 
@@ -240,3 +252,4 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 | Flutter / SwiftUI / Compose | `ThemeData`/Color assets/`MaterialTheme` as token source; platform widget patterns for components |
 | Server-rendered (Next.js SSR, Nuxt SSR) | Audit rendered HTML output alongside component source |
 | Component library (no app) | Audit library components, skip app-level layout checks |
+

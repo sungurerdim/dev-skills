@@ -27,6 +27,8 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 
 ## Contract
 
+**Dimensions:** D1
+
 - One file, one metric, one loop — Karpathy's core constraint. Git ratchet: only improvements survive, failures reverted. Every experiment committed before evaluation — full audit trail. Evaluation mechanical (deterministic assertions or benchmarks), not subjective. Skill generates optimization infrastructure (`ds/tune/`) then runs the loop.
 - Standalone. Uses blueprint when available; own analysis when absent.
 - FRC+DSC enforced.
@@ -235,3 +237,4 @@ Zero-improvement run: `{n} experiments ran, none beat baseline {baseline-value} 
 | Eval takes > 5 minutes | Suggest sampling (subset of test data) or lighter proxy metric |
 | User wants to optimize prompt/SKILL.md | Target = the .md file, metric = eval assertions pass rate |
 | Project has no tests | Create minimal eval fixtures in Phase 4 |
+

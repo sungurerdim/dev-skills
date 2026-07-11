@@ -27,6 +27,8 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 
 ## Contract
 
+**Dimensions:** D6, C1 (CI/CD security)
+
 - Every finding cites file and line — never infer or assume.
 - Only audits CI/CD, signing, dependencies, release pipelines.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
@@ -206,3 +208,4 @@ Zero-finding run: `CI/CD scope clean — pipeline meets reviewed checks`.
 | Monorepo | Check per-package CI config if applicable |
 | No dependency lockfile | Report as HIGH, suggest committing lockfile |
 | CLI tool not available | Skip that check, note in report |
+

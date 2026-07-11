@@ -27,6 +27,8 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 - Generates project structure, CI config, test setup, Docker stubs, editor config, env templates
 - Detects intent (web / api / mobile / cli / library / monorepo) from user input or codebase signals
 - Generates only files relevant to detected type — no unnecessary boilerplate
@@ -209,3 +211,4 @@ Next steps:
 | Monorepo detected | Ask which package to scaffold, respect workspace config |
 | Multiple stacks | Ask user to choose primary, note secondary |
 | Custom stack not listed | Generate generic structure with user-specified conventions |
+

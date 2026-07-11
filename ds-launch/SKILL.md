@@ -24,6 +24,8 @@ description: Store and release management — store submission, listing optimiza
 
 ## Contract
 
+**Dimensions:** A4, D1 (perf-budget), D6, A9 (conditional ecosystem rules)
+
 - Covers store account setup, listing metadata, review preparation, release management; generates checklists + metadata — does NOT submit to stores directly.
 - Minimal liability + maximum privacy + maximum automation: store-compliant metadata + common rejection flags; privacy labels with minimal data-collection focus; version management + release notes generation + staged rollout.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
@@ -155,6 +157,27 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 | Force update | Minimum version enforcement, update UX |
 | Rollback | Emergency rollback procedure |
 
+### SEO
+
+| Element | What It Covers |
+|---------|---------------|
+| Meta tags | Title, description, OG tags (og:title, og:description, og:image, og:url) per page |
+| Sitemap | XML sitemap generation, index coverage, lastmod/priority |
+| robots.txt | Disallow rules, sitemap directive, crawl-delay |
+| Canonical URLs | Self-referencing canonicals, duplicate-content prevention |
+| Structured data | JSON-LD (Organization, WebSite, BreadcrumbList, FAQ, Product) |
+
+### A9 — Google / Apple Ecosystem Rules (conditional)
+
+**Activate when:** blueprint profile `Integrations` field is `google-workspace` or `apple-ecosystem`. Zero checks when absent.
+
+| Provider | Rule | Scope |
+|----------|------|-------|
+| Google | OAuth consent screen — verify production approval status, homepage/privacy URLs, authorized domains | review |
+| Apple | Sign in with Apple — verify entitlement + `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | review |
+| Google | Data safety section — ensure declarations match actual API scopes used | privacy |
+| Apple | Apple Privacy Labels — verify nutrition label declares sign-in and contact info if applicable | privacy |
+
 ## Delegation
 
 **Owns:** store, release, privacy-labels (store-label-correctness only), perf-budget (`--perf-budget` mode) | **Delegates:** ds-compliance → canonical privacy; ds-mobile → mobile-specific store compliance | **Receives:** ds-ship → Phase 5 launch pass
@@ -258,3 +281,4 @@ Zero-change run: `Submission package already complete — no missing fields`.
 | Update to existing app | Skip setup, focus on release notes + rollout |
 | Multi-platform | Generate per-platform checklists, note shared vs platform-specific |
 | Enterprise / internal distribution | Skip public store, focus on MDM / enterprise distribution |
+

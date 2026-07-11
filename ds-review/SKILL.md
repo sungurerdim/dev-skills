@@ -29,6 +29,8 @@ Four modes: `--tactical` for file-level quality fixes, `--strategic` for archite
 
 ## Contract
 
+**Dimensions:** B1 (code quality), D1 (performance), D2 (resource economy), D9 (API contract breakage)
+
 - Every fix cites file:line with before/after — no blind modifications. Only modifies lines required by the finding; no scope creep.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
@@ -105,6 +107,7 @@ Deep performance analysis beyond tactical `performance` scope.
 | Mobile | Widget rebuild optimization, const constructors, image sizing, list virtualization |
 | Database | Query performance, N+1 detection, connection pooling, index usage |
 | Cost | Paid API/LLM call efficiency, cloud egress/cross-region transfer, oversized infra defaults, storage/log lifecycle policies, polling-vs-webhook waste |
+| Resource Economy | Payload size (API response, assets, HTML), compression ratio (gzip/brotli enabled), cache-hit rate (CDN, service worker, API cache), storage growth trend, data-saving patterns (lazy loading, image optimization, bundle splitting) |
 
 **Scope boundary:** performance-specific deep dive. Produces optimization recs with estimated impact. Fixes only low-risk (const constructors, unused imports, memoization). High-impact changes (architecture, caching strategy) → `needs_approval`.
 
@@ -353,3 +356,5 @@ Zero-finding run: `All checks evaluated across {scopes} — 0 findings`.
 | No findings | Report clean score, skip fix phases |
 | All findings are LOW | Report only, skip fix prompt |
 | Single file project | Run all applicable scopes on that file |
+
+

@@ -30,6 +30,8 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 
 ## Contract
 
+**Dimensions:** B3
+
 - Generates tests that follow project's existing test patterns and conventions; preserves existing passing tests — overwrites only with explicit confirmation
 - Always runs generated tests to verify they pass before declaring done
 - Uses project's existing test framework — never introduces a new framework unless none exists; test files go in project's established test directory (auto-detected)
@@ -275,3 +277,5 @@ Every test MUST justify its existence by addressing a **concrete, specific risk*
 | `--auto` with failing app tests | Write findings to `ds/audit/findings.md`, fix the test, not the source code |
 | `--baseline` and output is nondeterministic (time, random, UUID) | Inject/freeze seams (fixed clock, seeded RNG, mocked UUID) before capturing; if seams are unavailable, assert invariant properties (type, range, non-null) instead of exact values — document the invariant-only assertion with the `// characterization:` tag |
 | `--baseline` and source module has no public interface (all private/internal) | Report as Category B finding: "No public surface to baseline — refactoring this module without tests is high-risk"; suggest making key behaviors accessible for testing or adding internal test hooks |
+
+

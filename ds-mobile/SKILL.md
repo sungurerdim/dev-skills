@@ -27,6 +27,8 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 
 ## Contract
 
+**Dimensions:** A7 (implementation, mobile), A9 (conditional ecosystem rules)
+
 - Audits mobile app quality; every finding cites file:line — never fabricates. Only touches mobile code; platform rules only on detected platforms.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
@@ -58,6 +60,16 @@ No flags → present mode selection.
 ## Delegation
 
 **Owns:** mobile-security, mobile-privacy, mobile-regulatory, mobile-ux, mobile-store, mobile-permissions, mobile-release, mobile-visual | **Delegates:** none (authoritative for mobile projects) | **Receives:** ds-compliance → security / privacy / regulatory on mobile projects; ds-launch → mobile-specific store compliance; ds-ship → Phase 2 stack-specific delegation
+
+### A9 — Google / Apple Ecosystem Rules (conditional)
+
+**Activate when:** blueprint profile `Integrations` field is `google-workspace` or `apple-ecosystem`. Zero checks when absent.
+
+| Provider | Rule | Scope |
+|----------|------|-------|
+| Apple | Sign in with Apple — required when other social auth present (App Store Review Guideline 4.8) | security, store |
+| Apple | Entitlements correctness — `com.apple.developer.applesignin`, push, iCloud, in-app-purchase | security |
+| Google | `google-services.json` hygiene — no committed dev keys, correct package name, version match | security |
 
 ## Execution Flow
 
@@ -247,3 +259,4 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 | Release-ready: policy fetch fails | Use fallback values, warn in report |
 | Release-ready: first run | No previous `ds/mobile/release.json` → no diff, note "First audit" |
 | Release-ready: corrupt JSON report | Warn, treat as first audit (skip diff), overwrite |
+

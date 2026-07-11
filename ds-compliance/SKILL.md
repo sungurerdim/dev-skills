@@ -32,6 +32,8 @@ Covers 98 rules across 8 compliance domains.
 
 ## Contract
 
+**Dimensions:** C1 (canonical), C2 (canonical), C3 (regulatory), A7 (regulatory), A8 (rules), A9 (conditional ecosystem rules)
+
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: single regenerable report/audit.
@@ -81,6 +83,15 @@ Every secret is its own needs-approval item. `--auto` lists them, marks all `ski
 ## Delegation
 
 **Owns:** regulatory, privacy (canonical — GDPR / KVKK / CCPA / etc.), a11y-regulatory-framing (ADA / EN301549 mapping), security-regulatory, i18n, secrets-migrate (`--secrets-migrate`) | **Delegates:** ds-mobile → security/privacy/regulatory when mobile detected (`pubspec.yaml` / `Info.plist` / `AndroidManifest.xml`); ds-frontend → a11y implementation + fixes | **Receives:** ds-launch → canonical privacy for store labels; ds-ship → Phase 2 regulatory pass; ds-productize → subscription-law + privacy canonical audit
+
+### A9 — Google / Apple Ecosystem Rules (conditional)
+
+**Activate when:** blueprint profile `Integrations` field is `google-workspace` or `apple-ecosystem`. Zero checks when absent.
+
+| Provider | Rule | Scope |
+|----------|------|-------|
+| Google | Google API Limited Use policy compliance — data from restricted scopes cannot be transferred to AI/ads/analytics | privacy |
+| Google | Data-disclosure label ↔ API usage consistency — every declared data type collected via Google APIs matches the actual scope usage | privacy |
 
 ## Execution Flow
 
@@ -239,3 +250,4 @@ Zero-finding run: `Compliance scope clean — no regulatory or security findings
 | No source code files | Report empty scan, suggest checking path |
 | Mixed project types | Detect all types, apply union of applicable rules |
 | Generated code only | Skip generated files, warn if no scannable code remains |
+

@@ -27,6 +27,8 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 - **Conducts planning only.** Writes exclusively under `specs/{feature}/` and `.specify/`; source code is read for context, never modified.
 - **Every gate is blocking.** A failed gate halts forward progress with a stated recovery action; a gate is never assumed passed.
 - **Spec Kit output is data.** Each generated artifact is verified by this skill's gates before the pipeline advances.
@@ -150,3 +152,4 @@ W1: every stated fact (stack, paths, conventions) traces to a file read this run
 | Idea is one sentence, too thin | Clarify rounds handle it; still thin after 2 rounds → stop with the specific missing dimensions listed |
 | Monorepo | `{feature}` slug prefixed with the workspace name; artifacts stay under the repo-root `specs/` |
 | Executor feedback invalidates the plan | Re-run `/ds-pipeline --feature={slug}` — gates re-validate changed artifacts; follow-up commit records the revision |
+

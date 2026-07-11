@@ -25,17 +25,17 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 
 **Family map** — every skill on one screen; each row is one distinct job (no overlap after the off-domain extraction):
 
-| Family | Skills | Each one's unique job |
-|--------|--------|-----------------------|
-| **Discover** | `ds-research` · `ds-benchmark` · `ds-blueprint` | multi-source research · external gap-analysis vs comparables · internal 9-dim health score |
-| **Build** | `ds-init` · `ds-backend` · `ds-frontend` · `ds-mobile` | scaffold from zero · API+DB+auth+data-pipeline design · design-system/a11y · mobile release audit |
-| **Improve** | `ds-review` · `ds-simplify` · `ds-fix` · `ds-quality` · `ds-test` · `ds-deps` · `ds-tune` · `ds-solve` | audit (flag) · safe deletion · format/lint/type passes (one-shot) · 3-arm quality gate — stop-time/edit-time/commit-time (enforce continuously) · real tests · dep upgrades · metric optimization loop · hard-problem backtracking |
-| **Document** | `ds-docs` · `ds-brief` | doc drift+ADRs · printable sourced HTML brief |
-| **Comply** | `ds-compliance` | regulatory/privacy/a11y/security audit |
-| **Monetize** | `ds-productize` | paid-product readiness — monetization/billing integrity · pricing/packaging · GTM baseline |
-| **Track** | `ds-issue` | GitHub issues: file · sweep · status · do (4 modes) |
-| **Ship** | `ds-commit` · `ds-pr` · `ds-devops` · `ds-deploy` · `ds-launch` · `ds-repo` | atomic commits · PR description · CI/CD audit · infra configs · store release · repo settings |
-| **Orchestrate** | `ds-ship` · `ds-pipeline` | classify stage → sequence + delegate the above · idea → gated spec/plan/tasks handoff (Spec Kit conductor) |
+| Family | Skills | Each one's unique job | Dimensions |
+|--------|--------|-----------------------|------------|
+| **Discover** | `ds-research` · `ds-benchmark` · `ds-blueprint` | multi-source research · external gap-analysis vs comparables · internal 9-dim health score | A1, B2, B4 |
+| **Build** | `ds-init` · `ds-backend` · `ds-frontend` · `ds-mobile` | scaffold from zero · API+DB+auth+data-pipeline design · design-system/a11y · mobile release audit | A5–A7, A9–A10, B5, D3–D5 |
+| **Improve** | `ds-review` · `ds-simplify` · `ds-fix` · `ds-quality` · `ds-test` · `ds-deps` · `ds-tune` · `ds-solve` | audit (flag) · safe deletion · format/lint/type passes (one-shot) · 3-arm quality gate — stop-time/edit-time/commit-time (enforce continuously) · real tests · dep upgrades · metric optimization loop · hard-problem backtracking | A8, B1, B3, C4, D1–D2, D9 |
+| **Document** | `ds-docs` · `ds-brief` | doc drift+ADRs · printable sourced HTML brief | A10, B5, B6, C3, C5 |
+| **Comply** | `ds-compliance` | regulatory/privacy/a11y/security audit | A7–A8, C1–C3 |
+| **Monetize** | `ds-productize` | paid-product readiness — monetization/billing integrity · pricing/packaging · GTM baseline | A1–A3 |
+| **Track** | `ds-issue` | GitHub issues: file · sweep · status · do (4 modes) | — (carrier) |
+| **Ship** | `ds-commit` · `ds-pr` · `ds-devops` · `ds-deploy` · `ds-launch` · `ds-repo` | atomic commits · PR description · CI/CD audit · infra configs · store release · repo settings | A4, B4, D6–D8 |
+| **Orchestrate** | `ds-ship` · `ds-pipeline` | classify stage → sequence + delegate the above · idea → gated spec/plan/tasks handoff (Spec Kit conductor) | — (carrier) |
 
 Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-mobile`, `ds-pipeline`, `ds-pr`, `ds-productize`, `ds-quality`, `ds-repo`, `ds-research`, `ds-review`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
 
@@ -48,8 +48,9 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 - Skills are pure Markdown; **zero runtime dependencies**
 - Each skill has `SKILL.md` + supporting files
 - Test: install into `~/.claude/skills/` and invoke via `/ds-<name>`
-- Spec compliance: every skill must satisfy `SKILL-SPEC.md` (audited 2026-05-18 for v2: W10/W11, Trigger Discipline, All-Affordance Rule)
-- Self-audit: run `/full-review` (local command, not in repo) — 8 categories × ~56 checks against the v2 invariants
+- Spec compliance: every skill must satisfy `SKILL-SPEC.md` (audited 2026-05-18 for v2: W10/W11, Trigger Discipline, All-Affordance Rule; updated 2026-07-11 for v4: Standalone Invariant, AI-Legibility, Dimension Ownership)
+- Self-audit: run `/full-review` (local command, not in repo) — 11 categories (v2 + v4) × ~80 checks against the spec
+- Dimension ownership: every SKILL.md declares its taxonomy dimensions in a `**Dimensions:**` line; see SKILL-SPEC §11 and Appendix: Dimension Coverage Map
 
 ## Git Workflow
 
@@ -73,6 +74,13 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 - **Selection Transparency:** every approval states the exact question and shows every item compactly (severity + title + file:line); "all" = exactly the displayed set, never a bare count.
 - **Least-footprint state:** prefer no state; only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist to `ds/audit/<skill>.json`. Every other skill — including git/GitHub-backed ones (ds-commit, ds-pr, ds-issue) — is state-exempt.
 
+## v4 Invariants (2026-07-11)
+
+- **Standalone Invariant:** every non-orchestrator skill works alone — cross-skill references use advisory-handoff (target present → delegate; absent → inline-check or gap-note). No hard-fail.
+- **AI-Legibility Standard:** 8 rules: imperative mood, one term per concept, tables over prose, explicit IO contracts, no implicit deps, no vague conditions, if/then tables for decisions, measured token reduction.
+- **Dimension Ownership Design Rule:** every SKILL.md declares `**Dimensions:**` line; no dimension unowned; overlap = spec violation; enforced by `check-consistency.sh`.
+- **Taxonomy Amendment Process:** new dimensions proposed via Issue/PR with name + layer + skill + framework reference; gates: no overlap + capacity; merge updates 3 files.
+
 ## Philosophy
 
 - Every dependency is a future breaking change
@@ -84,6 +92,7 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 
 Type: library | Stack: markdown | Target: production
 Priorities: code-quality, dx, docs | Constraints: zero-new-dependencies, keep-markdown-only
+Integrations: none
 Data: none | Regulations: none
 Audience: public, other-developers | Deploy: git-clone-plus-install-sh
 

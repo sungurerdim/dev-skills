@@ -25,6 +25,8 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 - One skill for the full issue lifecycle in four modes: `(default)` intake · `--sweep` dedup/reconcile · `--status` code-verified done-audit (read-only) · `--do #N` execute one issue end-to-end (`--do --all` = every open issue, in priority order).
 - **Intake** creates ONE well-formed issue only after a dedup sweep (open + closed + history) and a false-positive (reproduce-against-code) gate both pass.
 - **`--do`** executes exactly one issue: re-verify root cause (stale → stop) → impact-surface map → internal bounded plan → implement + verify each unit → aggregate done-signal green → close with code-proven evidence. `--do #N --dry-run` stops after planning.
@@ -158,3 +160,4 @@ Every run ends with the summary line + a **Value Delivered** block (1-5 concrete
 | `--do` untyped code (no language server) | grep-based references; flag affected-set confidence lower |
 | `--do` aggregate red after units green | Composed regression — fix and re-run; never close red |
 | Security/payments/crypto/migration touched | Top-tier care + line-by-line-review note in the close comment |
+

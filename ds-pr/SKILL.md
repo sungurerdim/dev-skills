@@ -27,6 +27,8 @@ PR descriptions that list every commit instead of net change create noise, confu
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 **PR describes net diff between main and HEAD — nothing else.** Not journey of individual commits, not session decisions, not what was tried and reverted. If commit A added something and commit B removed it, net effect is zero — do not mention it.
 
 Run `git diff {base}...HEAD` and describe what that diff shows.
@@ -225,3 +227,4 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 | No commits ahead of base | Report "nothing to push", exit |
 | PR already exists for branch | Show existing PR URL, ask if update needed |
 | CI checks failing | Warn user, create PR but skip auto-merge setup |
+

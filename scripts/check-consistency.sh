@@ -63,8 +63,28 @@ wrong=$(grep -rnE 'ds/audit/\*\.json|\.ds-audit/|(^|[^/-])ds-audit/' ds-*/SKILL.
 [ -z "$wrong" ] || err "non-canonical .gitignore pattern documented:
 $wrong"
 
+# 9. v4 — Dimension Declaration presence (SKILL-SPEC §11)
+for f in ds-*/SKILL.md; do
+  grep -qP '^\*\*Dimensions:\*\*' "$f" || err "$f missing Dimensions: declaration"
+  # Check carrier exclusion (layer E must not appear)
+  if grep -qP '^\*\*Dimensions:\*\*.*E[0-9]' "$f"; then
+    err "$f declares layer-E dimension (carriers cannot be dimensions)"
+  fi
+done
+
+# 10. v4 — Advisory handoff pattern (SKILL-SPEC §12)
+for f in ds-*/SKILL.md; do
+  skill="${f%%/*}"
+  # Skip orchestrators (they delegate by design)
+  case "$skill" in ds-ship|ds-pipeline) continue;; esac
+  # Detect hard-fail patterns
+  if grep -qiP '"skill not found"|"install.*first"|hard.?fail' "$f" 2>/dev/null; then
+    err "$f contains hard-fail pattern (violates standalone invariant)"
+  fi
+done
+
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff all consistent"
 else
   exit 1
 fi

@@ -24,6 +24,8 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 
 ## Contract
 
+**Dimensions:** B1 (fix), A8 (mechanical)
+
 - Runs automated fixers in safe, deterministic order: l10n → format → typecheck → lint → security. Format always runs before lint (auto-formatting must not introduce new lint issues).
 - `--check` mode: report only, zero modifications.
 - Missing tools skipped with a warning — never fails due to absent optional tooling.
@@ -233,3 +235,4 @@ Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scope
 | Large repo (>10K files) | Default file filtering, don't override excludes |
 | Pre-existing config (`.eslintrc`, `ruff.toml`, etc.) | Respect project config — never override with defaults |
 | Lock file conflict | Warn, skip dependency operations |
+

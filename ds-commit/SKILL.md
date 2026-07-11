@@ -26,6 +26,8 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 **Commit message describes only what `git diff` shows.** Not session discussion, not what was tried and reverted, not what was planned. Read diff, describe diff.
 
 - Standalone. Uses blueprint profile for toolchain when available; own detection when absent.
@@ -232,3 +234,4 @@ Zero-change run: `Nothing to commit — working tree clean`.
 | Untracked file referenced by tracked code | Completeness gate catches it — stage prompt |
 | Untracked file with no tracked references | Ignore — not a completeness issue |
 | >20 untracked source files | Show count + top 5 referenced; ask "Stage referenced (N) / Review / Skip" |
+

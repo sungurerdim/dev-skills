@@ -27,6 +27,8 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 - **Autonomous by default.** User states the problem; skill handles everything else. User consulted only for: (1) escalation (all plans exhausted), (2) irreversible actions (needs-approval). All other decisions made independently.
 - Red lines auto-detected from project documentation and applied automatically. Detected red lines shown as output, not a question. User can add more via `--red-line="{constraint}"` if needed.
 - Every attempt recorded in episodic memory — zero silent drops. Infinite loop protection: 3 plans × 3 research rounds × 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
@@ -263,3 +265,4 @@ Not a finding-based skill. Severity applies to issues discovered during executio
 | No project documentation found | Proceed with zero auto-detected red lines + any `--red-line` flags. Apply universal defaults: "existing tests pass", "no new errors introduced". |
 | Budget override too small | Warn if budget < 1x1x2. Clamp to minimum. |
 | Contradictory red lines | Apply more restrictive constraint. Log conflict in episodic memory. Restrictive choice blocks all alternatives → surface in Escalation report (not before). |
+

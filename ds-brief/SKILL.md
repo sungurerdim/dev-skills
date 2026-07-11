@@ -27,6 +27,8 @@ AI reports fabricate sources, repeat data instead of single-sourcing it, and pro
 
 ## Contract
 
+**Dimensions:** none (carrier)
+
 - Produces ONE self-contained HTML file: all CSS+JS+data inline, zero external dependencies (system fonts), opens offline.
 - Every claim carries a resolvable source chip; every datum is ≥2-independent-source confirmed or visibly flagged ("single source" / `[unverified]`). Uncertainty is named in an "Unknowns / Uncertainties" section, never hidden.
 - SSOT: every number/date/scalar lives once in a `CONFIG` object; HTML reads it via `[data-cfg]`. Edit one place → whole document updates.
@@ -152,3 +154,4 @@ Zero-evidence run: `No credible sources found in budget — topic narrowed and r
 | `summarize` with a dead URL | Note inaccessible source; summarize the reachable ones; flag the gap |
 | Topic with nothing to compute | No calculator — sticky TOC + search + chips only |
 | Very long brief (many sections) | Keep SSOT single; consider `--no-interactive` for archival; ensure print page breaks stay clean |
+

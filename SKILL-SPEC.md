@@ -23,7 +23,7 @@ Every SKILL.md follows this section sequence:
 |---|---------|----------|---------|
 | 1 | Title + Tagline | Yes | One-line skill identity |
 | 2 | Triggers | Yes | When to auto-activate this skill. MUST include `INVOKE / DON'T INVOKE` table (3-5 rows) — see §2 Trigger Discipline |
-| 3 | Contract | Yes | Behavioral boundaries and guarantees |
+| 3 | Contract | Yes | Behavioral boundaries and guarantees. MUST include `**Dimensions:**` declaration line listing owned taxonomy dimensions (see §11). |
 | 4 | Arguments | Yes | Flags, modes, defaults |
 | 5 | Scopes | If applicable | What the skill inspects or generates |
 | 6 | Delegation | Yes | Single pipe-separated line: `**Owns:** ... \| **Delegates:** ... \| **Receives:** ...` (see §10.2) |
@@ -1859,6 +1859,127 @@ See [references/ai-instruction-patterns.md](references/ai-instruction-patterns.m
 
 ---
 
+## 11. Dimension Ownership Design Rule
+
+Every SKILL.md **MUST** declare which taxonomy dimension(s) it owns using a `**Dimensions:**` line. This enables automated coverage tracking and prevents ownership gaps.
+
+| Rule | Detail |
+|------|--------|
+| Declaration required | Every `ds-*/SKILL.md` MUST contain a `**Dimensions:**` line listing owned dimension IDs |
+| Format | `**Dimensions:** A6 (UI), A7 (implementation), A5 (ux)` — comma-separated, optional scope in parentheses |
+| Taxonomy membership | Every declared dimension ID MUST exist in the Dimension Coverage Map appendix |
+| No overlap | Two skills MUST NOT own the same dimension·scope pair (overlap = spec violation) |
+| No unowned dimensions | Every dimension in the taxonomy MUST have at least one owning skill |
+| Carrier exclusion | Process carriers (layer E) MUST NOT appear in any `Dimensions:` declaration |
+| Enforcement | `scripts/check-consistency.sh` verifies all rules above — absence causes non-zero exit |
+
+**Consumers:** `check-consistency.sh` (v4), `/full-review` (v4 dimension-ownership category), `/ds-ship` Phase 6 (dimension coverage table).
+
+## 12. Standalone Invariant
+
+Non-orchestrator skills MUST function correctly when installed alone — zero hard dependencies on sibling skills.
+
+### Advisory Handoff Pattern
+
+When a skill needs a capability owned by another skill, it uses a three-way decision:
+
+```text
+If {target skill} is present → delegate
+Else if skill can do a basic inline check → perform check, note "deeper analysis via {target skill}"
+Else → emit gap note: "[scope] not analyzed — requires {target skill}"
+```
+
+**Rules:**
+1. A skill MUST NOT hard-fail when a target skill is absent
+2. A skill MUST NOT silently omit a scope — either inline-check or gap-note required
+3. Orchestrators (ds-ship, ds-pipeline) MUST surface missing skills in a `## Missing skills` section
+4. The standalone invariant is a normative rule — every non-orchestrator SKILL.md MUST satisfy it
+
+## 13. AI-Legibility Writing Standard
+
+Every SKILL.md MUST satisfy these 8 rules to ensure unambiguous execution by low-capability models:
+
+| # | Rule | Good Example | Bad Example |
+|---|------|-------------|-------------|
+| a | Single-interpretation imperative sentences | "Search all .ts files for export function" | "You should try searching for exports" |
+| b | One term per concept — no synonym drift | "Findings — severity, file:line" (same term everywhere) | "Issues / results / problems / findings" (mixed) |
+| c | Tables preferred over prose for 3+ items | Table with columns of rules | "There are several rules: first… second… also…" |
+| d | Every phase has explicit input/output contract | "Input: findings scope. Output: fix report table" | No stated contract |
+| e | No implicit context dependencies | "Phase 2 loads references/rules-accessibility.md" | "Load the a11y file" (context-dependent) |
+| f | Vague quantities/conditions prohibited | "If score < 80 → flag as HIGH" | "If performance is bad, flag it" |
+| g | Decision points use explicit if/then tables | Table: condition → action per row | "Consider doing X in some cases" |
+| h | Token reduction measured — before/after count | `before: 1200 → after: 850 (-29%)` | No measurement |
+
+**Token Measurement:** `(wc -c of SKILL.md body excluding YAML frontmatter) / 4`. Report format: `N → M (delta%)`.
+
+**Rule Preservation:** Count lines matching `verify|check|ensure|enforce|MUST|kural|doğrula|denetle` before and after rewrite. A decrease requires written justification.
+
+## 14. Taxonomy Amendment Process
+
+To add a new dimension to the Dimension Coverage Map:
+
+1. **Propose** via issue or PR with: dimension name, layer (A/B/C/D), owning skill token, and ≥1 industry framework reference
+2. **Gate 1 — No overlap:** Verify no existing skill covers the proposed surface. If overlap exists, expand existing ownership instead
+3. **Gate 2 — Capacity:** Verify owning skill has capacity under its SKILL.md size ceiling. If not, externalize to `references/` first
+4. **After merge:** Update (a) the owning skill's SKILL.md `Dimensions:` entry, (b) the Dimension Coverage Map appendix row, (c) ds-ship Phase 6 report template
+
+---
+
+## Appendix: Dimension Coverage Map
+
+The authoritative taxonomy of quality/coverage dimensions for the dev-skills suite. Every dimension has at least one owning skill.
+
+### Layer Map
+
+| Layer | Name | Count |
+|-------|------|-------|
+| A | Product & Market | 10 (A1–A10) |
+| B | Engineering | 6 (B1–B6) |
+| C | Trust & Compliance | 5 (C1–C5) |
+| D | Operations | 9 (D1–D9) |
+| E | Process carriers (orchestrators, not dimensions) | 10 skills |
+
+### Dimension Table
+
+| # | Dimension | Owning Skill(s) | Scope |
+|---|---|---|---|
+| A1 | Market positioning & competitive advantage | ds-benchmark + ds-productize (GTM) | Competitive analysis, market positioning |
+| A2 | Monetization (pricing/billing/entitlements) | ds-productize | Pricing model, billing integrity, entitlement verification |
+| A3 | Analytics/telemetry | ds-productize (funnel) + ds-deploy (ops) | Privacy-first analytics, funnel analysis, operational telemetry |
+| A4 | Discoverability (SEO + ASO + repo topics) | ds-launch | SEO meta tags, App Store Optimization, repository topics |
+| A5 | Usability / onboarding / intuitiveness | ds-frontend (ux scope) | Nielsen heuristic evaluation, onboarding flow audit |
+| A6 | UI visual quality & consistency | ds-frontend | Design tokens, component consistency, visual hierarchy |
+| A7 | Accessibility (a11y) | ds-frontend (implementation) + ds-compliance (regulatory) | WCAG 2.2 AA, ARIA patterns, regulatory compliance (EAA/ADA) |
+| A8 | i18n/l10n | ds-fix (mechanical) + ds-compliance (rules) | Internationalization detection, localization readiness |
+| A9 | Ecosystem integration (Google + Apple) | ds-blueprint (signal) + conditional rules (5 skills) | Google OAuth, Sign in with Apple, Limited Use, store disclosure |
+| A10 | API reference quality (OpenAPI/SDK/examples) | ds-docs (API doc completeness) + ds-backend (OpenAPI spec) | OpenAPI specification, SDK ergonomics, example quality |
+| B1 | Code quality & simplicity | ds-review, ds-fix, ds-simplify, ds-quality | Format, lint, typecheck, complexity, dead code |
+| B2 | Architectural health | ds-blueprint + ds-review --strategic | 9-dimension health scoring, architectural consistency |
+| B3 | Testing & verification | ds-test | Test generation, coverage, test-fix, E2E scenarios |
+| B4 | DX — contributor | ds-blueprint (dx dimension) + ds-repo | Contributor experience, repo health, onboarding |
+| B5 | DX — product (devtool/API products) | ds-backend (API ergonomics) + ds-docs (getting-started) | API design ergonomics, getting-started experience |
+| B6 | Documentation | ds-docs | Doc gap analysis, drift detection, ADR generation |
+| C1 | Security | ds-compliance (canonical) + ds-fix/ds-backend/ds-mobile/ds-devops | Security audit, secret scan, secure-by-design, CI/CD security |
+| C2 | Privacy & data protection | ds-compliance (canonical) | GDPR/KVKK, data minimization, consent, data-disclosure labels |
+| C3 | Legal (ToS/EULA, license, regulation) | ds-compliance + ds-docs (templates) + ds-repo (license) | ToS/EULA templates, license compliance, regulatory audit |
+| C4 | Supply chain / dependencies | ds-deps | Dependency audit, upgrade classification, vulnerability scanning |
+| C5 | Deprecation management (sunset/migration) | ds-docs (deprecation notice) + ds-repo (release notes) | Sunset timelines, migration guides, deprecation notices |
+| D1 | Performance & efficiency | ds-review --perf + ds-launch --perf-budget + ds-tune | Deep profiling, perf budgets, optimization loops |
+| D2 | Resource economy (payload/bandwidth/storage) | ds-review --perf (resource group) + ds-deploy --cost | Bundle size, compression, cache, storage growth, infra cost |
+| D3 | Resilience/reliability | ds-backend + ds-deploy | Retry strategies, disaster recovery, backup verification |
+| D4 | Observability/monitoring | ds-deploy + ds-backend | Logging, metrics, alerting, tracing infrastructure |
+| D5 | Data management (schema/migration/retention) | ds-backend | Schema design, migration integrity, data retention policies |
+| D6 | CI/CD & release engineering | ds-devops + ds-launch | Pipeline integrity, code signing, staged rollout |
+| D7 | Deploy/infra & incident response | ds-deploy | Containerization, TLS, monitoring, incident runbooks |
+| D8 | Repo governance | ds-repo | Branch protection, CODEOWNERS, metadata, OSS readiness |
+| D9 | Breaking-change management (semver/contract) | ds-deps (semver) + ds-review (API contract) | API/schema/export break detection, migration path quality |
+| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-tune, ds-research, ds-brief | Orchestration, spec pipeline, commits, PRs — not quality dimensions |
+
+### Amendment
+
+See §14 Taxonomy Amendment Process for adding or modifying dimensions.
+
+---
 ## Appendix: Skill Prefix Registry
 
 Every skill reserves a unique prefix used in progress markers and state files. Prefixes are stable — changing one breaks existing state files in the wild.

@@ -29,7 +29,9 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 
 ## Contract
 
-- Covers three scopes: monetization (model + billing/entitlement integrity), pricing (tiers + packaging), gtm (positioning + funnel baseline).
+**Dimensions:** A1 (GTM), A2, A3 (funnel)
+
+- Covers four scopes: monetization (model + billing/entitlement integrity), pricing (tiers + packaging), gtm (positioning + funnel baseline), analytics (funnel instrumentation — ops telemetry delegated to ds-deploy).
 - Audits and plans — generates findings and `ds/productize/plan.md`; payment-provider integration code itself is implemented by the user or ds-backend.
 - Only recommends established patterns with published benchmarks — no speculative growth hacks.
 - Minimal liability + maximum privacy: recommends Merchant-of-Record or managed billing over hand-rolled payment handling; funnel metrics are privacy-first (no PII in events, consent-gated where required).
@@ -79,7 +81,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 
 ## Delegation
 
-**Owns:** monetization, pricing, gtm | **Delegates:** ds-compliance → subscription-law + privacy canonical audit; ds-backend → billing data model + webhook endpoint security pass; ds-research → pricing/competitor evidence (optional) | **Receives:** ds-ship → Phase 2 productize pass on paid-product intent
+**Owns:** monetization, pricing, gtm, analytics (funnel) | **Delegates:** ds-compliance → subscription-law + privacy canonical audit; ds-backend → billing data model + webhook endpoint security pass; ds-deploy → analytics (ops telemetry); ds-research → pricing/competitor evidence (optional) | **Receives:** ds-ship → Phase 2 productize pass on paid-product intent
 
 ## Execution Flow
 
@@ -179,3 +181,4 @@ Zero-change run: `No gaps — monetization/pricing/gtm surfaces meet reviewed sc
 | Existing revenue, migration question (e.g., IAP → web checkout) | Present as B decision with commission math from references; never auto-migrate |
 | Multiple products in one repo | Ask which product; audit one per run, note others as out-of-scope |
 | B2B invoice-based sales (no self-serve) | Skip paywall/trial checks as N/A; audit entitlement, pricing page, GTM only |
+

@@ -30,6 +30,8 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 
 ## Contract
 
+**Dimensions:** B2, B4 (contributor)
+
 - Scores project health across 9 dimensions — signal counting, not file:line finding lists. Only modifies the profile section of the instruction file; suggests next steps but never invokes other skills or fixes code.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
@@ -381,3 +383,5 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 | Empty project | Report baseline scores, note no code to assess |
 | Monorepo | Score each workspace independently, aggregate in summary |
 | No instruction file found | Create new profile, ask user for target file location |
+
+
