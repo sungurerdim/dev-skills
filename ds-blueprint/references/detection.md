@@ -240,6 +240,16 @@ Cross-cutting signals for the `Integrations:` blueprint profile field — feeds 
 | Both rows match | Google + Apple | `google-workspace, apple-ecosystem` |
 | No row matches | — | `none` |
 
+## Step 5: Transactional Messaging Detection
+
+Signals for the conditional transactional-messaging rule blocks in ds-backend and ds-compliance (SMS/WhatsApp/email/push reminders — receipts, appointment reminders; not marketing). Zero checks when no signal matches.
+
+| Signal | Examples |
+|--------|----------|
+| Messaging SDK/provider dependency | `twilio`, `messagebird`, `vonage`, `@whatsapp-business`, `sendgrid`/`@sendgrid/mail`, `postmark`, `nexmo`, FCM/APNs push SDK |
+| Consent field in schema | `sms_consent`, `whatsapp_opt_in`, `notification_consent`, or equivalent column/field in the user/contact model |
+| Reminder-scheduling code | Cron/queue job or scheduled function sending appointment/receipt/reminder messages (e.g. `sendReminder`, `scheduleNotification`) |
+
 ## Conflict Resolution
 
 | Scenario | Resolution |

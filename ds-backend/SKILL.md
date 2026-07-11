@@ -28,7 +28,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 
 ## Contract
 
-**Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design), D10 (admin API + stats), A11 (webhook/export/embed)
+**Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design, conditional messaging), D10 (admin API + stats), A11 (webhook/export/embed)
 **Framework alignment (advisory):** Google SRE PRR (D3, D4), OpenAPI Specification (A10), OWASP ASVS (C1) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Covers four scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve).
@@ -120,6 +120,16 @@ Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15)
 | Admin API surface | Admin-only endpoints (user/config/feature-flag management) gated behind role-checked authz, not just authentication |
 | Operator statistics | Business/usage reporting endpoints (dashboards, aggregate metrics) exist and are paginated/rate-limited, not raw DB dumps |
 | Export integrity | Periodic report exports (CSV/PDF) use streaming/batched generation, not full-table loads into memory |
+
+### Transactional Messaging (conditional)
+
+**Activate when:** messaging SDK/provider dependency, a consent field in the schema, or reminder-scheduling code is detected (see [ds-blueprint references/detection.md § Step 5](../ds-blueprint/references/detection.md)). Zero checks when absent.
+
+| Check | Rule |
+|-------|------|
+| Provider credentials | API keys/tokens via secret manager or env, never hardcoded; scoped to transactional-send permission only |
+| Retry/idempotency | Send operations use an idempotency key (message/notification ID) to prevent duplicate sends on retry |
+| Opt-out honored at send time | Every send checks current opt-out/consent status immediately before dispatch, not just at signup |
 
 ### A9 — Google / Apple Ecosystem Rules (conditional)
 

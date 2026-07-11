@@ -32,7 +32,7 @@ Covers 98 rules across 8 compliance domains.
 
 ## Contract
 
-**Dimensions:** C1 (canonical), C2 (canonical), C3 (regulatory), A7 (regulatory), A8 (rules), A9 (conditional ecosystem rules), A11 (portability crosscheck)
+**Dimensions:** C1 (canonical), C2 (canonical, conditional messaging), C3 (regulatory), A7 (regulatory), A8 (rules), A9 (conditional ecosystem rules), A11 (portability crosscheck)
 **Framework alignment (advisory):** OWASP ASVS (C1), OWASP SAMM (C2) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).
@@ -84,6 +84,17 @@ Every secret is its own needs-approval item. `--auto` lists them, marks all `ski
 ## Delegation
 
 **Owns:** regulatory, privacy (canonical — GDPR / KVKK / CCPA / etc.), a11y-regulatory-framing (ADA / EN301549 mapping), security-regulatory, i18n, secrets-migrate (`--secrets-migrate`) | **Delegates:** ds-mobile → security/privacy/regulatory when mobile detected (`pubspec.yaml` / `Info.plist` / `AndroidManifest.xml`); ds-frontend → a11y implementation + fixes | **Receives:** ds-launch → canonical privacy for store labels; ds-ship → Phase 2 regulatory pass; ds-productize → subscription-law + privacy canonical audit
+
+### Transactional Messaging (conditional)
+
+**Activate when:** messaging SDK/provider dependency, a consent field in the schema, or reminder-scheduling code is detected (see [ds-blueprint references/detection.md § Step 5](../ds-blueprint/references/detection.md)). Zero checks when absent.
+
+| Check | Rule |
+|-------|------|
+| Consent capture | Explicit opt-in recorded per channel (SMS/WhatsApp/email/push) with timestamp, distinct from general account creation |
+| Lawful basis | Transactional-only messages (appointment reminders, receipts) map to legitimate interest/contract performance; marketing content in the same channel requires separate consent (KVKK Art. 5, GDPR Art. 6) |
+| Opt-out mechanism | STOP/unsubscribe honored within the regulation-mandated window (immediate for SMS per most carrier rules) |
+| Provider disclosure | Privacy policy names the messaging provider(s) and what data is shared (phone number, message content) — cross-ref PRV-15 Data Processing Agreement |
 
 ### A9 — Google / Apple Ecosystem Rules (conditional)
 
