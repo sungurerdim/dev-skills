@@ -39,8 +39,8 @@ description: "Task list for v4 — Dimension Coverage Taxonomy + Standalone + AI
 - [x] T005 [P] Run `/full-review` capture 8-category scores in `ds/audit/v4-baseline.json`
 - [x] T006 [P] Count rule-like lines in each SKILL.md matching `verify|check|ensure|enforce|MUST|kural|doğrula|denetle` — record per skill and total in `ds/audit/v4-baseline.json`
 - [x] T007 Run size-target audit: compare each skill's line count against its class ceiling (orchestrator ≤350, multi-mode ≤350, single-mode ≤240, atomic ≤220) — list violations in `ds/audit/v4-baseline.json`
-- [x] T008 Validate taxonomy against industry frameworks via `ds-research-agent`: Google SRE PRR (D-layer), Nielsen heuristics (A5), Apple HIG + App Store Review 4.8 (A7, A9), Google Identity/OAuth + Limited Use (A9), Material Design (A6, A9) — write findings to `ds/audit/v4-baseline.json`
-- [x] T009 Extract delta from research: verify every taxonomy dimension row has ≥1 external framework reference — mark any missing as "unverified" for Phase 2 resolution
+- [ ] T008 Validate taxonomy against industry frameworks via `ds-research-agent`: Google SRE PRR (D-layer), Nielsen heuristics (A5), Apple HIG + App Store Review 4.8 (A7, A9), Google Identity/OAuth + Limited Use (A9), Material Design (A6, A9) — write findings to `ds/audit/v4-baseline.json` (reopened 2026-07-11, issue #6: research.md has 0 external URLs/citations — the RT1–RT5 entries were never run through ds-research-agent's sourced-findings pipeline; see the sourcing caveat added to research.md)
+- [ ] T009 Extract delta from research: verify every taxonomy dimension row has ≥1 external framework reference — mark any missing as "unverified" for Phase 2 resolution (reopened 2026-07-11, issue #6: depends on T008's unsourced research — no per-row reference-coverage check was actually run)
 
 **Checkpoint**: Baseline measurement complete. Taxonomy validated. `ds/audit/v4-baseline.json` populated.
 
@@ -58,7 +58,7 @@ description: "Task list for v4 — Dimension Coverage Taxonomy + Standalone + AI
 - [x] T013 [P] Add "Dimension Ownership Design Rule" normative section to `SKILL-SPEC.md` — required `Dimensions:` declaration in every SKILL.md, overlap prohibition, amendment process
 - [x] T014 [P] Add "Taxonomy Amendment Process" section to `SKILL-SPEC.md` appendix: 4-step procedure (propose via issue/PR with name+layer+skill+framework reference → gate: no overlap → gate: capacity → merge and update 3 files)
 - [x] T015 Update the SKILL.md template in `SKILL-SPEC.md` — add `**Dimensions:**` as a required line in the section order
-- [x] T016 Extend `scripts/check-consistency.sh` with v4 checks: (1) `Dimensions:` declaration presence in each SKILL.md; (2) taxonomy membership validation (each declared dimension exists in appendix); (3) overlap detection (same dimension·scope pair claimed by two skills); (4) advisory-handoff pattern check in cross-skill references
+- [x] T016 Extend `scripts/check-consistency.sh` with v4 checks: (1) `Dimensions:` declaration presence in each SKILL.md; (2) taxonomy membership validation (each declared dimension exists in appendix); (3) overlap detection (same dimension·scope pair claimed by two skills); (4) advisory-handoff pattern check in cross-skill references (re-verified 2026-07-11, issue #2: originally only checks 1+4 existed — 2+3 were missing until issue #2 added them; all 4 now present and passing)
 - [x] T017 Extend `.claude/commands/full-review.md` with 3 new v4 categories: standalone (advisory-handoff compliance), ai-legibility (imperative-mood + gate-arms + no ambiguous phrases), dimension-ownership (declarations + overlap absence)
 
 **Checkpoint**: `bash scripts/check-consistency.sh` exits 0 with v4 checks. `/full-review` lists v4 categories.
@@ -75,9 +75,9 @@ description: "Task list for v4 — Dimension Coverage Taxonomy + Standalone + AI
 - [x] T019 [P] [US4] Add `**Dimensions:**` lines to multi-mode auditors: ds-review, ds-mobile, ds-compliance, ds-frontend
 - [x] T020 [P] [US4] Add `**Dimensions:**` lines to single-mode skills: ds-blueprint, ds-test, ds-docs, ds-backend, ds-deploy, ds-launch, ds-productize, ds-tune, ds-solve, ds-simplify, ds-deps, ds-benchmark, ds-brief, ds-quality, ds-init
 - [x] T021 [P] [US4] Add `**Dimensions:**` lines to atomic skills: ds-commit, ds-pr, ds-fix, ds-issue, ds-research
-- [x] T022 [US4] Run `bash scripts/check-consistency.sh` after all declarations added — fix any failures (missing declarations, invalid dimension IDs, overlaps)
-- [x] T023 [US4] Run `/full-review` and verify dimension-ownership category is green
-- [x] T024 [US4] Verify overlap detection: create a test script that deliberately duplicates a dimension·scope pair in two SKILL.md files, run `check-consistency.sh`, confirm non-zero exit and named conflict in output — then revert
+- [x] T022 [US4] Run `bash scripts/check-consistency.sh` after all declarations added — fix any failures (missing declarations, invalid dimension IDs, overlaps) (re-verified 2026-07-11, issue #6: the original run predates the invalid-ID/overlap checks — see T016; re-run today against the completed script — exit 0, 0 failures, via issues #2/#3/#5)
+- [ ] T023 [US4] Run `/full-review` and verify dimension-ownership category is green (reopened 2026-07-11, issue #6: `ds/audit/v4-baseline.json` records `full_review_note: "unavailable (Claude Code internal command — run manually in Claude Code)"` — never executed, cannot confirm)
+- [x] T024 [US4] Verify overlap detection: create a test script that deliberately duplicates a dimension·scope pair in two SKILL.md files, run `check-consistency.sh`, confirm non-zero exit and named conflict in output — then revert (re-verified 2026-07-11 via issue #2 close evidence: planted `B3` into ds-repo/SKILL.md — B3's appendix owner is ds-test only — ran the script, got `FAIL: dimension B3 declared by multiple skills (ds-repo ds-test) not all listed in appendix owner column 'ds-test' — unauthorized: ds-repo`, reverted; the check this task describes did not exist when originally checked)
 
 **Checkpoint**: check-consistency.sh passes. All 28 skills have valid `Dimensions:` declarations. Overlap detection proven via test.
 
@@ -143,23 +143,23 @@ description: "Task list for v4 — Dimension Coverage Taxonomy + Standalone + AI
 9. Verify rule preservation: rule-like line count must not decrease; if it does, write justification
 10. Verify `Dimensions:` declaration is present and matches taxonomy
 
-- [x] T044 [P] [US2] Batch 1: ds-blueprint, ds-ship, ds-review, ds-test, ds-backend — apply 10-step rewrite checklist to each SKILL.md. Verify: token report, rule preservation, advisory-handoff pattern
-- [x] T045 [US2] Batch 1 verification: run `bash scripts/check-consistency.sh`; run ambiguity grep; record token delta. Fix any failures before proceeding
-- [x] T046 [P] [US2] Batch 2: ds-solve, ds-launch, ds-deps, ds-repo, ds-docs — apply 10-step rewrite checklist. Verify: token report, rule preservation
-- [x] T047 [US2] Batch 2 verification: consistency check; ambiguity grep; token delta. Fix failures
-- [x] T048 [P] [US3] Batch 3: ds-simplify, ds-mobile, ds-frontend, ds-compliance, ds-tune — apply 10-step rewrite checklist. Verify: token report, rule preservation
-- [x] T049 [US3] Batch 3 verification: consistency check; ambiguity grep; token delta. Fix failures
-- [x] T050 [P] [US3] Batch 4: ds-fix, ds-commit, ds-pr, ds-deploy, ds-init — apply 10-step rewrite checklist. Verify: token report, rule preservation
-- [x] T051 [US3] Batch 4 verification: consistency check; ambiguity grep; token delta. Fix failures
-- [x] T052 [P] [US3] Batch 5: ds-devops, ds-benchmark, ds-quality, ds-productize, ds-issue — apply 10-step rewrite checklist. Verify: token report, rule preservation
-- [x] T053 [US3] Batch 5 verification: consistency check; ambiguity grep; token delta. Fix failures
-- [x] T054 [P] [US3] Batch 6: ds-research, ds-brief, ds-pipeline + `agents/ds-research-agent` — apply 10-step rewrite checklist. Verify: token report, rule preservation
-- [x] T055 [US3] Batch 6 verification: consistency check; ambiguity grep; token delta. Fix failures
-- [x] T056 [US2] Reference file scan: for each SKILL.md change that added or modified reference links, verify the target `references/*.md` exists and is consumed correctly — grep consumers to confirm
-- [x] T057 [US2] [US3] Final aggregate token report: compare total token estimate across all 28 SKILL.md vs. Phase 1 baseline. Report aggregate delta% and per-skill breakdown
-- [x] T058 [US2] [US3] Final rule preservation report: compare per-skill rule-like line counts vs. Phase 1 baseline. If any skill decreased, attach justification from the batch report where it occurred
+- [ ] T044 [P] [US2] Batch 1: ds-blueprint, ds-ship, ds-review, ds-test, ds-backend — apply 10-step rewrite checklist to each SKILL.md. Verify: token report, rule preservation, advisory-handoff pattern (reopened 2026-07-11, issue #6: `git show --numstat 322bc1b` shows most of the 28 SKILL.md files changed by only +3/-0 or +4/-0 lines — a `Dimensions:` declaration, not a 10-step rewrite; no token report or rule-preservation report exists anywhere in the repo for any batch. Same justification applies to T045–T058 below. Tracked as issue #7.)
+- [ ] T045 [US2] Batch 1 verification: run `bash scripts/check-consistency.sh`; run ambiguity grep; record token delta. Fix any failures before proceeding (reopened — see T044 justification; no ambiguity-grep output or token-delta record exists)
+- [ ] T046 [P] [US2] Batch 2: ds-solve, ds-launch, ds-deps, ds-repo, ds-docs — apply 10-step rewrite checklist. Verify: token report, rule preservation (reopened — see T044 justification)
+- [ ] T047 [US2] Batch 2 verification: consistency check; ambiguity grep; token delta. Fix failures (reopened — see T044 justification)
+- [ ] T048 [P] [US3] Batch 3: ds-simplify, ds-mobile, ds-frontend, ds-compliance, ds-tune — apply 10-step rewrite checklist. Verify: token report, rule preservation (reopened — see T044 justification)
+- [ ] T049 [US3] Batch 3 verification: consistency check; ambiguity grep; token delta. Fix failures (reopened — see T044 justification)
+- [ ] T050 [P] [US3] Batch 4: ds-fix, ds-commit, ds-pr, ds-deploy, ds-init — apply 10-step rewrite checklist. Verify: token report, rule preservation (reopened — see T044 justification)
+- [ ] T051 [US3] Batch 4 verification: consistency check; ambiguity grep; token delta. Fix failures (reopened — see T044 justification)
+- [ ] T052 [P] [US3] Batch 5: ds-devops, ds-benchmark, ds-quality, ds-productize, ds-issue — apply 10-step rewrite checklist. Verify: token report, rule preservation (reopened — see T044 justification)
+- [ ] T053 [US3] Batch 5 verification: consistency check; ambiguity grep; token delta. Fix failures (reopened — see T044 justification)
+- [ ] T054 [P] [US3] Batch 6: ds-research, ds-brief, ds-pipeline + `agents/ds-research-agent` — apply 10-step rewrite checklist. Verify: token report, rule preservation (reopened — see T044 justification)
+- [ ] T055 [US3] Batch 6 verification: consistency check; ambiguity grep; token delta. Fix failures (reopened — see T044 justification)
+- [ ] T056 [US2] Reference file scan: for each SKILL.md change that added or modified reference links, verify the target `references/*.md` exists and is consumed correctly — grep consumers to confirm (reopened 2026-07-11, issue #6: this check would have caught the missing `ds-frontend/references/rules-ux.md` target — it clearly didn't run; that specific gap is now fixed via issue #4, but a comprehensive scan across all 28 skills' new/changed reference links has not been verified)
+- [ ] T057 [US2] [US3] Final aggregate token report: compare total token estimate across all 28 SKILL.md vs. Phase 1 baseline. Report aggregate delta% and per-skill breakdown (reopened — see T044 justification; no such report exists)
+- [ ] T058 [US2] [US3] Final rule preservation report: compare per-skill rule-like line counts vs. Phase 1 baseline. If any skill decreased, attach justification from the batch report where it occurred (reopened — see T044 justification; no such report exists)
 
-**Checkpoint**: All 28 skills rewritten. Token aggregate lower than baseline. Zero ambiguous phrases. All gates have If-fails arms. Rule counts preserved or justified.
+**Checkpoint**: All 28 skills rewritten. Token aggregate lower than baseline. Zero ambiguous phrases. All gates have If-fails arms. Rule counts preserved or justified. **[WARN 2026-07-11, issue #6]: this checkpoint was never actually reached — see T044–T058 reopened above. Tracked as issue #7.**
 
 ---
 
@@ -171,13 +171,13 @@ description: "Task list for v4 — Dimension Coverage Taxonomy + Standalone + AI
 
 - [x] T059 [US5] Update `CLAUDE.md`: add dimension column/reference to family map table; add v4 invariants section (standalone, ai-legibility, dimension-ownership) — verify `CLAUDE.md` ↔ `SKILL-SPEC.md` consistency
 - [x] T060 [US5] Update `README.md`: add taxonomy link, update coverage claims to reflect v4 dimension ownership
-- [x] T061 [US5] Run `bash scripts/check-consistency.sh` — confirm exit 0. If non-zero, fix all issues
-- [x] T062 [US5] Run `/full-review` — confirm 8+ categories green with zero CRITICAL/HIGH findings. If failures, fix and re-run
-- [x] T063 [US5] Reconcile ledger: mark every task in this file `[x]`. Any open item gets a written justification in the notes
+- [x] T061 [US5] Run `bash scripts/check-consistency.sh` — confirm exit 0. If non-zero, fix all issues (re-verified 2026-07-11, issue #6: the original claim predates the membership/overlap checks (T016) and real Coverage Map drift (A7, A9, C5 rows) — neither existed to fail against yet; re-run today, exit 0, via issues #2/#3/#5)
+- [ ] T062 [US5] Run `/full-review` — confirm 8+ categories green with zero CRITICAL/HIGH findings. If failures, fix and re-run (reopened 2026-07-11, issue #6: never executed — see T023; deferred to a post-issue-#7 verification pass once the actual rewrite lands)
+- [x] T063 [US5] Reconcile ledger: mark every task in this file `[x]`. Any open item gets a written justification in the notes (re-verified 2026-07-11, issue #6: the original marking was itself the overclaim this task exists to prevent — every task above was individually re-checked against git diff / command output this pass; genuinely-unverified items were reopened with a justification rather than left checked)
 - [x] T064 [US5] Verify baseline file still exists at `ds/audit/v4-baseline.json` for comparison
-- [x] T065 [US5] Create git commits: one atomic conventional commit per phase (e.g., `feat: add v4 taxonomy appendix to SKILL-SPEC`, `feat: rewrite 28 skills for AI-legibility and standalone`)
+- [ ] T065 [US5] Create git commits: one atomic conventional commit per phase (e.g., `feat: add v4 taxonomy appendix to SKILL-SPEC`, `feat: rewrite 28 skills for AI-legibility and standalone`) (reopened 2026-07-11, issue #6: `git log` shows all of Phases 1–7 landed in a single commit, 322bc1b — not one atomic commit per phase)
 
-**Checkpoint**: All Done criteria from spec SC7 satisfied. Program ready for closure.
+**Checkpoint**: All Done criteria from spec SC7 satisfied. Program ready for closure. **[WARN 2026-07-11, issue #6]: not yet true — T008/T009 (unsourced research), T023/T062 (full-review never run), T044–T058 (28-skill rewrite never happened), T065 (commits not atomic per phase) are open. Program is at end of Phase 4 (scope expansions + dimension declarations + consistency enforcement), not Phase 7.**
 
 ---
 

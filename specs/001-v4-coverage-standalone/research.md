@@ -4,6 +4,8 @@
 **Feature**: v4 Dimension Coverage Taxonomy + Standalone + AI-Legibility
 **Date**: 2026-07-11
 
+**Sourcing caveat (added 2026-07-11, issue #6):** this document contains zero external URLs or citations — every RT below states a "Decision"/"Verdict" as if independently confirmed, but no `ds-research-agent` sourced-findings artifact backs it (T008 was reopened for the same reason). Specific claims that need external verification before being relied on: RT2's "Nielsen 10a (2024 addition — AI/hallucination prevention)" heuristic, RT4's "Google OAuth verification 2025-2026 update" specifics, and every named guideline number/version. Treat this file as a plausible starting framework mapping, not a sourced reference, until re-run through ds-research-agent with real citations.
+
 ---
 
 ## Research Tasks

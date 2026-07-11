@@ -1448,6 +1448,9 @@ Before releasing any skill, verify:
 - [ ] Skill never writes to the context-loaded instruction file (`CLAUDE.md` / `.cursorrules` / `.github/copilot-instructions.md` / `.windsurfrules` / `.aider.conf.yml` / `AGENTS.md` / etc.) outside the Blueprint Profile markers, and never adds timestamps, score deltas, run history, philosophy, or anything that fails the Dev-Value Gate (see §10.1).
 - [ ] Blueprint Profile section stays ≤ 25 lines after the skill writes; every line maps to a documented consumer behavior (no dead lines).
 - [ ] Skill prints a `Value Delivered` block after the Summary line in every run that modifies code, generates artifacts, or recommends fixes. Each bullet maps to a real applied change — concrete, user-facing, no filler (see §5 Value Delivered Statement).
+- [ ] SKILL.md contains a `**Dimensions:**` declaration line, and every declared ID exists in the Appendix: Dimension Coverage Map (see §11 Dimension Ownership Design Rule).
+- [ ] Every cross-skill reference follows the advisory-handoff pattern — target present → delegate; target absent → inline-check or gap-note; never a hard-fail (see §12 Standalone Invariant).
+- [ ] No ambiguous-condition phrasing (`"if appropriate"`, `"consider"`, `"may want to"`, `"as needed"`, `"might"`, `"possibly"`, `"could"`, `"should consider"`, `"it is recommended"`) — see §13 AI-Legibility Writing Standard rule (f).
 
 ---
 
