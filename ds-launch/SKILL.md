@@ -173,7 +173,7 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 
 | Provider | Rule | Scope |
 |----------|------|-------|
-| Google | OAuth consent screen — verify production approval status, homepage/privacy URLs, authorized domains | review |
+| Google | OAuth consent screen — verify production approval status, homepage/privacy URLs, authorized domains (Google OAuth verification requirement — mandated blocker, SKILL-SPEC §15) | review |
 | Apple | Sign in with Apple — verify entitlement + `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | review |
 | Google | Data safety section — ensure declarations match actual API scopes used | privacy |
 | Apple | Apple Privacy Labels — verify nutrition label declares sign-in and contact info if applicable | privacy |

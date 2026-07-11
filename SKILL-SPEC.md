@@ -1928,6 +1928,28 @@ To add a new dimension to the Dimension Coverage Map:
 
 ---
 
+## 15. Advisory-First Human-Action Policy
+
+Findings requiring human-only action (store console access, account/billing setup, key rotation, legal sign-off, branch/repo settings) are classified before they can affect a ship verdict.
+
+| Classification | Blocks ship verdict? | Requirement |
+|---|---|---|
+| Advisory human action | No | Surface with rationale in the report's "Recommended Human Actions" section; never counted toward a blocker count |
+| Mandated blocker | Yes | Cite the mandating source inline (law, store review guideline number, platform API requirement) in the finding itself |
+
+**Default:** every human-required finding is advisory unless it passes the mandated-blocker test below.
+
+**Mandated-blocker test** — all three must hold:
+1. An external authority (law, store review guideline, platform API contract) makes the action a documented prerequisite to shipping, not merely a good practice.
+2. The mandate is citable by name or number (e.g. "App Store Review Guideline 4.8", "GDPR Art. 13", "Google OAuth verification requirement").
+3. Skipping it causes rejection, legal exposure, or a broken production path, not just a suboptimal one.
+
+**Known mandated blockers** (citation already present in the owning skill): OAuth consent-screen production approval before public launch with restricted Google scopes (Google OAuth verification requirement — ds-launch A9); Sign in with Apple requirement when third-party login is present and the target is the App Store (App Store Review Guideline 4.8 — ds-mobile, ds-launch A9).
+
+**Default to advisory:** store/account setup, branch protection configuration, CI/repo secret rotation, key rotation, purchases, and legal template review absent a specific law citation.
+
+---
+
 ## Appendix: Dimension Coverage Map
 
 The authoritative taxonomy of quality/coverage dimensions for the dev-skills suite. Every dimension has at least one owning skill.

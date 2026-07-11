@@ -247,7 +247,7 @@ Orchestrator never pushes or opens a PR on its own; user is always free to keep 
 
 ### Phase 6: Consolidated Report
 
-Write `ds/audit/report.md` overwriting prior content:
+Write `ds/audit/report.md` overwriting prior content. **Blocker classification (SKILL-SPEC §15):** a human-required finding counts toward `{K} blockers` only if it passes the mandated-blocker test (external mandate + citable source + rejection/legal/production risk if skipped) — every other human-required finding goes to "Recommended Human Actions" and never blocks the verdict.
 
 ```markdown
 # Ship Report — {repo-name}
@@ -262,7 +262,7 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 - Value proposition: {paragraph}
 - Autonomous fixes applied (Category A): {N}
 - Awaiting user decision (Category B): {M}
-- Ship-ready: yes | no ({K} blockers remain)
+- Ship-ready: yes | no ({K} mandated blockers remain — cited sources in Awaiting User Decision; advisory items never counted)
 - Doc token reduction: {before} → {after} ({%})
 - Score delta (`--uplift` runs only): overall {prev} → {now} (model {prev-model} → {curr-model})
 - Security baseline ([references/principles.md §5](references/principles.md)): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
@@ -276,6 +276,11 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 
 ## Awaiting User Decision (Category B)
 | Proposal | Why needed | Risk / effort | Priority |
+
+## Recommended Human Actions (advisory — not blocking)
+| Action | Why | Where |
+
+Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §15) lands here instead of Category B/blockers — cite the mandating source for any item kept as a blocker in Category B or Summary; omit this section when empty.
 
 ## Intentional Deviations (kept as-is)
 | Item | Why it stays |
