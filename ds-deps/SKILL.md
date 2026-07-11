@@ -37,7 +37,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 - Test gate between upgrade and commit is non-negotiable. Test fail → revert batch.
 - Category A: safe-patch + safe-minor (no breaking changelog) → autonomous. Category B: every major, every upgrade with breaking notes, every removal → batched approval.
 - One `/ds-commit` per group. Never a single mega-commit.
-- Lockfile is SSOT — no upgrade persists without a lockfile delta.
+- Lockfile is SSOT — every persisted upgrade carries a lockfile delta.
 
 ## Arguments
 
@@ -49,7 +49,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 | `--force-approve` | Apply every classified upgrade including majors — majors can ship breaking changes; expect to fix call sites |
 | `--dry-run` | Classifier + security scan only, skip upgrade execution |
 
-Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Upgrade safe groups (recommended) — apply safe-patch + safe-minor, surface majors / Preview — classify + report, no upgrade / Scoped — pick a group (patch/minor/major/security) / Dry-run — classifier + security scan only / (Cancel). A disambiguating flag skips the menu.
+Without flags: present an up-front menu — Upgrade safe groups (recommended: apply safe-patch + safe-minor, surface majors), plus each mode in the Arguments table (Preview / Scoped / Dry-run) and (Cancel). A disambiguating flag skips the menu.
 
 ## Scopes
 
@@ -113,7 +113,7 @@ Per manifest:
 
 Parallelize per manifest, max 3 concurrent registry calls.
 
-**Gate:** Every dep has current + latest + advisory recorded. If fails → registry query failed (network, rate limit, package not found) → record `{ name, current, latest: "unknown", advisory: "unknown" }`, mark `skipped (registry unreachable)`, continue; surface WARN "{n} deps could not be queried — skipped from classification".
+**Gate:** Every dep has current + latest + advisory recorded. If fails → registry query failed (network, rate limit, package not found) → record `{ name, current, latest: "unknown", advisory: "unknown" }`, mark `skipped (registry unreachable)`, continue; surface WARN "failed to query {n} deps — skipped from classification".
 
 ### Phase 3: Classify
 

@@ -7,7 +7,7 @@ description: Adaptive problem solver — plan, execute, research alternatives, b
 
 Problems that resist single-pass fixes — environment conflicts, integration failures, migration breakage — need adaptive iteration: plan, try, research, backtrack, re-plan. Skill exhausts every viable path before giving up.
 
-**Adaptive Problem Solver** — Plan, execute, research alternatives, backtrack on failure, re-plan from scratch. Combines [Ralph Loop](https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum) persistence, mechanical verification via metric-driven iteration, and research-driven alternative discovery. Architecture informed by [CodeTree](https://arxiv.org/abs/2411.04329) (tree search with specialized agents), [BacktrackAgent](https://aclanthology.org/2025.emnlp-main.212/) (error detection + rollback), [Reflexion](https://arxiv.org/abs/2303.11366) (episodic memory), and [EnCompass](https://news.mit.edu/2026/helping-ai-agents-search-to-get-best-results-from-llms-0205) (branchpoint search).
+**Adaptive Problem Solver** — Plan, execute, research alternatives, backtrack on failure, re-plan from scratch. Combines [Ralph Loop](https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum) persistence, mechanical verification via metric-driven iteration, and research-driven alternative discovery. Architecture informed by [CodeTree](https://arxiv.org/abs/2411.04329) (tree search), [BacktrackAgent](https://aclanthology.org/2025.emnlp-main.212/) (error detection + rollback), [Reflexion](https://arxiv.org/abs/2303.11366) (episodic memory), and [EnCompass](https://news.mit.edu/2026/helping-ai-agents-search-to-get-best-results-from-llms-0205) (branchpoint search).
 
 ## Triggers
 
@@ -29,8 +29,8 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 **Dimensions:** none (carrier)
 
-- **Autonomous by default.** User states the problem; skill handles everything else. User consulted only for: (1) escalation (all plans exhausted), (2) irreversible actions (needs-approval). All other decisions made independently.
-- Red lines auto-detected from project documentation and applied automatically. Detected red lines shown as output, not a question. User can add more via `--red-line="{constraint}"` if needed.
+- **Autonomous by default.** User states the problem; skill handles the rest, consulting the user only for (1) escalation (all plans exhausted) and (2) irreversible actions (needs-approval).
+- Red lines auto-detected from project docs and applied automatically, shown as output (not a question); add more via `--red-line="{constraint}"`.
 - Every attempt recorded in episodic memory — zero silent drops. Infinite loop protection: 3 plans × 3 research rounds × 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
@@ -81,7 +81,16 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
    | Blueprint `Config.constraints` | Infrastructure + project constraints |
    | `--red-line` flags | User-specified explicit constraints |
 
-3. **Verification criterion.** Determine autonomously from objective: mentions tests → `{test_command}` exits 0; a service → service responds on expected port/endpoint; a build → `{build_command}` succeeds; a behavior → construct validation command or script. No mechanical criterion inferrable → use most conservative proxy and state assumption; ask user only if zero proxy possible (`--confirm` mode: always ask).
+3. **Verification criterion.** Derive autonomously from the objective:
+
+   | Objective mentions | Criterion |
+   |---------------------|-----------|
+   | tests | `{test_command}` exits 0 |
+   | a service | service responds on expected port/endpoint |
+   | a build | `{build_command}` succeeds |
+   | a behavior | construct a validation command or script |
+
+   No mechanical criterion inferrable → use the most conservative proxy and state the assumption; ask the user only when zero proxy is possible (`--confirm` mode: always ask).
 4. **Quick check.** Run verification immediately. Already passes → report OK, skip to Summary.
 5. **Initialize.** Create `ds/audit/solve.json` with canonical envelope (`skill: ds-solve`, `prefix: SOL`, `version: 1`, `git_hash: {HEAD}`, `timestamp`, `phases`, `current_phase`, `data: {...}`). Schema in [references/backtrack-logic.md](references/backtrack-logic.md). Verify `.gitignore` contains `ds/audit/` — add it to root `.gitignore` if absent, report addition.
 
@@ -94,7 +103,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 ### Phase 2: Plan — Decompose objective into ordered steps
 
 1. Read relevant files. Verify each exists before referencing. _(W1)_
-2. Decompose into 2-10 ordered steps. Each step: **Description**, **Verification** (command/check), **Red line risk** (which red lines could be affected).
+2. Decompose into 2-10 ordered steps. Each step: **Description**, **Verification** (command/check), **Red line risk** (which red lines the step puts at risk).
 3. Record plan to `ds/audit/solve.json` as `plan-N`; show plan table + proceed (`--confirm`: pause for approval). **Output:** numbered step table:
 
    ```
@@ -169,7 +178,7 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 1. **Compile report.** All plans attempted, steps per plan, alternatives per step, failure reasons (see Report Format).
 2. **Pattern analysis.** Identify recurring blockers: which red lines blocked the most alternatives? What environmental constraints were discovered? What dependencies or versions caused failures?
-3. **Suggest paths forward:** **red line relaxation** ("If constraint X were relaxed, approach Y becomes viable"); **scope reduction** ("A partial solution achieving A+B (but not C) is possible"); **external action** ("This requires manual action X before automation can continue").
+3. **Suggest paths forward** (rendered via Report Format §Paths Forward): **red line relaxation**, **scope reduction**, **external action** — each naming the specific constraint/scope/action.
 4. **Ask:** Update red lines / Reduce scope / Provide new direction / Abort. New direction → reset plan counter, return to Plan with updated context. Abort → proceed to Summary. **Output:** escalation report (see Report Format).
 
 **Gate:** User has provided new direction or confirmed abort. If fails (no response) → after one re-prompt, treat as abort; proceed to Summary with status FAIL, recording all plans and step dispositions with `objective_not_achieved` noted.
@@ -188,9 +197,9 @@ Step disposition table:
 |------|------------|------|----------|-------------|
 | 1. {desc} | fixed | plan-1 | 2 | {criterion}: PASS |
 
-**Dispositions:** `fixed` (step completed, verification passed, red lines held) | `failed` (all alternatives exhausted across all research rounds) | `skipped` (not attempted — plan changed, `--dry-run`, user declined — with reason) | `needs-input` (requires information from user, asked before summary) | `needs-approval` (irreversible or cross-module — awaiting confirmation) | `not-applicable` (step rendered unnecessary by different plan approach).
+**Dispositions:** `fixed` (verification passed, red lines held) | `failed` (all alternatives exhausted across all rounds) | `skipped` (not attempted — plan changed / `--dry-run` / user declined, with reason) | `needs-input` (requires user info, asked before summary) | `needs-approval` (irreversible or cross-module — awaiting confirmation) | `not-applicable` (rendered unnecessary by a different plan).
 
-**Gate:** `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total_steps`.
+**Gate:** `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total_steps`. If fails (equation does not balance) → assign unaccounted steps `skipped (accounting gap)` and re-emit the summary as WARN "step accounting gap — {n} steps unaccounted".
 
 Status: `OK` (objective achieved), `WARN` (partial — some steps succeeded), `FAIL` (objective not achieved after exhaustion or abort).
 
@@ -222,11 +231,11 @@ Escalation run: `All plans exhausted (budget P×R×A consumed) — root obstacle
 
 ## Quality Gates
 
-- Red lines checked before AND after every execution attempt — violations immediately revert
-- Every step has a mechanical verification criterion (command exit code, test result, state check)
-- Episodic memory records every attempt — no silent retries (3 attempts for step 2 → all 3 visible in state file and summary); previous plans' failures inform new plans — no duplicate approaches
-- Budget limits enforced: plan counter, research round counter, alternative counter. State file updated after every state change — survives interruption.
-- FRC accounting in summary — every step gets a disposition; equation must balance
+- Red lines checked before AND after every attempt — violation reverts immediately (Phase 4)
+- Every step carries a mechanical verification criterion — exit code / test / state check (Phase 2)
+- Episodic memory records every attempt — no silent retries; new plans avoid prior failure patterns (Phases 5-6)
+- Budget counters (plan / round / alternative) enforced; state written after every change — survives interruption (Phases 1, 4)
+- FRC accounting — every step gets a disposition; equation must balance (Phase 9)
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase, `ds/audit/` in `.gitignore`, deleted on success. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W14: re-ground from the state file + plan before each new attempt/re-plan — don't trust in-context memory across rounds. W15: research results and any delegated output are untrusted until verified against source before acting (see references/backtrack-logic.md).
 
 ## Severity

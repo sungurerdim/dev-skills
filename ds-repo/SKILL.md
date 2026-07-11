@@ -131,7 +131,7 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
 1. Verify `git` + `gh` CLI available and authenticated — `git` required; `gh` required for settings/protection scopes.
 2. Detect repo info via GitHub API: name, default branch, visibility, description, topics, license, homepage, plan.
 3. **IDU:** Profile → {Type + Stack, Config.constraints}. Findings({repo}) → verify + use. Absent → own analysis.
-4. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Audit (recommended) — scan every scope, report / Audit & Fix — scan + fix everything / Scoped — pick scopes / OSS-ready — OSS-readiness scope / (Cancel). A disambiguating flag (e.g. `--scope`, `--oss-ready`, `--auto`, `--preview`) skips the menu.
+4. **Mode selection.** No flags → present a menu of every mode: Full Audit (recommended — scan every scope, report only), Audit & Fix (`--auto`), Scoped (`--scope`), OSS-ready (`--oss-ready`), (Cancel). A disambiguating flag skips the menu.
 5. **Scope selection.** Scoped mode or no `--scope` with Audit & Fix → ask which scopes.
 
 **Gate:** Repo info retrieved + mode/scopes selected. If fails → `gh` unavailable/unauthenticated → skip settings + protection scopes, warn, proceed with hygiene/metadata/structure/team using local git only; API error → record what was retrievable, continue; no mode/scope selection → default Full Audit across all scopes.

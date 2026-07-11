@@ -102,7 +102,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 ### Phase 1: Setup [SKIP if --auto]
 
-1. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Auto (recommended) — detect + analyze + generate all / Preview — analyze only, no writes / Scoped — pick scopes / ADR — scan + maintain numbered ADR files / (Cancel). A disambiguating flag (e.g. `--adr`) skips the menu.
+1. **Mode selection.** No flags → present a menu of every mode: Auto (recommended — detect + analyze + generate all), Preview, Scoped, ADR, (Cancel). A disambiguating flag (e.g. `--adr`) skips the menu.
 2. **Scope selection.** Not Auto/Preview → ask: which areas (Core: readme+changelog / Technical: api+dev / User-facing: user+ops); how to handle existing (Fill gaps / Refine / Verify claims / Update all).
 
 **Gate:** Mode and scope selected, or flags parsed. If fails → no response after two attempts → default Auto + all scopes; announce `[DOC] No selection received — defaulting to Auto mode, all scopes.`
