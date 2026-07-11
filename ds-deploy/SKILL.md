@@ -25,6 +25,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 ## Contract
 
 **Dimensions:** D3, D4, D7, A3 (ops), D2 (cost), D10 (diagnostics + runbooks)
+**Framework alignment (advisory):** Google SRE PRR (D3, D4, D7), AWS/Azure/Google Cloud Well-Architected Cost Optimization (D2) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Covers deployment, infrastructure hardening, monitoring, incident response.
 - Generates configuration files and checklists — does NOT execute deployment commands.

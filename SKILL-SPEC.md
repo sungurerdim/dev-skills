@@ -1966,40 +1966,40 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 
 ### Dimension Table
 
-| # | Dimension | Owning Skill(s) | Scope |
-|---|---|---|---|
-| A1 | Market positioning & competitive advantage | ds-benchmark + ds-productize (GTM) | Competitive analysis, market positioning |
-| A2 | Monetization (pricing/billing/entitlements) | ds-productize | Pricing model, billing integrity, entitlement verification |
-| A3 | Analytics/telemetry | ds-productize (funnel) + ds-deploy (ops) | Privacy-first analytics, funnel analysis, operational telemetry |
-| A4 | Discoverability (SEO + ASO + repo topics) | ds-launch | SEO meta tags, App Store Optimization, repository topics |
-| A5 | Usability / onboarding / intuitiveness | ds-frontend (ux scope) | Nielsen heuristic evaluation, onboarding flow audit |
-| A6 | UI visual quality & consistency | ds-frontend | Design tokens, component consistency, visual hierarchy |
-| A7 | Accessibility (a11y) | ds-frontend (implementation) + ds-compliance (regulatory) + ds-mobile (implementation, mobile) | WCAG 2.2 AA, ARIA patterns, regulatory compliance (EAA/ADA) |
-| A8 | i18n/l10n | ds-fix (mechanical) + ds-compliance (rules) | Internationalization detection, localization readiness |
-| A9 | Ecosystem integration (Google + Apple) | ds-blueprint (signal) + ds-backend/ds-compliance/ds-frontend/ds-launch/ds-mobile (conditional) | Google OAuth, Sign in with Apple, Limited Use, store disclosure |
-| A10 | API reference quality (OpenAPI/SDK/examples) | ds-docs (API doc completeness) + ds-backend (OpenAPI spec) | OpenAPI specification, SDK ergonomics, example quality |
-| B1 | Code quality & simplicity | ds-review, ds-fix, ds-simplify, ds-quality | Format, lint, typecheck, complexity, dead code |
-| B2 | Architectural health | ds-blueprint + ds-review --strategic | 9-dimension health scoring, architectural consistency |
-| B3 | Testing & verification | ds-test | Test generation, coverage, test-fix, E2E scenarios |
-| B4 | DX — contributor | ds-blueprint (dx dimension) + ds-repo | Contributor experience, repo health, onboarding |
-| B5 | DX — product (devtool/API products) | ds-backend (API ergonomics) + ds-docs (getting-started) | API design ergonomics, getting-started experience |
-| B6 | Documentation | ds-docs | Doc gap analysis, drift detection, ADR generation; end-user FAQ/walkthrough/help-surface/support-path checks for user-facing project types |
-| C1 | Security | ds-compliance (canonical) + ds-fix/ds-backend/ds-mobile/ds-devops | Security audit, secret scan, secure-by-design, CI/CD security |
-| C2 | Privacy & data protection | ds-compliance (canonical) | GDPR/KVKK, data minimization, consent, data-disclosure labels |
-| C3 | Legal (ToS/EULA, license, regulation) | ds-compliance + ds-docs (templates) + ds-repo (license) | ToS/EULA templates, license compliance, regulatory audit |
-| C4 | Supply chain / dependencies | ds-deps | Dependency audit, upgrade classification, vulnerability scanning |
-| C5 | Deprecation management (sunset/migration) | ds-docs (deprecation notice) | Sunset timelines, migration guides, deprecation notices |
-| D1 | Performance & efficiency | ds-review --perf + ds-launch --perf-budget + ds-tune | Deep profiling, perf budgets, optimization loops |
-| D2 | Resource economy (payload/bandwidth/storage) | ds-review --perf (resource group) + ds-deploy --cost | Bundle size, compression, cache, storage growth, infra cost |
-| D3 | Resilience/reliability | ds-backend + ds-deploy | Retry strategies, disaster recovery, backup verification |
-| D4 | Observability/monitoring | ds-deploy + ds-backend | Logging, metrics, alerting, tracing infrastructure; production crash/error-reporting channel decision (privacy-compliant opt-in aggregate, or documented blindness-risk acceptance — ds-compliance PRV-20 crosscheck) |
-| D5 | Data management (schema/migration/retention) | ds-backend | Schema design, migration integrity, data retention policies |
-| D6 | CI/CD & release engineering | ds-devops + ds-launch | Pipeline integrity, code signing, staged rollout |
-| D7 | Deploy/infra & incident response | ds-deploy | Containerization, TLS, monitoring, incident runbooks |
-| D8 | Repo governance | ds-repo | Branch protection, CODEOWNERS, metadata, OSS readiness |
-| D9 | Breaking-change management (semver/contract) | ds-deps (semver) + ds-review (API contract) | API/schema/export break detection, migration path quality |
-| D10 | Admin & support operability | ds-backend (admin API + stats) + ds-frontend (admin UI) + ds-deploy (diagnostics + runbooks) + ds-docs (support docs) | Back-office/admin surfaces, operator statistics & reports, diagnostic bundles, error-remediation runbooks |
-| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-tune, ds-research, ds-brief | Orchestration, spec pipeline, commits, PRs — not quality dimensions |
+| # | Dimension | Owning Skill(s) | Scope | Framework Reference (advisory, SKILL-SPEC §15) |
+|---|---|---|---|---|
+| A1 | Market positioning & competitive advantage | ds-benchmark + ds-productize (GTM) | Competitive analysis, market positioning | [Porter's Five Forces](https://www.isc.hbs.edu/strategy/business-strategy/Pages/the-five-forces.aspx) (HBR 1979) |
+| A2 | Monetization (pricing/billing/entitlements) | ds-productize | Pricing model, billing integrity, entitlement verification | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Quality in Use (no pricing-specific standard exists) |
+| A3 | Analytics/telemetry | ds-productize (funnel) + ds-deploy (ops) | Privacy-first analytics, funnel analysis, operational telemetry | [DORA](https://dora.dev/) (ops-side delivery/telemetry metrics) |
+| A4 | Discoverability (SEO + ASO + repo topics) | ds-launch | SEO meta tags, App Store Optimization, repository topics | [Google Search Essentials](https://developers.google.com/search/docs/essentials) |
+| A5 | Usability / onboarding / intuitiveness | ds-frontend (ux scope) | Nielsen heuristic evaluation, onboarding flow audit | [Nielsen 10 Usability Heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/) |
+| A6 | UI visual quality & consistency | ds-frontend | Design tokens, component consistency, visual hierarchy | [Material Design 3](https://m3.material.io/) |
+| A7 | Accessibility (a11y) | ds-frontend (implementation) + ds-compliance (regulatory) + ds-mobile (implementation, mobile) | WCAG 2.2 AA, ARIA patterns, regulatory compliance (EAA/ADA) | [WCAG 2.2](https://www.w3.org/TR/WCAG22/) |
+| A8 | i18n/l10n | ds-fix (mechanical) + ds-compliance (rules) | Internationalization detection, localization readiness | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Portability/Compatibility |
+| A9 | Ecosystem integration (Google + Apple) | ds-blueprint (signal) + ds-backend/ds-compliance/ds-frontend/ds-launch/ds-mobile (conditional) | Google OAuth, Sign in with Apple, Limited Use, store disclosure | [Apple HIG](https://developer.apple.com/design/human-interface-guidelines) + [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) + [Google OAuth 2.0 Policies](https://developers.google.com/identity/protocols/oauth2/policies) |
+| A10 | API reference quality (OpenAPI/SDK/examples) | ds-docs (API doc completeness) + ds-backend (OpenAPI spec) | OpenAPI specification, SDK ergonomics, example quality | [OpenAPI Specification](https://spec.openapis.org/) |
+| B1 | Code quality & simplicity | ds-review, ds-fix, ds-simplify, ds-quality | Format, lint, typecheck, complexity, dead code | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Maintainability |
+| B2 | Architectural health | ds-blueprint + ds-review --strategic | 9-dimension health scoring, architectural consistency | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Maintainability + Compatibility |
+| B3 | Testing & verification | ds-test | Test generation, coverage, test-fix, E2E scenarios | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Reliability + [DORA](https://dora.dev/) change failure rate |
+| B4 | DX — contributor | ds-blueprint (dx dimension) + ds-repo | Contributor experience, repo health, onboarding | [DORA](https://dora.dev/) (lead time / deploy frequency as DX outcomes) |
+| B5 | DX — product (devtool/API products) | ds-backend (API ergonomics) + ds-docs (getting-started) | API design ergonomics, getting-started experience | [OpenAPI Specification](https://spec.openapis.org/) |
+| B6 | Documentation | ds-docs | Doc gap analysis, drift detection, ADR generation; end-user FAQ/walkthrough/help-surface/support-path checks for user-facing project types | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Usability (documentation adequacy) |
+| C1 | Security | ds-compliance (canonical) + ds-fix/ds-backend/ds-mobile/ds-devops | Security audit, secret scan, secure-by-design, CI/CD security | [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/) |
+| C2 | Privacy & data protection | ds-compliance (canonical) | GDPR/KVKK, data minimization, consent, data-disclosure labels | [OWASP SAMM](https://owaspsamm.org/) (governance/design practices; GDPR/KVKK/CCPA are regulations, not frameworks — see ds-compliance/references/rules-compliance.md) |
+| C3 | Legal (ToS/EULA, license, regulation) | ds-compliance + ds-docs (templates) + ds-repo (license) | ToS/EULA templates, license compliance, regulatory audit | n/a — governed by named regulations (GDPR/CCPA/KVKK/etc.), not an industry framework |
+| C4 | Supply chain / dependencies | ds-deps | Dependency audit, upgrade classification, vulnerability scanning | [OWASP SAMM](https://owaspsamm.org/) Supply Chain Security practice |
+| C5 | Deprecation management (sunset/migration) | ds-docs (deprecation notice) | Sunset timelines, migration guides, deprecation notices | [Keep a Changelog](https://keepachangelog.com/) + [Semantic Versioning](https://semver.org/) |
+| D1 | Performance & efficiency | ds-review --perf + ds-launch --perf-budget + ds-tune | Deep profiling, perf budgets, optimization loops | [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) + [AWS Well-Architected](https://docs.aws.amazon.com/wellarchitected/latest/framework/the-pillars-of-the-framework.html) Performance Efficiency |
+| D2 | Resource economy (payload/bandwidth/storage) | ds-review --perf (resource group) + ds-deploy --cost | Bundle size, compression, cache, storage growth, infra cost | [AWS Well-Architected](https://docs.aws.amazon.com/wellarchitected/latest/framework/the-pillars-of-the-framework.html) + [Google Cloud Well-Architected](https://docs.cloud.google.com/architecture/framework/cost-optimization) Cost Optimization |
+| D3 | Resilience/reliability | ds-backend + ds-deploy | Retry strategies, disaster recovery, backup verification | [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) + [Azure Well-Architected](https://learn.microsoft.com/en-us/azure/well-architected/pillars) Reliability |
+| D4 | Observability/monitoring | ds-deploy + ds-backend | Logging, metrics, alerting, tracing infrastructure; production crash/error-reporting channel decision (privacy-compliant opt-in aggregate, or documented blindness-risk acceptance — ds-compliance PRV-20 crosscheck) | [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) |
+| D5 | Data management (schema/migration/retention) | ds-backend | Schema design, migration integrity, data retention policies | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Reliability + Maintainability |
+| D6 | CI/CD & release engineering | ds-devops + ds-launch | Pipeline integrity, code signing, staged rollout | [DORA](https://dora.dev/) (deployment frequency, lead time for changes) |
+| D7 | Deploy/infra & incident response | ds-deploy | Containerization, TLS, monitoring, incident runbooks | [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) + [ITIL 4 Incident Management](https://www.axelos.com/resource-hub/practice/problem-management-itil-4-practice-guide) |
+| D8 | Repo governance | ds-repo | Branch protection, CODEOWNERS, metadata, OSS readiness | [OWASP SAMM](https://owaspsamm.org/) Governance business function |
+| D9 | Breaking-change management (semver/contract) | ds-deps (semver) + ds-review (API contract) | API/schema/export break detection, migration path quality | [Semantic Versioning](https://semver.org/) |
+| D10 | Admin & support operability | ds-backend (admin API + stats) + ds-frontend (admin UI) + ds-deploy (diagnostics + runbooks) + ds-docs (support docs) | Back-office/admin surfaces, operator statistics & reports, diagnostic bundles, error-remediation runbooks | [ITIL 4 Incident/Problem Management](https://www.axelos.com/resource-hub/practice/problem-management-itil-4-practice-guide) + [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) |
+| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-tune, ds-research, ds-brief | Orchestration, spec pipeline, commits, PRs — not quality dimensions | n/a — carrier, not a dimension |
 
 ### Amendment
 

@@ -29,6 +29,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 ## Contract
 
 **Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design), D10 (admin API + stats)
+**Framework alignment (advisory):** Google SRE PRR (D3, D4), OpenAPI Specification (A10), OWASP ASVS (C1) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Covers four scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve).
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams.

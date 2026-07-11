@@ -4,7 +4,7 @@
 **Feature**: v4 Dimension Coverage Taxonomy + Standalone + AI-Legibility
 **Date**: 2026-07-11
 
-**Sourcing caveat (added 2026-07-11, issue #6):** this document contains zero external URLs or citations — every RT below states a "Decision"/"Verdict" as if independently confirmed, but no `ds-research-agent` sourced-findings artifact backs it (T008 was reopened for the same reason). Specific claims that need external verification before being relied on: RT2's "Nielsen 10a (2024 addition — AI/hallucination prevention)" heuristic, RT4's "Google OAuth verification 2025-2026 update" specifics, and every named guideline number/version. Treat this file as a plausible starting framework mapping, not a sourced reference, until re-run through ds-research-agent with real citations.
+**Sourcing pass (2026-07-11, issue #9):** RT1–RT5 below now carry a `**Sources:**` line with live-verified URLs (WebSearch this run). One correction found during verification: RT2's "Nielsen 10a (2024 addition)" is **not** an official NN/g heuristic — the live NN/g source states the 10 heuristics "have remained relevant and unchanged since 1994." The "10a AI output transparency" item is a dev-skills-original extension (already shipped as `UX-10a` in `ds-frontend/references/rules-ux.md`), now correctly labeled as such below, not attributed to Nielsen. RT4's OAuth policy claims are confirmed current and accurate; the "2025-2026 update" framing was imprecise (Google's policy is continuously current, not a dated point release) and has been removed.
 
 ---
 
@@ -35,6 +35,8 @@ The following research tasks were identified from the Technical Context unknowns
 
 **Verdict**: PRR is the correct reference. D8 (repo governance) is partially covered — the supplemental reference is OSS best practices.
 
+**Sources:** [Google SRE Book — The Evolving SRE Engagement Model](https://sre.google/sre-book/evolving-sre-engagement-model/) (PRR process/goals; Google does not publish a fixed line-item checklist — each org builds its own from this process); [SRE Book Appendix E — Launch Coordination Checklist](https://sre.google/sre-book/launch-checklist/) (related, distinct artifact).
+
 ---
 
 ### RT2: Nielsen Usability Heuristics (current edition)
@@ -53,13 +55,16 @@ The following research tasks were identified from the Technical Context unknowns
 8. Aesthetic and minimalist design
 9. Help users recognize, diagnose, and recover from errors
 10. Help and documentation
-10a. AI output transparency (2024 addition — label AI-generated content, cite sources)
+
+**dev-skills extension (not an NN/g heuristic):** UX-10a AI output transparency (label AI-generated content, cite sources) — added by this project to cover a gap the original 10 don't address; do not attribute to Nielsen/NN/g.
 
 **Alternatives considered**:
 - ISO 9241-110 (7 dialogue principles) — more abstract, harder to tool into automated checks.
 - Material Design guidelines — platform-specific, not universally applicable.
 
-**Verdict**: Nielsen heuristics (10 + 10a) as the framework, adapted to developer-tool context. ISO 9241-110 as the secondary cross-reference edge.
+**Verdict**: Nielsen's 10 heuristics as the framework, adapted to developer-tool context, plus the dev-skills-original UX-10a extension (clearly labeled as such, not as Nielsen's). ISO 9241-110 as the secondary cross-reference edge.
+
+**Sources:** [NN/g — 10 Usability Heuristics for User Interface Design](https://www.nngroup.com/articles/ten-usability-heuristics/) (verified: "the 10 heuristics themselves have remained relevant and unchanged since 1994" — no official 10a exists).
 
 ---
 
@@ -78,13 +83,15 @@ The following research tasks were identified from the Technical Context unknowns
 
 **Verdict**: Apple HIG + App Store Review Guidelines are authoritative for Apple-platform dimensions. Cross-referenced with WCAG 2.2 for platform-agnostic a11y (FR1 A7).
 
+**Sources:** [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines) (unified, living document); [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/) (5 sections: Safety, Performance, Business, Design, Legal — Guideline 4.8 confirmed live under "Design"); [WCAG 2.2](https://www.w3.org/TR/WCAG22/).
+
 ---
 
 ### RT4: Google Identity/OAuth Verification + Limited Use
 
 **Purpose**: Validate A9 ecosystem integration (Google OAuth compliance), C2 (privacy via data-disclosure labels)
 
-**Decision**: Google's OAuth API verification requirements (2025-2026 update) and Limited Use policy are the governing rules for Google ecosystem integration:
+**Decision**: Google's OAuth API verification requirements (current policy, continuously maintained — not a dated point release) and Limited Use policy are the governing rules for Google ecosystem integration:
 - **OAuth verification**: Required for any app accessing sensitive/restricted scopes. Consent screen must accurately describe use. Verification can take 2-6 weeks.
 - **Limited Use**: Google restricts how apps can use data obtained via restricted scopes. Data can only be used for the specific purpose shown to the user (no data mining, no selling, no training models).
 - **Incremental authorization**: Best practice — request scopes one at a time as needed, not all upfront.
@@ -98,13 +105,15 @@ These rules map to conditional rule blocks in ds-backend (OAuth scope minimizati
 
 **Verdict**: Google Identity docs + Limited Use policy are authoritative for Google OAuth integration (A9). Apple's Sign in with Apple counterpart is covered under RT3 (App Store Review 4.8).
 
+**Sources:** [Comply with OAuth 2.0 Policies](https://developers.google.com/identity/verification/authentication-policy-compliance); [OAuth 2.0 Policies](https://developers.google.com/identity/protocols/oauth2/policies); [Best Practices for Sign in with Google](https://developers.google.com/identity/siwg/best-practices) (verified: scope-based verification tiers, domain verification, production-app homepage/ToS/privacy requirements, `sub` as stable identifier — all confirmed live).
+
 ---
 
 ### RT5: Material Design
 
 **Purpose**: Validate A6 (UI visual quality — token systems, theming), A9 (Google Identity branding)
 
-**Decision**: Material Design 3 (Material You) defines Google's design language. Its token system (W3C DTCG-compatible in MD3 2025+) and component library patterns map to ds-frontend rules for design tokens, theming, and Google branding. Key references:
+**Decision**: Material Design 3 defines Google's design language. Its token system and component library patterns map to ds-frontend rules for design tokens, theming, and Google branding. Key references:
 - **Design tokens**: Color roles (primary/secondary/tertiary/error/neutral), type scale, elevation, shape. Maps to ds-frontend tokens scope.
 - **Google Identity branding**: Google-branded buttons must follow MD3 guidelines (G-pill shape, Google colors, specific icon and label placement). Maps to A9 conditional rules for ds-frontend.
 - **Theming**: light/dark color scheme, dynamic color (wallpaper-based), contrast modes. Maps to ds-frontend theming scope.
@@ -114,6 +123,8 @@ These rules map to conditional rule blocks in ds-backend (OAuth scope minimizati
 - Lightning Design System (Salesforce) — enterprise-specific.
 
 **Verdict**: Material Design 3 is the authoritative reference for Google UI/UX dimensions. Complements Apple HIG for cross-platform coverage.
+
+**Sources:** [Material Design 3](https://m3.material.io/) (official site, confirmed current — Material 2/m2.material.io is deprecated).
 
 ---
 

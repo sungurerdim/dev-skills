@@ -28,6 +28,7 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 ## Contract
 
 **Dimensions:** D6, C1 (CI/CD security)
+**Framework alignment (advisory):** DORA (D6), OWASP ASVS (C1) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Every finding cites file and line — never infer or assume.
 - Only audits CI/CD, signing, dependencies, release pipelines.

@@ -30,6 +30,7 @@ Four modes: `--tactical` for file-level quality fixes, `--strategic` for archite
 ## Contract
 
 **Dimensions:** B1 (code quality), D1 (performance), D2 (resource economy), D9 (API contract breakage)
+**Framework alignment (advisory):** ISO/IEC 25010 (B1), Google SRE PRR + Well-Architected Performance Efficiency (D1), Semantic Versioning (D9) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Every fix cites file:line with before/after — no blind modifications. Only modifies lines required by the finding; no scope creep.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.

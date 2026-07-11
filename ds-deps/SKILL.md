@@ -28,6 +28,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 ## Contract
 
 **Dimensions:** C4, D9 (semver)
+**Framework alignment (advisory):** OWASP SAMM Supply Chain Security (C4), Semantic Versioning (D9) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Standalone; uses `ds/audit/findings.md` (stack, deps scopes) when fresh, own audit otherwise.
 - **State-exempt:** per-group commits are git checkpoints; re-run continues from remaining groups.
