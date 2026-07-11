@@ -27,7 +27,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 
 ## Contract
 
-**Dimensions:** A7 (implementation, mobile), A9 (conditional ecosystem rules)
+**Dimensions:** A7 (implementation, mobile), A9 (conditional ecosystem rules), C1 (mobile-security)
 
 - Audits mobile app quality; every finding cites file:line — never fabricates. Only touches mobile code; platform rules only on detected platforms.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.

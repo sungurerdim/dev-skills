@@ -1949,9 +1949,9 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | A4 | Discoverability (SEO + ASO + repo topics) | ds-launch | SEO meta tags, App Store Optimization, repository topics |
 | A5 | Usability / onboarding / intuitiveness | ds-frontend (ux scope) | Nielsen heuristic evaluation, onboarding flow audit |
 | A6 | UI visual quality & consistency | ds-frontend | Design tokens, component consistency, visual hierarchy |
-| A7 | Accessibility (a11y) | ds-frontend (implementation) + ds-compliance (regulatory) | WCAG 2.2 AA, ARIA patterns, regulatory compliance (EAA/ADA) |
+| A7 | Accessibility (a11y) | ds-frontend (implementation) + ds-compliance (regulatory) + ds-mobile (implementation, mobile) | WCAG 2.2 AA, ARIA patterns, regulatory compliance (EAA/ADA) |
 | A8 | i18n/l10n | ds-fix (mechanical) + ds-compliance (rules) | Internationalization detection, localization readiness |
-| A9 | Ecosystem integration (Google + Apple) | ds-blueprint (signal) + conditional rules (5 skills) | Google OAuth, Sign in with Apple, Limited Use, store disclosure |
+| A9 | Ecosystem integration (Google + Apple) | ds-blueprint (signal) + ds-backend/ds-compliance/ds-frontend/ds-launch/ds-mobile (conditional) | Google OAuth, Sign in with Apple, Limited Use, store disclosure |
 | A10 | API reference quality (OpenAPI/SDK/examples) | ds-docs (API doc completeness) + ds-backend (OpenAPI spec) | OpenAPI specification, SDK ergonomics, example quality |
 | B1 | Code quality & simplicity | ds-review, ds-fix, ds-simplify, ds-quality | Format, lint, typecheck, complexity, dead code |
 | B2 | Architectural health | ds-blueprint + ds-review --strategic | 9-dimension health scoring, architectural consistency |
@@ -1963,7 +1963,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | C2 | Privacy & data protection | ds-compliance (canonical) | GDPR/KVKK, data minimization, consent, data-disclosure labels |
 | C3 | Legal (ToS/EULA, license, regulation) | ds-compliance + ds-docs (templates) + ds-repo (license) | ToS/EULA templates, license compliance, regulatory audit |
 | C4 | Supply chain / dependencies | ds-deps | Dependency audit, upgrade classification, vulnerability scanning |
-| C5 | Deprecation management (sunset/migration) | ds-docs (deprecation notice) + ds-repo (release notes) | Sunset timelines, migration guides, deprecation notices |
+| C5 | Deprecation management (sunset/migration) | ds-docs (deprecation notice) | Sunset timelines, migration guides, deprecation notices |
 | D1 | Performance & efficiency | ds-review --perf + ds-launch --perf-budget + ds-tune | Deep profiling, perf budgets, optimization loops |
 | D2 | Resource economy (payload/bandwidth/storage) | ds-review --perf (resource group) + ds-deploy --cost | Bundle size, compression, cache, storage growth, infra cost |
 | D3 | Resilience/reliability | ds-backend + ds-deploy | Retry strategies, disaster recovery, backup verification |

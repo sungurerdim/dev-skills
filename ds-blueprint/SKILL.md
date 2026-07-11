@@ -30,7 +30,7 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 
 ## Contract
 
-**Dimensions:** B2, B4 (contributor)
+**Dimensions:** B2, B4 (contributor), A9 (signal)
 
 - Scores project health across 9 dimensions — signal counting, not file:line finding lists. Only modifies the profile section of the instruction file; suggests next steps but never invokes other skills or fixes code.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
@@ -72,6 +72,7 @@ Profile embedded in project's AI instruction file between `## Blueprint Profile`
 
 Type: {type} | Stack: {stack} | Target: {quality}
 Priorities: {comma-list} | Constraints: {comma-list}
+Integrations: {google-workspace|apple-ecosystem|none}
 Data: {data-types} | Regulations: {framework-or-none}
 Audience: {audience} | Deploy: {method}
 
@@ -88,7 +89,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 ## End Blueprint Profile
 ```
 
-**Format rules:** key-value pairs only, one value per line — no prose, headers, tables, or bullets inside the block; AI parses by `{key}: {value}` line-shape, every consumer reads its line in O(1). `Modules:` and `External:` use `;` separator so the block stays one line per concern. `Scores:` is a single line with short keys — dashboard renders in chat output, not in the profile; `model=` records the AI model that performed the assessment (e.g. `model=claude-fable-5`; `model=unknown` when not determinable), enabling model-uplift attribution — score deltas across model generations traceable via `git log` of this line. Context-loaded files must not accumulate: every byte costs every future read; run history + deltas + per-skill summaries forbidden — `git log -- <instruction-file>` is the trend log. The profile is calibration data, not a dashboard.
+**Format rules:** key-value pairs only, one value per line — no prose, headers, tables, or bullets inside the block; AI parses by `{key}: {value}` line-shape, every consumer reads its line in O(1). `Integrations:` feeds the A9 conditional rule blocks in ds-backend/ds-compliance/ds-frontend/ds-mobile/ds-launch — `none` when no signal matches, comma-separated when both providers are detected. `Modules:` and `External:` use `;` separator so the block stays one line per concern. `Scores:` is a single line with short keys — dashboard renders in chat output, not in the profile; `model=` records the AI model that performed the assessment (e.g. `model=claude-fable-5`; `model=unknown` when not determinable), enabling model-uplift attribution — score deltas across model generations traceable via `git log` of this line. Context-loaded files must not accumulate: every byte costs every future read; run history + deltas + per-skill summaries forbidden — `git log -- <instruction-file>` is the trend log. The profile is calibration data, not a dashboard.
 
 **Read/write rules:**
 - Only modify content between `## Blueprint Profile` and `## End Blueprint Profile` headings — never touch anything outside.
@@ -124,7 +125,7 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 
 1. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Analysis (recommended) — detect + analyze every dimension / Preview Only — analyze, no profile write / Init Profile — seed a fresh profile / Refresh Profile — re-score an existing profile / (Cancel). A disambiguating flag skips the menu.
 2. Search for `## Blueprint Profile` heading in known instruction files; read existing profile to detect incremental vs full run.
-3. Detect project via three-step process from [references/detection.md](references/detection.md): (1) stack from manifest files (pubspec.yaml, package.json, go.mod, etc.); (2) project type from secondary signals (framework deps, config, directory structure); (3) supplementary stacks (Docker, shell scripts, CI, task runners). Also: toolchain, tests, data sensitivity, git status.
+3. Detect project via three-step process from [references/detection.md](references/detection.md): (1) stack from manifest files (pubspec.yaml, package.json, go.mod, etc.); (2) project type from secondary signals (framework deps, config, directory structure); (3) supplementary stacks (Docker, shell scripts, CI, task runners). Also: toolchain, tests, data sensitivity, git status, ecosystem integrations (references/detection.md § Step 4 — feeds `Integrations:` profile field).
 
 **Decision tree:**
 1. Profile exists + not --init/--refresh → Phase 3 (incremental)

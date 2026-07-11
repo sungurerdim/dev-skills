@@ -65,9 +65,9 @@ $wrong"
 
 # 9. v4 — Dimension Declaration presence (SKILL-SPEC §11)
 for f in ds-*/SKILL.md; do
-  grep -qP '^\*\*Dimensions:\*\*' "$f" || err "$f missing Dimensions: declaration"
+  grep -qE '^\*\*Dimensions:\*\*' "$f" || err "$f missing Dimensions: declaration"
   # Check carrier exclusion (layer E must not appear)
-  if grep -qP '^\*\*Dimensions:\*\*.*E[0-9]' "$f"; then
+  if grep -qE '^\*\*Dimensions:\*\*.*E[0-9]' "$f"; then
     err "$f declares layer-E dimension (carriers cannot be dimensions)"
   fi
 done
@@ -78,13 +78,47 @@ for f in ds-*/SKILL.md; do
   # Skip orchestrators (they delegate by design)
   case "$skill" in ds-ship|ds-pipeline) continue;; esac
   # Detect hard-fail patterns
-  if grep -qiP '"skill not found"|"install.*first"|hard.?fail' "$f" 2>/dev/null; then
+  if grep -qiE '"skill not found"|"install.*first"|hard.?fail' "$f" 2>/dev/null; then
     err "$f contains hard-fail pattern (violates standalone invariant)"
   fi
 done
 
+# 11. v4 — Taxonomy membership: every declared dimension ID exists as a row in
+#     SKILL-SPEC.md's Dimension Table appendix (SKILL-SPEC §11, §14)
+valid_dims=$(awk -F'|' '/^\| [A-D][0-9]+ \|/{gsub(/^ +| +$/,"",$2); print $2}' SKILL-SPEC.md)
+for f in ds-*/SKILL.md; do
+  line=$(awk '/^\*\*Dimensions:\*\*/{print; exit}' "$f")
+  ids=$(echo "$line" | sed -E 's/^\*\*Dimensions:\*\* *//; s/\([^)]*\)//g' | tr ',' '\n' | sed -E 's/^ +| +$//g')
+  for id in $ids; do
+    [ -z "$id" ] || [ "$id" = "none" ] && continue
+    echo "$valid_dims" | grep -qxF "$id" || err "$f declares unknown dimension '$id' (not in SKILL-SPEC.md Dimension Table)"
+  done
+done
+
+# 12. v4 — Overlap detection: a dimension declared by 2+ skills must have all of
+#     them named in the appendix's Owning Skill(s) column for that row (SKILL-SPEC §11)
+pairs=$(for f in ds-*/SKILL.md; do
+  skill="${f%%/*}"
+  line=$(awk '/^\*\*Dimensions:\*\*/{print; exit}' "$f")
+  echo "$line" | sed -E 's/^\*\*Dimensions:\*\* *//; s/\([^)]*\)//g' | tr ',' '\n' | sed -E 's/^ +| +$//g' | while read -r id; do
+    [ -z "$id" ] || [ "$id" = "none" ] && continue
+    echo "$id	$skill"
+  done
+done)
+for id in $(echo "$pairs" | cut -f1 | sort -u); do
+  skills=$(echo "$pairs" | awk -F'\t' -v d="$id" '$1==d{print $2}')
+  count=$(echo "$skills" | wc -l)
+  [ "$count" -le 1 ] && continue
+  owner_text=$(awk -F'|' -v d="$id" '/^\| [A-D][0-9]+ \|/{gsub(/^ +| +$/,"",$2); if($2==d){gsub(/^ +| +$/,"",$4); print $4}}' SKILL-SPEC.md)
+  unauthorized=""
+  for s in $skills; do
+    echo "$owner_text" | grep -qF -- "$s" || unauthorized="$unauthorized $s"
+  done
+  [ -n "$unauthorized" ] && err "dimension $id declared by multiple skills ($(echo $skills | tr '\n' ' ')) not all listed in appendix owner column '$owner_text' — unauthorized:$unauthorized"
+done
+
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap all consistent"
 else
   exit 1
 fi

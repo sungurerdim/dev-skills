@@ -229,6 +229,17 @@ filters_applied:
 
 **Why this matters:** A consumer skill reading the findings file can detect "this run skipped the security scope because mobile-project routing kicked in" without re-running detection. Without `filters_applied`, downstream skills cannot distinguish "scope was clean" from "scope was never checked."
 
+## Step 4: Ecosystem Integration Detection
+
+Cross-cutting signals for the `Integrations:` blueprint profile field — feeds the A9 (Google/Apple Ecosystem Rules) conditional checks in ds-backend, ds-compliance, ds-frontend, ds-mobile, ds-launch.
+
+| Signal | Provider | Value written |
+|--------|----------|----------------|
+| `google_sign_in` dependency, `googleapis` dependency, Google Identity Services script tag (`accounts.google.com/gsi/client` or `gsi/client`), `google-services.json`, `GoogleService-Info.plist` | Google | `google-workspace` |
+| `com.apple.developer.applesignin` entitlement, `AuthenticationServices` import, `StoreKit` import, `CloudKit` import | Apple | `apple-ecosystem` |
+| Both rows match | Google + Apple | `google-workspace, apple-ecosystem` |
+| No row matches | — | `none` |
+
 ## Conflict Resolution
 
 | Scenario | Resolution |

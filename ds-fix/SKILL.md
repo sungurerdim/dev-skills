@@ -24,7 +24,7 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 
 ## Contract
 
-**Dimensions:** B1 (fix), A8 (mechanical)
+**Dimensions:** B1 (fix), A8 (mechanical), C1 (mechanical)
 
 - Runs automated fixers in safe, deterministic order: l10n → format → typecheck → lint → security. Format always runs before lint (auto-formatting must not introduce new lint issues).
 - `--check` mode: report only, zero modifications.

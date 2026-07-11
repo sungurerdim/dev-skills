@@ -24,7 +24,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 
 ## Contract
 
-**Dimensions:** D3, D4, D7, A3 (ops)
+**Dimensions:** D3, D4, D7, A3 (ops), D2 (cost)
 
 - Covers deployment, infrastructure hardening, monitoring, incident response.
 - Generates configuration files and checklists — does NOT execute deployment commands.
