@@ -67,6 +67,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 |------------|---------------|
 | VPS hardening | SSH config, firewall, fail2ban, unattended upgrades, kernel hardening, AppArmor, audit logging, security scan |
 | Backup strategy | Database backups, file backups, backup testing, offsite storage |
+| Restore-drill proof (D3, advisory) | Backup existing is not resilience — require a documented restore runbook + evidence of ≥1 executed end-to-end drill (worst case: total account/environment loss, restored to a clean target). Missing evidence -> advisory finding "backup exists, restore unproven — run a drill and record the runbook" (never a blocker, SKILL-SPEC §15) |
 | Zero-downtime | Blue-green, rolling, canary deployment strategy |
 | Cost optimization | Resource right-sizing, free tier usage, unnecessary spend |
 | Backing services (12-Factor #4) | DB/cache/queue/mail attached as swappable resources via URL-style config (`DATABASE_URL`, `REDIS_URL`) — never hardwired to a specific instance |
