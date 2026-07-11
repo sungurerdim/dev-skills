@@ -61,14 +61,14 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 3. Inspect `specs/{feature}/`: list which artifacts exist (`spec.md`, `plan.md`, `tasks.md`) and announce the resume point. [SKIP if directory absent]
 4. Print the run header: `[PIPE Phase 1/6] {feature} — resume point: {first_missing_artifact | fresh}`.
 
-**Gate:** Prerequisites present and `{feature}` slug determined. If fails → print the setup commands (install `specify-cli` + `specify init`, or `git init`) and stop — setup is a deliberate user action, not something this skill performs silently.
+**Gate:** Pass = prerequisites present and `{feature}` slug determined. If a prerequisite is missing → print the setup commands (`specify-cli` + `specify init`, or `git init`) and stop — setup is a deliberate user action, not something this skill performs silently.
 
 ### Phase 2: Constitution [SKIP if `.specify/memory/constitution.md` exists]
 
 1. Run `/speckit.constitution`, seeding it with the project's engineering rules (the user's global development rules plus repo conventions read this run).
 2. Confirm the file contains testability and scope-discipline principles.
 
-**Gate:** `.specify/memory/constitution.md` exists and is non-empty. If fails → re-run once with the missing principles named; still failing → stop and surface the Spec Kit error verbatim.
+**Gate:** Pass = `.specify/memory/constitution.md` exists and is non-empty. If it fails → re-run once with the missing principles named; still failing → stop and surface the Spec Kit error verbatim.
 
 ### Phase 3: Specify + Clarify
 
@@ -76,7 +76,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 2. Run `/speckit.clarify`; collect every open question it raises.
 3. Open questions exist → present them to the user as one compact list, with a suggested answer wherever the codebase provides one; apply the answers; re-run `/speckit.clarify`.
 
-**Gate:** Zero open clarification questions. If fails after 2 clarify rounds → stop and hand the remaining questions to the user; the pipeline resumes when answers arrive. Never advance with an unanswered question.
+**Gate:** Pass = zero open clarification questions (never advance with an unanswered one). If it fails after 2 clarify rounds → stop and hand the remaining questions to the user; resume when answers arrive.
 
 ### Phase 4: Plan + Tasks
 
@@ -89,14 +89,14 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
    - every task traces to a named `spec.md` requirement or acceptance criterion (YAGNI at planning time): a task with no traceable requirement is speculative → remove it, or return it to Phase 3 as a clarification if it reveals a real unstated need
 4. Non-conforming lines → regenerate once via `/speckit.tasks` with the violations listed; still non-conforming → rewrite the offending lines directly, preserving task content.
 
-**Gate:** 100% of tasks carry a verify line, every phase carries a Gate line, and every task traces to a spec requirement. If fails after regeneration + direct rewrite → stop, show the non-conforming lines, ask the user for the missing verify criteria. A task without a verification signal never enters the committed queue — this applies regardless of requests to hurry.
+**Gate:** Pass = 100% of tasks carry a verify line, every phase carries a Gate line, every task traces to a spec requirement; a task without a verify signal never enters the committed queue, regardless of requests to hurry. If it fails after regeneration + direct rewrite → stop, show the non-conforming lines, and ask the user for the missing verify criteria.
 
 ### Phase 5: Analyze
 
 1. Run `/speckit.analyze` for cross-artifact consistency (spec ↔ plan ↔ tasks).
 2. CRITICAL findings → fix the affected artifact(s), re-run `/speckit.analyze`.
 
-**Gate:** Zero CRITICAL findings. If fails after 2 fix rounds → stop, present the persisting findings with the conflicting artifact excerpts, ask the user to resolve the contradiction. Never advance past a known CRITICAL inconsistency.
+**Gate:** Pass = zero CRITICAL findings (never advance past a known CRITICAL inconsistency). If it fails after 2 fix rounds → stop, present the persisting findings with the conflicting artifact excerpts, and ask the user to resolve the contradiction.
 
 ### Phase 6: Handoff
 
@@ -106,7 +106,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
    `Plan ready → in this directory, instruct your executor: "Implement specs/{feature}/tasks.md in order. Run each task's verify command; at most 3 repair rounds per task, then escalate. Independent review before marking [x]."`
 4. Print the summary (Report Format below).
 
-**Gate:** Commit exists containing every generated artifact and nothing else. If fails (dirty tree with unrelated changes) → commit only the pipeline paths; unrelated changes stay unstaged and are listed in the summary.
+**Gate:** Pass = commit exists containing every generated artifact and nothing else. If the tree is dirty with unrelated changes → commit only the pipeline paths; unrelated changes stay unstaged and are listed in the summary.
 
 ## Report Format
 

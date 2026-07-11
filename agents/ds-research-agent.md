@@ -33,8 +33,7 @@ Missing `currentDate` → use the host date. Missing `artifactPath` → STOP and
 
 ## Tool-optionality (same quality either way)
 
-context-mode tools are listed in frontmatter for context savings only — **optional**; no gate, output, or verification depends on their presence. Try them first (`ctx_fetch_and_index`/`ctx_search` for fetch+slice, `ctx_execute` to compute over many pages); on any failure fall back to `WebFetch` → per-page `{summary, key_excerpts}` and reason over those — **identical** quality, source count, and double-confirmation, only the context footprint grows.
-Self-probe once at start (trivial `ctx_search` or availability check); on error set `toolMode="fetch"` and proceed. Record `toolMode` in `runMetadata`.
+context-mode tools are listed in frontmatter for context savings only — **optional**; no gate, output, or verification depends on them. Try them first (`ctx_fetch_and_index`/`ctx_search` for fetch+slice, `ctx_execute` to compute over many pages); on any failure fall back to `WebFetch` → per-page `{summary, key_excerpts}` — **identical** quality, source count, and double-confirmation, only the context footprint grows. Self-probe once at start (trivial `ctx_search` or availability check); on error set `toolMode="fetch"` and proceed, recording `toolMode` in `runMetadata`.
 
 ## Phases
 
@@ -71,11 +70,22 @@ For contested/complex topics, query from 3-5 viewpoints (expert / skeptic / prac
 
 ## Source-quality heuristics (CRAAP+ inline — self-contained)
 
-Tiers: T1 official/authoritative (law text, govt gazette, RFC, vendor docs, standards) · T2 primary record (releases, registry, court ruling, regulator circular) · T3 named experts / academic PDF · T4 curated community / trade press · T5 general blogs/forums · T6 unverified (AI-gen, anonymous, undated). Score < 50 (CRAAP+: Currency 20 / Relevance 25 / Authority 25 / Accuracy 20 / Purpose 10) → discard or keep only as flagged context. **Security/legal authority override:** for CVE/secure-coding/crypto **or binding legal/regulatory** topics, T1 authoritative sources outrank any blog regardless of score. Mirrors/syndications/one-citing-the-other do **not** count as independent.
+| Tier | Source type |
+|------|-------------|
+| T1 | Official/authoritative — law text, govt gazette, RFC, vendor docs, standards |
+| T2 | Primary record — releases, registry, court ruling, regulator circular |
+| T3 | Named experts / academic PDF |
+| T4 | Curated community / trade press |
+| T5 | General blogs / forums |
+| T6 | Unverified — AI-gen, anonymous, undated |
+
+- **Score:** CRAAP+ = Currency 20 / Relevance 25 / Authority 25 / Accuracy 20 / Purpose 10; score < 50 → discard, or keep only as flagged context.
+- **Security/legal authority override:** for CVE / secure-coding / crypto **or binding legal/regulatory** topics, T1 authoritative sources outrank any blog regardless of score.
+- **Independence:** distinct originators only — mirrors, syndications, and one source citing another do **not** count as independent.
 
 ## Verbatim grounding
 
-Every claim's `verbatimQuote` is **extracted** from the source (ctx_search snippet or WebFetch excerpt) — never paraphrased or generated. If you cannot point to the extracted text, the claim is not `verified`. This is the grounding primitive that replaces a raw Citations API in this harness.
+Every claim's `verbatimQuote` is **extracted** from the source (ctx_search snippet or WebFetch excerpt) — never paraphrased or generated. If you cannot point to the extracted text, the claim is not `verified`.
 
 ## Termination (dual signal)
 
