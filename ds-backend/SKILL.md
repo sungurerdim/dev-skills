@@ -68,6 +68,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | Caching | HTTP caching headers, ETag, Cache-Control |
 | Idempotency | `Idempotency-Key` header for non-idempotent POST |
 | Logging | Structured request logging (request ID, duration, status) |
+| Error-channel decision (D4, advisory) | Production crash/error reporting has an explicit decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only — see ds-compliance crosscheck), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding, never a blocker (SKILL-SPEC §15) |
 | Security | OWASP API Top 10 checks |
 
 ### Database

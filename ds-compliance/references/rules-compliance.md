@@ -9,6 +9,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | **Security** | SEC-01–12 (4 BLOCKER, 5 CRITICAL, 3 MAJOR) | ~12 |
 | **Privacy** | PRV-01–05 (2 BLOCKER, 2 CRITICAL, 1 MAJOR) | ~120 |
 | **Regulatory Compliance** | PRV-06–19 (9 BLOCKER, 5 CRITICAL) | ~165 |
+| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~363 |
 
 ---
 
@@ -359,3 +360,16 @@ Withdrawal as easy as giving consent.
   - Withdrawal harder than consent
 - **Fix:** Toggle per purpose in settings. One-tap withdrawal. Stop processing immediately. Log withdrawal timestamp
 - **Source:** GDPR Art. 7(3)
+
+---
+
+## Advisory (Non-Blocking, D4 crosscheck)
+
+### PRV-20 [ADVISORY] Error-Channel Consent + Payload Minimization
+Never a blocker (SKILL-SPEC §15) — crosschecks the error-channel decision that ds-deploy/ds-backend surface under D4. A no-PII stance that removes error telemetry entirely trades user privacy for production blindness; the compliant middle ground is a consent-based, PII-free, aggregate channel.
+- **Detect:**
+  - An error/crash-reporting channel exists (Sentry, Crashlytics, or equivalent) with no opt-in consent gate before initialization — same pattern as PRV-01/EPRIVACY tracking-init check, applied to error reporting specifically
+  - Error payload includes fields beyond the allowlist: error class/type, app/build version, and an aggregate counter only — no user ID, email, IP, free-text stack-trace-with-PII, or request body
+  - No error-reporting channel exists at all and no documented risk acceptance for "support-mail blindness" is present (this half of the check is informational, not a compliance gap — routed to ds-deploy/ds-backend's advisory finding, not duplicated here)
+- **Fix:** Gate error-reporting SDK init behind the same consent flow as analytics (PRV-01). Scrub payload to the allowlist (class, version, counter) before send — strip stack traces of literal values, user identifiers, and request/response bodies.
+- **Source:** GDPR Art. 5(1)(c) data minimization, applied to error telemetry; extends D4 (SKILL-SPEC Dimension Coverage Map)

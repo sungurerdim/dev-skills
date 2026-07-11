@@ -77,6 +77,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 |------------|---------------|
 | Structured logging | Log format, log levels, PII redaction in logs |
 | Crash reporting | Sentry / equivalent setup, source maps, PII scrubbing |
+| Error-channel decision (D4, advisory) | Production has an explicit crash/error-reporting decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding naming the blindness risk, never a blocker (SKILL-SPEC §15) |
 | Uptime monitoring | Health check endpoints, external uptime monitoring |
 | Alerting | Alert thresholds, notification channels, escalation |
 | Metrics | Response time, error rate, resource utilization |

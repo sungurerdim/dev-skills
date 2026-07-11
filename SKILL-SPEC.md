@@ -1992,7 +1992,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | D1 | Performance & efficiency | ds-review --perf + ds-launch --perf-budget + ds-tune | Deep profiling, perf budgets, optimization loops |
 | D2 | Resource economy (payload/bandwidth/storage) | ds-review --perf (resource group) + ds-deploy --cost | Bundle size, compression, cache, storage growth, infra cost |
 | D3 | Resilience/reliability | ds-backend + ds-deploy | Retry strategies, disaster recovery, backup verification |
-| D4 | Observability/monitoring | ds-deploy + ds-backend | Logging, metrics, alerting, tracing infrastructure |
+| D4 | Observability/monitoring | ds-deploy + ds-backend | Logging, metrics, alerting, tracing infrastructure; production crash/error-reporting channel decision (privacy-compliant opt-in aggregate, or documented blindness-risk acceptance — ds-compliance PRV-20 crosscheck) |
 | D5 | Data management (schema/migration/retention) | ds-backend | Schema design, migration integrity, data retention policies |
 | D6 | CI/CD & release engineering | ds-devops + ds-launch | Pipeline integrity, code signing, staged rollout |
 | D7 | Deploy/infra & incident response | ds-deploy | Containerization, TLS, monitoring, incident runbooks |
