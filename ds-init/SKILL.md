@@ -49,7 +49,17 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 | `--full` | Full production structure (CI, Docker, testing, docs) |
 | `--dry-run` | Show what would be created without writing files |
 
-No flags → up-front interactive menu covering every project type, each with a one-line what-it-does (no default — type is user-driven): "What type of project are you scaffolding?" — [Web App] React/Next.js/Vue/Svelte frontend / [API] REST/GraphQL backend service / [Mobile] Flutter/React Native mobile app / [CLI] command-line tool / [Library] reusable package/module / [Monorepo] multi-package workspace / (Cancel). A disambiguating flag (`--type`) skips the menu.
+No flag → up-front interactive menu covering every project type (no default — type is user-driven), question "What type of project are you scaffolding?". A disambiguating flag (`--type`) skips the menu.
+
+| Option | What it does |
+|--------|--------------|
+| Web App | React / Next.js / Vue / Svelte frontend |
+| API | REST / GraphQL backend service |
+| Mobile | Flutter / React Native mobile app |
+| CLI | Command-line tool |
+| Library | Reusable package / module |
+| Monorepo | Multi-package workspace |
+| (Cancel) | Exit without action |
 
 ## Scopes
 

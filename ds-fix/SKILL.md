@@ -63,7 +63,13 @@ Default: all five scopes in order.
 
 ## Tool Install Policy (applied to every scope below)
 
-Scope's tool (formatter, linter, typecheck binary, l10n generator, audit command) unavailable → same flow for every scope, no per-scope re-statement: (1) offer install — show command (e.g., `{install-command-for-tool}`), ask **"Install and continue?"**; accept → install, re-run scope; decline → mark scope `⚠ Skipped (tool unavailable, declined install)` in summary, continue with next scope. (2) System-level tools (manual install, e.g., `{compiler-or-runtime}`) → show install instructions, skip scope. (3) Filesystem access error → mark scope `WARN` with the specific OS error.
+Scope tool (formatter, linter, typecheck binary, l10n generator, audit command) unavailable → apply one flow for every scope, stated once here:
+
+| Case | Action |
+|------|--------|
+| Installable tool missing | Show install command (e.g., `{install-command-for-tool}`), ask **"Install and continue?"** — accept → install + re-run scope; decline → mark scope `⚠ Skipped (tool unavailable, declined install)`, continue to next scope |
+| System-level tool missing (e.g., `{compiler-or-runtime}`) | Show manual install instructions, skip scope |
+| Filesystem access error | Mark scope `WARN` with the specific OS error |
 
 ## Execution Flow
 
@@ -101,13 +107,31 @@ Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 | `*.tf` files | terraform | High confidence — unique extension. Treat as primary if no other stack. |
 | `Dockerfile` / `docker-compose.yml` | docker | Always supplementary. Run hadolint/trivy alongside primary stack. |
 
-**Disambiguation:** Tier 2 only (e.g., Dockerfile + shell) → run security scope universally, Tier 2 tools for their files only; Tier 1 + Tier 2 → full toolchain for Tier 1, supplementary tools for Tier 2; `*.tf` only → treat as primary (iac project). Per stack: load toolchain from [references/toolchains.md](references/toolchains.md).
+**Disambiguation:**
+
+| Detected | Action |
+|----------|--------|
+| Tier 2 only (e.g., Dockerfile + shell) | Run security scope universally; Tier 2 tools for their files only |
+| Tier 1 + Tier 2 | Full toolchain for Tier 1; supplementary tools for Tier 2 |
+| `*.tf` only | Treat as primary (IaC project) |
+
+Per stack: load toolchain from [references/toolchains.md](references/toolchains.md).
 
 **Gate:** ≥1 stack detected or security-only mode. If fails → no manifests; run security scope only (universal secret scan + dep audit where available), announce "No stack detected — running security scope only", skip other scopes.
 
 ### Phase 2: L10n [scope: l10n]
 
-Detect l10n framework from project config + dependencies; generate localization files if stack supports it (e.g., `{l10n-generator-command}`); cross-check translation keys (all locale files must have same keys as base locale); check placeholder consistency (`{placeholder-token}` in base must exist in all translations); check encoding issues (mojibake patterns from cp1252→UTF-8 double-encoding). **Fix mode:** generate files, stage generated output. **Check mode:** report mismatches only.
+Run these steps in order:
+
+| Step | Action |
+|------|--------|
+| Detect framework | Read project config + dependencies |
+| Generate | Localization files if stack supports it (e.g., `{l10n-generator-command}`) |
+| Cross-check keys | Every locale file MUST carry the same keys as the base locale |
+| Placeholder consistency | Every `{placeholder-token}` in base MUST exist in all translations |
+| Encoding | Detect mojibake (cp1252→UTF-8 double-encoding) |
+
+**Fix mode:** generate files, stage generated output. **Check mode:** report mismatches only.
 
 L10n frameworks per stack:
 

@@ -138,7 +138,14 @@ Display: branch, title, body preview, version annotation.
 - All signals agree: `version: {type} → {effect}`
 - Net diff overrode commits: `version: ~{type} → {effect} (estimated)`
 
-Effects: `feat` → minor bump, `fix` → patch bump, `feat!`/`fix!` → major bump, anything else → no bump.
+Effects:
+
+| Type | Version effect |
+|------|----------------|
+| `feat` | minor bump |
+| `fix` | patch bump |
+| `feat!` / `fix!` | major bump |
+| anything else | no bump |
 
 Ask user:
 

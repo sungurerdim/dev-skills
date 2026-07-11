@@ -29,7 +29,11 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 
 - Covers deployment, infrastructure hardening, monitoring, incident response.
 - Generates configuration files and checklists — does NOT execute deployment commands.
-- Minimal liability + maximum performance + minimum dependencies + maximum automation: generates configs for review (never auto-deploys to prod); optimizes Docker images, enables caching, configures health checks; prefers minimal infra (Caddy over Nginx+certbot, SQLite over managed DB where appropriate); CI/CD integration, automated SSL, automated backups.
+- Minimal liability + maximum performance + minimum dependencies + maximum automation:
+  - Generate configs for review — never auto-deploy to prod
+  - Optimize Docker images, enable caching, configure health checks
+  - Prefer minimal infra (Caddy over Nginx+certbot, SQLite over managed DB where suited)
+  - Wire CI/CD integration, automated SSL, automated backups
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
@@ -47,7 +51,17 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 | `--cost` | Analyze infra costs: identify over-provisioned resources, suggest right-sizing, calculate cost at 1x/10x/100x scale |
 | `--auto` | All modes, no questions, single-line summary |
 
-Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — review existing deployment setup / Generate — Dockerfile + CI deploy configs / Checklist — production-readiness checklist / Monitor — monitoring/logging/alerting setup / Incident — incident response / Cost — infra cost analysis / (Cancel). A disambiguating flag skips the menu.
+Without a flag: present an up-front menu covering every mode, one row each. A disambiguating flag skips the menu.
+
+| Option | What it does |
+|--------|--------------|
+| Audit (recommended) | Review existing deployment setup |
+| Generate | Dockerfile + CI deploy configs |
+| Checklist | Production-readiness checklist |
+| Monitor | Monitoring / logging / alerting setup |
+| Incident | Incident response |
+| Cost | Infra cost analysis |
+| (Cancel) | Exit without action |
 
 ## Scopes
 
@@ -126,7 +140,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 2. Search for deployment configs (Dockerfile, compose, CI deploy steps), monitoring configs (Sentry DSN, logging config, health endpoints), env vars + secrets management.
 3. Build inventory: services, ports, volumes, external dependencies.
 
-**Gate:** Inventory complete. If fails → undiscoverable configs logged as `{ file, status: "not_found" }`, mark inventory `partial`, continue with what was found; surface MEDIUM "incomplete inventory — some deployment configs could not be located".
+**Gate:** Inventory complete. If fails → undiscoverable configs logged as `{ file, status: "not_found" }`, mark inventory `partial`, continue with what was found; surface MEDIUM "incomplete inventory — some deployment configs were not located".
 
 ### Phase 3: Analyze [--audit, --checklist]
 

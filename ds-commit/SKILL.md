@@ -145,7 +145,7 @@ Stage files → build message → commit.
 
 | Type | When | Bump |
 |------|------|------|
-| `feat` | End users can do something they couldn't before | minor |
+| `feat` | End users gain a capability they lacked before | minor |
 | `fix` | Something broken for end users now works | patch |
 | `feat!` / `fix!` | Breaking change (+ `BREAKING CHANGE:` footer) | major |
 | `refactor` | Internal improvement, no behavior change | none |
@@ -159,7 +159,7 @@ Stage files → build message → commit.
 
 | Question | YES → | NO → |
 |----------|-------|------|
-| End users can do something they **couldn't**? | `feat` | `refactor`/`chore` |
+| End users gain a capability they **lacked**? | `feat` | `refactor`/`chore` |
 | Was something **broken** and now works? | `fix` | `refactor`/`chore` |
 
 **Common misclassifications:**
@@ -181,7 +181,7 @@ Stage files → build message → commit.
 | `chore(deps): bump {package} from {old-version} to {new-version}` | `chore: update packages` — which package? what version? |
 | `test({scope}): add {specific-test-target} tests` | `test: add tests` — for what? |
 
-**Body — include only when:** "why" is not obvious from title; trade-offs were considered; multi-file non-obvious reason; breaking change needs migration. Otherwise skip. Format: 1-3 lines, blank line after title, wrap at 72, explain WHY not WHAT; optional migration/config hint (e.g., "Requires migration {migration-id}").
+**Body — include only when** one holds: the title alone omits the "why"; a trade-off was made; a multi-file change has a non-obvious reason; a breaking change needs migration. Otherwise skip. Format: 1-3 lines, blank line after title, wrap at 72, explain WHY not WHAT; optional migration/config hint (e.g., "Requires migration {migration-id}").
 
 **Trailers/footers:** one `Co-Authored-By: {ai-model-name} <{provider-email}>`; breaking → `BREAKING CHANGE: {description}`; references → `Closes #{issue}`, `Fixes #{issue}`.
 
