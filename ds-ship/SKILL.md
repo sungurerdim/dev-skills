@@ -305,9 +305,9 @@ Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §
 | A4 | {audited | owner-skipped | unowned} | ds-launch |
 | A5 | {audited | owner-skipped | unowned} | ds-frontend (ux) |
 | A6 | {audited | owner-skipped | unowned} | ds-frontend |
-| A7 | {audited | owner-skipped | unowned} | ds-frontend (impl) + ds-compliance (regulatory) |
+| A7 | {audited | owner-skipped | unowned} | ds-frontend (impl) + ds-compliance (regulatory) + ds-mobile (impl, mobile) |
 | A8 | {audited | owner-skipped | unowned} | ds-fix (mechanical) + ds-compliance (rules) |
-| A9 | {N/A — integrations none | conditional — integrations active | unowned} | blueprint signal + conditional rules (5 skills) |
+| A9 | {N/A — integrations none | conditional — integrations active | unowned} | ds-blueprint (signal) + ds-backend/ds-compliance/ds-frontend/ds-launch/ds-mobile (conditional) |
 | A10 | {audited | owner-skipped | unowned} | ds-docs + ds-backend |
 | B1 | {audited | owner-skipped | unowned} | ds-review, ds-fix, ds-simplify, ds-quality |
 | B2 | {audited | owner-skipped | unowned} | ds-blueprint + ds-review --strategic |
@@ -319,7 +319,7 @@ Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §
 | C2 | {audited | owner-skipped | unowned} | ds-compliance |
 | C3 | {audited | owner-skipped | unowned} | ds-compliance + ds-docs + ds-repo |
 | C4 | {audited | owner-skipped | unowned} | ds-deps |
-| C5 | {audited | owner-skipped | unowned} | ds-docs + ds-repo |
+| C5 | {audited | owner-skipped | unowned} | ds-docs |
 | D1 | {audited | owner-skipped | unowned} | ds-review --perf + ds-launch --perf-budget + ds-tune |
 | D2 | {audited | owner-skipped | unowned} | ds-review --perf + ds-deploy --cost |
 | D3 | {audited | owner-skipped | unowned} | ds-backend + ds-deploy |
@@ -329,6 +329,7 @@ Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §
 | D7 | {audited | owner-skipped | unowned} | ds-deploy |
 | D8 | {audited | owner-skipped | unowned} | ds-repo |
 | D9 | {audited | owner-skipped | unowned} | ds-deps + ds-review |
+| D10 | {audited | owner-skipped | unowned} | ds-backend + ds-frontend + ds-deploy + ds-docs |
 | E | N/A (carrier) | ds-ship, ds-pipeline, etc. | Process carriers — not quality dimensions |
 
 Status values: `audited` (skill ran and produced findings), `owner-skipped` (skill exists but was not invoked), `unowned` (no skill claims this dimension). ⚠️ Unowned dimensions MUST be flagged with an explicit warning prefix in the report summary.

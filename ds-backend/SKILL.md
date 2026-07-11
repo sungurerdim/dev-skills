@@ -28,7 +28,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 
 ## Contract
 
-**Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design)
+**Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design), D10 (admin API + stats)
 
 - Covers four scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve).
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams.
@@ -106,6 +106,16 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | Social login | Provider integration, account linking, `sub` as stable identifier |
 | MFA | TOTP, WebAuthn / passkeys, recovery codes (hashed, single-use), SMS OTP deprecation |
 | API keys | Prefixed keys, hash-only storage, scoped permissions, rotation support |
+
+### Admin & Support Operability (D10, advisory)
+
+Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15).
+
+| Check Area | What It Covers |
+|------------|---------------|
+| Admin API surface | Admin-only endpoints (user/config/feature-flag management) gated behind role-checked authz, not just authentication |
+| Operator statistics | Business/usage reporting endpoints (dashboards, aggregate metrics) exist and are paginated/rate-limited, not raw DB dumps |
+| Export integrity | Periodic report exports (CSV/PDF) use streaming/batched generation, not full-table loads into memory |
 
 ### A9 — Google / Apple Ecosystem Rules (conditional)
 

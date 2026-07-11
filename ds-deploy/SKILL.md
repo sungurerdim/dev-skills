@@ -24,7 +24,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 
 ## Contract
 
-**Dimensions:** D3, D4, D7, A3 (ops), D2 (cost)
+**Dimensions:** D3, D4, D7, A3 (ops), D2 (cost), D10 (diagnostics + runbooks)
 
 - Covers deployment, infrastructure hardening, monitoring, incident response.
 - Generates configuration files and checklists — does NOT execute deployment commands.
@@ -90,6 +90,16 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | Mitigation | Rollback procedure, feature flags, circuit breakers |
 | Recovery | Fix verification, health check confirmation, 30-min monitoring window |
 | Post-mortem | Root cause analysis, timeline, action items template |
+
+### Admin & Support Operability (D10, advisory)
+
+Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15). Distinct from Incident (above): Incident covers infra-level SRE response to outages; this covers application-level tooling for support staff handling individual user-reported errors.
+
+| Check Area | What It Covers |
+|------------|---------------|
+| Diagnostic bundle | Support-facing log/diagnostic export exists (per-user or per-session bundle), scrubbed of secrets/PII before export |
+| Verbose mode | A support-triggerable verbose/debug mode exists for live troubleshooting without a redeploy |
+| Error-remediation runbook | Known-error records (KB-style: symptom → known cause → fix/workaround) exist for recurring user-reported errors, separate from the infra post-mortem template above |
 
 ## Delegation
 

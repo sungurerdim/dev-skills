@@ -25,7 +25,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 ## Contract
 
-**Dimensions:** A5 (ux scope), A6 (UI), A7 (implementation), A9 (conditional ecosystem rules)
+**Dimensions:** A5 (ux scope), A6 (UI), A7 (implementation), A9 (conditional ecosystem rules), D10 (admin UI)
 
 - Audits UI/UX design quality across web ({web-frameworks}), mobile ({mobile-frameworks}), desktop ({desktop-frameworks}) — only touches UI-layer code (styles, components, tokens, ARIA); business + backend untouched.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
@@ -59,6 +59,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | responsive | Layout overflow, breakpoints, container queries, fluid typography | rules-responsive.md |
 | theming | Dark mode, `light-dark()`, color-scheme, semantic tokens, theme switching | rules-design-system.md |
 | config | Env-consumed values externalized; `.env.example` updated; no secrets in source ([references/principles.md §8](references/principles.md)) | rules-design-system.md |
+| admin-ui | D10 (advisory, SKILL-SPEC §15) — back-office/admin surfaces follow the same design-system tokens, states, and a11y rules as user-facing UI; no unstyled/raw-HTML admin screens | rules-components.md |
 
 Default: all scopes.
 

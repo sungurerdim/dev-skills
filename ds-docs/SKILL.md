@@ -24,7 +24,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 
 ## Contract
 
-**Dimensions:** B5 (getting-started), B6, C3 (templates), C5 (deprecation), A10 (API doc completeness)
+**Dimensions:** B5 (getting-started), B6, C3 (templates), C5 (deprecation), A10 (API doc completeness), D10 (support docs)
 
 - Every generated sentence must earn its place — no filler, marketing language, or obvious statements.
 - Only generates/modifies documentation files — never touches source code.
@@ -56,6 +56,7 @@ Without flags: present mode selection to the user.
 | dev | `CONTRIBUTING.md`, `docs/dev/` | Developer onboarding |
 | user | `docs/user/`, `USAGE.md` | End-user guides |
 | ops | `docs/ops/`, `DEPLOY.md` | Deployment, operations |
+| support | `docs/support/`, `RUNBOOK.md` | D10 (advisory, SKILL-SPEC §15) — error-remediation runbooks, known-error KB, support escalation guide |
 | changelog | `CHANGELOG.md` | Version history |
 | compliance | `docs/compliance/` | Privacy policy, DPIA, breach plan, processor registry |
 | adr | `docs/adr/` | Architecture Decision Records — numbered, with Context / Decision / Consequences |

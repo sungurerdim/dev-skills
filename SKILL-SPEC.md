@@ -1961,7 +1961,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | A | Product & Market | 10 (A1–A10) |
 | B | Engineering | 6 (B1–B6) |
 | C | Trust & Compliance | 5 (C1–C5) |
-| D | Operations | 9 (D1–D9) |
+| D | Operations | 10 (D1–D10) |
 | E | Process carriers (orchestrators, not dimensions) | 10 skills |
 
 ### Dimension Table
@@ -1998,6 +1998,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | D7 | Deploy/infra & incident response | ds-deploy | Containerization, TLS, monitoring, incident runbooks |
 | D8 | Repo governance | ds-repo | Branch protection, CODEOWNERS, metadata, OSS readiness |
 | D9 | Breaking-change management (semver/contract) | ds-deps (semver) + ds-review (API contract) | API/schema/export break detection, migration path quality |
+| D10 | Admin & support operability | ds-backend (admin API + stats) + ds-frontend (admin UI) + ds-deploy (diagnostics + runbooks) + ds-docs (support docs) | Back-office/admin surfaces, operator statistics & reports, diagnostic bundles, error-remediation runbooks |
 | E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-tune, ds-research, ds-brief | Orchestration, spec pipeline, commits, PRs — not quality dimensions |
 
 ### Amendment
