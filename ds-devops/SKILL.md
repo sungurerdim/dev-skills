@@ -85,7 +85,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 3. **CI detection.** Search for `.github/workflows/`, `.gitlab-ci.yml`, `bitrise.yml`, `Jenkinsfile`, `.circleci/`, `azure-pipelines.yml`, `codemagic.yaml`.
 4. **Dependency tooling.** Detect `dependabot.yml`, `renovate.json`, lockfiles, `.nvmrc`, `.tool-versions`.
-5. **Mode selection.** No `--mode` → present a menu covering every mode, each with a one-line what-it-does: Full Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, summary only / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu.
+5. **Mode selection.** No `--mode` → present the full menu: Full Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, summary only / (Cancel). A disambiguating flag skips the menu.
 6. **Scope selection.** No `--scope` → ask which scopes to audit (default: all).
 
 **Gate:** Project type + CI platform identified; mode and scope confirmed. If fails → undetermined type → "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce.
@@ -109,18 +109,16 @@ For each scope:
 
 **Twelve-Factor pipeline checks ([references/principles.md §3](references/principles.md)):**
 
-- Factor 5 (Build/Release/Run): build artifact immutable — no recompilation between staging and production. Same artifact promoted across environments. Flag if CI rebuilds from source per environment.
-- Factor 12 (Admin processes): migrations / seeds / data backfills run as isolated one-off commands against the same release artifact. Flag if these are embedded in the deploy job or run on dev workstations.
+| Factor | Check | Flag when |
+|--------|-------|-----------|
+| 5 Build/Release/Run | Build artifact immutable; same artifact promoted across environments | CI rebuilds from source per environment |
+| 12 Admin processes | Migrations / seeds / backfills run as isolated one-off commands against the same release artifact | Embedded in the deploy job or run on dev workstations |
 
 **Confidence:** HIGH = match + context verified. MEDIUM = pattern match, ambiguous. LOW = heuristic.
 
 **Skip patterns:** `# noqa`, `# intentional`, `# safe:`, test fixtures.
 
-**Findings verification** (audit / audit+fix modes; quick-fix skips this):
-
-- HIGH → auto-include
-- MEDIUM → present for review
-- LOW → shown as potential issues
+**Findings verification** (audit / audit+fix modes; quick-fix skips): HIGH → auto-include · MEDIUM → present for review · LOW → shown as potential issue.
 
 **Gate:** Every in-scope domain scanned; all findings recorded with severity + confidence. If fails → unscan-able scope (file unreadable, tool unavailable, unexpected format) → mark scope `partial`, record MEDIUM "scan incomplete for scope {scope} — {reason}", continue to Report; do not silently omit scope.
 
@@ -154,10 +152,12 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 
 **Gate:** User selected post-report action; mode-specific next step determined. If fails → no response / dismissed prompt → default "Report only" (no fixes), announce default, proceed to Summary.
 
+**Approval-menu convention (Phases 6-7):** present each item on one compact line (`[severity] title — file:line`), grouped by severity with counts; state the question; offer `Apply all` plus per-severity bulk (`Apply all HIGH`) alongside the total (CRITICAL bulk still confirms per item); `approve-all` excludes CRITICAL; `all` = exactly the displayed set.
+
 ### Phase 6: Fix [SKIP if audit-only or --preview]
 
-1. Present fix plan — one line per fix (rule, `[severity]`, file:line, action) grouped by severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
-2. Confirmation: quick-fix proceeds; audit+fix asks — Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / proceed / cancel.
+1. Present fix plan per the approval-menu convention — one line per fix (rule, `[severity]`, file:line, action); question `Apply these N fixes?`.
+2. Confirmation: quick-fix proceeds; audit+fix asks Apply all / per-severity bulk / proceed / cancel.
 3. Apply fixes grouped by file.
 4. Present fix summary.
 
@@ -169,7 +169,7 @@ ds-devops: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** apply the approval-menu convention (question `Approve these N items?`); ask Apply all / per-severity bulk / Review Each / Skip All.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue; do not retry.
 

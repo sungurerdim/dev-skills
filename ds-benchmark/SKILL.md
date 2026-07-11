@@ -77,9 +77,9 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 1. Extract from blueprint profile: project name, one-sentence value proposition, target audience, stated constraints.
 2. Profile missing → ask user: one-sentence problem statement; target audience (public users / internal team / developers / operators); non-negotiable constraints (keep language, keep framework, keep primary DB).
-3. Present extracted definition: `"Researching ideal for: {problem} for {audience} under {constraints} — confirm? [Y/n]"`.
+3. Present extracted definition: `"Researching ideal for: {problem} for {audience} under {constraints} — confirm? [Y/n]"`. Accept affirmative (`y`/`yes`/`ok`/`confirmed`/`looks good`); suggested changes → apply, redisplay, re-confirm; decline/abort → exit cleanly.
 
-**Gate:** User confirmed problem space. Accept affirmative (`y`/`yes`/`ok`/`confirmed`/`looks good`). Suggested changes → apply, redisplay, re-confirm. Declines/abort → exit cleanly. If fails (no response or ambiguous after 2 prompts) → treat as implicit confirmation of auto-extracted statement, add WARN `"Problem space auto-confirmed — no explicit user confirmation"` to state, proceed.
+**Gate:** User confirmed problem space. If fails (no response or ambiguous after 2 prompts) → treat as implicit confirmation of the auto-extracted statement, add WARN `"Problem space auto-confirmed — no explicit user confirmation"` to state, proceed.
 
 ### Phase 3: Research
 
@@ -89,7 +89,7 @@ Invoke `/ds-research` with:
 - Emphasis: open-source preferred (inspectable code), mix commercial leaders where relevant
 - Output: per-source CRAAP+ tier, short description, "what they do well", "where they fall short"
 
-Target count from `--competitors` (default 7). Too few after filtering → expand search with alternative phrasings; still too few → proceed with available set, flag low-sample-size.
+Target count from `--competitors` (default 7); insufficient-sources recovery is owned by the Gate below.
 
 Per competitor record: Name + URL (project identity); CRAAP+ tier — T1 (authoritative) / T2 (supporting) / T3 (inspirational); Strengths (concrete dimensions handled well); Weaknesses (concrete dimensions where they fall short); Architecture signal (public info on stack / module layout / data model).
 

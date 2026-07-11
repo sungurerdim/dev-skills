@@ -49,7 +49,7 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 | `--scope={x}` | Specific scope: monetization, pricing, gtm (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary; B items listed and skipped |
 
-Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — find gaps in existing monetization/pricing/gtm / Plan — design the productization path from current state / All — audit then plan / (Cancel). A disambiguating flag skips the menu.
+Without flags: present the full mode menu — Audit (recommended) — find gaps in monetization/pricing/gtm / Plan — design the productization path from current state / All — audit then plan / (Cancel). A disambiguating flag skips the menu.
 
 ## Scopes
 
@@ -78,7 +78,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 4. Funnel instrumentation — acquisition→activation→revenue→retention events defined, object-action naming, privacy-first (no PII in properties, consent where required)
 5. Revenue metrics baseline — MRR/churn/trial-to-paid measurable from existing data; LTV:CAC computable once ads spend exists
 6. Launch plan — pre-launch checklist exists (waitlist/beta, announcement channels, press-kit basics) or is generated into the plan
-7. Ecosystem openness (A11, advisory) — webhook emission, standard export formats (ICS/CSV/JSON), embeddable surfaces, and public API posture flagged as an anti-lock-in GTM signal when absent on a product where competitors offer it; never a blocker (SKILL-SPEC §15) — technical implementation is ds-backend's A11 scope, this is the business-framing note only
+7. Ecosystem openness (A11, advisory) — webhook emission, standard export formats (ICS/CSV/JSON), embeddable surfaces, public API posture flagged as an anti-lock-in GTM signal when a competitor offers it and this product lacks it; never a blocker (SKILL-SPEC §15); technical implementation is ds-backend's A11 scope
 
 ## Delegation
 

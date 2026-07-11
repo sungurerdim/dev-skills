@@ -5,11 +5,11 @@ description: Quality-by-Mechanism — installs a deterministic, local, no-CI qua
 
 # /ds-quality
 
-Agents promise "done" without proof; code quality ends up depending on whether an
+Agents promise "done" without proof; quality ends up depending on whether an
 instruction was followed, not on a mechanism. This skill installs a **deterministic, local,
-no-CI** quality gate — a single quality entry point (format → lint → type → test) — then wires
-it into whichever host you're actually using: a Claude Code Stop hook, Aider's built-in
-auto-lint/auto-test, or a universal git pre-commit hook for everyone else.
+no-CI** quality gate — one entry point (format → lint → type → test) — then wires
+it into whichever host you use: a Claude Code Stop hook, Aider's auto-lint/auto-test,
+or a universal git pre-commit hook.
 
 **Quality-by-Mechanism** — quality is guaranteed by a verify-loop that runs real checks, not by hoping an agent obeys.
 
