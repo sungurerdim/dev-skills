@@ -183,9 +183,9 @@ Capture current actual behavior of a legacy module as a characterization baselin
 3. **Run to green:** a failing characterization test means the captured expectation is wrong — fix the TEST to match actual output, never modify the source. Repeat until all pass.
 4. **Report:** surface-coverage % (ratio of public surface members with at least one characterization test) + list of oddities raised as Category B findings.
 
-**Note — not assertion-weakening:** asserting observed (possibly wrong) behavior with a `characterization: documents current behavior, not intent` tag and a Category B finding is the correct pattern — documented capture + user decision gate, never silent acceptance of a relaxed assertion.
+**Note — not assertion-weakening:** asserting observed behavior (even when it looks incorrect) with a `characterization: documents current behavior, not intent` tag and a Category B finding is the correct pattern — documented capture + user decision gate, never silent acceptance of a relaxed assertion.
 
-**Gate:** All characterization tests green AND surface-coverage % reported. If any characterization test cannot be made green after 3 iterations (e.g., output is stateful or side-effectful in an unresolvable way) → note `{ test, status: "unresolvable", reason }` for the summary, write a Category B finding describing the untestable surface, continue with remaining members.
+**Gate:** All characterization tests green AND surface-coverage % reported. If a characterization test fails to reach green after 3 iterations (e.g., output is stateful or side-effectful in an unresolvable way) → note `{ test, status: "unresolvable", reason }` for the summary, write a Category B finding describing the untestable surface, continue with remaining members.
 
 ### Phase 3: Verify
 
@@ -243,17 +243,32 @@ Every test MUST justify its existence by addressing a **concrete, specific risk*
 
 ### Other Gates
 
+Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regression-before-fix, Coverage-as-diagnostic) derive from [references/principles.md §7](references/principles.md).
+
 - Generated tests must pass before declaring done — never commit failing tests.
 - Keep assertions at full strength — fix the test logic or report the app bug instead of weakening checks.
 - Test names describe behavior, not implementation. No test depends on execution order — each independently runnable.
 - Mocks minimal — only mock external dependencies (network, filesystem, time), not internal modules. Generated test matches project's existing style — no style drift.
-- **Test Pyramid ([references/principles.md §7](references/principles.md)):** unit-heavy, integration-medium, E2E-light. Detect inverted pyramid (E2E > integration > unit) → flag HIGH before generating more E2E.
-- **Boundary conditions ([references/principles.md §7](references/principles.md)):** every generated test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable.
+- **Test Pyramid:** unit-heavy, integration-medium, E2E-light. Detect inverted pyramid (E2E > integration > unit) → flag HIGH before generating more E2E.
+- **Boundary conditions:** every generated test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable.
 - **Scale-envelope fixture pattern (D1/B3, advisory):** for the project's critical flows, generate a synthetic max-size fixture (e.g. 50k records) and measure those flows against it — this is the *measured, documented* extension of the max-size boundary case above, not a replacement for it. No documented scale limit exists for a critical flow → advisory finding "no declared scale envelope — measure against a synthetic max-size fixture and document the limit" (never a blocker, SKILL-SPEC §15; cross-links to ds-review --perf's Scale Envelope check — present → hand off the measured numbers to it; absent → this finding alone still stands).
-- **AAA structure ([references/principles.md §7](references/principles.md)):** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
-- **Regression-before-fix ([references/principles.md §7](references/principles.md)):** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
-- **Coverage as diagnostic ([references/principles.md §7](references/principles.md)):** never write a coverage target into generated test configs; configure coverage as a reporter only. The diagnostic is "what did we miss?", not "did we hit X%?".
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — generated/updated test files on disk are the progress record; re-running naturally resumes. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W12: every test verifies described intent + a case beyond the given suite — never special-case known inputs or assert hard-coded outputs to pass.
+- **AAA structure:** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
+- **Regression-before-fix:** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
+- **Coverage as diagnostic:** never write a coverage target into generated test configs; configure coverage as a reporter only. The diagnostic is "what did we miss?", not "did we hit X%?".
+| Guard | Rule |
+|-------|------|
+| W1 | Cite file:line; never assume |
+| W2 | Check consumers after modify |
+| W3 | Touch only task-required lines |
+| W4 | Re-read after gap |
+| W5 | Uncertain → lower severity |
+| W6 | Verify all phases output |
+| W7 | Dedup file:line |
+| W8 | No raw shell interpolation |
+| W9 | State-exempt — generated/updated test files on disk are the progress record; re-running naturally resumes |
+| W10 | Defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered |
+| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
+| W12 | Every test verifies described intent + a case beyond the given suite — never special-case known inputs or assert hard-coded outputs to pass |
 
 ## Error Recovery
 

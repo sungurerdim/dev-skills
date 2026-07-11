@@ -51,7 +51,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | `--scope={x}` | Specific scope: api, db, auth, data-pipeline (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary |
 
-Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — review existing API/DB/auth for issues / Design — design new endpoints, schema, or auth flow / (Cancel). A disambiguating flag (`--audit`/`--design`/`--scope`/`--auto`) skips the menu.
+Without flags: present an up-front mode menu — Audit (recommended) / Design / (Cancel); each option's effect matches its row in the Arguments table above. A disambiguating flag (`--audit`/`--design`/`--scope`/`--auto`) skips the menu.
 
 ## Scopes
 
@@ -274,7 +274,19 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 - OpenAPI spec validates against OpenAPI 3.0+ schema
 - Migration files include both `up` + `down` operations
 - Auth flows use current best practices (PKCE for public clients, not implicit flow)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+| Guard | Rule |
+|-------|------|
+| W1 | Cite file:line; never assume |
+| W2 | Check consumers after modify |
+| W3 | Touch only task-required lines |
+| W4 | Re-read after gap |
+| W5 | Uncertain → lower severity |
+| W6 | Verify all phases output |
+| W7 | Dedup file:line |
+| W8 | No raw shell interpolation |
+| W9 | State-exempt — audit is regenerable from source; applied fixes land in the working tree; git is the durable record |
+| W10 | Defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered |
+| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
 
 ## Error Recovery
 

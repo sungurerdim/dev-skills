@@ -89,7 +89,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 ## End Blueprint Profile
 ```
 
-**Format rules:** key-value pairs only, one value per line — no prose, headers, tables, or bullets inside the block; AI parses by `{key}: {value}` line-shape, every consumer reads its line in O(1). `Integrations:` feeds the A9 conditional rule blocks in ds-backend/ds-compliance/ds-frontend/ds-mobile/ds-launch — `none` when no signal matches, comma-separated when both providers are detected. `Modules:` and `External:` use `;` separator so the block stays one line per concern. `Scores:` is a single line with short keys — dashboard renders in chat output, not in the profile; `model=` records the AI model that performed the assessment (e.g. `model=claude-fable-5`; `model=unknown` when not determinable), enabling model-uplift attribution — score deltas across model generations traceable via `git log` of this line. Context-loaded files must not accumulate: every byte costs every future read; run history + deltas + per-skill summaries forbidden — `git log -- <instruction-file>` is the trend log. The profile is calibration data, not a dashboard.
+**Format rules:** key-value pairs only, one value per line — no prose, headers, tables, or bullets inside the block; AI parses by `{key}: {value}` line-shape, every consumer reads its line in O(1). `Integrations:` feeds the A9 conditional rule blocks in ds-backend/ds-compliance/ds-frontend/ds-mobile/ds-launch — `none` when no signal matches, comma-separated when both providers are detected. `Modules:` and `External:` use `;` separator so the block stays one line per concern. `Scores:` is a single line with short keys — dashboard renders in chat output, not in the profile; `model=` records the AI model that performed the assessment (e.g. `model=claude-fable-5`; `model=unknown` when not determinable), enabling model-uplift attribution — score deltas across model generations traceable via `git log` of this line. The profile is calibration data, not a dashboard (run-history/deltas exclusion stated once under **Profile format** above).
 
 **Read/write rules:**
 - Only modify content between `## Blueprint Profile` and `## End Blueprint Profile` headings — never touch anything outside.
@@ -97,7 +97,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
   1. Search for standard markers: `## Blueprint Profile` ... `## End Blueprint Profile`
   2. Search for legacy markers: HTML comment pairs (`<!-- *-start -->` ... `<!-- *-end -->`) or variant headings containing "Blueprint Profile"
   3. Standard found → update in place (preserve all calibration lines, rewrite only the `Scores:` line)
-  4. Legacy found → **do not touch legacy block**. Write new standard profile separately (below legacy or at end of file). Compare both line by line (Type/Stack/Target, Priorities, Constraints, Data, Audience, Deploy, Entry, Modules, Data Flow, External, Toolchain, Ideal, Scores); identify legacy content NOT covered by new (custom config notes, historical run entries, project map details). New covers everything → report "New profile covers all content from legacy block. You can safely remove the legacy block." Legacy has unique items → report "These items exist in legacy profile but not in new one: {list}. Consider preserving them before removing legacy block." Never delete or modify legacy block — user decides when to remove.
+  4. Legacy found → **do not touch legacy block**. Write new standard profile separately (below legacy or at end of file). Compare both line by line (Type/Stack/Target, Priorities, Constraints, Data, Audience, Deploy, Entry, Modules, Data Flow, External, Toolchain, Ideal, Scores); identify legacy content NOT covered by new (custom config notes, historical run entries, project map details). New covers everything → report "New profile covers all content from legacy block. You can safely remove the legacy block." Legacy has unique items → report "These items exist in legacy profile but not in new one: {list}. Preserve them before removing the legacy block." Leave the legacy block intact — the user decides when to remove it.
   5. NO markers found → append new profile at end of instruction file
   6. **Never write second standard profile into a file that already has one** — always detect and update.
 - Instruction file does not exist: create with profile section only.
@@ -137,11 +137,18 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 
 ### Phase 2: Init Flow (no profile OR --init/--refresh)
 
-**Project Identity:** Category? (auto-detected shown: Frontend / Backend / Developer Tool / Infrastructure) | Quality level? (Prototype / MVP / Production / Enterprise) | Data handled? (Personal info / Sensitive data / Auth credentials / None)
+**Init questions** — ask each; the auto-detected value is the default:
 
-**Strategy:** Focus areas? (Security / Code Quality / Architecture / Documentation) | Constraints? (Keep framework / Preserve public APIs / Minimize new dependencies / None) | Users? (Public / Internal team / Other developers / Local-undecided)
+| Question | Options |
+|----------|---------|
+| Category | Frontend / Backend / Developer Tool / Infrastructure |
+| Quality level | Prototype / MVP / Production / Enterprise |
+| Data handled | Personal info / Sensitive data / Auth credentials / None |
+| Focus areas | Security / Code Quality / Architecture / Documentation |
+| Constraints | Keep framework / Preserve public APIs / Minimize new dependencies / None |
+| Users | Public / Internal team / Other developers / Local-undecided |
 
-**Data fallback:** PII/credential pattern scan finds nothing → explicitly ask: "Does this project process user data? (Yes — describe data types / No)". Ensures `Config.data` is never empty by inference alone.
+**Data fallback:** PII/credential scan finds nothing → ask "Does this project process user data? (Yes — describe data types / No)" so `Config.data` is set explicitly, not by inference alone.
 
 **--auto Mode Defaults:**
 
@@ -366,7 +373,19 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 - Every signal cites file:line — skip signals without evidence
 - Only count signals from source code — exclude test, generated, vendored files
 - Score reflects verified signals only — uncertain signals reduce to 0.5 weight
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: `ds/audit/blueprint.json` updated per scope, gitignored, deleted on successful Summary. W10: SSOT producer — writes `ds/audit/findings.md` fresh on every run; consumers MUST defer to it. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+| Guard | Rule |
+|-------|------|
+| W1 | Cite file:line; never assume |
+| W2 | Check consumers after modify |
+| W3 | Touch only task-required lines |
+| W4 | Re-read after gap |
+| W5 | Uncertain → lower severity |
+| W6 | Verify all phases output |
+| W7 | Dedup file:line |
+| W8 | No raw shell interpolation |
+| W9 | `ds/audit/blueprint.json` updated per scope, gitignored, deleted on successful Summary |
+| W10 | SSOT producer — writes `ds/audit/findings.md` fresh every run; consumers MUST defer to it |
+| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
 
 ## Error Recovery
 

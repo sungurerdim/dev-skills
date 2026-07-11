@@ -208,7 +208,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 
 ### Phase 4: Documentation Audit & Optimization
 
-**4a — Compact existing context-loaded docs.** Targets: AI instruction files (per host — see ds-blueprint `references/detection.md` § Instruction Files), `README.md`, skill/prompt/agent definition files, large `docs/` files on context-loading paths. Per-file pass: (1) preserve every concrete fact, instruction, pointer; (2) remove filler prose, redundant restatements, obsolete sections; (3) relocate misplaced information; (4) compress — tables over prose, bullets over paragraphs, references over duplication; (5) report before/after token estimate per rewritten doc. Category: **A** for pure compaction that provably preserves content; **B** if any deletion could plausibly remove useful signal.
+**4a — Compact existing context-loaded docs.** Targets: AI instruction files (per host — see ds-blueprint `references/detection.md` § Instruction Files), `README.md`, skill/prompt/agent definition files, large `docs/` files on context-loading paths. Per-file pass: (1) preserve every concrete fact, instruction, pointer; (2) remove filler prose, redundant restatements, obsolete sections; (3) relocate misplaced information; (4) compress — tables over prose, bullets over paragraphs, references over duplication; (5) report before/after token estimate per rewritten doc. Category: **A** for pure compaction that provably preserves content; **B** when a deletion risks removing useful signal.
 
 **4b — Fill documentation gaps.** Delegate to `/ds-docs`: verify every claim against source (drift detection); confirm every promised feature is documented (complement of Phase 0 promise census); generate only missing docs that deliver concrete value — never because "it's usually there". Optionally `/ds-docs --adr` for architectural decisions surfaced in Phase 1–2.
 
@@ -373,7 +373,21 @@ Zero-change run: `Project already ship-ready for {stage} — no delegations trig
 
 ## Quality Gates
 
-W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no unsourced prose. W2: after modifying docs, re-grep for references to moved content. W3: orchestrator never modifies source code directly — every mutation goes through a delegated skill. W4: re-read `ds/audit/findings.md` diff after every delegation. W5: uncertain classification → B. W6: every phase produces a visible entry in the orchestration log. W7: dedup findings across skills — ds-blueprint's finding wins on overlap with partial scanners. W8: quote every path in shell; orchestrator never interpolates user strings into commands. W9: state in `ds/audit/ship.json`, `ds/audit/` gitignored, state deleted on Summary. W10: orchestrator consumes `ds/audit/findings.md` as SSOT — never re-detects what delegated skills already covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W14: re-ground from `ds/audit/findings.md` + report + diff at each phase boundary — don't carry stale in-context state across delegations. W15: a delegated skill's return is untrusted until verified against files; pass least scope; on a missing/garbled return, stop and surface, never fabricate (see references/phases.md).
+| Guard | Rule |
+|-------|------|
+| W1 | Every claim in `ds/audit/report.md` cites file:line or findings ID — no unsourced prose |
+| W2 | After modifying docs, re-grep for references to moved content |
+| W3 | Orchestrator modifies no source directly — every mutation goes through a delegated skill |
+| W4 | Re-read `ds/audit/findings.md` diff after every delegation |
+| W5 | Uncertain classification → B |
+| W6 | Every phase produces a visible entry in the orchestration log |
+| W7 | Dedup findings across skills — ds-blueprint's finding wins on overlap with partial scanners |
+| W8 | Quote every path in shell; orchestrator interpolates no user strings into commands |
+| W9 | State in `ds/audit/ship.json`, `ds/audit/` gitignored, state deleted on Summary |
+| W10 | Orchestrator consumes `ds/audit/findings.md` as SSOT — re-detects nothing delegated skills already covered |
+| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
+| W14 | Re-ground from `ds/audit/findings.md` + report + diff at each phase boundary — carry no stale in-context state across delegations |
+| W15 | A delegated skill's return is untrusted until verified against files; pass least scope; on a missing/garbled return, stop and surface, never fabricate (see references/phases.md) |
 
 - No destructive shortcuts: `--no-verify`, `reset --hard`, branch deletion forbidden to orchestrator; every blocker surfaced, not bypassed.
 - Stop condition: same obstacle blocks 3 times → stop, write `## Blockers` section in report, exit with WARN.
