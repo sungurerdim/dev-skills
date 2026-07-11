@@ -1983,7 +1983,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | B3 | Testing & verification | ds-test | Test generation, coverage, test-fix, E2E scenarios |
 | B4 | DX — contributor | ds-blueprint (dx dimension) + ds-repo | Contributor experience, repo health, onboarding |
 | B5 | DX — product (devtool/API products) | ds-backend (API ergonomics) + ds-docs (getting-started) | API design ergonomics, getting-started experience |
-| B6 | Documentation | ds-docs | Doc gap analysis, drift detection, ADR generation |
+| B6 | Documentation | ds-docs | Doc gap analysis, drift detection, ADR generation; end-user FAQ/walkthrough/help-surface/support-path checks for user-facing project types |
 | C1 | Security | ds-compliance (canonical) + ds-fix/ds-backend/ds-mobile/ds-devops | Security audit, secret scan, secure-by-design, CI/CD security |
 | C2 | Privacy & data protection | ds-compliance (canonical) | GDPR/KVKK, data minimization, consent, data-disclosure labels |
 | C3 | Legal (ToS/EULA, license, regulation) | ds-compliance + ds-docs (templates) + ds-repo (license) | ToS/EULA templates, license compliance, regulatory audit |

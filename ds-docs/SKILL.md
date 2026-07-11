@@ -179,6 +179,15 @@ Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy) | Doc File:Line | C
 4. Do examples use `{placeholder}` values (not real secrets, not hardcoded test data)?
 5. Is there one canonical entry point everyone is directed to (README or docs landing page)?
 
+**End-user docs & support check group (B6, advisory — never a blocker, SKILL-SPEC §15; user-facing project types only: web, mobile, desktop, extension, game):**
+
+| Check | Missing = | Where |
+|-------|-----------|-------|
+| User-facing FAQ exists | MEDIUM advisory | `docs/user/FAQ.md`, `FAQ.md`, or an in-app/site FAQ section |
+| Task-based walkthroughs for the top user flows (short step guides or ≤60s screen-recording equivalents) | MEDIUM advisory | `docs/user/` per-flow guide, or linked from the FAQ/help surface |
+| Help surface reachable from the product itself | MEDIUM advisory | In-app help link/menu item, or a site help section linked from the product UI — not doc-repo-only |
+| Support contact path published | MEDIUM advisory | Email, contact form, or ticketing link in README/site footer/in-app |
+
 **Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are highest-drift-risk.
 
 **Gate:** Gap analysis complete with severity-classified findings. If fails → unreadable source file referenced by a claim → record `{ type: "inconclusive", severity: "MEDIUM", reason: "source file unreadable" }`, re-read once before marking inconclusive; still fails → flag scope `inconclusive` in summary.
@@ -207,6 +216,8 @@ Compliance template structures (scan codebase for data flows, third-party SDKs, 
 | **Breach Notification Plan** | Scope; Regulatory timelines table (GDPR / KVKK / CCPA / LGPD / UK GDPR / PIPL / PIPA / PDPA — authority + user deadlines); Severity classification (P1/P2/P3/P4 with criteria + containment + notification timelines); 5-phase procedure (Detection → Containment → Authority Notification → User Notification → Remediation); Contact info; Review log |
 | **Processor Registry** | Per-processor: service name, legal entity, location, data processed, data NOT processed, legal basis per framework, user control, DPA/SCC status + expiry, transfer mechanism, retention. Annual review checklist (active, DPA current, transfers valid, minimization, opt-out functional, retention aligned) |
 | **ToS / EULA** | Service description; Eligibility & account terms; License grants (free vs paid); Payment terms (subscription/one-time/auto-renewal); Cancellation & refund policy; Acceptable use (prohibited activities); Disclaimer of warranties; Limitation of liability; Termination rights; Governing law & dispute resolution; Privacy Policy cross-reference; Contact / DPO; Version & change tracking. For API/SaaS: rate limits, SLA (uptime credits), data retention after termination. For mobile: App Store SKUs reference. |
+| **User FAQ** (`docs/user/FAQ.md`) | Grouped by topic (Getting Started, Account, Billing, Troubleshooting); each entry: question as a real user would phrase it + direct answer + link to the relevant walkthrough or support path if unresolved |
+| **Walkthrough outline** (`docs/user/{flow}.md`, one per top user flow) | Goal (one sentence — what the user accomplishes); Steps (numbered, screenshot/GIF placeholder per step, ≤60s-equivalent length); Expected result; "Still stuck?" link to the support contact path |
 
 **Gate:** Every generated claim verified against source with file:line evidence. If fails → unverifiable claim → remove from generated doc, add `<!-- TODO: verify {claim} — source not found -->` at removed location, record scope `partial`, surface MEDIUM "unverified claim removed from {file}".
 
