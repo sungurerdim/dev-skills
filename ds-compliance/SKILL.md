@@ -18,8 +18,6 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 - User asks about CSP, CORS, XSS, CSRF, or web security
 - User asks about internationalization compliance
 
-Covers 98 rules across 8 compliance domains.
-
 ### Triggers — INVOKE / DON'T INVOKE
 
 | INVOKE | DON'T INVOKE |
@@ -38,8 +36,7 @@ Covers 98 rules across 8 compliance domains.
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: single regenerable report/audit.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
 - **Mobile-project overlap-skip (OVERLAP-4 runtime enforce):** When project signals mobile (`pubspec.yaml` with `flutter:`, `package.json` with `react-native`, `*.xcodeproj`, or `build.gradle` with `android {}`), default-skip security/privacy/regulatory — owned by `/ds-mobile`. Announce: "Mobile project detected — security/privacy/regulatory delegated to /ds-mobile". Override with `--scope=security,privacy,regulatory`.
 
 ## Arguments

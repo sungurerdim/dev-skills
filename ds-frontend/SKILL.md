@@ -30,8 +30,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 - Audits UI/UX design quality across web ({web-frameworks}), mobile ({mobile-frameworks}), desktop ({desktop-frameworks}) — only touches UI-layer code (styles, components, tokens, ARIA); business + backend untouched.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
 
 ## Arguments
 
@@ -71,14 +70,6 @@ Default: all scopes.
 |----------|------|-------|
 | Google | Official button/flow standards — use Google Identity branding (G-button, Google One Tap, Credential Manager) | tokens, components |
 | Apple | Apple HIG Sign-in — Apple's `ASAuthorizationAppleIDButton`, SF Symbols, human-interface guidelines | tokens, components |
-
-## Modes
-
-| Mode | Behavior |
-|------|----------|
-| `audit` | Scan and report only |
-| `audit+fix` | Scan + report + fix CAT-1 (hardcoded→token, missing ARIA, contrast, focus) |
-| `design` | Generate `tokens.json` (W3C DTCG 2025.10), component catalog, a11y checklist |
 
 ## Style Mode (orthogonal to Mode)
 

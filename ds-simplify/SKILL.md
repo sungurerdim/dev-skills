@@ -29,12 +29,10 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 
 **Dimensions:** B1 (simplification)
 
-- Standalone; uses `ds/audit/findings.md` when fresh, own scan otherwise.
-- State-exempt: one reversible commit per approved batch — git is the durable record.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
-- Detection only — zero deletion without approval batch. Every finding cites file:line + concrete ref count or pattern.
-- Delete execution delegates to `/ds-commit` — one reversible commit per approved batch.
+- Standalone: use `ds/audit/findings.md` when fresh; own scan otherwise.
+- State-exempt: one reversible commit per approved batch (delegated to `/ds-commit`) is the durable record.
+- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
+- Detection only: every deletion requires an approval batch. Every finding cites file:line + concrete ref count or pattern.
 - Three similar lines beat a premature abstraction: abstractions on ≤3 usages → finding.
 
 ## Arguments
@@ -149,7 +147,7 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 
 **False positive prevention:** per signal, re-read 3 lines around match, verify no skip pattern (`# noqa`, `# intentional`, `# safe:`), exclude generated files (`*.g.*`, `*.pb.*`, `*.gen.*`).
 
-**Gate:** Every scope executed. Every finding has file:line evidence + proposal. If fails → scope unable to complete (LSP unavailable for dead-code, file unreadable) → mark scope `inconclusive` with reason, continue with remaining, note in Phase 3 report as "inconclusive — {reason}".
+**Gate:** Every scope executed, each finding carrying file:line evidence + proposal. If a scope fails (LSP unavailable for dead-code, file unreadable) → mark it `inconclusive` with reason, continue the rest, note in Phase 3 report as "inconclusive — {reason}".
 
 ### Phase 3: Report
 

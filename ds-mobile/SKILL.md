@@ -32,8 +32,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Audits mobile app quality; every finding cites file:line — never fabricates. Only touches mobile code; platform rules only on detected platforms.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
 
 ## Arguments
 
@@ -151,7 +150,7 @@ Load only reference files matching scope:
 
 **Category assignment:** CAT-1 always reported; CAT-2 only if in approved enhancements.
 
-**Recovery (context lost):** progress checklist → read `ds/audit/findings.md` → resume from first incomplete domain. Never re-scan completed.
+**Recovery (context lost):** progress checklist → read `ds/audit/findings.md` → resume from first incomplete domain. Scan each domain once.
 
 **Gate:** Every in-scope domain scanned; findings recorded with severity + confidence. If fails → re-read progress checklist + `ds/audit/findings.md`; resume from first incomplete; if a domain still fails after retry (file unreadable, context lost) → mark `partial` in the scopes-done tracking with collected findings, continue.
 
@@ -196,7 +195,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 | `quick-fix` | Auto-apply all |
 | `release-ready` | Ask: Fix plan / Save report only / Guidance for key findings |
 
-**Gate:** User selected post-report action; mode-specific next step determined. If fails → no selection after one re-prompt → mode default: `audit` → Report only; `audit+fix` → Fix all; `quick-fix` → Auto-apply all; `release-ready` → Save report only. Record the default choice made.
+**Gate:** User selected post-report action; mode-specific next step determined. If no selection after one re-prompt → apply the mode default (`audit` → Report only; `audit+fix` → Fix all; `quick-fix` → Auto-apply all; `release-ready` → Save report only) and record that default choice.
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 

@@ -29,10 +29,9 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 
 **Dimensions:** D1
 
-- One file, one metric, one loop — Karpathy's core constraint. Git ratchet: only improvements survive, failures reverted. Every experiment committed before evaluation — full audit trail. Evaluation mechanical (deterministic assertions or benchmarks), not subjective. Skill generates optimization infrastructure (`ds/tune/`) then runs the loop.
-- Standalone. Uses blueprint when available; own analysis when absent.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- One file, one metric, one loop — Karpathy's core constraint. Skill generates optimization infrastructure (`ds/tune/`), then runs the loop under the git ratchet defined in Quality Gates (only measured improvements survive; every experiment committed before mechanical evaluation).
+- Standalone: use blueprint when available; own analysis when absent.
+- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
 
 ## Arguments
 
@@ -70,7 +69,7 @@ Wait for answer. Only proceed after receiving it.
 
 ### Phase 2: Analysis
 
-Work autonomously — do not ask more questions. Apply experiment design rules from [references/rules-optimization.md](references/rules-optimization.md).
+Work autonomously — answer from project files, asking no further questions. Apply experiment design rules from [references/rules-optimization.md](references/rules-optimization.md).
 
 1. Read project root (README, package files, entry points, test files, benchmarks); understand stack, structure, purpose.
 2. Map user's goal to measurable metric(s); identify ONE target file most relevant to goal.
@@ -159,11 +158,11 @@ Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, outp
 
 Execute the experiment loop defined in `ds/tune/program.md` (steps 1-9 of [references/program-template.md](references/program-template.md)). Follow it exactly, with three skill-side rules layered on top:
 
-- **Significance check (OPT-05, template steps 5-6):** `noisy: true` → run `bash ds/tune/bench.sh` `runs_n` times (min 3) under identical conditions instead of once; extract the metric from each run, compute mean ± standard deviation. `noisy: false` → single run, exactly as the template states.
+- **Significance check (OPT-05, template steps 5-6):** `noisy: true` → run `bash ds/tune/bench.sh` `runs_n` times (min 3) under identical conditions instead of once; extract the metric from each run, compute mean ± standard deviation. When the `runs_n` runs disagree wildly (stddev > baseline mean), still decide by the 2×stddev rule below — keep all runs, drop no outliers. `noisy: false` → single run, exactly as the template states.
 - **Decision (template step 8, strengthened):** `noisy: false` → metric improved AND no test regressions (run full test suite, not just bench) → KEEP, branch advances; metric same or worse OR any previously passing test now fails → DISCARD. `noisy: true` → KEEP only if (mean improved in `direction`) AND (improvement exceeds 2× the combined standard deviation of baseline and experiment) AND no test regressions; otherwise DISCARD as statistically insignificant (log the row with mean±stddev in the `description` column so it reads as noise, not a bug). DISCARD in either case: `git reset HEAD~1 --hard`. (Per [references/principles.md §7](references/principles.md): a metric win that breaks tests is still a regression; per OPT-05, a metric win within noise is not a win.)
 - **After each experiment:** update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`.
 
-**Gate:** Each experiment produces exactly one row in `results.tsv` with status `keep|discard|crash`. Loop exits when (a) user interrupts, (b) context exceeds 85% of model token limit (check after each iteration), or (c) `experiment_count` reaches `--budget` if specified. If `bench.sh` returns non-zero and no metric line parseable on any run → log a `crash` row, continue to next experiment. If a noisy metric's `runs_n` runs disagree wildly (stddev > baseline mean) → still decide by the 2×stddev rule, do not silently drop outlier runs. If `git reset --hard` fails during DISCARD → stop loop, surface git state, ask user to clean up before resuming.
+**Gate:** Each experiment appends exactly one `keep|discard|crash` row to `results.tsv`; the loop exits on user interrupt, context exceeding 85% of the model token limit (checked each iteration), or `experiment_count` reaching `--budget`. If an experiment fails (`bench.sh` non-zero and no parseable metric on any run) → log a `crash` row and continue to the next; if `git reset --hard` fails during DISCARD → stop the loop, surface git state, and ask the user to clean up before resuming.
 
 ## program.md Template
 
