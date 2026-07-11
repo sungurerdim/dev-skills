@@ -153,9 +153,11 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 |---------|---------------|
 | Versioning | Semantic versioning, build number management |
 | Release notes | User-facing changelog, localization |
+| User-facing changelog (D6, advisory) | Distinct from dev/store release notes — a plain-language "what changed" surface exists, especially when an OTA/silent auto-update channel is detected (CodePush, Expo Updates, Electron auto-updater, or equivalent). OTA channel detected + no user-facing changelog surface -> advisory finding "silent OTA channel with no user-facing changelog" (never a blocker, SKILL-SPEC §15) |
 | Staged rollout | Google Play: 1% → 5% → 20% → 50% → 100% (manual). Apple: 7-day phased 1% → 2% → 5% → 10% → 20% → 50% → 100% (can pause). |
 | Force update | Minimum version enforcement, update UX |
 | Rollback | Emergency rollback procedure |
+| Rollback narrative (D6, advisory) | Beyond the technical rollback procedure above — is there a documented plan for how users are informed when a bad release is rolled back (in-app notice, status page, email)? No documented rollback communication plan -> advisory finding "no rollback communication plan" (never a blocker, SKILL-SPEC §15) |
 
 ### SEO
 
