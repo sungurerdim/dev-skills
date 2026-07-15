@@ -45,7 +45,7 @@
 
 ## 4. Program
 
-### P0 — highest leverage
+### P0 — highest leverage — **shipped 2026-07-15** (P0.1 `243351f`, P0.2 `aed603a`, P0.3 ds-quality arms D/E/F)
 
 | # | Item | What it does | Acceptance |
 |---|------|--------------|------------|
@@ -80,6 +80,6 @@
 | GitHub Copilot | Agent Skills reader · `.github/instructions/` for cards · AGENTS.md | `.github/hooks/*.json` — P0.3 | Docs fix P0.2 |
 | Windsurf (now Devin Desktop, 2026-06-02) | `.windsurf/rules/` still read; newer builds prefer `.devin/rules/` (cards) | none confirmed → pre-commit | Docs fix P0.2 (rebrand verified — official Devin FAQ) |
 | Aider | `--read SKILL.md` / CONVENTIONS.md | auto-lint/auto-test — edit-time | Shipped |
-| Codex CLI / Gemini CLI | Agent Skills readers · AGENTS.md | native hooks — P0.3 | Candidate targets |
+| Codex CLI / Gemini CLI | Agent Skills readers · AGENTS.md · `install.sh --target` | native hooks — ds-quality arms E/F (stop-time), shipped | Candidate targets |
 
 Raw research artifacts (session-local, not committed): `/tmp/ds-skills-research/{competitors,harnesses,models}.md`. Durable summary: knowledge repo, `repos/dev-skills/`.

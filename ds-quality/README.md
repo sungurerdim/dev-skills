@@ -10,8 +10,11 @@ the commit) until it passes green. Quality becomes a mechanism, not a hope.
 | Host | Arm | When it fires | Strength |
 |------|-----|----------------|----------|
 | Claude Code | Stop hook (`~/.claude/hooks/ds-quality-gate.sh`) | Every Stop | Full — blocks "done" itself |
+| Codex CLI | `.codex/hooks.json` `Stop` hook | Every Stop | Full — blocks "done" itself (loop-guarded) |
+| Gemini CLI | `.gemini/settings.json` `AfterAgent` hook | Agent loop end | Full — forces retry/halt on red |
 | Aider | `.aider.conf.yml` `auto-lint`/`auto-test` + `lint-cmd`/`test-cmd` | After every edit | Full — Aider re-runs it inline |
-| Cursor, Copilot, Windsurf, any other host | git `pre-commit` hook | `git commit` | Commit-time only — an agent can still claim "done" between an edit and the commit |
+| GitHub Copilot | `.github/hooks/*.json` `preToolUse` commit-deny + `agentStop` report | `git commit` tool call | Commit-time — `agentStop` cannot block, stated honestly |
+| Cursor, Windsurf, any other host | git `pre-commit` hook | `git commit` | Commit-time only — an agent can still claim "done" between an edit and the commit |
 
 ## How it works
 
