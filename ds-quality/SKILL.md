@@ -1,6 +1,6 @@
 ---
 name: ds-quality
-description: Quality-by-Mechanism — installs a deterministic, local, no-CI quality gate (format → lint → type → test) enforced via a host-appropriate mechanism (Claude Code Stop hook, Aider auto-lint/test, or git pre-commit). Use when the user asks to enforce quality, set up a quality gate, or block "done" until checks pass, without relying on CI.
+description: Quality-by-Mechanism — installs a deterministic, local, no-CI quality gate (format → lint → type → test) enforced via a host-appropriate mechanism (Claude Code / Codex CLI / Gemini CLI stop-time hooks, Copilot commit-deny hook, Aider auto-lint/test, or git pre-commit). Use when the user asks to enforce quality, set up a quality gate, or block "done" until checks pass, without relying on CI.
 ---
 
 # /ds-quality
@@ -36,7 +36,7 @@ or a universal git pre-commit hook.
 **Dimensions:** B1 (quality enforcement)
 
 - Installs a deterministic, local, no-CI quality gate: one entry point (format → lint → type → test) + a host-appropriate enforcement arm that blocks "done" (or the commit) until it passes green; bootstraps missing tooling when asked.
-- **Enforcement mechanism is host-dependent — no single claim covers every host.** Claude Code: Stop hook, stop-time, full-strength (existing behavior, unchanged). Aider: `.aider.conf.yml` auto-lint/auto-test, edit-time. Any other host (Cursor, Copilot, Windsurf, plain terminal): git `pre-commit` hook, commit-time — weaker than stop-time, since an agent can still narrate "done" between an edit and the next commit; documented honestly, not hidden.
+- **Enforcement mechanism is host-dependent — no single claim covers every host.** Stop-time (full strength — blocks "done" itself): Claude Code Stop hook (existing, unchanged) · Codex CLI `Stop` hook · Gemini CLI `AfterAgent` hook. Edit-time: Aider `.aider.conf.yml` auto-lint/auto-test. Commit-time (weaker — an agent can still narrate "done" between an edit and the next commit; documented honestly, not hidden): GitHub Copilot `preToolUse` commit-deny hook · git `pre-commit` hook (universal fallback for Cursor, Windsurf, plain terminal).
 - Modes are flag-disambiguated (`--install`/`--run`/`--check`/`--status`/`--disable`/`--project-hook`/`--uninstall`/`--arm`); no flag = bootstrap this repo. When invoked with no flag and intent is ambiguous, present an up-front menu covering every mode (`(recommended)` default + `(Cancel)`).
 - LOCAL ONLY — never creates or edits CI / remote pipelines. Idempotent (safe to re-run, never duplicates hooks). Non-destructive — never weakens, skips, or mocks-away checks to get green.
 - Runs the passes via the tools already present; delegates one-shot fixing of what they report to ds-fix. This skill owns the *gate + enforcement mechanism*, not the fixes.
@@ -54,7 +54,7 @@ or a universal git pre-commit hook.
 | (none) | **Bootstrap THIS repo's missing tooling** (formatter/linter/type/test + a real starter test if none), then select and wire an enforcement arm. Detect → establish signals → entry point → select arm → prove (Phase 5). |
 | `--run` / `--check` | Run this repo's resolved quality command now (marker → else auto-detect) and report; no setup |
 | `--status` | Report mode/roots, what auto-arm resolves here, which arm(s) are wired, and global install state |
-| `--arm <claude-code\|aider\|git-hook>` | Force a specific enforcement arm instead of auto-detecting the host; skips the selection menu |
+| `--arm <claude-code\|aider\|git-hook\|copilot\|gemini\|codex>` | Force a specific enforcement arm instead of auto-detecting the host; skips the selection menu |
 | `--disable` | Write `.claude/ds-quality.json` `{enabled:false}` — per-repo kill switch (overrides auto-arm) |
 | `--project-hook` | Register the Claude Code Stop hook in THIS repo's `.claude/settings.json` instead of using the global hook |
 | `--uninstall` | Remove the global hook registration + scripts + config (or, with `--project-hook`, the repo's Stop entry; or the `git-hook`/Aider config lines, per `--arm`) |
@@ -72,7 +72,7 @@ Detect toolchain → Establish quality signals → Single entry point → Enforc
 ### Phase 1 — Detect toolchain (read, don't assume)
 - Identify language(s) + package manager from manifests/lockfiles actually present: `package.json`(+lockfile), `pyproject.toml`/`requirements*.txt`/`setup.py`, `pubspec.yaml`, `go.mod`, `Cargo.toml`, `Makefile`.
 - Identify which quality tools are **already** configured (formatter, linter, type-checker, test runner) — read configs + lockfiles, don't guess.
-- Identify the host: `.aider.conf.yml` or an active Aider session → Aider; `~/.claude/` present / running inside Claude Code → Claude Code; neither → universal (git pre-commit).
+- Identify the host: `.aider.conf.yml` or an active Aider session → Aider; `~/.claude/` present / running inside Claude Code → Claude Code; `.codex/` or `~/.codex/` → Codex CLI; `.gemini/` or `~/.gemini/` → Gemini CLI; `.github/hooks/` or `~/.copilot/` → Copilot; none → universal (git pre-commit).
 - **Report the detected stack + host before changing anything.**
 
 **Gate:** Stack, existing tooling, and host are all identified from real manifests/lockfiles/configs — never assumed. If fails → no manifest/lockfile detected (unknown stack) → ask the user which language/toolchain to target before proceeding; do not guess.
@@ -104,8 +104,9 @@ The entry point runs only checks that actually exist for the detected stack. Nev
 ### Phase 4 — Enforcement (select the arm, then wire it)
 Every arm enforces the **same** entry point from Phase 3 — they differ only in *when* they run it.
 Detected host (Phase 1) picks a default; if more than one applies or detection is ambiguous, present
-the menu: `[1] Claude Code Stop hook (recommended if using Claude Code)` / `[2] Aider auto-lint/auto-test`
-/ `[3] git pre-commit hook (universal, works with any host)` / `(Cancel)`. `--arm` skips the menu.
+the menu: `[1] Claude Code Stop hook (stop-time; recommended if using Claude Code)` / `[2] Aider auto-lint/auto-test (edit-time)`
+/ `[3] git pre-commit hook (commit-time, universal — works with any host)` / `[4] Copilot hooks (commit-deny + stop report)`
+/ `[5] Gemini CLI AfterAgent hook (stop-time)` / `[6] Codex CLI Stop hook (stop-time)` / `(Cancel)`. `--arm` skips the menu.
 
 **Arm A — Claude Code (Stop hook, stop-time).** Unchanged, existing mechanism:
 - Global gate, installed once (`--install`): `~/.claude/hooks/ds-quality-gate.sh`, registered in `~/.claude/settings.json` under `.hooks.Stop`. On every Stop it resolves a command in priority order: (1) explicit marker `<root>/.claude/ds-quality.json` (`enabled:false` = per-repo kill switch) → (2) auto-arm — no marker, repo under a trusted root (default `~/projects`): `ds-quality-detect.sh` builds the fail-fast command from tools/configs that already exist → (3) inert — nothing detectable, or repo outside trusted roots → `exit 0`.
@@ -144,7 +145,20 @@ Arm A, stated honestly:** this enforces at commit time, not at "done"/stop time 
 report a task complete between an edit and the next commit; the gate only fires when `git commit`
 runs.
 
-**Gate:** The correct arm for the detected host is selected and wired without clobbering existing config. If fails → `jq` missing (Arm A), `.aider.conf.yml` unwritable (Arm B), or not a git repo (Arm C) → report the specific blocker per Edge Cases, fall back to `--run`-only enforcement — never silently skip enforcement.
+**Arm D — GitHub Copilot (preToolUse commit-deny + agentStop report, commit-time).** Repo-level
+`.github/hooks/ds-quality.json` (user-level alternative: `~/.copilot/hooks/`), format `{"version":1,"hooks":{...}}`:
+- `preToolUse` entry: script reads stdin JSON, inspects `toolName`/`toolArgs` (`toolArgs` is a JSON *string* — parse it), and when the tool call is a `git commit`, runs the Phase-3 entry point; red → output decision `deny` with the failing output as reason, green → `allow`. `preToolUse` is Copilot's only blocking event.
+- `agentStop` entry: runs the entry point and surfaces failures as a report — **cannot block** "done" on Copilot; stated honestly in the install report.
+- Provide both `bash` and `powershell` keys so the hook runs on macOS/Linux/Windows. No matcher support — filter inside the script.
+
+**Arm E — Gemini CLI (AfterAgent hook, stop-time).** Project `.gemini/settings.json` (user-level: `~/.gemini/settings.json`), schema `hooks.AfterAgent[].hooks[] = {name, type:"command", command, timeout}`:
+- Script runs the Phase-3 entry point when the agent loop ends. Green → exit 0, no output. Red → block per the exit-code contract: exit 2 with the failing output on stderr (aborts the stop), or exit 0 + `{"decision":"deny","reason":…}` JSON.
+- Re-verify the hook schema against the official hooks doc at install time (Gemini CLI is mid-transition to Antigravity CLI for unpaid tiers, 2026-06-18 notice — the config surface may move).
+
+**Arm F — Codex CLI (Stop hook, stop-time).** `<repo>/.codex/hooks.json` (project layer loads only in trusted projects; user-level: `~/.codex/hooks.json`), schema `hooks.Stop[].hooks[] = {type:"command", command, statusMessage}`:
+- Script contract mirrors Arm A: read stdin JSON; `stop_hook_active` true → exit 0 (loop guard); run the entry point; green → exit 0 with no output; red → stdout `{"decision":"block","reason":<failing output>}` — Codex keeps working, using the reason as the continuation prompt. Plain-text stdout is invalid for `Stop`; emit JSON only.
+
+**Gate:** The correct arm for the detected host is selected and wired without clobbering existing config. If fails → `jq` missing (Arm A/D/F), `.aider.conf.yml` unwritable (Arm B), not a git repo (Arm C), or untrusted project layer (Arm F) → report the specific blocker per Edge Cases, fall back to `--run`-only enforcement — never silently skip enforcement.
 
 ### Phase 5 — Prove it works (demonstrate, don't claim)
 Run all three and show output, for whichever arm(s) were wired:
@@ -159,6 +173,9 @@ Run all three and show output, for whichever arm(s) were wired:
      With the temp failure in place, the first call must emit `{"decision":"block",…}`; reverted, it must emit nothing and `exit 0`.
    - Arm B: confirm `.aider.conf.yml` parses (`aider --help` or a config dry-run) and the configured `lint-cmd`/`test-cmd` matches the Phase-3 entry point.
    - Arm C: `bash .git/hooks/pre-commit; echo "exit=$?"` with the temp failure in place → non-zero; reverted → zero.
+   - Arm D: pipe a synthetic `preToolUse` stdin JSON (a `git commit` tool call) into the hook script → with the temp failure: decision `deny`; reverted: `allow`.
+   - Arm E: run the AfterAgent hook script directly → with the temp failure: exit 2 (or deny JSON) + reason; reverted: exit 0, silent.
+   - Arm F: pipe `{"stop_hook_active":false,…}` into the Stop hook script → with the temp failure: `{"decision":"block",…}` JSON; with `stop_hook_active:true`: exit 0 silent (loop guard); reverted: exit 0 silent.
 
 **Gate:** Green→red→green demonstrated for the quality command, and the wired arm's trigger test shown (block-on-red / pass-on-green). If fails → red state doesn't trigger the arm as expected → do not report enforcement as installed; mark it "wired but unverified" and surface the specific failure.
 
@@ -190,5 +207,9 @@ Report: detected stack + host · existed-vs-added per signal · the exact entry-
 | husky / `pre-commit` framework present (Arm C) | Add the entry-point command as a step in the existing manager's config; don't write `.git/hooks/pre-commit` directly (it would be overwritten) |
 | Language has no type-checker | Skip the type step; entry point runs only checks that exist |
 | Repo/host you don't trust | Do not enable any arm — every arm executes the marker/config command as code |
+| Codex project layer untrusted (Arm F) | Project hooks won't load — use user-level `~/.codex/hooks.json` or have the user trust the project first |
+| Gemini CLI replaced by Antigravity CLI (Arm E) | Re-verify the hooks config surface against live docs at install time; unreadable → fall back to git pre-commit (Arm C) |
+| Windows host (Arm D) | Provide both `bash` and `powershell` keys — Copilot picks by OS |
+| Copilot `toolArgs` (Arm D) | Arrives as a JSON *string* on stdin — parse before matching commit commands |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
