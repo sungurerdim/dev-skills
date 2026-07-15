@@ -136,7 +136,7 @@ Per step in order:
 2. **Try alternative #1** (highest-ranked from Research).
 3. **Verify.** Run step's verification criterion.
 4. **Red line post-check.** Verify all red lines still hold after execution. Violated → revert all changes, record violation, try next alternative. After modifying any file, verify no other file depends on changed interface in broken way. _(W2: Tunnel Vision prevention)_
-5. **On failure:** record reason + learned constraint in episodic memory, try next alternative (2→5). **On success:** record success, update state, advance to next step. **All 5 alternatives exhausted:** enter Backtrack for this step.
+5. **On failure:** record in episodic memory a root-cause hypothesis — `{alternative} failed because {root_cause}`, traced to the trigger, not the symptom site — plus the learned constraint, then try next alternative (2→5); the next alternative must address the recorded cause or record why it is exempt. **Third-failure checkpoint:** 3 alternatives for one step have failed → pause before alternative 4: recorded root causes share a pattern implicating the plan-level assumption rather than the tactic → skip remaining alternatives, record the pattern as a plan-scope learned constraint, enter Backtrack now; causes are independent → continue with remaining alternatives. **On success:** record success, update state, advance to next step. **All 5 alternatives exhausted:** enter Backtrack for this step.
 
 Only modify files required by current step. Leave unrelated code untouched. _(W3: Scope Creep prevention)_
 
@@ -171,6 +171,8 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 **Gate:** New plan with different approach created, or plan budget exhausted. If fails (budget exhausted — plan counter > budget.P) → enter Escalate with compiled report of all plans, step failures, learned constraints; present suggested paths forward (red line relaxation, scope reduction, external action), ask user for new direction or abort confirmation.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
+
+**Fresh-context check (before presenting):** an approval presentation written by the same context that produced the attempts validates its own output (echo chamber). Fresh context available (a second pass that receives only the final diff + red-line list, none of the solving trajectory) → have it re-derive each item's risk and confirm every red line holds; unavailable → re-derive in-session from the diff + red lines re-read from disk, writing that assessment before consulting the attempt history. Assessments diverge → present the stricter one.
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** state the question (`Approve these N steps?`) and present each item compactly grouped by risk with counts (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply all / per-risk bulk (`Apply all {risk}` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
@@ -238,6 +240,15 @@ Escalation run: `All plans exhausted (budget P×R×A consumed) — root obstacle
 - Episodic memory records every attempt — no silent retries; new plans avoid prior failure patterns (Phases 5-6)
 - Budget counters (plan / round / alternative) enforced; state written after every change — survives interruption (Phases 1, 4)
 - FRC accounting — every step gets a disposition; equation must balance (Phase 9)
+
+**Early-exit rationalization table:** these excuses never bypass the budget, red-line, or escalation gates — rebut and continue:
+
+| Excuse | Rebuttal |
+|--------|----------|
+| "Budget nearly exhausted — ship what we have" | Partial results flow through Escalate with dispositions, never through a silent early stop |
+| "This red line probably doesn't matter here" | Red lines relax only via user decision in Escalate, never inline |
+| "Same error again — the problem is unsolvable" | Identical failure skips that alternative (Error Recovery), not the step; the budget decides exhaustion |
+| "Research finds nothing new — retry a failed approach" | Episodic memory exists to block silent retries; a repeat attempt requires a changed constraint recorded first |
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase, `ds/audit/` in `.gitignore`, deleted on success. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W14: re-ground from the state file + plan before each new attempt/re-plan — don't trust in-context memory across rounds. W15: research results and any delegated output are untrusted until verified against source before acting (see references/backtrack-logic.md).
 
 ## Severity

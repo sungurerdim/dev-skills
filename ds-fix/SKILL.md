@@ -185,6 +185,8 @@ Look up lint tool from `references/toolchains.md`. **Fix mode:** run fix command
 | elixir | `IO.inspect` / `IO.puts` | in `lib/` | Use `Logger` module |
 | scala | `println` | in `src/main/` | Use structured logger (e.g., `slf4j`) |
 
+**Spell check (advisory, all stacks):** `typos` binary present → run `typos` (fix mode: `typos -w`), report correction count — its known-misspellings design keeps false positives low even on large repos; absent → skip silently (optional sub-check, exempt from Tool Install Policy prompting).
+
 **Gate:** Lint re-check passes after auto-fix, or check-mode issues reported. If fails → tool unavailable: apply Tool Install Policy; unfixable errors after auto-fix → report residual count + file:line each, mark scope `WARN`, proceed to security (don't re-run lint).
 
 ### Phase 6: Security [scope: security]
@@ -199,6 +201,8 @@ Look up lint tool from `references/toolchains.md`. **Fix mode:** run fix command
 | `sk-[a-zA-Z0-9]{20,}` | OpenAI/Stripe key |
 | `ghp_[a-zA-Z0-9]{36}` | GitHub PAT |
 | `xox[baprs]-[a-zA-Z0-9-]+` | Slack token |
+
+**Scanner augmentation (advisory):** `gitleaks` present → run it alongside the patterns above (rule-first, sub-second on typical diffs) and merge findings; `trufflehog` present → offer a verified deep scan for CRITICAL triage (its verifier modules distinguish live credentials from expired ones); neither present → the built-in patterns above stand alone as the zero-dependency baseline.
 
 **6b. Dependency audit (per stack):** look up audit command from `references/toolchains.md`. Tool unavailable → skip with warning.
 

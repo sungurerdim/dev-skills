@@ -85,6 +85,8 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 For each active scope, run the detector. Max 2 scopes in parallel.
 
+**Deterministic detector preference (advisory):** for `dead-code` / `orphan` / `single-caller` on JS/TS, Knip binary or config present → run it and use its module-graph output (entry-point-aware, framework-plugin coverage) as the primary evidence; absent → LSP/grep detectors below. For Python `dead-code`, Vulture present → run with `--min-confidence 80`; findings at ≥80 confidence enter the table directly, below 80 → flag with confidence noted and hold for Review Each; absent → LSP/grep detectors below. Tool output still passes false-positive prevention and the Phase 4 approval batch — the tool upgrades the detector, never bypasses the gate.
+
 **2.1 dead-code:**
 
 1. Collect all exported symbols (language-specific: `export`, `module.exports`, `pub fn`, `public`, Dart `public` by default).

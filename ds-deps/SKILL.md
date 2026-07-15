@@ -109,7 +109,7 @@ Per manifest:
    | ruby | `bundle outdated` |
    | dart | `dart pub outdated --json` |
 
-3. **Security advisories:** `npm audit --json` / `pip-audit --format=json` / `cargo audit --json` / `bundler-audit` / `pub audit`. Also Dependabot via `gh` CLI if available.
+3. **Security advisories:** `npm audit --json` / `pip-audit --format=json` / `cargo audit --json` / `bundler-audit` / `pub audit`. Also Dependabot via `gh` CLI if available. Stack-native audit command unavailable → `osv-scanner` present → run `osv-scanner --lockfile={lockfile}` as the cross-ecosystem fallback and record advisories per dep; absent → skip the advisory sub-step with warning `security advisories unchecked for {manifest} — no audit tool available`.
 4. **Removal candidates:** grep source + config for `import {name}` / `require('{name}')` / stack equivalents. Zero in-source references → removal candidate.
 5. Record each dep's current / latest / advisory for the plan table.
 

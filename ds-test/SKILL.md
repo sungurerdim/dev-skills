@@ -237,11 +237,23 @@ Every test MUST justify its existence by addressing a **concrete, specific risk*
 | `"Verifies auth rejects expired JWT tokens"` | `"Tests that getter returns the field value"` |
 | `"Verifies race condition in concurrent balance update"` | `"Tests that add(2,3) returns 5 for a trivial wrapper"` |
 
+**Rationalization table (W12):** these excuses never override the Value Rule or the gates below — rebut and proceed:
+
+| Excuse | Rebuttal |
+|--------|----------|
+| "Too simple to test" | Simple code breaks; the test costs seconds |
+| "I'll test after it settles" | A test that passes on first run proves nothing about failure detection |
+| "Already manually verified" | Ad-hoc checks are not re-runnable; regressions return silently |
+| "Coverage is already high" | Coverage proves execution, not assertion strength — run the mutation check below |
+| "Deleting untested code wastes the hours spent writing it" | Sunk cost; unverified code is debt, not progress |
+| "Weakening this assertion turns the suite green" | A green suite that stops constraining behavior is the W12 failure itself |
+
 **Prune phase (`--prune` or part of `--auto`):** flag existing tests that provide no concrete value:
 
-1. Search for tests asserting only: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, or 1:1 reimplementation of source code.
+1. Search for tests asserting only: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, or 1:1 reimplementation of source code. Flag as CRITICAL (reward-hacking class, not merely low-value): assertions hard-coding expected outputs for special-cased known inputs, and test edits that weaken or bypass assertions to reach green.
 2. Present flagged tests as table `| # | Test | File:Line | Reason | Action |` grouped by Reason with counts; state the question (`Delete these N tests?`). Ask: **Delete all** / **Delete all <reason>** (per-reason bulk alongside the total) / **Review each** / **Keep all**. "All" = exactly the displayed set. `--auto`: delete silently, report count in summary.
 3. **Replacement rule:** after deleting a low-value test, check if file/module now has meaningful untested logic. Yes → generate a valuable replacement test targeting a real risk.
+4. **Mutation check (advisory):** stack's mutation tool available (per-stack table in [references/frameworks.md §Mutation Testing](references/frameworks.md)) → run it on the scoped module, report mutation score beside line coverage, treat every surviving mutant as a weak-assertion finding, and feed each into `--generate`/`--update` as a targeted instruction (`mutant at {file}:{line} survived — add the assertion that kills it`) instead of regenerating whole files. Tool absent → gap-note `mutation tool unavailable — assertion quality verified by pattern review only`, apply the step-1 pattern list as the fallback detector. Coverage alone is not proof: a documented real-world suite reported 93% line coverage against a 58.62% mutation score — a 34-point gap of assertions that constrain nothing.
 
 ### Other Gates
 

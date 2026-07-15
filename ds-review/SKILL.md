@@ -189,9 +189,13 @@ Auto-invoke MAY be skipped via `--no-bootstrap` for testing — then review runs
 
 Cross-scope dedup: merge findings at same file:line, keep highest severity. **Skip patterns:** `# noqa`, `# intentional`, `# safe:`, `_` prefix, `TYPE_CHECKING`, platform guards, test fixtures. Wait for all batches before proceeding.
 
+**Confidence gate:** every finding records a confidence score 0-10 beside severity. Non-CRITICAL findings scoring below 8 → move to a `low-confidence` rollup (count + one-line list in the summary), excluded from the default fix list; user promotes individual items via Review Each. CRITICAL findings below 8 → route through CRITICAL escalation below rather than dropping.
+
+**Negation-shaped checks (production-readiness, security scopes):** "missing X" findings (missing timeout, absent retry, no input validation) are the weakest class for probabilistic review — confirm each by enumerating the relevant call sites and showing X absent at each, never by pattern-absence alone. Deterministic rule scanner configured in the project (semgrep/opengrep class) → run its matching rules as cross-check; absent → the call-site enumeration stands as the evidence.
+
 **Gate:** Findings = 0 → print `"All {N} checks evaluated across {scopes}: 0 findings"`, skip to summary. Distinguishes clean from skipped. If fails (analysis incomplete or bootstrap `/ds-blueprint` didn't return) → mark affected scopes `inconclusive`, log "bootstrap incomplete — scopes {names} unanalyzed", proceed to summary with partial results + WARN status.
 
-**CRITICAL escalation:** any CRITICAL finding → re-read full file section (±20 lines), verify genuine — not pattern-matching false positive. Evidence insufficient → downgrade to HIGH. Only confirmed CRITICALs proceed.
+**CRITICAL escalation:** any CRITICAL finding → re-read full file section (±20 lines), verify genuine — not pattern-matching false positive. Then an adversarial re-check, CRITICAL findings only (a same-context review anchors to the analysis that produced the finding and rubber-stamps it): fresh context available (a second pass that receives only the cited code + finding text, none of the producing analysis) → have it re-derive the finding from that evidence alone; unavailable → re-derive in-session from a clean re-read of the cited lines, writing the evidence down before consulting the original rationale. Re-derivation diverges or evidence insufficient → downgrade to HIGH. Only confirmed CRITICALs proceed. Keep this pass CRITICAL-scoped — critique loops on high-confidence trivial findings degrade accuracy.
 
 ### Phase 3: Gap Analysis (strategic only)
 
@@ -248,7 +252,7 @@ Each path includes: estimated effort (hours), impact (scope reach), risk (regres
 
 ### Phase 4: Plan Review [SKIP if --auto]
 
-Print findings table — one line per finding (ID, severity, title, file:line) grouped by severity with counts; state the question (`Fix which of these N findings?`). Ask: Fix All (recommended) / By Severity (per-severity bulk `Fix all CRITICAL`/`Fix all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Report Only. "All" = exactly the displayed set.
+Print findings table — one line per finding (ID, severity, title, file:line) grouped by severity with counts; state the question (`Fix which of these N findings?`). Ask: Fix All (recommended) / By Severity (per-severity bulk `Fix all CRITICAL`/`Fix all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Report Only. "All" = exactly the displayed set. **LOW-noise cap:** LOW findings appear as per-scope count rows (`LOW: {n} in {scope}`) in this table; selecting Review Each or `Fix all LOW` first prints the itemized LOW list (one line each), so any "all" still names exactly the displayed set — the count always shows, the noise stays rolled up.
 
 **Gate:** User selected plan action. If fails → re-present once; no selection after 2 attempts → default Report Only, note the default in the run summary.
 

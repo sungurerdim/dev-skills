@@ -2,6 +2,8 @@
 
 Per-stack toolchain lookup for ds-fix. Load only the section matching the detected stack.
 
+**Ownership note (2026):** Astral tooling (Ruff, uv, ty) acquired by OpenAI (2026-03); Bun acquired by Anthropic (2025-12). Licenses remain MIT/Apache-2.0 — forkable, low continuity risk; re-verify defaults here if stewardship changes.
+
 ## Flutter / Dart
 
 | Category | Tool | Fix Command | Check Command |
@@ -25,13 +27,15 @@ Per-stack toolchain lookup for ds-fix. Load only the section matching the detect
 | Format (alt) | Biome | `npx biome format --write .` | `npx biome format .` |
 | Lint (default) | ESLint | `npx eslint --fix .` | `npx eslint .` |
 | Lint (alt) | Biome | `npx biome lint --write .` | `npx biome lint .` |
+| Lint (alt) | Oxlint | `npx oxlint --fix` | `npx oxlint` |
 | Lint+Format (unified) | Biome | `npx biome check --write .` | `npx biome check .` |
 | Typecheck | TypeScript | N/A (read-only) | `npx tsc --noEmit` |
 | Dep Audit | npm audit | `npm audit fix` | `npm audit --audit-level=moderate` |
 
 **Install:** `npm install -D prettier eslint typescript` (or `npm install -D @biomejs/biome` for Biome). Use `npx` prefix to run without global install.
 **Manifest:** `package.json`
-**Detection:** `biome.json` → use Biome. `.eslintrc*` / `eslint.config.*` → use ESLint. `.prettierrc*` → use Prettier. `tsconfig.json` → enable typecheck.
+**Detection:** `biome.json` → use Biome. `.oxlintrc.json` → use Oxlint. `.eslintrc*` / `eslint.config.*` → use ESLint. `.prettierrc*` → use Prettier. `tsconfig.json` → enable typecheck.
+**Speed tier (no lint/format config present):** prefer Biome (`npx biome check --write .`) — fastest all-in-one at near-zero config (15-35x ESLint+Prettier); Oxlint checks 100k-LOC monorepos in under 2 seconds (50-100x ESLint) where lint-only speed matters.
 **Package managers:** Detect from lockfile: `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `package-lock.json` → npm, `bun.lockb` → bun. Use detected manager for audit (e.g., `pnpm audit`, `yarn audit`).
 
 ---
@@ -48,8 +52,9 @@ Per-stack toolchain lookup for ds-fix. Load only the section matching the detect
 | Typecheck (alt) | mypy | N/A (read-only) | `mypy .` |
 | Dep Audit (default) | pip-audit | N/A | `pip-audit` |
 | Dep Audit (alt) | safety | N/A | `safety check` |
+| Security scan (source) | Bandit | N/A (report-only) | `bandit -r {source-dir}` |
 
-**Install:** `pip install ruff mypy pyright pip-audit` (or `pip install black flake8` for alternatives). Use `pipx` for global tool installs: `pipx install ruff`.
+**Install:** `pip install ruff mypy pyright pip-audit bandit` (or `pip install black flake8` for alternatives). Use `pipx` for global tool installs: `pipx install ruff`.
 **Manifest:** `pyproject.toml`, `setup.py`, `requirements.txt`
 **Detection:** `[tool.ruff]` in pyproject.toml → Ruff. `[tool.black]` → Black. `[tool.mypy]` → mypy. `[tool.pyright]` or `pyrightconfig.json` → Pyright. No type config → skip typecheck.
 
