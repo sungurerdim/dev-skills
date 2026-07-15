@@ -5,7 +5,7 @@ Benchmarks sourced from RevenueCat State of Subscription Apps 2025/2026, Recurly
 ## MON-01 [HIGH] Model does not fit cost structure
 Product with variable per-unit cost (AI inference, media processing, API passthrough) sold on a flat subscription.
 - **Detect:** Per-request paid compute in code paths gated only by a flat-price subscription; no usage caps, credits, or metering.
-- **Fix:** Hybrid model — subscription + consumable credits or metered usage caps. 35% of subscription apps already mix models; AI apps lead adoption.
+- **Fix:** Hybrid model — subscription + consumable credits or metered usage caps. 35% of subscription apps already mix models; AI apps lead adoption. Default-recommend hybrid (base + metered) over pure usage-based: 46% of companies run a hybrid approach vs 15% largely usage-based/PAYG (2026) — never chase the usage-based narrative uncritically.
 - **Impact:** Heavy users make unit economics negative; flat pricing cannot absorb variable cost.
 - **Source:** RevenueCat SOSA 2026, hybrid monetization trend data.
 
@@ -25,10 +25,12 @@ Paid capability gated in UI/client code only.
 
 ## MON-04 [CRITICAL] Payment webhook accepted without signature verification
 Billing provider webhook handler processes events unverified.
-- **Detect:** Webhook route parses provider payload without verifying the provider signature header / signing secret.
-- **Fix:** Verify signature before any state change; reject on mismatch; idempotency key on event processing.
-- **Impact:** Forged webhook grants subscriptions or refunds without payment.
-- **Source:** Provider security docs (Stripe/Paddle webhook signing).
+- **Detect:** Webhook route parses provider payload without verifying the provider signature header / signing secret; or event handler mutates state with no processed-event dedup.
+- **Fix:** Verify signature before any state change; reject on mismatch. Audit the two idempotency layers separately — they are distinct, commonly conflated checks:
+  1. **API-request idempotency** (client → provider): `Idempotency-Key` header with a V4 UUID / high-entropy string (≤255 chars); the provider replays the first result for ≥24h and errors on parameter mismatch.
+  2. **Webhook event idempotency** (provider → handler): delivery is at-least-once, never exactly-once — store each processed event ID under a UNIQUE constraint and short-circuit before mutating state; respond 2xx within 10 seconds (failed deliveries retry with exponential backoff over ~3 days).
+- **Impact:** Forged webhook grants subscriptions or refunds without payment; missing event dedup double-applies retried deliveries (double credits, double emails).
+- **Source:** Provider security docs (Stripe/Paddle webhook signing); Stripe idempotent-requests API reference; at-least-once webhook delivery guidance 2026.
 
 ## MON-05 [CRITICAL] Card data touches own servers
 PAN/CVC handled or logged by first-party code.
@@ -85,6 +87,13 @@ Eligible store revenue paying 30% where 15% applies.
 - **Fix:** Enroll (Apple Small Business Program / Play 15% tier); re-qualify annually.
 - **Impact:** 15 points of margin left on the table.
 - **Source:** Apple SBP / Google Play 15% program terms.
+
+## MON-13 [MEDIUM] Pricing-model migration without a safety window
+Pricing-model change (e.g., per-seat → usage/hybrid) planned as a hard cutover for all customers at once.
+- **Detect:** Model change planned or announced with no grandfather clause for existing customers and no metering period before billing switches.
+- **Fix:** Grandfather existing customers on the old model for 12-18 months while new customers go straight to the new model; run a shadow-billing period metering usage on the new model for 60-90 days before cutover.
+- **Impact:** Hard cutovers turn pricing changes into churn events; shadow billing surfaces bill-shock cases before they invoice.
+- **Source:** Usage-based-pricing migration patterns 2026 (grandfathering + shadow billing, cited consistently across pricing-transition guides).
 
 ## PRC-01 [MEDIUM] No target tier / decoy logic in packaging
 Tier list where every option competes equally.

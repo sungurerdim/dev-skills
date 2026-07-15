@@ -80,7 +80,7 @@ Core flows meet WCAG 2.2 AA. Keyboard navigable. Screen reader compatible.
   - Color contrast below 4.5:1 for normal text
   - Search: `<img` without `alt=`, `<input` without associated `<label`
 - **Fix:** Add `alt` text to all images (empty `alt=""` for decorative). Associate labels with inputs. Ensure keyboard navigation (tab order, focus management). Use semantic HTML. Test with screen reader (NVDA, VoiceOver). Ensure 4.5:1 contrast ratio
-- **Impact:** ~15% of users have some form of disability. EAA 2025 enforcement for EU
+- **Impact:** ~15% of users have some form of disability. EAA enforcement live since 28 Jun 2025 — an active obligation for products/services marketed in the EU, not a future deadline
 - **Source:** WCAG 2.2, EAA 2019/882
 
 ### WEB-07 [MAJOR] Error Pages

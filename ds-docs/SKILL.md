@@ -67,7 +67,7 @@ Without flags: present mode selection to the user.
 
 ### ADR scope (activated by `--adr` flag or when `adr` scope is explicitly selected)
 
-**Structure + template:** `docs/adr/NNNN-{kebab-slug}.md`, sequential zero-padded numbering from `0001`:
+**Structure + template:** `docs/adr/NNNN-{kebab-slug}.md`, sequential zero-padded numbering from `0001`. Template follows the Nygard format that `adr-tools` and `log4brains` manage — generated ADRs stay compatible with those corpora:
 
 ```markdown
 # ADR NNNN: {Title}
@@ -83,7 +83,7 @@ Without flags: present mode selection to the user.
 
 **Operations (`--adr` mode):**
 
-1. **Inventory:** list existing ADRs, verify numbering contiguous, flag any missing status/date/sections.
+1. **Inventory:** list existing ADRs, verify numbering contiguous, flag any missing status/date/sections. Spot-check each `accepted` ADR's referenced file paths/symbols against current code — a since-removed reference → flag `drifted`, propose a status review (deprecate / supersede); never silently trust an ADR the system has outgrown.
 2. **Proposal candidates:** every Category B decision surfaced in recent `ds/audit/findings.md` runs (scope `ideal-gap`, `architecture`, `stack-fitness`) without a matching ADR → propose a draft ADR. User approves each before writing.
 3. **Supersedence:** new ADR contradicting an earlier one cites superseded ADR; earlier ADR updated to `status: superseded-by NNNN`.
 4. **No autonomous ADR writes.** Every new ADR is Category B — user approves title + draft before file creation.
@@ -116,6 +116,7 @@ Scan existing docs, detect project type, assess completeness. Apply quality rule
 1. Search for doc files (`README.md`, `CONTRIBUTING.md`, `docs/*`, `CHANGELOG.md`, `API.md`, `DEPLOY.md`); per found doc, read + assess completeness (0-100%).
 2. Detect project type from config files.
 3. Check doc-sync: README drift, API signature mismatch, deprecated refs, broken links.
+4. Deterministic doc linters configured in the repo (`.vale.ini` / `.markdownlint*` / `lychee.toml` / `.lycheeignore`) → run them and fold their output into findings ([references/rules-writing.md](references/rules-writing.md) DOC-09 severity mapping); absent → perform the same checks manually and record a gap-note — never install tools unasked.
 
 **Gate:** Project type detected + existing docs inventoried with completeness scores. If fails → undetermined type → prompt user "What type? (cli / library / api / web / mobile / desktop / monorepo / other)"; unreadable doc → record `{ file, completeness: 0, status: "unreadable" }`, continue inventory.
 

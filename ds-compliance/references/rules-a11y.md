@@ -2,6 +2,8 @@
 
 Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action.
 
+Target: WCAG 2.2 AA (ISO/IEC 40500:2025) — the enforceable baseline that EAA/ADA/Section 508 reference. WCAG 3.0 is a Working Draft (March 2026; not expected final before 2028) — never test against 3.0 draft criteria or its Bronze/Silver/Gold tiers.
+
 ## Table of Contents
 
 | Section | Rules | Line |

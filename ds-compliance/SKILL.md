@@ -33,7 +33,7 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 ## Contract
 
 **Dimensions:** C1 (canonical), C2 (canonical, conditional messaging), C3 (regulatory), A7 (regulatory), A8 (rules), A9 (conditional ecosystem rules), A11 (portability crosscheck)
-**Framework alignment (advisory):** OWASP ASVS (C1), OWASP SAMM (C2) — sourced references in SKILL-SPEC Dimension Coverage Map.
+**Framework alignment (advisory):** OWASP ASVS 5.0.0 (C1), OWASP SAMM (C2) — sourced references in SKILL-SPEC Dimension Coverage Map. Tool-derived security findings carry the tool's own ASVS version tag (OSS DAST tools still emit 4.0.3-tagged results — never present them as ASVS 5.0 coverage).
 
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
@@ -72,7 +72,7 @@ Every secret is its own needs-approval item. `--auto` lists them, marks all `ski
 |-------|---------------|
 | security | OWASP Top 10, secrets, TLS, input validation |
 | privacy | Data collection, consent, retention, PII handling |
-| regulatory | GDPR, CCPA, KVKK, LGPD, PIPL, UK GDPR, HIPAA, framework-specific |
+| regulatory | GDPR, CCPA, KVKK, LGPD, PIPL, UK GDPR, HIPAA, EU AI Act, framework-specific |
 | web | CSP, CORS, XSS, CSRF prevention |
 | network | TLS/transport security, API protection, DoS resilience |
 | arch | Audit logging, boundary/input validation, dependency security |

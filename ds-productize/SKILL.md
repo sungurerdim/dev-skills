@@ -57,9 +57,9 @@ Without flags: present the full mode menu — Audit (recommended) — find gaps 
 
 ### Monetization
 
-1. Model fit — chosen model (freemium / hard paywall / subscription / one-time / hybrid) matches product type and cost structure; AI apps with variable per-unit cost use hybrid or usage caps
+1. Model fit — chosen model (freemium / hard paywall / subscription / one-time / hybrid) matches product type and cost structure; AI apps with variable per-unit cost use hybrid or usage caps; recommendations default to hybrid (base + metered) over pure usage-based (MON-01 benchmark)
 2. Entitlement enforcement — every paid feature checks entitlement server-side; no client-only gating of paid capability
-3. Billing integration — managed provider or MoR present; payment webhooks signature-verified; no card data touches own servers
+3. Billing integration — managed provider or MoR present; payment webhooks signature-verified; both idempotency layers audited — API-request keys and webhook event dedup are distinct checks (MON-04); no card data touches own servers
 4. Subscription lifecycle — trial terms disclosed before purchase, renewal reminders, grace period + dunning for failed payments, restore purchases available
 5. Cancellation parity — cancelling takes no more steps than subscribing; no dark patterns (roach motel, confirm-shaming, forced continuity)
 6. Free-tier gate design — free tier demonstrates core value but preserves an upgrade reason; no bait-and-switch removal of shipped free features
@@ -181,7 +181,7 @@ Zero-change run: `No gaps — monetization/pricing/gtm surfaces meet reviewed sc
 |----------|----------|
 | Pre-revenue greenfield (no billing code) | All scopes `greenfield` → audit becomes design-target list; recommend `--plan` |
 | Library/CLI with paid tier (license keys) | Skip store/IAP checks; audit license-key entitlement + web checkout only |
-| Existing revenue, migration question (e.g., IAP → web checkout) | Present as B decision with commission math from references; never auto-migrate |
+| Existing revenue, migration question (e.g., IAP → web checkout) | Present as B decision with commission math from references; never auto-migrate; pricing-model changes carry the MON-13 safety window (grandfather + shadow billing) |
 | Multiple products in one repo | Ask which product; audit one per run, note others as out-of-scope |
 | B2B invoice-based sales (no self-serve) | Skip paywall/trial checks as N/A; audit entitlement, pricing page, GTM only |
 

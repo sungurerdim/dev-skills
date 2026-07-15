@@ -8,12 +8,14 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 |---------|-------|------|
 | **Security** | SEC-01–12 (4 BLOCKER, 5 CRITICAL, 3 MAJOR) | ~12 |
 | **Privacy** | PRV-01–05 (2 BLOCKER, 2 CRITICAL, 1 MAJOR) | ~120 |
-| **Regulatory Compliance** | PRV-06–19 (9 BLOCKER, 5 CRITICAL) | ~165 |
-| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~363 |
+| **Regulatory Compliance** | PRV-06–19, PRV-21 (10 BLOCKER, 5 CRITICAL) | ~165 |
+| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~390 |
 
 ---
 
 ## Security
+
+Baseline: OWASP ASVS 5.0.0 (May 2025 — ~350 requirements, 17 categories). OSS DAST tools (ZAP, Nikto) still emit 4.0.3-tagged findings as of mid-2026 — label tool output with the tool's ASVS version; never present 4.0.3 tool findings as ASVS 5.0 coverage.
 
 ### SEC-01 [BLOCKER] Secure Credential Storage
 Credentials, tokens, and secrets must not be in plaintext files or unencrypted storage.
@@ -129,7 +131,7 @@ AI assistants can emit near-verbatim third-party or copyleft code without attrib
   - Large verbatim blocks of unknown provenance
   - AI assistance not recorded where org or licensing policy requires it
 - **Fix:** Run a license/SCA scan (FOSSA, ScanCode) on AI-assisted PRs; flag copyleft entering permissive code. Verify provenance of large verbatim AI output before merge; prefer generating from your own interfaces. Record AI assistance where policy requires an authorship/provenance note.
-- **Impact:** In *Doe v. GitHub* most claims were dismissed but an open-source-license-violation claim survives; the EU AI Act (Reg. 2024/1689) GPAI transparency duties applied Aug 2025, with full applicability 2 Aug 2026.
+- **Impact:** In *Doe v. GitHub* most claims were dismissed but an open-source-license-violation claim survives; the EU AI Act (Reg. 2024/1689) GPAI transparency duties applied 2 Aug 2025; general enforcement and penalties apply 2 Aug 2026, while high-risk obligations shifted under the Digital Omnibus — timeline in PRV-21.
 - **Source:** [Doe v. GitHub case updates](https://githubcopilotlitigation.com/case-updates.html); [EU AI Act (EC)](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
 
 ---
@@ -196,14 +198,17 @@ No PII in logs, error reports, or analytics.
 Rules in this section only checked when corresponding framework is in `ACTIVE_FRAMEWORKS`. Tag format: `[FRAMEWORK: X,Y]` means check only if X or Y is active.
 
 ### PRV-06 [BLOCKER] CCPA/CPRA Compliance [FRAMEWORK: CCPA]
-California Consumer Privacy Act + California Privacy Rights Act.
+California Consumer Privacy Act + California Privacy Rights Act. Amended CPPA regulations effective 1 Jan 2026.
 - **Detect:**
   - No "Do Not Sell or Share My Personal Information" link
   - No opt-out mechanism for data sale/sharing
+  - GPC signal processed silently — no visible confirmation shown to the user
+  - ADMT (automated decision-making technology) in use without disclosure + opt-out (existing uses must comply by 1 Jan 2027)
+  - Neural data collected but not classified as sensitive personal information
   - No 12-month data collection disclosure
-  - Search: absence of `doNotSell`, `optOut`, `ccpa`, `cpra` in settings/privacy pages
-- **Fix:** Add "Do Not Sell/Share" toggle. Implement opt-out API. Honor Global Privacy Control (GPC) signal. Respond within 45 days
-- **Source:** CCPA 1798.120, CPRA 2023
+  - Search: absence of `doNotSell`, `optOut`, `gpc`, `ccpa`, `cpra` in settings/privacy pages
+- **Fix:** Add "Do Not Sell/Share" toggle. Implement opt-out API. Detect and honor Global Privacy Control (GPC) signals as valid opt-out requests with **visible confirmation**, not background-only processing (silent GPC handling drew a record $1.35M fine, Sept 2025). Disclose ADMT use with an opt-out path. Respond within 45 days. Schedule the phased cybersecurity audit: gross revenue >$100M in 2026 → audit by 1 Apr 2028; >$50M in 2027 → by 1 Apr 2029; all remaining covered businesses → by 1 Apr 2030
+- **Source:** CCPA 1798.120; CPPA amended regulations, effective 1 Jan 2026
 
 ### PRV-07 [BLOCKER] LGPD Compliance [FRAMEWORK: LGPD]
 Brazil Lei Geral de Protecao de Dados.
@@ -361,6 +366,25 @@ Withdrawal as easy as giving consent.
   - Withdrawal harder than consent
 - **Fix:** Toggle per purpose in settings. One-tap withdrawal. Stop processing immediately. Log withdrawal timestamp
 - **Source:** GDPR Art. 7(3)
+
+### PRV-21 [BLOCKER] EU AI Act Obligations & Timeline [FRAMEWORK: EU_AI_ACT]
+EU AI Act (Reg. 2024/1689) — obligations phase in on the Digital Omnibus dates (provisional agreement 7 May 2026), not the original schedule.
+- **Detect:**
+  - AI system / GPAI integration shipped to EU users without transparency disclosure (PRV-02 crosscheck)
+  - Generative capability without a control blocking non-consensual intimate imagery / CSAM output
+  - High-risk (Annex III / Annex I) exposure assessed against the superseded 2 Aug 2026 / 2 Aug 2027 dates
+- **Timeline (post-Digital-Omnibus):**
+
+  | Obligation | Applies |
+  |------------|---------|
+  | GPAI model provider obligations | 2 Aug 2025 (in force) |
+  | General enforcement, penalties, prohibitions, transparency | 2 Aug 2026 |
+  | New prohibition: non-consensual intimate imagery / CSAM generation | 2 Dec 2026 |
+  | High-risk AI systems — Annex III (use-based) | 2 Dec 2027 (was 2 Aug 2026) |
+  | High-risk AI embedded in Annex I regulated products | 2 Aug 2028 (was 2 Aug 2027) |
+
+- **Fix:** Disclose AI providers + processing purpose (PRV-02). Block NCII/CSAM generation paths before 2 Dec 2026. Classify high-risk exposure against the 2027/2028 dates — flagging Annex III urgency against 2 Aug 2026 over-flags by 16 months. Penalty tiers: up to €35M or 7% of worldwide turnover (most serious); up to €15M or 3% (transparency violations)
+- **Source:** EU AI Act Service Desk implementation timeline (ai-act-service-desk.ec.europa.eu); Digital Omnibus provisional agreement, 7 May 2026
 
 ---
 

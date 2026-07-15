@@ -3,7 +3,7 @@
 | Section | Rules |
 |---------|-------|
 | **Structure & Content** | DOC-01 to DOC-04 (2 HIGH, 2 MEDIUM) |
-| **Maintenance & Tools** | DOC-05 to DOC-08 (2 MEDIUM, 2 LOW) |
+| **Maintenance & Tools** | DOC-05 to DOC-09 (3 MEDIUM, 2 LOW) |
 
 ## Structure & Content
 
@@ -121,9 +121,11 @@ See [Configuration](./docs/config.md)
 See [Express docs](https://expressjs.com/en/guide/routing.html)
 ```
 
+Repo has a link checker configured (e.g., lychee) → run it and consume the report; suppress known false positives via `.lycheeignore` instead of loosening the check.
+
 **Why:** Broken links signal unmaintained documentation and send users to dead ends. Single 404 in a getting-started guide can block adoption.
 
-**Source:** Web maintenance best practices
+**Source:** Web maintenance best practices; lychee (lycheeverse)
 
 ---
 
@@ -193,3 +195,21 @@ See [Express docs](https://expressjs.com/en/guide/routing.html)
 **Why:** Well-maintained changelog helps users decide whether to upgrade and understand breaking changes without reading commit history. Often first file checked before a version bump.
 
 **Source:** Keep a Changelog (keepachangelog.com), Semantic Versioning
+
+---
+
+### DOC-09 | MEDIUM | Deterministic Doc-Lint Stack
+
+**Detect:** Docs checked only by manual/LLM review — no prose linter (Vale), Markdown-structure linter (markdownlint), or link checker (lychee) configured in a repo that has a docs directory or CI.
+
+**Fix:** Run the configured stack and consume its output; where absent, propose it as a needs-approval item — never install unasked:
+
+| Tool | Checks | Severity mapping |
+|------|--------|------------------|
+| lychee | broken URLs, dead anchors | error — fails the check; `.lycheeignore` for known false positives |
+| markdownlint | structure: bare code fences, heading order, missing image alt text | error |
+| Vale | prose style: passive voice, sentence length, word choice | warning — advisory, never blocks |
+
+**Why:** Deterministic linters catch drift that review misses and produce repeatable signals; the severity split keeps style suggestions from blocking at broken-link level.
+
+**Source:** GitLab documentation testing guide (Vale + markdownlint); lychee (lycheeverse); documentation-linting severity practice 2026
