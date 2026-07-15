@@ -3,7 +3,7 @@
 [![CI](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/skills-28-blue)]()
-[![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
+[![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_OpenCode_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
 
@@ -17,7 +17,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
-| **5 AI tools supported** | Claude Code, Cursor, GitHub Copilot, Windsurf, Aider — same skill, every host |
+| **6 AI tools supported** | Claude Code, OpenCode, Cursor, GitHub Copilot, Windsurf, Aider — skills follow the open [Agent Skills spec](https://agentskills.io) (`SKILL.md`), so any host that reads it works |
 | **2 namespaces, 1 root** | `ds/audit/` (gitignored, transient state) + `ds/<skill>/` (committed operational tooling) — nothing else leaks to your repo root |
 
 > **Quick start:** `git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills && ./install.sh`
@@ -178,6 +178,8 @@ git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
 
 The installer copies **only runtime files** (skill dirs + agents) — spec and docs never enter your context path. Re-running syncs: files removed from a skill in the repo are removed from the installed copy too. Update = `git pull && ./install.sh`.
 
+**OpenCode — nothing extra:** OpenCode reads `.claude/skills/` directly, so `./install.sh` covers it too.
+
 **Other tools — copy any skill folder manually:**
 
 ```bash
@@ -186,21 +188,23 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 
 | Tool | Install |
 |------|---------|
-| **Claude Code** | `cp -r /tmp/dev-skills/<skill> ~/.claude/skills/<skill>` |
-| **Cursor** | Copy `SKILL.md` + `references/` to `.cursor/rules/` |
-| **GitHub Copilot** | Append `SKILL.md` content to `.github/copilot-instructions.md` |
-| **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
+| **Claude Code / OpenCode** | `./install.sh` (both read `~/.claude/skills/`) |
+| **Cursor** | Copy the skill folder into `.cursor/skills/` if your build reads Agent Skills; otherwise reference `SKILL.md` on demand. Do **not** use legacy `.cursorrules` — it is silently ignored in Agent mode |
+| **GitHub Copilot** | Copy the skill folder where your Copilot build reads skills, or add a path-scoped pointer in `.github/instructions/` — never paste full SKILL.md into `copilot-instructions.md` |
+| **Windsurf** | Reference `SKILL.md` from a `.windsurf/rules/` file (directory format; single-file `.windsurfrules` is legacy) |
 | **Aider** | Reference `SKILL.md` via `--read` flag |
 
 ```bash
 rm -rf /tmp/dev-skills
 ```
 
+> **Why "reference", not "paste":** a SKILL.md is ~4–9K tokens. Pasting it into an always-on rules file loads it on every request and measurably degrades instruction-following as rules accumulate ([IFScale](https://arxiv.org/abs/2507.11538)); skills are designed to load only when invoked. See [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research and the per-host plan.
+
 Install one skill, several, or all 28 — they are independent.
 
 ## Host support
 
-All 28 skills are capability-abstracted markdown — same instructions, any of the 5 hosts. The one exception is `ds-quality`, whose enforcement mechanism differs by host because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for the host matrix.
+All 28 skills are capability-abstracted markdown following the open [Agent Skills spec](https://agentskills.io) — same instructions, any of the 6 hosts (and any other host that reads the spec). The one exception is `ds-quality`, whose enforcement mechanism differs by host because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for the host matrix, and [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research-backed cross-host roadmap (v5).
 
 ## How skills work
 

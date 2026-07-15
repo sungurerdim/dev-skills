@@ -1,6 +1,6 @@
 # dev-skills
 
-Multi-phase AI coding assistant skills covering the full software lifecycle — gates, error recovery, and systematic mitigation of 17 known AI failure modes (W1–W11 universal + W12–W17 domain-specific) across Claude Code, Cursor, Copilot, Windsurf, and Aider.
+Multi-phase AI coding assistant skills covering the full software lifecycle — gates, error recovery, and systematic mitigation of 17 known AI failure modes (W1–W11 universal + W12–W17 domain-specific) across Claude Code, OpenCode, Cursor, Copilot, Windsurf, and Aider.
 
 ## Meta
 
@@ -9,7 +9,8 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - **License:** MIT
 - **Stack:** Markdown only — zero runtime dependencies
 - **Skill count:** 28
-- **Tool support:** Claude Code, Cursor, Copilot, Windsurf, Aider
+- **Tool support:** Claude Code, OpenCode, Cursor, Copilot, Windsurf, Aider (Agent Skills spec readers; OpenCode consumes `~/.claude/skills/` directly)
+- **Active program:** v5 cross-host — see `docs/methodology/cross-host-program.md` (2026-07-15 research: verified findings F1–F10, gaps G1–G6, program P0–P2)
 
 ## Project Structure
 
