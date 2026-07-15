@@ -63,7 +63,7 @@ Set `mode`/`roots` by editing `~/.claude/ds-quality.config.json`; `mode:"off"` d
 
 ## Delegation
 
-**Owns:** quality-gate-setup, verify-loop-enforcement, hook-install | **Delegates:** ds-fix → verify-loop toolchain passes | **Receives:** none
+**Owns:** quality-gate-setup, verify-loop-enforcement, hook-install | **Delegates:** ds-fix → verify-loop toolchain passes | **Receives:** ds-rig → quality-gate wiring after rig setup
 
 ## Execution Flow
 

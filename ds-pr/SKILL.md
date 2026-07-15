@@ -59,7 +59,7 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 
 ## Execution Flow
 
-Validate -> History Tidy -> Quality Gates -> Analyze -> Build -> [Review] -> Create -> [Merge Setup] -> [Cleanup] -> [Needs-Approval] -> Summary
+Validate → History Tidy → Quality Gates → Analyze → Build → [Review] → Create → [Merge Setup] → [Cleanup] → [Needs-Approval] → Summary
 
 ### Phase 1: Validate
 
