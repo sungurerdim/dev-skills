@@ -9,7 +9,7 @@ Universal privacy baseline (apply where honored, verify per tool): `DO_NOT_TRACK
 CLI output filter (boilerplate filtering, similar-line grouping, smart truncation, dedup) applied before command output reaches the model.
 - **Benefit:** 60-90% claimed savings on common dev commands (vendor-documented; session example 118K→23.9K tokens). Hook-based auto-rewrite of shell calls; 15 harnesses listed.
 - **Install:** macOS `brew install rtk` · Linux prebuilt binary/curl script (pin the release tag) · Windows prebuilt `.zip` + WSL.
-- **Privacy:** telemetry disabled by default (vendor-documented) — verify with the tool's telemetry status output after install.
+- **Privacy:** telemetry disabled by default since the 2026-04 fix (was default-on before — issue #1154); belt-and-braces `RTK_TELEMETRY_DISABLED=1` and verify with the telemetry status output (see [privacy.md](privacy.md)).
 - **Verify:** `rtk --version` + `rtk gain` produces output.
 - **Uninstall:** `rtk init -g --uninstall` (removes the hook), then package-manager remove.
 - **Limit:** intercepts shell-command output only — native file-read/search tool calls bypass it.
@@ -28,7 +28,7 @@ Sandboxed execution + BM25 retrieval; only logged output enters the conversation
 
 Local-first Markdown knowledge base with SQLite index; plain files, no lock-in (AGPL-3.0 — fine for install-your-own use).
 - **Install:** `uv tool install basic-memory` (uv covers all 3 OS).
-- **Privacy:** local-first by design — verify no sync/cloud feature is enabled by default in the current version's docs.
+- **Privacy:** storage is local-first, but OSS telemetry is **ON by default** — run `basic-memory telemetry disable` and prove with `basic-memory telemetry status` (see [privacy.md](privacy.md)).
 - **Verify:** MCP client lists its tools; a test note round-trips.
 - **Uninstall:** `uv tool uninstall basic-memory` + remove MCP registration.
 - **Fallback:** plain `NOTES.md`/`docs/adr/*.md` files the agent is instructed to read/update.

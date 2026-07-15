@@ -35,7 +35,7 @@ AI-dev environments accumulate ad-hoc: tools get installed unpinned, telemetry s
 - Installs, updates, privacy-hardens, and permission-profiles the user's AI-dev environment from the curated catalog ([references/catalog.md](references/catalog.md)) — machine-level, not project-level.
 - **Budgeted:** total registered MCP tool count is checked against the net-negative threshold (~20-30 tools) before and after every change; crossing it requires explicit user override.
 - **Pinned + current:** installs record the resolved version; re-runs produce a drift table (installed vs latest) and offer per-item updates — an update is a deliberate approved action, never silent (rug-pull defense).
-- **Privacy-first:** every installed tool gets its telemetry/call-home opt-outs applied and proven by config/env inspection; opt-out mechanisms are verified against the tool's official docs at install time, never assumed from memory.
+- **Privacy-first, harnesses included:** every installed tool AND every detected harness gets its telemetry/call-home opt-outs applied and proven by config/env inspection. Current opt-out mechanisms are determined by **live web research against official sources at run time** (settings drift between versions); [references/privacy.md](references/privacy.md) is the verified seed map, never the authority. Non-disableable traffic (e.g. the model API calls themselves) is reported honestly, never hidden.
 - **Permission profiles:** where the detected harness exposes an allow/ask/deny permission surface, apply the safe-default profile ([references/permissions.md](references/permissions.md)) covering both harness defaults and rig-installed tools — merge, never clobber; backup before write. Harness without a permission surface → gap-note; the run continues.
 - **Never silent:** unpinned `npx -y`/`curl|bash` execution, credential-passthrough MCP servers, self-updating tools, harness-config writes, budget-crossing MCP adds, and sandbox/permission-disabling flags each require separate per-item confirmation — never bundled into a bulk "yes".
 - **State-exempt — externally durable.** The manifest `~/.config/ds-rig/manifest.json` (tools, versions, privacy configs applied, permission entries written) is the durable record; writes no `ds/audit/` state, nothing to the repo.
@@ -49,7 +49,7 @@ AI-dev environments accumulate ad-hoc: tools get installed unpinned, telemetry s
 | (none) | Full flow: Detect → Select & Budget → Trust Gate → Install/Update → Privacy → Permissions → Prove |
 | `--check` | Read-only: drift table (installed vs latest), privacy posture, permission posture, MCP budget — no changes |
 | `--update` | Skip selection; drift table for manifest-tracked tools, offer updates only |
-| `--privacy-only` | Re-apply + re-prove telemetry opt-outs for installed tools; no installs |
+| `--privacy-only` | Re-research + re-apply + re-prove telemetry opt-outs for installed tools AND detected harnesses; no installs |
 | `--permissions-only` | Apply/refresh harness permission profiles only |
 | `--budget` | MCP tool-count + token-tax report only |
 | `--uninstall {tool\|--all}` | Invoke each tool's own uninstall per manifest; remove its privacy/permission entries; update manifest |
@@ -78,7 +78,7 @@ Detect → Select & Budget → Trust Gate → Install/Update → Privacy Hardeni
 ### Phase 1 — Detect (read, don't assume)
 
 1. OS + architecture + available package managers (brew, apt/dnf, winget/scoop, npm, pip/uv, cargo) — from command probes, not assumption.
-2. Installed harnesses: probe config dirs (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.copilot/`/`.github/hooks/`, `.aider.conf.yml`, OpenCode/Cursor/Windsurf dirs per [references/permissions.md](references/permissions.md)).
+2. Installed harnesses: probe config dirs (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.copilot/`/`.github/hooks/`, `.aider.conf.yml`, OpenCode/Cursor/Windsurf dirs per [references/permissions.md](references/permissions.md)) — and read each harness's current telemetry-relevant settings for the privacy posture baseline.
 3. Catalog tools already installed + their versions (`{tool} --version` probes).
 4. Registered MCP servers per harness config + estimated tool-definition count.
 5. Existing manifest `~/.config/ds-rig/manifest.json` → this is a re-run: load it; missing → first run.
@@ -111,23 +111,27 @@ Detect → Select & Budget → Trust Gate → Install/Update → Privacy Hardeni
 
 **Gate:** Each item's post-install probe (`{tool} --version` or equivalent) returns the pinned version. If the probe mismatches or fails → mark `failed`, surface the output, apply the category fallback note; the batch continues.
 
-### Phase 5 — Privacy Hardening (zero telemetry, zero call-home)
+### Phase 5 — Privacy Hardening (zero telemetry, zero call-home — tools AND harnesses)
 
-1. For each installed tool apply the opt-outs from the catalog's privacy column — after verifying the mechanism against the tool's current official docs (mechanisms drift; the catalog entry is the starting point, the live doc is the authority).
-2. Apply the universal opt-outs where honored: `DO_NOT_TRACK=1` and package-manager analytics opt-outs (e.g. `HOMEBREW_NO_ANALYTICS=1`) in the user's shell profile — merge, never duplicate.
-3. Prove per tool: read back the config/env that disables telemetry; where the tool ships a status command (e.g. telemetry status), run it and capture the output.
-4. A tool with no documented opt-out and confirmed call-home behavior → report it, offer removal or explicit user acceptance; never leave it silently phoning home.
+1. **Research current opt-outs (default step):** for every detected harness and every installed/selected tool, determine the current telemetry/analytics/crash-report/update-check disable mechanism from official sources (vendor docs, changelogs, source repos) via live web research. [references/privacy.md](references/privacy.md) seeds the lookup; the live source wins on conflict. Web access unavailable → apply the seed map and mark every applied entry `unverified-currency` in the report.
+2. Apply harness opt-outs: write each harness's documented disable settings (env vars / settings keys) — same discipline as permission writes: backup, additive merge, parse-validate, diff.
+3. Apply tool + package-manager opt-outs and the universal ones where honored (`DO_NOT_TRACK=1`, package-manager analytics opt-outs) in the user's shell profile — merge, never duplicate.
+4. Prove per item: read back the config/env that disables telemetry; where the item ships a status command, run it and capture the output.
+5. Report the honest remainder: traffic that cannot be disabled (model API calls, a scanner's functional API queries) is listed as `functional-network`, distinguished from telemetry — never silently omitted.
+6. An item with no documented opt-out and confirmed call-home behavior → report it, offer removal (tools) or explicit user acceptance (tools and harnesses); never leave it silently phoning home.
+7. Items whose documented opt-out is **known-broken** (open upstream bugs; ⚠ entries in [references/privacy.md](references/privacy.md)) → classify `non-disableable-in-practice`, cite the upstream issue, and put the accept/replace decision to the user — a setting that is written but not honored is never reported as `proven`.
 
-**Gate:** Every installed tool has either (a) captured proof of disabled telemetry, or (b) a recorded explicit user acceptance. If a verification read fails → mark `unproven`, list it in the report's open items; the run ends WARN, not OK.
+**Gate:** Every detected harness and installed tool has (a) captured proof of disabled telemetry, (b) a recorded explicit user acceptance, or (c) a `functional-network`/`no-telemetry-by-default` classification with its source. If a verification read fails → mark `unproven`, list it in the report's open items; the run ends WARN, not OK.
 
 ### Phase 6 — Permission Profiles
 
-1. For each detected harness with a permission surface ([references/permissions.md](references/permissions.md) — verify the surface against live docs at apply time), back up the config, then merge the safe-default profile: deny destructive classes (recursive delete outside workspace, force-push, unpinned remote-code execution, sudo), ask for outward actions (push, publish, network fetch, package installs), allow read-only operations and the read-side commands of rig-installed tools.
-2. Add allow/ask entries for tools installed this run so the rig works without permission friction — additive merge, never remove or loosen existing user entries.
-3. Harness with no permission surface (e.g. Aider) → gap-note in the report naming the compensating control (git pre-commit gate via ds-quality when present; manual review otherwise).
-4. Loosening any existing deny rule is out of scope — flag it as needs-user-decision instead.
+1. For each detected harness with a permission surface ([references/permissions.md](references/permissions.md) — verify the surface against live docs at apply time), back up the config, then merge the full profile: **RC-1..RC-10 → deny** (filesystem/disk destruction, privilege escalation, unpinned remote code, git history destruction, credential access, exfiltration, persistence writes, cloud/infra destruction, sandbox-weakening), the **protected-path map → deny** (system dirs, user-critical dirs, harness/rig configs, shell-persistence paths — path-centric layer independent of which command targets them), **RC-11..RC-16 → ask** (push/publish, external writes, installs, new-host fetches, executable bits, data migrations), and the **workspace-autonomy rule → allow** (full file ops + project-local commands inside the harness-detected active project root, prompt-free; command-class risks RC-3/4/6/7/10 and remote-facing RC-5/11 stay enforced even inside).
+2. Where the harness exposes a scriptable blocking hook, offer the chain-resistant hook-script arm in the same confirmation (recommended — declarative pattern lists are evadable by command chaining; the hook parses the command). State the Honest-limits section in the report verbatim class: pattern lists raise the floor, they are not a sandbox.
+3. Add allow/ask entries for tools installed this run so the rig works without permission friction — additive merge, never remove or loosen existing user entries.
+4. Harness with no permission surface (e.g. Aider) → gap-note in the report naming the compensating control (git pre-commit gate via ds-quality when present; manual review otherwise).
+5. Loosening any existing deny rule is out of scope — flag it as needs-user-decision instead.
 
-**Gate:** Each written config parses (host's own validation or JSON/TOML parse) and a diff against the backup shows only additive entries. If a merge would overwrite an existing entry → stop that file, show the conflict, ask; parse failure → restore the backup and report.
+**Gate:** Each written config parses (host's own validation or JSON/TOML parse), a diff against the backup shows only additive entries, and the report includes the RC-class coverage table (which classes landed as deny/ask/hook per harness) plus the honest-limits note. If a merge would overwrite an existing entry → stop that file, show the conflict, ask; parse failure → restore the backup and report.
 
 ### Phase 7 — Prove & Manifest
 
@@ -140,7 +144,7 @@ Detect → Select & Budget → Trust Gate → Install/Update → Privacy Hardeni
 
 ## Report Format
 
-Report: detected rig (OS · harnesses · managers) · per-category action table (installed/updated/skipped/failed + version + evidence) · privacy posture table (tool → opt-out proof) · permission profile diff summary per harness · MCP budget before/after · gap-notes + open user decisions. End with `ds-rig: {OK|WARN|FAIL} | Tools: {n} installed, {m} updated | Privacy: {p}/{n} proven | Permissions: {h} harnesses profiled | Budget: {count}/{threshold}` and a **Value Delivered** block (1-5 concrete bullets — e.g. "CLI output now token-filtered on every Bash call — measured {x}% session savings claim applies", "zero tools phoning home — {n}/{n} opt-outs proven by config read"). Zero-change run → `No changes — rig current, privacy proven, permissions in place`.
+Report: detected rig (OS · harnesses · managers) · per-category action table (installed/updated/skipped/failed + version + evidence) · privacy posture table covering tools AND harnesses (item → opt-out proof | explicit acceptance | functional-network | unproven) · permission profile diff summary per harness · MCP budget before/after · gap-notes + open user decisions. End with `ds-rig: {OK|WARN|FAIL} | Tools: {n} installed, {m} updated | Privacy: {p}/{n} proven | Permissions: {h} harnesses profiled | Budget: {count}/{threshold}` and a **Value Delivered** block (1-5 concrete bullets — e.g. "CLI output now token-filtered on every Bash call — measured {x}% session savings claim applies", "zero tools phoning home — {n}/{n} opt-outs proven by config read"). Zero-change run → `No changes — rig current, privacy proven, permissions in place`.
 
 ## Quality Gates
 

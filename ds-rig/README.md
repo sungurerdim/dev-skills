@@ -36,7 +36,7 @@ cp -r dev-skills/ds-rig ~/.claude/skills/ds-rig   # or ./install.sh
 ## Features
 
 - **MCP token budget** — projects and re-checks total registered tool count against the ~20-30 net-negative threshold; crossing needs explicit override
-- **Zero telemetry, proven** — per-tool opt-outs applied and verified by config read-back, never just declared
-- **Permission profiles** — safe allow/ask/deny defaults merged additively into every harness that exposes a surface
+- **Zero telemetry, proven — harnesses included** — opt-outs for tools AND detected harnesses, determined by live web research against official docs at run time, applied and verified by config read-back; non-disableable traffic reported honestly as `functional-network`
+- **Permission profiles** — 16-class risk-command taxonomy (RC-1..10 deny: destruction, escalation, unpinned remote code, exfiltration, persistence; RC-11..16 ask: push/publish/installs/migrations) merged additively into every harness that exposes a surface, with a chain-resistant hook arm offered where scriptable — and honest limits stated (pattern lists are not a sandbox)
 - **Pinned + current** — versions recorded in `~/.config/ds-rig/manifest.json`; re-runs show a drift table and update only with approval
 - **Symmetric uninstall** — every install path recorded with its reversal
