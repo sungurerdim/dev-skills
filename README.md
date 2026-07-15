@@ -234,6 +234,10 @@ See also: [AI Instruction Patterns](references/ai-instruction-patterns.md) — r
 
 Always-on behavioral guardrails that prevent mistakes between skill invocations — scope control, complexity limits, security gates. One file, any AI tool: [dev-rules](https://github.com/sungurerdim/dev-rules).
 
+## Versioning
+
+Release tags continue the spec-generation lineage documented in [CLAUDE.md](CLAUDE.md) and [SKILL-SPEC.md](SKILL-SPEC.md) — v2 (2026-05), v3 (2026-06), v4 (2026-07-11), v5 (2026-07-15). Generations v2–v4 shipped as commits before the release practice began, so the first GitHub release is [v5.2.0](https://github.com/sungurerdim/dev-skills/releases/tag/v5.2.0), not v1.0.0 — one version line, no parallel numbering.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Community standards: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Report a vulnerability: [SECURITY.md](SECURITY.md).
