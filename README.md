@@ -3,7 +3,7 @@
 [![CI](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/skills-29-blue)]()
-[![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_OpenCode_·_Cursor_·_Copilot_·_Windsurf_·_Aider-green)]()
+[![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_OpenCode_·_Cursor_·_Copilot_·_Windsurf_(Devin_Desktop)_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
 
@@ -17,7 +17,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
-| **6 AI tools supported** | Claude Code, OpenCode, Cursor, GitHub Copilot, Windsurf, Aider — skills follow the open [Agent Skills spec](https://agentskills.io) (`SKILL.md`), so any host that reads it works |
+| **6 AI tools supported** | Claude Code, OpenCode, Cursor, GitHub Copilot, Windsurf (now Devin Desktop, 2026-06-02), Aider — skills follow the open [Agent Skills spec](https://agentskills.io) (`SKILL.md`), so any host that reads it works |
 | **2 namespaces, 1 root** | `ds/audit/` (gitignored, transient state) + `ds/<skill>/` (committed operational tooling) — nothing else leaks to your repo root |
 
 > **Quick start:** `git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills && ./install.sh`

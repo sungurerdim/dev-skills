@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added — harness-context-file audit scope (2026-07)
+
+- **`ds-docs` `harness` scope** — audits/trims AI-harness context files (CLAUDE.md, AGENTS.md, `.cursor/rules/`, Windsurf/Devin rules, Copilot instructions, GEMINI.md, Aider conventions) against 8 sourced rules (DOC-10..17: secrets, code-derivable content, generic advice, pasted reference material, length budget, missing recommended content, negative framing, monorepo nesting); gated behind user approval since a harness file shapes every future session. Research basis: ETH Zurich AgentBench, an independent 1,188-test benchmark, and official Anthropic/Cursor/Windsurf/Aider guidance — static hand-written context files usually add little or measurably hurt task success.
+
+### Changed — versioning: semver from v1.0.0 (2026-07)
+
+- Release tags now follow semver starting at **v1.0.0**; the v2-v5 labels used throughout docs/commit messages remain historical spec-generation names, explicitly decoupled from release versions (an initial v5.2.0 tag was retracted with zero consumers before v1.0.0 was cut).
+
+### Added — ds-rig hardening (2026-07)
+
+- **`ds-rig`** — OS-agnostic risk-class taxonomy instantiated per detected OS (POSIX + Windows cmd/PowerShell seeds); explicit protected-path map (system dirs, credential dirs, browser profiles, harness/rig configs, persistence paths, WSL dual coverage); workspace-autonomy rule (prompt-free full permissions inside the harness-detected project root, command-class risks still enforced even inside); privacy scope extended to harnesses with a verified seed map.
+
+### Added — ds-rig: 29th skill, Equip family (2026-07)
+
+- **`ds-rig`** (new skill, Equip family, taxonomy dimension **D11**) — machine-level AI-dev rig: pinned toolset install/update with a re-run drift table, zero-telemetry hardening proven by config read-back, additive allow/ask/deny permission profiles per harness, MCP tool-count token budget (~20-30 net-negative threshold). Catalog 28 → 29.
+
+### Changed — v5.1 optimization program: 6 batches (2026-07)
+
+- Every skill in the catalog passed through a per-skill optimization rubric (R1-R6) across 6 batches — Ship family (ds-commit, ds-pr, ds-devops, ds-deploy, ds-launch, ds-repo), Improve family (7 skills), Build family currency (ds-init, ds-backend, ds-frontend, ds-mobile), Document/Comply/Monetize/Track (ds-docs, ds-compliance, ds-productize, ds-issue), Discover/Orchestrate (ds-research, ds-benchmark, ds-blueprint, ds-brief, ds-ship, ds-pipeline). Program ledger closed with all 6 batches shipped.
+
+### Added — cross-host research program (2026-07)
+
+- Three verified research passes (competitor tools, harness system prompts, model failure modes) produced findings F1-F11, gaps G1-G6, and a P0-P2 roadmap. **OpenCode** added as a 6th supported host (reads `~/.claude/skills` directly, no install step). Stale install-path guidance corrected (`.cursorrules` ignored in Cursor Agent mode; `.windsurfrules` superseded); paste-vs-reference warning added with evidence. Completion Evidence anti-false-completion band added to every skill (P0.1); `install.sh --target` for installing into any Agent Skills host (P0.2); ds-quality gained Copilot/Gemini CLI/Codex CLI arms (P0.3).
+
 ### Added — contract-consistency scope + principle hardening (2026-07)
 
 - **`ds-blueprint` `contract-consistency` scope (CON-01..10, 24th analysis scope)** — system-wide lexicon + contract uniformity: same concept same name (one verb per operation class, domain terms uniform across layers), same word same meaning, analogous functions share parameter order/options shape, consistent units/formats (time, IDs, dates, boundary casing), one return/error shape per layer, divergent duplicate contracts (contract-drift twin of W17). AST batch; Architecture dimension re-weighted (25/20/15/10/15/15). `ds-review --strategic` is the verified consumer (9 scopes, 102 checks).

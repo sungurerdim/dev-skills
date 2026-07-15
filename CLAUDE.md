@@ -23,7 +23,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | `docs/` | Topic-organized references (backend, frontend, devops, compliance, business, launch, methodology, infrastructure) |
 | `references/` | Source material (`software-best-practices.md`, `launch-research.md`) |
 
-## Skills (28)
+## Skills (29)
 
 **Family map** — every skill on one screen; each row is one distinct job (no overlap after the off-domain extraction):
 
@@ -107,6 +107,6 @@ Toolchain: bash scripts/check-consistency.sh | CI: github-actions (consistency-o
 
 Ideal: coupling=low cohesion=high complexity=low coverage=n/a
 
-Scores: sec=92 quality=72 arch=65 perf=90 resil=45 test=55 stack=88 dx=78 docs=68 overall=73 model=claude-sonnet-5
+Scores: sec=95 quality=84 arch=88 perf=90 resil=88 test=80 stack=96 dx=90 docs=78 overall=60 model=claude-sonnet-5
 
 ## End Blueprint Profile
