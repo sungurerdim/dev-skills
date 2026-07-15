@@ -9,6 +9,8 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 
 **Backend Design** — API design, database schema, authentication, and data-pipeline architecture in a single skill.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-backend`
@@ -317,4 +319,4 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 | No ORM (raw SQL) | Check for SQL injection, parameterized queries |
 | Microservices | Ask which service to analyze, check inter-service auth |
 
-
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

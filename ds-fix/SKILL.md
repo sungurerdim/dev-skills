@@ -9,6 +9,8 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 
 **Universal Code Quality Fix** — Format, lint, type-check, l10n, and security scan for any stack.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-fix`, asks to format code, run linters / fix lint errors or code quality issues, run type checker / fix type errors, scan for secrets, or audit dependencies
@@ -260,3 +262,4 @@ Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scope
 | Pre-existing config (`.eslintrc`, `ruff.toml`, etc.) | Respect project config — never override with defaults |
 | Lock file conflict | Warn, skip dependency operations |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

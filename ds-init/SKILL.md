@@ -9,6 +9,8 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 
 **Project Scaffolding** — Generate production-ready project structure for any stack.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-init`
@@ -222,3 +224,4 @@ Next steps:
 | Multiple stacks | Ask user to choose primary, note secondary |
 | Custom stack not listed | Generate generic structure with user-specified conventions |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

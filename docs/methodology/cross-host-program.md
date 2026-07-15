@@ -22,7 +22,7 @@
 | F10 | **No comparable project combines this repo's triad** — pure-Markdown zero-dependency skills + explicit multi-model independence + a systematic weakness taxonomy (W1–W17). Closest: obra/superpowers (TDD "Iron Law" — one mechanism, one discipline) | Competitive scan (11+ awesome-lists, 9 major projects) | HIGH |
 | F11 | **Promote recurring corrections into code, not repeated prompt-time fixes** — "Your agent could fix an issue every time it sees that issue happen, but that uses tokens and might miss cases. If Claude instead writes a lint rule, CI step, or routine, that class of issue can be fully automated forever." Domain knowledge belongs in infrastructure (skills, CLAUDE.md, docs, memories) so agents work "with zero additional context from the prompter" | Boris Cherny (Claude Code creator), [thread, 2026-07-15](https://x.com/bcherny/status/2077460395279692197) | Practitioner authority, single source — strong design signal, converges with F2/F6 |
 
-**Unresolved (verify before acting on):** whether current Claude Code builds read AGENTS.md natively (conflicting secondary sources) · Windsurf→"Devin Desktop" rebrand (secondary-only) · OpenCode fallback-prompt exact contents.
+**Resolved 2026-07-15 (both verified against primary sources):** Claude Code does **not** read AGENTS.md natively — official docs: "Claude Code reads `CLAUDE.md`, not `AGENTS.md`" (workaround: `@AGENTS.md` import or symlink) · Windsurf **was** rebranded to Devin Desktop on 2026-06-02 (Cognition, official Devin FAQ; Cascade EOL 2026-07-01; `.windsurf/rules/` still read, newer builds prefer `.devin/rules/`). **Still unresolved:** OpenCode fallback-prompt exact contents.
 
 ## 2. What the findings validate in the current design
 
@@ -78,7 +78,7 @@
 | OpenCode | reads `.claude/skills/` directly — existing install works | plugin hooks (semantics unconfirmed) → investigate; fallback: pre-commit | **New target (v5)** |
 | Cursor | Agent Skills reader (verify current build) · `.cursor/rules/` for cards | none confirmed → pre-commit | Docs fix P0.2 |
 | GitHub Copilot | Agent Skills reader · `.github/instructions/` for cards · AGENTS.md | `.github/hooks/*.json` — P0.3 | Docs fix P0.2 |
-| Windsurf | `.windsurf/rules/` (cards) | none confirmed → pre-commit | Docs fix P0.2 (rebrand claim unverified — keep name) |
+| Windsurf (now Devin Desktop, 2026-06-02) | `.windsurf/rules/` still read; newer builds prefer `.devin/rules/` (cards) | none confirmed → pre-commit | Docs fix P0.2 (rebrand verified — official Devin FAQ) |
 | Aider | `--read SKILL.md` / CONVENTIONS.md | auto-lint/auto-test — edit-time | Shipped |
 | Codex CLI / Gemini CLI | Agent Skills readers · AGENTS.md | native hooks — P0.3 | Candidate targets |
 

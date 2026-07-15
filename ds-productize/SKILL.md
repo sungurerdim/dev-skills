@@ -9,6 +9,8 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 
 **Productize** — monetization, pricing/packaging, and go-to-market readiness audit + productization plan.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-productize`
@@ -183,3 +185,4 @@ Zero-change run: `No gaps — monetization/pricing/gtm surfaces meet reviewed sc
 | Multiple products in one repo | Ask which product; audit one per run, note others as out-of-scope |
 | B2B invoice-based sales (no self-serve) | Skip paywall/trial checks as N/A; audit entitlement, pricing page, GTM only |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

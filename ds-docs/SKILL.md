@@ -9,6 +9,8 @@ Documentation drifts from code the moment it's written. This skill detects the g
 
 **Documentation Gap Analysis** — Identify missing docs, generate what's needed.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-docs`, asks to check, generate, or improve documentation, asks "what docs are missing" / "is the README up to date", or asks to verify documentation accuracy against source code
@@ -272,3 +274,4 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 | Docs contradict code | Flag discrepancy, update doc to match code |
 | Multilingual docs | Maintain only detected languages, warn about sync |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

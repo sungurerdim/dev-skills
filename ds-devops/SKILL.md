@@ -9,6 +9,8 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 
 **DevOps Audit** — CI/CD pipelines, code signing, dependency management, and deployment configuration for any project type.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-devops`
@@ -210,3 +212,4 @@ Zero-finding run: `CI/CD scope clean — pipeline meets reviewed checks`.
 | No dependency lockfile | Report as HIGH, suggest committing lockfile |
 | CLI tool not available | Skip that check, note in report |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

@@ -9,6 +9,8 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 
 **Project Health System** — Profile-based assessment, transformation, and progress tracking.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-blueprint`
@@ -404,4 +406,4 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 | Monorepo | Score each workspace independently, aggregate in summary |
 | No instruction file found | Create new profile, ask user for target file location |
 
-
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

@@ -9,6 +9,8 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 
 **Dependency Upgrade Loop** — classify each dep as safe-patch / safe-minor / review-major, apply safe groups with per-group commits, surface majors with migration notes + rollback plan.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-deps`
@@ -255,3 +257,4 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 | Dep used only in devDependencies | Standard classification; note `dev-only` in plan |
 | Major with seamless migration (no breaking notes) | Still `review-major` — majors are always B regardless of changelog |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

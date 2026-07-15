@@ -9,6 +9,8 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 
 **Smart Commits** — Quality gates + atomic grouping + conventional commit format.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-commit`
@@ -235,3 +237,4 @@ Zero-change run: `Nothing to commit — working tree clean`.
 | Untracked file with no tracked references | Ignore — not a completeness issue |
 | >20 untracked source files | Show count + top 5 referenced; ask "Stage referenced (N) / Review / Skip" |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

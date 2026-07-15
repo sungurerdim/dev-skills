@@ -9,6 +9,8 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 
 **Spec Pipeline Conductor** — runs the Spec Kit chain (`specify → clarify → plan → tasks → analyze`) with blocking gates between steps, enforces a machine-checkable task contract, and hands off `specs/{feature}/` as a commit the executor can implement without asking a single question.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - `/ds-pipeline {idea}` — fresh run for a new feature
@@ -153,3 +155,4 @@ W1: every stated fact (stack, paths, conventions) traces to a file read this run
 | Monorepo | `{feature}` slug prefixed with the workspace name; artifacts stay under the repo-root `specs/` |
 | Executor feedback invalidates the plan | Re-run `/ds-pipeline --feature={slug}` — gates re-validate changed artifacts; follow-up commit records the revision |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

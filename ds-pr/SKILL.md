@@ -9,6 +9,8 @@ PR descriptions that list every commit instead of net change create noise, confu
 
 **Smart Pull Requests** — Conventional commit title + clean body for release-please.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-pr`
@@ -235,3 +237,4 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 | PR already exists for branch | Show existing PR URL, ask if update needed |
 | CI checks failing | Warn user, create PR but skip auto-merge setup |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

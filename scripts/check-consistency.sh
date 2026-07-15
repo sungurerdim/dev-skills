@@ -117,8 +117,22 @@ for id in $(echo "$pairs" | cut -f1 | sort -u); do
   [ -n "$unauthorized" ] && err "dimension $id declared by multiple skills ($(echo $skills | tr '\n' ' ')) not all listed in appendix owner column '$owner_text' — unauthorized:$unauthorized"
 done
 
+# 13. v5 — Completion Evidence band: exactly 2 verbatim copies per SKILL.md,
+#     opening copy before the first '## ' section, closing copy in the last 3 lines
+#     (SKILL-SPEC section 1, Completion Evidence Band)
+for f in ds-*/SKILL.md; do
+  n=$(grep -c '^> \*\*Completion Evidence — ' "$f")
+  [ "$n" = "2" ] || { err "$f has $n Completion Evidence bands (expected exactly 2)"; continue; }
+  first_band=$(grep -n '^> \*\*Completion Evidence — applies to every phase:' "$f" | head -1 | cut -d: -f1)
+  first_sec=$(grep -n '^## ' "$f" | head -1 | cut -d: -f1)
+  [ -n "$first_band" ] && [ -n "$first_sec" ] && [ "$first_band" -lt "$first_sec" ] \
+    || err "$f opening Completion Evidence band missing or not before first '## ' section"
+  tail -3 "$f" | grep -q '^> \*\*Completion Evidence — final gate' \
+    || err "$f closing Completion Evidence band not in last 3 lines"
+done
+
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band all consistent"
 else
   exit 1
 fi

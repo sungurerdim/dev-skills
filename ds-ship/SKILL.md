@@ -9,6 +9,8 @@ Projects at every stage — raw idea, half-built scaffold, unlaunched, long-dorm
 
 **Ship Orchestrator** — classify the project, plan the skill sequence, delegate each phase, consolidate `ds/audit/findings.md`, produce `ds/audit/report.md` (+ optional `ds/audit/report.html`) with exactly what was done and what's left.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 ds-ship activates at **explicit milestone gates**, not as a generic "audit everything" command. Cascade activation MUST be confirmed twice (intent + scope) before any delegated skill runs.
@@ -416,4 +418,4 @@ Zero-change run: `Project already ship-ready for {stage} — no delegations trig
 | Multiple value propositions in docs | Ask user to confirm primary vp; note secondary as intentional scope |
 | Ship-ready already | Phase 0 detects zero B gaps, report becomes maintenance snapshot — Phase 5 still runs launch checks to confirm |
 
-
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

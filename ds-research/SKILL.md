@@ -9,6 +9,8 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 
 **Smart Research** — Parallel search, tier sources, synthesize, recommend.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-research`
@@ -167,3 +169,4 @@ Zero-result run: `No credible sources found in budget — query refined and re-r
 | All sources score <50 | Report low-confidence findings, recommend manual verification |
 | Query too broad | Ask user to narrow scope with specific sub-questions |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

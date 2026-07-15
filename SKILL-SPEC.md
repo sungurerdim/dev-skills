@@ -35,6 +35,24 @@ Every SKILL.md follows this section sequence:
 | 12 | Severity | Only if domain-specific | Standard 4 levels are baseline — omit if no additions |
 | 13 | Edge Cases | Yes | Boundary conditions and fallbacks |
 
+### Completion Evidence Band (mandatory, duplicated)
+
+Every SKILL.md carries the canonical Completion Evidence band **twice**: once immediately before the first `##` section (after the title + tagline), and once as the last block of the file. Duplication is deliberate: rule-position bias is model-family-dependent — primacy for DeepSeek/Qwen/Llama, recency for Claude/Gemini ([MOSAIC, arXiv:2601.18554](https://arxiv.org/abs/2601.18554)) — so no single position is safe across models. External machine-checkable evidence is required because verification failure is the dominant agent failure mode (47–60% of failures, [CLI-Universe](https://arxiv.org/abs/2606.22883)) and self-verification is measurably weaker than external checks (Reflexion ablations). See `docs/methodology/cross-host-program.md` F1/F4/F6.
+
+Verbatim text — opening copy:
+
+```markdown
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+```
+
+Verbatim text — closing copy:
+
+```markdown
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+```
+
+`scripts/check-consistency.sh` enforces both copies and their positions.
+
 ### Phase Template
 
 ```markdown
@@ -1451,6 +1469,7 @@ Before releasing any skill, verify:
 - [ ] SKILL.md contains a `**Dimensions:**` declaration line, and every declared ID exists in the Appendix: Dimension Coverage Map (see §11 Dimension Ownership Design Rule).
 - [ ] Every cross-skill reference follows the advisory-handoff pattern — target present → delegate; target absent → inline-check or gap-note; never a hard-fail (see §12 Standalone Invariant).
 - [ ] No ambiguous-condition phrasing (`"if appropriate"`, `"consider"`, `"may want to"`, `"as needed"`, `"might"`, `"possibly"`, `"could"`, `"should consider"`, `"it is recommended"`) — see §13 AI-Legibility Writing Standard rule (f).
+- [ ] Completion Evidence band present **twice** — canonical opening copy before the first `##` section, canonical closing copy as the last block of the file (see §1 Completion Evidence Band). Verbatim text, no paraphrase.
 
 ---
 

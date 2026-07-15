@@ -9,6 +9,8 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 
 **GitHub-Issues lifecycle — verified intake · dedup sweep · code-verified status · issue-bound execution.**
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-issue`, asks to open / file / refine an issue, sweep for duplicates, check what's actually done (from code), **do** a specific issue end-to-end (`--do #N`), or work through **all** open issues in sequence (`--do --all`).
@@ -161,3 +163,4 @@ Every run ends with the summary line + a **Value Delivered** block (1-5 concrete
 | `--do` aggregate red after units green | Composed regression — fix and re-run; never close red |
 | Security/payments/crypto/migration touched | Top-tier care + line-by-line-review note in the close comment |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

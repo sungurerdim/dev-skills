@@ -9,6 +9,8 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 **Frontend Design Quality** — design system audit, token enforcement, component states, accessibility, responsive layout, theming.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-frontend`, asks to audit UI quality / design system / components / frontend, asks about accessibility, WCAG, contrast, dark mode, responsive, design tokens, or asks to create a design system / design tokens
@@ -245,3 +247,4 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 | Server-rendered (Next.js SSR, Nuxt SSR) | Audit rendered HTML output alongside component source |
 | Component library (no app) | Audit library components, skip app-level layout checks |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

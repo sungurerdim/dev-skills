@@ -9,6 +9,8 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 
 **Repository Health** — Audit and configure repo settings, branch policies, hygiene, metadata, team, and structure.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-repo`
@@ -253,3 +255,4 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 | Free private plan | Mark protection + auto-merge checks as N/A with reason |
 | needs-input in `--auto` mode | Skip with `⚠ SKIPPED (requires input)` — list prominently in summary |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

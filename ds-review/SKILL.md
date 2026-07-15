@@ -9,6 +9,8 @@ Code review catches what tests miss — security holes, dead code, wrong abstrac
 
 **Code Improvement** — Tactical fixes and strategic architecture alignment in a single skill.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-review`
@@ -374,4 +376,4 @@ FRC+DSC enforced.
 | All findings are LOW | Report only, skip fix prompt |
 | Single file project | Run all applicable scopes on that file |
 
-
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

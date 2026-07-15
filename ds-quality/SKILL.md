@@ -13,6 +13,8 @@ or a universal git pre-commit hook.
 
 **Quality-by-Mechanism** — quality is guaranteed by a verify-loop that runs real checks, not by hoping an agent obeys.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-quality`
@@ -189,3 +191,4 @@ Report: detected stack + host · existed-vs-added per signal · the exact entry-
 | Language has no type-checker | Skip the type step; entry point runs only checks that exist |
 | Repo/host you don't trust | Do not enable any arm — every arm executes the marker/config command as code |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

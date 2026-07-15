@@ -9,6 +9,8 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 
 **Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and internationalization.
 
+> **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
+
 ## Triggers
 
 - User runs `/ds-compliance`
@@ -260,3 +262,4 @@ Zero-finding run: `Compliance scope clean — no regulatory or security findings
 | Mixed project types | Detect all types, apply union of applicable rules |
 | Generated code only | Skip generated files, warn if no scannable code remains |
 
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
