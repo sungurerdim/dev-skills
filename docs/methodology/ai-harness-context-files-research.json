@@ -1,0 +1,511 @@
+{
+  "topic": "What should go into AI-coding-harness root context/instruction files (CLAUDE.md, AGENTS.md, .cursor/rules, .windsurfrules, CONVENTIONS.md, copilot-instructions.md, GEMINI.md) to be maximally useful, and what content is harmful/redundant/wasteful",
+  "subAspect": null,
+  "confidence": "MEDIUM",
+  "generatedAt": "2026-07-16T00:00:00Z",
+  "accessDate": "2026-07-16",
+  "plan": [
+    "What is the purpose/mental model of these files (system-prompt injection vs README vs constitution)?",
+    "Which content categories have documented positive impact, and from which source?",
+    "Which content categories are documented as harmful/wasteful?",
+    "What concrete empirical findings exist on instruction-following degradation / context rot / lost-in-the-middle as these files grow?",
+    "What structure/ordering is recommended (progressive disclosure, imports, monorepo nesting, token-budget guidance)?",
+    "How do the harnesses differ / where can recommendations be harness-agnostic vs harness-specific?"
+  ],
+  "sections": [
+    {
+      "id": "purpose",
+      "title": "Purpose and mental model",
+      "summary": "These files are best modeled as an auto-injected, low-trust context/system-prompt addendum re-sent every session -- not a persistent memory, not a human README, and (per Claude Code specifically) not even binding instructions the model must obey. LLMs are stateless between sessions; the root file is the primary default mechanism for carrying project-specific knowledge into a fresh context window. Multiple harnesses (AGENTS.md consortium, Cursor) explicitly separate this file from README.md: README is for humans, the root context file is for agents and can contain build/test/convention detail that would clutter a human-facing README.",
+      "claims": [
+        {
+          "text": "LLMs are stateless between sessions; the root context file is the primary default mechanism to carry project knowledge into every fresh context window, since coding agents 'know absolutely nothing about your codebase at the beginning of each session.'",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Independently stated by Anthropic's own memory architecture (fresh context window each session, two mechanisms carry knowledge across) and by HumanLayer's practitioner analysis.",
+          "sources": [
+            {"citationId": 5, "url": "https://www.humanlayer.dev/blog/writing-a-good-claude-md", "title": "Writing a good CLAUDE.md", "domain": "humanlayer.dev", "tier": "T4", "chip": "secondary", "craap": 68, "verbatimQuote": "LLMs are stateless functions. Their weights are frozen by the time they're used for inference, so they don't learn over time. The only thing that the model knows about your codebase is the tokens you put into it. ... Coding agents know absolutely nothing about your codebase at the beginning of each session.", "accessedAt": "2026-07-16", "originatingQuery": "HumanLayer CLAUDE.md system prompt 50 instructions blog"},
+            {"citationId": 2, "url": "https://code.claude.com/docs/en/memory", "title": "How Claude remembers your project - Claude Code Docs", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Each Claude Code session begins with a fresh context window. Two mechanisms carry knowledge across…", "accessedAt": "2026-07-16", "originatingQuery": "Claude Code memory CLAUDE.md imports @path documentation"}
+          ]
+        },
+        {
+          "text": "AGENTS.md-class files are deliberately kept separate from README.md by design: READMEs stay human-focused, the agent file holds build/test/convention detail that would clutter a README or isn't relevant to human contributors.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Stated verbatim on the official cross-vendor agents.md site; corroborated in spirit by HumanLayer framing CLAUDE.md as an onboarding/WHY-WHAT-HOW document distinct from a README.",
+          "sources": [
+            {"citationId": 3, "url": "https://agents.md/", "title": "AGENTS.md", "domain": "agents.md", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "README.md files are for humans: quick starts, project descriptions, and contribution guidelines. AGENTS.md complements this by containing the extra, sometimes detailed context coding agents need: build steps, tests, and conventions that might clutter a README or aren't relevant to human contributors.", "accessedAt": "2026-07-16", "originatingQuery": "agents.md specification AGENTS.md standard site"},
+            {"citationId": 5, "url": "https://www.humanlayer.dev/blog/writing-a-good-claude-md", "title": "Writing a good CLAUDE.md", "domain": "humanlayer.dev", "tier": "T4", "chip": "secondary", "craap": 68, "verbatimQuote": "meant for onboarding Claude into your codebase by defining the project's WHY, WHAT, and HOW", "accessedAt": "2026-07-16", "originatingQuery": "HumanLayer CLAUDE.md system prompt 50 instructions blog"}
+          ]
+        },
+        {
+          "text": "Claude Code specifically wraps injected CLAUDE.md content in a system-reminder instructing the model to disregard it unless highly relevant -- i.e. the harness itself treats the file as low-trust background context, not a binding instruction set.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Exact wrapper string independently corroborated: HumanLayer captured it via a logging proxy on ANTHROPIC_BASE_URL; a separately-maintained leaked/reconstructed system-prompt archive shows the identical string, confirming it is not a one-off observation.",
+          "sources": [
+            {"citationId": 5, "url": "https://www.humanlayer.dev/blog/writing-a-good-claude-md", "title": "Writing a good CLAUDE.md", "domain": "humanlayer.dev", "tier": "T4", "chip": "secondary", "craap": 68, "verbatimQuote": "<system-reminder> IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task. </system-reminder>", "accessedAt": "2026-07-16", "originatingQuery": "IMPORTANT this context may or may not be relevant reminder wrapper"},
+            {"citationId": 16, "url": "https://raw.githubusercontent.com/x1xhlol/system-prompts-and-models-of-ai-tools/main/Anthropic/Claude%20Code%202.0.txt", "title": "Claude Code 2.0 leaked/reconstructed system prompt archive", "domain": "github.com", "tier": "T5", "chip": "secondary", "craap": 45, "verbatimQuote": "IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.", "accessedAt": "2026-07-16", "originatingQuery": "IMPORTANT this context may or may not be relevant reminder wrapper"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "include",
+      "title": "Content categories with documented positive impact",
+      "summary": "Anthropic's own best-practices page publishes an explicit include/exclude table; the same categories independently recur across Cursor, Windsurf/Devin, GitHub Copilot/VS Code, AGENTS.md, and Gemini CLI docs: non-guessable commands, style rules that diverge from defaults, testing instructions, non-obvious gotchas/architecture rationale, and pointers (not pasted copies) to deeper docs.",
+      "claims": [
+        {
+          "text": "Bash/build/test commands the agent cannot guess belong in the file (Anthropic's own ✅ column); AGENTS.md's site independently lists 'Build and test commands' as a top recommended section and confirms the agent will actually execute listed test commands.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": null,
+          "sources": [
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code - Claude Code Docs", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "✅ Include | ❌ Exclude ... Bash commands Claude can't guess | Anything Claude can figure out by reading code", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"},
+            {"citationId": 3, "url": "https://agents.md/", "title": "AGENTS.md", "domain": "agents.md", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Add sections that help an agent work effectively with your project. Popular choices: Project overview, Build and test commands, Code style guidelines, Testing instructions, Security considerations ... Yes—if you list them. The agent will attempt to execute relevant programmatic checks and fix failures before finishing the task.", "accessedAt": "2026-07-16", "originatingQuery": "AGENTS.md recommended sections build test commands"}
+          ]
+        },
+        {
+          "text": "Code-style rules that differ from language/tool defaults are recommended; official examples across two independent harnesses (Claude Code, Gemini CLI) show this is the same pattern in practice, and Aider's official docs frame conventions files around exactly this (preferred libraries, type-hint policy).",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": null,
+          "sources": [
+            {"citationId": 10, "url": "https://geminicli.com/docs/cli/gemini-md/", "title": "Provide context with GEMINI.md files | Gemini CLI", "domain": "geminicli.com", "tier": "T1", "chip": "official", "craap": 85, "verbatimQuote": "Use 2 spaces for indentation.- Prefix interface names with `I` (for example, `IUserService`).- Always use strict equality (`===` and `!==`).", "accessedAt": "2026-07-16", "originatingQuery": "GEMINI.md hierarchy loading order subdirectory"},
+            {"citationId": 9, "url": "https://aider.chat/docs/usage/conventions.html", "title": "Specifying coding conventions | aider", "domain": "aider.chat", "tier": "T1", "chip": "official", "craap": 85, "verbatimQuote": "- Prefer httpx over requests for making http requests.\n- Use types everywhere possible.", "accessedAt": "2026-07-16", "originatingQuery": "aider CONVENTIONS.md read-only cached"}
+          ]
+        },
+        {
+          "text": "Testing instructions and preferred test runners are a recommended category, and AGENTS.md's own FAQ confirms the agent will proactively run and fix listed checks.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": null,
+          "sources": [
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Testing instructions and preferred test runners", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"},
+            {"citationId": 3, "url": "https://agents.md/", "title": "AGENTS.md", "domain": "agents.md", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Will the agent run testing commands found in AGENTS.md automatically? Yes—if you list them.", "accessedAt": "2026-07-16", "originatingQuery": "AGENTS.md recommended sections build test commands"}
+          ]
+        },
+        {
+          "text": "Repository etiquette / PR & commit conventions (branch naming, PR rules, git workflow) is a recommended category per Anthropic's table.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single directly-fetched primary source; a Factory.ai docs summary (not directly fetched, seen only via WebSearch) independently lists 'Git Workflows' as a common AGENTS.md section, but is not double-confirmed with an extracted verbatim quote.",
+          "sources": [
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Repository etiquette (branch naming, PR conventions)", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"}
+          ]
+        },
+        {
+          "text": "Architectural decisions specific to the project and non-obvious gotchas/rationale are recommended (this is exactly the content Claude Code's own '/doctor' trim tool is designed to preserve, not delete).",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": null,
+          "sources": [
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Architectural decisions specific to your project | ... Common gotchas or non-obvious behaviors", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"},
+            {"citationId": 2, "url": "https://code.claude.com/docs/en/memory", "title": "How Claude remembers your project", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "it cuts content Claude can derive from the codebase, such as directory layouts, dependency lists, and architecture overviews, and keeps pitfalls, rationale, and conventions that differ from tool defaults", "accessedAt": "2026-07-16", "originatingQuery": "monorepo nested CLAUDE.md subdirectory lazy loading"}
+          ]
+        },
+        {
+          "text": "Developer environment quirks (required env vars) are a recommended category.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single source found in this research pass.",
+          "sources": [
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Developer environment quirks (required env vars)", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"}
+          ]
+        },
+        {
+          "text": "Progressive disclosure -- linking/importing out to deeper reference docs rather than inlining everything -- is a recommended structural pattern across at least three independent harnesses (Claude Code @path imports, Gemini CLI @file.md imports, AGENTS.md nested-file monorepo pattern).",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": null,
+          "sources": [
+            {"citationId": 2, "url": "https://code.claude.com/docs/en/memory", "title": "How Claude remembers your project", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "CLAUDE.md files can import additional files using @path/to/import syntax. Imported files are expanded and loaded into context at launch alongside the CLAUDE.md that references them.", "accessedAt": "2026-07-16", "originatingQuery": "imports @path recursive depth memory"},
+            {"citationId": 10, "url": "https://geminicli.com/docs/cli/gemini-md/", "title": "Provide context with GEMINI.md files", "domain": "geminicli.com", "tier": "T1", "chip": "official", "craap": 85, "verbatimQuote": "You can break down large GEMINI.md files into smaller, more manageable components by importing content from other files using the @file.md syntax.", "accessedAt": "2026-07-16", "originatingQuery": "imports @path recursive depth memory"}
+          ]
+        },
+        {
+          "text": "Explaining the reasoning ('why') behind a rule, not just the rule itself, improves the agent's edge-case decisions.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single source (VS Code/Copilot official docs); not independently corroborated with a matching verbatim quote elsewhere in this pass, though it is directionally consistent with Anthropic's 'reference existing patterns / point to sources' guidance.",
+          "sources": [
+            {"citationId": 12, "url": "https://code.visualstudio.com/docs/agent-customization/custom-instructions", "title": "Use custom instructions in VS Code", "domain": "code.visualstudio.com", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Include the reasoning behind rules. When instructions explain why a convention exists, the AI makes better decisions.", "accessedAt": "2026-07-16", "originatingQuery": "GitHub Copilot custom instructions best practices verbatim"}
+          ]
+        },
+        {
+          "text": "Concrete code examples of preferred/avoided patterns outperform abstract rule statements.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Two independent vendors converge on this: VS Code/Copilot states it directly; Anthropic's 'reference existing patterns' guidance (point Claude at a concrete file like HotDogWidget.php) is the same technique in practice.",
+          "sources": [
+            {"citationId": 12, "url": "https://code.visualstudio.com/docs/agent-customization/custom-instructions", "title": "Use custom instructions in VS Code", "domain": "code.visualstudio.com", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Show preferred and avoided patterns with concrete code examples. The AI responds more effectively to examples than to abstract rules.", "accessedAt": "2026-07-16", "originatingQuery": "GitHub Copilot custom instructions best practices verbatim"},
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Reference existing patterns. Point Claude to patterns in your codebase. ... look at how existing widgets are implemented on the home page ... HotDogWidget.php is a good example.", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exclude",
+      "title": "Content categories documented as harmful or wasteful",
+      "summary": "Convergent, cross-vendor evidence: content the agent can already derive by reading the code (directory layout, dependency lists, architecture overviews it will discover in seconds), generic/self-evident advice the model already knows from training or the harness's own system prompt, and excessive length/redundant instructions, all measurably reduce task success and/or raise cost -- this is not merely 'wasted tokens,' it is documented as actively harmful.",
+      "claims": [
+        {
+          "text": "Content the agent can derive by reading the code (directory layout, dependency lists, file-by-file descriptions, architecture overviews) is explicitly flagged as exclude-worthy and, per an academic study, is exactly the boilerplate that dominates auto-generated context files without adding value.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Four independent sources converge: Anthropic's own ✅/❌ table, Anthropic's shipped '/doctor' trim tool, Cursor's official docs, and the ETH Zurich/LogicStar.ai AgentBench study.",
+          "sources": [
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Anything Claude can figure out by reading code | ... File-by-file descriptions of the codebase", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"},
+            {"citationId": 4, "url": "https://cursor.com/docs/rules", "title": "Rules | Cursor Docs", "domain": "cursor.com", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Agent already knows common style conventions ... The agent understands common development tools", "accessedAt": "2026-07-16", "originatingQuery": "Cursor .cursorrules .cursor/rules mdc frontmatter globs official docs"},
+            {"citationId": 6, "url": "https://arxiv.org/abs/2602.11988", "title": "Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?", "domain": "arxiv.org", "tier": "T3", "chip": "secondary", "craap": 82, "verbatimQuote": "Surprisingly, we find that providing context files does not generally improve task success rates, while increasing inference cost by …", "accessedAt": "2026-07-16", "originatingQuery": "ETH Zurich LogicStar AgentBench context file coding agents paper 2026"}
+          ]
+        },
+        {
+          "text": "Generic/self-evident advice ('write clean code', boilerplate style prohibitions the model already knows from training) does not just fail to help -- it measurably degrades output quality.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Three independent sources: Anthropic's own exclude column, Windsurf/Devin's official docs stating this explicitly, and an independent community benchmark that measured a quality drop from adding exactly this kind of generic instruction.",
+          "sources": [
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Self-evident practices like \"write clean code\"", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"},
+            {"citationId": 13, "url": "https://docs.devin.ai/desktop/cascade/memories", "title": "Cascade Memories / Rules (Windsurf/Devin)", "domain": "docs.devin.ai", "tier": "T1", "chip": "official", "craap": 84, "verbatimQuote": "no need to add generic rules (e.g. 'write good code'), as these are already baked into Cascade's training data", "accessedAt": "2026-07-16", "originatingQuery": "Windsurf Cascade rules best practices short focused avoid duplicating"},
+            {"citationId": 14, "url": "https://www.threads.com/@jatinw21/post/DVqsMD7CUtm/", "title": "1,188-test CLAUDE.md instruction-profile benchmark (independent developer)", "domain": "threads.com", "tier": "T5", "chip": "secondary", "craap": 40, "verbatimQuote": "Even 4 bullet points like \"write clear code, handle edge cases, keep functions short\" made output measurably worse", "accessedAt": "2026-07-16", "originatingQuery": "1188 benchmark tests CLAUDE.md compression empty file best performing"}
+          ]
+        },
+        {
+          "text": "Excessive length / redundant instructions cause a measurable success-rate decline and cost increase, not just a theoretical token cost.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Peer-reviewed-style academic benchmark (ETH Zurich/LogicStar.ai) and an independent community benchmark both find the same direction of effect; HumanLayer supplies the plausible mechanism.",
+          "sources": [
+            {"citationId": 6, "url": "https://arxiv.org/abs/2602.11988", "title": "Evaluating AGENTS.md paper", "domain": "arxiv.org", "tier": "T3", "chip": "secondary", "craap": 82, "verbatimQuote": "providing context files does not generally improve task success rates, while increasing inference cost", "accessedAt": "2026-07-16", "originatingQuery": "ETH Zurich LogicStar AgentBench context file coding agents paper 2026"},
+            {"citationId": 5, "url": "https://www.humanlayer.dev/blog/writing-a-good-claude-md", "title": "Writing a good CLAUDE.md", "domain": "humanlayer.dev", "tier": "T4", "chip": "secondary", "craap": 68, "verbatimQuote": "Claude Code's system prompt contains ~50 individual instructions ... as instruction count increases, instruction-following quality decreases uniformly", "accessedAt": "2026-07-16", "originatingQuery": "HumanLayer CLAUDE.md system prompt 50 instructions blog"}
+          ]
+        },
+        {
+          "text": "Negative/prohibition framing ('don't do X') underperforms positive framing ('do Y') in this context.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "LOW",
+          "verificationNote": "The specific effect-size (0.66 points) is single-sourced from a community benchmark; the general phenomenon that negative instructions are risky for LLMs is discussed independently elsewhere but without the same quantified comparison, so this is flagged as single-source for the exact number.",
+          "sources": [
+            {"citationId": 14, "url": "https://www.threads.com/@jatinw21/post/DVqsMD7CUtm/", "title": "1,188-test CLAUDE.md benchmark", "domain": "threads.com", "tier": "T5", "chip": "secondary", "craap": 40, "verbatimQuote": "Positive framing beat negative framing by 0.66 points — \"Write clear code\" outperformed \"don't write unclear code\"", "accessedAt": "2026-07-16", "originatingQuery": "1188 benchmark tests CLAUDE.md compression empty file best performing"}
+          ]
+        },
+        {
+          "text": "Detailed API documentation, long tutorials/explanations, and information that changes frequently should be linked, not pasted inline -- pasted content goes stale and bloats every session.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": null,
+          "sources": [
+            {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Detailed API documentation (link to docs instead) | ... Long explanations or tutorials", "accessedAt": "2026-07-16", "originatingQuery": "what to include in CLAUDE.md bash commands core files code style"},
+            {"citationId": 4, "url": "https://cursor.com/docs/rules", "title": "Rules | Cursor Docs", "domain": "cursor.com", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Reference files rather than copying their contents to keep rules concise and maintainable.", "accessedAt": "2026-07-16", "originatingQuery": "Cursor .cursorrules .cursor/rules mdc frontmatter globs official docs"}
+          ]
+        },
+        {
+          "text": "Secrets/credentials/sensitive data should never be placed in these files, since they are typically committed to git and re-sent to the model provider every session.",
+          "value": null,
+          "verification": "unknown",
+          "confidence": "LOW",
+          "verificationNote": "No vendor documentation found in this research pass explicitly warns against secrets in these files, despite multiple vendors recommending the file be checked into git. Treated as an implied-but-undocumented risk rather than a sourced finding; recorded as a knownUnknown.",
+          "sources": []
+        }
+      ]
+    },
+    {
+      "id": "empirical-degradation",
+      "title": "Empirical findings on instruction-following degradation, context rot, and big-file benchmarks",
+      "summary": "Two distinct but converging empirical strands: (1) general 'context rot' research (Chroma) showing LLM accuracy declines as input length and distractor count grow, extending the older 'Lost in the Middle' finding beyond simple retrieval; (2) context-file-specific research (ETH Zurich/LogicStar.ai's AgentBench paper, plus an independent community benchmark) showing that both auto-generated and even most hand-written CLAUDE.md/AGENTS.md files fail to reliably improve, and often hurt, coding-agent task success -- with a documented counter-example (Arize) showing gains are achievable when instructions are iteratively optimized against real failure signal rather than written once by intuition.",
+      "claims": [
+        {
+          "text": "Adding even a single distractor to a long-context task reduces model accuracy relative to a clean-needle baseline, and this degradation compounds with more distractors; distractors do not have uniform impact (some hurt far more than others).",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single-origin (Chroma Research's own study); no independently-run replication found in this pass, though it builds on and is broadly consistent with the older, separately-authored Liu et al. 2023 'Lost in the Middle' line of work referenced across multiple secondary sources.",
+          "sources": [
+            {"citationId": 7, "url": "https://www.trychroma.com/research/context-rot", "title": "Context Rot: How Increasing Input Tokens Impacts LLM Performance", "domain": "trychroma.com", "tier": "T3", "chip": "secondary", "craap": 80, "verbatimQuote": "Even a single distractor reduces performance relative to the baseline (needle only), and adding four distractors compounds this degradation further. ... distractors do not have uniform impact.", "accessedAt": "2026-07-16", "originatingQuery": "context rot findings distractor lost in the middle"}
+          ]
+        },
+        {
+          "text": "In Chroma's 18-model evaluation, models that scored above 95% accuracy on short-input tasks fell to roughly 60-70% as input length grew into the thousands of tokens with semantically-relevant distractor content present.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "LOW",
+          "verificationNote": "This specific numeric range came from a secondary aggregation/summary of the Chroma report rather than a directly-extracted verbatim figure from the report page itself in this pass; flagged for lower confidence pending direct verification of the exact number.",
+          "sources": [
+            {"citationId": 7, "url": "https://www.trychroma.com/research/context-rot", "title": "Context Rot: How Increasing Input Tokens Impacts LLM Performance", "domain": "trychroma.com", "tier": "T3", "chip": "secondary", "craap": 80, "verbatimQuote": null, "accessedAt": "2026-07-16", "originatingQuery": "\"context rot\" long system prompt instruction following degradation benchmark"}
+          ]
+        },
+        {
+          "text": "ETH Zurich/LogicStar.ai's AgentBench study (138 real-world tasks, 4 coding agents) found that repository-level context files do not generally improve task success, while increasing inference cost.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Core finding directly confirmed in the paper's own published abstract on arXiv (2602.11988) and independently reported by a second, separately-operated outlet.",
+          "sources": [
+            {"citationId": 6, "url": "https://arxiv.org/abs/2602.11988", "title": "Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?", "domain": "arxiv.org", "tier": "T3", "chip": "secondary", "craap": 84, "verbatimQuote": "Surprisingly, we find that providing context files does not generally improve task success rates, while increasing inference cost by …", "accessedAt": "2026-07-16", "originatingQuery": "ETH Zurich LogicStar AgentBench context file coding agents paper 2026"},
+            {"citationId": 15, "url": "https://www.marktechpost.com/2026/02/25/new-eth-zurich-study-proves-your-ai-coding-agents-are-failing-because-your-agents-md-files-are-too-detailed/", "title": "New ETH Zurich Study Proves Your AI Coding Agents are Failing Because Your AGENTS.md Files are too Detailed", "domain": "marktechpost.com", "tier": "T4", "chip": "secondary", "craap": 62, "verbatimQuote": "LLM-generated context files reduced task success rates by an average of 2–3% while increasing inference costs by over 20%. Even human-written files only provided a marginal 4% performance gain.", "accessedAt": "2026-07-16", "originatingQuery": "ETH Zurich LogicStar AgentBench context file coding agents paper 2026"}
+          ]
+        },
+        {
+          "text": "Specific numeric breakdown of the ETH Zurich study: LLM-generated context files -2 to -3% success rate / +20%+ cost; developer-written files +4% (marginal); Claude Code (Sonnet-4.5) was the only one of four tested agents where even developer-written files failed to beat the no-context-file baseline; removing all existing docs (README/docs folder) made LLM-generated files useful again (+2.7%), pointing to redundancy as the core failure mode.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "These granular numbers are drawn from secondary reporting on the same underlying paper rather than independently re-derived by two unrelated research efforts -- both citations trace back to the same study.",
+          "sources": [
+            {"citationId": 15, "url": "https://www.marktechpost.com/2026/02/25/new-eth-zurich-study-proves-your-ai-coding-agents-are-failing-because-your-agents-md-files-are-too-detailed/", "title": "MarkTechPost coverage of the ETH Zurich AgentBench paper", "domain": "marktechpost.com", "tier": "T4", "chip": "secondary", "craap": 62, "verbatimQuote": "when researchers removed all existing documentation (READMEs, docs folders), LLM-generated context files suddenly became useful (+2.7% improvement)", "accessedAt": "2026-07-16", "originatingQuery": "ETH Zurich LogicStar AgentBench context file coding agents paper 2026"}
+          ]
+        },
+        {
+          "text": "An independent developer ran 1,188 benchmark tests across 3 Claude models and 10 CLAUDE.md instruction profiles; an empty file was the single best-performing configuration, and every non-empty profile (including a 4-bullet minimal one) scored lower than no instructions, with a correlation of r = -0.95 between instruction token count and output quality.",
+          "value": -0.95,
+          "verification": "partial",
+          "confidence": "LOW",
+          "verificationNote": "Single source: an independent developer's own benchmark shared via a social-media post, not peer-reviewed and methodology not independently auditable in this pass. Directionally consistent with the peer-adjacent ETH Zurich paper, which raises credibility, but the exact statistic is not independently replicated.",
+          "sources": [
+            {"citationId": 14, "url": "https://www.threads.com/@jatinw21/post/DVqsMD7CUtm/", "title": "1,188-test CLAUDE.md instruction-profile benchmark", "domain": "threads.com", "tier": "T5", "chip": "secondary", "craap": 40, "verbatimQuote": "The best-performing CLAUDE.md across 3 Claude models and 10 instruction profiles was an empty file. ... every instruction profile he tested, from extensive rulesets down to 4 bullet points, scored lower than no instructions at all.", "accessedAt": "2026-07-16", "originatingQuery": "1188 benchmark tests CLAUDE.md compression empty file best performing"}
+          ]
+        },
+        {
+          "text": "Counter-evidence: Arize AI used an iterative 'Prompt Learning' technique to optimize Claude Code's CLAUDE.md/system-prompt instructions against real SWE-bench failure signal, gaining +5.19% accuracy on a cross-repository test split and +10.87% on a within-repository split, with zero model, tool, or architecture changes.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single-source, and Arize sells a prompt-optimization product ('Prompt Learning'), which is a plausible source of bias in how the result is framed; the underlying mechanism (failure-driven, iteratively-refined instructions outperform static hand-written or LLM-generated ones) is nonetheless a coherent explanation for why this result does not actually contradict the ETH Zurich finding about static files.",
+          "sources": [
+            {"citationId": 8, "url": "https://arize.com/blog/claude-md-best-practices-learned-from-optimizing-claude-code-with-prompt-learning/", "title": "CLAUDE.md: Best Practices Learned from Optimizing Claude Code with Prompt Learning", "domain": "arize.com", "tier": "T4", "chip": "secondary", "craap": 60, "verbatimQuote": "boost Claude Code's test accuracy by 5.19% on the general (by-repo) test set ... an even bigger improvement for their in-repo test: +10.87%", "accessedAt": "2026-07-16", "originatingQuery": "Arize AI CLAUDE.md instructions research findings"}
+          ]
+        },
+        {
+          "text": "Anthropic itself has shipped tooling (the '/doctor' checkup, Claude Code v2.1.206+) that automatically proposes trims to a checked-in CLAUDE.md, specifically removing content the agent can derive from the codebase while preserving pitfalls/rationale/non-default conventions -- an internal signal that the 'redundant content is harmful' finding was validated seriously enough to build a feature around.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single primary source (Anthropic's own docs); no second independent confirmation of this specific feature's existence found in this pass.",
+          "sources": [
+            {"citationId": 2, "url": "https://code.claude.com/docs/en/memory", "title": "How Claude remembers your project", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "The /doctor checkup proposes trims for a checked-in CLAUDE.md: it cuts content Claude can derive from the codebase ... and keeps pitfalls, rationale, and conventions that differ from tool defaults. The trim check requires Claude Code v2.1.206 or later.", "accessedAt": "2026-07-16", "originatingQuery": "monorepo nested CLAUDE.md subdirectory lazy loading"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "structure",
+      "title": "Recommended structure, progressive disclosure, and token-budget guidance",
+      "summary": "Every harness with an import/reference mechanism (Claude Code @path, Gemini CLI @file.md) explicitly documents that imports help organization but do NOT reduce context cost, since imported content loads at launch alongside the root file -- the actual context-reduction mechanism is path-scoped/glob-conditional rules (Claude Code path-scoped rules, Cursor globs, Copilot applyTo, Windsurf glob-activation), which load only when matching files are touched. Monorepos should use nested per-package files (AGENTS.md, CLAUDE.md, GEMINI.md all support this), with the closest file to the working directory taking precedence. There is no single universal token-budget number -- each vendor/format publishes its own threshold, and the trend across nearly all of them is toward 'as short as possible,' not a fixed target.",
+      "claims": [
+        {
+          "text": "@path-style imports (Claude Code) and @file.md imports (Gemini CLI) help organize a large file into smaller pieces, but do NOT reduce the context actually sent to the model -- imported files are expanded and loaded at launch alongside the referencing file. To actually reduce context cost (not just organize), use path-scoped/glob-conditional rules instead, a pattern independently implemented across at least four harnesses.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Strongly corroborated: the 'imports don't reduce context' caveat is Claude Code's own explicit documentation; the 'use conditional/glob rules instead' pattern is independently implemented by Cursor (globs), GitHub Copilot (applyTo frontmatter on *.instructions.md), and Windsurf/Devin (glob activation mode).",
+          "sources": [
+            {"citationId": 2, "url": "https://code.claude.com/docs/en/memory", "title": "How Claude remembers your project", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Splitting into @path imports helps organization but doesn't reduce context, since imported files load at launch. ... Use path-scoped rules so instructions load only when Claude works with matching files.", "accessedAt": "2026-07-16", "originatingQuery": "imports @path recursive depth memory"},
+            {"citationId": 13, "url": "https://docs.devin.ai/desktop/cascade/memories", "title": "Cascade Memories / Rules", "domain": "docs.devin.ai", "tier": "T1", "chip": "official", "craap": 84, "verbatimQuote": "glob: Applied when files matching patterns are touched", "accessedAt": "2026-07-16", "originatingQuery": "Windsurf Cascade rules best practices short focused avoid duplicating"}
+          ]
+        },
+        {
+          "text": "Monorepos should use nested per-package context files rather than one giant root file; the closest file to the current working directory takes precedence and is loaded lazily/just-in-time. This pattern is independently implemented by the AGENTS.md standard, Claude Code, and Gemini CLI.",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": null,
+          "sources": [
+            {"citationId": 3, "url": "https://agents.md/", "title": "AGENTS.md", "domain": "agents.md", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Place another AGENTS.md inside each package. Agents automatically read the nearest file in the directory tree, so the closest one takes precedence ... at time of writing the main OpenAI repo has 88 AGENTS.md files.", "accessedAt": "2026-07-16", "originatingQuery": "monorepo nested CLAUDE.md subdirectory lazy loading"},
+            {"citationId": 10, "url": "https://geminicli.com/docs/cli/gemini-md/", "title": "Provide context with GEMINI.md files", "domain": "geminicli.com", "tier": "T1", "chip": "official", "craap": 85, "verbatimQuote": "Just-in-time (JIT) context files: ... When a tool accesses a file or directory, the CLI automatically scans for GEMINI.md files in that directory and its ancestors up to a trusted root.", "accessedAt": "2026-07-16", "originatingQuery": "GEMINI.md hierarchy loading order subdirectory"}
+          ]
+        },
+        {
+          "text": "No single universal token/length budget exists; every vendor publishes its own threshold, and the pattern across them is 'shorter is better,' not a fixed number: Claude Code CLAUDE.md - files over 200 lines 'consume more context and may reduce adherence' (but are still loaded in full regardless of length); Claude Code auto-memory MEMORY.md - only the first 200 lines or 25KB (whichever comes first) load at session start; HumanLayer's own production root file is under 60 lines against a general community consensus of under 300; Cursor project rule files - keep under 500 lines, split larger rules into composable pieces; Windsurf/Devin global_rules.md - 6,000-character cap, workspace rule files - 12,000-character cap per file (files over that risk silent truncation).",
+          "value": null,
+          "verification": "verified",
+          "confidence": "HIGH",
+          "verificationNote": "Each specific number is a directly-fetched primary-source quote from its respective vendor; they are not contradictory since they describe different files/formats, but they are heterogeneous -- no cross-vendor standard number exists.",
+          "sources": [
+            {"citationId": 2, "url": "https://code.claude.com/docs/en/memory", "title": "How Claude remembers your project", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "Files over 200 lines consume more context and may reduce adherence. ... CLAUDE.md files are loaded in full regardless of length, though shorter files produce better adherence. ... The first 200 lines of MEMORY.md, or the first 25KB, whichever comes first, are loaded at the start of every conversation.", "accessedAt": "2026-07-16", "originatingQuery": "CLAUDE.md length lines recommendation keep concise"},
+            {"citationId": 5, "url": "https://www.humanlayer.dev/blog/writing-a-good-claude-md", "title": "Writing a good CLAUDE.md", "domain": "humanlayer.dev", "tier": "T4", "chip": "secondary", "craap": 68, "verbatimQuote": "general consensus is that < 300 lines is best, and shorter is even better. At HumanLayer, our root CLAUDE.md file is less than sixty lines.", "accessedAt": "2026-07-16", "originatingQuery": "CLAUDE.md length lines recommendation keep concise"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cross-harness",
+      "title": "Cross-harness differences and compatibility notes",
+      "summary": "AGENTS.md is the closest thing to a cross-tool standard (backed by OpenAI, Google, Cursor, Factory, Sourcegraph per its own site); every other filename is a harness-specific binding onto broadly the same underlying pattern. Claude Code, Cursor, Windsurf/Devin, and Gemini CLI all support directory-hierarchy discovery and a conditional/glob-scoped loading mode; GitHub Copilot layers repo-wide + path-scoped + AGENTS.md instructions with explicit precedence; Aider is the outlier -- it has no automatic root-file discovery at all and instead requires the user to explicitly /read or config-load a CONVENTIONS.md as a read-only, cache-friendly context block.",
+      "claims": [
+        {
+          "text": "Claude Code natively reads CLAUDE.md, not AGENTS.md. The documented bridge pattern is a CLAUDE.md whose first line is an @AGENTS.md import (or running /init in a repo that already has an AGENTS.md), leveraging Claude Code's own import mechanism.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "The underlying import mechanism is independently, directly verified (see structure section); the specific 'first line = @AGENTS.md' bridging convention itself is drawn from a secondary aggregated summary rather than a directly-fetched verbatim statement in this pass.",
+          "sources": [
+            {"citationId": 2, "url": "https://code.claude.com/docs/en/memory", "title": "How Claude remembers your project", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "verbatimQuote": "CLAUDE.md files can import additional files using @path/to/import syntax.", "accessedAt": "2026-07-16", "originatingQuery": "imports @path recursive depth memory"}
+          ]
+        },
+        {
+          "text": "Cursor's legacy single-file .cursorrules is still read but is being deprecated and is silently ignored in Agent mode; the current format is .mdc files with frontmatter (description, globs, alwaysApply) under .cursor/rules/, with a plain-markdown AGENTS.md offered as the simpler alternative; as of v2.2+ new rules default to a folder-based RULE.md structure.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single-origin: both the WebSearch aggregation and the direct WebFetch trace back to the same official cursor.com/docs/rules page, so this is not cross-organizationally independent even though it is a high-tier primary source.",
+          "sources": [
+            {"citationId": 4, "url": "https://cursor.com/docs/rules", "title": "Rules | Cursor Docs", "domain": "cursor.com", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "description: \"Rule purpose\" ... alwaysApply: true/false ... globs: \"pattern/**/*.ts\" ... Keep rules under 500 lines; split larger rules into composable pieces", "accessedAt": "2026-07-16", "originatingQuery": "Cursor .cursorrules .cursor/rules mdc frontmatter globs official docs"}
+          ]
+        },
+        {
+          "text": "Windsurf's rules system has migrated from a legacy root .windsurfrules file (still supported) through .windsurf/rules/ to the current .devin/rules/ (Devin Desktop rebrand takes precedence over the .windsurf/ fallback); AGENTS.md files anywhere in the tree are processed by the same rules engine; four activation modes exist (always_on, model_decision, glob, manual); global rules cap at 6,000 characters, workspace rule files at 12,000.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single vendor origin (Windsurf/Devin's own documentation), even though corroborated across two differently-timestamped fetches of related pages.",
+          "sources": [
+            {"citationId": 13, "url": "https://docs.devin.ai/desktop/cascade/memories", "title": "Cascade Memories / Rules", "domain": "docs.devin.ai", "tier": "T1", "chip": "official", "craap": 84, "verbatimQuote": "Global: ~/.codeium/windsurf/memories/global_rules.md (6,000 char limit) ... Workspace: .devin/rules/*.md (preferred) or .windsurf/rules/*.md (fallback; 12,000 char limit per file) ... .devin/ takes precedence over .windsurf/.", "accessedAt": "2026-07-16", "originatingQuery": "Windsurf Cascade rules best practices short focused avoid duplicating"}
+          ]
+        },
+        {
+          "text": "GitHub Copilot layers three distinct instruction mechanisms with defined precedence: repo-wide .github/copilot-instructions.md, path-scoped .github/instructions/*.instructions.md files gated by an applyTo frontmatter field, and a recognized AGENTS.md as a third format; VS Code surfaces exactly which instructions file contributed to a given chat response via its References list.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Both sources are published by the same parent organization (GitHub/Microsoft), so they are not fully independent originators even though they are two separately-maintained documentation sets.",
+          "sources": [
+            {"citationId": 11, "url": "https://docs.github.com/en/copilot/how-tos/configure-custom-instructions", "title": "Add custom instructions for Copilot - GitHub Docs", "domain": "docs.github.com", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Give GitHub Copilot persistent instructions to customize responses according to your needs.", "accessedAt": "2026-07-16", "originatingQuery": "GitHub Copilot custom instructions copilot-instructions.md official docs"},
+            {"citationId": 12, "url": "https://code.visualstudio.com/docs/agent-customization/custom-instructions", "title": "Use custom instructions in VS Code", "domain": "code.visualstudio.com", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "For task or language-specific instructions, use multiple *.instructions.md files per topic and apply them selectively.", "accessedAt": "2026-07-16", "originatingQuery": "GitHub Copilot custom instructions best practices verbatim"}
+          ]
+        },
+        {
+          "text": "Aider is the outlier: it has no automatic project-root convention-file discovery. The user must explicitly load a CONVENTIONS.md via /read or the read: key in .aider.conf.yml, at which point it is treated as read-only and cached (if prompt caching is enabled) rather than injected as mutable memory.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "Single primary source (Aider's own official docs); this is the authoritative source for Aider's own behavior so corroboration from a second vendor is not applicable/expected.",
+          "sources": [
+            {"citationId": 9, "url": "https://aider.chat/docs/usage/conventions.html", "title": "Specifying coding conventions | aider", "domain": "aider.chat", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "It's best to load the conventions file with /read CONVENTIONS.md or aider --read CONVENTIONS.md. This way it is marked as read-only, and cached if prompt caching is enabled.", "accessedAt": "2026-07-16", "originatingQuery": "Aider CONVENTIONS.md official documentation read files"}
+          ]
+        },
+        {
+          "text": "AGENTS.md is positioned as a cross-tool open standard, described by its own maintainers as adopted across OpenAI Codex, Google Jules, Cursor, and Factory, among others, and reported (via secondary sources) to be read by 30+ agents across 60,000+ repositories.",
+          "value": null,
+          "verification": "partial",
+          "confidence": "MEDIUM",
+          "verificationNote": "The adoption claim itself is on the official agents.md site; the '30+ agents / 60,000+ repos' figure is sourced from secondary aggregation, not a directly-fetched verbatim from agents.md or a named originator, so treated as single-source-equivalent for the specific number.",
+          "sources": [
+            {"citationId": 3, "url": "https://agents.md/", "title": "AGENTS.md", "domain": "agents.md", "tier": "T1", "chip": "official", "craap": 88, "verbatimQuote": "Rather than introducing another proprietary file, we chose a name and format that could work for anyone.", "accessedAt": "2026-07-16", "originatingQuery": "agents.md specification AGENTS.md standard site"}
+          ]
+        }
+      ]
+    }
+  ],
+  "ssot": {
+    "claudeCodeClaudeMdLengthWarningThresholdLines": {"value": 200, "citationId": 2},
+    "claudeCodeMemoryMdAutoLoadLimitLines": {"value": 200, "citationId": 2},
+    "claudeCodeMemoryMdAutoLoadLimitKB": {"value": 25, "citationId": 2},
+    "claudeCodeImportMaxRecursionDepthHops": {"value": 4, "citationId": 2},
+    "humanLayerOwnClaudeMdLengthLines": {"value": 60, "citationId": 5},
+    "communityConsensusClaudeMdMaxLines": {"value": 300, "citationId": 5},
+    "cursorRuleFileMaxLinesGuidance": {"value": 500, "citationId": 4},
+    "windsurfGlobalRulesCharLimit": {"value": 6000, "citationId": 13},
+    "windsurfWorkspaceRuleFileCharLimit": {"value": 12000, "citationId": 13},
+    "ethAgentBenchLlmGeneratedSuccessRateDeltaPct": {"value": "-2 to -3", "citationId": 15},
+    "ethAgentBenchLlmGeneratedCostIncreasePct": {"value": ">20", "citationId": 15},
+    "ethAgentBenchDeveloperWrittenSuccessRateDeltaPct": {"value": "+4 (marginal)", "citationId": 15},
+    "ethAgentBenchTaskCount": {"value": 138, "citationId": 6},
+    "communityBenchmark1188TestsInstructionQualityCorrelation": {"value": -0.95, "citationId": 14},
+    "arizePromptLearningCrossRepoGainPct": {"value": 5.19, "citationId": 8},
+    "arizePromptLearningWithinRepoGainPct": {"value": 10.87, "citationId": 8},
+    "agentsMdOpenAiRepoNestedFileCount": {"value": 88, "citationId": 3}
+  },
+  "contradictions": [
+    {
+      "field": "Claude Code @path import maximum recursion depth",
+      "candidates": [
+        {"claim": "maximum depth of four hops", "citationId": 2, "source": "code.claude.com/docs/en/memory (direct fetch, 2026-07-16)"},
+        {"claim": "supports up to 5 levels of recursive nesting", "citationId": 17, "source": "aggregated WebSearch summary of secondary/third-party guides citing the same Anthropic memory docs page"}
+      ],
+      "delta": "1 hop of recursion depth (4 vs 5)",
+      "winner": "4 hops -- directly extracted verbatim from the current official Anthropic docs page fetched on the research date; the '5 levels' figure appears only in third-party aggregated summaries and is likely stale or an off-by-one misreading of the same source."
+    },
+    {
+      "field": "Does static context-file content measurably improve coding-agent task success?",
+      "candidates": [
+        {"claim": "Static human-written and LLM-generated context files provide, at best, marginal (+4%) gains and often measurably hurt (-2 to -3% for LLM-generated, all instruction profiles below empty-file baseline in the 1,188-test benchmark)", "citationId": 6, "source": "ETH Zurich/LogicStar.ai AgentBench paper + independent community 1,188-test benchmark"},
+        {"claim": "Iteratively-optimized, failure-driven instructions (Arize's Prompt Learning) gained +5.19% to +10.87% on SWE-bench splits with zero architecture change", "citationId": 8, "source": "Arize AI blog"}
+      ],
+      "delta": "Direction reverses depending on how the instructions were produced (one-shot human/LLM authoring vs iterative optimization against real failure signal)",
+      "winner": "Context-dependent, not a true factual conflict: both findings are plausibly correct under their respective methodologies -- static, generically-written or LLM-boilerplate files tend to hurt or barely help, while instructions specifically derived from and validated against the target model's actual failure modes can help. The practical implication (see include/exclude sections) is that only non-obvious, failure-correcting content earns its place in the file; generic or derivable content does not, regardless of who or what wrote it."
+    }
+  ],
+  "knownUnknowns": [
+    {
+      "question": "Is there a vendor-documented warning against placing secrets/credentials in root context files, given that these files are typically git-committed and re-sent to the model provider every session?",
+      "why": "No explicit statement found across any of the ten+ official docs pages fetched in this pass; the risk is inferable from 'check CLAUDE.md into git' guidance but not directly addressed as a security caveat by any vendor.",
+      "triedSources": ["https://code.claude.com/docs/en/best-practices", "https://code.claude.com/docs/en/memory", "https://cursor.com/docs/rules", "https://docs.devin.ai/desktop/cascade/memories", "https://docs.github.com/en/copilot/how-tos/configure-custom-instructions"],
+      "triedQueries": ["what to include in CLAUDE.md bash commands core files code style", "GitHub Copilot custom instructions copilot-instructions.md official docs"]
+    },
+    {
+      "question": "Do the ETH Zurich AgentBench findings (context files don't generally help, redundancy is the core failure mode) generalize to Cursor, Windsurf/Devin, and GitHub Copilot specifically, or only to the four agents actually tested (Claude Code/Sonnet-4.5, Codex/GPT-5.2, Codex/GPT-5.1-Mini, Qwen Code/Qwen3-30B)?",
+      "why": "The paper's evaluation set does not include Cursor, Windsurf, or Copilot; no equivalent rigorous benchmark for those harnesses' rule formats was found in this research pass.",
+      "triedSources": ["https://arxiv.org/abs/2602.11988", "https://cursor.com/docs/rules", "https://docs.devin.ai/desktop/cascade/memories"],
+      "triedQueries": ["ETH Zurich LogicStar AgentBench context file coding agents paper 2026", "does a big CLAUDE.md help or hurt benchmark test experiment"]
+    },
+    {
+      "question": "What is the exact numeric accuracy drop reported by Chroma Research's context-rot study at specific token-length checkpoints (the '95% to 60-70%' figure), verified directly against the primary chart/table rather than a secondary summary?",
+      "why": "The fetched page returned prose and image-chart references (appendix figures) rather than a directly extractable numeric table in this pass; the specific percentage range is currently sourced from an aggregated secondary description of the same report.",
+      "triedSources": ["https://www.trychroma.com/research/context-rot"],
+      "triedQueries": ["chroma context rot 95% 60% performance degradation numbers", "\"context rot\" long system prompt instruction following degradation benchmark"]
+    },
+    {
+      "question": "What is the recommended AGENTS.md/CLAUDE.md-equivalent bridging pattern for tools not covered in this research pass (e.g. Zed, Amp, Replit Agent, JetBrains AI Assistant)?",
+      "why": "Out of scope for the six-harness list given by the requester, not investigated.",
+      "triedSources": [],
+      "triedQueries": []
+    }
+  ],
+  "sources": [
+    {"citationId": 1, "url": "https://code.claude.com/docs/en/best-practices", "title": "Best practices for Claude Code - Claude Code Docs", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "accessedAt": "2026-07-16"},
+    {"citationId": 2, "url": "https://code.claude.com/docs/en/memory", "title": "How Claude remembers your project - Claude Code Docs", "domain": "code.claude.com", "tier": "T1", "chip": "official", "craap": 92, "accessedAt": "2026-07-16"},
+    {"citationId": 3, "url": "https://agents.md/", "title": "AGENTS.md", "domain": "agents.md", "tier": "T1", "chip": "official", "craap": 88, "accessedAt": "2026-07-16"},
+    {"citationId": 4, "url": "https://cursor.com/docs/rules", "title": "Rules | Cursor Docs", "domain": "cursor.com", "tier": "T1", "chip": "official", "craap": 88, "accessedAt": "2026-07-16"},
+    {"citationId": 5, "url": "https://www.humanlayer.dev/blog/writing-a-good-claude-md", "title": "Writing a good CLAUDE.md", "domain": "humanlayer.dev", "tier": "T4", "chip": "secondary", "craap": 68, "accessedAt": "2026-07-16"},
+    {"citationId": 6, "url": "https://arxiv.org/abs/2602.11988", "title": "Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?", "domain": "arxiv.org", "tier": "T3", "chip": "secondary", "craap": 84, "accessedAt": "2026-07-16"},
+    {"citationId": 7, "url": "https://www.trychroma.com/research/context-rot", "title": "Context Rot: How Increasing Input Tokens Impacts LLM Performance", "domain": "trychroma.com", "tier": "T3", "chip": "secondary", "craap": 80, "accessedAt": "2026-07-16"},
+    {"citationId": 8, "url": "https://arize.com/blog/claude-md-best-practices-learned-from-optimizing-claude-code-with-prompt-learning/", "title": "CLAUDE.md: Best Practices Learned from Optimizing Claude Code with Prompt Learning", "domain": "arize.com", "tier": "T4", "chip": "secondary", "craap": 60, "accessedAt": "2026-07-16"},
+    {"citationId": 9, "url": "https://aider.chat/docs/usage/conventions.html", "title": "Specifying coding conventions | aider", "domain": "aider.chat", "tier": "T1", "chip": "official", "craap": 88, "accessedAt": "2026-07-16"},
+    {"citationId": 10, "url": "https://geminicli.com/docs/cli/gemini-md/", "title": "Provide context with GEMINI.md files | Gemini CLI", "domain": "geminicli.com", "tier": "T1", "chip": "official", "craap": 85, "accessedAt": "2026-07-16"},
+    {"citationId": 11, "url": "https://docs.github.com/en/copilot/how-tos/configure-custom-instructions", "title": "Add custom instructions for Copilot - GitHub Docs", "domain": "docs.github.com", "tier": "T1", "chip": "official", "craap": 88, "accessedAt": "2026-07-16"},
+    {"citationId": 12, "url": "https://code.visualstudio.com/docs/agent-customization/custom-instructions", "title": "Use custom instructions in VS Code", "domain": "code.visualstudio.com", "tier": "T1", "chip": "official", "craap": 88, "accessedAt": "2026-07-16"},
+    {"citationId": 13, "url": "https://docs.devin.ai/desktop/cascade/memories", "title": "Cascade Memories / Rules (Windsurf/Devin)", "domain": "docs.devin.ai", "tier": "T1", "chip": "official", "craap": 84, "accessedAt": "2026-07-16"},
+    {"citationId": 14, "url": "https://www.threads.com/@jatinw21/post/DVqsMD7CUtm/the-best-performing-claude-md-across-claude-models-and-instruction-profiles-was", "title": "1,188-test CLAUDE.md instruction-profile benchmark (independent developer)", "domain": "threads.com", "tier": "T5", "chip": "secondary", "craap": 40, "accessedAt": "2026-07-16"},
+    {"citationId": 15, "url": "https://www.marktechpost.com/2026/02/25/new-eth-zurich-study-proves-your-ai-coding-agents-are-failing-because-your-agents-md-files-are-too-detailed/", "title": "New ETH Zurich Study Proves Your AI Coding Agents are Failing Because Your AGENTS.md Files are too Detailed", "domain": "marktechpost.com", "tier": "T4", "chip": "secondary", "craap": 62, "accessedAt": "2026-07-16"},
+    {"citationId": 16, "url": "https://raw.githubusercontent.com/x1xhlol/system-prompts-and-models-of-ai-tools/main/Anthropic/Claude%20Code%202.0.txt", "title": "Claude Code 2.0 leaked/reconstructed system prompt archive", "domain": "github.com", "tier": "T5", "chip": "secondary", "craap": 45, "accessedAt": "2026-07-16"},
+    {"citationId": 17, "url": "https://code.claude.com/docs/en/memory", "title": "Aggregated secondary summary citing Anthropic memory docs re: 5-level import recursion", "domain": "code.claude.com", "tier": "T4", "chip": "secondary", "craap": 55, "accessedAt": "2026-07-16"}
+  ],
+  "validationCoverage": 0.54,
+  "runMetadata": {
+    "toolMode": "index",
+    "toolCallCount": 24,
+    "startedAt": "2026-07-16T00:00:00Z",
+    "finishedAt": "2026-07-16T00:40:00Z",
+    "workers": 1
+  },
+  "partial": false,
+  "error": null
+}

@@ -23,6 +23,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 | "generate API docs from source" | "write marketing copy / landing page" (→ external / manual) |
 | "verify docs against code (no drift)" | "test the documented examples" (→ ds-test) |
 | "write ADR for this decision" | "research industry best practices" (→ ds-research) |
+| "audit/trim my CLAUDE.md or AGENTS.md", "optimize my agent instructions file" | "configure harness permissions or install tools" (→ ds-rig) |
 
 ## Contract
 
@@ -42,7 +43,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 |------|--------|
 | `--auto` | Detect, analyze, generate all missing docs |
 | `--preview` | Analyze gaps only, no generation |
-| `--scope={x}` | Single scope: readme, api, dev, user, ops, changelog, compliance, adr, refine, verify |
+| `--scope={x}` | Single scope: readme, api, dev, user, ops, changelog, compliance, adr, harness, refine, verify |
 | `--adr` | ADR mode: scan architecture decisions, propose/maintain numbered ADR files under `docs/adr/` |
 | `--update` | Regenerate even if docs exist |
 | `--force-approve` | Auto-apply needs_approval items (structural changes) |
@@ -62,6 +63,7 @@ Without flags: present mode selection to the user.
 | changelog | `CHANGELOG.md` | Version history |
 | compliance | `docs/compliance/` | Privacy policy, DPIA, breach plan, processor registry |
 | adr | `docs/adr/` | Architecture Decision Records — numbered, with Context / Decision / Consequences |
+| harness | `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`, `.windsurfrules`/`.devin/rules/`, `.github/copilot-instructions.md`, `GEMINI.md`, `CONVENTIONS.md` | AI-harness context files — cut signal-diluting content, enforce per-vendor length budget |
 | refine | Existing docs | UX/DX quality improvement |
 | verify | Existing docs | Verify claims against source code |
 
@@ -88,9 +90,36 @@ Without flags: present mode selection to the user.
 3. **Supersedence:** new ADR contradicting an earlier one cites superseded ADR; earlier ADR updated to `status: superseded-by NNNN`.
 4. **No autonomous ADR writes.** Every new ADR is Category B — user approves title + draft before file creation.
 
+### Harness scope (activated by `--scope=harness` or when `harness` scope is explicitly selected)
+
+**Target files:** `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/*.mdc`, `.windsurfrules`/`.devin/rules/*.md`, `.github/copilot-instructions.md` + `.github/instructions/*.instructions.md`, `GEMINI.md`, `CONVENTIONS.md` (Aider) — root file plus every nested per-package file in a monorepo.
+
+These files are re-injected into every session as low-trust background context, not read once like a README — signal density matters more than completeness. Apply rules from [references/rules-writing.md](references/rules-writing.md) DOC-10 to DOC-17.
+
+**Operations:**
+
+1. **Inventory:** find every target file present (root + nested). None present → record as advisory gap, do not fabricate one unless the user explicitly requested `harness` scope with no existing file (then generate a minimal starter from verified project commands/conventions only, per Phase 5).
+2. **Classify content, line by line:**
+
+   | Category | Verdict | Rule |
+   |----------|---------|------|
+   | Non-guessable commands, style rules diverging from tool defaults, non-obvious gotchas/rationale, repo etiquette | Keep — flag as gap if missing and the project clearly has one | DOC-15 |
+   | Directory layout, dependency lists, file-by-file descriptions, architecture overviews | Cut — agent derives this by reading code | DOC-11 |
+   | Generic/self-evident advice ("write clean code") | Cut — measurably degrades output, not just wasted tokens | DOC-12 |
+   | Pasted API docs, long tutorials, frequently-changing detail | Replace with a link | DOC-13 |
+   | Secrets, credentials, API keys, tokens | Cut immediately | DOC-10 (CRITICAL) |
+   | Negative-framed rule with a positive equivalent | Rewrite positive | DOC-16 |
+3. **Verify before flagging DOC-11:** read the actual file/directory the content claims to describe — confirm it is genuinely derivable before reporting. Unconfirmed → do not flag.
+4. **Length check (DOC-14):** compare against the target harness's own budget (Claude Code `CLAUDE.md` <200 lines; Cursor rule file <500 lines; Windsurf/Devin `global_rules.md` 6,000 chars / workspace rule file 12,000 chars; cross-harness community consensus <300 lines). Still over budget after cutting DOC-10–13 → propose a split: nested per-directory files (monorepo pattern) or path-scoped/glob-conditional rules where the harness supports them — never `@path`/`@file.md` imports alone, which load in full at launch and do not reduce context.
+5. **Monorepo check (DOC-17):** one root file covering unrelated packages → propose nested per-package files.
+
+**Gate:** Every present file inventoried and classified; every DOC-11 flag verified against source. If fails → source unreadable → mark item `inconclusive`, do not cut it.
+
+Never auto-apply. Category B: show the proposed diff (cuts + additions + one-line rationale each) and get approval before writing — a harness context file shapes every future session's behavior across the whole project, a higher blast radius than most doc edits.
+
 ## Delegation
 
-**Owns:** doc-drift, feature-documentation, adr (`--adr` mode) | **Delegates:** none | **Receives:** ds-benchmark → ADR recording of accepted gap decisions; ds-ship → Phase 4b; ds-repo → CONTRIBUTING / LICENSE content generation. Verified consumer of ds-blueprint findings (docs scope): fills gaps from them, does not re-produce scan findings.
+**Owns:** doc-drift, feature-documentation, adr (`--adr` mode), harness-context-audit (`--scope=harness`) | **Delegates:** none | **Receives:** ds-benchmark → ADR recording of accepted gap decisions; ds-ship → Phase 4b; ds-repo → CONTRIBUTING / LICENSE content generation. Verified consumer of ds-blueprint findings (docs scope): fills gaps from them, does not re-produce scan findings.
 
 ## Execution Flow
 
@@ -105,7 +134,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 ### Phase 1: Setup [SKIP if --auto]
 
 1. **Mode selection.** No flags → present a menu of every mode: Auto (recommended — detect + analyze + generate all), Preview, Scoped, ADR, (Cancel). A disambiguating flag (e.g. `--adr`) skips the menu.
-2. **Scope selection.** Not Auto/Preview → ask: which areas (Core: readme+changelog / Technical: api+dev / User-facing: user+ops); how to handle existing (Fill gaps / Refine / Verify claims / Update all).
+2. **Scope selection.** Not Auto/Preview → ask: which areas (Core: readme+changelog / Technical: api+dev / User-facing: user+ops / Agent-facing: harness); how to handle existing (Fill gaps / Refine / Verify claims / Update all).
 
 **Gate:** Mode and scope selected, or flags parsed. If fails → no response after two attempts → default Auto + all scopes; announce `[DOC] No selection received — defaulting to Auto mode, all scopes.`
 
@@ -142,6 +171,8 @@ Ideal docs by project type:
 | extension | Full | API/hooks | Full | Marketplace | Publish | Yes | Privacy (if data collected) |
 
 Missing docs = HIGH; incomplete (<70%) = MEDIUM.
+
+**Harness scope:** orthogonal to project type — audits whatever AI-harness context files exist (`CLAUDE.md`/`AGENTS.md`-class; see Harness scope below). None present → advisory, not a gap, unless the scope was explicitly requested.
 
 **Refine scope:** analyze for scannability, clarity, redundancy, conciseness.
 
@@ -245,6 +276,7 @@ Total findings = 0 → include "All {n} scopes evaluated: 0 findings" confirmati
 - `{n} doc-code drift findings closed — README claims now match actual source behavior`
 - `API docs generated for {n} endpoints with examples — downstream consumers no longer reverse-engineer the contract`
 - `{n} ADRs written for architectural decisions — future maintainers can read why, not just what`
+- `CLAUDE.md trimmed {n}→{m} lines — cut code-derivable/generic content, kept only non-obvious conventions and gotchas`
 - `Missing docs filled: {list-of-doc-types} — onboarding time for new contributors expected to drop noticeably`
 
 Zero-finding run: `Documentation in sync with source — no drift detected`.
@@ -266,6 +298,7 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 | Referenced file or function no longer exists | Flag as stale, suggest removal |
 | Generated doc exceeds 500 lines (or 5,000 words) | Split into multiple files at next H2 boundary; ask user for structure preference |
 | Verify scope finds broken internal links | List all broken links with suggested fixes |
+| Harness context file exceeds its vendor length budget (DOC-14) | Trim DOC-10–13 findings first; still over → propose split (nested per-directory files or path-scoped rules) |
 
 ## Edge Cases
 
@@ -274,5 +307,6 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 | No existing docs | Generate from scratch using source code analysis |
 | Docs contradict code | Flag discrepancy, update doc to match code |
 | Multilingual docs | Maintain only detected languages, warn about sync |
+| No AI-harness context file present | Auto/Preview: skip silently (advisory, not a gap); `--scope=harness` explicitly requested → offer to generate a minimal starter from verified project commands/conventions only |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

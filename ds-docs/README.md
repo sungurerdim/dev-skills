@@ -36,6 +36,7 @@ Run `/ds-docs`, or ask to check your documentation.
 | user | End-user guides |
 | ops | Deployment, operations |
 | changelog | Version history |
+| harness | Audit/trim AI-harness context files (CLAUDE.md, AGENTS.md, .cursor/rules/, etc.) |
 | refine | Quality improvement for existing docs |
 | verify | Verify doc claims against source code |
 
@@ -43,5 +44,6 @@ Run `/ds-docs`, or ask to check your documentation.
 
 - **Gap analysis** — ideal docs by project type vs current state
 - **Source-verified** — every documented flag/endpoint verified from code
+- **Harness-file curation** — cuts code-derivable/generic content from CLAUDE.md/AGENTS.md-class files, enforces per-vendor length budgets, flags secrets
 - **Refine mode** — improve scannability, clarity, conciseness of existing docs
 - **Verify mode** — cross-reference doc claims against actual source

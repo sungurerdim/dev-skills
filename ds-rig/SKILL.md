@@ -27,6 +27,7 @@ AI-dev environments accumulate ad-hoc: tools get installed unpinned, telemetry s
 | "disable telemetry in my tooling / zero call-home" | "audit this codebase for privacy compliance" (→ ds-compliance) |
 | "configure harness permissions (allow/ask/deny)" | "set up a quality gate that blocks done" (→ ds-quality) |
 | "is my MCP tool count over budget?" | "optimize a code metric" (→ ds-tune) |
+| "install/update the toolset, harden telemetry, set permissions" | "audit/trim the content of my CLAUDE.md or AGENTS.md" (→ ds-docs) |
 
 ## Contract
 
