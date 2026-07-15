@@ -570,7 +570,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W16: Dependency Hallucination / Slopsquatting
 
-**Applies to:** ds-deps, ds-init.
+**Applies to:** ds-deps, ds-init, ds-rig.
 
 **Definition:** Adding a package that does not exist, or an attacker's typosquat of a hallucinated name — ~19.7% of LLM-suggested packages are hallucinated, and attackers pre-register the common ones ("slopsquatting").
 
@@ -2019,6 +2019,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | D8 | Repo governance | ds-repo | Branch protection, CODEOWNERS, metadata, OSS readiness | [OWASP SAMM](https://owaspsamm.org/) Governance business function |
 | D9 | Breaking-change management (semver/contract) | ds-deps (semver) + ds-review (API contract) | API/schema/export break detection, migration path quality | [Semantic Versioning](https://semver.org/) |
 | D10 | Admin & support operability | ds-backend (admin API + stats) + ds-frontend (admin UI) + ds-deploy (diagnostics + runbooks) + ds-docs (support docs) | Back-office/admin surfaces, operator statistics & reports, diagnostic bundles, error-remediation runbooks | [ITIL 4 Incident/Problem Management](https://www.axelos.com/resource-hub/practice/problem-management-itil-4-practice-guide) + [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) |
+| D11 | Agent environment & tooling rig | ds-rig | Machine-level AI-dev toolset install/update with version pinning, telemetry/call-home hardening, harness allow/ask/deny permission profiles, MCP tool-count token budget | [SLSA](https://slsa.dev/) (supply-chain pinning) + [12-Factor III Config](https://12factor.net/config) |
 | E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-tune, ds-research, ds-brief | Orchestration, spec pipeline, commits, PRs — not quality dimensions | n/a — carrier, not a dimension |
 
 ### Amendment

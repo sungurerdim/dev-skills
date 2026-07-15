@@ -25,6 +25,7 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 | "scaffold a new {framework} project" | "audit existing project for health" (→ ds-blueprint) |
 | "create CI / Docker / test boilerplate from zero" | "deploy the app" (→ ds-deploy) |
 | "initialize project structure for {type}" | "add a feature to existing app" (→ implement directly) |
+| "bootstrap this repo's tooling configs" | "set up my machine's AI toolset / harness permissions" (→ ds-rig) |
 | "bootstrap with sensible defaults" | "research which framework to pick" (→ ds-research) |
 
 ## Contract

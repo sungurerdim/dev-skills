@@ -8,7 +8,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - **Owner:** sungurerdim
 - **License:** MIT
 - **Stack:** Markdown only — zero runtime dependencies
-- **Skill count:** 28
+- **Skill count:** 29
 - **Tool support:** Claude Code, OpenCode, Cursor, Copilot, Windsurf, Aider (Agent Skills spec readers; OpenCode consumes `~/.claude/skills/` directly)
 - **Active program:** v5 cross-host — see `docs/methodology/cross-host-program.md` (2026-07-15 research: verified findings F1–F10, gaps G1–G6, program P0–P2)
 
@@ -28,6 +28,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 
 | Family | Skills | Each one's unique job | Dimensions |
 |--------|--------|-----------------------|------------|
+| **Equip** | `ds-rig` | machine-level AI-dev rig — pinned toolset install/update · zero-telemetry hardening · harness allow/ask/deny permission profiles · MCP token budget | D11 |
 | **Discover** | `ds-research` · `ds-benchmark` · `ds-blueprint` | multi-source research · external gap-analysis vs comparables · internal 9-dim health score | A1, B2, B4 |
 | **Build** | `ds-init` · `ds-backend` · `ds-frontend` · `ds-mobile` | scaffold from zero · API+DB+auth+data-pipeline design · design-system/a11y · mobile release audit | A5–A7, A9–A10, B5, D3–D5 |
 | **Improve** | `ds-review` · `ds-simplify` · `ds-fix` · `ds-quality` · `ds-test` · `ds-deps` · `ds-tune` · `ds-solve` | audit (flag) · safe deletion · format/lint/type passes (one-shot) · 3-arm quality gate — stop-time/edit-time/commit-time (enforce continuously) · real tests · dep upgrades · metric optimization loop · hard-problem backtracking | A8, B1, B3, C4, D1–D2, D9 |
@@ -38,7 +39,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | **Ship** | `ds-commit` · `ds-pr` · `ds-devops` · `ds-deploy` · `ds-launch` · `ds-repo` | atomic commits · PR description · CI/CD audit · infra configs · store release · repo settings | A4, B4, D6–D8 |
 | **Orchestrate** | `ds-ship` · `ds-pipeline` | classify stage → sequence + delegate the above · idea → gated spec/plan/tasks handoff (Spec Kit conductor) | — (carrier) |
 
-Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-mobile`, `ds-pipeline`, `ds-pr`, `ds-productize`, `ds-quality`, `ds-repo`, `ds-research`, `ds-review`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
+Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-mobile`, `ds-pipeline`, `ds-pr`, `ds-productize`, `ds-quality`, `ds-repo`, `ds-research`, `ds-review`, `ds-rig`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
 
 `ds-pipeline` is the spec-pipeline conductor: it runs the external [Spec Kit](https://github.com/github/spec-kit) chain (`specify → clarify → plan → tasks → analyze`) with blocking gates (zero open clarifications; per-task `— verify:` contract + EARS on behavioral tasks; zero CRITICAL cross-artifact findings), then commits `specs/{feature}/` with an executor handoff line. Planning-only (never touches source), state-exempt (artifacts + git are the record), artifact-driven resume. Prefix `PIPE` (SKILL-SPEC appendix).
 
