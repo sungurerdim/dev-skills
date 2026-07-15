@@ -85,8 +85,8 @@ On every release-ready run, fetch live requirements from official sources:
 
 | Constant | Source | Fallback |
 |----------|--------|----------|
-| android_new_target_sdk | Google Play SDK requirements page | 35 |
-| android_update_target_sdk | Google Play SDK requirements page | 34 |
+| android_new_target_sdk | Google Play SDK requirements page | 36 |
+| android_update_target_sdk | Google Play SDK requirements page | 35 |
 | min_ios_deployment | Apple upcoming requirements page | 13.0 |
 | privacy_manifest_required | Apple upcoming requirements page | true |
 | latest_flutter | Flutter release notes page | 3.29.0 |
@@ -94,6 +94,8 @@ On every release-ready run, fetch live requirements from official sources:
 | min_billing_lib | Play Billing Library release notes | 7 |
 
 Fetch failure: use fallback value, warn in report.
+
+Fallback basis (2026-07): Play deadline Aug 31, 2026 — new apps and updates target Android 16 (API 36), existing apps API 35; extension available to Nov 1, 2026.
 
 ## Store Launch Kit
 

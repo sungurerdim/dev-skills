@@ -88,6 +88,7 @@ Design tokens in $value/$type/$description JSON format per W3C 2025.10 specifica
   }
   ```
 - **Impact:** Standard format → tooling interoperability, automated token pipelines, and cross-platform synchronization.
+- **Note:** 2025.10 is the first stable version, but the spec remains a W3C Community Group Report, not a W3C Standard — treat it as the interoperability convention, not a normative requirement.
 - **Source:** W3C Design Tokens Community Group Format Module 2025.10
 
 ### TOK-08 [LOW] Token Coverage

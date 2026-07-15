@@ -81,7 +81,7 @@ Without flags: present an up-front mode menu — Audit (recommended) / Design / 
 |------------|---------------|
 | Schema design | Normalization, naming conventions, data types |
 | Indexing | Missing indexes, over-indexing, composite order, GIN/GiST/BRIN for advanced cases |
-| Migrations | Expand-contract pattern, safe vs dangerous ops, rollback tested |
+| Migrations | Expand-contract pattern, safe vs dangerous ops, rollback tested, CI migration lint (Squawk) |
 | Query patterns | N+1 detection, EXPLAIN ANALYZE review, `pg_stat_statements`, connection pooling |
 | Backup | 3-2-1 rule, WAL archiving, restore testing |
 | Restore-drill proof (D3, advisory) | Backup existing is not resilience — require a documented restore runbook + evidence of ≥1 executed end-to-end drill (worst case: total account/environment loss, restored to a clean target). Missing evidence -> advisory finding "backup exists, restore unproven — run a drill and record the runbook" (never a blocker, SKILL-SPEC §15) |

@@ -7,7 +7,7 @@ Rules for initial project structure, configuration, and tooling setup. Each rule
 | Section | Rules | Line |
 |---------|-------|------|
 | **Structure** | SCF-01–04 (2 HIGH, 2 MEDIUM) | ~12 |
-| **Configuration** | SCF-05–09 (3 HIGH, 1 MEDIUM, 1 LOW) | ~58 |
+| **Configuration** | SCF-05–10 (3 HIGH, 1 MEDIUM, 2 LOW) | ~58 |
 
 ---
 
@@ -26,7 +26,8 @@ Project follows platform-conventional directory structure. Reviewers and tools e
   - **Go:** cmd/ for entrypoints, internal/ for private, pkg/ for public libraries
   - **Flutter/Dart:** lib/ for source, test/ for tests, assets/ for resources
   - **Rust:** src/ for source, tests/ for integration tests, benches/ for benchmarks
-- **Source:** Platform project templates, official documentation
+  - **TS/JS monorepo:** packages/ + apps/ workspace; scaffold new packages/components with Turborepo generators (`@turbo/gen`, Plop-based) instead of ad-hoc template cloning
+- **Source:** Platform project templates, official documentation, [Turborepo generators](https://vercel.com/academy/production-monorepos/turborepo-generators)
 
 ### SCF-02 [HIGH] CI From Day One
 CI pipeline configured in initial commit. Catches issues before they accumulate.
@@ -86,6 +87,7 @@ Every dependency added during scaffolding is real and trusted. → no hallucinat
   - A name one character off a popular package, or from the wrong ecosystem
   - Dependency added to the manifest but missing from the lockfile
 - **Fix:** Before adding, confirm the package exists in the official registry, predates the project, and has real download history; pin it in the lockfile with an integrity hash. Reject near-miss / cross-ecosystem names; prefer the maintained, widely-used option.
+- **Note:** Verify licensing/pricing state at scaffold time too, never from memory — tools go stale within a training window (e.g., Atlas moved `atlas migrate lint` out of its free tier in October 2025).
 - **Source:** [CSA — Slopsquatting (2026)](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/); USENIX Security '25 (19.7% package hallucination)
 
 ### SCF-07 [HIGH] Environment Template
@@ -116,3 +118,11 @@ LICENSE file in repository root. Required for open source; clarifies terms for p
   - License type incompatible with dependencies
 - **Fix:** Add LICENSE file. Common choices: MIT (permissive, libraries), Apache-2.0 (permissive + patent grant), GPL-3.0 (copyleft), AGPL-3.0 (copyleft + network use). Match license to project goals and dependency licenses
 - **Source:** choosealicense.com, OSI approved licenses
+
+### SCF-10 [LOW] AI Skill Directory in Repo
+Projects built with AI coding agents check project-level agent skills into the repo (`.claude/skills/` or `.agents/skills/`) rather than keeping them as personal dotfiles.
+- **Detect:**
+  - Repo intended for AI-assisted development with no committed skill/agent-config directory
+  - Skill definitions living only in individual developers' home directories
+- **Fix:** Scaffold `.claude/skills/` (or `.agents/skills/`) with a README stub when the user confirms AI-assisted development; commit project-level skills there so the whole team shares them
+- **Source:** [Superpowers marketplace guide (2026)](https://pasqualepillitteri.it/en/news/215/superpowers-claude-code-complete-guide), Developers Digest 2026 skills directory

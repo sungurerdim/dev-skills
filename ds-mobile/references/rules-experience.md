@@ -401,10 +401,10 @@ Constrained layouts must protect against text/content overflow across all viewpo
 ## Accessibility
 
 ### A11Y-01 [CRITICAL] WCAG 2.2 AA + EAA
-EU apps must comply. EAA active since June 28, 2025. Fines up to EUR 100K or 4% revenue.
+EU apps must comply. EAA active since June 28, 2025 — enforcement is live (first EAA lawsuits filed November 2025). Fines up to EUR 100K or 4% revenue.
 - **Detect:** No accessibility audit. WCAG violations in core flows
-- **Fix:** Audit against WCAG 2.2 AA. Remediate by severity. Document conformance
-- **Source:** WCAG 2.2, EAA 2019/882, EN 301 549
+- **Fix:** Audit against WCAG 2.2 AA. Remediate by severity. Document conformance — in conformance claims for native mobile apps cite EN 301 549 Chapter 11 (WCAG criteria adapted for software plus mobile-specific requirements such as platform accessibility API usage), not raw WCAG: WCAG does not directly apply to native apps per the European Commission
+- **Source:** WCAG 2.2, EAA 2019/882, EN 301 549 Chapter 11
 
 ### A11Y-02 [CRITICAL] Touch Target >= 44dp
 Every interactive element >= 44x44dp. Spacing >= 8dp between targets.

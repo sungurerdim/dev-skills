@@ -135,3 +135,16 @@ User-visible text should use l10n, not hardcoded strings.
 - **Detect:** `Text('...')` with natural language strings in lib/ (excluding generated/l10n/test)
 - **Fix:** Extract strings to ARB files.
 - **Source:** Flutter internationalization guide
+
+## Release Automation Toolchain
+
+Named deterministic tools that remediate most release findings — recommend when the project has no release automation.
+
+| Tool | Role |
+|------|------|
+| fastlane | Build, sign, version-bump, and upload lanes (TestFlight / Play Store) — de facto standard, recommended by Flutter's official deployment docs |
+| Maestro | YAML-based E2E smoke tests across Android / iOS / React Native / Flutter — fastest setup, lowest maintenance |
+| fastlane-plugin-maestro | Runs Maestro flows inside fastlane lanes as a pre-upload smoke-test gate against the built release artifact |
+| Detox / Appium | E2E alternatives: Detox for pure React Native (lowest flakiness); Appium for native platform depth |
+
+- **Source:** [Flutter CD docs](https://docs.flutter.dev/deployment/cd), [fastlane.tools](https://fastlane.tools/), [fastlane-plugin-maestro](https://github.com/inf2381/fastlane-plugin-maestro), 2026 framework comparisons (codersera.com, drizz.dev)

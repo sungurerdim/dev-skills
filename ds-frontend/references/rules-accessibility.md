@@ -4,6 +4,8 @@ Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix a
 
 Applies to all UI platforms: web, mobile, desktop.
 
+Conformance target: WCAG 2.2 AA — the standard operative in current US/EU law. WCAG 3.0 remains a W3C Working Draft referenced by no active law; keep targeting 2.2 until a law references a WCAG 3.0 Recommendation.
+
 ## Table of Contents
 
 | Section | Rules | Line |
@@ -28,7 +30,7 @@ All interactive elements reachable via Tab key, operable via Enter/Space/Escape.
   - SwiftUI: .onTapGesture without .focusable()
   - Compose: Modifier.clickable without Modifier.focusable
 - **Fix:** Use native interactive elements (`<button>`, `<a>`, `<input>`) where possible. For custom elements: add `role`, `tabindex="0"`, keyboard handlers (Enter to activate, Escape to dismiss). For modals: implement focus trap with Tab cycling and Escape to close.
-- **Impact:** 2.5B people worldwide have disabilities. Keyboard navigation is foundation of all assistive technology access. Missing keyboard access = legal liability under EAA (June 2025), ADA, AODA.
+- **Impact:** 2.5B people worldwide have disabilities. Keyboard navigation is foundation of all assistive technology access. Missing keyboard access = legal liability under EAA (in force June 2025; enforcement is active — first EAA lawsuits filed November 2025), ADA, AODA.
 - **Source:** WCAG 2.2 SC 2.1.1 Keyboard, W3C ARIA APG Dialog Pattern
 
 ### AXE-02 [CRITICAL] Focus Indicator

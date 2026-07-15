@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **API Design** | API-01 to API-12 (1 CRITICAL, 6 HIGH, 3 MEDIUM, 2 LOW) | ~12 |
+| **API Design** | API-01 to API-13 (1 CRITICAL, 6 HIGH, 3 MEDIUM, 3 LOW) | ~12 |
 
 ---
 
@@ -200,10 +200,11 @@ Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at 
 | `description` on every operation | Documentation quality |
 | Request/response `examples` | Enables automated test generation |
 | `tags` to group operations | Navigation in Swagger UI |
-| Spec linting in CI (Spectral) | Catches naming issues, broken refs |
+| Spec linting in CI (Spectral: `spectral:oas` + `@stoplight/spectral-owasp-ruleset`) | Catches naming issues, broken refs, OWASP API risks |
+| Breaking-change detection in CI (oasdiff) | Blocks incompatible spec changes before release |
 | Contract tests | Verify server matches spec |
 
-Design-first (write YAML before code) produces cleaner contracts and enables frontend mocking during parallel development.
+Design-first (write YAML before code) produces cleaner contracts and enables frontend mocking during parallel development — serve the spec as a live mock (Prism or WireMock) so clients build against the contract before the backend exists.
 
 **Impact:** Machine-readable API contracts enable code generation, automated testing, and accurate documentation.
 
@@ -280,3 +281,21 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 **Fix:** Validate every external input against an explicit schema at the boundary (zod / pydantic / JSON Schema / Bean Validation); reject by default; allowlist writable fields. Re-check authorization server-side regardless of UI state.
 
 **Source:** [OWASP API Security Top 10 — API3/API4](https://owasp.org/API-Security/editions/2023/en/0x11-t10/)
+
+---
+
+### API-13 API Style Selection [LOW]
+
+**Detect:** API style adopted without evaluating client requirements — GraphQL introduced for a single-client API, or tRPC exposed as a public API.
+
+**Fix:** Default to REST; adopt an alternative only when its condition holds:
+
+| Style | Choose when | Avoid when |
+|-------|-------------|------------|
+| REST | Default — public APIs, single dominant client shape | — |
+| GraphQL | Multiple client types with genuinely different data needs for the same resources | Single client, uniform data shapes |
+| tRPC | TypeScript-first monorepo, internal services — pair with REST for the public surface | Public API or polyglot consumers |
+
+**Impact:** Matching style to demonstrated client needs avoids GraphQL operational complexity where REST suffices, and avoids over-/under-fetching where client shapes genuinely diverge.
+
+**Source:** [Fern API design guide (2026)](https://buildwithfern.com/post/api-design-best-practices-guide), [Complete guide to API design in 2026](https://dev.to/zny10289/the-complete-guide-to-api-design-in-2026-rest-graphql-and-trpc-in-production-4ib2), [API design trends 2026](https://calmops.com/backend/api-design-trends-2026/)

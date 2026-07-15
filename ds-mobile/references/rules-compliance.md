@@ -346,7 +346,7 @@ Android: `targetSdkVersion` must meet current Play Store deadline. iOS: compile 
   - iOS: `IPHONEOS_DEPLOYMENT_TARGET` in `project.pbxproj` < `POLICY.min_ios_deployment`
   - Flutter: `compileSdk` in `android/app/build.gradle`, `platform :ios` in `Podfile`
   - React Native: `compileSdkVersion` in `android/build.gradle`, deployment target in Xcode project
-- **Fix:** Update target/compile SDK. Run full test suite against new platform behaviors (scoped storage, notification permissions, photo picker, etc.)
+- **Fix:** Update target/compile SDK. Run full test suite against new platform behaviors — Android 16 / API 36 (required for new apps and updates from Aug 31, 2026; extension available to Nov 1, 2026): predictive back enabled by default, edge-to-edge display without opt-out, orientation/aspect-ratio restrictions ignored on large screens, `USE_FULL_SCREEN_INTENT` requires explicit permission
 - **Note:** See `references/scoring.md` Live Policy Fetch for current values
 - **Source:** Google Play SDK requirements, Apple Xcode release notes
 
@@ -493,8 +493,9 @@ App must be fully functional with no placeholder content, broken features, or in
   - Search for: `onPressed: null`, `onTap: () {}`, `onPressed: () {}`, `// TODO`, `NotImplementedError`
   - Empty screens or sections (scaffold with no content)
   - Test/demo credentials visible in production builds
-- **Fix:** Replace all placeholder content with real content. Implement or remove non-functional UI elements. Remove test data and demo credentials from production builds
-- **Source:** App Store 2.1, Play Store Spam and Minimum Functionality Policy
+  - Saturated-category removal risk (Section 4.3(b), tightened June 8, 2026): app in a well-established category (dating, flashlight, wallpaper, timers, fortune-telling) with no recent updates or differentiation — Apple may remove existing apps not "updated, improved, or attracting customers", beyond the prior reject-on-submission stance
+- **Fix:** Replace all placeholder content with real content. Implement or remove non-functional UI elements. Remove test data and demo credentials from production builds. Saturated category → document differentiation and maintain a regular update cadence before submitting
+- **Source:** App Store 2.1 and 4.3(b) (June 2026 update), Play Store Spam and Minimum Functionality Policy
 
 ### STO-13 [HIGH] Metadata Accuracy
 Store listing metadata must accurately reflect app functionality. No misleading claims.
