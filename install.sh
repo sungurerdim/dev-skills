@@ -2,8 +2,12 @@
 # dev-skills installer/syncer — copies ONLY runtime files (ds-*/ skills, agents/).
 # Spec, docs, and references stay in the repo; they are never loaded at runtime.
 #
-#   ./install.sh                 install/sync all skills into ~/.claude (global)
+#   ./install.sh                 install/sync all skills into ~/.claude (global;
+#                                also covers OpenCode, which reads ~/.claude/skills)
 #   ./install.sh --project DIR   install into DIR/.claude instead
+#   ./install.sh --target DIR    install skills into DIR directly — any Agent Skills
+#                                host dir (e.g. .agents/skills, .opencode/skill).
+#                                Skills only; shared agents/ are Claude-Code-specific
 #   ./install.sh --skills a,b    only the named skills (e.g. ds-review,ds-commit)
 #   ./install.sh --check         report drift between repo and installed copy
 #   ./install.sh --uninstall     remove installed dev-skills content
@@ -18,9 +22,12 @@ command -v rsync >/dev/null 2>&1 || { echo "rsync is required but not installed.
 target="$HOME/.claude"
 mode="install"
 only=""
+skills_dir=""
+with_agents=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --project) target="$2/.claude"; shift 2 ;;
+    --target)  skills_dir="$2"; with_agents=0; shift 2 ;;
     --skills)  only="$2"; shift 2 ;;
     --check)   mode="check"; shift ;;
     --uninstall) mode="uninstall"; shift ;;
@@ -29,7 +36,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-skills_dir="$target/skills"
+[ -n "$skills_dir" ] || skills_dir="$target/skills"
 agents_dir="$target/agents"
 version_file="$skills_dir/.dev-skills-version"
 
@@ -49,19 +56,26 @@ stamp() {
 
 case "$mode" in
   install)
-    mkdir -p "$skills_dir" "$agents_dir"
+    mkdir -p "$skills_dir"
     n=0
     for s in $(skill_list); do
       [ -d "$s" ] || { echo "Skip: $s not found in repo"; continue; }
       rsync -a --delete "$s/" "$skills_dir/$s/"
       n=$((n+1))
     done
-    for a in agents/*.md; do
-      [ -e "$a" ] || continue
-      rsync -a "$a" "$agents_dir/$(basename "$a")"
-    done
+    if [ "$with_agents" = "1" ]; then
+      mkdir -p "$agents_dir"
+      for a in agents/*.md; do
+        [ -e "$a" ] || continue
+        rsync -a "$a" "$agents_dir/$(basename "$a")"
+      done
+    fi
     echo "dev-skills@$(stamp)" > "$version_file"
-    echo "Installed/synced $n skill(s) -> $skills_dir (agents -> $agents_dir)"
+    if [ "$with_agents" = "1" ]; then
+      echo "Installed/synced $n skill(s) -> $skills_dir (agents -> $agents_dir)"
+    else
+      echo "Installed/synced $n skill(s) -> $skills_dir (skills only — shared agents are Claude-Code-specific)"
+    fi
     echo "Version: $(cat "$version_file")"
     ;;
   check)
@@ -76,10 +90,12 @@ case "$mode" in
       d=$(rsync -rcn --delete --out-format='%n' "$s/" "$skills_dir/$s/" | grep -v '/$' || true)
       [ -z "$d" ] || { echo "DRIFT in $s:"; echo "$d" | sed 's/^/  /'; drift=1; }
     done
-    for a in agents/*.md; do
-      [ -e "$a" ] || continue
-      cmp -s "$a" "$agents_dir/$(basename "$a")" || { echo "DRIFT in agents/$(basename "$a")"; drift=1; }
-    done
+    if [ "$with_agents" = "1" ]; then
+      for a in agents/*.md; do
+        [ -e "$a" ] || continue
+        cmp -s "$a" "$agents_dir/$(basename "$a")" || { echo "DRIFT in agents/$(basename "$a")"; drift=1; }
+      done
+    fi
     [ "$drift" = "0" ] && echo "In sync." || exit 1
     ;;
   uninstall)
@@ -87,6 +103,10 @@ case "$mode" in
       rm -rf "${skills_dir:?}/$s"
     done
     rm -f "$version_file"
-    echo "Removed dev-skills skills from $skills_dir (agents left in place — remove manually if desired)"
+    if [ "$with_agents" = "1" ]; then
+      echo "Removed dev-skills skills from $skills_dir (agents left in place — remove manually if desired)"
+    else
+      echo "Removed dev-skills skills from $skills_dir"
+    fi
     ;;
 esac

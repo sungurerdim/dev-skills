@@ -189,8 +189,9 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 | Tool | Install |
 |------|---------|
 | **Claude Code / OpenCode** | `./install.sh` (both read `~/.claude/skills/`) |
-| **Cursor** | Copy the skill folder into `.cursor/skills/` if your build reads Agent Skills; otherwise reference `SKILL.md` on demand. Do **not** use legacy `.cursorrules` — it is silently ignored in Agent mode |
-| **GitHub Copilot** | Copy the skill folder where your Copilot build reads skills, or add a path-scoped pointer in `.github/instructions/` — never paste full SKILL.md into `copilot-instructions.md` |
+| **Any Agent Skills host** | `./install.sh --target <that host's skills dir>` — same sync/check/uninstall flow, skills only |
+| **Cursor** | `./install.sh --target` your build's Agent Skills dir if it reads them; otherwise reference `SKILL.md` on demand. Do **not** use legacy `.cursorrules` — it is silently ignored in Agent mode |
+| **GitHub Copilot** | `./install.sh --target` where your Copilot build reads skills, or add a path-scoped pointer in `.github/instructions/` — never paste full SKILL.md into `copilot-instructions.md` |
 | **Windsurf / Devin Desktop** | Reference `SKILL.md` from a `.windsurf/rules/` file (still read after the June 2026 Devin Desktop rebrand; newer builds prefer `.devin/rules/`) |
 | **Aider** | Reference `SKILL.md` via `--read` flag |
 
