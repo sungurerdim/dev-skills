@@ -236,7 +236,7 @@ Always-on behavioral guardrails that prevent mistakes between skill invocations 
 
 ## Versioning
 
-Release tags continue the spec-generation lineage documented in [CLAUDE.md](CLAUDE.md) and [SKILL-SPEC.md](SKILL-SPEC.md) — v2 (2026-05), v3 (2026-06), v4 (2026-07-11), v5 (2026-07-15). Generations v2–v4 shipped as commits before the release practice began, so the first GitHub release is [v5.2.0](https://github.com/sungurerdim/dev-skills/releases/tag/v5.2.0), not v1.0.0 — one version line, no parallel numbering.
+Releases use semantic versioning starting at **v1.0.0** (2026-07-15) — the point where the skill set reached release maturity. The `v2`–`v5` labels in older docs and commit messages are **spec-generation names** (internal design-doc lineage: v2 2026-05 → v5 2026-07-15), not release versions; they predate the release line and stay as historical labels.
 
 ## Contributing
 

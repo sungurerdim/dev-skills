@@ -1,4 +1,6 @@
-# Cross-Host Program (v5) — Research-Backed Assessment & Roadmap
+# Cross-Host Program (spec-gen v5) — Research-Backed Assessment & Roadmap
+
+> Naming note: `v5`/`v5.1`/`v5.2` here and in commit messages are **spec-generation labels** (design-doc lineage), not release versions. The semver release line starts at v1.0.0 (2026-07-15) — see README § Versioning.
 
 **Date:** 2026-07-15 · **Method:** three parallel verified research passes (comparable projects · harness system prompts · model failure modes), each datum ≥2-source-confirmed or explicitly flagged, cross-checked against a local audit of all 28 skills, SKILL-SPEC, install.sh, and measured token footprints.
 

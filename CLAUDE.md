@@ -10,7 +10,8 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - **Stack:** Markdown only — zero runtime dependencies
 - **Skill count:** 29
 - **Tool support:** Claude Code, OpenCode, Cursor, Copilot, Windsurf, Aider (Agent Skills spec readers; OpenCode consumes `~/.claude/skills/` directly)
-- **Active program:** v5 cross-host — see `docs/methodology/cross-host-program.md` (2026-07-15 research: verified findings F1–F10, gaps G1–G6, program P0–P2)
+- **Releases:** semver from v1.0.0 (2026-07-15); v2–v5 labels in docs/commits are spec-generation names, not release versions (see README § Versioning)
+- **Active program:** cross-host (spec-gen v5) — see `docs/methodology/cross-host-program.md` (2026-07-15 research: verified findings F1–F11, gaps G1–G6, program P0–P2, ds-rig)
 
 ## Project Structure
 
