@@ -82,4 +82,19 @@
 | Aider | `--read SKILL.md` / CONVENTIONS.md | auto-lint/auto-test — edit-time | Shipped |
 | Codex CLI / Gemini CLI | Agent Skills readers · AGENTS.md · `install.sh --target` | native hooks — ds-quality arms E/F (stop-time), shipped | Candidate targets |
 
-Raw research artifacts (session-local, not committed): `/tmp/ds-skills-research/{competitors,harnesses,models}.md`. Durable summary: knowledge repo, `repos/dev-skills/`.
+## 6. Per-skill optimization program (v5.1) — ledger
+
+Every skill is individually evaluated against the rubric below, compared with researched same-purpose artifacts (skills/prompts/tools), optimized, CI-verified, and committed per family batch. This table is the resumable progress ledger — update the Status column as batches land.
+
+**Rubric (per skill):** R1 spec-compliance (§9 checklist incl. evidence band) · R2 token-value (every line earns its tokens; prune frontier-builtin duplicates that add nothing on thin harnesses either) · R3 standalone invariant (fully functional installed alone; advisory-handoff only) · R4 gate quality (two-arm gates, machine-checkable pass conditions) · R5 domain currency (2026 best practice + deterministic tools preferred over prose, per family research) · R6 trigger precision (INVOKE/DON'T INVOKE accuracy).
+
+| Batch | Skills | Research artifact | Status |
+|-------|--------|-------------------|--------|
+| A Ship | ds-commit · ds-pr · ds-devops · ds-deploy · ds-launch · ds-repo | `/tmp/ds-skills-research/family-ship.md` | research running |
+| B Improve | ds-review · ds-fix · ds-test · ds-simplify · ds-deps · ds-tune · ds-solve (ds-quality done in P0.3) | `/tmp/ds-skills-research/family-improve.md` | research running |
+| C Discover | ds-research · ds-benchmark · ds-blueprint · ds-pipeline | pending | pending |
+| D Build | ds-init · ds-backend · ds-frontend · ds-mobile | pending | pending |
+| E Document+Comply+Monetize+Track | ds-docs · ds-brief · ds-compliance · ds-productize · ds-issue | pending | pending |
+| F Orchestrate | ds-ship · (ds-pipeline in C) | pending | pending |
+
+Raw research artifacts (session-local, not committed): `/tmp/ds-skills-research/{competitors,harnesses,models,toolset-skill,family-*}.md`. Durable summary: knowledge repo, `repos/dev-skills/`.
