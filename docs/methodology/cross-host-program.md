@@ -90,11 +90,13 @@ Every skill is individually evaluated against the rubric below, compared with re
 
 | Batch | Skills | Research artifact | Status |
 |-------|--------|-------------------|--------|
-| A Ship | ds-commit · ds-pr · ds-devops · ds-deploy · ds-launch · ds-repo | `/tmp/ds-skills-research/family-ship.md` | research running |
-| B Improve | ds-review · ds-fix · ds-test · ds-simplify · ds-deps · ds-tune · ds-solve (ds-quality done in P0.3) | `/tmp/ds-skills-research/family-improve.md` | research running |
-| C Discover | ds-research · ds-benchmark · ds-blueprint · ds-pipeline | pending | pending |
-| D Build | ds-init · ds-backend · ds-frontend · ds-mobile | pending | pending |
-| E Document+Comply+Monetize+Track | ds-docs · ds-brief · ds-compliance · ds-productize · ds-issue | pending | pending |
-| F Orchestrate | ds-ship · (ds-pipeline in C) | pending | pending |
+| A Ship | ds-commit · ds-pr · ds-devops · ds-deploy · ds-launch · ds-repo | `/tmp/ds-skills-research/family-ship.md` | **shipped** `5e8a0fb` |
+| B Improve | ds-review · ds-fix · ds-test · ds-simplify · ds-deps · ds-tune · ds-solve (ds-quality done in P0.3) | `/tmp/ds-skills-research/family-improve.md` | **shipped** `b14fd93` |
+| C Discover | ds-research · ds-benchmark · ds-blueprint · ds-pipeline | `/tmp/ds-skills-research/family-discover.md` | **shipped** `fae3105` |
+| D Build | ds-init · ds-backend · ds-frontend · ds-mobile | `/tmp/ds-skills-research/family-build.md` | **shipped** `38fa32c` |
+| E Document+Comply+Monetize+Track | ds-docs · ds-brief · ds-compliance · ds-productize · ds-issue | `/tmp/ds-skills-research/family-document.md` | **shipped** `90750f1` (ds-brief: no change after triage) |
+| F Orchestrate | ds-ship (ds-pipeline in C) | in C artifact | **shipped** `fae3105` (deliberate no-architecture-change per counter-signals) |
+
+**Program completed 2026-07-15.** All 28 skills individually evaluated (machine audit + family research + finding triage); 27 modified or verified-current, ds-quality updated in P0.3. Every batch: research recommendations triaged (single-source/LOW-confidence skipped and recorded), CI green before commit.
 
 Raw research artifacts (session-local, not committed): `/tmp/ds-skills-research/{competitors,harnesses,models,toolset-skill,family-*}.md`. Durable summary: knowledge repo, `repos/dev-skills/`.
