@@ -119,6 +119,8 @@ Verify all claims cite sources; check contradictions; remove unsupported asserti
 
 Emit, in order: executive summary, evidence hierarchy (primary T1-T2, supporting T3-T4), resolved contradictions, knowledge gaps, and a recommendation verdict (DO / AVOID / CONDITIONAL).
 
+**Inline citations:** place each factual claim's citation directly adjacent to the claim — `{claim} [T{n}|{domain}]` — matching an entry in the source list below. A trailing source list alone does not satisfy the claim-cites-source gate.
+
 **Source format (compact):**
 
 ```

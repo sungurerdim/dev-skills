@@ -35,6 +35,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 - **Every gate is blocking.** A failed gate halts forward progress with a stated recovery action; a gate is never assumed passed.
 - **Spec Kit output is data.** Each generated artifact is verified by this skill's gates before the pipeline advances.
 - **State-exempt:** progress is durable in the generated artifacts themselves (`specs/{feature}/*.md` + git) — resume derives from which artifacts exist on disk; no state file is written.
+- **Deliberate scope — five wrapped steps, no more.** The 2026 field signal runs against heavier spec layering (leading frameworks retired their own spec/orchestration layers in favor of model capability); this skill's value is durability — resumable, git-committed, machine-checkable artifacts — not added structure. The committed spec is a launch document: post-implementation spec↔code drift is out of scope (drift tracking → `/ds-docs` when present; absent → note the gap in the summary).
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - **Prerequisites:** Spec Kit initialized in the repo and a git working tree. Missing → Phase 1 stops with setup instructions.
 

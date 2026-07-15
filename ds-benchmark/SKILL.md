@@ -95,6 +95,8 @@ Target count from `--competitors` (default 7); insufficient-sources recovery is 
 
 Per competitor record: Name + URL (project identity); CRAAP+ tier — T1 (authoritative) / T2 (supporting) / T3 (inspirational); Strengths (concrete dimensions handled well); Weaknesses (concrete dimensions where they fall short); Architecture signal (public info on stack / module layout / data model).
 
+**Deterministic hygiene cross-check (advisory):** comparable is an open-source repo AND a repo-scorecard tool (e.g. OpenSSF Scorecard) is available in-session → run it against that repo and record the per-check scores alongside strengths/weaknesses — a machine-checked number beside the qualitative signal. Tool absent → qualitative signals only; no gate depends on it.
+
 **Gate:** ≥3 competitors at T1+T2 each with strengths/weaknesses. If fails → `/ds-research` returned fewer than 3 T1+T2 sources → expand search with synonyms, retry once; still insufficient → proceed with available set, flag `low-sample-size: true`, note "Ideal synthesis may be speculative due to limited comparables" in report.
 
 ### Phase 4: Synthesize Ideal
@@ -121,6 +123,8 @@ For each dimension, compare ideal vs current (current from blueprint profile + `
 ```
 
 `gap_type`: `missing | excess | wrong | partial-needs-extension`.
+
+**Aggregate-score caveat:** a row whose only competitor evidence is a scorecard-style aggregate number carries the note `aggregate score = heuristic signal, not ground truth — verify high/low outliers manually` in its Ideal cell.
 
 **Category rules:**
 

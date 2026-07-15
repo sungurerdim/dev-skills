@@ -58,6 +58,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 **Dimensions:** none (carrier)
 
 - Orchestrator — zero own analysis, consumes `ds/audit/findings.md` as SSOT. FRC+DSC enforced. State: `ds/audit/ship.json`.
+- **Sequential delegation is deliberate:** one skill at a time, writes single-threaded, each delegate returning a compressed findings diff — the shape that holds for coupled, source-mutating work; keep it — parallel fan-out of write-owning delegates is a rejected design, not a pending optimization. Cost scales linearly with delegation count, not combinatorially.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - Findings absent or stale → invoke `/ds-blueprint` before any other delegation.
 - Artifacts: `ds/audit/findings.md` (via delegated skills) + own `ds/audit/report.md` (+ `ds/audit/report.html` under `--html`). No logs, traces, history, dumps.
