@@ -66,7 +66,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 **Branch management:**
 
-- **On main/master:** suggest feature branch (`{type}/{short-description}`); offer commit-on-main. If `release-please-config.json` or `.release-please-manifest.json` present, mark commit-on-main as "Not recommended — bypasses changelog pipeline".
+- **On main/master:** suggest feature branch (`{type}/{short-description}`); offer commit-on-main. If `release-please-config.json`, `.release-please-manifest.json`, `.releaserc*`, or a `semantic-release` config in `package.json` is present, mark commit-on-main as "Not recommended — bypasses changelog pipeline".
 - **On feature branch:** changes outside branch scope → ask: continue here (recommended) / create new branch.
 
 **Conflict check:** `UU`/`AA`/`DD` in status → stop.
@@ -118,6 +118,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 | Files serve one logical purpose | Single commit |
 | `--single` flag | Force single |
 | Mixed categories, no logical link | Split |
+| Proposed description needs "and" to join unrelated actions | Re-split before showing the plan table |
 | deps + source adaptation | Single (causally linked) |
 | Format/lint auto-fixes | Include in commit they belong to |
 
@@ -186,6 +187,8 @@ Stage files → build message → commit.
 **Body — include only when** one holds: the title alone omits the "why"; a trade-off was made; a multi-file change has a non-obvious reason; a breaking change needs migration. Otherwise skip. Format: 1-3 lines, blank line after title, wrap at 72, explain WHY not WHAT; optional migration/config hint (e.g., "Requires migration {migration-id}").
 
 **Trailers/footers:** one `Co-Authored-By: {ai-model-name} <{provider-email}>`; breaking → `BREAKING CHANGE: {description}`; references → `Closes #{issue}`, `Fixes #{issue}`.
+
+**Message-format gate (advisory tool):** `commitlint.config.*` present → validate each proposed message with commitlint before committing; rejection → fix the message, retry. Absent → the format tables above are the fallback; repo has CI + multiple contributors → add summary note "commit format enforced only in this session — no commitlint gate for future contributors".
 
 **Gate:** Commits created in conventional format with `Co-Authored-By:`. If fails → pre-commit hook rejected; show output, ask "Fix and retry (recommended) / Commit anyway (--no-verify, explain risk)"; bypass → add WARN note in summary. Secret-pattern file explicitly re-added by user → stage exactly that file, keep the rest of the pattern excluded.
 

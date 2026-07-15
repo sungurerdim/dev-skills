@@ -157,6 +157,7 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 | Release notes | User-facing changelog, localization |
 | User-facing changelog (D6, advisory) | Distinct from dev/store release notes — a plain-language "what changed" surface exists, especially when an OTA/silent auto-update channel is detected (CodePush, Expo Updates, Electron auto-updater, or equivalent). OTA channel detected + no user-facing changelog surface -> advisory finding "silent OTA channel with no user-facing changelog" (never a blocker, SKILL-SPEC §15) |
 | Staged rollout | Google Play: 1% → 5% → 20% → 50% → 100% (manual). Apple: 7-day phased 1% → 2% → 5% → 10% → 20% → 50% → 100% (can pause). |
+| Rollout automation (advisory) | Mobile project (`pubspec.yaml` / `*.xcodeproj` / `build.gradle` with `android {}`) with no `Fastfile` → MEDIUM finding "no fastlane automation — staged rollout percentages require manual store-console execution". `Fastfile` present → verify release lanes cover the staged-rollout steps above. |
 | Force update | Minimum version enforcement, update UX |
 | Rollback | Emergency rollback procedure |
 | Rollback narrative (D6, advisory) | Beyond the technical rollback procedure above — is there a documented plan for how users are informed when a bad release is rolled back (in-app notice, status page, email)? No documented rollback communication plan -> advisory finding "no rollback communication plan" (never a blocker, SKILL-SPEC §15) |
@@ -206,7 +207,7 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 
 ### Phase 3: Generate [setup, listing, aso, privacy, review, submission-notes]
 
-- **Store setup:** platform-specific account setup checklist; certificate / signing key guide; TestFlight / Internal Testing steps.
+- **Store setup:** platform-specific account setup checklist; certificate / signing key guide (CI automation: authenticate with App Store Connect API keys, not Apple-ID/password auth); TestFlight / Internal Testing steps.
 - **Listing metadata:** final store-ready app description (short + long; refine existing `[DRAFT]` descriptions). Keyword research framework, screenshot size requirements, localization checklist. Template structure:
   - Short description (80 chars max) per language — per-locale keyword optimization, not literal translation; full description with consistent sections across all languages: How it works (3-5 steps), Key features (bullet list, benefit-first: `"Get {benefit}"` not `"Has {feature}"`), Privacy/security highlights + Pricing/plans (if applicable)
   - Privacy highlight table `| Data Type | Collected (Yes/No) | Shared with 3rd Party (Yes/No) | Purpose |` — maps directly to Apple Privacy Labels + Google Data Safety

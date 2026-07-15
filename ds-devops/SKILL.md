@@ -54,7 +54,7 @@ Without flags: present mode + scope selection to the user.
 
 | Scope | What It Checks |
 |-------|---------------|
-| ci | CI/CD pipeline presence, quality gates, format / analyze / test / build stages |
+| ci | CI/CD pipeline presence, quality gates, format / analyze / test / build stages, workflow lint layers (actionlint + zizmor), `pull_request_target` misuse |
 | signing | Code signing automation, certificate management, keystore security, build provenance / artifact attestation |
 | deps | Dependency audit gate, outdated detection, cross-dependency compatibility, breaking changes |
 | release-pipeline | Release automation, version bump workflow |
@@ -115,6 +115,8 @@ For each scope:
 |--------|-------|-----------|
 | 5 Build/Release/Run | Build artifact immutable; same artifact promoted across environments | CI rebuilds from source per environment |
 | 12 Admin processes | Migrations / seeds / backfills run as isolated one-off commands against the same release artifact | Embedded in the deploy job or run on dev workstations |
+
+**Workflow lint & security (ci scope, advisory tools):** actionlint (correctness) or zizmor (security anti-patterns) present → run it, merge findings into the report. `.github/workflows/` exists and either tool absent → HIGH finding "workflow lint layer missing — add actionlint + zizmor", with the prose rules ([references/rules-devops.md](references/rules-devops.md) DOP-19) as this run's fallback; never auto-install. `pull_request_target` combined with checkout/execution of untrusted PR code → CRITICAL (DOP-20 — the March 2026 trivy-action → LiteLLM supply-chain incident pattern).
 
 **Confidence:** HIGH = match + context verified. MEDIUM = pattern match, ambiguous. LOW = heuristic.
 

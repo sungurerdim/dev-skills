@@ -8,6 +8,7 @@ Applies to all project types: web, API, CLI, library, mobile, monorepo.
 | **Code Signing** | DOP-08–09 (2 HIGH) |
 | **Dependency Management** | DOP-10–14 (1 CRITICAL, 4 HIGH) |
 | **Agent & Supply-Chain Security** | DOP-15–18 (4 HIGH) |
+| **Workflow Security & Lint** | DOP-19–20 (1 CRITICAL, 1 HIGH) |
 
 ## CI/CD & Workflow
 
@@ -177,7 +178,8 @@ Automated dependency update tool must be configured.
   - No `.github/dependabot.yml` and no `renovate.json` / `.renovaterc`
   - Existing config doesn't cover all package ecosystems in project
   - No auto-merge policy for patch/minor updates
-- **Fix:** Configure Dependabot or Renovate. Cover all ecosystems. Set auto-merge for patch updates, manual review for major.
+  - Both Dependabot version updates AND Renovate configured as general-purpose updaters on the same repo → MEDIUM "conflicting update bots"
+- **Fix:** Configure Dependabot or Renovate. Cover all ecosystems. Set auto-merge for patch updates, manual review for major. Both bots present → split responsibility (Dependabot = security-fix PRs only, Renovate = routine version bumps, grouping, scheduling) or consolidate on one.
 - **Impact:** Without automated updates, dependencies silently become outdated and vulnerable
 - **Source:** Dependabot docs, Renovate docs
 
@@ -247,7 +249,27 @@ Beyond pinning (DOP-14): every dependency is real, vetted, and continuously scan
 
 ### DOP-18 [HIGH] Build Provenance & Artifact Attestation
 Beyond pinning inputs (DOP-01 action SHA-pin, DOP-14 dependency pin): the build *output* itself needs a verifiable, signed record of how it was produced (SLSA-style provenance) so a consumer can confirm the artifact came from the claimed CI run and source commit, not a tampered build.
-- **Detect:** Release artifacts (binaries, container images, packages) published without a signed provenance/attestation record; no `actions/attest-build-provenance` (or equivalent SLSA provenance generator) step in the release job; consumers have no way to verify artifact-to-source-commit lineage.
-- **Fix:** Add a build-provenance step to the release job (GitHub: `actions/attest-build-provenance`, generates a signed SLSA-style attestation tied to the workflow run); publish the attestation alongside the artifact; document the verification command (`gh attestation verify`) in release notes.
+- **Detect:** Release artifacts (binaries, container images, packages) published without a signed provenance/attestation record; no `actions/attest-build-provenance` (or equivalent SLSA provenance generator) step in the release job; attesting job lacks `attestations: write` + `id-token: write` permissions; consumers have no way to verify artifact-to-source-commit lineage.
+- **Fix:** Add a build-provenance step to the release job (GitHub: `actions/attest-build-provenance`, generates a signed SLSA-style attestation tied to the workflow run) with `permissions: attestations: write` + `id-token: write`; publish the attestation alongside the artifact; document the verification command (`gh attestation verify <artifact> -R <org>/<repo>`, requires gh 2.49.0+) in release notes. Attestation alone = SLSA v1.0 Build Level 2; isolating the build in a reusable workflow reaches Build Level 3.
 - **Impact:** Without signed provenance, a compromised build step or registry can substitute a malicious artifact and no one downstream can detect it.
 - **Source:** [SLSA Provenance](https://slsa.dev/spec/v1.0/provenance), [GitHub Artifact Attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds)
+
+## Workflow Security & Lint
+
+### DOP-19 [HIGH] Workflow Lint Layers (actionlint + zizmor)
+CI workflow files get two deterministic lint layers: actionlint for correctness (syntax, expression types, action inputs, embedded shell) and zizmor for security anti-patterns. Complementary, not interchangeable — run both.
+- **Detect:**
+  - `.github/workflows/` exists but neither actionlint nor zizmor runs in CI or pre-commit
+  - Only one layer present (correctness without security, or the reverse)
+- **Fix:** Tool present → run it and merge its findings into the report. Absent → recommend adding both as CI steps (user confirms — never auto-install); the prose rules in this file are the fallback for this run.
+- **Impact:** Hand-rolled workflow review re-derives, on every run, checks these scanners encode deterministically — misses accumulate.
+- **Source:** [Unpacking Security Scanners for GitHub Actions Workflows (arXiv 2601.14455)](https://arxiv.org/html/2601.14455v2); [WordPress Coding Standards Handbook — GitHub Actions](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/github-actions/) (adopts both)
+
+### DOP-20 [CRITICAL] `pull_request_target` With Untrusted Code
+`pull_request_target` workflows run with the base repository's secrets and write token. Combined with a checkout or execution of the PR's untrusted head code, a fork PR can exfiltrate secrets. March 2026: attackers exploited exactly this misconfiguration in the aquasecurity/trivy-action GitHub Action to exfiltrate organization and repository secrets, then used those credentials to backdoor LiteLLM on PyPI.
+- **Detect:**
+  - Workflow triggered on `pull_request_target` checks out the PR's head (untrusted fork) code
+  - The same workflow runs build / install / test steps over that checked-out code
+- **Fix:** Use `pull_request` for anything that executes PR code. Reserve `pull_request_target` for metadata-only jobs (labels, comments) with no checkout of PR code; when PR content must be read, treat it as data, never execute it. zizmor detects this pattern deterministically (DOP-19).
+- **Impact:** Secret exfiltration → downstream supply-chain compromise of everything those credentials can publish.
+- **Source:** [We hardened zizmor's GitHub Actions static analyzer — Security Boulevard (2026-05)](https://securityboulevard.com/2026/05/we-hardened-zizmors-github-actions-static-analyzer/); [Harden your GitHub Actions workflows with zizmor — mattsch.com (2026-03-28)](https://mattsch.com/blog/2026/03/28/harden-your-github-actions-workflows-with-zizmor-dependency-pinning-and-dependency-cooldowns/)

@@ -61,13 +61,15 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 4. **Delete branch on merge** — enabled (`delete_branch_on_merge=true`)
 5. **Auto-merge** — enabled (`allow_auto_merge=true`)
 
-### protection (5 checks)
+### protection (7 checks)
 
 1. **Branch protection enabled** — default branch has protection rules
 2. **Required reviews** — at least 1 required reviewer
 3. **Required status checks** — CI must pass before merge
 4. **Dismiss stale reviews** — enabled when new commits pushed
 5. **Ruleset coverage** — detect via `gh api repos/{owner}/{repo}/rulesets` alongside classic branch protection (`gh api repos/{owner}/{repo}/branches/{branch}/protection`); org plan supports repository rulesets and none exist → recommend migrating to rulesets (layered enforcement, bypass audit log); no ruleset support → classic branch protection is the valid fallback, not a finding
+6. **Ruleset bypass list** — ruleset lists admins/broad roles in its bypass list with no documented justification → HIGH finding; classic "do not allow bypassing" maps to an empty bypass list, and GitHub's auto-migration can pre-populate admins into it — silently weakening protection. Keep the bypass list empty unless a justification note exists. N/A when no ruleset exists
+7. **Push ruleset** — ruleset-only capability with no classic counterpart: blocks restricted file paths (`.env`, secret-pattern files), extensions, and oversized files at the push layer across the entire fork network; plan supports rulesets and none exists → LOW opportunity finding (complements the oss-readiness git-secret-history check); no ruleset support → N/A
 
 ### hygiene (3 checks)
 

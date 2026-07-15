@@ -51,6 +51,7 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 | `--preview` | Show PR plan without creating |
 | `--draft` | Create as draft PR (implies --no-auto-merge) |
 | `--no-tidy` | Skip history tidy, push commits as-is |
+| `--request-review` | After creation, request an automated Copilot review (`gh pr edit --add-reviewer "@copilot"`) |
 
 ## Delegation
 
@@ -130,6 +131,8 @@ Tests fail → stop. Only create PR when tests covering the changed files pass.
 
 **Body:** Summary (1-3 bullets), Changes (grouped, max 5), Breaking Changes (if any). Max 20 lines.
 
+**Size note:** net diff exceeds PR-01 thresholds ([references/rules-pr.md](references/rules-pr.md): 400 changed lines or 10 files) → append body note "Large PR — consider splitting for reviewability" (MEDIUM, informational — never blocks creation).
+
 **Gate:** Net diff analyzed; PR title generated in conventional commit format. If fails → empty `git diff {base}...HEAD` (commits exist but net = 0) → stop with "Net diff is empty — all changes reverted in later commits. Nothing to describe."; ambiguous classification after net-diff override → default to most conservative non-bumping type, append WARN in PR body.
 
 ### Phase 4: Review (skip if --auto)
@@ -160,7 +163,9 @@ Ask user:
 
 ### Phase 5: Create
 
-`gh pr create --title "{title}" --body "{body}" [--draft]`
+1. `gh pr create --title "{title}" --body "{body}" [--draft]`
+2. `--request-review` → `gh pr edit {number} --add-reviewer "@copilot"`; command fails (Copilot review unavailable) → warn, continue.
+3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → offer once: this skill validates only its own PR titles — a CI title gate catches non-agent PRs before they break the squash-merge → release-please changelog chain. Accept → generate the workflow file for review; decline → gap-note in summary. Never write without confirmation.
 
 **Gate:** PR created successfully. `gh pr create` returned PR URL. If fails → stop with explicit error from `gh pr create` output; do not proceed to Merge Setup; suggest: check `gh auth status`, verify the branch was pushed, and re-run /ds-pr --no-tidy to skip the tidy step if the branch state changed.
 
