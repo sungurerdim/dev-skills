@@ -8,7 +8,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - **Owner:** sungurerdim
 - **License:** MIT
 - **Stack:** Markdown only — zero runtime dependencies
-- **Skill count:** 29
+- **Skill count:** 30
 - **Tool support:** Claude Code, OpenCode, Cursor, Copilot, Windsurf, Aider (Agent Skills spec readers; OpenCode consumes `~/.claude/skills/` directly)
 - **Releases:** semver from v1.0.0 (2026-07-15); v2–v5 labels in docs/commits are spec-generation names, not release versions (see README § Versioning)
 - **Active program:** cross-host (spec-gen v5) — see `docs/methodology/cross-host-program.md` (2026-07-15 research: verified findings F1–F11, gaps G1–G6, program P0–P2, ds-rig)
@@ -37,10 +37,10 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | **Comply** | `ds-compliance` | regulatory/privacy/a11y/security audit | A7–A8, C1–C3 |
 | **Monetize** | `ds-productize` | paid-product readiness — monetization/billing integrity · pricing/packaging · GTM baseline | A1–A3 |
 | **Track** | `ds-issue` | GitHub issues: file · sweep · status · do (4 modes) | — (carrier) |
-| **Ship** | `ds-commit` · `ds-pr` · `ds-devops` · `ds-deploy` · `ds-launch` · `ds-repo` | atomic commits · PR description · CI/CD audit · infra configs · store release · repo settings | A4, B4, D6–D8 |
+| **Ship** | `ds-freeze` · `ds-commit` · `ds-pr` · `ds-devops` · `ds-deploy` · `ds-launch` · `ds-repo` | collaborative release-scope triage (ship/defer-hidden/defer-backlog) · atomic commits · PR description · CI/CD audit · infra configs · store release · repo settings | A4, B4, D6–D8 |
 | **Orchestrate** | `ds-ship` · `ds-pipeline` | classify stage → sequence + delegate the above · idea → gated spec/plan/tasks handoff (Spec Kit conductor) | — (carrier) |
 
-Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-mobile`, `ds-pipeline`, `ds-pr`, `ds-productize`, `ds-quality`, `ds-repo`, `ds-research`, `ds-review`, `ds-rig`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
+Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`, `ds-compliance`, `ds-deploy`, `ds-deps`, `ds-devops`, `ds-docs`, `ds-fix`, `ds-freeze`, `ds-frontend`, `ds-init`, `ds-issue`, `ds-launch`, `ds-mobile`, `ds-pipeline`, `ds-pr`, `ds-productize`, `ds-quality`, `ds-repo`, `ds-research`, `ds-review`, `ds-rig`, `ds-ship`, `ds-simplify`, `ds-solve`, `ds-test`, `ds-tune`
 
 `ds-pipeline` is the spec-pipeline conductor: it runs the external [Spec Kit](https://github.com/github/spec-kit) chain (`specify → clarify → plan → tasks → analyze`) with blocking gates (zero open clarifications; per-task `— verify:` contract + EARS on behavioral tasks; zero CRITICAL cross-artifact findings), then commits `specs/{feature}/` with an executor handoff line. Planning-only (never touches source), state-exempt (artifacts + git are the record), artifact-driven resume. Prefix `PIPE` (SKILL-SPEC appendix).
 
@@ -100,7 +100,7 @@ Data: none | Regulations: none
 Audience: public, other-developers | Deploy: git-clone-plus-install-sh
 
 Entry: README.md (docs) ; install.sh (tooling)
-Modules: ds-*/=skill(28); agents/=shared-agent(1); docs/=reference-docs(9-dirs); references/=source-material(2); scripts/=ci-tooling(1)
+Modules: ds-*/=skill(30); agents/=shared-agent(1); docs/=reference-docs(9-dirs); references/=source-material(2); scripts/=ci-tooling(1)
 Data Flow: repo-clone→install.sh→~/.claude/skills→AI-host-invocation
 External: rsync(sync-tool, system-only)
 Toolchain: bash scripts/check-consistency.sh | CI: github-actions (consistency-only) | Container: none

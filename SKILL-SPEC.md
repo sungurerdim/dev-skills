@@ -518,7 +518,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W13: Sycophancy / Authority Deference
 
-**Applies to:** ds-review, ds-research, ds-pr, ds-issue.
+**Applies to:** ds-review, ds-research, ds-pr, ds-issue, ds-freeze.
 
 **Definition:** Abandoning a correct, evidence-backed position under user pushback, or deferring to authority claims (PR text, code comments, "the senior dev said") instead of judging the artifact by its behavior.
 
@@ -535,7 +535,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W14: Context Rot
 
-**Applies to:** ds-ship, ds-solve, ds-issue (any multi-phase run).
+**Applies to:** ds-ship, ds-solve, ds-issue, ds-freeze (any multi-phase run).
 
 **Definition:** Accuracy degrades as the working context grows — even within the model's window — so constraints, instructions, or earlier findings stated early get silently dropped. Distinct from W4 Memory Decay (post-compression staleness).
 
@@ -552,7 +552,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W15: Subagent / Handoff Failure
 
-**Applies to:** ds-ship, ds-solve, ds-issue, ds-research, ds-brief (skills that delegate to phases or subagents).
+**Applies to:** ds-ship, ds-solve, ds-issue, ds-research, ds-brief, ds-freeze (skills that delegate to phases or subagents).
 
 **Definition:** Treating data returned by a delegated phase or subagent as ground truth — specifications, scopes, or findings get distorted or lost across the handoff and errors compound silently.
 
@@ -2020,7 +2020,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | D9 | Breaking-change management (semver/contract) | ds-deps (semver) + ds-review (API contract) | API/schema/export break detection, migration path quality | [Semantic Versioning](https://semver.org/) |
 | D10 | Admin & support operability | ds-backend (admin API + stats) + ds-frontend (admin UI) + ds-deploy (diagnostics + runbooks) + ds-docs (support docs) | Back-office/admin surfaces, operator statistics & reports, diagnostic bundles, error-remediation runbooks | [ITIL 4 Incident/Problem Management](https://www.axelos.com/resource-hub/practice/problem-management-itil-4-practice-guide) + [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) |
 | D11 | Agent environment & tooling rig | ds-rig | Machine-level AI-dev toolset install/update with version pinning, telemetry/call-home hardening, harness allow/ask/deny permission profiles, MCP tool-count token budget | [SLSA](https://slsa.dev/) (supply-chain pinning) + [12-Factor III Config](https://12factor.net/config) |
-| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-tune, ds-research, ds-brief | Orchestration, spec pipeline, commits, PRs — not quality dimensions | n/a — carrier, not a dimension |
+| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-tune, ds-research, ds-brief, ds-freeze | Orchestration, spec pipeline, commits, PRs, release-scope triage — not quality dimensions | n/a — carrier, not a dimension |
 
 ### Amendment
 
@@ -2046,6 +2046,6 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | ds-commit | CMT | ds-backend | BE | ds-issue | ISS |
 | ds-pr | PR | ds-deploy | DEP | ds-quality | QAL |
 | ds-deps | DPS | ds-benchmark | BEN | ds-pipeline | PIPE |
-| ds-productize | PTZ | | | | |
+| ds-productize | PTZ | ds-freeze | FRZ | | |
 
 **Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.

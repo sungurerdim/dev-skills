@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/skills-29-blue)]()
+[![Skills](https://img.shields.io/badge/skills-30-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_OpenCode_·_Cursor_·_Copilot_·_Windsurf_(Devin_Desktop)_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
@@ -13,7 +13,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 
 | Number | Meaning |
 |--------|---------|
-| **29 skills** | One per real lifecycle moment — equip, discover, build, improve, document, comply, monetize, track, ship. Each skill owns defined [taxonomy dimensions](SKILL-SPEC.md#appendix-dimension-coverage-map) (A1–D11: product, engineering, trust, operations) with automated coverage tracking in `/ds-ship` reports |
+| **30 skills** | One per real lifecycle moment — equip, discover, build, improve, document, comply, monetize, track, ship. Each skill owns defined [taxonomy dimensions](SKILL-SPEC.md#appendix-dimension-coverage-map) (A1–D11: product, engineering, trust, operations) with automated coverage tracking in `/ds-ship` reports |
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
@@ -110,6 +110,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 
 | Question | Skill |
 |----------|-------|
+| "Too much to perfect before release — cut scope, decide what ships now vs later." | [`/ds-freeze`](ds-freeze) — collaborative ship/defer-hidden/defer-backlog triage, GitHub-issue-backed backlog, implements only the kept set, syncs docs |
 | "Group my diff into atomic, conventional commits." | [`/ds-commit`](ds-commit) — reads diff, groups logically, writes precise messages |
 | "Write a PR description that reflects the net diff, not the journey." | [`/ds-pr`](ds-pr) — net-diff analysis, no commit-by-commit narrative |
 | "Audit my CI/CD — broken steps, unsigned builds, dep audits." | [`/ds-devops`](ds-devops) — pipeline integrity, signing, caching |
@@ -127,6 +128,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | **New project** | `ds-init` → `ds-quality` → `ds-blueprint` → `ds-test` → `ds-commit` |
 | **Existing project hygiene** | `ds-blueprint` → `ds-review --tactical` → `ds-simplify` → `ds-fix` → `ds-test` → `ds-commit` |
 | **Pre-launch** | `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
+| **Pre-launch, scope too big** | `ds-freeze` → `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
 | **Paid product / SaaS** | `ds-productize` → `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
 | **Solo-dev daily loop** | `ds-fix` → `ds-test` → `ds-commit` → `ds-pr` |
 | **Stuck on a hard bug** | `ds-solve` |
@@ -175,7 +177,7 @@ Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orches
 
 ```bash
 git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
-./install.sh                                # all 29 skills + shared agent -> ~/.claude
+./install.sh                                # all 30 skills + shared agent -> ~/.claude
 ./install.sh --skills ds-review,ds-commit  # or only the ones you want
 ./install.sh --project /path/to/other-repo  # install into that repo's .claude instead of ~/.claude
 ./install.sh --check                        # later: installed copy in sync with the repo?
@@ -211,7 +213,7 @@ Install one skill, several, or all 28 — they are independent.
 
 ## Host support
 
-All 29 skills are capability-abstracted markdown following the open [Agent Skills spec](https://agentskills.io) — same instructions, any of the 6 hosts (and any other host that reads the spec). The one exception is `ds-quality`, whose enforcement mechanism differs by host because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for the host matrix, and [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research-backed cross-host roadmap (v5).
+All 30 skills are capability-abstracted markdown following the open [Agent Skills spec](https://agentskills.io) — same instructions, any of the 6 hosts (and any other host that reads the spec). The one exception is `ds-quality`, whose enforcement mechanism differs by host because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for the host matrix, and [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research-backed cross-host roadmap (v5).
 
 ## How skills work
 

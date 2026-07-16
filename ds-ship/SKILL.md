@@ -34,6 +34,7 @@ ds-ship activates at **explicit milestone gates**, not as a generic "audit every
 | "promise vs reality across the whole project" | "what dependencies are outdated" (→ ds-deps) |
 | "a new model is out — re-optimize the whole project" (`--uplift`) | "optimize one metric with the new model" (→ ds-tune) |
 | "orchestrate the full ship cascade for this milestone" | "turn this feature idea into a plan" (→ ds-pipeline) |
+| "simplify the release, then run the full cascade on the narrowed scope" (`--scope-freeze`) | "just decide what ships now vs later, nothing else" (→ ds-freeze standalone) |
 
 ### Cascade activation — two-confirmation gate
 
@@ -82,6 +83,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 | `--clean` | Delete existing state, start fresh |
 | `--clean-all` | Delete `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
 | `--no-pr-suggest` | Skip Phase 5c PR suggestion (solo-dev main-only workflow) |
+| `--scope-freeze` | Force the Scope-Freeze branch: run `/ds-freeze` first, narrow every later phase to its `ship` set |
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Full (recommended) — full ship cascade across phases / Preview — plan only, no delegated changes / Resume — continue from saved state / (Cancel). A disambiguating flag skips the menu.
 
@@ -101,6 +103,8 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 **Feature-planning branch (independent of stage):** if the user's immediate ask is a new feature whose design is still open (no `specs/{feature}/spec.md` or equivalent plan exists) → route the planning leg to `/ds-pipeline {idea}` first, ahead of any implementation-oriented skill in the default sequence; resume the stage's default sequence once `specs/{feature}/tasks.md` exists.
 
 **Monetization branch (independent of stage):** if paid-product intent holds (stated in the Phase 0 ambiguity block, or billing/paywall surfaces detected in source) → insert `/ds-productize --audit` into Phase 2 after the stack-specific skills; no billing surface yet (greenfield) → `/ds-productize --plan` instead. Free/internal intent → skip entirely.
+
+**Scope-Freeze branch (independent of stage):** if the user's ask signals release scope reduction (e.g. "simplify the release", "cut this down to an MVP", "too much to perfect every detail before we ship") or `--scope-freeze` is passed → insert `/ds-freeze` as the very first delegation, before Phase 1 Ideal-vs-Current Gap. Wait for its manifest. The frozen `ship` set becomes the working scope for every later phase: Phase 1's gap table, Phase 2's audits, and Phase 5's launch gates all operate against the narrowed manifest, not the full backlog — `defer-backlog`/`defer-hidden` items are excluded entirely (they already carry their own tracking issue from ds-freeze). No scope-reduction signal → skip entirely, ds-ship's own Phase 1 gap-closing runs against the full feature set as usual.
 
 | Project type | Additional rules |
 |--------------|------------------|
@@ -155,7 +159,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
    - `implemented-not-documented` — code has X; no doc mentions it
    - `drift` — both exist; behavior diverges (default changed, signature changed, removed flag still listed)
 
-8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, monetization intent (free / paid product / internal), performance targets, compliance scope, deprecated features, renamed modules, **ecosystem integrations (Google Workspace / Apple ecosystem / none)**. Ask. Wait.
+8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, monetization intent (free / paid product / internal), performance targets, compliance scope, deprecated features, renamed modules, **ecosystem integrations (Google Workspace / Apple ecosystem / none)**, **release scope reduction intent (full backlog vs frozen MVP set — triggers the Scope-Freeze branch)**. Ask. Wait.
 
 9. **Integration signal reading.** Read blueprint profile's `Integrations:` field. If `google-workspace` or `apple-ecosystem`, note which skills have conditional A9 rules (ds-backend, ds-mobile, ds-compliance, ds-launch, ds-frontend) and include these in the Dimension Coverage table as `conditional (integrations active)`. If absent or `none`, note A9 as `N/A (integrations signal: none)`.
 
