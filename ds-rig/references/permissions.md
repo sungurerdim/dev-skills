@@ -46,20 +46,34 @@ Writes/deletes/permission-changes targeting these paths are **deny** regardless 
 
 **OS instantiation rule:** path separators, home-dir notation (`~` vs `%USERPROFILE%`/`$env:USERPROFILE`), and case-sensitivity follow the detected OS; on WSL both the Linux column and mounted Windows paths (`/mnt/c/Windows`, `/mnt/c/Users/*/`) are protected.
 
-### WORKSPACE AUTONOMY (allow — full permissions inside the active project)
+### WORKSPACE AUTONOMY (allow — full permissions inside *whichever* project is open, written once, globally)
 
-Within the harness-detected active project root (and its declared temp/build dirs): **allow file creation/edit/delete, project-local commands, test/build/lint runs without prompts** — friction-free by design, for every harness whose surface can express a path scope (Claude Code path-scoped permissions; Codex workspace-write sandbox mode; Kilo Sandbox write-confinement; others via matcher prefixes).
+The rule is expressed with **cwd-relative path matchers** (`./**`, unprefixed globs — never an absolute path baked to one repo) written a single time into the harness's **global/user-scope** config. Because the matcher is relative, it re-resolves against whatever directory the harness is currently running in — opening a different project the next day auto-inherits the same rule with zero new entry, zero per-project file, zero repeat run of this skill. This is the mechanism, not a description of an outcome: **ds-rig never writes a project-scoped or repo-local permission file, and never hardcodes a specific project path into a rule.** A harness whose surface cannot express a *relative* scope (only accepts absolute per-project paths) cannot host this rule — gap-note it instead of falling back to a project-local file.
+
+Effect: **allow file creation/edit/delete, project-local commands, test/build/lint runs without prompts** inside the project root currently open (and its declared temp/build dirs) — friction-free by design, for every harness whose surface can express a relative path scope (Claude Code path-scoped permissions; Codex workspace-write sandbox mode; Kilo Sandbox write-confinement; others via matcher prefixes).
 
 Still enforced INSIDE the workspace (command-class risks are not path risks):
 - RC-3 (sudo/escalation), RC-4 (unpinned remote code), RC-6 (credential reads), RC-7 (exfiltration), RC-10 (permission-config edits) remain deny.
 - RC-5 git remote-destruction and RC-11 push/publish remain deny/ask — the working tree is free, the shared remote is not.
 - Optional strictness (offer, default off): ask-gate reads of `.env*` / `*key*` / `secrets.*` files even inside the workspace.
 
+### OFFICIAL HARNESS DIRECTORIES (allow — reads, everywhere, no ask)
+
+Reads of the harness's own config, skill, plugin, and agent directories — the same paths named in the **Harness + rig configs** protected-path row (`~/.claude` incl. `skills/`, `plugins/`, `agents/`; `~/.codex`; `~/.gemini`; `~/.copilot`; `~/.config/ds-rig`; per-OS equivalents) — are **ALLOW, never ask**. A harness reading its own shipped or installed skill/plugin/agent definitions is not a trust boundary; prompting on it is friction with no security value and must not be written into the profile. **Writes/deletes to these paths remain DENY (RC-10)** except this skill's own gated, backed-up, additive writes — read and write are governed independently; loosening this row never extends to write access.
+
 ### ALLOW (read-only + rig tools, everywhere)
 
-File reads within workspace · `git status/log/diff/show` · `{rig tool} --version` · rtk-wrapped read commands · LSP queries · linters/formatters in check mode.
+File reads within workspace · official harness directories (above) · `git status/log/diff/show` · `{rig tool} --version` · rtk-wrapped read commands · LSP queries · linters/formatters in check mode.
 
 **Loosening any existing deny → never automatic; flag as needs-user-decision.**
+
+### GLOBAL-ONLY WRITE SCOPE (binding on every phase of this skill)
+
+ds-rig writes permission entries **exclusively to each harness's user/global-scope config file** — never to a project- or repo-scoped permission file, regardless of which project is open when the skill runs. This is what makes the rig machine-level: one write, every project inherits it via the cwd-relative matchers above. Concretely:
+
+- Target the global path in the table below; never `.claude/settings.local.json` or a project's `.claude/settings.json`, never `.github/hooks/*.json`, never a project-root `kilo.jsonc` — even if one already exists and looks like the natural place to add a rule.
+- A harness whose *only* documented permission surface is project/repo-scoped (no user-global file) cannot receive a workspace-autonomy write from this skill — gap-note it (see per-harness table) rather than writing the project file.
+- If a project-local permission file is found to already exist (user's own prior config, not this skill's), leave it untouched and unread-into — it is out of scope, not a merge target.
 
 ## Honest limits (state these in the report)
 
@@ -69,16 +83,18 @@ File reads within workspace · `git status/log/diff/show` · `{rig tool} --versi
 
 ## Per-harness surfaces (verified state, 2026-07-15)
 
-| Harness | Surface | Mechanism | Notes |
-|---------|---------|-----------|-------|
-| Claude Code | `settings.json` permissions (allow/deny/ask lists) + `PreToolUse` hooks | declarative lists + blocking hooks (exit 2 / decision JSON) | merge with jq; never clobber `hooks.*` entries; mirror RC-1..10 in a hook for chain-resistance |
-| Codex CLI | `permission_mode` + `PermissionRequest`/`PreToolUse` hooks (`~/.codex/hooks.json`) | hook decisions; project hooks need trusted project | hooks are hash-pin trusted per user; `PreToolUse` intercepts simple shell + apply_patch + MCP, not every path — note the gap |
-| Gemini CLI | `settings.json` hooks — `BeforeTool` block/rewrite | exit 0+`{"decision":"deny"}` or exit 2 | Antigravity-CLI transition for unpaid tiers — re-verify surface |
-| GitHub Copilot | `.github/hooks/*.json` / `~/.copilot/hooks/` — `preToolUse` returns allow/deny/ask | only blocking event; no matchers — RC filtering lives in the script; provide bash+powershell | `toolArgs` is a JSON string — parse |
-| Kilo Code | `kilo.jsonc` `permission` (allow/ask/deny, last-match-wins) + OS-level Kilo Sandbox | declarative patterns + write-confinement | the sandbox is the strongest deterministic guarantee in the thin-harness class |
-| OpenCode | plugin hooks + config | verify current docs at apply time (block semantics UNVERIFIED at catalog time) | reads `~/.claude/skills/` for skills |
-| Cursor / Windsurf (Devin Desktop) | no scriptable deny surface confirmed | — | gap-note; compensating control: ds-quality pre-commit arm + RC list in rules file (advisory only — say so) |
-| Aider | none | — | gap-note; compensating control: ds-quality Aider arm (edit-time) + git hooks |
+**ds-rig writes only the Global config path column. The Project-local equivalent column exists for detection/documentation only — never a write target; a harness whose only surface is project-local gets a gap-note instead.**
+
+| Harness | Global config path (ds-rig's only write target) | Project-local equivalent (never touched) | Mechanism | Notes |
+|---------|---------------------------------------------------|-------------------------------------------|-----------|-------|
+| Claude Code | `~/.claude/settings.json` | `.claude/settings.json`, `.claude/settings.local.json` | declarative allow/deny/ask lists + `PreToolUse` hooks | merge with jq; never clobber `hooks.*` entries; mirror RC-1..10 in a hook for chain-resistance; workspace-autonomy rules use cwd-relative matchers here, not per-project files |
+| Codex CLI | `~/.codex/hooks.json` | project-level hooks (need trusted project) | hook decisions | hooks are hash-pin trusted per user; `PreToolUse` intercepts simple shell + apply_patch + MCP, not every path — note the gap |
+| Gemini CLI | `~/.gemini/settings.json` | project `.gemini/settings.json` | `BeforeTool` block/rewrite hooks | exit 0+`{"decision":"deny"}` or exit 2; Antigravity-CLI transition for unpaid tiers — re-verify surface |
+| GitHub Copilot | `~/.copilot/hooks/` | `.github/hooks/*.json` (repo-scoped — out of scope for this skill) | `preToolUse` returns allow/deny/ask | only blocking event; no matchers — RC filtering lives in the script; provide bash+powershell; `toolArgs` is a JSON string — parse; if only the repo-scoped surface is available on this machine → gap-note, do not write it |
+| Kilo Code | global Kilo settings (verify current path at apply time) | project-root `kilo.jsonc` (out of scope for this skill) | declarative patterns + OS-level Kilo Sandbox | the sandbox (global, machine-level) is the strongest deterministic guarantee in the thin-harness class; if only `kilo.jsonc` exists → gap-note |
+| OpenCode | plugin hooks + global config (verify current docs at apply time) | project config | block semantics UNVERIFIED at catalog time | reads `~/.claude/skills/` for skills — apply once, covers both |
+| Cursor / Windsurf (Devin Desktop) | no scriptable deny surface confirmed | — | — | gap-note; compensating control: ds-quality pre-commit arm + RC list in rules file (advisory only — say so) |
+| Aider | none | — | — | gap-note; compensating control: ds-quality Aider arm (edit-time) + git hooks |
 
 ## Apply procedure (every harness)
 
