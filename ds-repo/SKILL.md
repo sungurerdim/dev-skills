@@ -46,6 +46,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 | `--preview` | Audit only, no changes |
 | `--scope={x}` | Specific scope(s), comma-separated |
 | `--oss-ready` | OSS-readiness mode (see `oss-readiness` scope below) |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL + unmerged-branch deletion still confirm per item) |
 
 No flags → present mode selection.
 
@@ -73,9 +74,9 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 
 ### hygiene (3 checks)
 
-1. **Stale branches** — no open PR + last commit > 30 days ago
-2. **Merged branches** — already merged into default but not deleted
-3. **Orphan remotes** — remote-tracking refs whose upstream no longer exists
+1. **Stale branches** — no open PR + last commit > 30 days ago. UNMERGED work — deletion loses commits: always `needs-approval`, confirmed per item even under `--auto`/`--force-approve`; never bulk-deleted
+2. **Merged branches** — already merged into default but not deleted (commits preserved in base — safe to bulk-delete after one confirmation)
+3. **Orphan remotes** — remote-tracking refs whose upstream no longer exists (`git remote prune` — safe)
 
 ### metadata (7 checks)
 
@@ -233,7 +234,7 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 - Scope boundary — only modify what was requested
 - Every finding gets a disposition (FRC)
 - Every scope check evaluated and accounted for (DSC)
-- Destructive changes (branch deletion, permission changes) require confirmation unless `--auto`
+- Destructive changes: merged-branch deletion + reversible settings may batch under `--auto`; UNMERGED (stale) branch deletion, permission changes, and visibility changes always confirm per item — no flag bypasses this (All-Affordance rule 2)
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery

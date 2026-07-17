@@ -47,7 +47,7 @@ Run `/ds-backend`, or ask to review your API, database schema, or auth flow.
 ## Features
 
 - Four backend domains in one skill (API + DB + Auth + Data Pipeline)
-- OpenAPI 3.0+ spec generation
+- OpenAPI 3.1+ spec generation (3.2-aware — QUERY method, device-flow, streaming payloads)
 - Migration safety checks (no silent data loss)
 - OWASP API Top 10 security checks
 - Privacy-first: flags PII without encryption, excessive data exposure

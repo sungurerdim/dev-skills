@@ -39,7 +39,7 @@ rm -rf /tmp/dev-skills
 | dead-code | Exports with 0 references |
 | single-caller | Exports referenced exactly once |
 | fallback | Backward-compat branches with no live hit |
-| dead-branch | Feature flags with only one path ever taken |
+| dead-branch | Feature flags whose value is constant across every config source — untaken branch is dead |
 | premature-abstraction | Generics / base classes / wrappers on ≤3 usages |
 | quarantine | `// removed` / `// legacy` / `// deprecated` / `_unused` markers |
 | test-realism | `a@b.c`, `$1`, length-1 "collections" |

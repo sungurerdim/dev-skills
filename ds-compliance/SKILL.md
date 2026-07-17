@@ -5,7 +5,7 @@ description: Security and regulatory compliance — OWASP, privacy laws, data pr
 
 # /ds-compliance
 
-Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 98 rules across 9 compliance domains with file:line precision.
+Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 104 rules across 9 compliance domains with file:line precision.
 
 **Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and internationalization.
 
@@ -49,6 +49,8 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 | `--scope={list}` | security, privacy, regulatory, web, network, arch, perf, a11y, i18n, or `all` |
 | `--type={t}` | Override auto-detection: `web`, `api`, `cli`, `library` |
 | `--secrets-migrate` | Interactive rotation / vault migration walkthrough for hardcoded secrets |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present mode selection.
 
@@ -72,7 +74,7 @@ Every secret is its own needs-approval item. `--auto` lists them, marks all `ski
 |-------|---------------|
 | security | OWASP Top 10, secrets, TLS, input validation |
 | privacy | Data collection, consent, retention, PII handling |
-| regulatory | GDPR, CCPA, KVKK, LGPD, PIPL, UK GDPR, HIPAA, EU AI Act, framework-specific |
+| regulatory | GDPR, CCPA, KVKK, LGPD, PIPL, UK GDPR (+DUAA), HIPAA, COPPA, EU AI Act, EU Data Act, EU CRA, PCI DSS, framework-specific |
 | web | CSP, CORS, XSS, CSRF prevention |
 | network | TLS/transport security, API protection, DoS resilience |
 | arch | Audit logging, boundary/input validation, dependency security |
@@ -196,10 +198,10 @@ Architecture: {detected-summary}
 | # | Rule | File:Line | Issue | Suggested Fix |
 
 ### Summary
-| Category | CRITICAL | HIGH | MEDIUM | LOW | Total |
+| Category | BLOCKER | CRITICAL | HIGH | MEDIUM | LOW | Total |
 ```
 
-**Severity:** CRITICAL > HIGH > MEDIUM > LOW. Uncertain → choose lower.
+**Severity:** BLOCKER > CRITICAL > HIGH > MEDIUM > LOW. BLOCKER = legally mandated gap with a citable source (regulation article / store policy) — feeds ds-ship's mandated-blocker test (SKILL-SPEC §15); ADVISORY findings never block and never count toward blockers. Uncertain → choose lower.
 
 **Gate:** Report with findings + severities + summary. If fails → findings list empty because all domains `inconclusive` or `N/A` → print report with single section `"No verifiable findings — all domains inconclusive or reference files missing"`, list domains + skip reason, exit with status `WARN`.
 

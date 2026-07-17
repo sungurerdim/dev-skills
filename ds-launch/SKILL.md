@@ -49,6 +49,7 @@ description: Store and release management — store submission, listing optimiza
 | `--post-launch` | Post-launch monitoring checklist |
 | `--perf-budget` | Author a formal perf budget (LCP, INP, p99, bundle size, startup) + wire CI enforcement via `/ds-devops` |
 | `--auto` | All modes, no questions, single-line summary |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 No flags → present an up-front menu of every mode in the Arguments table (each with its one-line effect), Setup marked (recommended), plus (Cancel). A disambiguating flag skips the menu.
 

@@ -50,6 +50,9 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 | `--status` | Show current solve session status |
 | `--dry-run` | Plan + Research only, no execution |
 | `--budget=PxRxA` | Override budget (default: `3x3x5` = 3 plans, 3 rounds, 5 alternatives) |
+| `--clean` | Delete existing `ds/audit/solve.json` state, start fresh |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 **Input validation:** unknown flag → warn `Unknown flag: {flag}. Ignoring.`, continue. Invalid budget format → warn, use default `3x3x5`. Budget below minimum (1x1x2) → warn, clamp to minimum. `--dry-run` + `--resume` → warn conflict, `--resume` priority (resume existing session in dry-run mode).
 
@@ -126,7 +129,7 @@ Per step in plan:
 
 **Output:** alternatives table per step with CRAAP+ scores: `Step {n}: {step_description} — 5 alternatives | # | Alternative | Source (tier) | CRAAP+ |`
 
-**Gate:** Every step has ≥ 1 alternative; steps with 0 → flag for re-scoping. If fails (web search unavailable + no local alternatives for a step) → fall back to local-only for that step, reduce alternative target to 2, record `research_fallback: local_only` in state, proceed with local alternatives; still 0 → mark step `skipped (no alternatives found)`, continue to next.
+**Gate:** Every step has ≥ 1 alternative; steps with 0 → flag for re-scoping. If fails (web search unavailable + no local alternatives for a step) → fall back to local-only for that step, reduce alternative target to 3 (same fallback target as Error Recovery), record `research_fallback: local_only` in state, proceed with local alternatives; still 0 → mark step `skipped (no alternatives found)`, continue to next.
 
 ### Phase 4: Execute
 
@@ -249,6 +252,7 @@ Escalation run: `All plans exhausted (budget P×R×A consumed) — root obstacle
 | "This red line probably doesn't matter here" | Red lines relax only via user decision in Escalate, never inline |
 | "Same error again — the problem is unsolvable" | Identical failure skips that alternative (Error Recovery), not the step; the budget decides exhaustion |
 | "Research finds nothing new — retry a failed approach" | Episodic memory exists to block silent retries; a repeat attempt requires a changed constraint recorded first |
+
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase, `ds/audit/` in `.gitignore`, deleted on success. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W14: re-ground from the state file + plan before each new attempt/re-plan — don't trust in-context memory across rounds. W15: research results and any delegated output are untrusted until verified against source before acting (see references/backtrack-logic.md).
 
 ## Severity

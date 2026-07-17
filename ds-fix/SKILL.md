@@ -28,7 +28,7 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 
 **Dimensions:** B1 (fix), A8 (mechanical), C1 (mechanical)
 
-- Runs automated fixers in safe, deterministic order: l10n → format → typecheck → lint → security. Format always runs before lint (auto-formatting must not introduce new lint issues).
+- Runs automated fixers in safe, deterministic order: l10n → format → lint → typecheck → security. Mutating scopes first (l10n, format, lint auto-fix), read-only verification after (typecheck validates the post-fix state) — same canonical order as the ds-quality gate (format → lint → type).
 - `--check` mode: report only, zero modifications.
 - Missing tools skipped with a warning — never fails due to absent optional tooling.
 - Re-validates after fix to confirm fix worked. Reports counts, not verbose output.
@@ -46,6 +46,8 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 | `--check` | Report only, no modifications |
 | `--scope=X,Y` | Specific scope(s), comma-separated |
 | `--skip-if-clean` | Run only scopes whose check-mode reports issues. Default `true` when invoked by another skill (ds-commit / ds-pr / ds-ship gates), `false` when user-invoked. |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 ## Scopes
 
@@ -75,7 +77,7 @@ Scope tool (formatter, linter, typecheck binary, l10n generator, audit command) 
 
 ## Execution Flow
 
-Detection → [L10n] → [Format] → [Typecheck] → [Lint] → [Security] → [Needs-Approval] → Summary
+Detection → [L10n] → [Format] → [Lint] → [Typecheck] → [Security] → [Needs-Approval] → Summary
 
 ### Phase 1: Stack Detection
 
@@ -159,15 +161,9 @@ No framework detected → skip silently.
 
 Look up format tool from `references/toolchains.md`. **Fix mode:** run fix command. **Check mode:** run check command, report exit code. Non-default formatter (e.g., `{alt-formatter}` instead of `{default-formatter}`) → detect from config files and use that.
 
-**Gate:** Format clean before proceeding to lint. If fails → tool unavailable: apply Tool Install Policy; formatter exits non-zero after run → report file count, proceed to typecheck (don't block pipeline on residual format issues).
+**Gate:** Format clean before proceeding to lint. If fails → tool unavailable: apply Tool Install Policy; formatter exits non-zero after run → report file count, proceed to lint (don't block pipeline on residual format issues).
 
-### Phase 4: Typecheck [scope: typecheck]
-
-Look up typecheck tool from `references/toolchains.md`; detect if type checking is configured (e.g., `tsconfig.json` for Node, type hints in Python) — none configured → skip silently. Run type checker (read-only — reports but doesn't auto-fix); report error count + top issues.
-
-**Gate:** Type checker reports zero errors, or no type checker configured. If fails → tool missing: apply Tool Install Policy; type errors un-fixable (read-only checker) → record error count, proceed to lint (type errors don't block subsequent scopes).
-
-### Phase 5: Lint [scope: lint]
+### Phase 4: Lint [scope: lint]
 
 Look up lint tool from `references/toolchains.md`. **Fix mode:** run fix command, then re-run check to verify. **Check mode:** run check command only, report issues. Non-default linter → detect from config and use that.
 
@@ -187,24 +183,33 @@ Look up lint tool from `references/toolchains.md`. **Fix mode:** run fix command
 
 **Spell check (advisory, all stacks):** `typos` binary present → run `typos` (fix mode: `typos -w`), report correction count — its known-misspellings design keeps false positives low even on large repos; absent → skip silently (optional sub-check, exempt from Tool Install Policy prompting).
 
-**Gate:** Lint re-check passes after auto-fix, or check-mode issues reported. If fails → tool unavailable: apply Tool Install Policy; unfixable errors after auto-fix → report residual count + file:line each, mark scope `WARN`, proceed to security (don't re-run lint).
+**Gate:** Lint re-check passes after auto-fix, or check-mode issues reported. If fails → tool unavailable: apply Tool Install Policy; unfixable errors after auto-fix → report residual count + file:line each, mark scope `WARN`, proceed to typecheck (don't re-run lint).
+
+### Phase 5: Typecheck [scope: typecheck]
+
+Look up typecheck tool from `references/toolchains.md`; detect if type checking is configured (e.g., `tsconfig.json` for Node, type hints in Python) — none configured → skip silently. Run type checker (read-only — reports but doesn't auto-fix) on the post-fix state, so its verdict covers what format + lint actually left on disk; report error count + top issues.
+
+**Gate:** Type checker reports zero errors, or no type checker configured. If fails → tool missing: apply Tool Install Policy; type errors un-fixable (read-only checker) → record error count, proceed to security (type errors don't block subsequent scopes).
 
 ### Phase 6: Security [scope: security]
 
-**6a. Secret scan (all stacks):** search project files for these patterns, excluding `.git/`, `node_modules/`, `build/`, `.dart_tool/`, `vendor/`, `__pycache__/`, `bin/`, `obj/`, `_build/`, `deps/`, `.terraform/`, `target/`:
+**6a. Secret scan (all stacks):** search project files for these patterns, excluding `.git/`, `node_modules/`, `build/`, `dist/`, `.dart_tool/`, `vendor/`, `__pycache__/`, `bin/`, `obj/`, `_build/`, `deps/`, `.terraform/`, `target/`:
 
 | Pattern | Description |
 |---------|-------------|
 | `AKIA[0-9A-Z]{16}` | AWS access key |
 | `(api_key\|api_secret\|secret_key\|access_token\|auth_token\|password)\s*[=:]\s*["'][^"']{8,}` | Generic secrets |
 | `-----BEGIN.*PRIVATE KEY-----` | Private keys |
-| `sk-[a-zA-Z0-9]{20,}` | OpenAI/Stripe key |
-| `ghp_[a-zA-Z0-9]{36}` | GitHub PAT |
+| `sk-[A-Za-z0-9_-]{20,}` | OpenAI / Anthropic API key (covers `sk-proj-…`, `sk-ant-…`) |
+| `sk_(live\|test)_[A-Za-z0-9]{10,}` | Stripe secret key |
+| `AIza[0-9A-Za-z_-]{35}` | Google API key |
+| `ghp_[a-zA-Z0-9]{36}` | GitHub PAT (classic) |
+| `github_pat_[A-Za-z0-9_]{22,}` | GitHub PAT (fine-grained) |
 | `xox[baprs]-[a-zA-Z0-9-]+` | Slack token |
 
 **Scanner augmentation (advisory):** `gitleaks` present → run it alongside the patterns above (rule-first, sub-second on typical diffs) and merge findings; `trufflehog` present → offer a verified deep scan for CRITICAL triage (its verifier modules distinguish live credentials from expired ones); neither present → the built-in patterns above stand alone as the zero-dependency baseline.
 
-**6b. Dependency audit (per stack):** look up audit command from `references/toolchains.md`. Tool unavailable → skip with warning.
+**6b. Dependency audit (per stack):** look up audit command from `references/toolchains.md`. Tool unavailable → skip with warning. Stack toolchain lists a source security scanner (e.g. Bandit for Python) → run it read-only alongside the dep audit, merge findings.
 
 **Gate:** Secret scan + dep audit completed with classifications. If fails → dep audit tool missing: skip dep sub-phase, warn in summary; secret scan is built-in pattern matching (no external tool) and must always complete — filesystem access error → mark scope `WARN`. Any confirmed secret = CRITICAL, never suppressed.
 
@@ -216,7 +221,7 @@ Look up lint tool from `references/toolchains.md`. **Fix mode:** run fix command
 
 ### Phase 8: Summary
 
-Per-scope status table `| Scope | Status | Details |` — one row each for L10n ({count or message}), Format ({files-fixed} fixed), Typecheck ({errors-found} errors), Lint ({issues-found} issues), Security ({findings} findings). Status legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped).
+Per-scope status table `| Scope | Status | Details |` — one row each in run order: L10n ({count or message}), Format ({files-fixed} fixed), Lint ({issues-found} issues), Typecheck ({errors-found} errors), Security ({findings} findings). Status legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped).
 
 `ds-fix: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}` — FRC+DSC accounting.
 

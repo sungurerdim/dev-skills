@@ -9,6 +9,7 @@ AI instruction files where the Blueprint Profile is written. Check in order, use
 | File | Tool |
 |------|------|
 | `CLAUDE.md` | Claude Code |
+| `AGENTS.md` | Cross-tool standard (OpenCode, Codex CLI, and other AGENTS.md readers) |
 | `.cursorrules` | Cursor |
 | `.cursor/rules/*.md` | Cursor (rules directory) |
 | `.github/copilot-instructions.md` | GitHub Copilot |

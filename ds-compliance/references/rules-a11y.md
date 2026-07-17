@@ -8,11 +8,13 @@ Target: WCAG 2.2 AA (ISO/IEC 40500:2025) — the enforceable baseline that EAA/A
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Accessibility** | A11Y-01–08 (3 CRITICAL, 3 MAJOR, 2 MEDIUM) | ~10 |
+| **Accessibility** | A11Y-01–08 (3 CRITICAL, 3 HIGH, 2 MEDIUM) | ~10 |
 
 ---
 
 ## Accessibility
+
+**Regulatory framing (2026):** EAA is in active enforcement since 28 Jun 2025 (first court ruling: France/Carrefour — 71% RGAA conformance rejected as a defense, daily penalties imposed; NL/SE/DK market-surveillance audits running). The harmonized EU standard is still EN 301 549 → WCAG **2.1** AA (the WCAG-2.2-based EN 301 549 v4.1.1 was expected in 2026 but not yet OJ-harmonized as of Jul 2026). US ADA Title II likewise mandates WCAG **2.1** AA; DOJ interim final rule (20 Apr 2026) extended compliance to 26 Apr 2027 (population ≥50k) / 26 Apr 2028 (others). Auditing against WCAG 2.2 AA (as these rules do) satisfies both regimes with margin.
 
 ### A11Y-01 [CRITICAL] Semantic Labels on Interactive Elements
 All interactive elements (buttons, links, inputs, toggles) must have accessible labels.
@@ -44,7 +46,7 @@ Text must meet minimum contrast ratios against background.
 - **Fix:** Adjust colors to meet WCAG AA ratios (4.5:1 normal text, 3:1 large text/UI components)
 - **Source:** WCAG 2.2 SC 1.4.3 Contrast (Minimum)
 
-### A11Y-04 [MAJOR] Image Alt Text
+### A11Y-04 [HIGH] Image Alt Text
 All meaningful images must have alt text. Decorative images must be marked as such.
 - **Detect:**
   - `<img>` without `alt` attribute
@@ -54,7 +56,7 @@ All meaningful images must have alt text. Decorative images must be marked as su
 - **Fix:** Add descriptive `alt` text or mark as decorative (`alt=""`, `role="presentation"`)
 - **Source:** WCAG 2.2 SC 1.1.1 Non-text Content
 
-### A11Y-05 [MAJOR] Form Error Identification
+### A11Y-05 [HIGH] Form Error Identification
 Error messages must be programmatically associated with their form fields.
 - **Detect:**
   - Form validation errors displayed without `aria-describedby` or `aria-errormessage` association
@@ -63,7 +65,7 @@ Error messages must be programmatically associated with their form fields.
 - **Fix:** Associate errors with fields via `aria-describedby`, announce errors with live regions
 - **Source:** WCAG 2.2 SC 3.3.1 Error Identification
 
-### A11Y-06 [MAJOR] Heading Hierarchy
+### A11Y-06 [HIGH] Heading Hierarchy
 Page headings must follow logical hierarchy (no skipped levels).
 - **Detect:**
   - `<h1>` followed by `<h3>` (skipping `<h2>`)

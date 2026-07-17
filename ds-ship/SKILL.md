@@ -62,6 +62,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 - **Sequential delegation is deliberate:** one skill at a time, writes single-threaded, each delegate returning a compressed findings diff — the shape that holds for coupled, source-mutating work; keep it — parallel fan-out of write-owning delegates is a rejected design, not a pending optimization. Cost scales linearly with delegation count, not combinatorially.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - Findings absent or stale → invoke `/ds-blueprint` before any other delegation.
+- **Re-run policy (every invocation = a new cycle):** each `/ds-ship` run re-executes every scan in its sequence from scratch — a previous run minutes or days ago is never a reason to skip a phase, delegate, or scope ("already ran recently" is a W11-class rejected reason). Prior-cycle `ds/audit/` artifacts and reports are consumed only as diff context: previously-flagged → resolved or still present? previously-clean → regressed? A re-run also picks up improved skill versions — repeating the full sweep is the point, not waste.
 - Artifacts: `ds/audit/findings.md` (via delegated skills) + own `ds/audit/report.md` (+ `ds/audit/report.html` under `--html`). No logs, traces, history, dumps.
 - Two-gate fix: Category A autonomous, Category B batched approval.
 - Project-type exclusivity: mobile → `/ds-mobile` authoritative (skip `/ds-compliance` overlap); web/backend → `/ds-compliance` authoritative; library/CLI → skip UI-centric skills.
@@ -95,7 +96,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | spec-only | ds-init → ds-blueprint → ds-benchmark |
 | scaffold | ds-blueprint → ds-init → ds-fix |
 | implementation | ds-blueprint → ds-review → ds-test → ds-simplify → ds-fix |
-| review-pending | ds-review → ds-compliance OR ds-mobile → ds-frontend/backend → ds-simplify |
+| review-pending | ds-review → ds-compliance OR ds-mobile → ds-frontend + ds-backend (per project type) → ds-simplify |
 | pre-launch | ds-devops → ds-deploy → ds-launch → ds-repo (--oss-ready on public intent) |
 | launched | ds-tune → ds-deps (periodic hygiene) |
 | frozen | ds-blueprint → ds-deps (security-only) |

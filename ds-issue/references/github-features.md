@@ -39,7 +39,7 @@ gh issue view <n> --repo <slug> --json number,title,body,labels,state
 
 History / abandoned-decision docs (from the adapter's `historyDocs`) are read as files, not via `gh` — a superseded decision is not an issue.
 
-## Create / refine (Phase 5)
+## Create / refine (Phase 4)
 
 ```bash
 # create — body via heredoc (no temp file)

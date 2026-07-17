@@ -35,7 +35,7 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 - State-exempt: single regenerable report/audit.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
-- Research delegated to `/ds-research` — never re-implements web-search or CRAAP+ scoring.
+- Research delegated to `/ds-research` when present — never re-implements CRAAP+ scoring. Absent → degraded inline search (Phase 3 fallback), all sources capped at T2 and labeled `untiered`.
 - Writes `ds/audit/findings.md` (`scope=ideal-gap`); contributes gap section to ds-ship report when invoked under it.
 - Zero autonomous architectural change. Every gap closure is Category B → user decision.
 
@@ -46,6 +46,8 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 | `--preview` | Research + synthesis + gap table, no approval block |
 | `--competitors={n}` | Target count of comparables (default 7; min 3, max 12) |
 | `--scope={x}` | Narrow to a single dimension: architecture, stack, data-model, ux, security, privacy, operational, all |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: full benchmark across every dimension.
 
@@ -63,7 +65,7 @@ Without flags: full benchmark across every dimension.
 
 ## Delegation
 
-**Owns:** benchmark, ideal-synthesis, ideal-gap, competitive-analysis | **Delegates:** ds-research → 5–10 comparables with CRAAP+ tiering; ds-docs → `--adr` to record every accepted gap decision as ADR (optional) | **Receives:** ds-ship → Phase 1 ideal-vs-current gap
+**Owns:** benchmark, ideal-synthesis, ideal-gap, competitive-analysis | **Delegates:** ds-research → 5–10 comparables with CRAAP+ tiering (absent → inline degraded search, tiers capped at T2); ds-docs → `--adr` to record every accepted gap decision as ADR (absent → minimal ADR written inline) | **Receives:** ds-ship → Phase 1 ideal-vs-current gap
 
 ## Execution Flow
 
@@ -87,11 +89,13 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 Invoke `/ds-research` with:
 
-- Query: `"5-10 reputable {problem-space} projects / alternatives / competitors"`
+- Query: `"{target-count} reputable {problem-space} projects / alternatives / competitors"`
 - Emphasis: open-source preferred (inspectable code), mix commercial leaders where relevant
 - Output: per-source CRAAP+ tier, short description, "what they do well", "where they fall short"
 
 Target count from `--competitors` (default 7); insufficient-sources recovery is owned by the Gate below.
+
+**`/ds-research` absent (standalone fallback):** run inline web search directly — same per-competitor record, but never re-implement CRAAP+ scoring: cap every source at T2, label it `untiered`, and note `research: inline-degraded` in the report header. Single-source data points carry ds-research's `[single-source]` label here too — never presented bare.
 
 Per competitor record: Name + URL (project identity); CRAAP+ tier — T1 (authoritative) / T2 (supporting) / T3 (inspirational); Strengths (concrete dimensions handled well); Weaknesses (concrete dimensions where they fall short); Architecture signal (public info on stack / module layout / data model).
 
@@ -154,7 +158,7 @@ Category A gaps recorded as findings but not executed here — consumers (ds-shi
 1. Update `ds/audit/findings.md` meta header scopes list to include `ideal-gap`.
 2. `close` decision → finding remains, `disposition=needs-execution`.
 3. `defer` decision → finding remains, `disposition=deferred`.
-4. `intentional-deviation` → finding `disposition=skipped (intentional)`; ADR written to `docs/adr/NNNN-{slug}.md` if user agreed.
+4. `intentional-deviation` → finding `disposition=skipped (intentional)`; ADR written to `docs/adr/NNNN-{slug}.md` if user agreed — via `/ds-docs --adr` when present; absent → write a minimal ADR inline (Context / Decision / Consequences, same path + numbering).
 
 **Gate:** Every B gap persisted with its decision. If fails → `ds/audit/findings.md` write failed (file locked, disk error) → print the gap decisions inline as a fallback, surface write error with target path + OS error, ask user to resolve before re-running Phase 7.
 
@@ -172,9 +176,9 @@ FRC+DSC accounting.
 Benchmark: {problem-space}
 Competitors: {n} (T1: {x}, T2: {y}, T3: {z})
 
-| Dimension     | Gaps  | Closed | Deferred | Intentional | No-gap |
-|---------------|-------|--------|----------|-------------|--------|
-| {dim}         | {n}   | {n}    | {n}      | {n}         | {n}    |
+| Dimension     | Gaps  | Closed | Deferred | Intentional | Skipped | No-gap |
+|---------------|-------|--------|----------|-------------|---------|--------|
+| {dim}         | {n}   | {n}    | {n}      | {n}         | {n}     | {n}    |
 ```
 
 `ds-benchmark: {OK|WARN|FAIL} | Gaps: {n} | Close: {n} | Defer: {n} | Intentional: {n} | Skipped: {n} | Total: {n}`
@@ -191,7 +195,7 @@ Competitors: {n} (T1: {x}, T2: {y}, T3: {z})
 
 - Research budget respected: `/ds-research` returns on its own time; do not spawn parallel research beyond the delegated call.
 - Intentional deviation always offered — the ideal is not the law, the user's constraints win.
-- W1: every competitor claim cites source URL + CRAAP+ tier. W2: ideal synthesis honors stated constraints — never proposes a stack change the user pinned out. W3: only `ds/audit/findings.md` + optional ADRs written. W4: re-read blueprint profile before Gap phase. W5: single-source claim → MEDIUM confidence, do not promote to "ideal". W6: every active scope produces a row. W7: dedup competitor claims across sources — merge "do this" signals, keep strongest source. W8: quote all URLs. W9: not applicable — state-exempt (single regenerable report). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W12: derive the "ideal" from verified evidence across comparables — never reverse-engineer it to favor a predetermined choice or special-case the metrics.
+- W1: every competitor claim cites source URL + CRAAP+ tier. W2: ideal synthesis honors stated constraints — never proposes a stack change the user pinned out. W3: only `ds/audit/findings.md` + optional ADRs written. W4: re-read blueprint profile before Gap phase. W5: `[single-source]`-labeled claim → MEDIUM confidence, do not promote to "ideal". W6: every active scope produces a row. W7: dedup competitor claims across sources — merge "do this" signals, keep strongest source. W8: quote all URLs. W9: not applicable — state-exempt (single regenerable report). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W12: derive the "ideal" from verified evidence across comparables — never reverse-engineer it to favor a predetermined choice or special-case the metrics.
 
 ## Error Recovery
 

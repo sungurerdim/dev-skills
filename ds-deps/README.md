@@ -47,6 +47,10 @@ rm -rf /tmp/dev-skills
 
 ## Features
 
+- **Release-age cooldown (7d default)** — versions published <7 days ago held out of safe groups (worm-window quarantine); security fixes override
+- **Provenance signal** — npm `audit signatures` / PyPI PEP 740 attestation check; missing/changed publisher identity promotes to review-major
+- **Lockfile-diff integrity gate** — resolved-URL host changes or integrity-hash removals revert the group as CRITICAL
+
 - Every upgrade has a changelog URL and breaking-change summary
 - Safe groups applied autonomously with test gate + one commit per group
 - Majors always approval-gated — no surprise breakage

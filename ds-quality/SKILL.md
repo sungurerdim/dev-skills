@@ -181,7 +181,7 @@ Run all three and show output, for whichever arm(s) were wired:
 
 ## Report Format
 
-Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block (1-5 concrete bullets — e.g. "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place"). Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
+Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook|copilot|gemini|codex} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block (1-5 concrete bullets — e.g. "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place"). Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
 
 ## Quality Gates
 

@@ -45,6 +45,8 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 |------|--------|
 | `--quick` | T1-T2 sources only |
 | `--deep` | All tiers |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present depth selection to user.
 
@@ -105,9 +107,16 @@ Agent present → dispatch `ds-research-agent` for the web tracks (handoff contr
 
 Verify all claims cite sources; check contradictions; remove unsupported assertions. T1-T2: resolve conflicts. T3+: aggregate.
 
+**Zero-error data discipline (applies to every data point — a version, date, price, statistic, legal deadline, API name):**
+
+1. **Two-source floor:** every data point is confirmed by ≥2 independent sources, or carries an explicit `[single-source]` label — never presented bare. Independence = different publishers, not two pages of one site.
+2. **Verbatim grounding:** each data point traces to a verbatim quote or exact locator read this run — a paraphrase is never the evidence for a number, date, or name. Nuance the source states (scope limits, "proposed" vs "in force", version qualifiers) transfers into the synthesis intact; dropping a qualifier is a data error, not a style choice.
+3. **Contradictions are recorded, never smoothed:** two sources disagree → both readings appear with sources; the primary/newer source wins the headline only with the conflict noted. Silently picking one is fabricated consensus.
+4. **Regeneration stability:** re-running research on a previously-covered topic (prior output available) → diff against it; any fact that flips without an identifiable source change is an extraction error — re-verify BOTH readings against primary sources before presenting either. Differences in the new output must be attributable to source-world changes, not to reading variance.
+
 **Mandatory saturation gate:** after each batch, if 3+ T1/T2 sources agree, skip remaining lower-tier searches.
 
-**Gate:** Pass = every claim cites a source and contradictions are resolved. If a claim lacks a qualifying source → remove it or flag `[unverified — no qualifying source]`; unresolved T1/T2 contradictions → present both with sources and confidence scores and record a knowledge gap.
+**Gate:** Pass = every claim cites a source, every data point satisfies the two-source floor (or is `[single-source]`-labeled), and contradictions are resolved-or-recorded. If a claim lacks a qualifying source → remove it or flag `[unverified — no qualifying source]`; unresolved T1/T2 contradictions → present both with sources and confidence scores and record a knowledge gap.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
@@ -125,9 +134,11 @@ Emit, in order: executive summary, evidence hierarchy (primary T1-T2, supporting
 
 ```
 Sources:
-  [{band}] T{n}|{score}|{domain}|{title}
-  [{band}] T{n}|{score}|{domain}|{title}
+  [{band}] T{n}|{score}|{domain}|{title}|{pub-date}|accessed {access-date}
+  [{band}] T{n}|{score}|{domain}|{title}|{pub-date}|accessed {access-date}
 ```
+
+Publication date `unknown` when the source is undated (say so — never infer a date); access date is always this run's date. Undated + fast-moving topic → apply the CRAAP+ currency penalty and note it.
 
 Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
 

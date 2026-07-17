@@ -7,8 +7,8 @@ Conditional rules loaded only for web frontend projects. Each rule: ID, severity
 | Section | Rules | Line |
 |---------|-------|------|
 | **Web Security** | WEB-01–04 (1 BLOCKER, 3 CRITICAL) | ~12 |
-| **Web Quality** | WEB-05–08 (4 MAJOR) | ~55 |
-| **Web Performance** | WEB-09–13 (2 CRITICAL, 3 MAJOR) | ~105 |
+| **Web Quality** | WEB-05–08 (4 HIGH) | ~55 |
+| **Web Performance** | WEB-09–13 (2 CRITICAL, 3 HIGH) | ~105 |
 
 ---
 
@@ -59,7 +59,7 @@ State-changing operations protected against cross-site request forgery.
 
 ## Web Quality
 
-### WEB-05 [MAJOR] Responsive Design
+### WEB-05 [HIGH] Responsive Design
 Layout adapts to all screen sizes. No horizontal scroll on mobile.
 - **Detect:**
   - Search: `width:` with pixel values >320px without `max-width` or media query context (e.g., `width: 960px`, `width: 1200px` on containers)
@@ -70,7 +70,7 @@ Layout adapts to all screen sizes. No horizontal scroll on mobile.
 - **Fix:** Use relative units (%, rem, vw). Mobile-first media queries. Viewport meta tag: `<meta name="viewport" content="width=device-width, initial-scale=1">`. Responsive images with `srcset`/`sizes`. CSS Grid/Flexbox for layouts
 - **Source:** Responsive Web Design, MDN
 
-### WEB-06 [MAJOR] Web Accessibility (WCAG 2.2 AA)
+### WEB-06 [HIGH] Web Accessibility (WCAG 2.2 AA)
 Core flows meet WCAG 2.2 AA. Keyboard navigable. Screen reader compatible.
 - **Detect:**
   - Images without `alt` attribute
@@ -83,7 +83,7 @@ Core flows meet WCAG 2.2 AA. Keyboard navigable. Screen reader compatible.
 - **Impact:** ~15% of users have some form of disability. EAA enforcement live since 28 Jun 2025 — an active obligation for products/services marketed in the EU, not a future deadline
 - **Source:** WCAG 2.2, EAA 2019/882
 
-### WEB-07 [MAJOR] Error Pages
+### WEB-07 [HIGH] Error Pages
 Custom error pages (404, 500) with helpful content and consistent branding.
 - **Detect:**
   - Default framework error pages in production
@@ -93,7 +93,7 @@ Custom error pages (404, 500) with helpful content and consistent branding.
 - **Fix:** Custom 404 with navigation/search. Custom 500 with "try again" and support contact. Error boundaries for React. Never expose stack traces. Log errors server-side
 - **Source:** UX best practices
 
-### WEB-08 [MAJOR] SEO Fundamentals
+### WEB-08 [HIGH] SEO Fundamentals
 Proper meta tags, semantic HTML, structured data for public-facing pages.
 - **Detect:**
   - Missing `<title>` or `<meta name="description">` on pages
@@ -119,7 +119,7 @@ LCP < 2.5s, INP < 200ms, CLS < 0.1.
 - **Impact:** Core Web Vitals are Google ranking signal. Poor scores = lower search visibility
 - **Source:** web.dev Core Web Vitals
 
-### WEB-10 [MAJOR] Image Optimization
+### WEB-10 [HIGH] Image Optimization
 Modern formats, responsive sizes, lazy loading for below-fold images.
 - **Detect:**
   - Large unoptimized images (PNG/JPEG > 200KB)
@@ -129,7 +129,7 @@ Modern formats, responsive sizes, lazy loading for below-fold images.
 - **Fix:** Convert to WebP/AVIF. Use `<img srcset>` for responsive sizes. `loading="lazy"` for below-fold. Use image CDN (Cloudinary, imgix, Vercel Image Optimization) for on-the-fly resizing
 - **Source:** web.dev Image Optimization
 
-### WEB-11 [MAJOR] Code Splitting & Dynamic Imports
+### WEB-11 [HIGH] Code Splitting & Dynamic Imports
 Route-based code splitting. Lazy load non-critical JavaScript.
 - **Detect:**
   - Single large JavaScript bundle (> 200KB gzipped)
@@ -138,7 +138,7 @@ Route-based code splitting. Lazy load non-critical JavaScript.
 - **Fix:** Route-based splitting (Next.js/React.lazy automatic). Dynamic import for heavy features. Replace heavy libraries with lighter alternatives (date-fns, lodash-es). Tree-shake unused exports
 - **Source:** webpack Code Splitting, Next.js Dynamic Imports
 
-### WEB-12 [MAJOR] HTTPS & Cookie Security
+### WEB-12 [HIGH] HTTPS & Cookie Security
 All cookies secure. Proper cookie attributes.
 - **Detect:**
   - Cookies without `Secure` flag

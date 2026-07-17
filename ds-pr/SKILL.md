@@ -52,6 +52,7 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 | `--draft` | Create as draft PR (implies --no-auto-merge) |
 | `--no-tidy` | Skip history tidy, push commits as-is |
 | `--request-review` | After creation, request an automated Copilot review (`gh pr edit --add-reviewer "@copilot"`) |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 ## Delegation
 
@@ -163,7 +164,12 @@ Ask user:
 
 ### Phase 5: Create
 
-1. `gh pr create --title "{title}" --body "{body}" [--draft]`
+1. Create with the body passed via heredoc — never interpolated into the shell string (W8):
+   ```bash
+   gh pr create --title "{title}" [--draft] --body-file - <<'EOF'
+   {body}
+   EOF
+   ```
 2. `--request-review` → `gh pr edit {number} --add-reviewer "@copilot"`; command fails (Copilot review unavailable) → warn, continue.
 3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → offer once: this skill validates only its own PR titles — a CI title gate catches non-agent PRs before they break the squash-merge → release-please changelog chain. Accept → generate the workflow file for review; decline → gap-note in summary. Never write without confirmation.
 

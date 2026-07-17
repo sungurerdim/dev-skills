@@ -47,6 +47,7 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 | `--scope={x}` | Comma-separated: ci, signing, deps, release-pipeline, or `all` |
 | `--auto` | All scopes, no questions, single-line summary |
 | `--preview` | Dry run — show what would be checked without loading rules or scanning |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present mode + scope selection to the user.
 
@@ -57,7 +58,7 @@ Without flags: present mode + scope selection to the user.
 | ci | CI/CD pipeline presence, quality gates, format / analyze / test / build stages, workflow lint layers (actionlint + zizmor), `pull_request_target` misuse |
 | signing | Code signing automation, certificate management, keystore security, build provenance / artifact attestation |
 | deps | Dependency audit gate, outdated detection, cross-dependency compatibility, breaking changes |
-| release-pipeline | Release automation, version bump workflow |
+| release-pipeline | Release automation, version bump workflow, registry publish auth (trusted publishing / OIDC — DOP-21), build provenance |
 
 ## Delegation
 

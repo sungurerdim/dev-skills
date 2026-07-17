@@ -43,7 +43,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 |------|--------|
 | `--auto` | Detect, analyze, generate all missing docs |
 | `--preview` | Analyze gaps only, no generation |
-| `--scope={x}` | Single scope: readme, api, dev, user, ops, changelog, compliance, adr, harness, refine, verify |
+| `--scope={x}` | Single scope: readme, api, dev, user, ops, support, changelog, compliance, adr, harness, refine, verify |
 | `--adr` | ADR mode: scan architecture decisions, propose/maintain numbered ADR files under `docs/adr/` |
 | `--update` | Regenerate even if docs exist |
 | `--force-approve` | Auto-apply needs_approval items (structural changes) |

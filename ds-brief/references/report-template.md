@@ -1,6 +1,6 @@
 # Report Template Conventions
 
-Distilled from four hand-built guides (gvk-20b, vergi-kilavuzu ×2, is-hukuku) and the akis design system (`akis/assets/tokens.css`, `akis/dist/firm-site.html`, `akis/src/constants/palettes.js`). `assets/brief-template.html` is the concrete, working skeleton of these rules — clone and fill it; never generate the HTML from scratch (lowers hallucination risk). These conventions are the *why*; the skeleton is the *what*.
+Distilled from four hand-built guides (gvk-20b, vergi-kilavuzu ×2, is-hukuku) and the akis design system (`akis/assets/tokens.css`, `akis/dist/firm-site.html`, `akis/src/constants/palettes.js`). `assets/brief-template.html` is the concrete, working skeleton of these rules — clone and fill it; never generate the HTML from scratch (lowers hallucination risk). These conventions are the *why*; the skeleton is the *what*. All visible label strings here are canonical English — localized to the request language at build (SKILL.md Contract).
 
 ## Hard requirements (every brief)
 
@@ -8,23 +8,23 @@ Distilled from four hand-built guides (gvk-20b, vergi-kilavuzu ×2, is-hukuku) a
 |------------|------|
 | Single-file / offline | All CSS + JS + data embedded. **No external fonts** (`system-ui` / `-apple-system` stack), no CDN, no network call. View-source must be self-sufficient → offline + reliable PDF. |
 | SSOT data block | Every number/rate/date/quantity lives once, in a single `CONFIG` JS object. HTML reads them via `[data-cfg="key"]` spans, filled by one render pass. Edit one place → all prose/tables/calc update. |
-| Source chip: official | secondary` (secondary T3-T6, amber). |
+| Source chip | Two visible chip types: `official` / `secondary` (secondary = T3-T6, amber). Every claim carries one. |
 | Semantic colors | green = positive / in-scope / confirmed; red = negative / penalty / out-of-scope; amber = conditional / threshold / single-source. **Constant across every theme** — they encode meaning, not brand, so only the brand set changes when the theme switches. |
 | Verbatim quote | Official text (law, spec, standard) shown byte-for-byte in a monospace `.lawtext` block + a source line. Quote is *extracted*, never paraphrased or generated. |
-| Access date + disclaimer | Every report shows access date and a "bilgilendirme amaçlıdır, danışmanlık/bağlayıcı görüş değildir" notice. |
-| Bilinmeyenler section | Mandatory closing section listing open questions (what was sought, not found, why). |
+| Access date + disclaimer | Every report shows source access dates (and publication dates in the Sources table; `unknown` when undated) plus an "informational only — not advice or a binding opinion" notice. |
+| Unknowns section | Mandatory closing section listing open questions (what was sought, not found, why). |
 | Confidence + coverage | Header/summary shows overall confidence (HIGH/MEDIUM/LOW) and `validationCoverage` (% of datums 2×-confirmed). |
 
 ## Print / PDF discipline (the new emphasis)
 
 `@media print` block must:
-- Hide sticky nav, search box, toggle buttons, the "Yazdır/PDF" button, and any interactive control.
+- Hide sticky nav, search box, toggle buttons, the "Print/PDF" button, and any interactive control.
 - Force-open collapsed content — accordions/`details`/tabbed views get `display:block!important` so nothing prints hidden.
 - `break-inside:avoid` on cards, calculators, tables, quote blocks.
 - Drop shadows and dark backgrounds (`body{background:#fff}`; invert `.lawtext` to light).
 - Expose link targets: `a[href]:after{content:" (" attr(href) ")"}` so URLs survive on paper.
 
-A visible **"🖨 Yazdır / PDF"** button calls `window.print()` → the browser's "Save as PDF" yields a clean document. JS must force-open all collapsible sections on `beforeprint` (in case CSS alone misses a JS-driven toggle).
+A visible **"🖨 Print / PDF"** button calls `window.print()` → the browser's "Save as PDF" yields a clean document. JS must force-open all collapsible sections on `beforeprint` (in case CSS alone misses a JS-driven toggle).
 
 ## Theming (selectable, akis palettes)
 

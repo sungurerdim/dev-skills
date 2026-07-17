@@ -6,10 +6,10 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect (search
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Security** | SEC-01–11 (4 CRITICAL, 7 CRITICAL, 1 HIGH) | ~12 |
-| **Privacy** | PRV-01–05 (2 CRITICAL, 2 CRITICAL) | ~111 |
-| **Regulatory Compliance** | PRV-06–18 (8 CRITICAL, 5 CRITICAL) | ~152 |
-| **Store Compliance** | STO-01–21 (12 CRITICAL, 8 HIGH, 1 MEDIUM) | ~340 |
+| **Security** | SEC-01–12 (10 CRITICAL, 2 HIGH) | ~12 |
+| **Privacy** | PRV-01–05 (5 CRITICAL) | ~111 |
+| **Regulatory Compliance** | PRV-06–18 (13 CRITICAL) | ~152 |
+| **Store Compliance** | STO-01–22 (12 CRITICAL, 9 HIGH, 1 MEDIUM) | ~340 |
 
 ---
 
@@ -46,7 +46,8 @@ Zero secrets in source code.
   | S07 | `client_secret\s*[:=]\s*["'][A-Za-z0-9\-_]{20,}["']` | OAuth client secret |
   | S08 | `(password\|passwd)\s*[:=]\s*["'][^"']{8,}["']` | Hardcoded password |
   | S09 | `https://[a-z0-9-]+\.firebaseio\.com` | Firebase Realtime DB URL |
-  | S10 | `sk-[a-zA-Z0-9]{20,}` | OpenAI / generic secret key |
+  | S10 | `sk-[A-Za-z0-9_-]{20,}` | OpenAI / Anthropic key (covers `sk-proj-…`, `sk-ant-…`) |
+  | S13 | `ghp_[a-zA-Z0-9]{36}` or `github_pat_[A-Za-z0-9_]{22,}` | GitHub PAT (classic / fine-grained) |
   | S11 | `bearer\s+[A-Za-z0-9\-_.]{20,}` | Hardcoded bearer token |
   | S12 | Base64 patterns >40 chars in string literals | Encoded secrets |
 
@@ -94,11 +95,11 @@ Release builds must be obfuscated.
 - **Detect:**
   - Flutter: missing `--obfuscate` in release build commands or CI scripts
   - Android: missing or empty `proguard-rules.pro`, R8 disabled
-  - iOS: missing bitcode/symbol stripping in release config
+  - iOS: missing symbol stripping in release config
 - **Fix:**
   - Flutter: `flutter build --obfuscate --split-debug-info=<dir>`
   - Android: enable R8, add `-keep class io.flutter.** { *; }` to proguard-rules.pro
-  - iOS: enable bitcode, strip debug symbols in release
+  - iOS: strip debug symbols in release (bitcode is deprecated — removed in Xcode 14; never recommend enabling it)
   - RN: enable Hermes bytecode
 - **Source:** OWASP M7, MASVS-RESILIENCE
 
@@ -128,6 +129,14 @@ Authorization Code + PKCE for mobile. No implicit grant.
 - **Detect:** `android:allowBackup` missing or `="true"` in AndroidManifest.xml
 - **Fix:** Set `android:allowBackup="false"`
 - **Source:** MASVS-STORAGE
+
+### SEC-12 [HIGH] Device Attestation Currency (SafetyNet → Play Integrity)
+SafetyNet Attestation API was fully shut down 31 Jan 2025 — calls now return errors; any code path depending on it is broken in production.
+- **Detect:**
+  - Search: `play-services-safetynet` in `build.gradle(.kts)`, `SafetyNetClient`, `SafetyNet.getClient`, `safetynet` imports
+  - Firebase App Check configured with the SafetyNet provider
+- **Fix:** Migrate to the Play Integrity API (`com.google.android.gms:play-services-integrity`); Firebase App Check → Play Integrity provider. Map verdicts (`MEETS_DEVICE_INTEGRITY` etc.) to the old attestation decisions; test the failure path — attestation outages must degrade gracefully, not lock users out
+- **Source:** developer.android.com/privacy-and-security/safetynet (deprecated → replaced by Play Integrity); Firebase App Check SafetyNet turndown
 
 ---
 
@@ -612,3 +621,13 @@ Every in-app purchase flow must provide clear product info, loading state, succe
     - RN: `react-native-iap` error codes not mapped to user messages
 - **Fix:** Each IAP product: clear description of what user receives (quantity, duration, features). Purchase flow: loading state ("Processing purchase...") → success confirmation (visual feedback + updated balance/status) OR specific error message + retry guidance. Handle all platform transaction states exhaustively. Deferred state (Ask to Buy) must show appropriate pending message
 - **Source:** Apple HIG Purchasing, Google Play Billing UX Guidelines, Amazon IAP Design Guidelines
+
+### STO-22 [HIGH] Foreground Service Type Declarations (Android 14+)
+Apps targeting API 34+ must declare a foreground service type per service — startForeground() without one throws `MissingForegroundServiceTypeException`; Play Console requires type declarations on the app-content page.
+- **Detect:**
+  - `<service>` entries in AndroidManifest.xml with `android:foregroundServiceType` missing while the app calls `startForeground()`
+  - `dataSync`-type services with no handling for the Android 15 six-hour runtime cap (`onTimeout` unimplemented); `shortService` used for work exceeding 3 minutes
+  - Foreground services launched from a `BOOT_COMPLETED` receiver for restricted types (mediaPlayback, camera, phoneCall, dataSync — restricted since Android 15)
+  - Play Console foreground-service declaration missing for declared types
+- **Fix:** Declare the correct `foregroundServiceType` per service + the matching permission (`FOREGROUND_SERVICE_<TYPE>`); implement `onTimeout` for capped types and migrate long `dataSync` work to WorkManager/user-initiated data transfer; complete the Play Console declaration. Android 16 additionally enforces background job quotas on jobs launched from foreground services — verify WorkManager jobs survive
+- **Source:** developer.android.com/develop/background-work/services/fgs/changes; Play Console foreground-service requirements

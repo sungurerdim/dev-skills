@@ -6,13 +6,13 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Internationalization & Logging** | I18N-01–07 (6 MAJOR, 1 MEDIUM) | ~10 |
+| **Internationalization & Logging** | I18N-01–07 (6 HIGH, 1 MEDIUM) | ~10 |
 
 ---
 
 ## Internationalization & Logging
 
-### I18N-01 [MAJOR] String Externalization
+### I18N-01 [HIGH] String Externalization
 All user-visible strings in resource/locale files. Zero hardcoded UI text.
 - **Detect:**
   - Search: quoted strings in UI components/templates that are user-visible (not keys, not log messages, not CSS classes)
@@ -25,19 +25,19 @@ All user-visible strings in resource/locale files. Zero hardcoded UI text.
   - Go: `go-i18n` or `golang.org/x/text`
 - **Source:** i18n best practices
 
-### I18N-02 [MAJOR] Locale-Aware Formatting
+### I18N-02 [HIGH] Locale-Aware Formatting
 Dates, numbers, currency formatted per locale. No hardcoded format strings.
 - **Detect:** Hardcoded date format (`MM/DD/YYYY`). Hardcoded currency symbol (`$`). Manual number formatting with fixed decimal separator
 - **Fix:** Use `Intl.DateTimeFormat`, `Intl.NumberFormat` (JS). Use `locale` module (Python). Use `time.Format` with locale (Go). Always derive format from user's locale
 - **Source:** MDN Intl, Unicode CLDR
 
-### I18N-03 [MAJOR] Pluralization Rules
+### I18N-03 [HIGH] Pluralization Rules
 ICU message format or equivalent. Languages have different plural rules (EN: 2, AR: 6, Slavic: 4).
 - **Detect:** Manual if/else for singular/plural. Hardcoded "1 item"/"X items". Template literals with simple ternary for plurals
 - **Fix:** Use ICU plural syntax in resource files. Libraries: `intl-messageformat` (JS), `babel` (Python). Test with Arabic, Polish, or other complex-plural languages
 - **Source:** ICU, Unicode CLDR Plural Rules
 
-### I18N-04 [MAJOR] Structured Logging
+### I18N-04 [HIGH] Structured Logging
 JSON logs. No secrets/PII. Correlation IDs. Defined log levels.
 - **Detect:** Unstructured log messages (`console.log`, `print()`). Sensitive data in logs (tokens, passwords, PII). No request correlation. Mixed log levels
 - **Fix:**
@@ -48,7 +48,7 @@ JSON logs. No secrets/PII. Correlation IDs. Defined log levels.
 - **Source:** Observability best practices, 12-Factor App
 - **Cross-ref:** Same check as [ARC-03](rules-arch.md) (canonical, arch scope) — when both `i18n` and `arch` scopes run together, report once under ARC-03.
 
-### I18N-05 [MAJOR] RTL Layout Support
+### I18N-05 [HIGH] RTL Layout Support
 Right-to-left text and layout must work correctly for Arabic, Hebrew, Persian, and Urdu users.
 - **Detect:**
   - Search: CSS with hardcoded `left`/`right` instead of logical properties (`inline-start`/`inline-end`, `margin-inline`)
@@ -60,7 +60,7 @@ Right-to-left text and layout must work correctly for Arabic, Hebrew, Persian, a
 - **Impact:** 400M+ Arabic speakers, 10M+ Hebrew speakers. RTL-broken UIs are unusable.
 - **Source:** MDN Logical Properties, Material Design Bidirectionality
 
-### I18N-06 [MAJOR] Date/Time/Timezone Handling
+### I18N-06 [HIGH] Date/Time/Timezone Handling
 All dates and times must use locale-aware formatting and proper timezone handling.
 - **Detect:**
   - Search: `new Date().toLocaleDateString()` without explicit locale parameter

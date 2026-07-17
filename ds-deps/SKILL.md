@@ -30,7 +30,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 ## Contract
 
 **Dimensions:** C4, D9 (semver)
-**Framework alignment (advisory):** OWASP SAMM Supply Chain Security (C4), Semantic Versioning (D9) — sourced references in SKILL-SPEC Dimension Coverage Map.
+**Framework alignment (advisory):** OWASP SAMM Supply Chain Security (C4), SLSA v1.2 (provenance/attestation verification — Source Track added Nov 2025), Semantic Versioning (D9) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Standalone; uses `ds/audit/findings.md` (stack, deps scopes) when fresh, own audit otherwise.
 - **State-exempt:** per-group commits are git checkpoints; re-run continues from remaining groups.
@@ -109,7 +109,7 @@ Per manifest:
    | ruby | `bundle outdated` |
    | dart | `dart pub outdated --json` |
 
-3. **Security advisories:** `npm audit --json` / `pip-audit --format=json` / `cargo audit --json` / `bundler-audit` / `pub audit`. Also Dependabot via `gh` CLI if available. Stack-native audit command unavailable → `osv-scanner` present → run `osv-scanner --lockfile={lockfile}` as the cross-ecosystem fallback and record advisories per dep; absent → skip the advisory sub-step with warning `security advisories unchecked for {manifest} — no audit tool available`.
+3. **Security advisories:** `npm audit --json` / `pip-audit --format=json` / `cargo audit --json` / `bundler-audit` / `pub audit`. Also Dependabot via `gh` CLI if available. Stack-native audit command unavailable → `osv-scanner` present → run it against the lockfile (V2: `osv-scanner scan --lockfile={lockfile}`; V1 syntax `osv-scanner --lockfile=` also accepted) as the cross-ecosystem fallback and record advisories per dep; absent → skip the advisory sub-step with warning `security advisories unchecked for {manifest} — no audit tool available`.
 4. **Removal candidates:** grep source + config for `import {name}` / `require('{name}')` / stack equivalents. Zero in-source references → removal candidate.
 5. Record each dep's current / latest / advisory for the plan table.
 
@@ -129,6 +129,10 @@ Per dep, determine `bump_type` + `classification`:
 | pre-1.0 | `0.{x}.{y}` → `0.{x+n}.{y}` | Treat minor bump as `review-major` (semver pre-1.0 convention) |
 
 **Supply-chain override ([references/principles.md §5](references/principles.md)):** any package introducing/expanding `postinstall` / `preinstall` / `prepare` lifecycle scripts (or non-npm equivalents) auto-promotes to `review-major` regardless of semver delta. New executable install hooks = known supply-chain attack surface.
+
+**Release-age cooldown (advisory, default 7 days):** target version published less than 7 days ago (registry publish timestamp) → hold it out of the safe groups this run — classification stands, execution deferred with note `held (release-age {n}d < 7d cooldown)`; the previous in-cooldown-window version applies instead when it satisfies the same bump class. Security-advisory fixes override the cooldown (patching a known CVE beats worm-window caution). Rationale: recent registry worm/compromise events were detected within days of publication (xz-utils ~3 days; Shai-Hulud npm worm — CISA alert within the week) — a short quarantine window converts "first victim" into "warned bystander".
+
+**Provenance signal (advisory):** npm — run `npm audit signatures` (verifies registry signatures + provenance attestations; trusted-publishing/OIDC publishes carry provenance automatically since Jul 2025); PyPI — check attestation presence (PEP 740). A newly-added package with no provenance, or an upgrade where the publisher/repository identity changed vs the previous version → note as supply-chain signal, promote to `review-major`.
 
 **Changelog extraction:**
 
@@ -175,16 +179,16 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
    | yarn | `yarn upgrade {name}@{version}` |
    | go | `go get {name}@{version}` then `go mod tidy` |
    | python (poetry) | `poetry add {name}@{version}` |
-   | python (pip) | `pip install {name}=={version}` then `pip freeze > requirements.lock` |
+   | python (pip) | `pip install {name}=={version}` then update the project's pin file per its own convention (pip-tools: `pip-compile`; plain pins: edit `requirements.txt` entry) — never invent a new lock filename |
    | cargo | `cargo update -p {name} --precise {version}` |
 
-2. Invoke `/ds-test --quick` (or stack-native fast path: `npm test --bail`, `go test ./...`, `pytest -x`). Pass → proceed. Fail → revert manifest + lockfile, mark group `failed (tests broke)`, continue.
+2. Invoke `/ds-test --run` (advisory handoff — target absent → stack-native fast path directly: `npm test --bail`, `go test ./...`, `pytest -x`). Pass → proceed. Fail unresolved → revert manifest + lockfile, mark group `failed (tests broke)`, continue.
 3. Invoke `/ds-commit --single` with message: `chore(deps): bump {scope-or-group} ({n} packages)`. Body lists each dep `{name}: {current} → {latest}`. Record hash.
 
 **Review-major group (requires approval):**
 
 1. Present every entry — one line each (`name: current → proposed · breaking?`) grouped by package class with counts; state the question (`Upgrade which of these N majors?`). "All" = exactly the displayed set. Full detail (breaking notes, migration steps from changelog, rollback path) under each entry.
-2. Modes: **Apply All** / **Apply all safe minor/patch** (per-class bulk alongside the total) / **Review Each** / **Skip All** / **Defer**. `--auto` without `--force-approve` → skip all, mark needs-approval. `--force-approve` → apply all.
+2. Modes: **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**. `--auto` without `--force-approve` → skip all, mark needs-approval. `--force-approve` → apply all.
 3. Per approved major: apply bump, run **full** test suite (not quick); fail → revert + mark failed; pass → commit.
 4. One commit per major: `chore(deps): upgrade {name} to {major-version}`. Body: breaking notes + migration link.
 
@@ -193,11 +197,11 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 1. Present candidates with "0 source references" evidence.
 2. Approve → remove from manifest + lockfile, run quick tests, commit `chore(deps): remove unused {name}`.
 
-**Gate:** Every group has a commit or `failed`/`skipped` record. Working tree clean. If fails → dirty tree (partial apply, no commit) → revert via `git checkout -- .` on affected manifest + lockfile, mark `failed (dirty working tree)` for the summary, continue; revert itself fails → halt + surface conflict with modified-file list.
+**Gate:** Every group has a commit or `failed`/`skipped` record. Working tree clean of THIS skill's changes. If fails → dirty tree (partial apply, no commit) → revert exactly the touched files via `git restore -- {manifest} {lockfile}` — never a tree-wide `git checkout -- .`, which would destroy the user's unrelated uncommitted work — mark `failed (dirty working tree)` for the summary, continue; revert itself fails → halt + surface conflict with modified-file list.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-Dominant in this skill. Present all Category B items (every review-major + every removal) in one block.
+Covers ONLY items still undecided after Phase 5 (deferred majors/removals, `--auto`-skipped items) — items already decided in Phase 5's inline approval are never re-presented (no double-asking).
 
 `--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
@@ -229,6 +233,7 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 ## Quality Gates
 
 - Lockfile always updated alongside manifest — no orphaned version mismatch.
+- **Lockfile-diff integrity:** after each group, review the lockfile diff — only the expected packages change; any resolved-URL host change (registry → unexpected host / git+http), integrity-hash removal, or surprise transitive addition with install scripts → revert the group, CRITICAL finding (motivated by 2025-2026 registry-worm incidents where tampered lockfiles carried the payload).
 - Peer-dep conflicts: detect via stack-native tool output; conflict → elevate to `review-major`.
 - Workspace-wide consistency: dep across multiple workspace manifests → bump to a single version across all.
 - **Slopsquatting guard:** before adding or accepting any new dependency, confirm it exists in the official registry, was registered before this project began, and has real download history; a near-miss or cross-ecosystem name is a typosquat until proven (~19.7% of LLM-suggested packages are hallucinated — [CSA 2026](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/)).

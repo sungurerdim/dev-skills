@@ -58,6 +58,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | `--scope={path}` | Limit to specific file, directory, or module |
 | `--baseline[=path]` | Characterization baseline: capture current actual behavior of a legacy module before refactoring; tests assert what the code DOES today, not what it should do. Optional `=path` narrows to a specific file, directory, or module. |
 | `--auto` | No questions, generate + run + fix cycle |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 ### Mode Menu (no mode flag passed)
 
@@ -80,7 +81,7 @@ Shown only when no mode flag is passed — any flag above (`--generate`, `--upda
 
 | Scope | What It Covers |
 |-------|---------------|
-| `unit` | Single function/method tests, isolated with mocks |
+| `unit` | Single function/method tests; mock only external boundaries (network, filesystem, time), never internal modules |
 | `integration` | Multi-module tests, real dependencies where possible |
 | `e2e` | End-to-end via browser/UI automation or API calls |
 | `snapshot` | Snapshot/golden tests for UI components or serialized output |
@@ -127,14 +128,14 @@ Per uncovered source file (or scoped path):
 | Theme | Light + dark mode render correctly; no hardcoded colors bypassing theme system |
 | Accessibility | Screen reader (TalkBack / VoiceOver / Narrator / NVDA) traversal; all interactive elements have a11y labels; error states announced |
 
-**Test ratio targets (by project type):**
+**Test ratio guideline (approximate distribution by project type — not simultaneous minimums):**
 
 | Type | Unit | Component/Integration | E2E |
 |------|------|-----------------------|-----|
-| Mobile | 70%+ | 20%+ | 10%+ |
-| Web SPA | 60%+ | 25%+ | 15%+ |
-| API | 60%+ | 30%+ | 10%+ |
-| Library | 80%+ | 15%+ | 5%+ |
+| Mobile | ~70% | ~20% | ~10% |
+| Web SPA | ~60% | ~25% | ~15% |
+| API | ~60% | ~30% | ~10% |
+| Library | ~80% | ~15% | ~5% |
 
 **Gate:** Test files generated covering happy path + edge cases + error cases per target. If fails → source file has no testable public interface or unreadable → skip, note `{ file, status: "skipped", reason: "no public interface" }` for the summary, continue with remaining files.
 
@@ -155,7 +156,7 @@ Per uncovered source file (or scoped path):
 | Classification | Action |
 |---------------|--------|
 | **Test is wrong** (assertion outdated, mock stale, fixture missing) | Fix the test |
-| **App is wrong** (source bug causing failure) | Report as app bug — fix the test, not the source |
+| **App is wrong** (source bug causing failure) | Report as app bug — write the finding; the test stays failing at full strength (it now pins the regression). Never modify test or source to force green |
 | **Environment issue** (missing dep, config, DB not running) | Report with setup instructions |
 | **Flaky test** (timing, ordering — passes sometimes) | Flag as flaky, suggest fix approach |
 
@@ -250,7 +251,7 @@ Every test MUST justify its existence by addressing a **concrete, specific risk*
 
 **Prune phase (`--prune` or part of `--auto`):** flag existing tests that provide no concrete value:
 
-1. Search for tests asserting only: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, or 1:1 reimplementation of source code. Flag as CRITICAL (reward-hacking class, not merely low-value): assertions hard-coding expected outputs for special-cased known inputs, and test edits that weaken or bypass assertions to reach green.
+1. Search for tests asserting only: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, 1:1 reimplementation of source code, or oversized snapshots (>100 lines — assert everything, verify nothing). Flag as CRITICAL (reward-hacking class, not merely low-value): assertions hard-coding expected outputs for special-cased known inputs, and test edits that weaken or bypass assertions to reach green.
 2. Present flagged tests as table `| # | Test | File:Line | Reason | Action |` grouped by Reason with counts; state the question (`Delete these N tests?`). Ask: **Delete all** / **Delete all <reason>** (per-reason bulk alongside the total) / **Review each** / **Keep all**. "All" = exactly the displayed set. `--auto`: delete silently, report count in summary.
 3. **Replacement rule:** after deleting a low-value test, check if file/module now has meaningful untested logic. Yes → generate a valuable replacement test targeting a real risk.
 4. **Mutation check (advisory):** stack's mutation tool available (per-stack table in [references/frameworks.md §Mutation Testing](references/frameworks.md)) → run it on the scoped module, report mutation score beside line coverage, treat every surviving mutant as a weak-assertion finding, and feed each into `--generate`/`--update` as a targeted instruction (`mutant at {file}:{line} survived — add the assertion that kills it`) instead of regenerating whole files. Tool absent → gap-note `mutation tool unavailable — assertion quality verified by pattern review only`, apply the step-1 pattern list as the fallback detector. Coverage alone is not proof: a documented real-world suite reported 93% line coverage against a 58.62% mutation score — a 34-point gap of assertions that constrain nothing.
@@ -269,6 +270,9 @@ Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regres
 - **AAA structure:** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
 - **Regression-before-fix:** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
 - **Coverage as diagnostic:** never write a coverage target into generated test configs; configure coverage as a reporter only. The diagnostic is "what did we miss?", not "did we hit X%?".
+- **Property-based tests (advisory):** target is a pure function with an algebraic property (roundtrip encode/decode, idempotence, commutativity, invariant preservation) AND the stack's property-testing library is already in the project deps (per-stack table in [references/frameworks.md §Property-Based Testing](references/frameworks.md)) → offer a property test for the boundary-condition class instead of hand-enumerating cases; library absent → hand-enumerated boundary cases stand, gap-note the option once.
+- **Snapshot discipline:** snapshot tests only for small, stable serialized output (a component's props contract, a config artifact) — a full-page or >100-line snapshot asserts everything and verifies nothing; flag existing ones as low-value in `--prune` step 1.
+
 | Guard | Rule |
 |-------|------|
 | W1 | Cite file:line; never assume |
@@ -304,7 +308,7 @@ Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regres
 | Monorepo with multiple test frameworks | Detect per-package, run each package's framework |
 | E2E requires running server | Check for dev server script, start it, run tests, stop it |
 | Coverage tool not configured | Skip coverage analysis, suggest setup |
-| `--auto` with failing app tests | Write findings to `ds/audit/findings.md`, fix the test, not the source code |
+| `--auto` with failing app tests | Write findings to `ds/audit/findings.md`; fix test-side failures only — app-bug tests stay failing at full strength |
 | `--baseline` and output is nondeterministic (time, random, UUID) | Inject/freeze seams (fixed clock, seeded RNG, mocked UUID) before capturing; if seams are unavailable, assert invariant properties (type, range, non-null) instead of exact values — document the invariant-only assertion with the `// characterization:` tag |
 | `--baseline` and source module has no public interface (all private/internal) | Report as Category B finding: "No public surface to baseline — refactoring this module without tests is high-risk"; suggest making key behaviors accessible for testing or adding internal test hooks |
 

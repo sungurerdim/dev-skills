@@ -68,7 +68,7 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 
 1. No state file to recover (Contract) — `--resume={#N}` given → re-read that tracking issue's checklists (or `docs/release/*.md` if it's a doc-tracked run) and treat unchecked items as still undecided; absent → fresh start.
 2. Resolve `--milestone`; absent → ask: `Which release/milestone is this freeze for?`
-3. Findings freshness check (W10): `ds/audit/findings.md` fresh (`git_hash == HEAD`, age ≤ 7 days) and covers `promise-census`/`ideal-gap` → reuse those rows instead of re-deriving. Stale/absent → advisory handoff to `/ds-blueprint` if present; absent → own lightweight pass: read README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / `docs/`, `specs/`, `research/` for capability claims, cross-check against source.
+3. Findings freshness check (W10): `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle) and covers `promise-census`/`ideal-gap` → reuse those rows instead of re-deriving. Prior-cycle findings — however recent — are diff context only, never a re-derivation substitute. Stale/absent → advisory handoff to `/ds-blueprint` if present; absent → own lightweight pass: read README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / `docs/`, `specs/`, `research/` for capability claims, cross-check against source.
 4. Load open GitHub issues (`gh issue list --state open`); `gh` unavailable or unauthenticated → note the gap, continue with doc/code-derived candidates only.
 5. Mode menu (see Arguments) unless a disambiguating flag was passed.
 

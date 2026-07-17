@@ -44,6 +44,9 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 | `status` | Show results summary (experiments, hit rate, improvement) |
 | `--resume` | Equivalent to `run` — force resume from state without prompt |
 | `--clean` | Delete `ds/audit/tune.json` (keeps `ds/tune/`), re-enter setup |
+| `--budget={n}` | Stop the loop after {n} experiments (default: run until user interrupt or context limit) |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 ## Delegation
 
@@ -144,7 +147,7 @@ Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, outp
 ### Phase 5: Baseline
 
 1. Run `bash ds/tune/bench.sh` — `noisy: true` → `runs_n` times (OPT-05, same condition as the Loop) and record mean ± stddev; `noisy: false` → once. Extract metrics by searching for `{metric}:` in `ds/tune/run.log`; record baseline in `results.tsv`.
-2. Commit `ds/tune/`: `git add ds/tune/ && git commit -m "autotune: setup with baseline"`; create branch: `git checkout -b autotune/{tag}`.
+2. Create branch first, then commit setup on it (the user's current branch stays untouched): `git checkout -b autotune/{tag} && git add ds/tune/ && git commit -m "autotune: setup with baseline"`.
 3. Write `ds/audit/tune.json` with canonical envelope + baseline snapshot in `data`.
 4. Report: `Baseline: {metric} = {value} | Branch: autotune/{tag}`
 

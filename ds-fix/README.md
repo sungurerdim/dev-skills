@@ -44,7 +44,7 @@ Auto-detected from project manifests. Multiple stacks supported in monorepos. Re
 
 ## Features
 
-- **Deterministic order** — l10n → format → typecheck → lint → security (format before lint prevents conflicts)
+- **Deterministic order** — l10n → format → lint → typecheck → security (mutating scopes first; typecheck verifies the post-fix state)
 - **16 stacks** — auto-detects from manifest files, with per-stack toolchain lookup
 - **Smart detection** — uses project config to pick the right tool variant (e.g., Biome vs Prettier)
 - **Check mode** — `--check` for CI/report-only, no file modifications

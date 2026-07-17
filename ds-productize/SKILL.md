@@ -50,6 +50,7 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 | `--plan` | Produce a productization plan (`ds/productize/plan.md`): model choice, tier design, GTM checklist |
 | `--scope={x}` | Specific scope: monetization, pricing, gtm (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary; B items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present the full mode menu — Audit (recommended) — find gaps in monetization/pricing/gtm / Plan — design the productization path from current state / All — audit then plan / (Cancel). A disambiguating flag skips the menu.
 

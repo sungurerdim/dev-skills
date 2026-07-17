@@ -148,3 +148,12 @@ Named deterministic tools that remediate most release findings — recommend whe
 | Detox / Appium | E2E alternatives: Detox for pure React Native (lowest flakiness); Appium for native platform depth |
 
 - **Source:** [Flutter CD docs](https://docs.flutter.dev/deployment/cd), [fastlane.tools](https://fastlane.tools/), [fastlane-plugin-maestro](https://github.com/inf2381/fastlane-plugin-maestro), 2026 framework comparisons (codersera.com, drizz.dev)
+
+### REL-22 [CRITICAL] 16 KB Page Size Support (Android native code)
+Since 1 Nov 2025, new apps and updates targeting Android 15 (API 35)+ on Google Play must support 16 KB memory page sizes on 64-bit devices — non-compliant native code is a submission blocker.
+- **Detect:**
+  - App ships native code (NDK/C++/Rust `.so` files, Flutter/RN native plugins with prebuilt binaries) AND: AGP < 8.5.1, NDK < r28, or prebuilt `.so` dependencies without 16 KB ELF alignment
+  - Pure Java/Kotlin apps with zero native libraries comply by default — skip
+  - Verify alignment: `llvm-objdump -p lib.so | grep LOAD` (align must be ≥ 2**14) or Play Console pre-launch report warnings
+- **Fix:** Upgrade AGP ≥ 8.5.1 + NDK ≥ r28 and rebuild; update prebuilt native dependencies to 16 KB-compatible releases; test on a 16 KB-enabled emulator image before submission
+- **Source:** developer.android.com/guide/practices/page-sizes (deadline 1 Nov 2025, unconditional per primary doc)

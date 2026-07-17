@@ -51,6 +51,8 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 | `--minimal` | Bare minimum structure only |
 | `--full` | Full production structure (CI, Docker, testing, docs) |
 | `--dry-run` | Show what would be created without writing files |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 No flag → up-front interactive menu covering every project type (no default — type is user-driven), question "What type of project are you scaffolding?". A disambiguating flag (`--type`) skips the menu.
 
@@ -62,6 +64,7 @@ No flag → up-front interactive menu covering every project type (no default �
 | CLI | Command-line tool |
 | Library | Reusable package / module |
 | Monorepo | Multi-package workspace |
+| Desktop | Electron / Tauri desktop app |
 | (Cancel) | Exit without action |
 
 ## Scopes
@@ -74,6 +77,7 @@ No flag → up-front interactive menu covering every project type (no default �
 | cli | `src/commands/`, `bin/` | lint + test + build | Single-stage | Unit + integration |
 | library | `src/lib/`, `examples/` | lint + test + build + publish | N/A | Unit + integration |
 | monorepo | `packages/`, `apps/` | per-package + affected detection | Per-package | Per-package + E2E |
+| desktop | `src/` (+ `src-tauri/` for Tauri) | lint + test + build + package | N/A | Unit + E2E (Playwright/WebdriverIO) |
 
 ## Delegation
 

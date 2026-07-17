@@ -37,7 +37,7 @@ All 24 analysis scopes used by `/ds-blueprint`, grouped into the 3 execution bat
 |-------|----------|-------|
 | security | SEC-01 to SEC-12 | Secrets, injection, unsafe deserialization, eval, debug endpoints, weak crypto, CORS, path traversal, SSRF, auth bypass |
 | privacy | PRV-01 to PRV-08 | PII exposure/logging, missing masking/consent/retention (canonical detail sourced from ds-compliance when available) |
-| ai-hygiene | AIH-01 to AIH-06 | AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers |
+| ai-hygiene | AIH-01 to AIH-08 | AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers, hallucinated APIs, dead feature flags, stale mocks |
 | robustness | ROB-01 to ROB-10 | Missing timeout/retry, unbounded collections, null checks, resource cleanup |
 | production-readiness | PRD-01 to PRD-07 | Health probes, graceful shutdown, config validation, observability, debug endpoints exposed |
 | testing | TST-01 to TST-10 | Coverage, critical path tests, test isolation, flaky indicators, test pyramid signal |

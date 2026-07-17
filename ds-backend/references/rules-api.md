@@ -34,6 +34,8 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 **Impact:** Consistent resource naming reduces client confusion, improves cacheability, and aligns with tooling expectations (Swagger, Postman).
 
+**Note (2026):** For complex parameterized reads that outgrow GET's URL limits, `POST`-as-safe-read was the historical workaround — the HTTP `QUERY` method ([RFC 10008](https://datatracker.ietf.org/doc/rfc10008/), June 2026; safe, idempotent, cacheable, with a request body) is now the standard replacement. Adopt where the framework/infrastructure supports it; OpenAPI 3.2 models it natively.
+
 **Source:** [Google API Design Guide](https://cloud.google.com/apis/design), api-architecture-patterns.md Section 2
 
 ---
@@ -124,6 +126,8 @@ X-RateLimit-Remaining: 742
 X-RateLimit-Reset: 1711929600
 Retry-After: 30          # on 429 only
 ```
+
+The `X-RateLimit-*` family is the de-facto convention. The IETF standardization (`RateLimit-Policy` + `RateLimit` fields, draft-ietf-httpapi-ratelimit-headers) is still an Internet-Draft as of mid-2026 — emit the de-facto headers today, adopt the IETF names when the RFC lands.
 
 | Algorithm | Burst | Best for |
 |-----------|-------|----------|

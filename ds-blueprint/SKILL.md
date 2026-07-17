@@ -39,7 +39,7 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - **Completeness requirement (SSOT):** `ds/audit/findings.md` is the single source of truth for every fix skill. Other skills skip their own detection when blueprint findings exist. Blueprint MUST detect ALL issues in each in-scope dimension — a missing finding will not be fixed downstream.
-- **SSOT runtime enforcement (W10):** Every downstream consumer (ds-review, ds-fix, ds-simplify, ds-compliance, ds-mobile, etc.) MUST defer to a fresh `ds/audit/findings.md` (`git_hash == HEAD`, age ≤ 7 days). Fresh → consumers verify + apply only; they do NOT re-detect within blueprint's owned scopes. Stale or missing → consumer invokes `/ds-blueprint --refresh` or `--preview --scope=all` and waits before continuing. Re-detection within a covered scope is a W10 violation.
+- **SSOT runtime enforcement (W10):** Every downstream consumer (ds-review, ds-fix, ds-simplify, ds-compliance, ds-mobile, etc.) MUST defer to a fresh `ds/audit/findings.md` — **fresh = `git_hash == HEAD` AND produced in the current run-cycle** (this invocation or the orchestration run it executes under). Fresh → consumers verify + apply only; they do NOT re-detect within blueprint's owned scopes. From a previous cycle (however recent), stale, or missing → consumer invokes `/ds-blueprint --refresh` or `--preview --scope=all` and waits before continuing — prior-cycle findings serve only as diff baseline (previously-flagged → resolved?). Re-detection within a covered scope in the same cycle is a W10 violation; skipping a re-scan because a previous cycle ran recently is a W11-class violation.
 - **Overwrite-only persistence (SKILL-SPEC §10.1):** state, findings, profile rewritten every run — never appended. Run history lives in `git log -- <instruction-file>`, not in profile or any `ds/audit/` file. Append-only artifacts forbidden anywhere.
 - **Human-action items:** findings whose remediation requires human-only access (branch protection, CI/repo secrets, store or account setup, key rotation, purchases) are surfaced as a distinct `Human actions` block in Dashboard and repeated in Summary — never silently dropped, never marked fixed by the AI.
 - **Dev-Value Gate on every profile line:** the instruction file is re-read on every AI turn — every byte costs every future model read. A profile line is written only if it makes AI engineering measurably better on every turn for the next 6 months. Anything else (timestamps, score deltas, owner info, descriptions, philosophy) goes to README / CHANGELOG / git log / terminal summary instead.
@@ -52,10 +52,11 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 | `--preview` | Analyze + dashboard, no changes |
 | `--init` | Profile creation/refresh only (no analysis) |
 | `--refresh` | Re-scan profile (decisions preserved) |
-| `--scope={x}` | Specific area: stack, stack-fitness, deps, dx, external-tooling, structure, code, architecture, docs, spec-alignment, memory, all |
+| `--scope={x}` | Comma-separated: any findings scope name (references/scopes.md — e.g. security, testing, architecture, stack-fitness) or a dimension name (maps to its component scopes per references/weights.md); default `all`. Exclusions recorded in `filters_applied` |
 | `--resume` | Resume from `ds/audit/blueprint.json` without prompting |
 | `--clean` | Delete existing state, start fresh |
 | `--memory-cleanup` | Optional phase: scan AI agent memory index (`MEMORY.md`) for stale `[[link]]` references + offer consolidation. Default OFF — opt-in only |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present mode selection.
 
@@ -170,7 +171,7 @@ Write profile to detected instruction file. Calculate ideal metrics from `refere
 
 ### Phase 2.5: Parallel-Track Planning [PARALLEL]
 
-Group 9 dimensions × 25 scopes by execution cost — plan concurrency consciously.
+Group 9 dimensions × 24 scopes by execution cost — plan concurrency consciously.
 
 | Batch | Scopes | Concurrency | Why |
 |-------|--------|-------------|-----|
@@ -205,7 +206,7 @@ Scan **entire codebase**, record every finding with file:line to `ds/audit/findi
 | Dimension | Scan | Patterns |
 |-----------|------|----------|
 | Security & Privacy | All source | Hardcoded secrets ({api-key-shape}, {token-shape}, password literals), `eval()`/`Function()` with dynamic input, SQL string concat, missing parameterized queries, missing auth middleware on protected routes, PII in log statements, weak crypto (MD5, SHA1, DES, ECB), missing HTTPS, CORS wildcard, missing CSRF, missing input validation, missing rate limiting |
-| Code Quality | All source | Unused imports/vars/functions, missing type annotations on public APIs, nesting >3, duplicated blocks >10 lines, dead code, magic numbers, functions >50 lines, files >500 lines, empty catch, stale TODO/FIXME/HACK >30 days. **ai-hygiene:** AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers. **doc-sync:** inline doc contradicts signature, stale param descriptions, wrong return type. |
+| Code Quality | All source | Unused imports/vars/functions, missing type annotations on public APIs, nesting >3, duplicated blocks >10 lines, dead code, magic numbers, functions >50 lines, files >500 lines, empty catch, stale TODO/FIXME/HACK >30 days. **ai-hygiene:** AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers, hallucinated APIs (calls to nonexistent methods/imports), dead feature flags, stale mocks left in production paths. **doc-sync:** inline doc contradicts signature, stale param descriptions, wrong return type. |
 | Architecture | Import graph + structure | **SOLID violations ([references/principles.md §2](references/principles.md)):** SRP (module changes for >1 reason), OCP (new behavior added by editing stable code), LSP (subtype narrows postcondition or throws unhandled), ISP (consumer forced to depend on unused members), DIP (high-level imports concrete low-level). **GRASP:** Information Expert (logic away from data), Low Coupling (>7 unrelated peer imports), High Cohesion (unrelated exports same module). Plus: circular deps, god classes (>10 public methods or >300 lines), feature envy, layer violations, missing DI, inconsistent error handling, inconsistent naming. **maintainability:** change coupling, shotgun surgery (single change requires 5+ file edits), missing abstraction boundaries, churn×complexity hotspots (behavioral pass below). **ai-architecture:** prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget; product-facing LLM features: untrusted input concatenated into prompts (injection surface), model output consumed without schema/shape validation, no eval or regression set for prompt changes, no per-call cost/usage tracking. **contract-consistency:** same concept → same name (one verb per operation class: not fetch/get/load mixed for the same action; domain terms uniform across layers — not user/account/member for one entity), same word → same meaning everywhere, analogous functions share parameter order + options shape, consistent units/formats (time units, ID types, date/serialization casing at boundaries), one return/error shape per layer (throw vs Result vs null never mixed within a layer), same operation exposed with divergent signatures across modules. 3+ examples before flagging a lexicon pattern as systemic. |
 | Performance | All source | N+1 queries (DB call in loop), blocking calls in async, missing pagination on lists, missing DB indexes, large file reads without streaming, missing caching, unbounded collection growth, synchronous I/O in hot paths |
 | Resilience | Source + config | Missing error handling on external calls, missing timeout config, missing retry-with-backoff, no graceful shutdown, no health check, unbounded queue/buffer, missing circuit breaker, no fallback for failed deps, missing input size limits. **production-readiness:** missing structured logging, debug endpoints exposed, missing rate limiting, no graceful degradation under load, missing deployment health checks. |
@@ -275,7 +276,7 @@ Build from Discovery + Assess:
    | {id} | {severity} | {A|B} | {file} | {line} | {scope} | {title} |
    ```
    Every finding includes file:line so fix skills can act directly. Category A when fix conforms to current architecture/plan; B when it changes architecture/scope/capability/user-promise/dependency.
-4. **Verify completeness:** count distinct scopes in `ds/audit/findings.md`. Expected: 25 (the 24 scopes above + `ideal-gap` scope produced by `/ds-benchmark` when it runs). Count < 25 → identify missing scopes and re-run assessment for those before proceeding. Missing scope = fix skills skip detection → missed issues.
+4. **Verify completeness:** count distinct scopes in `ds/audit/findings.md`. Expected: the 24 blueprint-owned scopes above, minus any recorded in `filters_applied.skipped_scope` (quality-level or `--scope` exclusions — see references/detection.md § Audit Fields). `ideal-gap` is produced externally by `/ds-benchmark` — count it when present, never re-run for its absence. Blueprint-owned count below expectation → identify missing scopes and re-run assessment for those before proceeding. Missing scope = fix skills skip detection → missed issues.
 
 **Gate:** All 9 scores calculated; calibration passed; `ds/audit/findings.md` written with all 25 scopes verified. If fails → calibration suspicious score (dimension at 100, CRITICAL with overall ≥80) → re-read flagged signals + adjust; missing scopes → re-run assessment for each before writing; write fails → surface OS error, ask user to resolve.
 
@@ -386,6 +387,7 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 - Every signal cites file:line — skip signals without evidence
 - Only count signals from source code — exclude test, generated, vendored files
 - Score reflects verified signals only — uncertain signals reduce to 0.5 weight
+
 | Guard | Rule |
 |-------|------|
 | W1 | Cite file:line; never assume |

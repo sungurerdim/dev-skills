@@ -55,7 +55,7 @@ Without flags: present mode menu (full scan / preview / single scope).
 | dead-code | Exports with zero references via LSP `findReferences` or cross-file grep |
 | single-caller | Helpers, utilities, or components referenced from exactly one site — inline candidate |
 | fallback | Backward-compat branches, legacy import paths, defensive checks with no live hit |
-| dead-branch | Feature-flag branches where only one path has executed in recent history |
+| dead-branch | Feature-flag branches whose flag value is constant across every config source (no runtime setter) — the untaken branch is dead |
 | premature-abstraction | Generics, hooks, wrappers, base classes built on ≤3 concrete usages |
 | quarantine | `// removed`, `// legacy`, `// deprecated`, `// TODO delete`, `_unused` markers |
 | test-realism | Test fixtures with unrealistic data (`{tiny-email}`, `{tiny-price}`, empty-string secrets, length-1 arrays as "collection") |
@@ -109,8 +109,8 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 **2.4 dead-branch:**
 
 1. Grep feature-flag references (`process.env.{FLAG}`, `flags.{x}`, `if (config.{x})`).
-2. Flag with only one path ever taken in last 100 commits (`git log` of flag's file) → finding.
-3. Evidence: flag name + "only true path observed in last 100 commits".
+2. Statically resolvable flags only: the flag's value is a constant across every config source (all env files/`.env.example`, config files, deployment manifests set the same literal; no runtime setter/toggle mechanism exists) → the never-selected branch is dead → finding. Flag value not statically resolvable (remote config, per-tenant, runtime toggle) → skip, never guess runtime behavior.
+3. Evidence: flag name + each config source file:line showing the constant value + "no runtime setter found".
 
 **2.5 premature-abstraction:**
 
@@ -189,12 +189,12 @@ Record every decision. Batch pending deletions by scope.
 Per approved batch:
 
 1. Apply the deletion / inline / compaction in-place.
-2. Re-run quick tests (`/ds-test --quick` if available; else `npm test --bail`, `go test ./...`, `pytest -x`, etc.). Test failure → revert batch, mark `failed (tests broke)`, continue to next scope.
+2. Re-run the project's quick test command directly (`npm test --bail`, `go test ./...`, `pytest -x`, `flutter test`, etc. — fail-fast variant). Test failure → restore the batch's files (`git restore -- {files}` — no commit exists yet at this step), mark `failed (tests broke)`, continue to next scope.
 3. Invoke `/ds-commit --single` with: `refactor(simplify): remove {n} {scope} findings`. Record commit hash.
 
 Parallel execution per scope allowed. One commit per scope-batch so user can revert a single scope cleanly.
 
-**Gate:** Every approved batch either committed or cleanly rolled back; no test failures left in-tree. If fails → tests break after batch deletion + rollback fails → `git revert {batch-commit-hash}`, mark `failed (tests broke, reverted)`, continue to next scope.
+**Gate:** Every approved batch either committed or cleanly rolled back; no test failures left in-tree. If fails → failure surfaces before the batch commit → `git restore -- {files}`; failure discovered after the commit landed → `git revert {batch-commit-hash}`; either way mark `failed (tests broke, rolled back)`, continue to next scope.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 

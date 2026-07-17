@@ -96,7 +96,7 @@ RFC 9700 compliance checklist:
 
 **Why:** Implicit and ROPC grants expose tokens in URLs or require password sharing. Authorization Code + PKCE prevents authorization code interception and works securely for all client types.
 
-**Source:** [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 9700 (OAuth 2.1)](https://datatracker.ietf.org/doc/rfc9700/), auth-implementation-guide.md OAuth 2.0 section
+**Source:** [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 9700 — Best Current Practice for OAuth 2.0 Security](https://datatracker.ietf.org/doc/rfc9700/) (OAuth 2.1 remains an IETF draft consolidating the same rules), auth-implementation-guide.md OAuth 2.0 section
 
 ---
 
@@ -126,7 +126,7 @@ Keep JWT payloads small: `sub`, `iss`, `aud`, `exp`, `iat`, `jti`, and role/scop
 
 **Why:** JWT algorithm confusion is CRITICAL vulnerability. Accepting `alg=none` or failing to verify signatures allows token forgery.
 
-**Source:** [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [JWT.io best practices](https://jwt.io/introduction/), auth-implementation-guide.md JWT Best Practices section
+**Source:** [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 8725 — JWT Best Current Practices](https://datatracker.ietf.org/doc/html/rfc8725) (a bis revision adding algorithm-confusion + JWE compression-DoS defenses is in IETF draft as of mid-2026), auth-implementation-guide.md JWT Best Practices section
 
 ---
 

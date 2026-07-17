@@ -201,6 +201,39 @@ Per-stack test framework detection and commands. Load only the section matching 
 
 ---
 
+## Script-Based / No-Framework Repos (repo-native check as the done-signal)
+
+Repos with no recognized test framework (Markdown-only, pure-config, script-driven) often carry a bespoke check script — that script IS the project's test command. Detect, in order; first hit becomes the `--run` command and the done-signal:
+
+| Signal | Command |
+|--------|---------|
+| `package.json` `scripts.check` (no test framework dep) | `npm run check` |
+| `Makefile` with a `check` or `test` target | `make check` / `make test` |
+| `scripts/check*.sh` (e.g. `scripts/check-consistency.sh`) | `bash scripts/check-{name}.sh` |
+| `Taskfile.yml` / `Justfile` with a check/test task | `task check` / `just check` |
+
+Generate/coverage modes are N/A here — report "no test framework; repo check script `{cmd}` is the done-signal" instead of exiting with "no framework". `--run` executes the script and classifies failures normally (a consistency-gate failure is an app bug in the repo's own terms). This is how a rules/docs repo (like a skill suite with `scripts/check-consistency.sh`) gets automatic verification through ds-test instead of falling outside its scope.
+
+---
+
+## Property-Based Testing (generate the boundary cases you didn't think of)
+
+Hand-enumerated boundary cases cover the boundaries the author thought of; a property test generates hundreds of inputs and shrinks failures to a minimal counterexample. Use for pure functions with algebraic properties: roundtrip (decode(encode(x)) == x), idempotence (f(f(x)) == f(x)), invariant preservation (sort output is ordered + same multiset), commutativity/associativity.
+
+| Stack | Library | Detection |
+|-------|---------|-----------|
+| JS / TS | fast-check | `fast-check` in deps |
+| Python | Hypothesis | `hypothesis` in deps |
+| Go | rapid | `pgregory.net/rapid` in go.mod |
+| Rust | proptest | `proptest` in Cargo.toml |
+| JVM | jqwik | `jqwik` in build config |
+| C# / .NET | FsCheck | `FsCheck` in csproj |
+| Elixir | StreamData | `stream_data` in mix.exs |
+
+**Rule:** offer property tests only when the library is already a project dependency (never introduce a new framework — same rule as unit frameworks); absent → gap-note once, hand-enumerated boundary cases stand. Every property test still names the concrete failure it guards against (e.g. "roundtrip loses timezone on DST boundary").
+
+---
+
 ## Mutation Testing (verify the suite, not just coverage) — W12
 
 Coverage proves a line executed; **mutation testing proves a test would fail if the behavior broke**. A suite that passes while mutants survive is test theater — exactly the reward-hacking failure W12 guards against. Run mutation analysis on critical modules and investigate every survived mutant.

@@ -62,5 +62,5 @@ coverage gaps. Exact commands: `references/toolchains.md`.
 - `references/toolchains.md` — per-stack commands + minimal bootstrap.
 - `references/hook-contract.md` — verified Claude Code Stop-hook contract + global install script.
 - `assets/ds-quality-gate.sh` — the Claude Code Stop hook (auto-arming).
-- `assets/ds-quality-detect.sh` — toolchain detector → quality command (used by all three arms).
+- `assets/ds-quality-detect.sh` — toolchain detector → quality command (used by every arm).
 - `assets/quality.sh.tmpl` — template for a per-project entry point (bootstrap).

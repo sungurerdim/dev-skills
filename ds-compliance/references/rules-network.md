@@ -7,8 +7,8 @@ Network-level compliance rules for API security, transport layer, and DoS preven
 | Section | Rules | Line |
 |---------|-------|------|
 | **Transport Security** | NET-01–04 (2 BLOCKER, 2 CRITICAL) | ~12 |
-| **API Protection** | NET-05–08 (1 BLOCKER, 2 CRITICAL, 1 MAJOR) | ~55 |
-| **Resilience** | NET-09–12 (1 CRITICAL, 2 MAJOR, 1 MAJOR) | ~95 |
+| **API Protection** | NET-05–08 (1 BLOCKER, 2 CRITICAL, 1 HIGH) | ~55 |
+| **Resilience** | NET-09–12 (1 CRITICAL, 3 HIGH) | ~95 |
 
 ---
 
@@ -60,7 +60,7 @@ All external calls must have explicit timeouts to prevent resource exhaustion.
 - **Fix:** Set connect timeout (5-10s), read timeout (30s), write timeout (30s). For long operations, use async processing with progress callbacks. Python: `requests.get(url, timeout=(5, 30))`. Go: `&http.Client{Timeout: 30 * time.Second}`
 - **Source:** NIST resilience guidelines
 
-### NET-08 [MAJOR] API Versioning
+### NET-08 [HIGH] API Versioning
 APIs must have versioning strategy to prevent breaking changes.
 - **Detect:** API routes without version prefix (`/api/users` instead of `/api/v1/users`). No `Accept` header version negotiation. No sunset/deprecation headers on old versions
 - **Fix:** URL path versioning (`/api/v1/`) or header versioning (`Accept: application/vnd.api+json;version=1`). Document deprecation timeline. Add `Sunset` header to deprecated versions
@@ -76,19 +76,19 @@ Database and HTTP connection pools must have bounded sizes and timeouts.
 - **Fix:** Set pool size based on expected concurrency (typically 10-25 for DB, 100 for HTTP). Set idle timeout (30-60s). Set max lifetime (5-10min). Go: `db.SetMaxOpenConns(25); db.SetMaxIdleConns(5); db.SetConnMaxLifetime(5 * time.Minute)`
 - **Source:** Database and HTTP client documentation
 
-### NET-10 [MAJOR] Retry with Backoff
+### NET-10 [HIGH] Retry with Backoff
 Retries on external service failures must use exponential backoff with jitter.
 - **Detect:** Retry loops without delay (`while (!success) { retry(); }`). Fixed delay retries. Missing jitter. Unlimited retry count
 - **Fix:** Exponential backoff: `delay = min(base * 2^attempt + random_jitter, max_delay)`. Max 3-5 retries. Circuit breaker for persistent failures. Python: `tenacity` library. Go: custom or `cenkalti/backoff`
 - **Source:** AWS architecture best practices
 
-### NET-11 [MAJOR] Circuit Breaker Pattern
+### NET-11 [HIGH] Circuit Breaker Pattern
 Repeated failures to external services should trip circuit breaker to prevent cascade failures.
 - **Detect:** External service calls without circuit breaker. Repeated timeout/error handling that continues calling failing service
 - **Fix:** Implement circuit breaker with three states: closed (normal), open (failing, fast-fail), half-open (testing recovery). Track failure rate over sliding window. Go: `sony/gobreaker`. Node: `opossum`. Python: `pybreaker`
 - **Source:** Michael Nygard, "Release It!"
 
-### NET-12 [MAJOR] DNS Resolution Caching
+### NET-12 [HIGH] DNS Resolution Caching
 Avoid DNS lookup on every request for frequently called services.
 - **Detect:** HTTP clients creating new connections per request without connection reuse. DNS resolution on every API call in hot paths
 - **Fix:** Use connection pooling (reuses existing connections, avoids DNS). For custom DNS: set TTL-based cache. Node: `http.Agent({keepAlive: true})`. Go: default `http.Client` reuses connections. Python: `requests.Session()` for connection reuse

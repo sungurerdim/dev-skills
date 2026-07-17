@@ -9,6 +9,7 @@ Applies to all project types: web, API, CLI, library, mobile, monorepo.
 | **Dependency Management** | DOP-10–14 (1 CRITICAL, 4 HIGH) |
 | **Agent & Supply-Chain Security** | DOP-15–18 (4 HIGH) |
 | **Workflow Security & Lint** | DOP-19–20 (1 CRITICAL, 1 HIGH) |
+| **Registry Publishing** | DOP-21 (1 HIGH) |
 
 ## CI/CD & Workflow
 
@@ -273,3 +274,15 @@ CI workflow files get two deterministic lint layers: actionlint for correctness 
 - **Fix:** Use `pull_request` for anything that executes PR code. Reserve `pull_request_target` for metadata-only jobs (labels, comments) with no checkout of PR code; when PR content must be read, treat it as data, never execute it. zizmor detects this pattern deterministically (DOP-19).
 - **Impact:** Secret exfiltration → downstream supply-chain compromise of everything those credentials can publish.
 - **Source:** [We hardened zizmor's GitHub Actions static analyzer — Security Boulevard (2026-05)](https://securityboulevard.com/2026/05/we-hardened-zizmors-github-actions-static-analyzer/); [Harden your GitHub Actions workflows with zizmor — mattsch.com (2026-03-28)](https://mattsch.com/blog/2026/03/28/harden-your-github-actions-workflows-with-zizmor-dependency-pinning-and-dependency-cooldowns/)
+
+## Registry Publishing
+
+### DOP-21 [HIGH] Registry Publish Auth Currency (Trusted Publishing / OIDC)
+Release workflows publishing to package registries must use short-lived OIDC trusted publishing, not long-lived token secrets. npm classic tokens were fully revoked 9 Dec 2025 — a publish job still referencing one is broken, not just insecure; granular npm tokens now cap at a 90-day lifetime.
+- **Detect:**
+  - npm publish step authenticating via a stored token secret (`NODE_AUTH_TOKEN` / `.npmrc` `_authToken`) instead of trusted publishing — classic tokens no longer authenticate at all; granular tokens expire ≤90 days and rot silently in secrets
+  - PyPI publish using `password:` / long-lived API token with `twine` instead of a Trusted Publisher
+  - Publish job missing `permissions: id-token: write` when trusted publishing is intended
+- **Fix:** npm — configure Trusted Publishing (OIDC, GA since 31 Jul 2025 for GitHub Actions + GitLab CI; requires npm CLI ≥ 11.5.1 and `id-token: write`); provenance attestations are generated automatically, no `--provenance` flag needed. PyPI — configure a Trusted Publisher and publish via `pypa/gh-action-pypi-publish` (≥ v1.11.0 auto-generates PEP 740 attestations). Remove the long-lived token from secrets after cutover.
+- **Impact:** A leaked long-lived publish token = full package-takeover; OIDC tokens are per-run and unexfiltratable at rest. On npm the classic-token path is additionally a hard availability bug since Dec 2025.
+- **Source:** npm Trusted Publishing GA (github.blog, 2025-07-31); npm classic-token revocation (2025-12-09); PyPI Trusted Publishers + PEP 740

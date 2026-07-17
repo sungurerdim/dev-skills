@@ -30,11 +30,14 @@ Run `/ds-test`, or ask to write tests, improve coverage, or fix failing tests.
 
 | Mode | What It Does |
 |------|-------------|
-| **Generate** | Write tests for uncovered code (unit, integration, E2E) |
+| **Generate** | Write tests for uncovered code (unit, integration) |
 | **Update** | Sync tests after source code changes |
 | **Run + Fix** | Execute tests, classify failures, fix test-side issues |
+| **E2E** | Generate or run end-to-end / integration tests |
 | **Coverage** | Analyze gaps and fill them with new tests |
 | **Setup** | Install test framework and create initial config |
+| **Prune** | Find and delete low-value tests (getter tests, oversized snapshots, reward-hacking assertions), replace with meaningful ones |
+| **Baseline** | Characterization tests: capture a legacy module's actual behavior before refactoring |
 
 ## Supported Stacks
 
@@ -47,3 +50,5 @@ Node.js (Vitest/Jest/Playwright), Python (pytest/Playwright), Go, Rust, Flutter,
 - **Smart classification** — distinguishes test bugs from app bugs, never weakens assertions
 - **Findings integration** — app bugs found during test runs written to `ds/audit/findings.md` for downstream code review
 - **Run-fix loop** — runs, fixes, re-runs until green (max 3 iterations)
+- **Assertion-strength proof** — mutation testing (8 stacks) treats every surviving mutant as a missing assertion; coverage alone is never trusted
+- **Property-based tests** — offered for pure functions with algebraic properties when the stack's library (fast-check, Hypothesis, proptest, …) is already a dependency

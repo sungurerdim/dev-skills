@@ -52,6 +52,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 | `--incident` | Incident response: detection, triage, mitigation, post-mortem |
 | `--cost` | Analyze infra costs: identify over-provisioned resources, suggest right-sizing, calculate cost at 1x/10x/100x scale |
 | `--auto` | All modes, no questions, single-line summary |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without a flag: present an up-front menu covering every mode, one row each. A disambiguating flag skips the menu.
 

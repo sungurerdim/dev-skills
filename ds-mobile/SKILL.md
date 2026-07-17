@@ -1,13 +1,13 @@
 ---
 name: ds-mobile
-description: Mobile app quality audit — 171 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native). Use when auditing a mobile app for quality or release readiness.
+description: Mobile app quality audit — 174 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native). Use when auditing a mobile app for quality or release readiness.
 ---
 
 # /ds-mobile
 
-Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 171 rules before you submit.
+Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 174 rules before you submit.
 
-**Mobile App Quality Audit** — 171 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native.
+**Mobile App Quality Audit** — 174 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native.
 
 > **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
 
@@ -46,6 +46,8 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 | `--release-ready` | Shorthand for `--mode=release-ready` |
 | `--skip-manual` | Skip manual gates (release-ready) |
 | `--diff` | Compare with previous release report |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 No flags → present mode selection.
 
@@ -68,7 +70,7 @@ No flags → present mode selection.
 
 | Provider | Rule | Scope |
 |----------|------|-------|
-| Apple | Sign in with Apple — required when other social auth present (App Store Review Guideline 4.8) | security, store |
+| Apple | Guideline 4.8 "Login Services" — third-party/social login as primary auth requires an equivalent privacy-preserving option (Sign in with Apple satisfies it; 5 exemptions incl. own-account-system-only) | security, store |
 | Apple | Entitlements correctness — `com.apple.developer.applesignin`, push, iCloud, in-app-purchase | security |
 | Google | `google-services.json` hygiene — no committed dev keys, correct package name, version match | security |
 

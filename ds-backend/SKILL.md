@@ -31,7 +31,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 ## Contract
 
 **Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design, conditional messaging), D10 (admin API + stats), A11 (webhook/export/embed)
-**Framework alignment (advisory):** Google SRE PRR (D3, D4), OpenAPI Specification (A10), OWASP ASVS (C1) — sourced references in SKILL-SPEC Dimension Coverage Map.
+**Framework alignment (advisory):** Google SRE PRR (D3, D4), OpenAPI Specification 3.1+ (A10), OWASP ASVS 5.0 (C1, released May 2025) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
 - Covers four scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve).
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams.
@@ -52,6 +52,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | `--migrate` | Generate or review database migrations |
 | `--scope={x}` | Specific scope: api, db, auth, data-pipeline (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present an up-front mode menu — Audit (recommended) / Design / (Cancel); each option's effect matches its row in the Arguments table above. A disambiguating flag (`--audit`/`--design`/`--scope`/`--auto`) skips the menu.
 
@@ -72,8 +73,8 @@ Without flags: present an up-front mode menu — Audit (recommended) / Design / 
 | Idempotency | `Idempotency-Key` header for non-idempotent POST |
 | Logging | Structured request logging (request ID, duration, status) |
 | Error-channel decision (D4, advisory) | Production crash/error reporting has an explicit decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only — see ds-compliance crosscheck), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding, never a blocker (SKILL-SPEC §15) |
-| Ecosystem openness (A11, advisory) | Webhook emission surface (versioned payload, HMAC signature verification, retry/backoff — aligned to the [Standard Webhooks](https://www.standardwebhooks.com/) spec where feasible) for state-change events; standard-format export endpoints (ICS/CSV/JSON, not just proprietary JSON) for user data; embeddable-surface posture (widget/iframe API) where the product has a natural embed use case. Product holds user data with no standard export path -> advisory portability finding (see ds-compliance crosscheck); never a blocker (SKILL-SPEC §15) |
-| Security | OWASP API Top 10 checks |
+| Ecosystem openness (A11, advisory) | Webhook emission surface (versioned payload, HMAC signature verified constant-time, timestamp replay-tolerance check — industry convention ~5 min — `webhook-id` as consumer idempotency key, retry/backoff — aligned to the [Standard Webhooks](https://www.standardwebhooks.com/) spec where feasible) for state-change events; standard-format export endpoints (ICS/CSV/JSON, not just proprietary JSON) for user data; embeddable-surface posture (widget/iframe API) where the product has a natural embed use case. Product holds user data with no standard export path -> advisory portability finding (see ds-compliance crosscheck); never a blocker (SKILL-SPEC §15) |
+| Security | OWASP API Security Top 10 (2023 edition — current as of 2026) checks |
 
 ### Database
 
@@ -234,7 +235,7 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 ### Phase 5: Spec [--spec mode]
 
-1. **API:** OpenAPI 3.0+ YAML spec from analyzed/designed endpoints.
+1. **API:** OpenAPI 3.1+ YAML spec from analyzed/designed endpoints (current stable: 3.2.0, Sept 2025 — strictly 3.1-compatible; 4.0 "Moonwalk" has no release date, stay on 3.x).
 2. **DB:** Migration files in project's ORM format, or raw SQL.
 3. **Auth:** Authentication flow documentation, middleware configuration.
 
@@ -273,9 +274,10 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 - Every API finding cites specific endpoint + HTTP method
 - Every DB finding cites specific table/column or migration file
 - Every auth finding cites specific file + configuration
-- OpenAPI spec validates against OpenAPI 3.0+ schema
+- OpenAPI spec validates against OpenAPI 3.1+ schema
 - Migration files include both `up` + `down` operations
-- Auth flows use current best practices (PKCE for public clients, not implicit flow)
+- Auth flows use current best practices (PKCE for all client types, not implicit flow)
+
 | Guard | Rule |
 |-------|------|
 | W1 | Cite file:line; never assume |

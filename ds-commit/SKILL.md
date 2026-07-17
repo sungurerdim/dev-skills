@@ -44,6 +44,8 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 | `--preview` | Show commit plan only, don't execute |
 | `--single` | Force single commit |
 | `--staged-only` | Commit only staged changes |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Default scope: all uncommitted changes (staged + unstaged + untracked).
 
@@ -62,7 +64,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 1. Verify `git` available
 2. Verify git repo: `git rev-parse --git-dir`
 3. Verify not detached HEAD: `git branch --show-current` — detached → stop, suggest creating a branch first
-4. `git fetch origin` (best-effort); on main/master behind upstream → `git pull origin {branch}` silently
+4. `git fetch origin` (best-effort); on main/master behind upstream → announce, then `git pull --ff-only origin {branch}`; fast-forward impossible (diverged) or working tree state blocks it → skip the pull, note "behind upstream by {n} — pull after committing", never merge/rebase silently
 
 **Branch management:**
 
@@ -92,7 +94,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 - `git log @{upstream}..HEAD` — list unpushed (no upstream → all local are unpushed).
 - Same-file/scope match → offer fixup:
   - HEAD commit → `git commit --amend`
-  - Older unpushed → `git commit --fixup={hash}` + `git rebase -i --autosquash`
+  - Older unpushed → `git commit --fixup={hash}` + non-interactive autosquash: `git rebase --autosquash {base}` (git ≥2.44) or `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash {base}` — never an editor-driven interactive rebase
 - Pushed commits are immutable — never fixup into them.
 - Rebase conflict → abort, fall back to new commit, warn user.
 
@@ -140,7 +142,7 @@ Stage files → build message → commit.
 
 | Part | Rule | Limit |
 |------|------|-------|
-| Full title | `{type}({scope}): {description}` | 50 chars (GitHub Desktop truncates beyond 50) |
+| Full title | `{type}({scope}): {description}` | 50 chars soft / 72 hard (CMT-04 — `git log --oneline` + GitHub UIs truncate long subjects) |
 | `{scope}` | Module/directory with >50% of changes; omit if no majority | Optional |
 | `{description}` | Imperative, lowercase after colon, no period | Fit within 50 |
 
@@ -155,8 +157,11 @@ Stage files → build message → commit.
 | `perf` | Performance, no behavior change | none |
 | `test` | Test-only | none |
 | `docs` | Docs-only | none |
-| `chore` | Build, CI, tooling, deps | none |
+| `style` | Formatting/whitespace only, zero logic change | none |
+| `build` | Build system or external-deps changes affecting artifacts | none |
+| `chore` | Tooling, deps, maintenance (no artifact impact) | none |
 | `ci` | CI/CD pipeline only | none |
+| `revert` | Reverts a previous commit (`revert: {original title}`) | mirrors reverted |
 
 **Litmus test (uncertain → non-bumping type):**
 

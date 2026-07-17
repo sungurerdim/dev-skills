@@ -30,9 +30,9 @@ Run `/ds-blueprint`, or ask to assess your project health.
 
 1. Discovery: detect project type, stack, toolchain
 2. Init: profile creation (type, quality, data, priorities, constraints)
-3. Assess: 5-track parallel analysis (code quality, architecture, production, docs, audit)
-4. Consolidate: dimension scoring with project-type weights
-5. Plan and apply fixes
+3. Assess: 24 scopes in 3 concurrency batches (read-only / AST / cross-file) — scan, record, score; never fix
+4. Consolidate: dimension scoring with project-type weights + calibration checks
+5. Suggest: `ds/audit/findings.md` is the interface — downstream fix skills act on it
 6. Update profile with new scores
 
 ## Features

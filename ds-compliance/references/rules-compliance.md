@@ -6,10 +6,10 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Security** | SEC-01–12 (4 BLOCKER, 5 CRITICAL, 3 MAJOR) | ~12 |
-| **Privacy** | PRV-01–05 (2 BLOCKER, 2 CRITICAL, 1 MAJOR) | ~120 |
-| **Regulatory Compliance** | PRV-06–19, PRV-21 (10 BLOCKER, 5 CRITICAL) | ~165 |
-| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~390 |
+| **Security** | SEC-01–12 (4 BLOCKER, 5 CRITICAL, 3 HIGH) | ~12 |
+| **Privacy** | PRV-01–05 (2 BLOCKER, 2 CRITICAL, 1 HIGH) | ~120 |
+| **Regulatory Compliance** | PRV-06–19, PRV-21–25 (11 BLOCKER, 8 CRITICAL) | ~165 |
+| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~460 |
 
 ---
 
@@ -102,7 +102,7 @@ Auth validated server-side on every request. No client-only auth checks.
 - **Fix:** Auth middleware on all protected routes. Validate JWT/session server-side. Check permissions per resource, not just authentication. Use RBAC or ABAC
 - **Source:** OWASP A01:2021
 
-### SEC-10 [MAJOR] Session Management
+### SEC-10 [HIGH] Session Management
 Secure session configuration. Token rotation. Proper logout.
 - **Detect:**
   - Session cookies without `Secure`, `HttpOnly`, `SameSite` flags
@@ -112,7 +112,7 @@ Secure session configuration. Token rotation. Proper logout.
 - **Fix:** Set cookie flags: `Secure; HttpOnly; SameSite=Strict`. Short-lived access tokens (15min) + refresh token rotation. Server-side session invalidation on logout. Regenerate session ID after auth state change
 - **Source:** OWASP Session Management Cheat Sheet
 
-### SEC-11 [MAJOR] Rate Limiting
+### SEC-11 [HIGH] Rate Limiting
 API endpoints protected against abuse.
 - **Detect:**
   - No rate limiting middleware on auth endpoints (login, register, password reset)
@@ -123,7 +123,7 @@ API endpoints protected against abuse.
 - **Source:** OWASP API Security Top 10
 - **Cross-ref:** Same check as [NET-05](rules-network.md) (canonical, network scope) — when both `security` and `network` scopes run together, report once under NET-05.
 
-### SEC-12 [MAJOR] License & IP Contamination
+### SEC-12 [HIGH] License & IP Contamination
 AI assistants can emit near-verbatim third-party or copyleft code without attribution.
 - **Detect:**
   - No license / SCA scan on AI-assisted PRs
@@ -171,7 +171,7 @@ Complete data deletion including databases and third-party services.
 - **Fix:** Implement complete erasure: databases, backups (schedule), third-party services. Provide deletion UI in account settings
 - **Source:** GDPR Art. 17
 
-### PRV-05 [MAJOR] Data Logging Hygiene
+### PRV-05 [HIGH] Data Logging Hygiene
 No PII in logs, error reports, or analytics.
 - **Detect:**
   - Search: logging statements containing `email`, `password`, `token`, `ssn`, `phone` variables
@@ -196,6 +196,8 @@ No PII in logs, error reports, or analytics.
 ## Regulatory Compliance (Framework-Tagged)
 
 Rules in this section only checked when corresponding framework is in `ACTIVE_FRAMEWORKS`. Tag format: `[FRAMEWORK: X,Y]` means check only if X or Y is active.
+
+US context (2026): ~20 states have comprehensive privacy laws in effect (IN/KY/RI joined 1 Jan 2026; CT/AR/UT amendments 1 Jul 2026). The CCPA/CPRA rule below covers the strictest baseline (CA); most other state laws follow the Virginia template with lighter obligations.
 
 ### PRV-06 [BLOCKER] CCPA/CPRA Compliance [FRAMEWORK: CCPA]
 California Consumer Privacy Act + California Privacy Rights Act. Amended CPPA regulations effective 1 Jan 2026.
@@ -237,7 +239,8 @@ UK General Data Protection Regulation (post-Brexit).
   - AADC not implemented for child-accessible services
   - Search: absence of `uk_gdpr`, `aadc`, `ico_registration` in compliance files
 - **Fix:** Register with ICO. Designate UK representative. Implement AADC for child-accessible services
-- **Source:** UK GDPR 2018, ICO AADC
+- **DUAA 2025 note:** the Data (Use and Access) Act (Royal Assent 19 Jun 2025) AMENDS — does not replace — UK GDPR/DPA 2018/PECR, phased Jun 2025→Jun 2026: new "recognised legitimate interests" basis (no balancing test for listed purposes), loosened automated-decision-making rules, transfers test now "not materially lower" protection, statutory complaint right to controllers (30-day acknowledgment — privacy-notice/complaint-handling updates due 19 Jun 2026), low-risk cookies (security, analytics) permitted on opt-out, PECR fines raised to GDPR level (£17.5M / 4%)
+- **Source:** UK GDPR 2018, ICO AADC, ICO — DUAA 2025 guidance
 
 ### PRV-10 [BLOCKER] ePrivacy Compliance [FRAMEWORK: EPRIVACY]
 EU ePrivacy Directive (Cookie Law).
@@ -246,17 +249,19 @@ EU ePrivacy Directive (Cookie Law).
   - No cookie consent mechanism
   - Search: tracking SDK init before consent check
 - **Fix:** Block non-essential tracking until consent. Categorize: necessary, analytics, marketing. Granular opt-in. Re-consent annually
-- **Source:** ePrivacy Directive 2002/58/EC
+- **Status note (2026):** the 2002 Directive remains the binding law. The ePrivacy *Regulation* replacement is effectively abandoned; the Digital Omnibus proposal (tabled 19 Nov 2025) would move cookie-consent rules into GDPR (new Arts. 88a/88b) but is an UNADOPTED proposal as of mid-2026 — do not audit against it as law
+- **Source:** ePrivacy Directive 2002/58/EC; EP Legislative Train — Digital Omnibus package
 
 ### PRV-11 [BLOCKER] KVKK Compliance [FRAMEWORK: KVKK]
-Turkey Kisisel Verilerin Korunmasi Kanunu.
+Turkey Kisisel Verilerin Korunmasi Kanunu — cross-border regime rewritten by Law 7499, effective 1 Jun 2024 (implementing Yönetmelik: Official Gazette 32598, 10 Jul 2024).
 - **Detect:**
   - No VERBIS registration reference
   - No explicit consent (acik riza)
-  - Data transfer abroad without KVKK Board approval
+  - Cross-border transfer with no mechanism from the post-2024 tiered regime: (1) Board adequacy decision, (2) appropriate safeguards (standard contract / binding corporate rules), (3) statutory exception — consent-only transfer is the pre-2024 model
+  - Standard contract signed but not notified to the Board within 5 business days (independently fined violation — 2026 ceiling TRY 90,308–1,806,177)
   - Search: absence of `kvkk`, `verbis`, `acik_riza` in compliance files
-- **Fix:** Register with VERBIS. Obtain explicit consent. Cross-border only to adequate countries or with Board approval
-- **Source:** KVKK 6698
+- **Fix:** Register with VERBIS. Obtain explicit consent for processing. Cross-border: use the tiered regime in order (adequacy → standard contract/BCR with 5-business-day Board notification → statutory exception); document which tier applies per transfer
+- **Source:** KVKK 6698 as amended by Law 7499 (Art. 9); kvkk.gov.tr cross-border transfer guideline (Rehber No. 48); 2026 fine indexation (Tebliğ No. 585, RG 27 Nov 2025)
 
 ### PRV-12 [BLOCKER] PIPA Compliance [FRAMEWORK: PIPA]
 South Korea Personal Information Protection Act.
@@ -368,7 +373,7 @@ Withdrawal as easy as giving consent.
 - **Source:** GDPR Art. 7(3)
 
 ### PRV-21 [BLOCKER] EU AI Act Obligations & Timeline [FRAMEWORK: EU_AI_ACT]
-EU AI Act (Reg. 2024/1689) — obligations phase in on the Digital Omnibus dates (provisional agreement 7 May 2026), not the original schedule.
+EU AI Act (Reg. 2024/1689) — obligations phase in on the Digital-Omnibus-on-AI dates (formally adopted: Parliament 16 Jun 2026, Council final green light 29 Jun 2026; OJ publication expected Jul 2026), not the original schedule.
 - **Detect:**
   - AI system / GPAI integration shipped to EU users without transparency disclosure (PRV-02 crosscheck)
   - Generative capability without a control blocking non-consensual intimate imagery / CSAM output
@@ -385,6 +390,45 @@ EU AI Act (Reg. 2024/1689) — obligations phase in on the Digital Omnibus dates
 
 - **Fix:** Disclose AI providers + processing purpose (PRV-02). Block NCII/CSAM generation paths before 2 Dec 2026. Classify high-risk exposure against the 2027/2028 dates — flagging Annex III urgency against 2 Aug 2026 over-flags by 16 months. Penalty tiers: up to €35M or 7% of worldwide turnover (most serious); up to €15M or 3% (transparency violations)
 - **Source:** EU AI Act Service Desk implementation timeline (ai-act-service-desk.ec.europa.eu); Digital Omnibus provisional agreement, 7 May 2026
+
+### PRV-22 [BLOCKER] COPPA Compliance [FRAMEWORK: COPPA]
+US Children's Online Privacy Protection Rule — FTC amended rule effective 23 Jun 2025; full compliance due 22 Apr 2026. Active enforcement: $20M Cognosphere (Jan 2025), $10M Disney (Sept 2025).
+- **Detect:**
+  - Child-directed or "mixed audience" service signals (kids category, age gate, child-oriented content/branding) with no verifiable parental consent (VPC) flow
+  - Third-party data disclosure (ads SDKs, analytics) without SEPARATE parental consent — distinct from the base collection consent (new in the 2025 rule)
+  - Biometric identifiers (face templates, fingerprints, voiceprints) or government-issued IDs collected from children — now "personal information" under the amended rule
+  - No written data-security program or retention limits for children's data
+  - Search: absence of `coppa`, `parental_consent`, `vpc`, age-gate logic in child-facing flows
+- **Fix:** Implement VPC before collection; add a second, separate consent step for any third-party disclosure; treat biometrics/IDs as personal information; write retention limits + security program. Note: FTC Policy Statement (25 Feb 2026) grants discretionary relief for age-verification-related collection only — the rest of the rule is enforced
+- **Source:** FTC amended COPPA Rule (Federal Register 2025-05904, 22 Apr 2025); FTC Policy Statement 25 Feb 2026
+
+### PRV-23 [CRITICAL] EU Data Act [FRAMEWORK: EU_DATA_ACT]
+Regulation (EU) 2023/2854 — applicable since 12 Sept 2025. Hits cloud/SaaS providers and connected-product makers.
+- **Detect:**
+  - Cloud/data-processing service (SaaS/PaaS/IaaS) whose contract/ToS lacks switching terms: termination on max 2 months' notice, migration completed within 30 days of switching start, switching-fee disclosure (fees must be cost-based now and eliminated entirely from 12 Jan 2027)
+  - No transparency notice on switching/porting procedures or on international government data-access exposure
+  - Connected-product/related-service data not accessible to the user or their designated third party
+  - Crosscheck PRV-18/A11: no machine-readable export path defeats the switching right technically
+- **Fix:** Add switching clauses to ToS/contracts; publish switching/porting documentation; implement export in a structured, machine-readable format; plan for enhanced interoperability requirements (from 12 Sept 2026)
+- **Source:** EU Data Act (Reg. 2023/2854), applicable 12 Sept 2025
+
+### PRV-24 [CRITICAL] EU Cyber Resilience Act Readiness [FRAMEWORK: EU_CRA]
+Products with digital elements sold in the EU. First hard deadline is imminent: vulnerability/incident reporting from 11 Sept 2026 — applies even to products already on the market.
+- **Detect:**
+  - No coordinated vulnerability disclosure policy or security contact (`SECURITY.md`, `security.txt`)
+  - No incident-reporting runbook capable of the CRA cascade: 24h early warning → 72h full notification → 14-day final report, to ENISA/national CSIRT via the Single Reporting Platform
+  - No SBOM or dependency inventory (needed for the Dec 2027 CE/security-by-design obligations)
+- **Fix:** Publish a vulnerability-disclosure policy + security contact now; write the 24h/72h/14d reporting runbook before 11 Sept 2026; start SBOM generation. Full obligations (CE marking, technical documentation, security-by-design) apply 11 Dec 2027; penalties up to €15M or 2.5% of global turnover
+- **Source:** EU CRA (in force 10 Dec 2024) — digital-strategy.ec.europa.eu/policies/cyber-resilience-act + /cra-reporting
+
+### PRV-25 [CRITICAL] PCI DSS Scope Check [FRAMEWORK: PCI_DSS]
+Card data handling. Active version: PCI DSS v4.0.1 (sole version since 31 Dec 2024); all 51 future-dated v4 requirements mandatory since 31 Mar 2025. v5.0 has no confirmed date (2027+ estimate).
+- **Detect:**
+  - Card PAN/CVV fields rendered or posted to own backend (raw card data touching own servers) instead of a PSP-hosted checkout/iframe/SDK (Stripe Checkout/Elements, Braintree Drop-in, etc.)
+  - Card numbers in logs, database columns, or analytics events
+  - Payment forms without SRI/CSP protection on payment-page scripts (v4 requirements 6.4.3 / 11.6.1 — script inventory + change detection on payment pages)
+- **Fix:** Prefer full PSP delegation so scope collapses to SAQ-A (never store/process/transmit raw PAN). Raw card data unavoidable → full v4.0.1 assessment applies; never log PAN/CVV; add payment-page script integrity monitoring
+- **Source:** PCI SSC — v4.0.1; future-dated requirements effective 31 Mar 2025 (PCI SSC blog)
 
 ---
 

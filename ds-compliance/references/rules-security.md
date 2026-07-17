@@ -4,6 +4,8 @@ CLI/library-specific security subset. These rules apply to non-web, non-API proj
 
 Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action.
 
+> **Edition note (2026-07-17):** OWASP Top 10 **2025** is released (first revision since 2021; distinct from the API Security Top 10 2023). Category IDs below cite the 2021 edition pending itemized remap — verified: [owasp.org/Top10/2025](https://owasp.org/Top10/2025/) (2×-confirmed).
+
 ## Table of Contents
 
 | Section | Rules | Line |
