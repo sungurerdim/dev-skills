@@ -2,6 +2,8 @@
 
 Multi-phase AI coding assistant skills covering the full software lifecycle — gates, error recovery, and systematic mitigation of 17 known AI failure modes (W1–W11 universal + W12–W17 domain-specific) across Claude Code, OpenCode, Cursor, Copilot, Windsurf, and Aider.
 
+**Mission:** enable a solo developer + AI to ship production-ready, high-quality products in any software project — encoding each domain's complete best practices (security, performance, privacy, accessibility, UX/UI, testing, compliance, operations) as executable gates, so quality does not depend on the developer's knowledge, attention, or available time. Target: the highest-quality, most practical skill set in its class — every critical point covered, nothing that doesn't earn its keep.
+
 ## Meta
 
 - **Status:** active

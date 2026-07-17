@@ -9,6 +9,8 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 
 **dev-skills are multi-phase execution systems** — quality gates, error recovery, systematic mitigation of 17 known AI weaknesses — covering the entire software lifecycle from project scaffolding to store launch.
 
+**The mission:** one developer + an AI assistant shipping production-ready products in any stack, with the security, performance, privacy, accessibility, UX, and operational coverage of a full senior team. Each skill encodes its domain's best practices as executable gates and approval flows — so quality stops depending on what you happen to know, notice, or have time for. The errors this set exists to eliminate are the ones born of missing knowledge, divided attention, and deadline pressure: the skill knows the checklist, holds the gate, and proves the result with machine-checkable evidence.
+
 ### Proof
 
 | Number | Meaning |
@@ -30,6 +32,8 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 - **If a human is doing it repeatedly, it should be automated.**
 - **Every decision minimizes YOUR legal exposure.** Not the vendor's.
 - **One developer + AI should ship what a team of five ships.**
+- **Quality is a mechanism, not a memory.** Gates and checks catch what knowledge, attention, or time would have missed.
+- **"Done" is proven, never declared.** Every completion claim traces to a machine-checkable signal.
 
 ## When to reach for which skill
 
@@ -63,7 +67,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Empty repo. Get me to a real project from zero." | [`/ds-init`](ds-init) — scaffold, CI, lint, tests from day one |
 | "Design my API + database + auth + data pipeline, end-to-end." | [`/ds-backend`](ds-backend) — four-layer design, no inconsistent naming, no double-processing jobs |
 | "I need design tokens, component states, theming, a11y baseline." | [`/ds-frontend`](ds-frontend) — design system audit + generation |
-| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 171 rules, 13 domains, release-readiness scoring |
+| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 174 rules, 13 domains, release-readiness scoring |
 
 ### Improve — fix what's already there
 
