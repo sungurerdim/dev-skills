@@ -10,6 +10,7 @@ Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix a
 | **Advanced** | RSP-05 to RSP-08 (2 MEDIUM, 1 MEDIUM, 1 LOW) | ~72 |
 | **Core Web Vitals** | RSP-09 to RSP-11 (2 HIGH, 1 MEDIUM) | ~148 |
 | **Symmetry & Print** | RSP-12 to RSP-14 (1 HIGH, 2 MEDIUM) | ~193 |
+| **Alignment & Visual Geometry** | RSP-15 to RSP-18 (2 HIGH, 1 MEDIUM, 1 LOW) | ~218 |
 
 ---
 
@@ -212,3 +213,33 @@ Layout direction comes from logical properties (`margin-inline-start`, `padding-
 - **Fix:** Replace with logical equivalents (baseline in all modern browsers): `margin-inline-start/end`, `padding-inline`, `inset-inline-start`, `text-align: start/end`, `border-inline-start`; set `dir` on `<html>` from the active locale; verify one RTL locale via the RSP-08 matrix.
 - **Impact:** Physical properties mirror nothing under RTL — the layout renders left-anchored for right-to-left readers, and retrofitting is a full-codebase sweep with visual-regression risk. Writing logical properties from day one costs nothing.
 - **Source:** MDN CSS Logical Properties and Values; W3C i18n layout best practices
+
+## Alignment & Visual Geometry
+
+### RSP-15 [HIGH] In-Item Alignment (icon/text/control rows)
+Every horizontal composite (icon + label, avatar + text, input + button, badge in a row) is vertically aligned by an explicit rule — centered or baseline-aligned — never by accidental line-box math.
+- **Detect:** Flex/grid rows containing an icon/image next to text without `align-items: center` (or `baseline` when aligning text of one size to text of another); mixed inline elements with differing `line-height`/`font-size` producing visibly offset baselines (icon riding high/low next to its label); buttons or chips whose label sits off-center because vertical padding is asymmetric or line-height exceeds the control height; fixed-height controls in one row with differing heights (input 40px next to button 36px).
+- **Fix:** State the alignment intent in code: `align-items: center` for icon+text and control rows; `align-items: baseline` for text-to-text of different sizes; equalize control heights in a shared row via a shared size token; give icons a fixed box (`flex: none; width/height`) so they can't stretch. When browser automation is available, verify by measured bounding boxes: centers (or baselines) of siblings in one row must match within 1–2px.
+- **Impact:** Off-by-2px icon/label misalignment is the single most common "feels unpolished" signal — invisible in code review, obvious to every user.
+- **Source:** Every Layout (Heydon Pickering) cluster/center patterns; flexbox alignment spec (MDN)
+
+### RSP-16 [HIGH] Row/Column Content Alignment (tables, lists, forms)
+Columnar content aligns by data type, and headers align with their column's data.
+- **Detect:** Data tables/lists where numeric columns (amounts, counts, dates) are left- or center-aligned, or rendered with proportional figures so digits don't line up vertically; column headers whose alignment differs from their column's data alignment; text columns center-aligned (ragged both sides); form layouts mixing label positions (some above, some inline) or labels not aligned to a common edge within one form; multi-line list items where wrapped text falls back under the leading icon/marker instead of hanging-indented to the text start.
+- **Fix:** Numbers: end-aligned + `font-variant-numeric: tabular-nums` (monospaced digits) so magnitudes compare vertically; text: start-aligned; headers inherit their column's alignment; one label-placement convention per form, labels on a shared edge; wrapped list-item text hang-indents to the text column (grid `auto 1fr` or padding + negative text-indent).
+- **Impact:** Misaligned numeric columns make scanning/comparison measurably slower and error-prone; mixed form alignment breaks the vertical scan line users navigate by.
+- **Source:** Practical Typography (butterick) tabular figures; NN/g form-label alignment research
+
+### RSP-17 [MEDIUM] Shared-Edge & Gutter Consistency (page-level grid)
+Sibling blocks on the same page align to shared edges and use uniform gutters from the spacing scale.
+- **Detect:** Cards/panels in one visual row with unequal heights where the design implies equality (`align-items` left at default `stretch` defeated by fixed heights, or misc margins pushing one card's edge off); different `gap`/margin values between siblings of the same group (16px here, 20px there); content blocks whose left edges almost-but-not-quite align (nested containers adding stray padding so text starts at 24px in one section and 28px in the next); section max-widths that differ without intent, breaking the page's shared content column.
+- **Fix:** One grid definition per page region — siblings inherit edges from the grid rather than carrying their own offsets; gutters come from a single spacing token per group (TOK-02/TOK-09); container padding defined once at the region level, not re-added per child. Verify rendered geometry where automation is available: left edges and gutters of a group must match exactly (same rendered-geometry protocol as RSP-12).
+- **Impact:** Every stray edge breaks the invisible grid that makes a page read as designed rather than assembled; users can't name the problem but reliably rate such pages lower.
+- **Source:** Gestalt alignment/continuity principles; 8pt-grid practice; live-audit pattern (extends RSP-12 from column chrome to all sibling groups)
+
+### RSP-18 [LOW] Vertical Rhythm & Optical Alignment (advisory)
+Type sits on a consistent rhythm, and visually-heavy shapes are aligned optically, not just geometrically.
+- **Detect (advisory):** Heading/body `line-height` and inter-block spacing values unrelated to the base spacing unit, producing irregular vertical intervals down the page; icons/glyphs that are geometrically centered but look off-center because their visual mass is asymmetric (play triangles, chevrons, back arrows); large punctuation or quote marks pushing the first text line out of the shared left edge.
+- **Fix:** Derive line-heights and block margins from the same base unit as the spacing scale (multiples, not arbitrary values); nudge asymmetric glyphs by 1–2px toward visual balance (optical centering) and encode the nudge in the icon component, not per-call-site; where supported, hang leading punctuation (`hanging-punctuation` / negative indent) so text edges stay flush. Advisory: propose, never churn a working layout for rhythm alone.
+- **Impact:** Rhythm and optical corrections are the difference between "clean" and "template-y" — low individual cost, compounding aesthetic effect.
+- **Source:** Baseline-rhythm typography practice; optical-adjustment guidance (icon design conventions)

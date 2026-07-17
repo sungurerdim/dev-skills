@@ -2,7 +2,7 @@
 
 Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode — design systems exist to prevent these, but nobody enforces them in code.
 
-Audits UI/UX design quality across 107 rules, enforces design tokens, generates design systems, and catches WCAG 2.2 AA violations (including all four new-in-2.2 criteria) — for any frontend framework.
+Audits UI/UX design quality across 111 rules, enforces design tokens, generates design systems, and catches WCAG 2.2 AA violations (including all four new-in-2.2 criteria) — for any frontend framework.
 
 ## Install
 
@@ -49,7 +49,7 @@ Plus `solid`, `config`, and `admin-ui` scopes — see SKILL.md for the full tabl
 
 ## Features
 
-- 107 rules across 5 reference files (design system, components, accessibility, responsive, ux — incl. Laws of UX, perceived performance, validation strategy, deceptive-pattern screening, UX writing, IA)
+- 111 rules across 5 reference files (design system, components, accessibility, responsive, ux — incl. Laws of UX, perceived performance, validation strategy, deceptive-pattern screening, UX writing, IA)
 - Supports all UI frameworks: React, Vue, Svelte, Angular, Flutter, RN, SwiftUI, Compose, Electron, Tauri
 - Design mode generates W3C DTCG 2025.10 tokens.json, component catalog, and WCAG checklist
 - Auto-fixes hardcoded colors, missing ARIA, contrast violations, focus indicators

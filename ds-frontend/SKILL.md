@@ -60,7 +60,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | states | empty/loading/error/success/disabled/hover/focus/active coverage | rules-components.md |
 | ux | Nielsen 10 heuristics, interaction laws (Fitts/Hick/Jakob/Tesler et al.), perceived performance (optimistic-UI rollback, INP budget), validation-timing strategy, deceptive-pattern screening, UX writing, nav-depth/breadcrumb IA, onboarding/first-use audit; integrate with states scope | rules-ux.md |
 | a11y | WCAG 2.2 AA, ARIA patterns (APG), keyboard nav, contrast, screen reader | rules-accessibility.md |
-| responsive | Layout overflow, breakpoints, container queries, fluid typography, multi-column symmetry, print styles, RTL-readiness, Core Web Vitals | rules-responsive.md |
+| responsive | Layout overflow, breakpoints, container queries, fluid typography, multi-column symmetry, alignment & visual geometry (in-item, row/column data, shared edges/gutters, vertical rhythm), print styles, RTL-readiness, Core Web Vitals | rules-responsive.md |
 | theming | Dark mode, `light-dark()`, color-scheme, semantic tokens, theme switching | rules-design-system.md |
 | config | Env-consumed values externalized; `.env.example` updated; no secrets in source ([references/principles.md §8](references/principles.md)) | rules-design-system.md |
 | admin-ui | D10 (advisory, SKILL-SPEC §15) — back-office/admin surfaces follow the same design-system tokens, states, and a11y rules as user-facing UI; no unstyled/raw-HTML admin screens | rules-components.md |
@@ -160,7 +160,7 @@ Load matching reference file per in-scope domain:
 
 **Large scope (3+ scopes):** progress checklist + persistent findings artifact; max 2 parallel scans. **Per scope:** search relevant files → search violation patterns → read context → classify CAT-1 (auto-fixable) or CAT-2 (needs approval). **Confidence:** HIGH = match + context verified; MEDIUM = pattern match, ambiguous; LOW = heuristic.
 
-**Rendered-geometry rules** (RSP-08 viewport matrix, RSP-12 column symmetry, AXE-16 focus-not-obscured): browser automation available in-session → verify by measured bounding boxes at the relevant viewport; unavailable → static analysis only, cap confidence at MEDIUM and note `geometry unverified` on the finding.
+**Rendered-geometry rules** (RSP-08 viewport matrix, RSP-12 column symmetry, RSP-15 in-item alignment, RSP-17 shared edges/gutters, AXE-16 focus-not-obscured): browser automation available in-session → verify by measured bounding boxes at the relevant viewport (row-sibling centers/baselines within 1–2px; group edges/gutters exact); unavailable → static analysis only, cap confidence at MEDIUM and note `geometry unverified` on the finding.
 
 **False-positive prevention:** skip tokens inside comments, generated files (`*.g.dart`, `*.gen.*`), test fixtures, vendor/`node_modules`. Skip patterns: `/* noqa */`, `// intentional`, `// safe:`. **Recovery (context lost):** check progress checklist → read findings artifact → resume from first incomplete scope.
 
