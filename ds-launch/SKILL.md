@@ -45,6 +45,8 @@ description: Store and release management — store submission, listing optimiza
 | `--review` | Pre-review checklist: common rejection prevention |
 | `--submission-notes` | **Proactive submission notes generator** — fills App Review Information Notes upfront so reviewer doesn't need to ask follow-ups (saves +24-48h per round-trip). See [references/app-store-submission-template.md](references/app-store-submission-template.md) |
 | `--aso` | App Store Optimization — keyword research + search ranking |
+| `--seo` | Web discoverability: meta/OG tags, sitemap, robots, canonicals, JSON-LD (web platform) |
+| `--email` | Email deliverability: SPF/DKIM/DMARC, one-click unsubscribe, spam-rate posture (sending domain detected) |
 | `--release` | Release management: version, notes, staged rollout |
 | `--post-launch` | Post-launch monitoring checklist |
 | `--perf-budget` | Author a formal perf budget (LCP, INP, p99, bundle size, startup) + wire CI enforcement via `/ds-devops` |
@@ -142,7 +144,9 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 | Age rating | Verify questionnaire completeness, new 13+/16+/18+ tiers | MEDIUM |
 | SDK + build requirements | Check minimum SDK version (iOS 26 SDK required from April 2026) | MEDIUM |
 | ATT + Privacy Manifests | App Tracking Transparency prompt, SDK `PrivacyInfo.xcprivacy` validation | HIGH |
-| IAP external-payment | StoreKit/Play Billing present alongside Stripe/PayPal/checkout URLs for digital content, or "pay on our website" / "subscribe at" strings pointing off-store (Guideline 3.1.1; Play Payments policy) | CRITICAL |
+| IAP external-payment | StoreKit/Play Billing present alongside Stripe/PayPal/checkout URLs for digital content, or "pay on our website" / "subscribe at" strings pointing off-store. **Jurisdiction-split (post-Epic, verify-current):** US App Store storefront — external payment links are permitted without entitlement (Ninth Circuit Dec 11 2025: Apple may eventually charge a "reasonable" cost-based commission — rate not yet set — and may keep external links no more visually prominent than IAP); outside the US — StoreKit External Purchase Link Entitlement required in designated regions, otherwise IAP-only (Guideline 3.1.1). Play: alternative billing per settlement terms; third-party Android stores open from 22 Jul 2026. Flag as CRITICAL only where the pattern violates the target storefront's current rules — never blanket-flag US-storefront external links | CRITICAL (jurisdiction-conditional) |
+| Clone-category risk (4.3(b), Jun 2026) | App's category/concept matches Apple's named spam-prone classes (dating, flashlight, sound effects, wallpaper, simple timers, fortune telling) without a meaningfully differentiated feature set — new "indistinguishable" submissions in these categories are barred and existing low-quality apps may be removed | HIGH |
+| Live Activities misuse (4.5.3) | ActivityKit/Live Activities used for promotional/unsolicited content — 4.5.3 bars using Live Activities to spam, phish, or send unsolicited messages; random/anonymous-chat features additionally fall under Guideline 1.2 UGC duties (Feb 6 2026 revision) | MEDIUM |
 | Restore purchases | Non-consumable IAP or subscription imports detected but no restore-purchases call / UI entry point found (Guideline 3.1.2) | HIGH |
 | Sign in with Apple | Google/Facebook/Twitter auth SDK detected without `com.apple.developer.applesignin` entitlement or `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | HIGH |
 | Reviewer-access gap | Login/auth flow detected but `ds/launch/submission-notes-apple.txt` absent or missing demo-credentials section — reviewer will hit a login wall with no way through | HIGH |
@@ -163,7 +167,7 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 | Rollback | Emergency rollback procedure |
 | Rollback narrative (D6, advisory) | Beyond the technical rollback procedure above — is there a documented plan for how users are informed when a bad release is rolled back (in-app notice, status page, email)? No documented rollback communication plan -> advisory finding "no rollback communication plan" (never a blocker, SKILL-SPEC §15) |
 
-### SEO
+### SEO (`--seo` — web platform; auto-included for web-only projects)
 
 | Element | What It Covers |
 |---------|---------------|
@@ -171,7 +175,18 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 | Sitemap | XML sitemap generation, index coverage, lastmod/priority |
 | robots.txt | Disallow rules, sitemap directive, crawl-delay |
 | Canonical URLs | Self-referencing canonicals, duplicate-content prevention |
-| Structured data | JSON-LD (Organization, WebSite, BreadcrumbList, FAQ, Product) |
+| Structured data | JSON-LD (Organization, WebSite, BreadcrumbList, FAQ, Product) — validate against schema.org types, don't just emit |
+| Core Web Vitals link | CWV "Good" bands (LCP ≤2.5s, INP <200ms, CLS <0.1) act as a ranking tie-breaker among similar-quality pages — not a primary ranking driver; budget + enforcement via `--perf-budget` |
+| llms.txt | **Speculative, low signal** — no major AI provider (Google, OpenAI, Anthropic, Meta) uses it in production retrieval; Google confirmed non-support. Only worth adding (~half a day) when serving developer-tool docs to AI coding agents (Cursor/Claude Code class), never as an SEO lever |
+
+### Email Deliverability (`--email` — activates when a sending domain is detected: transactional/marketing email service config, SMTP creds, newsletter tooling)
+
+| Check | What It Covers | Severity |
+|-------|---------------|----------|
+| SPF + DKIM + DMARC | DNS records present on the sending domain; DMARC at minimum `p=none`; RFC5322-From domain aligned to SPF or DKIM org domain. Bulk-sender rule (Gmail: ~5,000+ msgs/24h to personal Gmail) requires both SPF and DKIM + DMARC | HIGH |
+| One-click unsubscribe (RFC 8058) | Promotional messages carry `List-Unsubscribe` + `List-Unsubscribe-Post` headers with an HTTPS POST endpoint (idempotent, async-processed, responds inside Gmail's ~30s timeout; unsubscribes processed within ~2 days) | HIGH |
+| Spam-rate posture | Complaint rate monitored via Gmail Postmaster Tools; 0.3% is the hard blocking ceiling, <0.08% the safe operating target — approaching it → list hygiene + frequency reduction, not new domains | MEDIUM |
+| BIMI (optional) | Brand logo in supporting inboxes — requires DMARC at enforcement (`p=quarantine`/`reject`) + verified logo record; only after DMARC enforcement is stable | LOW (advisory) |
 
 ### A9 — Google / Apple Ecosystem Rules (conditional)
 
@@ -186,7 +201,7 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 
 ## Delegation
 
-**Owns:** store, release, privacy-labels (store-label-correctness only), perf-budget (`--perf-budget` mode) | **Delegates:** ds-compliance → canonical privacy; ds-mobile → mobile-specific store compliance | **Receives:** ds-ship → Phase 5 launch pass; ds-productize → store/IAP listing + release execution
+**Owns:** store, release, privacy-labels (store-label-correctness only), seo (web discoverability), email-deliverability, perf-budget (`--perf-budget` mode) | **Delegates:** ds-compliance → canonical privacy; ds-mobile → mobile-specific store compliance | **Receives:** ds-ship → Phase 5 launch pass; ds-productize → store/IAP listing + release execution
 
 ## Execution Flow
 
@@ -206,7 +221,7 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 
 **Gate:** Inventory complete. If fails → note what was found as partial; mark missing config type (store configs, version info, privacy policy, CI workflows) as absent rather than unknown; proceed to Phase 3 — missing entries become FAIL findings in review scope.
 
-### Phase 3: Generate [setup, listing, aso, privacy, review, submission-notes]
+### Phase 3: Generate [setup, listing, aso, seo, email, privacy, review, submission-notes]
 
 - **Store setup:** platform-specific account setup checklist; certificate / signing key guide (CI automation: authenticate with App Store Connect API keys, not Apple-ID/password auth); TestFlight / Internal Testing steps.
 - **Listing metadata:** final store-ready app description (short + long; refine existing `[DRAFT]` descriptions). Keyword research framework, screenshot size requirements, localization checklist. Template structure:
@@ -215,6 +230,8 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
   - Review notes for store review teams: special permission justifications, demo credentials (if needed), features requiring network, consumable vs subscription IAP model
   - Screenshot narrative (6 recommended, full journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
 - **ASO mode:** competitor keyword analysis, title/subtitle optimization, category placement recommendation, A/B variant suggestions.
+- **SEO mode (web):** audit each §SEO element against the actual routes/pages (missing → generate: meta/OG per page, sitemap.xml, robots.txt, canonicals, JSON-LD validated against schema.org types); report CWV tie-breaker status from the perf budget when one exists.
+- **Email mode (sending domain detected):** query DNS for SPF/DKIM/DMARC and verify alignment; inspect outbound-mail code/config for RFC 8058 headers + unsubscribe endpoint; produce missing DNS record values and header/endpoint stubs as findings (DNS changes are Category B — user applies them at the registrar).
 - **Release automation safety ([references/principles.md §8](references/principles.md)):** any generated release-automation file (Fastlane, `Matchfile`, CI workflow, signing scripts) MUST externalize credentials to env vars. Generate `.env.example` placeholders for: keystore passwords, App Store Connect API keys, Play Console JSON keys, signing identities, OAuth client secrets. Never embed actual values in committed files. Commit message gate: scan generated files for high-entropy strings before suggesting commit.
 - **Privacy labels:** scan codebase for data collection → map to Apple/Google categories → generate declaration guide → flag code/label discrepancies.
 - **Submission notes (`--submission-notes`):** run pre-submission self-audit (12-item checklist from references/app-store-submission-template.md); block on CRITICAL findings. Auto-detect AI services / auth providers / IAP presence; prompt user for license + hosting per AI service, reviewer-only contact, screen recording URL. Generate per-platform notes (`ds/launch/submission-notes-{apple,google}.txt`) following proactive template; persist `ds/launch/submission-meta.yml` (committed, audit trail). Include "Common Rejection Cookbook" (5 prewritten reply templates for Guidelines 2.1 / 5.1.1(v) / 3.1.1 / 4.8 / 5.1.2 / 5.1.1(i)) so re-submission is one-step.
@@ -282,7 +299,7 @@ Zero-change run: `Submission package already complete — no missing fields`.
 
 | Scenario | Behavior |
 |----------|----------|
-| Web-only app (no store) | Focus on domain, hosting, SEO meta tags, PWA manifest |
+| Web-only app (no store) | Skip store scopes; run seo (auto-included) + email (when sending domain present) + release + post-launch |
 | First-ever submission | Start from account setup, include all beginner steps |
 | Update to existing app | Skip setup, focus on release notes + rollout |
 | Multi-platform | Generate per-platform checklists, note shared vs platform-specific |
