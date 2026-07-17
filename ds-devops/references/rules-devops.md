@@ -10,6 +10,8 @@ Applies to all project types: web, API, CLI, library, mobile, monorepo.
 | **Agent & Supply-Chain Security** | DOP-15–18 (4 HIGH) |
 | **Workflow Security & Lint** | DOP-19–20 (1 CRITICAL, 1 HIGH) |
 | **Registry Publishing** | DOP-21 (1 HIGH) |
+| **Container & Cloud Auth Hardening** | DOP-22–23 (2 HIGH) |
+| **Runner & Host Hygiene** | DOP-24–25 (2 MEDIUM) |
 
 ## CI/CD & Workflow
 
@@ -286,3 +288,43 @@ Release workflows publishing to package registries must use short-lived OIDC tru
 - **Fix:** npm — configure Trusted Publishing (OIDC, GA since 31 Jul 2025 for GitHub Actions + GitLab CI; requires npm CLI ≥ 11.5.1 and `id-token: write`); provenance attestations are generated automatically, no `--provenance` flag needed. PyPI — configure a Trusted Publisher and publish via `pypa/gh-action-pypi-publish` (≥ v1.11.0 auto-generates PEP 740 attestations). Remove the long-lived token from secrets after cutover.
 - **Impact:** A leaked long-lived publish token = full package-takeover; OIDC tokens are per-run and unexfiltratable at rest. On npm the classic-token path is additionally a hard availability bug since Dec 2025.
 - **Source:** npm Trusted Publishing GA (github.blog, 2025-07-31); npm classic-token revocation (2025-12-09); PyPI Trusted Publishers + PEP 740
+
+## Container & Cloud Auth Hardening
+
+### DOP-22 [HIGH] Container Hardening Baseline
+Production images run minimal, non-root, read-only, and pinned.
+- **Detect:**
+  - Production `Dockerfile` FROM a full OS base (`ubuntu:*`, `debian:*` non-slim) instead of distroless/minimal
+  - No `USER` directive — container runs as root
+  - K8s/compose specs missing `runAsNonRoot: true`, `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, or capability drop
+  - Base images referenced by mutable tag (`:latest`, bare `:20`) instead of digest
+- **Fix:** Use distroless or minimal base images (scanner-reported CVE counts routinely drop 80–95% vs full-OS bases). Add a non-root `USER`. Set `readOnlyRootFilesystem: true` with explicit writable mounts (`emptyDir`/tmpfs) where needed. Drop all capabilities and add back only the required minimum. Pin base images by digest (`@sha256:…`) so builds are reproducible and un-swappable
+- **Impact:** Root + writable filesystem + full OS toolchain turns any container escape or RCE into a fully-equipped attack platform
+- **Source:** Google distroless docs; Kubernetes Pod Security Standards (restricted profile)
+
+### DOP-23 [HIGH] CI Cloud Auth via OIDC Federation
+CI jobs obtain cloud credentials via OIDC federation, not long-lived keys stored as secrets.
+- **Detect:**
+  - Long-lived cloud keys in CI secrets: `AWS_SECRET_ACCESS_KEY`, `AZURE_CLIENT_SECRET`, GCP service-account JSON keyfile
+  - Workflow missing `permissions:` block — `GITHUB_TOKEN` gets the broad default instead of read-only
+- **Fix:** Federate: `aws-actions/configure-aws-credentials` with role assumption, `azure/login` with federated credentials, `google-github-actions/auth` with Workload Identity Federation — issued credentials are scoped and short-lived (typically ≤1 hour). Set `permissions: contents: read` at workflow level and elevate per-job only where needed (GitHub's own hardening guidance). Delete the long-lived keys after cutover
+- **Impact:** A leaked long-lived cloud key is valid until rotated — often months; a leaked OIDC-issued credential dies within the hour and is scoped to one role
+- **Source:** GitHub Actions OIDC hardening docs; cloud-vendor WIF/federation docs
+
+## Runner & Host Hygiene
+
+### DOP-24 [MEDIUM] Build-Cache Eviction Policy
+Shared/self-hosted runners evict Docker build cache on a schedule — age-based or size-capped, never indiscriminate.
+- **Detect:**
+  - Self-hosted CI runners with no scheduled build-cache pruning (disk fills silently until builds fail)
+  - Cleanup implemented as full `docker system prune -a` on shared runners — destroys warm caches for every project on the host
+- **Fix:** Scheduled job (weekly cron): `docker builder prune --filter "until=168h" -f` (age-based, 7 days) or `--keep-storage <size>` (size-capped). Run `docker buildx du` first to see what is actually consuming space before choosing the policy
+- **Source:** Docker builder-prune docs; depot.dev cache-management guidance
+
+### DOP-25 [MEDIUM] Log Rotation Defaults
+Every unbounded log sink has rotation configured; retention follows compliance floor, not disk size.
+- **Detect:**
+  - Services writing log files with no `logrotate`/journald size limits
+  - Docker daemon on default `json-file` driver without `max-size`/`max-file` options (container logs grow without bound)
+- **Fix:** Production baseline: daily rotation, 7–14 cycles retained, gzip compression. Docker: `--log-opt max-size=50m --log-opt max-file=7` (or daemon-wide in `daemon.json`). Compliance regimes override retention upward — HIPAA requires ≥6 years, SOX 7 years of log retention: archive to cold storage, never satisfy these by keeping logs on-host
+- **Source:** logrotate/Docker logging docs; HIPAA/SOX retention requirements

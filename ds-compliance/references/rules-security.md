@@ -4,7 +4,7 @@ CLI/library-specific security subset. These rules apply to non-web, non-API proj
 
 Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action.
 
-> **Edition note (2026-07-17):** OWASP Top 10 **2025** is released (first revision since 2021; distinct from the API Security Top 10 2023). Category IDs below cite the 2021 edition pending itemized remap — verified: [owasp.org/Top10/2025](https://owasp.org/Top10/2025/) (2×-confirmed).
+> **Edition note (2026-07-17):** Category IDs below cite OWASP Top 10 **2025** (first revision since 2021; distinct from the API Security Top 10 2023) — verified against [owasp.org/Top10/2025](https://owasp.org/Top10/2025/). Remap applied: A02:2021→A04:2025 (Crypto), A03:2021→A05:2025 (Injection), A05:2021→A02:2025 (Misconfig), A06:2021→A03:2025 (Software Supply Chain Failures), A07:2021→A07:2025 (Authentication Failures); SSRF (A10:2021) absorbed into A01:2025.
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@ Credentials, tokens, and secrets must not be in plaintext files or unencrypted s
   - Plaintext secrets in config files
   - Exclude: `.env.example`, test fixtures with dummy values
 - **Fix:** Use environment variables loaded at runtime. Use secret managers (Vault, AWS Secrets Manager, GCP Secret Manager, Doppler). Add `.env` to `.gitignore`
-- **Source:** OWASP A07:2021
+- **Source:** OWASP A07:2025 (Authentication Failures)
 
 ### CSEC-02 [BLOCKER] No Hardcoded Credentials
 Zero secrets in source code.
@@ -33,7 +33,7 @@ Zero secrets in source code.
   - Files: `**/.env`, `**/credentials*`, `**/secrets*` committed to git
   - Exclude: `.env.example`, test fixtures with dummy values
 - **Fix:** Move to environment variables or secret manager. Add to `.gitignore`
-- **Source:** OWASP A07:2021
+- **Source:** OWASP A07:2025 (Authentication Failures)
 
 ### CSEC-03 [BLOCKER] Debug Mode Off in Production
 No debug features exposed in production builds.
@@ -43,7 +43,7 @@ No debug features exposed in production builds.
   - Go: `debug` flags in production configs
   - Verbose error output exposing internals
 - **Fix:** Environment-based config. Strip debug code in production builds. Never expose stack traces to users
-- **Source:** OWASP A05:2021
+- **Source:** OWASP A02:2025 (Security Misconfiguration)
 
 ### CSEC-05 [CRITICAL] Input Validation & Injection Prevention
 All user input validated and sanitized. No raw interpolation in queries or commands.
@@ -54,7 +54,7 @@ All user input validated and sanitized. No raw interpolation in queries or comma
   - Unsanitized file paths from user input (path traversal)
 - **Fix:** Input validation with schemas (Zod, Pydantic). Never interpolate user input into shell commands. Use subprocess with argument lists (not shell=True). Validate and sanitize file paths
 - **Impact:** Command injection through CLI arguments = full system compromise
-- **Source:** OWASP A03:2021
+- **Source:** OWASP A05:2025 (Injection)
 
 ### CSEC-06 [CRITICAL] Strong Cryptography
 AES-256-GCM symmetric. No MD5/SHA-1 for security. No custom crypto.
@@ -63,7 +63,7 @@ AES-256-GCM symmetric. No MD5/SHA-1 for security. No custom crypto.
   - Custom crypto implementations
   - Weak password hashing (plain SHA-256 without salt/iteration)
 - **Fix:** Use platform crypto libraries. Password hashing: bcrypt/scrypt/argon2. Encryption: AES-256-GCM. Use random IV/nonce per operation
-- **Source:** OWASP A02:2021
+- **Source:** OWASP A04:2025 (Cryptographic Failures)
 
 ### CSEC-08 [CRITICAL] Supply Chain Security
 Dependencies audited, versions pinned, lockfile committed.
@@ -71,4 +71,4 @@ Dependencies audited, versions pinned, lockfile committed.
   - Unpinned versions: `^`, `~`, `latest`, `>=` without upper bound
   - Missing lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, Pipfile.lock, poetry.lock, go.sum) in git
 - **Fix:** Pin exact versions. Commit lockfiles. Run `npm audit` / `pip audit` / `safety check` regularly
-- **Source:** OWASP A06:2021
+- **Source:** OWASP A03:2025 (Software Supply Chain Failures)

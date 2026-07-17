@@ -85,7 +85,7 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 For each active scope, run the detector. Max 2 scopes in parallel.
 
-**Deterministic detector preference (advisory):** for `dead-code` / `orphan` / `single-caller` on JS/TS, Knip binary or config present → run it and use its module-graph output (entry-point-aware, framework-plugin coverage) as the primary evidence; absent → LSP/grep detectors below. For Python `dead-code`, Vulture present → run with `--min-confidence 80`; findings at ≥80 confidence enter the table directly, below 80 → flag with confidence noted and hold for Review Each; absent → LSP/grep detectors below. Tool output still passes false-positive prevention and the Phase 4 approval batch — the tool upgrades the detector, never bypasses the gate.
+**Deterministic detector preference (advisory):** for `dead-code` / `orphan` / `single-caller` on JS/TS, Knip binary or config present → run it and use its module-graph output (entry-point-aware, framework-plugin coverage) as the primary evidence; absent → LSP/grep detectors below. Repo configured with ts-prune but not Knip → still run it, but note in the report that ts-prune is officially in maintenance mode and recommend migrating to Knip (~150 framework plugins, entry-point-aware). For Python `dead-code`, Vulture present → run with `--min-confidence 80`; findings at ≥80 confidence enter the table directly, below 80 → flag with confidence noted and hold for Review Each; absent → LSP/grep detectors below. Tool output still passes false-positive prevention and the Phase 4 approval batch — the tool upgrades the detector, never bypasses the gate.
 
 **2.1 dead-code:**
 
@@ -111,6 +111,7 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 1. Grep feature-flag references (`process.env.{FLAG}`, `flags.{x}`, `if (config.{x})`).
 2. Statically resolvable flags only: the flag's value is a constant across every config source (all env files/`.env.example`, config files, deployment manifests set the same literal; no runtime setter/toggle mechanism exists) → the never-selected branch is dead → finding. Flag value not statically resolvable (remote config, per-tenant, runtime toggle) → skip, never guess runtime behavior.
 3. Evidence: flag name + each config source file:line showing the constant value + "no runtime setter found".
+4. **Stale-flag governance (advisory):** flags are a distinct compounding debt class — for each flag found in step 1, check for lifecycle metadata (owner + expiry date in the flag registry/config/comment; temporary-vs-permanent designation). Temporary flag with no owner/expiry, or whose value has been constant since a git-blame date older than 90 days → advisory finding "stale flag — assign owner+expiry or remove" (industry practice: owner + expiration set at creation, removal automated — Uber's Piranha removed ~2,000 stale flags this way). Advisory only; never delete a flag whose branch is not provably dead under step 2.
 
 **2.5 premature-abstraction:**
 

@@ -146,6 +146,7 @@ Scan existing docs, detect project type, assess completeness. Apply quality rule
 2. Detect project type from config files.
 3. Check doc-sync: README drift, API signature mismatch, deprecated refs, broken links.
 4. Deterministic doc linters configured in the repo (`.vale.ini` / `.markdownlint*` / `lychee.toml` / `.lycheeignore`) → run them and fold their output into findings ([references/rules-writing.md](references/rules-writing.md) DOC-09 severity mapping); absent → perform the same checks manually and record a gap-note — never install tools unasked.
+5. **Doc-type discipline (Diátaxis, advisory):** classify each `user`/`dev`/`api` doc against the four Diátaxis types — tutorial / how-to guide / reference / explanation (framework with multi-org production adoption: Django, Canonical/Ubuntu, Cloudflare). One doc mixing types (reference tables interleaved with tutorial narrative, explanation buried in a how-to) → MEDIUM finding proposing a split along type boundaries; a needed type missing entirely for the project's audience (e.g. reference exists but no how-to for the top user tasks) → advisory row in the Phase 3 gap table.
 
 **Gate:** Project type detected + existing docs inventoried with completeness scores. If fails → undetermined type → prompt user "What type? (cli / library / api / web / mobile / desktop / monorepo / other)"; unreadable doc → record `{ file, completeness: 0, status: "unreadable" }`, continue inventory.
 

@@ -24,7 +24,7 @@ Enforce TLS 1.2+ for all connections. TLS 1.0/1.1 are deprecated (RFC 8996).
 Never disable SSL/TLS certificate verification in production code.
 - **Detect:** `verify=False`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `InsecureSkipVerify: true`, `CURLOPT_SSL_VERIFYPEER => false`, `ssl_verify: false`
 - **Fix:** Remove verification bypass. For development/testing, use environment-specific config, not code changes. For self-signed certs in staging, add CA to trust store
-- **Source:** OWASP A07:2021 (Security Misconfiguration)
+- **Source:** OWASP A02:2025 (Security Misconfiguration)
 
 ### NET-03 [CRITICAL] HSTS Header
 HTTP Strict Transport Security prevents protocol downgrade attacks.

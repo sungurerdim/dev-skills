@@ -134,6 +134,8 @@ Per dep, determine `bump_type` + `classification`:
 
 **Provenance signal (advisory):** npm — run `npm audit signatures` (verifies registry signatures + provenance attestations; trusted-publishing/OIDC publishes carry provenance automatically since Jul 2025); PyPI — check attestation presence (PEP 740). A newly-added package with no provenance, or an upgrade where the publisher/repository identity changed vs the previous version → note as supply-chain signal, promote to `review-major`.
 
+**Dependency-confusion defense (advisory — active attack vector, documented May 2026 npm campaign across ≥9 organizational scopes):** when the project uses internal/private packages, check the defense stack and report gaps: (1) internal packages use a claimed registry scope/namespace (`@org/…`) — unscoped internal names are hijackable from the public registry; (2) CI installs enforce the lockfile (`npm ci` / `pnpm install --frozen-lockfile` / `pip install --require-hashes`) — a mutable install can silently resolve a public lookalike; (3) registry resolution order pins the private registry for internal scopes (`.npmrc` scoped registry / `pip.conf` index priority) so public never shadows private; (4) where infrastructure allows, build servers restrict registry egress to the approved proxy. Missing layer → HIGH gap-note in the summary, never auto-reconfigured.
+
 **Changelog extraction:**
 
 1. Registry page provides changelog URL (npm `repository`, PyPI `Project URLs`, crates.io / pub.dev / rubygems → GitHub).

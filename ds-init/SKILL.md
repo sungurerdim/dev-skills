@@ -94,7 +94,7 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 1. `--type` and `--stack` provided → proceed directly.
 2. Working directory has existing files → scan for signals (`package.json`, `pubspec.yaml`, `go.mod`, `Cargo.toml`).
 3. Empty directory or no signals → interactive type-selection menu.
-4. Ask for stack choice within selected type.
+4. Ask for stack choice within selected type. **Boring-technology default (advisory):** when the user is undecided, recommend proven mainstream options (Postgres, established frameworks) over novel ones and say why — every company has roughly three "innovation tokens" to spend on unproven tech (McKinley); novel choices carry a larger magnitude of unknown unknowns, and "boring" ≠ "bad". User's explicit stack choice always wins without debate.
 5. Ask: `--minimal` or `--full`? (default: full).
 
 **Gate:** Project type and stack confirmed. If fails → no response after two attempts → exit cleanly with "ds-init: ABORTED — project type required"; generate no files.

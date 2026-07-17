@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Database** | DB-01 to DB-09 (2 CRITICAL, 3 HIGH, 3 MEDIUM, 1 LOW) | ~12 |
+| **Database** | DB-01 to DB-10 (2 CRITICAL, 4 HIGH, 3 MEDIUM, 1 LOW) | ~12 |
 
 ---
 
@@ -254,3 +254,13 @@ Never trust a client-supplied `tenant_id`; derive it from the authenticated sess
 **Why:** A missing tenant filter lets one tenant read or modify another tenant's rows via a guessable/enumerable ID (IDOR at the data layer) — a full cross-tenant data breach, the most damaging class of bug in multi-tenant SaaS.
 
 **Source:** [OWASP: Insecure Direct Object References](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference), [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), database-design-guide.md Schema Design section
+
+### DB-10 Schema-Level Data Minimization & PII Log Hygiene [HIGH]
+
+**Detect:** PII columns (email, phone, address, birth date, national ID, free-text notes) with no consuming feature — cross-check each PII column against actual reads in application code. Raw identifiers (email/phone) used as join keys across analytics or derived tables. Logging middleware/ORM echo that writes full row payloads (including PII columns) into application logs. PII scanning implemented as regex-only and treated as complete.
+
+**Fix:** Drop or never add PII columns without a consuming feature — minimization is enforced at the schema, not in a policy document (GDPR Art. 5(1)(c) makes it a legal obligation). Join/analytics keys: use surrogate IDs or pseudonymous tokens, never raw identifiers (mapping table in a separate access-controlled store — see ds-compliance PRV-26). Logging: redact at field level before write; know the tooling limits — regex catches structured PII only (emails, IPs, cards), unstructured PII (names, locations, free text) needs ML/NER-based scanning, and for LLM interactions exclude message content from logs entirely rather than trusting scrubbing.
+
+**Why:** Every PII column that exists without a purpose is breach surface plus regulatory liability at rest; PII that leaks into logs escapes every access control the database enforced.
+
+**Source:** GDPR Art. 5(1)(c); Elastic PII-detection guidance (regex limits); Pydantic Logfire LLM-logging guidance

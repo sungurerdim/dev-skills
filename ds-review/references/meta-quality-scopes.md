@@ -33,6 +33,7 @@ Keep It Simple, Stupid — the solution's complexity is disproportionate to the 
 - **Detect:** cyclomatic complexity > 12 on a function serving a single use-case AND no anticipated extension point. Combine with: parameter count > 4, branching depth > 3, helper-class count > 2 for a single feature.
 - **Fix:** propose a flatter alternative; show before/after complexity numbers.
 - **Threshold:** cyclomatic > 12 plus at least one additional signal (params, depth, helpers).
+- **Metric note:** when a configured tool reports **cognitive complexity** (SonarSource metric), prefer it over cyclomatic for this scope — cyclomatic counts execution paths (a testability measure), cognitive complexity penalizes nesting and flow-breaking constructs (an understandability measure, which is what KISS is about); SonarSource's default threshold is 15. A `switch` with 20 flat cases is high-cyclomatic but low-cognitive — not a KISS finding.
 - **Skip:** inherently complex domains — cryptography, numerical analysis, parser generators, regex compilers, lock-free algorithms. Cite the domain as the skip reason.
 - **Confidence:** HIGH when complexity > 20; MEDIUM at 12-20.
 - **Impact:** Reading cost compounds for every future maintainer.
@@ -61,6 +62,18 @@ Separation of Concerns — a single conceptual responsibility (input validation,
 - **Confidence:** MEDIUM by default; promote to HIGH when the variants differ in behavior (e.g., 3 different retry-backoff curves).
 - **Impact:** Inconsistent behavior across the codebase; bug fixes apply only to one variant.
 - **Source:** Dijkstra, On the role of scientific thought; SRP / SOLID.
+
+## API-SURFACE [MEDIUM] Export surface exceeds usage
+
+Shallow-module detection (Ousterhout): a module's public interface is large relative to the functionality it provides, or exports exceed what consumers actually import.
+
+- **Detect:** module exporting ≥10 symbols where external consumers import ≤ half of them (count via LSP `findReferences` / grep on import sites); internal modules imported via deep paths bypassing the package's public index; library `package.json` missing an `exports` field (every internal file is de-facto public API).
+- **Fix:** narrow the surface — funnel access through a public `index.*`, mark the rest internal; on Node packages add a `package.json` `exports` field to lock down deep imports; propose lint enforcement where ESLint is configured (`no-restricted-exports`, `no-restricted-imports` for deep paths) so the budget holds mechanically.
+- **Threshold:** ≥10 exports with ≤50% externally consumed, or any deep-path import bypassing an existing public index.
+- **Skip:** published library entry points (their contract is external consumers — apply YAGNI-USAGE skip list), generated code, barrel files that ARE the public index.
+- **Confidence:** HIGH for deep-path bypass of an existing index; MEDIUM for export-count ratios (consumers may exist out-of-repo).
+- **Impact:** Every needless export is API contract you must maintain and a place complexity leaks; deep modules absorb complexity so consumers don't have to.
+- **Source:** Ousterhout, A Philosophy of Software Design (deep modules); ESLint no-restricted-exports; Node package `exports` encapsulation.
 
 ## OVERENGINEERING [MEDIUM] Combined SSOT + KISS + YAGNI signals
 

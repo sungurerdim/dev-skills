@@ -7,9 +7,9 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | Section | Rules | Line |
 |---------|-------|------|
 | **Security** | SEC-01–12 (4 BLOCKER, 5 CRITICAL, 3 HIGH) | ~12 |
-| **Privacy** | PRV-01–05 (2 BLOCKER, 2 CRITICAL, 1 HIGH) | ~120 |
-| **Regulatory Compliance** | PRV-06–19, PRV-21–25 (11 BLOCKER, 8 CRITICAL) | ~165 |
-| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~460 |
+| **Privacy** | PRV-01–05, PRV-26–28 (2 BLOCKER, 2 CRITICAL, 4 HIGH) | ~139 |
+| **Regulatory Compliance** | PRV-06–19, PRV-21–25 (11 BLOCKER, 8 CRITICAL) | ~230 |
+| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~500 |
 
 ---
 
@@ -25,7 +25,7 @@ Credentials, tokens, and secrets must not be in plaintext files or unencrypted s
   - Plaintext secrets in `application.yml`, `settings.py`, `config/*.json`
   - Exclude: `.env.example`, test fixtures with dummy values
 - **Fix:** Use environment variables loaded at runtime. Use secret managers (Vault, AWS Secrets Manager, GCP Secret Manager, Doppler). Add `.env` to `.gitignore`. For Docker: use secrets, not ENV in Dockerfile
-- **Source:** OWASP A07:2021
+- **Source:** OWASP A07:2025 (Authentication Failures)
 
 ### SEC-02 [BLOCKER] No Hardcoded Credentials
 Zero secrets in source code.
@@ -34,7 +34,7 @@ Zero secrets in source code.
   - Files: `**/.env`, `**/credentials*`, `**/secrets*` committed to git
   - Exclude: `.env.example`, test fixtures with dummy values
 - **Fix:** Move to environment variables or secret manager. Add to `.gitignore`. Use server-side proxy for third-party API keys
-- **Source:** OWASP A07:2021
+- **Source:** OWASP A07:2025 (Authentication Failures)
 
 ### SEC-03 [BLOCKER] Debug Mode Off in Production
 No debug features exposed in production builds.
@@ -45,7 +45,7 @@ No debug features exposed in production builds.
   - Java/Kotlin: `debug=true` in application.properties
   - Stack traces exposed in error responses
 - **Fix:** Environment-based config. Strip debug code in production builds. Never expose stack traces to clients
-- **Source:** OWASP A05:2021
+- **Source:** OWASP A02:2025 (Security Misconfiguration)
 
 ### SEC-04 [BLOCKER] TLS Enforced
 All connections over HTTPS. No plaintext HTTP in production.
@@ -54,7 +54,7 @@ All connections over HTTPS. No plaintext HTTP in production.
   - No HTTPS redirect configuration
   - Missing HSTS headers
 - **Fix:** Redirect HTTP to HTTPS. Set HSTS header: `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`. Use TLS 1.2+ only
-- **Source:** OWASP A02:2021
+- **Source:** OWASP A04:2025 (Cryptographic Failures)
 
 ### SEC-05 [CRITICAL] Input Validation & Injection Prevention
 All user input validated and sanitized. No raw interpolation in queries or commands.
@@ -65,7 +65,7 @@ All user input validated and sanitized. No raw interpolation in queries or comma
   - Search: `eval(`, `Function(`, `innerHTML =` with user input
 - **Fix:** Parameterized queries (prepared statements). Input validation with schemas (Zod, Pydantic, Joi). Never interpolate user input into SQL/shell/HTML. Use ORM for queries
 - **Impact:** SQL injection is still #1 web vulnerability. Single unparameterized query = full database compromise
-- **Source:** OWASP A03:2021
+- **Source:** OWASP A05:2025 (Injection)
 
 ### SEC-06 [CRITICAL] Strong Cryptography
 AES-256-GCM symmetric. No MD5/SHA-1 for security. No custom crypto.
@@ -74,14 +74,14 @@ AES-256-GCM symmetric. No MD5/SHA-1 for security. No custom crypto.
   - Custom crypto implementations
   - Weak password hashing (plain SHA-256 without salt/iteration)
 - **Fix:** Use platform crypto libraries. Password hashing: bcrypt/scrypt/argon2. Encryption: AES-256-GCM. Use random IV/nonce per operation
-- **Source:** OWASP A02:2021
+- **Source:** OWASP A04:2025 (Cryptographic Failures)
 
 ### SEC-07 [CRITICAL] Secure HTTP Headers
 Security headers set on all responses.
 - **Detect:**
   - No `helmet` (Express), `django-csp` (Django), security middleware
-  - Missing headers: Content-Security-Policy, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy
-- **Fix:** Use security middleware (helmet, django-secure, secure-headers). Set CSP, X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy: strict-origin-when-cross-origin
+  - Missing any of the 2026 baseline header set for HTTPS sites: HSTS, Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP `frame-ancestors` (or legacy X-Frame-Options)
+- **Fix:** Use security middleware (helmet, django-secure, secure-headers). Set the six-header baseline: HSTS, CSP (strict — see WEB-01), X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy (deny unused features), `frame-ancestors 'none'` (preferred over X-Frame-Options: DENY). Add the cross-origin isolation trio (COOP/COEP/CORP) only when the app needs SharedArrayBuffer/high-resolution timers — not as a blanket default
 - **Impact:** Missing security headers enable XSS, clickjacking, and MIME-sniffing attacks
 - **Source:** OWASP Secure Headers Project
 
@@ -91,7 +91,7 @@ Dependencies audited, versions pinned, lockfile committed.
   - Unpinned versions: `^`, `~`, `latest`, `>=` without upper bound
   - Missing lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, Pipfile.lock, poetry.lock, go.sum) in git
 - **Fix:** Pin exact versions. Commit lockfiles. Run `npm audit` / `pip audit` / `safety check` regularly
-- **Source:** OWASP A06:2021
+- **Source:** OWASP A03:2025 (Software Supply Chain Failures)
 
 ### SEC-09 [CRITICAL] Server-Side Auth & Authorization
 Auth validated server-side on every request. No client-only auth checks.
@@ -100,7 +100,7 @@ Auth validated server-side on every request. No client-only auth checks.
   - Authorization based on client-provided role/permission without server verification
   - Missing token validation on protected routes
 - **Fix:** Auth middleware on all protected routes. Validate JWT/session server-side. Check permissions per resource, not just authentication. Use RBAC or ABAC
-- **Source:** OWASP A01:2021
+- **Source:** OWASP A01:2025 (Broken Access Control)
 
 ### SEC-10 [HIGH] Session Management
 Secure session configuration. Token rotation. Proper logout.
@@ -189,7 +189,35 @@ No PII in logs, error reports, or analytics.
     | UUID | 550e8400-... | `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}` |
 
 - **Fix:** Sanitize logs. Redact PII fields. Never log auth tokens or passwords. Use structured logging with field-level redaction. Implement redaction filter in logging/error-reporting pipeline — apply before data leaves process (e.g., Sentry `beforeSend`, Winston transport, Python `logging.Filter`, Go middleware, Java `LoggingFilter`). Test redaction with sample PII strings to verify patterns catch real-world formats
-- **Source:** OWASP Logging Cheat Sheet
+- **Limits:** Regex catches structured PII only (emails, IPs, cards); unstructured PII (names, locations, free text) needs ML/NER-based scanning — treat regex-only pipelines as partial coverage, not proof of absence. For LLM interactions, exclude message content from logs entirely rather than relying on scrubbing — models emit sensitive data without keyword patterns
+- **Source:** OWASP Logging Cheat Sheet; Elastic PII detection guidance; Pydantic Logfire LLM-logging guidance
+
+### PRV-26 [HIGH] Pseudonymization & Identifier Separation
+Raw identifiers replaced with stable pseudonymous tokens; the mapping table lives in a separate, access-controlled store.
+- **Detect:**
+  - Raw user identifiers (email, phone, national ID) used as keys or foreign keys across analytics/reporting tables
+  - Identifier↔pseudonym mapping stored in the same database/schema as the pseudonymized data
+  - Schema fields collecting PII with no consuming feature (schema-level minimization gap — cross-check each PII column against actual reads)
+- **Fix:** Introduce a pseudonymization layer: generate stable tokens mapped to user IDs; store the mapping table in a separate access-controlled system that only identity-sensitive operations can query. Drop PII columns with no consuming feature. GDPR Art. 5(1)(c) makes minimization a legal obligation, not a preference
+- **Source:** GDPR Art. 4(5), Art. 5(1)(c); AWS prescriptive guidance (pseudonymized identifiers over raw personal data)
+
+### PRV-27 [HIGH] Retention TTL in Code
+Retention periods are enforced by automated deletion in code/config — not by a policy document alone.
+- **Detect:**
+  - Privacy policy declares retention periods but no TTL index, scheduled deletion job, or lifecycle rule implements them
+  - Tables holding personal data with no `created_at`-based purge path
+  - Backups/exports excluded from the deletion pipeline (PRV-04 erasure gap)
+- **Fix:** Declare retention per data class in code/config and enforce it mechanically: DB TTL indexes (Mongo TTL, Postgres `pg_cron` purge jobs), object-store lifecycle rules (S3 Lifecycle), log retention settings. A stated policy without an executing mechanism is a finding, not compliance
+- **Source:** GDPR Art. 5(1)(e) storage limitation
+
+### PRV-28 [HIGH] Analytics Privacy Floor
+Server-side/cookieless analytics still meets consent obligations; aggregate outputs resist re-identification.
+- **Detect:**
+  - Server-side analytics treated as consent-exempt — a first-party cookie set server-side is still a cookie under ePrivacy-style rules
+  - Consent state not propagated to the server-side tag pipeline (events fire regardless of consent)
+  - Aggregate analytics exposing small cohorts (user counts below a minimum group size) in dashboards/exports
+- **Fix:** Enforce consent centrally in the server-side pipeline — event dispatch conditional on consent status. For aggregate outputs, suppress small cohorts: practical k-anonymity thresholds range k=3–5 (basic suppression) up to k=10–30+ in regulated contexts — no formal consensus exists, so document the chosen k rather than hard-coding an industry claim; pure k-anonymity is vulnerable to differencing attacks, so combine with noise for sensitive metrics
+- **Source:** ePrivacy Directive (first-party cookies in scope); k-anonymity literature (no formal threshold standard — contested/verify-current)
 
 ---
 
@@ -210,7 +238,8 @@ California Consumer Privacy Act + California Privacy Rights Act. Amended CPPA re
   - No 12-month data collection disclosure
   - Search: absence of `doNotSell`, `optOut`, `gpc`, `ccpa`, `cpra` in settings/privacy pages
 - **Fix:** Add "Do Not Sell/Share" toggle. Implement opt-out API. Detect and honor Global Privacy Control (GPC) signals as valid opt-out requests with **visible confirmation**, not background-only processing (silent GPC handling drew a record $1.35M fine, Sept 2025). Disclose ADMT use with an opt-out path. Respond within 45 days. Schedule the phased cybersecurity audit: gross revenue >$100M in 2026 → audit by 1 Apr 2028; >$50M in 2027 → by 1 Apr 2029; all remaining covered businesses → by 1 Apr 2030
-- **Source:** CCPA 1798.120; CPPA amended regulations, effective 1 Jan 2026
+- **GPC scope note:** GPC is a legally binding opt-out signal in California (Civ. Code §1798.135 + 11 CCR §7025) and in a growing set of other US states — the exact count is contested between sources; check the current enforcement list rather than hard-coding a number. California AB 566 ("Opt Me Out Act") additionally mandates browser-level GPC support from 1 Jan 2027
+- **Source:** CCPA 1798.120; CPPA amended regulations, effective 1 Jan 2026; Cal. Civ. Code §1798.135
 
 ### PRV-07 [BLOCKER] LGPD Compliance [FRAMEWORK: LGPD]
 Brazil Lei Geral de Protecao de Dados.

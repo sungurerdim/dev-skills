@@ -6,9 +6,9 @@ Conditional rules loaded only for web frontend projects. Each rule: ID, severity
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Web Security** | WEB-01–04 (1 BLOCKER, 3 CRITICAL) | ~12 |
-| **Web Quality** | WEB-05–08 (4 HIGH) | ~55 |
-| **Web Performance** | WEB-09–13 (2 CRITICAL, 3 HIGH) | ~105 |
+| **Web Security** | WEB-01–04, WEB-14 (1 BLOCKER, 3 CRITICAL, 1 HIGH) | ~12 |
+| **Web Quality** | WEB-05–08 (4 HIGH) | ~70 |
+| **Web Performance** | WEB-09–13 (2 CRITICAL, 3 HIGH) | ~120 |
 
 ---
 
@@ -19,11 +19,12 @@ CSP header preventing inline scripts and unauthorized sources.
 - **Detect:**
   - No `Content-Security-Policy` header in responses
   - CSP with `unsafe-inline` or `unsafe-eval` for scripts
+  - Host-allowlist CSP (long domain lists, no nonces) — bypassable via JSONP endpoints/open redirects on allowed hosts
   - No CSP meta tag or header configuration
   - Search: absence of `content-security-policy` in middleware/headers config
-- **Fix:** Set CSP header: `default-src 'self'; script-src 'self' 'nonce-{random}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' [api-domains]`. Use nonces for inline scripts. Report violations with `report-uri`
-- **Impact:** CSP prevents XSS exploitation even when injection vulnerabilities exist
-- **Source:** MDN CSP, OWASP CSP Cheat Sheet
+- **Fix:** Strict CSP (2026 default): `script-src 'nonce-{RANDOM}' 'strict-dynamic'; object-src 'none'; base-uri 'none'` — nonce-based with `'strict-dynamic'` (CSP Level 3, widely supported in modern browsers) instead of host allowlists. Deploy as `Content-Security-Policy-Report-Only` first; promote to enforcement only after violation reports go quiet. Where supported (Chromium), add `require-trusted-types-for 'script'` (Trusted Types) to block DOM-XSS sinks. Report violations with `report-to`/`report-uri`
+- **Impact:** CSP prevents XSS exploitation even when injection vulnerabilities exist; allowlist CSPs are routinely bypassed, strict nonce CSPs are not
+- **Source:** OWASP CSP Cheat Sheet (strict CSP), MDN CSP
 
 ### WEB-02 [CRITICAL] CORS Configuration
 Restrictive CORS. No wildcard origins in production.
@@ -54,6 +55,16 @@ State-changing operations protected against cross-site request forgery.
   - Search: POST/PUT/DELETE handlers without CSRF validation
 - **Fix:** Use `SameSite=Strict` or `SameSite=Lax` cookies. CSRF tokens for form submissions. Verify `Origin`/`Referer` headers. Use framework CSRF middleware (Node/Express: `csrf-csrf` or `csrf-sync` — `csurf` is deprecated; Django CSRF, Spring CSRF)
 - **Source:** OWASP CSRF Prevention Cheat Sheet
+
+### WEB-14 [HIGH] Third-Party Content Integrity
+External scripts/styles carry SRI hashes; embedded third-party content is sandboxed.
+- **Detect:**
+  - `<script src=` or `<link rel="stylesheet"` from external origins without `integrity=` attribute
+  - `<iframe>` embedding third-party content without `sandbox` attribute
+  - Search: `integrity="sha256-` (weaker than the SHA-384 default; only SHA-256/384/512 are supported by the spec)
+- **Fix:** Add `integrity="sha384-…"` + `crossorigin="anonymous"` to third-party `<script>`/`<link>` tags (SHA-384 default). Sandbox third-party iframes with the minimum capability set (e.g. `<iframe sandbox="allow-scripts">`). Known coverage gap: dynamically-served assets (e.g. Google Fonts) do not support SRI — self-host those assets instead
+- **Impact:** A compromised CDN or third-party host can inject arbitrary script into every page; SRI turns that into a failed load instead of an XSS
+- **Source:** MDN Subresource Integrity, OWASP Third-Party JavaScript Cheat Sheet
 
 ---
 
@@ -145,7 +156,7 @@ All cookies secure. Proper cookie attributes.
   - Session cookies without `HttpOnly`
   - Missing `SameSite` attribute
   - Cookies with excessive expiry (> 1 year for non-essential)
-- **Fix:** Set all cookies: `Secure; HttpOnly; SameSite=Lax` (or Strict for sensitive). Session cookies: no explicit expiry (browser session). Persistent cookies: reasonable TTL. Use `__Host-` prefix for sensitive cookies
+- **Fix:** Set all cookies: `Secure; HttpOnly; SameSite=Lax` (or Strict for sensitive). Session cookies: no explicit expiry (browser session). Persistent cookies: reasonable TTL. Use `__Host-` prefix for sensitive cookies (browser-enforced: requires `Secure`, forbids `Domain`, requires `Path=/` — blocks subdomain cookie-tossing); use `__Secure-` only when legitimate subdomain sharing is required. Reference form: `Set-Cookie: __Host-SID=<token>; path=/; Secure; HttpOnly; SameSite=Strict`
 - **Source:** MDN HTTP Cookies, OWASP Cookie Security
 
 ### WEB-13 [CRITICAL] Sensitive Data Cache Exclusion

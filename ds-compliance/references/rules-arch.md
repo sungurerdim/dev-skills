@@ -47,19 +47,19 @@ Application must define and enforce log retention periods.
 All external input (API requests, file uploads, webhooks, queue messages) must be validated at entry point.
 - **Detect:** Controller/handler functions that pass request data directly to business logic without validation. Missing schema validation middleware. `req.body.field` used without type/format/range checks
 - **Fix:** Validate at boundary: type, format, range, length, allowed values. Use schema validation: `zod` (Node), `pydantic` (Python), struct tags (Go), `jakarta.validation` (Java). Reject invalid input with 400, never attempt to sanitize and proceed
-- **Source:** OWASP A03:2021 (Injection)
+- **Source:** OWASP A05:2025 (Injection)
 
 ### ARC-06 [CRITICAL] Error Response Without Stack Traces
 Production error responses must not expose stack traces, internal paths, or framework details.
 - **Detect:** `res.status(500).send(error.stack)`, `DEBUG=True` in production config, `app.use(errorHandler)` that sends full error to client, `traceback.print_exc()` in API handlers, framework default error pages in production
 - **Fix:** Return generic error with correlation ID: `{error: "Internal error", reference: "abc-123"}`. Log full details server-side with same correlation ID. Disable debug mode in production. Custom error handler that maps exceptions to safe HTTP responses
-- **Source:** OWASP A04:2021 (Insecure Design)
+- **Source:** OWASP A06:2025 (Insecure Design)
 
 ### ARC-07 [CRITICAL] Fail-Closed Authorization
 Authorization failures must deny access by default, not grant it.
 - **Detect:** Auth middleware that returns `next()` on error (fail-open). Missing `else` clause in permission checks. Default case in role switch that allows access. `catch` blocks that continue request processing after auth failure
 - **Fix:** Default deny: if auth check fails for any reason (error, timeout, missing data), return 401/403. Never fall through to protected resource. Use allowlists for permitted roles, not blocklists for denied roles
-- **Source:** OWASP A01:2021 (Broken Access Control)
+- **Source:** OWASP A01:2025 (Broken Access Control)
 
 ### ARC-08 [HIGH] Separation of Auth from Business Logic
 Authentication and authorization logic must be isolated from business logic.
@@ -75,7 +75,7 @@ Authentication and authorization logic must be isolated from business logic.
 Dependencies must be checked for known vulnerabilities.
 - **Detect:** No `npm audit`, `pip-audit`, `cargo audit`, `govulncheck`, or equivalent in CI pipeline. Lock files with advisories. Dependencies with known CVEs
 - **Fix:** Add vulnerability scanning to CI: `npm audit --production`, `pip-audit`, `cargo audit`, `govulncheck ./...`. Block merges on CRITICAL/HIGH findings. Set up automated dependency update tools (Dependabot, Renovate)
-- **Source:** OWASP A06:2021 (Vulnerable Components)
+- **Source:** OWASP A03:2025 (Software Supply Chain Failures)
 
 ### ARC-10 [HIGH] Dependency Freshness
 Dependencies should not be severely outdated (major versions behind).

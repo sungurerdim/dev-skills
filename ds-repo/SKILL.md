@@ -72,11 +72,12 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 6. **Ruleset bypass list** — ruleset lists admins/broad roles in its bypass list with no documented justification → HIGH finding; classic "do not allow bypassing" maps to an empty bypass list, and GitHub's auto-migration can pre-populate admins into it — silently weakening protection. Keep the bypass list empty unless a justification note exists. N/A when no ruleset exists
 7. **Push ruleset** — ruleset-only capability with no classic counterpart: blocks restricted file paths (`.env`, secret-pattern files), extensions, and oversized files at the push layer across the entire fork network; plan supports rulesets and none exists → LOW opportunity finding (complements the oss-readiness git-secret-history check); no ruleset support → N/A
 
-### hygiene (3 checks)
+### hygiene (4 checks)
 
 1. **Stale branches** — no open PR + last commit > 30 days ago. UNMERGED work — deletion loses commits: always `needs-approval`, confirmed per item even under `--auto`/`--force-approve`; never bulk-deleted
 2. **Merged branches** — already merged into default but not deleted (commits preserved in base — safe to bulk-delete after one confirmation)
 3. **Orphan remotes** — remote-tracking refs whose upstream no longer exists (`git remote prune` — safe)
+4. **History bloat** — blobs > 10 MB in history inflating every clone (`git rev-list --objects --all` + `git cat-file --batch-check` size sort). Finding proposes `git filter-repo --strip-blobs-bigger-than <size>` (the recommended tool — not `git filter-branch` or BFG) + post-rewrite `git gc`, with LFS migration as the keep-the-file alternative. History rewrite is destructive and breaks every existing clone: always `needs-approval` with an explicit team-coordination + backup warning, never autonomous — same rule as the git-secret-history surgery (oss-readiness check 15)
 
 ### metadata (7 checks)
 

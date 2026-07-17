@@ -46,7 +46,7 @@ Background jobs, workers, and scheduled tasks must have execution timeouts.
 Database queries must never use string concatenation with user input.
 - **Detect:** `f"SELECT * FROM users WHERE id = {user_id}"`, `"SELECT * FROM users WHERE id = " + id`, template literals in SQL strings, `cursor.execute("... " + variable)`
 - **Fix:** Use parameterized queries: Python `cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))`. Node `db.query("SELECT * FROM users WHERE id = $1", [userId])`. Go `db.Query("SELECT * FROM users WHERE id = ?", userID)`. Use ORM query builders
-- **Source:** OWASP A03:2021 (Injection), CWE-89
+- **Source:** OWASP A05:2025 (Injection), CWE-89
 
 ### PRF-06 [CRITICAL] N+1 Query Detection
 Loops that execute database queries per iteration indicate N+1 problems.

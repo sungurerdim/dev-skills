@@ -48,7 +48,7 @@ Four modes: `--tactical` for file-level quality fixes, `--strategic` for archite
 | `--strategic` | Architecture-level: patterns, coupling, testing, production readiness |
 | `--perf` | Deep performance profiling: bundle size, startup, memory, caching, Core Web Vitals |
 | `--meta-quality` | Principle-based holistic audit: SSOT, DRY, KISS, YAGNI, SoC + criteria-fit + consolidation paths |
-| `--meta-scope={list}` | Meta-quality scope(s): `ssot`, `dry`, `kiss`, `yagni`, `soc`, `overengineering`, `redundancy`, `obsolete`, `duplicate`, `all`. Default: `all` |
+| `--meta-scope={list}` | Meta-quality scope(s): `ssot`, `dry`, `kiss`, `yagni`, `soc`, `api-surface`, `overengineering`, `redundancy`, `obsolete`, `duplicate`, `all`. Default: `all` |
 | `--criteria-fit` | Enable Phase 3b: project-ideal vs codebase-actual baselines from [references/criteria-fit.md](references/criteria-fit.md) |
 | `--suggest-paths` | Enable Phase 4a path proposals: 3 consolidation paths per finding (effort / impact / risk) from [references/path-proposals.md](references/path-proposals.md) |
 | `--auto` | All scopes, no questions, single-line summary |
@@ -118,7 +118,7 @@ Deep performance analysis beyond tactical `performance` scope.
 
 ### Meta-Quality Scopes (--meta-quality)
 
-6 detector scopes + 3 derived aliases. Definitions + detector rules in [references/meta-quality-scopes.md](references/meta-quality-scopes.md).
+7 detector scopes + 3 derived aliases. Definitions + detector rules in [references/meta-quality-scopes.md](references/meta-quality-scopes.md).
 
 | Scope | Detector summary |
 |-------|------------------|
@@ -127,6 +127,7 @@ Deep performance analysis beyond tactical `performance` scope.
 | `kiss` | Solution complexity exceeds problem size — cyclomatic >12 for single use-case |
 | `yagni` | Defined but 0 callers / 0 references — feature, param, or flag never used |
 | `soc` | One responsibility scattered across 3+ modules (non-cross-cutting) |
+| `api-surface` | Shallow module — export surface large relative to functionality / external usage |
 | `overengineering` | Alias for combined `ssot + kiss + yagni` |
 | `redundancy` | Alias for `dry` + duplicate constants |
 | `obsolete` | Unreachable code, legacy paths, deprecated APIs with zero modern callers |

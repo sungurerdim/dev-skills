@@ -211,6 +211,10 @@ Look up typecheck tool from `references/toolchains.md`; detect if type checking 
 
 **6b. Dependency audit (per stack):** look up audit command from `references/toolchains.md`. Tool unavailable → skip with warning. Stack toolchain lists a source security scanner (e.g. Bandit for Python) → run it read-only alongside the dep audit, merge findings.
 
+**6c. Debug residue & temp-file discipline (advisory, all stacks):**
+- **Debug endpoints:** grep route registrations whose path literal matches `/(debug|__test|_internal)` outside test directories → flag each for manual review, never auto-remove. Honesty note: this class is explicitly not amenable to complete static analysis (CMU SEI) — the grep narrows candidates, a human confirms intent.
+- **Temp files in shell scripts:** hardcoded `/tmp/<name>` paths or `$$`-based temp names → propose `TMPFILE=$(mktemp)` (mode 600, unpredictable name — closes the symlink-attack window) with `trap 'rm -f "$TMPFILE"' EXIT` set immediately after creation so cleanup fires on every exit path, not just normal completion.
+
 **Gate:** Secret scan + dep audit completed with classifications. If fails → dep audit tool missing: skip dep sub-phase, warn in summary; secret scan is built-in pattern matching (no external tool) and must always complete — filesystem access error → mark scope `WARN`. Any confirmed secret = CRITICAL, never suppressed.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]

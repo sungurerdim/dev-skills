@@ -32,7 +32,7 @@ Run `/ds-repo`, or ask to audit your repo settings.
 |-------|---------------|
 | settings | Squash merge, delete-on-merge, auto-merge, PR format |
 | protection | Branch protection rules, required reviews, status checks |
-| hygiene | Stale branches, merged branch cleanup |
+| hygiene | Stale branches, merged branch cleanup, history bloat (git-filter-repo) |
 | metadata | Description, topics, license, homepage, badges, social preview |
 | team | CODEOWNERS, contributor guidelines |
 | structure | .gitignore, directory conventions |
