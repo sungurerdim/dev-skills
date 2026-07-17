@@ -474,12 +474,13 @@ Seventeen weaknesses observed in AI coding assistants. **W1–W11 are universal*
 **Detection signals:** Consumer skill emits its own scope analysis when a fresh `ds/audit/findings.md` covers that scope. Same `file:line` appears in two different skill summaries with different IDs. Consumer skill ignores `git_hash` freshness check.
 
 **Prevention rules:**
-- Before scanning any scope, check `ds/audit/findings.md`: fresh (`git_hash == HEAD`, age ≤ 7 days) AND scope listed → **verify + apply only**, never re-detect.
+- Before scanning any scope, check `ds/audit/findings.md`: fresh AND scope listed → **verify + apply only**, never re-detect. **Fresh = `git_hash == HEAD` AND produced in the current run-cycle** (this invocation, or the orchestration run — e.g. the current `/ds-ship` cycle — this skill executes under).
+- **Cross-cycle recency is never a skip reason (mirror of W11):** findings from any previous cycle — however recent — are prior context, not a scan substitute. Use them for diffing (previously-flagged → resolved/still present?) and prioritization; then re-run the scan in full. A new invocation always starts a new cycle.
 - Stale or missing findings → invoke `/ds-blueprint --preview --scope=all` (or `--refresh`), wait, re-read. Do NOT silently fall through to own detection.
 - Consumer summary MUST cite the producing skill of each finding (`source: ds-blueprint` from meta header) so duplicates are visible.
 - If consumer adds new scope-level findings beyond what blueprint produced, append to `ds/audit/findings.md` with the consumer skill name as `source` and matching `git_hash`.
 
-**Recovery:** On a duplicate `file:line` hit, keep the higher-severity record and drop the other. On hash mismatch, bootstrap blueprint refresh before continuing. On staleness > 7 days, treat findings as advisory and trigger refresh.
+**Recovery:** On a duplicate `file:line` hit, keep the higher-severity record and drop the other. On hash mismatch or a findings file from a previous cycle, bootstrap blueprint refresh before continuing — prior-cycle rows become the diff baseline, never the result.
 
 ### W11: Error Ownership Skip
 
