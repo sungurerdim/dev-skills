@@ -36,12 +36,12 @@ rm -rf /tmp/dev-skills
 | Scope | What it audits |
 |-------|---------------|
 | monetization | Model fit, server-side entitlement enforcement, webhook signature verification, subscription lifecycle (trial/dunning/grace), cancellation parity, free-tier gate design |
-| pricing | Tier/decoy structure, annual framing, price externalization, commission/MoR fit, packaging copy |
+| pricing | Value-metric selection, tier/decoy structure, WTP research method (Van Westendorp/conjoint), competitor price map, annual framing (segment norms), price externalization, current commission/MoR tables, price-increase + grandfathering protocol, discount discipline, projection sanity (NRR/churn/AI-margin benchmarks) |
 | gtm | Value proposition (cross-checked against code), persona/JTBD, conversion surface, privacy-first funnel events, revenue-metric computability, launch plan |
 
 ## Features
 
-- Benchmarks cited per rule (RevenueCat SOSA, subscription-law summaries) — no from-memory statistics
+- Benchmarks cited per rule (RevenueCat SOSA, ChartMogul/ProductLed 2026, ICONIQ, Bessemer, Stripe, subscription-law summaries) — no from-memory statistics; contested values carried as ranges with both sides recorded
 - CRITICAL gate on entitlement bypass, unverified payment webhooks, and selling promised-not-implemented features
 - Business decisions are approval-gated (Category B) — the skill never picks your price for you
 - Delegates canonical legal/privacy to ds-compliance, billing-code security to ds-backend, store execution to ds-launch

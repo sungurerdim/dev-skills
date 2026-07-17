@@ -186,7 +186,7 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 
 ## Delegation
 
-**Owns:** store, release, privacy-labels (store-label-correctness only), perf-budget (`--perf-budget` mode) | **Delegates:** ds-compliance → canonical privacy; ds-mobile → mobile-specific store compliance | **Receives:** ds-ship → Phase 5 launch pass
+**Owns:** store, release, privacy-labels (store-label-correctness only), perf-budget (`--perf-budget` mode) | **Delegates:** ds-compliance → canonical privacy; ds-mobile → mobile-specific store compliance | **Receives:** ds-ship → Phase 5 launch pass; ds-productize → store/IAP listing + release execution
 
 ## Execution Flow
 

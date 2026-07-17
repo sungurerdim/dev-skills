@@ -33,7 +33,7 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 
 **Dimensions:** A1 (GTM), A2, A3 (funnel), A11 (GTM signal)
 
-- Covers four scopes: monetization (model + billing/entitlement integrity), pricing (tiers + packaging), gtm (positioning + funnel baseline), analytics (funnel instrumentation — ops telemetry delegated to ds-deploy).
+- Covers three scopes: monetization (model + billing/entitlement integrity), pricing (metric + tiers + packaging + channels + unit economics), gtm (positioning + funnel baseline, including funnel-analytics instrumentation — ops telemetry delegated to ds-deploy).
 - Audits and plans — generates findings and `ds/productize/plan.md`; payment-provider integration code itself is implemented by the user or ds-backend.
 - Only recommends established patterns with published benchmarks — no speculative growth hacks.
 - Minimal liability + maximum privacy: recommends Merchant-of-Record or managed billing over hand-rolled payment handling; funnel metrics are privacy-first (no PII in events, consent-gated where required).
@@ -67,11 +67,15 @@ Without flags: present the full mode menu — Audit (recommended) — find gaps 
 
 ### Pricing
 
-1. Tier structure — 2-3 tiers with a marked target tier; decoy/anchor logic intentional, not accidental
-2. Price presentation — charm vs round pricing matches positioning; per-day/savings framing on the pricing page; annual discount 30-40% with savings badge
-3. Packaging page — pricing page exists, lists outcomes over features, ≤3 choices, highlighted recommended plan
-4. Commission/processor fit — store Small-Business programs claimed where eligible; web checkout processor matches revenue stage (MoR below tax-complexity threshold)
-5. Price externalization — prices/products defined in provider dashboard or remote config, never hardcoded in client builds
+1. Price metric — value metric selected before model/tiers (Stripe 4-property test: flexible with value, self-explanatory, hard to game, budget-aligned); seat-only pricing on agentic-AI products flagged (PLD-01, PLD-03)
+2. Tier structure — 2-3 tiers with a marked target tier; decoy/anchor logic intentional, not accidental; public page ≤3-4 plans, ≤2 pricing axes (PLD-02)
+3. Price presentation — charm vs round pricing matches positioning; per-day/savings framing on the pricing page; annual discount at segment norm (consumer 30-40%, B2B 15-20% — PRC-02/DSC-02) with savings badge
+4. Packaging page — pricing page exists, lists outcomes over features, ≤3 choices, highlighted recommended plan
+5. WTP evidence — price traceable to willingness-to-pay input (Van Westendorp for new-to-market, conjoint for established/tiered — WTP-01) and a competitor price map (CPR-01; delegate scan to ds-benchmark when present)
+6. Commission/processor fit — store Small-Business programs claimed where eligible; current commission tables used (Play structure changes 30 Jun 2026 — CHN-02); web checkout processor matches revenue stage (MoR below tax-complexity threshold); sales motion matches ACV band (CHN-01)
+7. Price externalization — prices/products defined in provider dashboard or remote config, never hardcoded in client builds
+8. Price-change protocol — planned increases carry contract-clause check + notice period + grandfathering sunset (CHG-01/02); discounts under a ceiling with tracked cohorts (DSC-01)
+9. Projection sanity — revenue plan anchored to segment-correct benchmarks (NRR, churn by segment, AI-adjusted gross margin, LTV:CAC floor semantics — PRJ-01)
 
 ### GTM
 
@@ -85,7 +89,7 @@ Without flags: present the full mode menu — Audit (recommended) — find gaps 
 
 ## Delegation
 
-**Owns:** monetization, pricing, gtm, analytics (funnel) | **Delegates:** ds-compliance → subscription-law + privacy canonical audit; ds-backend → billing data model + webhook endpoint security pass; ds-deploy → analytics (ops telemetry); ds-research → pricing/competitor evidence (optional) | **Receives:** ds-ship → Phase 2 productize pass on paid-product intent
+**Owns:** monetization, pricing, gtm, analytics (funnel) | **Delegates:** ds-compliance → subscription-law + privacy canonical audit; ds-backend → billing data model + webhook endpoint security pass; ds-deploy → analytics (ops telemetry); ds-benchmark → competitor price-map scan (CPR-01, advisory-handoff: absent → inline top-3-5 pricing-page scan); ds-launch → store/IAP listing + release execution; ds-research → pricing/competitor evidence (optional) | **Receives:** ds-ship → Phase 2 productize pass on paid-product intent
 
 ## Execution Flow
 
@@ -96,7 +100,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 1. Flags → proceed directly. No flags → interactive menu.
 2. **IDU:** Profile → {Type + Stack, Config.audience, Config.deploy, Config.data}. Findings({monetization, pricing, gtm, spec-alignment}) → verify + use. Absent → own analysis.
 3. Ask the monetization-intent block once (single block, only unknowns): current/target model, target price range, B2B vs B2C vs prosumer, platforms (store IAP vs web checkout vs both).
-4. Load references by active scope: [references/rules-monetization.md](references/rules-monetization.md) (monetization + pricing), [references/rules-gtm.md](references/rules-gtm.md) (gtm).
+4. Load references by active scope: [references/rules-monetization.md](references/rules-monetization.md) (monetization + pricing surface), [references/rules-pricing.md](references/rules-pricing.md) (pricing method, channels, unit economics), [references/rules-gtm.md](references/rules-gtm.md) (gtm).
 
 **Gate:** Mode + scope + intent answers recorded. If fails → no response to intent block → proceed with `--audit --scope=monetization,pricing,gtm`, mark unknown intents `not-stated`, WARN, calibrate findings to "model not yet chosen" instead of guessing one.
 

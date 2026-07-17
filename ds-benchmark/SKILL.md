@@ -65,7 +65,7 @@ Without flags: full benchmark across every dimension.
 
 ## Delegation
 
-**Owns:** benchmark, ideal-synthesis, ideal-gap, competitive-analysis | **Delegates:** ds-research → 5–10 comparables with CRAAP+ tiering (absent → inline degraded search, tiers capped at T2); ds-docs → `--adr` to record every accepted gap decision as ADR (absent → minimal ADR written inline) | **Receives:** ds-ship → Phase 1 ideal-vs-current gap
+**Owns:** benchmark, ideal-synthesis, ideal-gap, competitive-analysis | **Delegates:** ds-research → 5–10 comparables with CRAAP+ tiering (absent → inline degraded search, tiers capped at T2); ds-docs → `--adr` to record every accepted gap decision as ADR (absent → minimal ADR written inline) | **Receives:** ds-ship → Phase 1 ideal-vs-current gap; ds-productize → competitor price-map scan (CPR-01)
 
 ## Execution Flow
 

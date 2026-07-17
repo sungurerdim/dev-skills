@@ -34,8 +34,8 @@ No acquisition→activation→revenue→retention events, or events carry PII.
 MRR, churn, and trial-to-paid cannot be derived from existing data.
 - **Detect:** No provider dashboard access noted, no metrics doc, no events from which MRR/churn/trial-to-paid derive.
 - **Fix:** Adopt provider analytics or define the 3-metric minimum: MRR, monthly churn (voluntary + involuntary split), trial-to-paid. Reality anchor: only 17.3% of new subscription apps reach $1K MRR within 2 years — measure early, iterate on evidence.
-- **Impact:** LTV:CAC (healthy > 3:1) is uncomputable, so paid acquisition cannot be evaluated.
-- **Source:** RevenueCat SOSA 2026 revenue benchmarks.
+- **Impact:** LTV:CAC is uncomputable, so paid acquisition cannot be evaluated. Nuance: 3:1 is Skok's minimum-viability floor for a repeatable growth motion (top performers ~5x) — it is not an early-stage target and is not meaningful pre-product-market-fit ([rules-pricing.md](rules-pricing.md) PRJ-01).
+- **Source:** RevenueCat SOSA 2026 revenue benchmarks; Skok/SaaStr (LTV:CAC origin).
 
 ## GTM-06 [LOW] No launch plan
 Ship date approaching with no pre-launch checklist.

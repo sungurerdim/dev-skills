@@ -81,12 +81,12 @@ Selling globally with a bare payment processor and no tax handling.
 - **Impact:** Unremitted VAT/sales-tax liability accrues silently per jurisdiction.
 - **Source:** MoR decision-path comparisons 2026 (Paddle / Lemon Squeezy / Stripe Tax).
 
-## MON-12 [LOW] Store small-business commission unclaimed
-Eligible store revenue paying 30% where 15% applies.
-- **Detect:** Store-distributed app, prior-year proceeds under $1M, small-business program not enrolled.
-- **Fix:** Enroll (Apple Small Business Program / Play 15% tier); re-qualify annually.
-- **Impact:** 15 points of margin left on the table.
-- **Source:** Apple SBP / Google Play 15% program terms.
+## MON-12 [LOW] Store small-business commission unclaimed or stale-rate math
+Eligible store revenue paying 30% where 15% applies, or margin planning on outdated Play rates.
+- **Detect:** Store-distributed app, prior-year proceeds under $1M, small-business program not enrolled; plan/docs citing Play's 15%/30% split for revenue after 30 Jun 2026.
+- **Fix:** Enroll (Apple Small Business Program — also 15% for any subscriber past 12 paid months; re-qualify annually). Google Play: from 30 Jun 2026 (US/UK/EEA first, phased globally) the 15%/30% split is replaced by 10% base + 5% Play-Billing fee (~15% effective on subscriptions) — full rate table + Apple/Stripe/marketplace rates in [rules-pricing.md](rules-pricing.md) CHN-02.
+- **Impact:** 15 points of margin left on the table; stale rate tables mis-price the channel.
+- **Source:** Apple SBP terms; Play Console service-fees page (post-Epic-settlement structure).
 
 ## MON-13 [MEDIUM] Pricing-model migration without a safety window
 Pricing-model change (e.g., per-seat → usage/hybrid) planned as a hard cutover for all customers at once.
@@ -103,11 +103,11 @@ Tier list where every option competes equally.
 - **Source:** Decoy-effect pricing research (Economist digital+print case).
 
 ## PRC-02 [MEDIUM] No annual option or weak annual framing
-Monthly-only pricing, or annual priced without a savings anchor.
-- **Detect:** Single monthly price; or annual present without "save {n}%" framing (norm: 30-40% off monthly-equivalent).
-- **Fix:** Add annual at 30-40% discount with a savings badge; onboard annual subscribers hard — 30% cancel in the first month.
-- **Impact:** Annual subscribers carry higher LTV and smooth revenue; absence caps LTV at monthly churn.
-- **Source:** RevenueCat SOSA annual-vs-monthly benchmarks.
+Monthly-only pricing, or annual priced without a savings anchor — or discounted outside the segment norm.
+- **Detect:** Single monthly price; or annual present without "save {n}%" framing; or annual discount mismatched to segment (segment norms differ — do not apply one number to both).
+- **Fix:** Add annual with a savings badge at the segment norm — consumer subscription apps: 30-40% off monthly-equivalent (RevenueCat SOSA); B2B SaaS: 15-20%, most commonly 16.7% ("2 months free") — see [rules-pricing.md](rules-pricing.md) DSC-02. Onboard annual subscribers hard — 30% cancel in the first month.
+- **Impact:** Annual subscribers carry higher LTV and smooth revenue; absence caps LTV at monthly churn; over-discounting B2B annual gives away ~15 points for commitment the 16.7% norm already buys.
+- **Source:** RevenueCat SOSA (consumer); SaaStr / Subscription Index (B2B norm).
 
 ## PRC-03 [LOW] Price presentation fights positioning
 Charm pricing on a premium product, or round pricing on a mass-market one.
