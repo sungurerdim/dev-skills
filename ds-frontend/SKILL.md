@@ -24,6 +24,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 | "WCAG / a11y technical audit (contrast, focus, ARIA)" | "regulatory a11y framing (EAA, ADA)" (→ ds-compliance --a11y) |
 | "generate design tokens / set up theming" | "mobile gestures, permissions, store" (→ ds-mobile) |
 | "review component states (empty/loading/error)" | "fix type errors in components" (→ ds-fix) |
+| "audit stale/stub routes, dead or mismatched buttons" | "chart/dataviz color palette selection" (→ dataviz) |
 
 ## Contract
 
@@ -44,6 +45,8 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 | `--scope={list}` | Comma-separated scopes (table below) or `all` |
 | `--framework={f}` | Override detection: `react`, `vue`, `svelte`, `angular`, `flutter`, `swiftui`, `compose`, `rn` |
 | `--check` | Report only, zero modifications |
+| `--auto` | No questions; `needs_approval` items listed and skipped |
+| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — scan + report, no changes / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu.
 
@@ -52,12 +55,12 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | Scope | Covers | Reference |
 |-------|--------|-----------|
 | tokens | Color/spacing/typography/shadow/border token consistency, hardcoded value detection | rules-design-system.md |
-| components | Component API quality, naming, composition, reuse, AI-friendly docs | rules-components.md |
+| components | Component API quality, naming, composition, reuse, overlays, route liveness, control-action binding, icon system, AI-friendly docs | rules-components.md |
 | solid | SOLID/GRASP in components: SRP, OCP, ISP, DIP, Low Coupling, High Cohesion ([references/principles.md §2](references/principles.md)) | rules-components.md |
 | states | empty/loading/error/success/disabled/hover/focus/active coverage | rules-components.md |
-| ux | Nielsen 10 usability heuristics, onboarding/first-use flow audit, integrate with states scope | rules-ux.md |
+| ux | Nielsen 10 heuristics, interaction laws (Fitts/Hick/Jakob/Tesler et al.), perceived performance (optimistic-UI rollback, INP budget), validation-timing strategy, deceptive-pattern screening, UX writing, nav-depth/breadcrumb IA, onboarding/first-use audit; integrate with states scope | rules-ux.md |
 | a11y | WCAG 2.2 AA, ARIA patterns (APG), keyboard nav, contrast, screen reader | rules-accessibility.md |
-| responsive | Layout overflow, breakpoints, container queries, fluid typography | rules-responsive.md |
+| responsive | Layout overflow, breakpoints, container queries, fluid typography, multi-column symmetry, print styles, RTL-readiness, Core Web Vitals | rules-responsive.md |
 | theming | Dark mode, `light-dark()`, color-scheme, semantic tokens, theme switching | rules-design-system.md |
 | config | Env-consumed values externalized; `.env.example` updated; no secrets in source ([references/principles.md §8](references/principles.md)) | rules-design-system.md |
 | admin-ui | D10 (advisory, SKILL-SPEC §15) — back-office/admin surfaces follow the same design-system tokens, states, and a11y rules as user-facing UI; no unstyled/raw-HTML admin screens | rules-components.md |
@@ -104,7 +107,7 @@ Default: all scopes.
 
 ## Delegation
 
-**Owns:** tokens, components, states, a11y (implementation), responsive, theming, design-system | **Delegates:** none | **Receives:** ds-compliance → a11y implementation/fixes; ds-blueprint → frontend scope findings; ds-ship → Phase 2 stack-specific delegation
+**Owns:** tokens, components, states, a11y (implementation), responsive, theming, design-system | **Delegates:** chart/dataviz color palettes (categorical, sequential, heatmap) → `dataviz` skill — target present, advisory-handoff; absent → TOK-10 covers only the small fixed brand/status token set, not chart series | **Receives:** ds-compliance → a11y implementation/fixes; ds-blueprint → frontend scope findings; ds-ship → Phase 2 stack-specific delegation
 
 ## Execution Flow
 
@@ -156,6 +159,8 @@ Load matching reference file per in-scope domain:
 | (aesthetic) | [aesthetics-presets.md](references/aesthetics-presets.md) |
 
 **Large scope (3+ scopes):** progress checklist + persistent findings artifact; max 2 parallel scans. **Per scope:** search relevant files → search violation patterns → read context → classify CAT-1 (auto-fixable) or CAT-2 (needs approval). **Confidence:** HIGH = match + context verified; MEDIUM = pattern match, ambiguous; LOW = heuristic.
+
+**Rendered-geometry rules** (RSP-08 viewport matrix, RSP-12 column symmetry, AXE-16 focus-not-obscured): browser automation available in-session → verify by measured bounding boxes at the relevant viewport; unavailable → static analysis only, cap confidence at MEDIUM and note `geometry unverified` on the finding.
 
 **False-positive prevention:** skip tokens inside comments, generated files (`*.g.dart`, `*.gen.*`), test fixtures, vendor/`node_modules`. Skip patterns: `/* noqa */`, `// intentional`, `// safe:`. **Recovery (context lost):** check progress checklist → read findings artifact → resume from first incomplete scope.
 

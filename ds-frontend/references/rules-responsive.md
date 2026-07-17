@@ -9,6 +9,7 @@ Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix a
 | **Layout** | RSP-01 to RSP-04 (4 HIGH) | ~12 |
 | **Advanced** | RSP-05 to RSP-08 (2 MEDIUM, 1 MEDIUM, 1 LOW) | ~72 |
 | **Core Web Vitals** | RSP-09 to RSP-11 (2 HIGH, 1 MEDIUM) | ~148 |
+| **Symmetry & Print** | RSP-12 to RSP-14 (1 HIGH, 2 MEDIUM) | ~193 |
 
 ---
 
@@ -140,10 +141,10 @@ Test UI at representative viewport widths to verify no breakage.
   | 1024px | Small desktop / iPad Pro | Expanded |
   | 1440px | Desktop | Expanded |
 
-  Also test: landscape orientation, font scale 1.3x, dark mode, RTL layout (if i18n supported).
+  Also test: landscape orientation — both orientations must stay usable, never lock one (WCAG 2.2 SC 1.3.4 Orientation, AA) — font scale 1.3x, dark mode, RTL layout (if i18n supported).
 - **Fix:** Fix layout issues at each viewport. Priority: 320px (most constrained) first, then progressively wider.
 - **Impact:** Untested viewports are where layout bugs hide. Test matrix ensures coverage of most common real-world device classes.
-- **Source:** Material 3 Window Size Classes, StatCounter GlobalStats viewport distribution
+- **Source:** Material 3 Window Size Classes, StatCounter GlobalStats viewport distribution, WCAG 2.2 SC 1.3.4 Orientation
 
 ---
 
@@ -186,3 +187,28 @@ Target: < 200ms. Worst interaction latency at 75th percentile. Replaced FID in M
   ```
 - **Impact:** 43% of sites fail 200ms INP threshold -- most commonly failed CWV metric in 2026.
 - **Source:** web.dev INP as Core Web Vital, Chrome User Experience Report, DebugBear 2025 Web Performance Review
+
+---
+
+## Symmetry & Print
+
+### RSP-12 [HIGH] Multi-Column Layout Symmetry (shared chrome, not per-column chrome)
+When a layout places sibling columns/panes side by side (e.g. a filter rail, a main content area, a summary rail), any header/toolbar/control-row that logically belongs to the *page*, not to one specific column, is rendered once above/outside the column grid — never duplicated as the first child inside just one of the columns.
+- **Detect:** A grid/flex row of 2+ sibling "column" containers where only *one* column's markup includes an extra header/toolbar element before its main content (mode-switch chips, a date-nav strip, an actions row) while sibling columns start directly with their real content. Even when the outer grid/flex container aligns all columns' top edges (`align-items: start` with equal padding), the columns' *real, meaningful* content (the first filter item, the actual data grid, the first summary stat) will start at visibly different vertical offsets, because one column spent extra height on a header row the others don't have. This reads as "the columns aren't aligned" even when the outer container-level alignment is technically correct.
+- **Fix:** Hoist any such control row out of the single column it was nested in and render it as one shared, full-width element positioned above (or as a header for) the entire multi-column grid. After the move, verify with actual measured layout — not visual inspection alone — that every column's first *real content* element starts at the same coordinate: measure each column's first meaningful child's bounding box and assert the top offsets match within a few pixels.
+- **Impact:** A common source of "the page looks subtly unbalanced" feedback that's hard to pin down from CSS inspection alone, because the outer grid *is* aligned — the drift is inside the columns, at the first-real-content level, which most spacing/alignment audits don't measure (they check declared CSS, not rendered geometry).
+- **Source:** Live audit + fix pattern (rendered-geometry alignment check, not just declared CSS)
+
+### RSP-13 [MEDIUM] Print Stylesheet
+Pages containing printable content (invoices, receipts, reports, appointment/order summaries, tickets) define `@media print` rules that hide interactive chrome, force readable contrast, and control page breaks — a page is not printed as if it were a live screen.
+- **Detect:** Pages/routes rendering content with clear print intent — search for the absence of any `@media print` block in the stylesheet chain, or a print block that only hides nav with no color/page-break handling. Flag: dark/colored backgrounds with light text and no print override (prints illegible or wastes ink); fixed/sticky nav or header with no print override (repeats or obscures content across pages); no `page-break-inside: avoid` on card/table-row/line-item groups (content splits mid-row across a page boundary).
+- **Fix:** Add an `@media print { }` block: hide non-content chrome (nav, sidebar, buttons, modals) via `display: none`; force light background + dark text regardless of the active theme; add `page-break-inside: avoid` on atomic content blocks (table rows, cards, line items); set an explicit `@page { margin: ... }` if the layout needs non-default margins.
+- **Impact:** A page with no print stylesheet prints exactly as it renders on screen — dark-mode backgrounds waste ink or render illegible, sticky nav repeats on every page eating margin, and unbounded content splits an invoice line or table row across a page break. Invisible in normal QA because nobody previews print output unless explicitly testing it.
+- **Source:** W3C CSS Fragmentation Module Level 3 (page-break control), CSS Paged Media Module Level 3 (`@page`)
+
+### RSP-14 [MEDIUM] Direction-Agnostic Layout (CSS Logical Properties)
+Layout direction comes from logical properties (`margin-inline-start`, `padding-inline`, `inset-inline`, `text-align: start`) rather than physical ones (`margin-left`, `left`, `text-align: left`), so the layout mirrors correctly under RTL.
+- **Detect:** Physical direction properties (`margin-left/right`, `padding-left/right`, `left`/`right` offsets, `text-align: left/right`, `border-left/right`) in a codebase that declares 2+ locales or any RTL locale (ar, he, fa, ur); missing `dir` attribute handling on `<html>` per locale. Codebase with no i18n intent → downgrade to LOW advisory, don't churn working styles.
+- **Fix:** Replace with logical equivalents (baseline in all modern browsers): `margin-inline-start/end`, `padding-inline`, `inset-inline-start`, `text-align: start/end`, `border-inline-start`; set `dir` on `<html>` from the active locale; verify one RTL locale via the RSP-08 matrix.
+- **Impact:** Physical properties mirror nothing under RTL — the layout renders left-anchored for right-to-left readers, and retrofitting is a full-codebase sweep with visual-regression risk. Writing logical properties from day one costs nothing.
+- **Source:** MDN CSS Logical Properties and Values; W3C i18n layout best practices

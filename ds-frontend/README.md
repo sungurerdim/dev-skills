@@ -2,7 +2,7 @@
 
 Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode — design systems exist to prevent these, but nobody enforces them in code.
 
-Audits UI/UX design quality across 48 rules, enforces design tokens, generates design systems, and catches WCAG 2.2 violations — for any frontend framework.
+Audits UI/UX design quality across 106 rules, enforces design tokens, generates design systems, and catches WCAG 2.2 AA violations (including all four new-in-2.2 criteria) — for any frontend framework.
 
 ## Install
 
@@ -37,17 +37,21 @@ rm -rf /tmp/dev-skills
 
 | Scope | What It Covers |
 |-------|---------------|
-| tokens | Color/spacing/typography/shadow/border token consistency |
-| components | Component API, naming, composition, AI-friendly documentation |
-| states | Empty/loading/error/success/disabled/hover/focus/active coverage |
-| a11y | WCAG 2.2 AA, ARIA patterns, keyboard nav, contrast, screen reader |
-| responsive | Layout overflow, breakpoints, container queries, fluid typography |
+| tokens | Color/spacing/typography/shadow/border/z-index token consistency, palette distinguishability |
+| components | Component API, naming, composition, overlays, route liveness, control-action binding, icon system, AI-friendly documentation |
+| states | Empty/loading/error/success/disabled/hover/focus/active coverage (error never collapses into empty) |
+| ux | Nielsen 10 heuristics, onboarding/first-use flow, activation/time-to-value |
+| a11y | WCAG 2.2 AA (incl. all new-in-2.2 criteria), ARIA patterns, keyboard nav, contrast, screen reader |
+| responsive | Layout overflow, breakpoints, container queries, fluid typography, multi-column symmetry, print styles, RTL-readiness, Core Web Vitals |
 | theming | Dark mode, light-dark(), color-scheme, semantic tokens |
+
+Plus `solid`, `config`, and `admin-ui` scopes — see SKILL.md for the full table.
 
 ## Features
 
-- 48 rules across 4 reference files (design system, components, accessibility, responsive)
+- 106 rules across 5 reference files (design system, components, accessibility, responsive, ux — incl. Laws of UX, perceived performance, validation strategy, deceptive-pattern screening, UX writing, IA)
 - Supports all UI frameworks: React, Vue, Svelte, Angular, Flutter, RN, SwiftUI, Compose, Electron, Tauri
 - Design mode generates W3C DTCG 2025.10 tokens.json, component catalog, and WCAG checklist
 - Auto-fixes hardcoded colors, missing ARIA, contrast violations, focus indicators
 - AI-discoverable component documentation standard (progressive disclosure architecture)
+- Rendered-geometry verification (column symmetry, focus-not-obscured) via in-session browser automation when available

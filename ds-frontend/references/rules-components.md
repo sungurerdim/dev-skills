@@ -6,8 +6,8 @@ Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Component Quality** | CMP-01 to CMP-08 (5 HIGH, 2 MEDIUM, 1 LOW) | ~12 |
-| **Interactions** | INT-01 to INT-04 (2 MEDIUM, 2 LOW) | ~120 |
+| **Component Quality** | CMP-01 to CMP-17 (9 HIGH, 7 MEDIUM, 1 LOW) | ~12 |
+| **Interactions** | INT-01 to INT-04 (2 MEDIUM, 2 LOW) | ~176 |
 
 ---
 
@@ -105,6 +105,70 @@ Components follow platform-standard naming convention.
 - **Fix:** Rename to follow platform convention. Descriptive names preferred over generic (UserAvatar over Avatar when domain-specific).
 - **Impact:** Non-standard naming confuses contributors and breaks conventions that tooling depends on (auto-imports, component discovery).
 - **Source:** Platform component naming conventions
+
+### CMP-09 [HIGH] Anchored Overlay Portal Isolation
+Every anchored/floating overlay (search-result dropdown, "more actions" menu, status popover, typeahead list) renders through a shared top-level portal host with viewport-relative fixed positioning — never as a `position:absolute` descendant nested inside the trigger's own container.
+- **Detect:** Grep for `position:\s*absolute` (or the framework equivalent — React portal-less floating divs, Vue teleport-less dropdowns, Flutter `Positioned` inside a clipping `ClipRect`/`Container(overflow:Clip)`) on elements that behave as a dropdown/menu/typeahead result list. Cross-reference against every ancestor selector for `overflow:\s*(hidden|auto|scroll)` — a `position:absolute` overlay whose DOM ancestor chain includes such a rule is a live or latent clip, even if not clipped today: the next refactor that nests it one level deeper silently reintroduces the bug with zero code change to the overlay itself.
+- **Fix:** Introduce (or reuse) one shared overlay primitive that (a) appends its content to a single body-level host element created once, (b) computes position from the trigger's `getBoundingClientRect()`, (c) uses `position: fixed` so no ancestor's overflow/clipping context can affect it, (d) clamps the computed position inside the viewport bounds, and (e) shares one z-index layer token above the app's modal/dialog layer. Migrate every ad-hoc overlay onto this primitive instead of patching each container's `overflow` property one at a time.
+  **Focus-trap independence:** a body-appended overlay opened from inside a modal/dialog is outside that modal's own focus-trap DOM subtree. If the overlay doesn't establish its own independent trap (Tab/Shift+Tab wrapping inside just the overlay, initial focus moved in on open, focus returned to the trigger on close), a keyboard-only user tabbing through it will leak straight back into the host modal's fields. Verify by opening the overlay with a mouse, then tabbing from its first focusable element — focus must stay within the overlay until Escape/selection.
+- **Impact:** This is the single most common cause of "the dropdown is half-cut-off / invisible" bug reports — architecturally silent until an unrelated later change adds `overflow:hidden` to some ancestor for a completely different reason. The focus-trap gap is worse specifically when opened from inside a modal (two traps interact unpredictably) than from the page directly, and mouse-driven QA never notices it.
+- **Source:** CSS positioning/stacking-context practice; W3C ARIA APG focus management; live audit + fix
+
+### CMP-10 [MEDIUM] Anchored Overlay Sizing Contract
+Every anchored overlay (see CMP-09) shares one min-width / max-width / max-height(+internal scroll) / word-wrap contract instead of each instance hand-rolling its own bounds.
+- **Detect:** Multiple overlay/dropdown/menu components each defining their own `min-width`/`max-width`/`max-height` values, or omitting one — e.g. no `max-height`, so a long result list grows unbounded past the viewport bottom with no scroll. Also check for missing `overflow-wrap`/`word-break` on long unbroken strings inside the panel — without it, the panel's own `max-width` gets silently violated by the content forcing it wider.
+- **Fix:** Define the four values once (as tokens/theme constants) and apply them uniformly at the shared overlay primitive level (see CMP-09): a floor width, a ceiling width paired with `overflow-wrap: anywhere`, and a ceiling height with `overflow-y: auto`.
+- **Impact:** Without a shared contract, some overlays cap height and others don't, some wrap long content and others let it overflow the panel's own box — visibly inconsistent polish across the same interaction pattern.
+- **Source:** Live audit pattern; CSS Overflow Module Level 4
+
+### CMP-11 [MEDIUM] Structural Field-Type Registry
+Every structural data type that needs input masking, validation, parsing, and display formatting (phone numbers, national ID/tax numbers, money + currency, percentages, integers with a "no limit" sentinel, dates, URLs, …) is defined **once** in a central registry (mask/validate/parse/format/inputAttrs per type) — never re-implemented ad hoc at each input field or display site.
+- **Detect:** Grep for inline regex patterns, inline `parseFloat`/`parseInt`/custom parsing, or inline formatting logic duplicated across multiple form fields or display components for what is recognizably the same underlying data type. Also check whether validation failures block saving (HARD) vs. only warn — inconsistency across fields of the *same type* is itself a signal of missing centralization.
+- **Fix:** Introduce one registry keyed by type id, each entry exposing `{ mask, validate, format, parse, inputAttrs, placeholder }`; every input field and every display site consumes it instead of writing its own logic. Keep the *stored* canonical value format stable and separate from the *display* mask.
+- **Impact:** Duplicated per-field validation/formatting logic drifts silently — one call site's phone regex accepts a format another rejects, one money field loses precision on round-trip that another preserves.
+- **Source:** Live audit pattern (production field-type registry)
+
+### CMP-12 [MEDIUM] Summary/Stat Tiles Are Drillable, Not Dead Text
+A stat tile, KPI number, or summary count that represents an underlying filtered set of records is a real link/button to that filtered view — not inert, unclickable text.
+- **Detect:** A dashboard/summary tile rendering a number or short stat with no `href`/`onClick`/keyboard affordance, where the number is visibly a count or aggregate of records that exist elsewhere in the app as a listable/filterable collection.
+- **Fix:** Wrap the tile in an actual link or button that navigates to the corresponding filtered list view, with an accessible name that states both the label and the value (e.g. `aria-label="Overdue: 3"`).
+- **Impact:** Users routinely try to click stat tiles expecting drill-through; a dead tile is a broken expectation and a missed navigation shortcut, discovered by users clicking and getting nothing.
+- **Source:** Live audit pattern (dashboard KPI tiles)
+
+### CMP-13 [HIGH] Error State Must Not Collapse Into Empty State
+A data-loading surface has four *distinct* states — empty, loading, error, and permission-denied — and a failure in any one must never silently render as a different one, especially error-as-empty.
+- **Detect:** Search async data-fetching code for a `catch` block that sets the data array/state to an empty value (`catch (e) { setItems([]) }` or equivalent) without a separate error flag. Separately, check whether a permission/authorization failure (403-equivalent) renders as a generic "something went wrong" error rather than a distinct "you don't have access" state with no retry button (retrying a permission error never succeeds).
+- **Fix:** Track loading/error/empty/forbidden as separate, mutually exclusive state values, not derived from "is the array empty"; a `catch` sets an explicit error flag distinct from "zero results," and the component branches on that flag before checking array length. A permission failure gets its own render branch.
+- **Impact:** Error-as-empty is a silent failure class — the user sees "no data" with no signal anything broke, so they never report it, and passive error monitoring can miss it too since nothing *looks* broken. This is qualitatively worse than a visible error.
+- **Source:** Live audit pattern (async fetch error handling)
+
+### CMP-14 [MEDIUM] Action/Field Grouping via Spacing (Gestalt Proximity)
+Related actions or fields are visually grouped by tighter spacing between them than the spacing separating them from the next unrelated group — never a single uniform gap applied indiscriminately across an entire toolbar, action row, or form.
+- **Detect:** A row/toolbar/action-bar with 3+ controls where every gap between adjacent controls is identical, while the controls belong to visually or functionally distinct clusters (e.g. view/filter controls vs. a destructive "Delete" action; primary "Save" next to secondary "Cancel" next to unrelated "Export"). Also flag a destructive action (delete/remove/discard) positioned with the exact same spacing and visual weight as adjacent non-destructive actions, with no separator or grouping container distinguishing it.
+- **Fix:** Increase the gap between distinct clusters (roughly 2x the intra-cluster gap) or insert a visual separator/divider so proximity itself communicates grouping; give destructive actions extra spacing and/or a divider from non-destructive ones.
+- **Impact:** Uniform spacing flattens visual hierarchy — a user has to read every label to figure out which controls belong together instead of perceiving groups at a glance; unseparated destructive actions sitting flush against safe ones raise the chance of a mis-click destroying data.
+- **Source:** Gestalt Law of Proximity (perceptual grouping via spacing)
+
+### CMP-15 [HIGH] No Stale, Empty, or Stub Routes
+Every route/page reachable in the router (and every entry linked from navigation) renders real, current content — not a leftover placeholder, an empty component, a "Coming soon" stub, or a route left over from a removed/renamed feature.
+- **Detect:** Enumerate the router's route table (React Router / Vue Router / Next.js `app` or `pages` dir / Angular routing module / Flutter `go_router` / etc.) and cross-reference against: (a) component files that render only a placeholder (`return null`, `<div>TODO</div>`, `<div>Coming soon</div>`, a single heading with no functional content), (b) routes with zero inbound references from any nav/menu/link in the codebase — orphaned, reachable only by typing the URL directly, (c) routes whose target component file was deleted or renamed but the route registration wasn't (dead import, or silently falls through to a catch-all). Flag each independently — a route can be linked-but-stub, unlinked-but-complete (dead code, lower severity), or unlinked-and-stub (both).
+- **Fix:** Stale/removed feature → delete the route registration and its nav entry together, never partially. In-progress feature → finish the page before it ships to production routing, or gate it behind a feature flag / an honest "not yet available" state, excluded from primary nav until ready.
+- **Impact:** A stub or dead route reachable by a real user (via nav, a stale bookmark, or a shared link) reads as "this app is broken" — worse than a 404, which at least signals "this doesn't exist," while a blank/placeholder page signals "this is broken." Orphaned routes silently bloat the bundle and the router's mental model for every future contributor.
+- **Source:** Live audit pattern (route/page hygiene); general SPA routing practice
+
+### CMP-16 [HIGH] Every Control Has a Real, Correct, Bound Action
+Every interactive control (button, menu item, icon action, link) is necessary, has a concrete bound handler, and that handler does what the control's label/icon says — not a no-op, a placeholder, or a handler wired to the wrong action.
+- **Detect:** For each interactive element, check: **no-op** — empty handler body, a handler that only `console.log`s or has a `// TODO`, `href="#"` with no click handler, a control that looks enabled but isn't wired to anything; **necessity** — a control whose action duplicates another control on the same screen with no distinct value, or a control gated behind a permission/feature flag that's never true in the current build (dead affordance); **correctness** — handler behavior mismatched against the control's visible label or icon (e.g. a button labeled "Delete" bound to an update call, a universally-understood "save" icon wired to "cancel"). Cross-reference the handler's actual side effect (API call, state mutation, navigation target) against the label's stated intent.
+- **Fix:** No-op → implement the real action or remove the control until it's ready. Duplicate/unnecessary → consolidate to one control or remove the redundant one. Mismatched → rename the label/icon to match the real behavior, or rewire the handler to match the stated intent — whichever reflects the actual intended behavior; never leave the mismatch in place.
+- **Impact:** A control that looks actionable but does nothing (or does the wrong thing) is worse than no control — it costs the user a wasted click plus the effort of re-verifying what actually happened, and a mislabeled destructive/non-destructive mismatch specifically risks data loss or a startled user.
+- **Source:** Live audit pattern (control-to-handler correctness); Nielsen heuristic 1 — Visibility of System Status (the user-facing failure mode when it's absent)
+
+### CMP-17 [MEDIUM] Icon System Consistency
+All icons come from one icon set, sized by tokens, colored via `currentColor`/semantic tokens, with one stable icon-to-action mapping across the app.
+- **Detect:** Two or more icon libraries imported in one codebase (e.g. lucide + Font Awesome + heroicons mixed); raw pixel `width`/`height` on icons instead of a small size scale (16/20/24); icons with hardcoded `fill`/`stroke` colors instead of `currentColor` or a semantic token (breaks theming — see THM-05); mixed visual styles (outlined and filled variants of the same set side by side on one surface); the same action drawn with different icons in different views.
+- **Fix:** Standardize on one icon set; expose 2–3 size tokens and route every icon through them; use `currentColor` so icons inherit text color and adapt to theme automatically; maintain one icon-to-action mapping (the comprehension side — does the icon need a text label — is UX-02's check; the mapping-consistency side is UX-04's; this rule owns the visual/technical system).
+- **Impact:** Mixed icon languages are one of the fastest "this product is stitched together" signals a user perceives, without being able to name why; hardcoded icon colors silently break in dark mode; drifting metaphors force users to re-learn the same action per screen.
+- **Source:** Design-system iconography practice (Material Symbols, SF Symbols usage guidelines)
 
 ---
 

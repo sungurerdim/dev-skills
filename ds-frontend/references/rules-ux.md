@@ -1,4 +1,4 @@
-# Rules: UX (Nielsen 10 + AI Transparency)
+# Rules: UX (Nielsen 10 + Interaction Laws + Perceived Performance + Forms + Deceptive Patterns + Writing + IA)
 
 Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
 
@@ -11,6 +11,12 @@ Applies to all UI platforms: web, mobile, desktop.
 | **Heuristics (Nielsen 10 + dev-skills UX-10a)** | UX-01 to UX-10, UX-10a (11 rules) | ~15 |
 | **Onboarding / First-Use Flow** | UX-ON-01 to UX-ON-03 (3 rules) | ~110 |
 | **Activation / Time-to-Value** | UX-AC-01 to UX-AC-02 (2 rules) | ~140 |
+| **Interaction Laws (Laws of UX)** | UX-LX-01 to UX-LX-07 (7 rules) | ~150 |
+| **Perceived Performance & Optimism** | UX-PP-01 to UX-PP-02 (2 rules) | ~220 |
+| **Forms: Validation Strategy** | UX-FM-01 (1 rule) | ~240 |
+| **Deceptive Patterns** | UX-DP-01 to UX-DP-03 (3 rules) | ~255 |
+| **UX Writing** | UX-WR-01 to UX-WR-02 (2 rules) | ~285 |
+| **Information Architecture** | UX-IA-01 (1 rule) | ~305 |
 
 ---
 
@@ -135,6 +141,148 @@ The product marks the moment the user reaches first value (visually, not just fu
 - **Fix:** Add a distinguishable first-success moment (confirmation, next-step suggestion, or lightweight celebration) tied specifically to the first occurrence of the core-value event.
 - **Impact:** An unmarked value moment leaves the user unsure whether they succeeded, undermining the activation the product just achieved.
 - **Source:** RT2 (specs/001-v4-coverage-standalone/research.md)
+
+---
+
+---
+
+## Interaction Laws (Laws of UX)
+
+Catalog: [lawsofux.com](https://lawsofux.com/) (Yablonski) `[single-source aggregator]` — each law traces to original research named per rule. **Auditor-bias note (Aesthetic-Usability Effect):** a visually polished UI is *perceived* as more usable and masks real usability flaws — never soften a finding's severity because the screen looks good.
+
+### UX-LX-01 [MEDIUM] Choice Overload at Decision Points (Hick + Miller)
+Decision time grows with the number and complexity of choices; working memory holds ~7±2 chunks.
+- **Detect:** Menu, nav bar, settings screen, or picker presenting >7 ungrouped options at one level; onboarding/checkout step asking multiple unrelated decisions at once; long flat lists where grouping or search exists nowhere.
+- **Fix:** Chunk options into labeled groups; split compound decision steps; add search/filter to long option lists; move rare options behind progressive disclosure (UX-08).
+- **Impact:** Every extra simultaneous choice raises decision latency and abandonment at exactly the points (nav, checkout) where hesitation costs most.
+- **Source:** Laws of UX — Hick's Law, Miller's Law `[single-source]` (originals: Hick 1952; Miller 1956)
+
+### UX-LX-02 [MEDIUM] Action Distance (Fitts)
+Target acquisition time is a function of distance to and size of the target — actions live next to the objects they act on.
+- **Detect:** Per-item action (edit/delete/reply) rendered far from the item it affects (e.g. a global toolbar acting on a list selection below the fold); form submit separated from the form by unrelated content; on mobile, the primary action outside the natural thumb zone while rare actions occupy it.
+- **Fix:** Co-locate actions with their objects (row-level actions on the row, submit directly under the form); reserve the easiest-to-reach positions for the highest-frequency actions. Target *size* is audited by the accessibility target-size rule — this rule owns *distance*.
+- **Impact:** Distant targets add pointing time to every interaction and break the visual object-action link, causing wrong-object operations.
+- **Source:** Laws of UX — Fitts's Law `[single-source]` (original: Fitts 1954)
+
+### UX-LX-03 [MEDIUM] Convention Adherence (Jakob)
+Users expect a new UI to work like the products they already use — deviation from platform/domain convention needs a reason.
+- **Detect:** Novel interaction pattern where a dominant convention exists (cart icon not in the header, settings not behind a gear/avatar, non-standard gesture replacing a visible control, scroll hijacking); platform-convention mismatch (web app overriding browser back, desktop app without native menu/shortcut conventions).
+- **Fix:** Default to the dominant convention; keep innovation for the product's differentiating interaction only, and pair it with an on-ramp (hint, fallback control). Cross-ref [controlled-vs-innovative.md](controlled-vs-innovative.md).
+- **Impact:** Every convention break spends user trust and adds relearning cost — users blame themselves, then leave.
+- **Source:** Laws of UX — Jakob's Law `[single-source]` (Nielsen)
+
+### UX-LX-04 [MEDIUM] Ordering & Salience (Serial Position + Von Restorff)
+First and last positions are best remembered; one visually distinct item among uniform peers draws recall and attention.
+- **Detect:** Critical nav/menu items buried mid-list while low-value items hold the first/last slots; primary CTA visually identical to its neighbor actions (no salience); MORE than one "distinct" element per view competing for the Von Restorff slot (everything highlighted = nothing highlighted).
+- **Fix:** Place the highest-value items at list start/end; give exactly one primary action per view distinct weight; demote decorative highlights that compete with it.
+- **Impact:** Mid-list burial and salience inflation both push users toward wrong or slower choices on every visit.
+- **Source:** Laws of UX — Serial Position Effect, Von Restorff Effect `[single-source]` (originals: Ebbinghaus; von Restorff 1933)
+
+### UX-LX-05 [MEDIUM] Progress Visibility in Multi-Step Flows (Goal-Gradient + Zeigarnik)
+Motivation rises with visible proximity to completion; interrupted tasks stay mentally open — show progress and make resumption easy.
+- **Detect:** Multi-step flow (wizard, onboarding, checkout) with no step indicator or completion signal; interruptible long task (profile setup, import) with no resumable state or "continue where you left off" entry point; progress indicator that starts at 0% when prior steps are already done (artificial-start omission).
+- **Fix:** Add a step/progress indicator that credits completed work (start >0% when justified); persist partial progress and surface a resume affordance on return.
+- **Impact:** Invisible progress and lost partial work are the two dominant causes of multi-step abandonment.
+- **Source:** Laws of UX — Goal-Gradient Effect, Zeigarnik Effect `[single-source]` (originals: Hull 1932; Zeigarnik 1927)
+
+### UX-LX-06 [MEDIUM] Input Tolerance (Postel)
+Be liberal in what you accept from users, conservative in what you emit — normalize instead of rejecting.
+- **Detect:** Input rejected for recoverable formatting the code could normalize: spaces/dashes in card, IBAN, or phone numbers; case-sensitive email/username match; trailing whitespace failing validation; date accepted in only one rigid format when the locale implies others.
+- **Fix:** Trim, strip separators, and case-normalize before validating; accept the formats users actually paste; keep the *stored/emitted* value strictly canonical.
+- **Impact:** Every rejection of normalizable input converts a completed user intention into an error state the code caused.
+- **Source:** Laws of UX — Postel's Law `[single-source]` (original: RFC 761 robustness principle)
+
+### UX-LX-07 [MEDIUM] Complexity Placement (Tesler)
+Inherent complexity cannot be eliminated — it can only be moved; move it into the system, not onto the user.
+- **Detect:** User asked for a value the system can derive (country from locale/GeoIP suggestion, card type from number, timezone from device); configuration required before first use where a working default exists; every option exposed because "the user should decide".
+- **Fix:** Derive what is derivable (editable, not locked); ship working defaults with override; absorb decision complexity into smart defaults and keep the choice available for the minority that needs it.
+- **Impact:** Complexity pushed onto users taxes every user on every use; complexity absorbed into the system costs the developer once.
+- **Source:** Laws of UX — Tesler's Law `[single-source]` (Tesler, Xerox PARC)
+
+---
+
+## Perceived Performance & Optimism
+
+### UX-PP-01 [HIGH] Optimistic UI Has a Rollback Path
+Optimistic updates (UI reflects success before the server confirms) are used only for fast, reliable, reversible actions — and always with rollback.
+- **Detect:** UI state updated before request resolution with no failure handler that reverts the state and informs the user; optimistic pattern on non-reversible or high-stakes actions (payment, send, delete, publish); rollback that silently reverts with no explanation of what failed.
+- **Fix:** Pair every optimistic update with an error path that restores prior state + surfaces a plain-language notice with retry; use pessimistic (wait-for-server) flow for payments, sends, and destructive actions.
+- **Impact:** An optimistic update without rollback shows the user a success that never happened — data-loss-grade trust damage when discovered.
+- **Source:** [Smashing Magazine — Optimistic UIs](https://www.smashingmagazine.com/2016/11/true-lies-of-optimistic-user-interfaces/); [Hearne — Optimistic UI Patterns](https://simonhearne.com/2021/optimistic-ui-patterns/)
+
+### UX-PP-02 [HIGH] Interaction Responsiveness Budget (INP)
+Interactions respond within the Core Web Vitals INP budget: Good ≤200ms at the 75th percentile (Needs Improvement 200-500ms, Poor >500ms).
+- **Detect:** Web: no INP measurement (field data or lab proxy) for the primary flows; long tasks >50ms blocking the main thread on interaction handlers; synchronous heavy work (large render, JSON parse, layout thrash) inside click/input handlers. All platforms: any interaction regularly exceeding ~400ms with no immediate feedback (Doherty threshold `[single-source]`).
+- **Fix:** Yield long tasks (`scheduler.postTask`/`setTimeout` chunking), move heavy work off the interaction path (worker, defer), show immediate feedback (UX-01) when real work must exceed the budget.
+- **Impact:** Interactions over budget read as "broken" — users re-click (duplicate actions) or leave; INP is also a ranking-relevant field metric.
+- **Source:** [web.dev — INP](https://web.dev/articles/inp) (thresholds verified 2×, 2026-07-17); Laws of UX — Doherty Threshold `[single-source]`
+
+---
+
+## Forms: Validation Strategy
+
+### UX-FM-01 [HIGH] One Deliberate Validation-Timing Strategy + Error Summary
+The product picks ONE validation-timing strategy deliberately and applies it consistently; long forms pair errors with a summary that links to fields.
+- **Detect:** Mixed timing across forms (some validate on blur, some on submit, some on keystroke) with no documented choice; premature validation that flags a field as wrong *while the user is still typing* their first entry; submit-time errors shown only inline on a long form with no top error summary; error summary entries not linked/focused to their fields.
+- **Fix:** Choose and document one strategy — (a) GOV.UK: validate on submit only + error summary component at top, each entry a link that moves focus to its field; or (b) reward-early/punish-late: validate a field immediately once it *becomes* valid, but flag errors only after the user leaves it. Never punish mid-typing. Cross-ref rules-accessibility.md AXE-14 (autocomplete/input purpose) and error-association rules.
+- **Impact:** Inconsistent or premature validation trains users to distrust the form; unlinked errors on long forms strand users hunting for the failing field.
+- **Source (both positions kept — documented contradiction):** [GOV.UK — validation pattern](https://design-system.service.gov.uk/patterns/validation/) + [error summary](https://design-system.service.gov.uk/components/error-summary/) vs [Smart Interface Design Patterns — inline validation](https://smart-interface-design-patterns.com/articles/inline-validation-ux/), [NN/g — hostile error messages](https://www.nngroup.com/articles/hostile-error-messages/)
+
+---
+
+## Deceptive Patterns (Never Ship These)
+
+Canonical catalog: [deceptive.design/types](https://www.deceptive.design/types). These carry legal exposure (FTC negative-option enforcement, EU consumer law) on top of trust damage.
+
+### UX-DP-01 [HIGH] Preselection Steering
+No pre-checked choice commits the user to something not required for the requested service.
+- **Detect:** Pre-checked checkboxes for marketing consent, data sharing, add-on purchases, subscriptions, or "donation/tip" amounts; default-selected paid tier where a free path exists but is visually demoted.
+- **Fix:** Ship consent and upsell choices unchecked; make the no-extra path equally visible; preselect only what the user's explicit request implies.
+- **Impact:** Preselection converts inattention into unwanted commitments — refund/complaint load plus consent invalid under GDPR-class rules (cross-ref ds-compliance consent rules).
+- **Source:** [deceptive.design — Preselection](https://www.deceptive.design/types) `[single-source]` (catalog); consent-validity: GDPR Art. 4(11) active-consent standard
+
+### UX-DP-02 [HIGH] Cancellation Parity
+Cancelling, unsubscribing, or downgrading is as easy as signing up — same channel, comparable step count.
+- **Detect:** Online signup but cancellation only via phone/chat/email; cancellation flow with retention interstitials exceeding one clearly skippable offer; "delete account" absent or buried while "upgrade" is one click; unsubscribe link missing or requiring login.
+- **Fix:** Provide cancellation in the same channel as signup with comparable effort; one optional retention offer max, skippable; account deletion reachable and completable online.
+- **Impact:** Obstructed exits are the most-enforced deceptive pattern (FTC negative-option actions, EU consumer law) and the fastest trust-to-chargeback converter.
+- **Source:** [deceptive.design — Hard to cancel](https://www.deceptive.design/types); FTC negative-option enforcement coverage (2026) — rule's litigation status recorded as contradiction in research notes; parity is the safe bar regardless
+
+### UX-DP-03 [HIGH] Honest Pricing & Presentation
+All mandatory costs are visible before effort is invested; information is never hidden, disguised, or nagged past.
+- **Detect:** Mandatory fees (service, booking, shipping minimums) first revealed at the final checkout step; visually demoted decline options ("confirmshaming" microcopy, low-contrast reject button vs high-contrast accept); countdown/scarcity claims not backed by real data; repeated interrupting prompts for the same permission/upsell after the user declined.
+- **Fix:** Show full mandatory price as early as a price is shown; give accept/decline equal visual weight; remove or data-back urgency claims; respect a decline for the session at minimum.
+- **Impact:** Late fees and interference patterns trade one-time conversion for churn, chargebacks, and regulator attention.
+- **Source:** [deceptive.design — Hidden costs, Visual interference, Nagging](https://www.deceptive.design/types) `[single-source]` (catalog); EU Omnibus/CPC price-transparency enforcement practice
+
+---
+
+## UX Writing
+
+### UX-WR-01 [MEDIUM] Buttons Name Their Outcome
+Every action label states the specific outcome — one consistent verb per action class, no bare "OK"/"Submit"/"Yes".
+- **Detect:** Generic labels (`OK`, `Submit`, `Yes`, `No`, `Continue` on a consequential step) where the outcome is nameable (`Save changes`, `Delete 3 items`, `Send message`); confirm dialogs whose buttons don't answer the question asked; the same operation labeled with different verbs across screens (defer to UX-04 for the consistency half).
+- **Fix:** Rewrite labels as verb + object of the actual outcome; confirm-dialog buttons restate the choice (`Delete` / `Keep`), never `Yes`/`No`.
+- **Impact:** Outcome-named buttons cut wrong-click rates on consequential actions — the label is the last defense before an unintended operation.
+- **Source:** [Material Design — Writing guidance](https://m2.material.io/design/communication/writing.html); Google Material communication codelab (2×-confirmed)
+
+### UX-WR-02 [LOW] Sentence Case for UI Text
+Titles, headings, labels, and buttons use sentence case — not Title Case, not ALL CAPS.
+- **Detect:** Mixed casing conventions across views; ALL-CAPS body/label text (also a localization hazard — casing rules differ across locales, e.g. Turkish dotted/dotless i); Title Case in products that localize.
+- **Fix:** Standardize on sentence case in the design system tokens/lint (one exception: proper nouns); remove CSS `text-transform: uppercase` from translatable strings.
+- **Impact:** Sentence case reads faster, localizes safely, and removes per-screen casing debates.
+- **Source:** [Material Design — Writing guidance](https://m2.material.io/design/communication/writing.html) (2×-confirmed)
+
+---
+
+## Information Architecture
+
+### UX-IA-01 [MEDIUM] Navigation Depth Budget & Breadcrumbs
+Visible navigation supports 2-3 tiers; deeper hierarchies switch to breadcrumbs + landing pages instead of deeper menus.
+- **Detect:** Nav menus nesting beyond 3 levels (flyout-in-flyout-in-flyout); content ≥3 levels deep with no breadcrumb trail; breadcrumb showing only the current page (no ancestor links) or breaking on direct/deep-linked entry.
+- **Fix:** Cap visible nav at 2-3 tiers; add breadcrumbs on every page below tier 2 (ancestors linked, current page unlinked); deep sections get section landing pages instead of deeper flyouts.
+- **Impact:** Over-deep menus hide content from discovery; missing breadcrumbs strand deep-linked visitors (search/social arrivals) with no sense of place.
+- **Source:** [NN/g — Local navigation](https://www.nngroup.com/articles/local-navigation/); [NN/g — Breadcrumbs](https://www.nngroup.com/articles/breadcrumb-navigation-useful/) (2×-confirmed)
 
 ---
 
