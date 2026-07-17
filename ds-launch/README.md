@@ -49,5 +49,5 @@ Run `/ds-launch`, or ask to prepare your app for store submission.
 - Email deliverability gate before launch sends (bulk-sender authentication + one-click unsubscribe + 0.3%/0.08% spam-rate thresholds)
 - Staged rollout strategy (1% → 5% → 20% → 50% → 100%)
 - Release notes generation from commit history
-- Cross-platform support: iOS, Android, Web
+- Cross-platform support: iOS, Android, Web, Desktop (notarization, Authenticode/MSIX, signed auto-update)
 - Force-update mechanism guidance

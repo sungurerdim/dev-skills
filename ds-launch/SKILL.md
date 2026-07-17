@@ -167,7 +167,7 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 | Rollback | Emergency rollback procedure |
 | Rollback narrative (D6, advisory) | Beyond the technical rollback procedure above — is there a documented plan for how users are informed when a bad release is rolled back (in-app notice, status page, email)? No documented rollback communication plan -> advisory finding "no rollback communication plan" (never a blocker, SKILL-SPEC §15) |
 
-### SEO (`--seo` — web platform; auto-included for web-only projects)
+### SEO (`--seo` — web platform; auto-included for web-only projects; audit-rule counterpart: ds-compliance WEB-08 — generation/execution is canonical here)
 
 | Element | What It Covers |
 |---------|---------------|
@@ -187,6 +187,16 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 | One-click unsubscribe (RFC 8058) | Promotional messages carry `List-Unsubscribe` + `List-Unsubscribe-Post` headers with an HTTPS POST endpoint (idempotent, async-processed, responds inside Gmail's ~30s timeout; unsubscribes processed within ~2 days) | HIGH |
 | Spam-rate posture | Complaint rate monitored via Gmail Postmaster Tools; 0.3% is the hard blocking ceiling, <0.08% the safe operating target — approaching it → list hygiene + frequency reduction, not new domains | MEDIUM |
 | BIMI (optional) | Brand logo in supporting inboxes — requires DMARC at enforcement (`p=quarantine`/`reject`) + verified logo record; only after DMARC enforcement is stable | LOW (advisory) |
+
+### Desktop Distribution (conditional — desktop project detected: Electron/Tauri config, `*.xcodeproj` with macOS target, MSIX/WiX manifest)
+
+| Check | What It Covers | Severity |
+|-------|---------------|----------|
+| macOS notarization | Distribution outside MAS: hardened runtime enabled, app signed with Developer ID cert, notarized via `notarytool` (not legacy `altool`), ticket stapled (`stapler`) — unnotarized apps are blocked by Gatekeeper | HIGH |
+| Windows signing | Authenticode signature on installer + binaries (unsigned → SmartScreen warning kills conversion); MSIX packaging where Microsoft Store or clean install/uninstall matters | HIGH |
+| Auto-update integrity | Update channel (Sparkle, electron-updater, Tauri updater) serves signed updates over HTTPS with signature verification ON — an unsigned update feed is remote code execution as a feature | HIGH |
+| Store option fit | MAS (sandbox + entitlements review) vs direct distribution vs Microsoft Store — chosen deliberately with the sandbox-restriction tradeoff stated; MAS submission then follows the standard store scopes above | MEDIUM |
+| User-facing changelog + staged rollout | Same D6 rules as mobile Release scope — desktop auto-update is the archetypal silent OTA channel | MEDIUM |
 
 ### A9 — Google / Apple Ecosystem Rules (conditional)
 
@@ -211,9 +221,9 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 
 1. Flags → proceed directly. No flags → interactive menu.
 2. **IDU:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
-3. Detect platform from project signals (`pubspec.yaml` → mobile, `package.json` → web, etc.) + current launch stage: pre-submission, in-review, post-launch.
+3. Detect platform from project signals (`pubspec.yaml` → mobile, `package.json` → web, Electron/Tauri config or macOS/MSIX packaging manifests → desktop, etc.) + current launch stage: pre-submission, in-review, post-launch. Desktop detected → activate the Desktop Distribution scope.
 
-**Gate:** Platform + mode confirmed. If fails → ambiguous platform → prompt iOS / Android / Web / All; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
+**Gate:** Platform + mode confirmed. If fails → ambiguous platform → prompt iOS / Android / Web / Desktop / All; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
 
 ### Phase 2: Detect Current State
 
@@ -254,7 +264,7 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 ### Phase 6: Summary
 
 ```
-ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|All} | Ready: {n}/{n} checks | Missing: {n} items | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
+ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|Desktop|All} | Ready: {n}/{n} checks | Missing: {n} items | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
 Include checklist of remaining items before submission. FRC+DSC accounting.

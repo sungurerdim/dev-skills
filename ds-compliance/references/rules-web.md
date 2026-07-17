@@ -113,6 +113,7 @@ Proper meta tags, semantic HTML, structured data for public-facing pages.
   - No sitemap.xml or robots.txt
   - Client-side only rendering without SSR/SSG for content pages
 - **Fix:** Unique `<title>` and `<meta description>` per page. Open Graph tags for social sharing. Semantic HTML (header, main, nav, article, section). Generate sitemap.xml. SSR/SSG for content pages
+- **Cross-ref:** Launch-surface SEO execution (sitemap/robots generation, JSON-LD validation, CWV tie-breaker, llms.txt posture) is canonical in ds-launch `--seo`; this rule is the audit-time web-quality check — when both run, generation work routes to ds-launch
 - **Source:** Google Search Central, MDN Semantic HTML
 
 ---

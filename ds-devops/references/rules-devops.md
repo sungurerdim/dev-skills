@@ -293,16 +293,14 @@ Release workflows publishing to package registries must use short-lived OIDC tru
 
 ## Container & Cloud Auth Hardening
 
-### DOP-22 [HIGH] Container Hardening Baseline
-Production images run minimal, non-root, read-only, and pinned.
+### DOP-22 [HIGH] CI-Built Container Hardening
+Images the pipeline builds or runs (builder images, job containers, published artifacts) meet the hardening baseline; production-image hardening is canonical in ds-deploy DEP-17.
 - **Detect:**
-  - Production `Dockerfile` FROM a full OS base (`ubuntu:*`, `debian:*` non-slim) instead of distroless/minimal
-  - No `USER` directive — container runs as root
-  - K8s/compose specs missing `runAsNonRoot: true`, `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, or capability drop
-  - Base images referenced by mutable tag (`:latest`, bare `:20`) instead of digest
-- **Fix:** Use distroless or minimal base images (scanner-reported CVE counts routinely drop 80–95% vs full-OS bases). Add a non-root `USER`. Set `readOnlyRootFilesystem: true` with explicit writable mounts (`emptyDir`/tmpfs) where needed. Drop all capabilities and add back only the required minimum. Pin base images by digest (`@sha256:…`) so builds are reproducible and un-swappable
-- **Impact:** Root + writable filesystem + full OS toolchain turns any container escape or RCE into a fully-equipped attack platform
-- **Source:** Google distroless docs; Kubernetes Pod Security Standards (restricted profile)
+  - CI job/builder containers or pipeline-published images FROM a full OS base, running as root, or referenced by mutable tag instead of digest
+  - Pipeline builds a production image with no hardening check step (no lint/policy against the DEP-17 baseline: distroless/minimal, non-root, read-only fs, cap-drop, digest pin)
+- **Fix:** Apply the DEP-17 baseline to every image the pipeline touches; add a CI policy/lint step (hadolint + policy rules) so a non-conforming image fails the build instead of shipping. Production-image specifics (K8s securityContext, runtime mounts) → ds-deploy DEP-17 (canonical, advisory-handoff: ds-deploy absent → apply the baseline inline from this rule)
+- **Impact:** A root, full-OS builder container is the highest-value target in the supply chain — it holds source, credentials, and publish rights simultaneously
+- **Source:** ds-deploy DEP-17 (canonical baseline); Google distroless docs; Kubernetes Pod Security Standards
 
 ### DOP-23 [HIGH] CI Cloud Auth via OIDC Federation
 CI jobs obtain cloud credentials via OIDC federation, not long-lived keys stored as secrets.

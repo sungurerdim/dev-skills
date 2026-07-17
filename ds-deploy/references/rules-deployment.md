@@ -2,7 +2,7 @@
 
 | Section | Rules |
 |---------|-------|
-| **Container Security** | DEP-01 to DEP-05 (2 CRITICAL, 3 HIGH) |
+| **Container Security** | DEP-01 to DEP-05, DEP-17 (2 CRITICAL, 4 HIGH) |
 | **Deployment Patterns** | DEP-06 to DEP-13 (2 HIGH, 4 MEDIUM, 2 LOW) |
 | **Release Engineering** | DEP-14 to DEP-16 (1 HIGH, 2 MEDIUM) |
 
@@ -93,6 +93,18 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 **Why:** Compromised root container gives attackers root-level filesystem access and potential host escape via privilege escalation.
 
 **Source:** CIS Docker Benchmark, Docker security best practices
+
+### DEP-17 | HIGH | Container Hardening Baseline (canonical)
+
+**Detect:** Production image FROM a full OS base (`ubuntu:*`, `debian:*` non-slim) instead of distroless/minimal; runtime specs (K8s/compose) missing `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, or capability drop; base images referenced by mutable tag (`:latest`, bare `:20`) instead of digest.
+
+**Fix:** Distroless or minimal base (scanner-reported CVE counts routinely drop 80–95% vs full-OS bases; pair with DEP-03 multi-stage). `readOnlyRootFilesystem: true` with explicit writable mounts (`emptyDir`/tmpfs) where needed. Drop all capabilities, add back only the required minimum. Pin base images by digest (`@sha256:…`). Non-root user is DEP-05.
+
+**Why:** Writable filesystem + full OS toolchain + broad capabilities turn any RCE into a fully-equipped attack platform; a mutable base tag lets the image change under you.
+
+**Note:** Canonical home for production-container hardening — the CI-side counterpart (images the pipeline builds/runs) is ds-devops DOP-22, which defers here for production images.
+
+**Source:** Google distroless docs, Kubernetes Pod Security Standards (restricted profile), CIS Docker Benchmark
 
 ## Deployment Patterns
 
