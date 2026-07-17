@@ -37,7 +37,8 @@ Run `/ds-review`, or ask to review your code quality.
 
 ## Features
 
-- 9 tactical scopes (97 checks) + 8 strategic scopes (92 checks) + 8 perf scopes + 5 meta-quality scopes + 4 aliases
+- 9 tactical scopes (97 checks) + 9 strategic scopes (106 checks) + 11 perf groups + 6 meta-quality detector scopes + 3 derived aliases
+- `--diff[={ref}]` scoping: review only changed files (+ their direct consumers) instead of the whole repo
 - Anti-overengineering 3-gate screens every finding before reporting (false-positive guard)
 - Score calculation per scope with CRITICAL/HIGH caps
 - Needs-approval protocol for cross-module changes with reason validator (rejects "pre-existing" / "out of scope" / "too hard" / "not my change")

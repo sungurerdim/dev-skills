@@ -146,15 +146,15 @@ Skills that produce or touch configuration MUST:
 
 ## §10 — Anti-Overengineering Guard (3-gate)
 
-Every potential finding (whether from tactical, strategic, perf, or meta-quality mode) MUST pass all three gates before being reported. Failing any one gate = silent discard.
+Every potential finding (whether from tactical, strategic, perf, or meta-quality mode) is screened before being reported: report only when AT LEAST ONE harm signal is present; no signal → silent discard.
 
-1. **Does it break something currently working?** No → discard.
-2. **Does it mislead a future reader?** No → discard.
-3. **Is the added complexity worth its keep?** Yes → discard.
+1. **Breaks:** it breaks something — now, or on a predictable path (e.g. drift between duplicated sources).
+2. **Misleads:** it misleads a future reader (human or AI) about what is live, canonical, or intended.
+3. **Not worth its keep:** the complexity costs more to keep than the value it adds.
 
-A finding survives the gate only when the answer to questions 1+2 is "yes" AND the answer to question 3 is "no". This is the most aggressive false-positive filter in the suite — it suppresses noise that would otherwise dominate output on mature codebases.
+A finding with no harm signal on any axis is noise — this filter suppresses what would otherwise dominate output on mature codebases. This wording is canonical — identical in SKILL.md and meta-quality-scopes.md.
 
-**Calibration:** When in doubt about gate 3 (is the complexity worth it?), default to "yes, it's worth it" → discard. The user can always lower the bar by widening scope; a noisy report wastes more attention than a missed nice-to-have.
+**Calibration:** When in doubt about signal 3 (is the complexity worth it?), treat it as worth its keep — the signal does not fire. The user can always lower the bar by widening scope; a noisy report wastes more attention than a missed nice-to-have.
 
 **Sources:** Hunt & Thomas — Pragmatic Programmer (KISS / YAGNI tension); John Ousterhout — *A Philosophy of Software Design* (deep modules); Brooks — *No Silver Bullet*.
 

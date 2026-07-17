@@ -111,13 +111,13 @@ When a single file:line surfaces in multiple meta-quality scopes (e.g., a functi
 
 ## Anti-overengineering 3-gate (every finding)
 
-Before adding any finding to the report, it MUST pass all three gates. Failing any one → silent discard, no flag.
+Report a finding only when AT LEAST ONE harm signal is present; no signal → silent discard, no flag.
 
-1. **Does it break something currently working?** No → discard.
-2. **Does it mislead a future reader?** No → discard.
-3. **Is the added complexity worth its keep?** Yes → discard.
+1. **Breaks:** it breaks something — now, or on a predictable path (e.g. drift between duplicated sources).
+2. **Misleads:** it misleads a future reader (human or AI) about what is live, canonical, or intended.
+3. **Not worth its keep:** the complexity costs more to keep than the value it adds.
 
-Findings that pass all three gates get reported.
+In doubt on signal 3 → treat the complexity as worth its keep (that signal does not fire). This wording is canonical — identical in SKILL.md and principles.md §10.
 
 ## Confidence-driven reporting
 

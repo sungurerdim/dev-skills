@@ -54,6 +54,7 @@ Four modes: `--tactical` for file-level quality fixes, `--strategic` for archite
 | `--auto` | All scopes, no questions, single-line summary |
 | `--preview` | Analyze + report findings without applying fixes |
 | `--scope={name}` | Specific scope(s), comma-separated |
+| `--diff[={ref}]` | Restrict analysis to changed files: bare → working tree + staged vs HEAD; with `{ref}` → merge-base diff vs that ref |
 | `--loop` | Re-run until clean or max 3 iterations (tactical only) |
 | `--force-approve` | Auto-apply needs_approval items without asking |
 | `--no-bootstrap` | Skip auto-invoke of `/ds-blueprint` when findings absent/stale (testing only) |
@@ -77,7 +78,7 @@ Without flags: present mode selection.
 
 ### Strategic Scopes (--strategic)
 
-9 scopes, 102 checks. Definitions in [references/scopes-strategic.md](references/scopes-strategic.md). Detect/fix patterns for architecture and testing in [references/rules-quality.md](references/rules-quality.md).
+9 scopes, 106 checks. Definitions in [references/scopes-strategic.md](references/scopes-strategic.md). Detect/fix patterns for architecture and testing in [references/rules-quality.md](references/rules-quality.md).
 
 | Group | Scopes |
 |-------|--------|
@@ -117,7 +118,7 @@ Deep performance analysis beyond tactical `performance` scope.
 
 ### Meta-Quality Scopes (--meta-quality)
 
-5 scopes + 4 aliases. Definitions + detector rules in [references/meta-quality-scopes.md](references/meta-quality-scopes.md).
+6 detector scopes + 3 derived aliases. Definitions + detector rules in [references/meta-quality-scopes.md](references/meta-quality-scopes.md).
 
 | Scope | Detector summary |
 |-------|------------------|
@@ -134,13 +135,15 @@ Deep performance analysis beyond tactical `performance` scope.
 
 **Scope boundary:** principle-level audit. Flags violations of SSOT / DRY / KISS / YAGNI / SoC, evaluates project criteria fit, proposes consolidation paths. Does NOT fix without explicit user selection — every finding produces 3 path proposals (effort / impact / risk).
 
-**Anti-overengineering 3-gate** (every finding passes ALL three before being flagged — see [references/principles.md](references/principles.md)):
+**Anti-overengineering 3-gate** (screens every potential finding before it is reported — see [references/principles.md §10](references/principles.md)):
 
-1. Does this break something currently working? Yes → flag. No → continue.
-2. Does this mislead a future reader? Yes → flag. No → continue.
-3. Is the added complexity worth its keep? No → flag. Yes → do NOT flag.
+Report a finding only when AT LEAST ONE harm signal is present:
 
-Findings that fail all three are silently discarded — false-positive guard.
+1. **Breaks:** it breaks something — now, or on a predictable path (e.g. drift between duplicated sources).
+2. **Misleads:** it misleads a future reader (human or AI) about what is live, canonical, or intended.
+3. **Not worth its keep:** the complexity costs more to keep than the value it adds.
+
+No signal present → silently discard (false-positive guard). In doubt on signal 3 → treat the complexity as worth its keep; a noisy report wastes more attention than a missed nice-to-have.
 
 ## Delegation
 
@@ -185,6 +188,8 @@ Auto-invoke MAY be skipped via `--no-bootstrap` for testing — then review runs
 
 **Tactical analysis:** grep for patterns, read context (50 lines), score findings by severity. For repository hygiene (committed binaries, secrets): verify via `git ls-files`.
 
+**`--diff` scoping:** resolve the changed-file set (`git diff --name-only HEAD` + staged; with `{ref}`: `git diff --name-only $(git merge-base {ref} HEAD)`), run every selected scope on only those files plus their direct consumers (importers/callers — W2). Findings-file entries outside the set → out of scope for this run, not skipped: exclude from FRC totals, note count once in summary.
+
 **Strategic analysis:** evaluate patterns across codebase, flag structural issues even if not auto-fixable, question consistency not just correctness.
 
 Cross-scope dedup: merge findings at same file:line, keep highest severity. **Skip patterns:** `# noqa`, `# intentional`, `# safe:`, `_` prefix, `TYPE_CHECKING`, platform guards, test fixtures. Wait for all batches before proceeding.
@@ -219,7 +224,7 @@ Display Current vs Ideal table. Technology assessment: evaluate key decisions OK
 Per active meta-scope from [references/meta-quality-scopes.md](references/meta-quality-scopes.md):
 
 1. Apply detector rule with stated threshold + AST/token similarity gate.
-2. Run anti-overengineering 3-gate — fail any one → flag, pass all three → discard.
+2. Run anti-overengineering 3-gate — any harm signal present → keep the finding; no signal → discard.
 3. Cross-scope dedup: merge same file:line, keep highest-confidence.
 4. Record finding: file:line, scope, principle name, evidence (cited code), confidence.
 
