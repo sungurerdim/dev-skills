@@ -131,8 +131,44 @@ for f in ds-*/SKILL.md; do
     || err "$f closing Completion Evidence band not in last 3 lines"
 done
 
+# 14. v5 — Flag integrity: a mode flag this skill uses in its own body must be
+#     defined in its Arguments table (ghost-flag class — found 9x in the 2026-07 audit).
+#     Lines referencing other skills (/ds-*) are excluded from the usage scan.
+for f in ds-*/SKILL.md; do
+  for flag in auto force-approve preview dry-run resume clean; do
+    grep -v '/ds-' "$f" | grep -q "\`--$flag\`" || continue
+    grep -qE "^\| *.?\`--$flag" "$f" || err "$f uses \`--$flag\` but its Arguments table does not define it"
+  done
+done
+
+# 15. v5 — Severity vocabulary: rule files use only the canonical set
+#     (BLOCKER/CRITICAL/HIGH/MEDIUM/LOW/ADVISORY/INFO); MAJOR/MINOR are banned.
+bad_sev=$(grep -rno '\[MAJOR\]\|\[MINOR\]' ds-*/references/*.md 2>/dev/null; grep -rnoE '[0-9]+ (MAJOR|MINOR)\b' ds-*/references/*.md 2>/dev/null; true)
+[ -z "$bad_sev" ] || err "non-canonical severity vocabulary (MAJOR/MINOR banned — map to HIGH/MEDIUM):
+$bad_sev"
+
+# 16. v5 — List→table spacing: a table row starting directly on the line after a
+#     list item breaks GFM rendering (blank line required).
+bad_spacing=$(awk 'FNR==1{prev=""} prev ~ /^[-*] / && /^\|/ {print FILENAME":"FNR} {prev=$0}' ds-*/SKILL.md ds-*/references/*.md agents/*.md 2>/dev/null || true)
+[ -z "$bad_spacing" ] || err "table starts directly after a list item (insert a blank line):
+$bad_spacing"
+
+# 17. v5 — Rule-count claims: 'N rules across' claims in SKILL.md/README.md must
+#     match the actual ### header count in that skill's references/rules-*.md files.
+for d in ds-*/; do
+  s=${d%/}
+  actual=$(cat "$d"references/rules-*.md 2>/dev/null | grep -c '^### ')
+  [ "$actual" -gt 0 ] 2>/dev/null || continue
+  for f in "$d"SKILL.md "$d"README.md; do
+    [ -f "$f" ] || continue
+    claim=$(grep -hoE '[0-9]+ rules across' "$f" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+    [ -n "$claim" ] || continue
+    [ "$claim" = "$actual" ] || err "$f claims '$claim rules across' but $s/references/rules-*.md contain $actual"
+  done
+done
+
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims all consistent"
 else
   exit 1
 fi
