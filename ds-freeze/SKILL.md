@@ -76,7 +76,7 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 
 ### Phase 2: Inventory
 
-1. Merge candidate sources into one list: `{item, source, one-line description, domain}`. Domain = inferred cluster (auth, billing, admin, notifications, etc.) from path/keyword proximity.
+1. Merge candidate sources into one list: `{item, source, one-line description, domain}`. Domain = inferred cluster (auth, billing, admin, notifications, etc.) from path/keyword proximity. `--scope={area}` passed → drop candidates outside that module/domain before triage, note the restriction in the inventory header.
 2. Dedup: a doc/promise-census item that already matches an open issue by title/keyword overlap → merge into one candidate citing both sources (W7).
 3. `--preview` → show the inventory table grouped by domain with per-domain and total counts, stop here.
 
@@ -103,8 +103,9 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 1. For each `ship` item mapped to an open issue → delegate `/ds-issue --do #N`, wait for its completion signal, re-read the issue + `git diff` to verify the claimed outcome (W15) rather than trusting the delegate's summary.
 2. For each `defer-hidden` item → delegate a bounded flag-gate task to the owning build skill (advisory handoff: `/ds-backend`, `/ds-frontend`, or `/ds-review`, whichever owns that surface) — instruction: gate the feature behind a flag/toggle for this release, do not delete. Verify the feature is unreachable by default before marking done.
 3. `defer-backlog` items get no code action this run — confirmed filed only (Phase 4).
+4. Aggregate green check: after all kept-set/flag-gate work, run the project's test suite (delegate `/ds-test` when present; absent → native test command; neither → gap-note per Verification-Infrastructure rule). Per-item greens don't compose into a green release — the suite must pass before doc sync.
 
-**Gate:** every `ship` + `defer-hidden` item has a concrete disposition (`done` / `failed` with blocker / `needs-approval` with blocker — W11). If fails → log the failure with its blocker, continue to the next item, never silently skip.
+**Gate:** every `ship` + `defer-hidden` item has a concrete disposition (`done` / `failed` with blocker / `needs-approval` with blocker — W11) AND the aggregate check ran (pass, or failure escalated). If fails → log the failure with its blocker, continue to the next item, never silently skip.
 
 ### Phase 6: Documentation Sync
 

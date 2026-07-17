@@ -107,7 +107,7 @@ Default: all scopes.
 
 ## Delegation
 
-**Owns:** tokens, components, states, a11y (implementation), responsive, theming, design-system | **Delegates:** chart/dataviz color palettes (categorical, sequential, heatmap) → `dataviz` skill — target present, advisory-handoff; absent → TOK-10 covers only the small fixed brand/status token set, not chart series | **Receives:** ds-compliance → a11y implementation/fixes; ds-blueprint → frontend scope findings; ds-ship → Phase 2 stack-specific delegation; ds-backend → AI-feature UX pass (llm scope: streaming/stop/uncertainty — UX-10b)
+**Owns:** tokens, components, states, a11y (implementation), responsive, theming, design-system | **Delegates:** chart/dataviz color palettes (categorical, sequential, heatmap) → `dataviz` skill — target present, advisory-handoff; absent → TOK-10 covers only the small fixed brand/status token set, not chart series | **Receives:** ds-compliance → a11y implementation/fixes; ds-blueprint → frontend scope findings; ds-ship → Phase 2 stack-specific delegation; ds-backend → AI-feature UX pass (llm scope: streaming/stop/uncertainty — UX-10b); ds-freeze → flag-gate defer-hidden items
 
 ## Execution Flow
 

@@ -112,7 +112,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 
 ## Delegation
 
-**Owns:** security, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance, robustness, production-readiness, testing, functional-completeness, stack, dx, docs, spec-alignment, stack-fitness, external-tooling | **Delegates:** none (full-codebase SSOT producer; privacy scope produced by ds-compliance, canonical) | **Receives:** ds-review → bootstrap; ds-ship → Phase 0 bootstrap when findings absent or stale
+**Owns:** security, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance, robustness, production-readiness, testing, functional-completeness, stack, dx, docs, spec-alignment, stack-fitness, external-tooling | **Delegates:** none (full-codebase SSOT producer; privacy scope produced by ds-compliance, canonical) | **Receives:** ds-review → bootstrap; ds-ship → Phase 0 bootstrap when findings absent or stale; ds-freeze → fresh promise census request
 
 ## Execution Flow
 

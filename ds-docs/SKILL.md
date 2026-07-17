@@ -119,7 +119,7 @@ Never auto-apply. Category B: show the proposed diff (cuts + additions + one-lin
 
 ## Delegation
 
-**Owns:** doc-drift, feature-documentation, adr (`--adr` mode), harness-context-audit (`--scope=harness`) | **Delegates:** none | **Receives:** ds-benchmark → ADR recording of accepted gap decisions; ds-ship → Phase 4b; ds-repo → CONTRIBUTING / LICENSE content generation. Verified consumer of ds-blueprint findings (docs scope): fills gaps from them, does not re-produce scan findings.
+**Owns:** doc-drift, feature-documentation, adr (`--adr` mode), harness-context-audit (`--scope=harness`) | **Delegates:** none | **Receives:** ds-benchmark → ADR recording of accepted gap decisions; ds-ship → Phase 4b; ds-repo → CONTRIBUTING / LICENSE content generation. Verified consumer of ds-blueprint findings (docs scope): fills gaps from them, does not re-produce scan findings.; ds-freeze → post-freeze doc sync (deferred items never claimed live)
 
 ## Execution Flow
 

@@ -61,7 +61,7 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 
 ## Delegation
 
-**Owns:** issue intake, dedup sweep, code-verified status audit, end-to-end issue execution with impact-mapping + code-proven close | **Delegates:** ds-fix → format/lint/type passes; ds-test → regression-test generation; ds-pr → opening a PR; ds-commit → atomic commit grouping; ds-pipeline → spec-first planning when a feature's design is still open; heavy code search → read-only search subagent (verify its `file:line` returns) | **Receives:** ds-blueprint → fresh `ds/audit/findings.md` it may read instead of re-scanning
+**Owns:** issue intake, dedup sweep, code-verified status audit, end-to-end issue execution with impact-mapping + code-proven close | **Delegates:** ds-fix → format/lint/type passes; ds-test → regression-test generation; ds-pr → opening a PR; ds-commit → atomic commit grouping; ds-pipeline → spec-first planning when a feature's design is still open; heavy code search → read-only search subagent (verify its `file:line` returns) | **Receives:** ds-blueprint → fresh `ds/audit/findings.md` it may read instead of re-scanning; ds-freeze → file triaged items (release:{milestone} labels) + execute ship items via --do
 
 ## Execution Flow
 

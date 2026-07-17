@@ -148,7 +148,7 @@ No signal present → silently discard (false-positive guard). In doubt on signa
 
 ## Delegation
 
-**Owns:** perf-profiling (deep, `--perf` mode) | **Delegates:** ds-simplify → overengineering / dead-code / orphan / premature-abstraction; ds-blueprint → bootstrap when `ds/audit/findings.md` absent or stale | **Receives:** ds-fix → code-level quality fixes; ds-ship → Phase 2 rule audit. Verified consumer of ds-blueprint findings (hygiene, types, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance): verifies + fixes, does not re-produce.
+**Owns:** perf-profiling (deep, `--perf` mode) | **Delegates:** ds-simplify → overengineering / dead-code / orphan / premature-abstraction; ds-blueprint → bootstrap when `ds/audit/findings.md` absent or stale | **Receives:** ds-fix → code-level quality fixes; ds-ship → Phase 2 rule audit. Verified consumer of ds-blueprint findings (hygiene, types, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance): verifies + fixes, does not re-produce.; ds-freeze → flag-gate defer-hidden items
 
 ## Execution Flow
 

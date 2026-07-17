@@ -165,7 +165,7 @@ Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15)
 
 ## Delegation
 
-**Owns:** api, db, auth, data-pipeline, llm, backend-architecture | **Delegates:** ds-frontend → AI-feature UX (streaming/stop/uncertainty display) | **Receives:** ds-ship → Phase 2 backend pass; ds-productize → billing data model + webhook endpoint security pass
+**Owns:** api, db, auth, data-pipeline, llm, backend-architecture | **Delegates:** ds-frontend → AI-feature UX (streaming/stop/uncertainty display) | **Receives:** ds-ship → Phase 2 backend pass; ds-productize → billing data model + webhook endpoint security pass; ds-freeze → flag-gate defer-hidden items
 
 ## Execution Flow
 

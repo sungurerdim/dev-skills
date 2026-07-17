@@ -91,7 +91,7 @@ Default: `unit` + `integration`. E2E and snapshot require explicit `--e2e` or `-
 
 ## Delegation
 
-**Owns:** test-generation, test-run-fix, coverage, test-regression, e2e | **Delegates:** none | **Receives:** ds-deps → post-upgrade test run; ds-issue → regression-test generation; ds-tune → per-experiment test validation; ds-ship → Phase 2 rule audit. Verified consumer of ds-blueprint findings (testing, functional-completeness): generates/fixes tests from them, does not re-produce scan findings.
+**Owns:** test-generation, test-run-fix, coverage, test-regression, e2e | **Delegates:** none | **Receives:** ds-deps → post-upgrade test run; ds-issue → regression-test generation; ds-tune → per-experiment test validation; ds-ship → Phase 2 rule audit. Verified consumer of ds-blueprint findings (testing, functional-completeness): generates/fixes tests from them, does not re-produce scan findings.; ds-freeze → kept-set aggregate green check
 
 ## Execution Flow
 
