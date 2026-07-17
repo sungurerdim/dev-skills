@@ -121,7 +121,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 
 Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest] → Update Profile → [Needs-Approval] → Summary
 
-**Mandatory phases** (always execute, always produce output): Assess, Consolidate, Dashboard, Update Profile, Summary. Skipping a mandatory phase is an execution bug.
+**Mandatory phases** (always execute, always produce output): Foundation Review, Assess, Consolidate, Dashboard, Update Profile, Summary. Skipping a mandatory phase is an execution bug.
 
 ### Phase 1: Discovery [PARALLEL]
 
@@ -133,8 +133,8 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 2. Search for `## Blueprint Profile` heading in known instruction files; read existing profile to detect incremental vs full run.
 3. Detect project via three-step process from [references/detection.md](references/detection.md): (1) stack from manifest files (pubspec.yaml, package.json, go.mod, etc.); (2) project type from secondary signals (framework deps, config, directory structure); (3) supplementary stacks (Docker, shell scripts, CI, task runners). Also: toolchain, tests, data sensitivity, git status, ecosystem integrations (references/detection.md § Step 4 — feeds `Integrations:` profile field).
 
-**Decision tree:**
-1. Profile exists + not --init/--refresh/--foundation → Phase 3 (incremental)
+**Decision tree** (every route through 1-2 runs the Foundation Review first — it is mandatory on every run):
+1. Profile exists + not --init/--refresh/--foundation → Foundation Review → Phase 3 (incremental)
 2. Profile exists + --refresh → Phase 2 (re-ask, preserve decisions; foundation lines untouched)
 3. Profile exists + --foundation → Phase 2 Foundation pass only (interrogate + perfect normative lines, stop after write)
 4. No profile + --init → Phase 2 (create with Foundation pass, stop)
@@ -144,13 +144,15 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 
 ### Phase 2: Init Flow + Foundation (no profile OR --init/--refresh/--foundation)
 
-**Foundation pass** (runs on `--init`, `--foundation`, and first-time profile creation; `--refresh` preserves foundation lines untouched). The profile's normative lines calibrate every downstream skill — they are perfected deliberately, never form-filled:
+**Foundation pass** (full interrogation on `--init`, `--foundation`, and first-time profile creation; **every other run — full analysis, `--refresh`, `--preview` — includes the Foundation Review step below**, because a more capable model may now derive a better foundation than the one confirmed earlier — model uplift is itself new evidence). The profile's normative lines calibrate every downstream skill — they are perfected deliberately, never form-filled:
 
 1. **Evidence sweep** — collect what the project *is* and *claims*: README/docs promises, code capabilities, git history, existing profile lines, prior user statements. Every proposed value in steps 2-3 cites its evidence; a gap is asked, never guessed.
 2. **Idealized draft** — synthesize the best-supported foundation: `Mission` (one line, who-gets-what-outcome), `Target`, ranked `Priorities`, and the constraint set split honestly into `Constraints` (soft preferences) vs `Red lines` (hard NOs). Where the evidence supports a sharper mission or a stronger target than currently stated, draft the sharper version — idealize from evidence, never from invention.
 3. **Decision interrogation** — for EVERY normative line (Type, Target, Mission, each Priority, each Constraint, each Red line, Audience, Deploy), existing or proposed: (a) state the current value and the rationale/evidence behind it; (b) challenge it — does the evidence still support it? does it earn its keep? A constraint with no identifiable protective value → removal proposal stating what it costs and what removing it frees; (c) when a better alternative exists, propose it with concrete rationale (what improves, at what cost). No line passes unexamined.
 4. **Approval + feedback loop** — present steps 2-3 as one per-line decision table: `current → proposed | evidence | rationale`, ask per line: accept / edit / keep-current. All foundation decisions are **Category B — never auto-applied**: under `--auto` keep detected/existing values and mark `foundation: unconfirmed` in the summary instead of deciding for the user. Apply feedback, re-present only the changed lines, iterate until every line is confirmed.
-5. **Decision durability** — a user-confirmed line is settled: later runs re-raise it only when new evidence contradicts it (named in the re-raise), never to re-litigate (W13). Re-running `--foundation` diffs against the confirmed set — no confirmed value flips without either new evidence or an explicit user edit (regeneration stability).
+5. **Decision durability** — a user-confirmed line is settled: it never silently flips, and it is re-raised only with named cause — new project evidence, or a materially better derivation from a more capable model (see Foundation Review). Re-litigating an unchanged conclusion is forbidden (W13); proposing a genuinely better one with stated rationale is the job.
+
+**Foundation Review (every run, mandatory, ~1 minute):** re-derive the ideal foundation from current evidence with the current model, then diff against the confirmed lines. Identical or merely-reworded → print one line `Foundation holds ({n} lines, last confirmed under model {m})` and continue. Materially better on any line → present only those lines as `current → proposed | what improves | why` for user decision — a proposal must articulate a concrete improvement (sharper mission, unfounded constraint found, missing red line); rewording is not a proposal. Under `--auto`: run the review, list any proposals in the summary as `foundation-proposals: {n} (pending)`, apply nothing. The reviewing model is already recorded as `model=` on the `Scores:` line — "last confirmed under model {m}" reads from `git log -- <instruction-file>` for the commit that last changed a foundation line; no extra profile line (Dev-Value Gate).
 
 **Init questions** (fallback shell of the pass — each question's auto-detected value is the default; answers feed steps 2-3 as user evidence):
 

@@ -38,7 +38,7 @@ Run `/ds-blueprint`, or ask to assess your project health.
 ## Features
 
 - **9 health dimensions** — Security, Code Quality, Architecture, Performance, Resilience, Testing, Stack Health, DX, Documentation
-- **Foundation pass (`--foundation`)** — the profile's normative core (Mission + Red lines + Priorities/Constraints) is the calibration every dev-skill runs on; this pass idealizes it from evidence, challenges each constraint's right to exist, and locks confirmed decisions against silent flips (re-raised only on new evidence)
+- **Foundation pass (`--foundation`) + Foundation Review (every run)** — the profile's normative core (Mission + Red lines + Priorities/Constraints) is the calibration every dev-skill runs on; the pass idealizes it from evidence, challenges each constraint's right to exist, and locks confirmed decisions against silent flips. Every subsequent run re-derives the ideal with the current model and proposes only material improvements — model uplift counts as new evidence, so a better model can improve a year-old foundation without re-litigating it
 - **14 project types** — with type-specific weight matrices
 - **Score tracking** — delta and trend across runs
 - **Auto-detected instruction file** — embeds profile in your AI tool's instruction file (CLAUDE.md / AGENTS.md / .cursorrules / .cursor/rules / .github/copilot-instructions.md / .windsurfrules / .aider.conf.yml — whichever your tool uses). Always in context.
