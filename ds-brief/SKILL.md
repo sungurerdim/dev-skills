@@ -81,7 +81,7 @@ Setup → Research → Verify → Build Report → [Needs-Approval] → Output
 
 Handoff to `ds-research-agent` (set `model` explicitly). Input contract = the agent's **Inputs (handoff contract)** block (single source of truth for the field list); output = findings JSON written to `artifactPath` + one-line `EMITTED …` return.
 
-- Agent present → dispatch. Comparison/multi-aspect → orchestrate 2-4 parallel workers (≤5 on `--deep`), each a sub-aspect with an explicit contract; merge artifacts.
+- Agent present → dispatch. Comparison/multi-aspect → orchestrate 2-4 parallel workers (≤5 on `--deep`), each a sub-aspect with an explicit contract; merge artifacts. Prior artifact for the same topic exists → pass its path as `priorArtifactPath` so the agent runs its Regeneration-stability diff at extraction time (the Phase 3 regeneration check then re-verifies at report level).
 - Agent absent → run the same pipeline inline ([references/research-pipeline.md](references/research-pipeline.md)): start-wide WebSearch → fetch/index → think-step → reviewer/reviser double-verify → synthesize → write the same artifact schema yourself.
 - `summarize` scope → skip discovery; index/fetch the supplied sources, extract+verify, write artifact.
 
