@@ -6,7 +6,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Internationalization & Logging** | I18N-01–07 (6 HIGH, 1 MEDIUM) | ~10 |
+| **Internationalization & Logging** | I18N-01–08 (6 HIGH, 2 MEDIUM) | ~10 |
 
 ---
 
@@ -32,9 +32,9 @@ Dates, numbers, currency formatted per locale. No hardcoded format strings.
 - **Source:** MDN Intl, Unicode CLDR
 
 ### I18N-03 [HIGH] Pluralization Rules
-ICU message format or equivalent. Languages have different plural rules (EN: 2, AR: 6, Slavic: 4).
-- **Detect:** Manual if/else for singular/plural. Hardcoded "1 item"/"X items". Template literals with simple ternary for plurals
-- **Fix:** Use ICU plural syntax in resource files. Libraries: `intl-messageformat` (JS), `babel` (Python). Test with Arabic, Polish, or other complex-plural languages
+ICU message format or equivalent. CLDR defines up to six plural categories — `zero`, `one`, `two`, `few`, `many`, `other` (EN uses 2, AR all 6, Slavic 3-4).
+- **Detect:** Manual if/else for singular/plural. Hardcoded "1 item"/"X items". Template literals with simple ternary for plurals. Locale resource files missing required CLDR categories for their language — Polish/Russian reduced to `one`/`other` without `few`/`many`; any plural set missing the `other` fallback
+- **Fix:** Use ICU plural syntax in resource files with the full CLDR category set per locale — always include `other` as fallback. Libraries: `intl-messageformat` (JS), `babel` (Python). Test with Arabic, Polish, or other complex-plural languages
 - **Source:** ICU, Unicode CLDR Plural Rules
 
 ### I18N-04 [HIGH] Structured Logging
@@ -67,9 +67,10 @@ All dates and times must use locale-aware formatting and proper timezone handlin
   - Search: hardcoded date format strings (`MM/DD/YYYY`, `DD.MM.YYYY`)
   - Search: `.toISOString()` displayed directly to users (not human-readable)
   - Search: timezone-naive operations (`new Date()` for scheduling, missing UTC/timezone conversion)
+  - Search: fixed UTC-offset arithmetic (`+ 3 * 3600`, hardcoded `+03:00`/`GMT-5` constants) instead of IANA tzdb zone identifiers — fixed offsets silently break on every DST transition
   - Python: `datetime.now()` without timezone (naive datetime), missing `pytz`/`zoneinfo`
   - Go: `time.Now()` formatted without timezone context
-- **Fix:** Use `Intl.DateTimeFormat` (JS), `DateFormat` with locale (Flutter/Dart), `babel.dates` (Python). Store as UTC, display in user's timezone. Use `Temporal` API (JS) or `zoneinfo` (Python) for timezone math. Never hardcode date format strings.
+- **Fix:** Use `Intl.DateTimeFormat` (JS), `DateFormat` with locale (Flutter/Dart), `babel.dates` (Python). Store as UTC, display in user's timezone. Use `Temporal` API (JS) or `zoneinfo` (Python) for timezone math with IANA tzdb identifiers (`America/New_York`), never fixed offsets. Prefer CLDR skeleton-based formatting APIs over hand-authored per-locale patterns — translator-edited literal patterns are error-prone. Never hardcode date format strings.
 - **Impact:** Date confusion causes booking errors, financial mistakes, missed deadlines across timezones.
 - **Source:** ICU Date Formatting, Temporal API proposal
 
@@ -81,3 +82,11 @@ Numbers and currencies must be formatted per locale.
   - Search: hardcoded thousand separators (`,` or `.`) in number formatting
 - **Fix:** Use `Intl.NumberFormat` (JS), `NumberFormat` (Flutter/Dart), `babel.numbers` (Python). Specify locale and currency code. Let formatter handle symbol placement, decimal separator, and grouping.
 - **Source:** ICU Number Formatting
+
+### I18N-08 [MEDIUM] No Business Logic in Message Files
+ICU select/plural mechanisms exist for grammar, not application branching.
+- **Detect:**
+  - Translation resource files containing nested `select`/conditional patterns that encode business decisions (feature availability, pricing tiers, role checks) rather than grammatical variation
+- **Fix:** Move business-logic branching into application code; keep message files to grammar-only variation (plural, gender, formality). ICU's own guidance: program switch cases in the application, not in resource files
+- **Impact:** Logic hidden in message strings is invisible to tests and type checkers, and every translator becomes an unwitting maintainer of business rules
+- **Source:** ICU MessageFormat guidance

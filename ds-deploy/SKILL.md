@@ -147,7 +147,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 3: Analyze [--audit, --checklist]
 
-Apply rules from [references/rules-deployment.md](references/rules-deployment.md) (container security, deployment patterns) + [references/rules-monitoring.md](references/rules-monitoring.md) (observability, alerting).
+Apply rules from [references/rules-deployment.md](references/rules-deployment.md) (container security, deployment patterns, release engineering) + [references/rules-monitoring.md](references/rules-monitoring.md) (observability, alerting).
 
 - **Dockerfile audit — deterministic tool first (advisory):** hadolint present → run it on every Dockerfile and map its findings; absent → gap-note "hadolint not installed — prose checks are this run's fallback" (never auto-install). Prose checks: base image uses specific tag (not `latest`); multi-stage build (separate build + runtime stages); non-root user in runtime stage; `.dockerignore` exists covering `.git`, `node_modules`, `.env`, test files; layer ordering — deps before source code (cache efficiency); no secrets in build args or environment (gitleaks present → run it for this check; absent → pattern-based fallback); image vulnerability scan step (Trivy or equivalent) exists in the build pipeline — absent → HIGH finding "no image CVE scan".
 - **Infrastructure audit:** SSH key-only auth, no root login; firewall rules — only required ports open; backup config exists + tested; SSL/TLS A+ on SSL Labs; no exposed debug endpoints or admin panels.

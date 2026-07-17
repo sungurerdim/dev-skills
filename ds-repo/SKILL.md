@@ -100,10 +100,10 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 2. **Config file sprawl** — no multiple competing configs for same tool
 3. **Codebase (Twelve-Factor #1)** — one repo tracks one deployable app across many deploys: repo hosts multiple unrelated deployable apps without workspace/monorepo tooling boundaries, or app code is duplicated across separate repos instead of shared via a package → flag
 
-### oss-readiness (15 checks — activated by `--oss-ready` flag or explicit scope selection)
+### oss-readiness (16 checks — activated by `--oss-ready` flag or explicit scope selection)
 
 1. **LICENSE present** — file at repo root, SPDX-recognized identifier
-2. **LICENSE compatibility** — dependency licenses compatible with repo license (e.g., GPL dep under MIT → finding)
+2. **LICENSE compatibility** — dependency licenses compatible with repo license (e.g., strong-copyleft dep under MIT → finding), evaluated against an explicit allow/review/deny policy where one exists (none → propose authoring one); full transitive-tree license scan + SBOM export delegated to ds-deps (advisory-handoff: absent → direct-dep spot check inline, gap-note for the tree)
 3. **CODE_OF_CONDUCT.md** — present, tailored (not stock Contributor Covenant copy with no customization)
 4. **CONTRIBUTING.md** — present, covers local setup + PR expectations + testing
 5. **SECURITY.md** — present, declares vulnerability reporting channel
@@ -117,6 +117,7 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 13. **Homepage URL** — populated when project has docs site / landing page
 14. **Dependabot or renovate** — `.github/dependabot.yml` or `renovate.json` present, enabled for supported stacks
 15. **Git secret history** — scan git history for hardcoded secrets (`git log -p -S"api_key"` / `git-secrets --scan-history` / `trufflehog`). Any hit → Category B finding with `git-filter-repo` surgery proposal; autonomous deletion is forbidden.
+16. **SPDX file headers** — source files carry a case-sensitive `SPDX-License-Identifier: <expr>` comment at/near the top; the declared identifier matches the LICENSE file. Missing headers → LOW finding with bulk-add proposal (Category A — mechanical, no public-facing text change)
 
 OSS-readiness emits Category B findings for anything user-visible (README rewrites, LICENSE changes, trademark concerns). Templates, metadata, Dependabot config may be Category A when they don't alter public-facing text.
 
@@ -126,7 +127,7 @@ OSS-readiness emits Category B findings for anything user-visible (README rewrit
 
 ## Delegation
 
-**Owns:** repo-settings, branch-protection, repo-hygiene, repo-metadata, team, structure, oss-readiness (`--oss-ready` mode) | **Delegates:** ds-docs → LICENSE / CONTRIBUTING / SECURITY content generation | **Receives:** ds-ship → Phase 5 repo pass
+**Owns:** repo-settings, branch-protection, repo-hygiene, repo-metadata, team, structure, oss-readiness (`--oss-ready` mode) | **Delegates:** ds-docs → LICENSE / CONTRIBUTING / SECURITY content generation; ds-deps → transitive dependency-tree license scan + SBOM export (oss-readiness check 2) | **Receives:** ds-ship → Phase 5 repo pass
 
 ## Execution Flow
 

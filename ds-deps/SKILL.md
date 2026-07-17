@@ -65,7 +65,7 @@ Without flags: present an up-front menu — Upgrade safe groups (recommended: ap
 
 ## Delegation
 
-**Owns:** deps-upgrade-execution, safe-patch, safe-minor, review-major, security-advisory-prioritization | **Delegates:** ds-test → per-group test validation; ds-commit → per-group commit | **Receives:** ds-devops → audit handoff (detection → execution); ds-fix → deps-upgrade-execution handoff; ds-ship → periodic hygiene pass
+**Owns:** deps-upgrade-execution, safe-patch, safe-minor, review-major, security-advisory-prioritization, dep-license-scan | **Delegates:** ds-test → per-group test validation; ds-commit → per-group commit | **Receives:** ds-devops → audit handoff (detection → execution); ds-fix → deps-upgrade-execution handoff; ds-ship → periodic hygiene pass; ds-repo → transitive license scan + SBOM export (oss-readiness check 2)
 
 ## Execution Flow
 
@@ -133,6 +133,8 @@ Per dep, determine `bump_type` + `classification`:
 **Release-age cooldown (advisory, default 7 days):** target version published less than 7 days ago (registry publish timestamp) → hold it out of the safe groups this run — classification stands, execution deferred with note `held (release-age {n}d < 7d cooldown)`; the previous in-cooldown-window version applies instead when it satisfies the same bump class. Security-advisory fixes override the cooldown (patching a known CVE beats worm-window caution). Rationale: recent registry worm/compromise events were detected within days of publication (xz-utils ~3 days; Shai-Hulud npm worm — CISA alert within the week) — a short quarantine window converts "first victim" into "warned bystander".
 
 **Provenance signal (advisory):** npm — run `npm audit signatures` (verifies registry signatures + provenance attestations; trusted-publishing/OIDC publishes carry provenance automatically since Jul 2025); PyPI — check attestation presence (PEP 740). A newly-added package with no provenance, or an upgrade where the publisher/repository identity changed vs the previous version → note as supply-chain signal, promote to `review-major`.
+
+**License scan + SBOM (advisory, on request or via ds-repo handoff):** walk the full transitive tree from the lockfile (not just direct deps) with a scanner when present (syft / ScanCode / FOSSA class), attach a license to every package, evaluate against the project's allow/review/deny policy (strong-copyleft entering a permissive/proprietary product → HIGH finding), and export an SPDX or CycloneDX SBOM artifact where CI expects one. No scanner installed → direct-dep license spot check from registry metadata + gap-note; never install tools unasked.
 
 **Dependency-confusion defense (advisory — active attack vector, documented May 2026 npm campaign across ≥9 organizational scopes):** when the project uses internal/private packages, check the defense stack and report gaps: (1) internal packages use a claimed registry scope/namespace (`@org/…`) — unscoped internal names are hijackable from the public registry; (2) CI installs enforce the lockfile (`npm ci` / `pnpm install --frozen-lockfile` / `pip install --require-hashes`) — a mutable install can silently resolve a public lookalike; (3) registry resolution order pins the private registry for internal scopes (`.npmrc` scoped registry / `pip.conf` index priority) so public never shadows private; (4) where infrastructure allows, build servers restrict registry egress to the approved proxy. Missing layer → HIGH gap-note in the summary, never auto-reconfigured.
 

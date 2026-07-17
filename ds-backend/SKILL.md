@@ -33,7 +33,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 **Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design, conditional messaging), D10 (admin API + stats), A11 (webhook/export/embed)
 **Framework alignment (advisory):** Google SRE PRR (D3, D4), OpenAPI Specification 3.1+ (A10), OWASP ASVS 5.0 (C1, released May 2025) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
-- Covers four scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve).
+- Covers five scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve), and LLM/AI features (conditional — only when the project integrates an LLM/AI provider).
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams.
 - Only suggests well-established patterns — no experimental or untested approaches.
 - Minimal liability + maximum privacy + minimum dependencies: auth recommendations prioritize managed services over DIY; data minimization in every schema (API responses expose only required fields); prefer platform-native auth over third-party SDKs where feasible.
@@ -50,7 +50,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | `--design` | Design new endpoints, schema, or auth flow |
 | `--spec` | Generate OpenAPI spec, migration files, or auth documentation |
 | `--migrate` | Generate or review database migrations |
-| `--scope={x}` | Specific scope: api, db, auth, data-pipeline (comma-separated) |
+| `--scope={x}` | Specific scope: api, db, auth, data-pipeline, llm (comma-separated) |
 | `--auto` | All scopes, no questions, single-line summary |
 | `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
@@ -75,6 +75,7 @@ Without flags: present an up-front mode menu — Audit (recommended) / Design / 
 | Error-channel decision (D4, advisory) | Production crash/error reporting has an explicit decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only — see ds-compliance crosscheck), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding, never a blocker (SKILL-SPEC §15) |
 | Ecosystem openness (A11, advisory) | Webhook emission surface (versioned payload, HMAC signature verified constant-time, timestamp replay-tolerance check — industry convention ~5 min — `webhook-id` as consumer idempotency key, retry/backoff — aligned to the [Standard Webhooks](https://www.standardwebhooks.com/) spec where feasible) for state-change events; standard-format export endpoints (ICS/CSV/JSON, not just proprietary JSON) for user data; embeddable-surface posture (widget/iframe API) where the product has a natural embed use case. Product holds user data with no standard export path -> advisory portability finding (see ds-compliance crosscheck); never a blocker (SKILL-SPEC §15) |
 | Security | OWASP API Security Top 10 (2023 edition — current as of 2026) checks |
+| SLO baseline (advisory) | Critical user journeys have RED metrics (rate/errors/duration) exposed and an SLO defined; error-budget policy + burn-rate alerting delegated to ds-devops (advisory-handoff: absent → gap-note, never a blocker) |
 
 ### Database
 
@@ -100,6 +101,8 @@ Without flags: present an up-front mode menu — Audit (recommended) / Design / 
 | Storage & retention | Raw vs derived separation, retention/archival policy, PII minimization in intermediate stores |
 | Observability | Per-job structured logs, failure alerts, row-count/freshness checks |
 | Lineage | Source→transform→sink traceable; transformations documented or self-describing |
+| Schema evolution | Compatibility mode chosen deliberately (BACKWARD default; FULL only where producer/consumer upgrade order must be independent); field changes additive-only — never rename/retype, add new field with default; CI compatibility gate against the schema registry where one exists |
+| Data contract | Contract = schema + integrity constraints + PII metadata + enforcement policy, version-controlled like code — a bare schema alone is not a contract |
 
 ### Auth
 
@@ -113,6 +116,18 @@ Without flags: present an up-front mode menu — Audit (recommended) / Design / 
 | Social login | Provider integration, account linking, `sub` as stable identifier |
 | MFA | TOTP, WebAuthn / passkeys, recovery codes (hashed, single-use), SMS OTP deprecation |
 | API keys | Prefixed keys, hash-only storage, scoped permissions, rotation support |
+
+### LLM & AI Features [conditional — active only when an LLM/AI provider integration is detected (SDK import, API client, model config) or `--scope=llm` is passed]
+
+| Check Area | What It Covers |
+|------------|---------------|
+| OWASP LLM Top 10 | v2.0 (2025) — mitigations mapped per applicable category, esp. LLM01 Prompt Injection, LLM06 Excessive Agency, LLM10 Unbounded Consumption |
+| Prompt-injection defense | Retrieved/external content treated as data, never instructions (W8); privilege separation between user input and system prompt; model output validated before acting on it; tool-call surface allowlisted |
+| Agentic features | Tool-using/autonomous agents additionally checked against the OWASP Agentic list (ASI:2026 — goal hijack, tool misuse, memory/context poisoning): tool permission scoping, inter-agent auth, context integrity |
+| Eval harness in CI | Golden-dataset eval suite wired into CI with pass/fail thresholds (faithfulness/hallucination-rate); no eval gate on an AI feature = HIGH finding |
+| Hallucination guards | Layered, never single-layer: system-prompt constraints + RAG grounding with citation enforcement + runtime faithfulness monitoring |
+| Model pinning + cost budget | Exact model version pinned (never `latest`/unversioned alias); per-request and per-user/session token+cost caps with alerting — unbounded consumption is both a cost and an abuse vector |
+| AI-feature UX | Streaming with stop control, deliberation display, scoped uncertainty indicators → delegate to ds-frontend (advisory-handoff: absent → note the UX checklist inline as gap-note) |
 
 ### Admin & Support Operability (D10, advisory)
 
@@ -150,7 +165,7 @@ Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15)
 
 ## Delegation
 
-**Owns:** api, db, auth, data-pipeline, backend-architecture | **Delegates:** none | **Receives:** ds-ship → Phase 2 backend pass; ds-productize → billing data model + webhook endpoint security pass
+**Owns:** api, db, auth, data-pipeline, llm, backend-architecture | **Delegates:** ds-frontend → AI-feature UX (streaming/stop/uncertainty display) | **Receives:** ds-ship → Phase 2 backend pass; ds-productize → billing data model + webhook endpoint security pass
 
 ## Execution Flow
 
@@ -163,7 +178,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 3. Detect project stack (framework, ORM, auth library) by scanning config files + dependencies.
 4. Load relevant reference docs by detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md), [references/rules-data-pipeline.md](references/rules-data-pipeline.md).
 
-**Gate:** Scope and mode confirmed. If fails → no flags + no menu response → default `--audit --scope=api,db,auth,data-pipeline`, WARN, announce defaulted scope before proceeding.
+**Gate:** Scope and mode confirmed. If fails → no flags + no menu response → default `--audit --scope=api,db,auth,data-pipeline` (+`llm` when an AI-provider integration is detected), WARN, announce defaulted scope before proceeding.
 
 ### Phase 2: Discover
 
@@ -250,7 +265,7 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 ### Phase 7: Summary
 
 ```
-ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth,data-pipeline} | Findings: {n} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
+ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth,data-pipeline[,llm]} | Findings: {n} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
 - **Audit output:** findings table grouped by scope (API / DB / Auth / Data Pipeline).

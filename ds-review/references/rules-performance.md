@@ -9,7 +9,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | **Performance** | PRF-01–07, PRF-11–12 (1 CRITICAL, 8 HIGH) | ~12 |
 | **Client-Side Performance** | PRF-08–10, PRF-13–16 (6 HIGH, 1 MEDIUM) | ~95 |
 | **Network & API** | NET-01–09 (8 HIGH, 1 MEDIUM) | ~160 |
-| **Cost** | COST-01–06 (6 HIGH) | ~250 |
+| **Cost** | COST-01–08 (8 HIGH) | ~250 |
 
 ---
 
@@ -246,6 +246,8 @@ Connections are multiplexed and pooled, never opened per request.
 
 ## Cost
 
+Framing (FinOps Framework): Inform / Optimize / Operate are concurrent activity types across stakeholders (Finance informs, Engineering optimizes, Leadership operates) — not sequential gates. The rules below are the Optimize surface an engineering audit can act on.
+
 ### COST-01 [HIGH] Unbatched/Uncached Paid API Calls
 Repeated identical calls to paid APIs without memoization or batching waste budget and increase latency.
 - **Detect:**
@@ -275,7 +277,7 @@ Instance sizes or provisioned capacity far above observed load incur idle spend.
   - RDS/Cloud SQL provisioned IOPS at maximum with actual IOPS < 30% of provisioned
   - Always-on staging/dev/preview environments running 24/7 without a shutdown schedule
   - Kubernetes requests/limits set to defaults (1 CPU, 512Mi) without profiling — either over-provisioned or a future OOM
-- **Fix:** Right-size instances to next tier down when p95 CPU < 20% and p95 memory < 50% for 7+ days. Set RDS to autoscaling storage + gp3 instead of provisioned IOPS unless throughput-bound. Add start/stop schedules to non-prod environments (AWS Instance Scheduler, GCP resource policies). Profile containers under load and set requests/limits to observed p99 + 20% headroom
+- **Fix:** Right-size instances to next tier down when p95 CPU < 20% and p95 memory < 50% for 7+ days. Set RDS to autoscaling storage + gp3 instead of provisioned IOPS unless throughput-bound. Add start/stop schedules to non-prod environments (AWS Instance Scheduler, GCP resource policies). Profile containers under load and set requests/limits to observed p99 + 20% headroom. Make rightsizing + reserved/committed-use coverage review a recurring cadence (monthly/quarterly against usage trends), not a one-off exercise
 - **Impact:** Idle EC2/GCE instances at m5.2xlarge vs m5.large = 4× cost; dev environments running nights/weekends = ~66% waste
 - **Source:** AWS Compute Optimizer, GCP Recommender, FinOps Foundation Right-Sizing Guide
 
@@ -312,3 +314,22 @@ N+1 patterns, unthrottled retries, and unbounded fan-out multiply metered API ca
 - **Fix:** Batch paid API calls to the provider's batch endpoint (geocoding, enrichment, LLM). Add exponential backoff + jitter on all retries against metered endpoints (delay * 2^attempt + random(0, delay)). Cap worker fan-out concurrency (semaphore, p-limit, bounded thread pool). Add idempotency keys on paid API calls inside event consumers to prevent double-billing on redelivery
 - **Impact:** N+1 against a $0.005/call API on 10,000 records = $50 vs $0.05 with batching; unbounded retry storm on a metered endpoint can exhaust a monthly budget in minutes
 - **Source:** AWS SQS Exactly-Once Processing, Stripe Idempotency Keys, Google Maps Batching Guide, Exponential Backoff and Jitter (AWS Architecture Blog)
+
+### COST-07 [HIGH] Cost-Allocation Tagging Discipline
+Billable resources without team/service/environment tags make spend unattributable — no unit economics, no accountability.
+- **Detect:**
+  - IaC resource blocks (Terraform/CloudFormation/Pulumi) missing the org's cost-allocation tag set (team, service, environment minimum)
+  - No tag-policy enforcement at creation time (no IaC lint rule, no cloud policy engine rule) — tagging left to convention
+- **Fix:** Enforce required tags at resource-creation time: IaC linting (tflint/checkov rule) or cloud policy engine (AWS Tag Policies/SCP, Azure Policy, GCP org policy). Backfill untagged resources from ownership records; treat persistently untagged spend as a finding, not a rounding error
+- **Impact:** Untagged spend cannot be attributed to a team or feature — every optimization conversation stalls at "whose is this?"
+- **Source:** FinOps Foundation cost-allocation guidance; cloud vendor tag-policy docs
+
+### COST-08 [HIGH] GPU/AI Workload Sizing
+GPU compute carries up to ~15× the cost of equivalent CPU compute — sizing errors are proportionally amplified.
+- **Detect:**
+  - GPU instances (p4/p5, A100/H100 classes) with sustained utilization far below capacity (idle between batch jobs, oversized for inference load)
+  - Training/batch AI workloads on on-demand pricing where spot/preemptible or committed-use fits the interruption tolerance
+  - Inference served from training-class GPUs where a smaller inference-optimized tier (or CPU) meets the latency budget
+- **Fix:** Rightsize GPU instances to observed utilization; schedule batch/training jobs to pack GPU time; use spot/preemptible for interruption-tolerant training and committed-use for predictable inference; route low-QPS inference to smaller tiers. Application-level LLM API cost controls are COST-01; this rule covers self-hosted GPU infrastructure
+- **Impact:** A bad GPU sizing decision costs up to ~15× the equivalent CPU sizing mistake (verify current ratio for your cloud — pricing shifts)
+- **Source:** FinOps Foundation AI-cost guidance (15× differential — single-source, verify-current)

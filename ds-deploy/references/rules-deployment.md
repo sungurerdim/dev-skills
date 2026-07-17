@@ -4,6 +4,7 @@
 |---------|-------|
 | **Container Security** | DEP-01 to DEP-05 (2 CRITICAL, 3 HIGH) |
 | **Deployment Patterns** | DEP-06 to DEP-13 (2 HIGH, 4 MEDIUM, 2 LOW) |
+| **Release Engineering** | DEP-14 to DEP-16 (1 HIGH, 2 MEDIUM) |
 
 ## Container Security
 
@@ -197,3 +198,37 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 **Why:** Vertical-only scaling has a hard ceiling and a single point of failure; horizontal scale-out via the process model is what makes zero-downtime deploys and elastic capacity possible.
 
 **Source:** *The Twelve-Factor App* — Factor VIII: Concurrency (https://12factor.net/concurrency)
+
+---
+
+## Release Engineering
+
+### DEP-14 | HIGH | Canary With Automated Rollback Thresholds
+
+**Detect:** Canary/staged rollout exists but rollback is a manual watch-and-decide process — no metric-bound automated trigger; or big-bang 100% deploys on a service with meaningful traffic.
+
+**Fix:** Stage traffic in weighted steps (e.g. 1 → 5 → 10 → 25 → 50 → 100%) with automated metric checks at each stage; roll back automatically when error-rate or p99-latency thresholds are breached (Flagger, Argo Rollouts, or platform equivalent). DEP-07 covers the zero-downtime mechanics; this rule covers the automated decision.
+
+**Why:** A human watching dashboards is the slowest, least reliable rollback trigger — the incident is already user-visible before the decision is made.
+
+**Source:** Flagger/Argo Rollouts progressive-delivery docs; SRE Workbook canarying chapter
+
+### DEP-15 | MEDIUM | Feature-Flag Lifecycle Governance
+
+**Detect:** Flag definitions with no owner, purpose, or planned removal date; flags older than their intended lifetime still active; an old flag key reused for a new purpose.
+
+**Fix:** Require owner + purpose + expiry metadata at flag creation; sweep stale flags on a recurring cadence; ban flag-key reuse. (Code-level dead-branch/stale-flag detection lives in ds-simplify — this rule covers the release-process governance.)
+
+**Why:** Every stale flag is an untested code path and a config surface that can be flipped in production; reused keys inherit stale targeting rules.
+
+**Source:** LaunchDarkly/CloudBees flag-lifecycle guidance
+
+### DEP-16 | MEDIUM | API Deprecation Signaling (Sunset / Deprecation Headers)
+
+**Detect:** Public API endpoint slated for removal without machine-readable signaling: no `Deprecation` header (RFC 9745) and/or no `Sunset` header (RFC 8594); Sunset date earlier than Deprecation date; package/API without a published SemVer + minimum-deprecation-window policy.
+
+**Fix:** Add `Deprecation` (deprecation effective date) and `Sunset` (date the endpoint stops responding) headers with a published migration deadline — per RFC 8594 the Sunset timestamp MUST NOT be earlier than the Deprecation timestamp. Publish a deprecation-window policy (minimum notice before breaking removal) and keep version bumps SemVer-honest.
+
+**Why:** Consumers can automate migration warnings only when deprecation is machine-readable; silent removals break integrations without recourse.
+
+**Source:** RFC 8594 (Sunset header); RFC 9745 (Deprecation header); semver.org

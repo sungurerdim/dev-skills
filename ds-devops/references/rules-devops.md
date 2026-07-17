@@ -12,6 +12,8 @@ Applies to all project types: web, API, CLI, library, mobile, monorepo.
 | **Registry Publishing** | DOP-21 (1 HIGH) |
 | **Container & Cloud Auth Hardening** | DOP-22–23 (2 HIGH) |
 | **Runner & Host Hygiene** | DOP-24–25 (2 MEDIUM) |
+| **Observability & SLO** | DOP-26–29 (2 HIGH, 2 MEDIUM) |
+| **Backup, DR & Resilience** | DOP-30–31 (1 HIGH, 1 MEDIUM) |
 
 ## CI/CD & Workflow
 
@@ -328,3 +330,48 @@ Every unbounded log sink has rotation configured; retention follows compliance f
   - Docker daemon on default `json-file` driver without `max-size`/`max-file` options (container logs grow without bound)
 - **Fix:** Production baseline: daily rotation, 7–14 cycles retained, gzip compression. Docker: `--log-opt max-size=50m --log-opt max-file=7` (or daemon-wide in `daemon.json`). Compliance regimes override retention upward — HIPAA requires ≥6 years, SOX 7 years of log retention: archive to cold storage, never satisfy these by keeping logs on-host
 - **Source:** logrotate/Docker logging docs; HIPAA/SOX retention requirements
+
+## Observability & SLO
+
+### DOP-26 [HIGH] SLO + Error-Budget Release Gate
+Critical user journeys have SLOs; exhausted error budget halts non-critical releases.
+- **Detect:**
+  - No SLO definition (doc/config) for the service's critical user journeys; dashboards missing RED panels (rate/errors/duration) per service or USE panels (utilization/saturation/errors) per resource
+  - No error-budget policy naming a rolling/calendar window and what happens when the budget is spent
+- **Fix:** Define SLIs/SLOs per critical journey with an explicit window; adopt an error-budget policy per the SRE Workbook template — Google's example: budget exhausted over the preceding four-week window → all changes and releases halt except P0/security fixes until back within SLO
+- **Source:** Google SRE Workbook — Implementing SLOs, Error Budget Policy
+
+### DOP-27 [HIGH] Burn-Rate Alerting
+Paging alerts fire on error-budget burn rate, not raw error counts or static thresholds.
+- **Detect:** alert rules built on static error-count/error-rate thresholds for SLO-covered services; single-window alerts that either page too late (slow burn) or flap (fast burn)
+- **Fix:** Multi-window, multi-burn-rate alerts per SRE Workbook Ch.5 — page on fast burn (budget gone in hours), ticket on slow burn (budget gone in days); burn rate = speed of budget consumption relative to the SLO window
+- **Source:** Google SRE Workbook — Alerting on SLOs
+
+### DOP-28 [MEDIUM] OpenTelemetry Instrumentation Standard
+New instrumentation goes through the OTel API, not vendor-proprietary SDKs.
+- **Detect:** vendor-locked instrumentation SDKs in new code where OTel equivalents are GA (traces, metrics, and logs are all GA across major-language OTel SDKs; CNCF-graduated May 2026); stale OTel Collector versions
+- **Fix:** Instrument via OpenTelemetry SDK + Collector; keep vendor choice at the exporter/backend layer so the backend stays swappable
+- **Source:** CNCF OpenTelemetry graduation announcement (2026-05-21)
+
+### DOP-29 [MEDIUM] Alert Actionability
+Every page is actionable and carries a runbook; page volume is tracked.
+- **Detect:** paging alerts with no runbook link; purely informational alerts routed to the pager instead of tickets/dashboards; no tracking of pages-per-shift
+- **Fix:** Downgrade non-actionable pages to tickets/dashboards; attach a runbook link to every remaining page; bound and review page volume per on-call shift
+- **Source:** Google SRE Workbook — On-Call
+
+## Backup, DR & Resilience
+
+### DOP-30 [HIGH] Backup & DR Posture (3-2-1-1-0)
+Infra-level backups follow 3-2-1-1-0 with tested recovery; DR objectives are explicit. (Database-level backup/restore checks live in ds-backend's Database scope — this rule covers the infrastructure posture.)
+- **Detect:**
+  - Backup config with no immutable/air-gapped tier (object-lock/WORM): 3 copies, 2 media, 1 offsite, 1 immutable, 0 errors on recovery test
+  - Backup infrastructure sharing credentials/network segment with production admin accounts — backups are an active ransomware target (Veeam-reported: 89% of surveyed orgs had backup repositories specifically targeted)
+  - No explicit RPO/RTO per service tier; no dated log of a DR/failover drill
+- **Fix:** Add an immutable storage tier; segment backup admin identities (separate credentials, MFA, ideally separate IdP); define RPO/RTO per tier and align backup frequency/replication to them; schedule recurring restore/failover drills and log pass/fail
+- **Source:** 3-2-1-1-0 rule (Veeam et al.); ransomware backup-targeting reports
+
+### DOP-31 [MEDIUM] Failure-Injection Readiness (advisory)
+Resilience assumptions are exercised, not assumed — at minimum in pre-production.
+- **Detect:** services with retry/timeout/failover logic that has never been exercised by any failure injection (no chaos/fault-injection config, no game-day/tabletop record)
+- **Fix:** Start minimal: kill one instance/dependency in staging and observe whether timeouts, retries, and alerts behave as designed; record the result. Full chaos-engineering platforms are optional — one exercised failure beats ten documented assumptions. Advisory only — never a blocker
+- **Source:** Principles of Chaos Engineering; SRE game-day practice

@@ -2,7 +2,7 @@
 
 Broken CI pipelines, unsigned builds, and outdated dependencies silently erode release quality. This skill audits your entire DevOps setup and flags what needs fixing.
 
-**Audit CI/CD pipelines, code signing, and dependency management for any project type. 25 rules across 8 domains.**
+**Audit CI/CD pipelines, code signing, and dependency management for any project type. 31 rules across 10 domains.**
 
 Works with Flutter, Node.js, Python, Go, Rust, Java/Kotlin, and more.
 
