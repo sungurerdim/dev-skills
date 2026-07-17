@@ -29,7 +29,7 @@ Run `/ds-blueprint`, or ask to assess your project health.
 ## Flow
 
 1. Discovery: detect project type, stack, toolchain
-2. Init: profile creation (type, quality, data, priorities, constraints)
+2. Init + Foundation: profile creation where every normative decision (mission, target, priorities, constraints, red lines) is evidence-drafted, individually interrogated ("does it earn its keep? what would be better?"), and perfected through per-line user approval + feedback — never form-filled or auto-decided
 3. Assess: 24 scopes in 3 concurrency batches (read-only / AST / cross-file) — scan, record, score; never fix
 4. Consolidate: dimension scoring with project-type weights + calibration checks
 5. Suggest: `ds/audit/findings.md` is the interface — downstream fix skills act on it
@@ -38,6 +38,7 @@ Run `/ds-blueprint`, or ask to assess your project health.
 ## Features
 
 - **9 health dimensions** — Security, Code Quality, Architecture, Performance, Resilience, Testing, Stack Health, DX, Documentation
+- **Foundation pass (`--foundation`)** — the profile's normative core (Mission + Red lines + Priorities/Constraints) is the calibration every dev-skill runs on; this pass idealizes it from evidence, challenges each constraint's right to exist, and locks confirmed decisions against silent flips (re-raised only on new evidence)
 - **14 project types** — with type-specific weight matrices
 - **Score tracking** — delta and trend across runs
 - **Auto-detected instruction file** — embeds profile in your AI tool's instruction file (CLAUDE.md / AGENTS.md / .cursorrules / .cursor/rules / .github/copilot-instructions.md / .windsurfrules / .aider.conf.yml — whichever your tool uses). Always in context.

@@ -50,8 +50,9 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 |------|--------|
 | `--auto` | All phases, no questions, single-line summary |
 | `--preview` | Analyze + dashboard, no changes |
-| `--init` | Profile creation/refresh only (no analysis) |
-| `--refresh` | Re-scan profile (decisions preserved) |
+| `--init` | Profile creation/refresh only (no analysis) — includes the Foundation pass |
+| `--refresh` | Re-scan profile (decisions preserved; foundation lines untouched) |
+| `--foundation` | Foundation pass alone: interrogate every normative profile decision (mission, target, priorities, constraints, red lines), propose better, perfect via user feedback |
 | `--scope={x}` | Comma-separated: any findings scope name (references/scopes.md — e.g. security, testing, architecture, stack-fitness) or a dimension name (maps to its component scopes per references/weights.md); default `all`. Exclusions recorded in `filters_applied` |
 | `--resume` | Resume from `ds/audit/blueprint.json` without prompting |
 | `--clean` | Delete existing state, start fresh |
@@ -74,7 +75,9 @@ Profile embedded in project's AI instruction file between `## Blueprint Profile`
 ## Blueprint Profile
 
 Type: {type} | Stack: {stack} | Target: {quality}
+Mission: {one line — who gets what outcome; the promise every downstream decision calibrates against}
 Priorities: {comma-list} | Constraints: {comma-list}
+Red lines: {comma-list of hard NOs — binding for every consumer}
 Integrations: {google-workspace|apple-ecosystem|none}
 Data: {data-types} | Regulations: {framework-or-none}
 Audience: {audience} | Deploy: {method}
@@ -92,7 +95,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 ## End Blueprint Profile
 ```
 
-**Format rules:** key-value pairs only, one value per line — no prose, headers, tables, or bullets inside the block; AI parses by `{key}: {value}` line-shape, every consumer reads its line in O(1). `Integrations:` feeds the A9 conditional rule blocks in ds-backend/ds-compliance/ds-frontend/ds-mobile/ds-launch — `none` when no signal matches, comma-separated when both providers are detected. `Modules:` and `External:` use `;` separator so the block stays one line per concern. `Scores:` is a single line with short keys — dashboard renders in chat output, not in the profile; `model=` records the AI model that performed the assessment (e.g. `model=claude-fable-5`; `model=unknown` when not determinable), enabling model-uplift attribution — score deltas across model generations traceable via `git log` of this line. The profile is calibration data, not a dashboard (run-history/deltas exclusion stated once under **Profile format** above).
+**Format rules:** key-value pairs only, one value per line — no prose, headers, tables, or bullets inside the block; AI parses by `{key}: {value}` line-shape, every consumer reads its line in O(1). `Mission:` and `Red lines:` are the foundation's normative core: `Red lines` are hard NOs binding on every consumer — a downstream skill never proposes an action crossing one without explicit user override; `Constraints` remain soft preferences. Profiles predating the Foundation pass may lack both lines — valid; the next `--init`/`--foundation` run adds them. `Integrations:` feeds the A9 conditional rule blocks in ds-backend/ds-compliance/ds-frontend/ds-mobile/ds-launch — `none` when no signal matches, comma-separated when both providers are detected. `Modules:` and `External:` use `;` separator so the block stays one line per concern. `Scores:` is a single line with short keys — dashboard renders in chat output, not in the profile; `model=` records the AI model that performed the assessment (e.g. `model=claude-fable-5`; `model=unknown` when not determinable), enabling model-uplift attribution — score deltas across model generations traceable via `git log` of this line. The profile is calibration data, not a dashboard (run-history/deltas exclusion stated once under **Profile format** above).
 
 **Read/write rules:**
 - Only modify content between `## Blueprint Profile` and `## End Blueprint Profile` headings — never touch anything outside.
@@ -105,7 +108,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
   6. **Never write second standard profile into a file that already has one** — always detect and update.
 - Instruction file does not exist: create with profile section only.
 - Other skills read profile by searching for `## Blueprint Profile` heading first, then legacy markers as fallback, in known instruction file locations.
-- Updating existing standard profile: preserve all `Type/Stack/Target/Priorities/Constraints/Data/Audience/Deploy/Entry/Modules/Data Flow/External/Toolchain/Ideal` lines; update only the `Scores:` line; re-detect Project Map only with `--refresh`.
+- Updating existing standard profile: preserve all `Type/Stack/Target/Mission/Priorities/Constraints/Red lines/Data/Audience/Deploy/Entry/Modules/Data Flow/External/Toolchain/Ideal` lines; update only the `Scores:` line; re-detect Project Map only with `--refresh`; rewrite foundation lines (`Mission`, `Target`, `Priorities`, `Constraints`, `Red lines`) only through the Foundation pass with per-line user confirmation.
 - Legacy migration: profiles containing `### Last Run`, `### Run History`, `### Current Scores` (table), or any prose block → rewrite to minimal key-value format; report `{n} legacy lines rotated to git log` in summary. Information preserved in `git log -- <instruction-file>` — never re-injected.
 
 **Deduplication on inject:** dedupe findings by file:line — same issue within 10 lines → merge, keep highest severity.
@@ -126,21 +129,30 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 
 **State `data`:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line}]}, profile_written: bool, scores: {dimension: score}, instruction_file }`.
 
-1. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Analysis (recommended) — detect + analyze every dimension / Preview Only — analyze, no profile write / Init Profile — seed a fresh profile / Refresh Profile — re-score an existing profile / (Cancel). A disambiguating flag skips the menu.
+1. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Analysis (recommended) — detect + analyze every dimension / Preview Only — analyze, no profile write / Init Profile — seed a fresh profile (includes Foundation pass) / Refresh Profile — re-score an existing profile / Foundation — interrogate + perfect the profile's normative decisions / (Cancel). A disambiguating flag skips the menu.
 2. Search for `## Blueprint Profile` heading in known instruction files; read existing profile to detect incremental vs full run.
 3. Detect project via three-step process from [references/detection.md](references/detection.md): (1) stack from manifest files (pubspec.yaml, package.json, go.mod, etc.); (2) project type from secondary signals (framework deps, config, directory structure); (3) supplementary stacks (Docker, shell scripts, CI, task runners). Also: toolchain, tests, data sensitivity, git status, ecosystem integrations (references/detection.md § Step 4 — feeds `Integrations:` profile field).
 
 **Decision tree:**
-1. Profile exists + not --init/--refresh → Phase 3 (incremental)
-2. Profile exists + --refresh → Phase 2 (re-ask, preserve decisions)
-3. No profile + --init → Phase 2 (create, stop)
-4. No profile + not --init → Phase 2 (create, ask to continue)
+1. Profile exists + not --init/--refresh/--foundation → Phase 3 (incremental)
+2. Profile exists + --refresh → Phase 2 (re-ask, preserve decisions; foundation lines untouched)
+3. Profile exists + --foundation → Phase 2 Foundation pass only (interrogate + perfect normative lines, stop after write)
+4. No profile + --init → Phase 2 (create with Foundation pass, stop)
+5. No profile + not --init → Phase 2 (create with Foundation pass, ask to continue)
 
 **Gate:** Mode selected; project type detected; instruction file located or creation path determined. If fails → type undetectable (no manifest, empty repo) + no user response to type prompt → default `generic`, mode `Full Analysis`, instruction file `CLAUDE.md`, WARN `"Project type undetected — defaulted to generic"` in state.data, proceed.
 
-### Phase 2: Init Flow (no profile OR --init/--refresh)
+### Phase 2: Init Flow + Foundation (no profile OR --init/--refresh/--foundation)
 
-**Init questions** — ask each; the auto-detected value is the default:
+**Foundation pass** (runs on `--init`, `--foundation`, and first-time profile creation; `--refresh` preserves foundation lines untouched). The profile's normative lines calibrate every downstream skill — they are perfected deliberately, never form-filled:
+
+1. **Evidence sweep** — collect what the project *is* and *claims*: README/docs promises, code capabilities, git history, existing profile lines, prior user statements. Every proposed value in steps 2-3 cites its evidence; a gap is asked, never guessed.
+2. **Idealized draft** — synthesize the best-supported foundation: `Mission` (one line, who-gets-what-outcome), `Target`, ranked `Priorities`, and the constraint set split honestly into `Constraints` (soft preferences) vs `Red lines` (hard NOs). Where the evidence supports a sharper mission or a stronger target than currently stated, draft the sharper version — idealize from evidence, never from invention.
+3. **Decision interrogation** — for EVERY normative line (Type, Target, Mission, each Priority, each Constraint, each Red line, Audience, Deploy), existing or proposed: (a) state the current value and the rationale/evidence behind it; (b) challenge it — does the evidence still support it? does it earn its keep? A constraint with no identifiable protective value → removal proposal stating what it costs and what removing it frees; (c) when a better alternative exists, propose it with concrete rationale (what improves, at what cost). No line passes unexamined.
+4. **Approval + feedback loop** — present steps 2-3 as one per-line decision table: `current → proposed | evidence | rationale`, ask per line: accept / edit / keep-current. All foundation decisions are **Category B — never auto-applied**: under `--auto` keep detected/existing values and mark `foundation: unconfirmed` in the summary instead of deciding for the user. Apply feedback, re-present only the changed lines, iterate until every line is confirmed.
+5. **Decision durability** — a user-confirmed line is settled: later runs re-raise it only when new evidence contradicts it (named in the re-raise), never to re-litigate (W13). Re-running `--foundation` diffs against the confirmed set — no confirmed value flips without either new evidence or an explicit user edit (regeneration stability).
+
+**Init questions** (fallback shell of the pass — each question's auto-detected value is the default; answers feed steps 2-3 as user evidence):
 
 | Question | Options |
 |----------|---------|
@@ -167,7 +179,7 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 
 Write profile to detected instruction file. Calculate ideal metrics from `references/weights.md`. Quality-level descriptions in [references/quality-levels.md](references/quality-levels.md).
 
-**Gate:** Profile written with all sections. If fails → write failed (permissions, invalid path, tool doesn't support file creation) → save profile to `ds/audit/blueprint-profile-draft.md`, display full text in chat for manual paste, surface write error with target path.
+**Gate:** Profile written with all sections; every foundation line either user-confirmed or explicitly marked `foundation: unconfirmed` (`--auto`) — a foundation line is never silently auto-decided. If fails → write failed (permissions, invalid path, tool doesn't support file creation) → save profile to `ds/audit/blueprint-profile-draft.md`, display full text in chat for manual paste, surface write error with target path.
 
 ### Phase 2.5: Parallel-Track Planning [PARALLEL]
 
@@ -377,6 +389,7 @@ Open human-action items exist → repeat them after the summary line (`Human act
 **Value Delivered:** 1-5 concrete scoring outcomes. Example shapes (placeholders, not literal):
 
 - `Project scored across 9 dimensions ({weakest-dim} {score}, target {target}) — focus is no longer guesswork; lowest-scoring dimension is the next investment`
+- `Foundation perfected: mission sharpened from evidence, {n} constraints challenged ({m} removed as unfounded), {k} red lines made explicit — every downstream skill now calibrates against a confirmed foundation instead of a form-fill`
 - `{n} signals written to ds/audit/findings.md — downstream skills (ds-review, ds-fix, ds-simplify) skip their own detection and act directly`
 - `Stack-fitness: {obsolete-or-oversized-dep} flagged — replacement candidate proposed with effort estimate`
 
