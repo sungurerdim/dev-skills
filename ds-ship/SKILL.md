@@ -61,7 +61,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 - Orchestrator — zero own analysis, consumes `ds/audit/findings.md` as SSOT. FRC+DSC enforced. State: `ds/audit/ship.json`.
 - **Sequential delegation is deliberate:** one skill at a time, writes single-threaded, each delegate returning a compressed findings diff — the shape that holds for coupled, source-mutating work; keep it — parallel fan-out of write-owning delegates is a rejected design, not a pending optimization. Cost scales linearly with delegation count, not combinatorially.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
-- Findings absent or stale → invoke `/ds-blueprint` before any other delegation.
+- `/ds-blueprint` full run is always the first delegation — never skipped, never conditioned on findings freshness: a new ds-ship invocation is a new run-cycle, so prior-cycle findings are stale by definition (W10) and serve only as diff baseline. Foundation Review runs inside it every cycle.
 - **Re-run policy (every invocation = a new cycle):** each `/ds-ship` run re-executes every scan in its sequence from scratch — a previous run minutes or days ago is never a reason to skip a phase, delegate, or scope ("already ran recently" is a W11-class rejected reason). Prior-cycle `ds/audit/` artifacts and reports are consumed only as diff context: previously-flagged → resolved or still present? previously-clean → regressed? A re-run also picks up improved skill versions — repeating the full sweep is the point, not waste.
 - Artifacts: `ds/audit/findings.md` (via delegated skills) + own `ds/audit/report.md` (+ `ds/audit/report.html` under `--html`). No logs, traces, history, dumps.
 - Two-gate fix: Category A autonomous, Category B batched approval.
@@ -192,7 +192,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 
 **Default Phase 2 delegation order (adjusted by stage + type):**
 
-1. `/ds-blueprint` (if findings absent or stale — always first)
+1. `/ds-blueprint` — always first, full run every cycle (a new invocation = a new run-cycle; prior-cycle findings are stale by definition, diff baseline only)
 2. `/ds-review --strategic` (architecture-level, 9 scopes)
 3. `/ds-review --tactical` (file-level, 9 scopes)
 4. Stack-specific: `/ds-backend`, `/ds-frontend`, `/ds-mobile` — on mobile projects `/ds-mobile` subsumes `/ds-compliance` security/privacy/regulatory; never run both on the same scopes

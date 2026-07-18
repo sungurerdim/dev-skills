@@ -31,7 +31,7 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 
 **Dimensions:** A1 (market positioning)
 
-- Standalone; uses blueprint profile + `ds/audit/findings.md` when fresh to skip re-detection.
+- Standalone; uses blueprint profile + `ds/audit/findings.md` when fresh (`git_hash == HEAD` AND current run-cycle) to skip re-detection.
 - State-exempt: single regenerable report/audit.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.

@@ -130,7 +130,7 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
    | Electron/Tauri | `package.json` dep `electron` or `@tauri-apps/api` |
    | Plain HTML/CSS | `*.html` + `*.css` without framework |
 
-2. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings matching frontend scopes, skip redundant analysis. Stale/absent → own full analysis.
+2. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching frontend scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 3. **IDU:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 4. **Design system detection.** Search for: CSS custom properties (`:root { --color-* }`), Tailwind config, CSS modules theme; styled-components / Emotion / MUI / Chakra theme; Flutter `ThemeData`/`ColorScheme`; SwiftUI Color assets; Compose `MaterialTheme`; `tokens.json`/`tokens.yaml`/`design-tokens.*`.
 5. **Mode + scope.** Ask or use flags: Audit / Audit & Fix / Design / Custom; map scope selection to reference files (default: all).

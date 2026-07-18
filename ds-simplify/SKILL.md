@@ -31,7 +31,7 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 
 **Dimensions:** B1 (simplification)
 
-- Standalone: use `ds/audit/findings.md` when fresh; own scan otherwise.
+- Standalone: use `ds/audit/findings.md` when fresh (`git_hash == HEAD` AND current run-cycle); own scan otherwise.
 - State-exempt: one reversible commit per approved batch (delegated to `/ds-commit`) is the durable record.
 - FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
 - Detection only: every deletion requires an approval batch. Every finding cites file:line + concrete ref count or pattern.
@@ -73,7 +73,7 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 ### Phase 1: Setup
 
-1. **Findings file check:** `ds/audit/findings.md` fresh → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Absent/stale → own scan.
+1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scan, appended with own `source` + current `git_hash`.
 
 2. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel). A disambiguating flag skips the menu.
 

@@ -91,7 +91,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
    | Cross-platform | Multiple platform indicators |
 
 2. **Platform confirmation.** Ambiguous → ask user.
-3. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings matching mobile scopes, skip redundant analysis. Stale/absent → own full analysis.
+3. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching mobile scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 4. **IDU:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
 5. **Mode selection.** No flag → present a menu covering every mode, each with a one-line what-it-does: Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / Release Ready — 100-point scoring + manual gates / Custom — pick scopes / (Cancel). A disambiguating flag (e.g. `--mode`, `--release-ready`) skips the menu.
 6. **Scope parsing.** Default: `audit` mode, all domains.
@@ -138,7 +138,7 @@ Load only reference files matching scope:
 
 ### Phase 4: Scan
 
-1. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings matching scopes; verify each (re-read file:line), skip verified; run full for uncovered.
+1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND current run-cycle) → read findings matching scopes; verify each (re-read file:line), skip verified; run full for uncovered.
 
 **Large scope (3+ domains):** progress checklist + append findings to `ds/audit/findings.md` after each domain. Max 2 parallel scans.
 

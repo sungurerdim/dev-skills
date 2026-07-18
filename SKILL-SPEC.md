@@ -476,7 +476,7 @@ Seventeen weaknesses observed in AI coding assistants. **W1–W11 are universal*
 **Prevention rules:**
 - Before scanning any scope, check `ds/audit/findings.md`: fresh AND scope listed → **verify + apply only**, never re-detect. **Fresh = `git_hash == HEAD` AND produced in the current run-cycle** (this invocation, or the orchestration run — e.g. the current `/ds-ship` cycle — this skill executes under).
 - **Cross-cycle recency is never a skip reason (mirror of W11):** findings from any previous cycle — however recent — are prior context, not a scan substitute. Use them for diffing (previously-flagged → resolved/still present?) and prioritization; then re-run the scan in full. A new invocation always starts a new cycle.
-- Stale or missing findings → invoke `/ds-blueprint --preview --scope=all` (or `--refresh`), wait, re-read. Do NOT silently fall through to own detection.
+- Stale or missing findings → **orchestrated run** (under `/ds-ship` or another conductor): invoke `/ds-blueprint --preview --scope=all` (or `--refresh`), wait, re-read — never fall through to own detection. **Standalone run**: announce `findings stale — running own {scopes} analysis`, run own scoped analysis, append results with the consumer's `source` + current `git_hash`; the next blueprint full run dedups (see Recovery). Own detection without the announcement remains a violation.
 - Consumer summary MUST cite the producing skill of each finding (`source: ds-blueprint` from meta header) so duplicates are visible.
 - If consumer adds new scope-level findings beyond what blueprint produced, append to `ds/audit/findings.md` with the consumer skill name as `source` and matching `git_hash`.
 

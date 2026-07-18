@@ -139,7 +139,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 2: Discover
 
-1. **Findings file check:** `ds/audit/findings.md` fresh → use relevant findings.
+1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → use relevant findings. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 2. Search for deployment configs (Dockerfile, compose, CI deploy steps), monitoring configs (Sentry DSN, logging config, health endpoints), env vars + secrets management.
 3. Build inventory: services, ports, volumes, external dependencies.
 

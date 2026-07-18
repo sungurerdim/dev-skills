@@ -177,7 +177,7 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 
 Auto-invoke MAY be skipped via `--no-bootstrap` for testing — then review runs own scope analysis.
 
-**Findings file check:** `ds/audit/findings.md` exists + `git_hash` matches HEAD → filter findings by active scopes. Per matching finding: read file:line + surrounding context (±10 lines); verify finding still valid (code may have changed); confirmed → add to fix list; false positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved`, record the reason on the finding; both count as Skipped in FRC accounting. Then fix confirmed findings. Skip own analysis for scopes covered by findings file; scopes NOT covered → run own analysis below.
+**Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → filter findings by active scopes. Per matching finding: read file:line + surrounding context (±10 lines); verify finding still valid (code may have changed); confirmed → add to fix list; false positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved`, record the reason on the finding; both count as Skipped in FRC accounting. Then fix confirmed findings. Skip own analysis for scopes covered by findings file; scopes NOT covered → run own analysis below. Stale/absent findings → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: run own analysis below, appending with own `source` + current `git_hash`.
 
 **If no findings file after bootstrap or `--no-bootstrap`:** analyze in parallel-planned batches grouped by cost. Announce plan before starting.
 

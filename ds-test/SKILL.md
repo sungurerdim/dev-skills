@@ -99,7 +99,7 @@ Setup → [Generate / Update / Run+Fix / Baseline] → Verify → [Needs-Approva
 
 ### Phase 1: Setup
 
-1. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings with `testing` scope; use to prioritize which modules need tests (skip own coverage analysis for covered scopes). Stale or absent → run own full analysis.
+1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings with `testing` scope; use to prioritize which modules need tests (skip own coverage analysis for covered scopes). Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 2. **IDU:** Profile → {Ideal Metrics.Coverage, Project Map.Toolchain, Current Scores.Testing, Type + Stack}. Findings({testing}) → verify + use. Absent → own analysis.
 3. **Detect test framework** from project config + dependencies. See [references/frameworks.md](references/frameworks.md).
 4. **Detect test conventions:** test directory (`test/`, `tests/`, `__tests__/`, `spec/`, `src/**/*.test.*`); naming pattern (`*_test.go`, `*.test.ts`, `*.spec.rb`, `test_*.py`); helper/fixture locations (`fixtures/`, `factories/`, `support/`, `conftest.py`); mock patterns (mocking library + structure).

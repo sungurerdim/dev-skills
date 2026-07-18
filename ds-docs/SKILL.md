@@ -32,7 +32,7 @@ Documentation drifts from code the moment it's written. This skill detects the g
 - Every generated sentence must earn its place — no filler, marketing language, or obvious statements.
 - Only generates/modifies documentation files — never touches source code.
 - Verifies claims against actual source code before writing.
-- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - State-exempt: generated docs on disk are the progress record; re-running naturally resumes.

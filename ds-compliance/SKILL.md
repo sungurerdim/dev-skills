@@ -36,7 +36,7 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 **Framework alignment (advisory):** OWASP ASVS 5.0.0 (C1), OWASP SAMM (C2) — sourced references in SKILL-SPEC Dimension Coverage Map. Tool-derived security findings carry the tool's own ASVS version tag (OSS DAST tools still emit 4.0.3-tagged results — never present them as ASVS 5.0 coverage).
 
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).
-- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
 - State-exempt: single regenerable report/audit.
 - FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
 - **Mobile-project overlap-skip (OVERLAP-4 runtime enforce):** When project signals mobile (`pubspec.yaml` with `flutter:`, `package.json` with `react-native`, `*.xcodeproj`, or `build.gradle` with `android {}`), default-skip security/privacy/regulatory — owned by `/ds-mobile`. Announce: "Mobile project detected — security/privacy/regulatory delegated to /ds-mobile". Override with `--scope=security,privacy,regulatory`.

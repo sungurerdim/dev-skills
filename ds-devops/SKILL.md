@@ -101,7 +101,7 @@ Load [references/rules-devops.md](references/rules-devops.md). Rules are project
 
 ### Phase 3: Scan
 
-1. **Findings file check:** `ds/audit/findings.md` fresh `git_hash` → read findings matching scopes (ci, signing, deps, release-pipeline). Per match: verify still valid (re-read `{file}:{line}`); uncovered scopes → run full analysis.
+1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching scopes (ci, signing, deps, release-pipeline). Per match: verify still valid (re-read `{file}:{line}`); uncovered scopes → run full analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 
 For each scope:
 

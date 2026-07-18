@@ -32,7 +32,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 **Dimensions:** C4, D9 (semver)
 **Framework alignment (advisory):** OWASP SAMM Supply Chain Security (C4), SLSA v1.2 (provenance/attestation verification — Source Track added Nov 2025), Semantic Versioning (D9) — sourced references in SKILL-SPEC Dimension Coverage Map.
 
-- Standalone; uses `ds/audit/findings.md` (stack, deps scopes) when fresh, own audit otherwise.
+- Standalone; uses `ds/audit/findings.md` (stack, deps scopes) when fresh (`git_hash == HEAD` AND current run-cycle), own audit otherwise.
 - **State-exempt:** per-group commits are git checkpoints; re-run continues from remaining groups.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.

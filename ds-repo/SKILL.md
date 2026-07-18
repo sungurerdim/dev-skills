@@ -33,7 +33,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 
 - Only manages repository settings and structure — not code quality.
 - Every recommendation cites a specific setting or file.
-- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.

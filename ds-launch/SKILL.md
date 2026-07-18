@@ -30,7 +30,7 @@ description: Store and release management — store submission, listing optimiza
 
 - Covers store account setup, listing metadata, review preparation, release management; generates checklists + metadata — does NOT submit to stores directly.
 - Minimal liability + maximum privacy + maximum automation: store-compliant metadata + common rejection flags; privacy labels with minimal data-collection focus; version management + release notes generation + staged rollout.
-- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.

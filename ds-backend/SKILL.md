@@ -182,7 +182,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 ### Phase 2: Discover
 
-1. **Findings file check:** fresh `git_hash` → use relevant findings.
+1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → use relevant findings. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 2. Search for route/endpoint definitions, controller files, middleware.
 3. Search for DB schema files (migrations, models, entity definitions).
 4. Search for auth configuration (JWT secret usage, session config, OAuth setup).
