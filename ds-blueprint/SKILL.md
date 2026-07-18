@@ -280,8 +280,12 @@ Build from Discovery + Assess:
    git_hash: {HEAD}
    timestamp: {ISO 8601}
    source: ds-blueprint
+   skillset: {dev-skills@hash | unknown}
    scopes: security, privacy, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance, robustness, production-readiness, testing, functional-completeness, stack, stack-fitness, dx, external-tooling, docs, spec-alignment
    -->
+   ```
+   `skillset:` = the rule-set version that performed this scan — read `.dev-skills-version` beside the host's installed skills directory (e.g. `~/.claude/skills/.dev-skills-version`); absent → `unknown`. Prior-cycle findings carrying a **different** `skillset` → announce `rule-set delta: {old} → {new}` in the dashboard and summary: previously-clean scopes flagging now is expected new detection under upgraded rules, not project regression — never suppress such findings as "was clean last time".
+   ```
 
    ## Findings
 

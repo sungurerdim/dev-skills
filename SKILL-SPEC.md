@@ -478,7 +478,7 @@ Seventeen weaknesses observed in AI coding assistants. **W1–W11 are universal*
 - **Cross-cycle recency is never a skip reason (mirror of W11):** findings from any previous cycle — however recent — are prior context, not a scan substitute. Use them for diffing (previously-flagged → resolved/still present?) and prioritization; then re-run the scan in full. A new invocation always starts a new cycle.
 - Stale or missing findings → **orchestrated run** (under `/ds-ship` or another conductor): invoke `/ds-blueprint --preview --scope=all` (or `--refresh`), wait, re-read — never fall through to own detection. **Standalone run**: announce `findings stale — running own {scopes} analysis`, run own scoped analysis, append results with the consumer's `source` + current `git_hash`; the next blueprint full run dedups (see Recovery). Own detection without the announcement remains a violation.
 - Consumer summary MUST cite the producing skill of each finding (`source: ds-blueprint` from meta header) so duplicates are visible.
-- If consumer adds new scope-level findings beyond what blueprint produced, append to `ds/audit/findings.md` with the consumer skill name as `source` and matching `git_hash`.
+- If consumer adds new scope-level findings beyond what blueprint produced, append to `ds/audit/findings.md` with the consumer skill name as `source`, matching `git_hash`, and its own `skillset` stamp (from `.dev-skills-version` beside the installed skills directory; absent → `unknown`).
 
 **Recovery:** On a duplicate `file:line` hit, keep the higher-severity record and drop the other. On hash mismatch or a findings file from a previous cycle, bootstrap blueprint refresh before continuing — prior-cycle rows become the diff baseline, never the result.
 
