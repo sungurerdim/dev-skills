@@ -7,7 +7,7 @@
      SSOT = the CONFIG object near the bottom. Fill {placeholder} slots; never load anything over the network.
      Security: text goes in via textContent / DOM nodes only. No innerHTML with data. No inline on* handlers.
      Color inputs (theme + CONFIG colors) pass safeColor() regex before being applied (CSS-injection defense).
-     Optional blocks are tagged ds-opt:NAME (calc, pills, strip, lawtext, search, theme): paired
+     Optional blocks are tagged ds-opt:NAME (calc, pills, strip, lawtext, search, theme, chart): paired
      ds-opt:NAME … /ds-opt:NAME for multi-line, or a trailing /* ds-opt:NAME */ on a single line.
      Build phase (Phase 4 prune) deletes the CSS+HTML of any ds-opt block the brief does not use, so
      each report ships only the CSS it needs. Untagged = core (always kept). JS handlers are null-guarded:
@@ -26,6 +26,7 @@
   /* ---- derived (theme-reactive via color-mix; no hardcoded greys) ---- */
   --mut:color-mix(in srgb, var(--text) 52%, var(--bg));
   --line:color-mix(in srgb, var(--text) 13%, var(--bg));
+  --ctl:color-mix(in srgb, var(--text) 30%, var(--bg));   /* interactive-control borders: stronger than --line (light-border-on-white is a common a11y failure) */
   --okbg:color-mix(in srgb, var(--ok) 10%, var(--surface));
   --badbg:color-mix(in srgb, var(--bad) 9%, var(--surface));
   --warnbg:color-mix(in srgb, var(--warn) 12%, var(--surface));
@@ -37,42 +38,62 @@
   --measure:68ch;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--navH,56px) + 10px)}   /* sticky chrome never hides an anchor/focus target; --navH measured live */
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans",sans-serif;
-  background:var(--bg);color:var(--text);line-height:1.55;font-size:16px;-webkit-text-size-adjust:100%}
+  background:var(--bg);color:var(--text);line-height:1.55;font-size:16px;-webkit-text-size-adjust:100%;
+  overflow-wrap:break-word}   /* inherited wrap safety: long words/URLs never force horizontal overflow */
 [hidden]{display:none!important}
+h1,h2,h3{text-wrap:balance}
+p{text-wrap:pretty}
 .wrap{max-width:1080px;margin:0 auto;padding:0 var(--page-pad,clamp(16px,3vw,32px))}
-a{color:var(--accent)}
+a{color:var(--primary);text-underline-offset:2px}   /* text contrast: every theme primary clears 4.5:1 on surface; accents don't (slate #0ea5e9 = 2.7:1) */
 mark{background:color-mix(in srgb,var(--warn) 35%,var(--surface));color:inherit;padding:0 1px;border-radius:3px}     /* ds-opt:search */
 svg.ico{width:1em;height:1em;vertical-align:-.12em;flex:0 0 auto}
 .skip{position:absolute;left:8px;top:-60px;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 12px;z-index:9000}
 .skip:focus{top:8px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}   /* focus ring ≥3:1 on every theme (accent fails on slate/teal/amber) */
+.tool:focus-within{border-color:var(--primary)}
 
 header.top{background:linear-gradient(135deg,var(--primary),color-mix(in srgb,var(--primary) 70%,var(--accent)));color:#fff;padding:var(--space-m) 0 var(--space-s)}
 header.top h1{margin:0 0 6px;font-size:clamp(20px,2.6vw,28px);letter-spacing:.2px}
 header.top p{margin:0;opacity:.93;font-size:.93rem;max-width:var(--measure)}
-.meta{display:flex;flex-wrap:wrap;gap:var(--space-2xs);margin-top:var(--space-s)}
-.chip{display:inline-flex;align-items:center;gap:5px;font-size:.74rem;font-weight:700;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:3px 10px}
-.chip.conf-HIGH{background:color-mix(in srgb,var(--ok) 40%,transparent)}
-.chip.conf-MEDIUM{background:color-mix(in srgb,var(--warn) 40%,transparent)}
-.chip.conf-LOW{background:color-mix(in srgb,var(--bad) 40%,transparent)}
+/* KPI row — stat tiles (label / value / sub; meter for the coverage ratio). Dataviz: a handful of
+   headline numbers = KPI row, not chips; the meter's unfilled track is a lighter step of the same hue. */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:var(--space-xs);margin:var(--space-s) 0 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);min-width:0}
+.kpi .lbl{display:block;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.kpi .val{display:flex;align-items:center;font-size:clamp(21px,2.6vw,27px);font-weight:600;line-height:1.2;margin-top:3px}
+.kpi .val.date{font-size:1.02rem}
+.kpi .sub{display:block;font-size:.76rem;color:var(--mut);margin-top:3px}
+.dotb{width:10px;height:10px;border-radius:50%;flex:0 0 auto;margin-right:8px}
+.dotb.ok{background:var(--ok)}.dotb.warn{background:var(--warn)}.dotb.bad{background:var(--bad)}
+.meter{height:6px;border-radius:999px;margin-top:8px;overflow:hidden}
+.meter.ok{background:color-mix(in srgb,var(--ok) 15%,var(--surface))}
+.meter.warn{background:color-mix(in srgb,var(--warn) 16%,var(--surface))}
+.meter.bad{background:color-mix(in srgb,var(--bad) 14%,var(--surface))}
+.meter>i{display:block;height:100%;border-radius:999px;width:0;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.meter.ok>i{background:var(--ok)}.meter.warn>i{background:var(--warn)}.meter.bad>i{background:var(--bad)}
 
 .disclaimer{background:var(--warnbg);border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:var(--warn);font-size:.86rem;padding:9px 0}
 .disclaimer .wrap{display:flex;gap:8px;align-items:flex-start}
 
 nav.bar{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);box-shadow:var(--sh)}
 nav.bar .wrap{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px clamp(16px,3vw,32px);min-height:52px}
-.navbtn{border:1px solid var(--line);background:var(--surface);color:var(--text);padding:7px 12px;border-radius:999px;cursor:pointer;font-size:.86rem;font-weight:600;text-decoration:none}
+.navbtn{border:1px solid var(--ctl);background:var(--surface);color:var(--text);padding:7px 12px;border-radius:999px;cursor:pointer;font-size:.86rem;font-weight:600;text-decoration:none}
 .navbtn:hover{border-color:color-mix(in srgb,var(--primary) 30%,var(--line))}
+.navbtn[aria-current="true"]{background:color-mix(in srgb,var(--primary) 10%,var(--surface));border-color:color-mix(in srgb,var(--primary) 45%,var(--line));color:var(--primary)}
+#navTitle{font-weight:700;font-size:.9rem;flex:0 1 auto;min-width:0;max-width:16ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s;pointer-events:none}
+nav.bar.scrolled #navTitle{opacity:1;transform:none}
+#progress{position:absolute;left:0;bottom:-1px;height:2px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--primary),var(--accent))}
 .spacer{flex:1 1 auto;min-width:8px}
-.tool{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 10px;min-height:34px}
-.tool input{border:0;outline:0;font-size:.9rem;background:transparent;color:var(--text);min-width:120px}     /* ds-opt:search */
+.tool{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ctl);background:var(--surface);border-radius:999px;padding:6px 10px;min-height:34px}
+.tool input{border:0;outline:0;font-size:.9rem;background:transparent;color:var(--text);width:clamp(80px,12vw,160px);min-width:0}     /* ds-opt:search */
 .tool select{border:0;outline:0;background:transparent;color:var(--text);font-size:.85rem;font-weight:600;cursor:pointer}     /* ds-opt:theme */
 .printbtn{border:1px solid var(--primary);background:var(--primary);color:#fff;padding:7px 13px;border-radius:999px;cursor:pointer;font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;min-height:34px}
 
 main{padding:var(--space-s) 0 var(--space-xl)}
-.sec{margin:var(--space-l) 0 0;scroll-margin-top:64px}
+.sec{margin:var(--space-l) 0 0}   /* anchor offset handled globally by html scroll-padding-top (live --navH) */
 .sec+.sec{border-top:1px solid var(--line);padding-top:var(--space-l)}     /* 1px section rhythm, not big gaps */
 .sec>h2{font-size:clamp(19px,2.4vw,26px);margin:0 0 8px;position:relative;padding-bottom:7px}
 .sec>h2::after{content:"";position:absolute;left:0;bottom:0;width:36px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--primary),var(--accent))}  /* accent bar */
@@ -115,6 +136,27 @@ ul.dot li::before{content:"•";position:absolute;left:0;color:var(--accent);fon
 .badge.dogrulanmadi{background:var(--badbg);color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line))}
 /* (confirmed datums use normal styling — no "confirmed" badge, per verification.md) */
 
+/* ds-opt:chart — comparison bars. Dataviz specs: single hue (theme primary), bar 18px ≤ 24px cap,
+   4px rounded data-end + square baseline, 2px surface gaps, hairline baseline, value at the tip in
+   text tokens (never the series color). Emphasis form: hl:true keeps the primary hue and every other
+   row is auto-dimmed to gray (validated — primary vs accent pairs FAIL ΔE on indigo/rose themes). */
+figure.chartfig{margin:12px 0 0}
+.chart{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.chart .row{display:grid;grid-template-columns:minmax(90px,15ch) 1fr;gap:0 10px;align-items:center;border-radius:6px}
+.chart .row:hover{background:color-mix(in srgb,var(--primary) 6%,transparent)}
+.chart .cl{font-size:.84rem;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chart .track{display:flex;align-items:center;gap:8px;min-width:0;border-left:1px solid var(--line);padding:1px 0}
+.chart .plot{flex:1 1 auto;min-width:0}   /* bar width is % of this box, value label sits outside it — the two can never overlap */
+.chart .bar{display:block;height:18px;border-radius:0 4px 4px 0;background:var(--primary);min-width:2px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.chart .row.dim .bar{background:color-mix(in srgb,var(--text) 25%,var(--surface))}
+.chart .cv{font-size:.84rem;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap;flex:0 0 auto}
+@media(max-width:380px){.chart .row{grid-template-columns:1fr}.chart .cl{white-space:normal}}   /* label stacks above its bar instead of squeezing */
+/* /ds-opt:chart */
+
+#toTop{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:40;width:40px;height:40px;border:1px solid var(--ctl);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--sh);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+#toTop.show{opacity:1;pointer-events:auto}
+@media(pointer:coarse){.navbtn,.printbtn,.tool,.lawbtn{min-height:44px}#toTop{width:48px;height:48px}}   /* touch target ≥44px on coarse pointers */
+
 /* ds-opt:pills — pill-chip dense listing (instead of half-empty cards) */
 .pills{display:flex;flex-wrap:wrap;gap:var(--space-xs)}
 .pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:8px;font-size:.9rem}
@@ -122,7 +164,7 @@ ul.dot li::before{content:"•";position:absolute;left:0;color:var(--accent);fon
 /* /ds-opt:pills */
 
 /* ds-opt:lawtext — verbatim official text */
-.lawbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--accent);margin:8px 6px 0 0}
+.lawbtn{border:1px solid var(--ctl);background:var(--surface);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--primary);margin:8px 6px 0 0}
 .lawtext{display:none;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82rem;line-height:1.5;background:#0e1b25;color:#e6eef5;border-radius:10px;padding:14px;margin:8px 0;overflow-x:auto}
 .lawtext.show{display:block}
 .lawtext .src{display:block;margin-top:10px;color:#8fb6c9} .lawtext .src a{color:#9fd3e6}
@@ -148,17 +190,20 @@ caption{caption-side:bottom;color:var(--mut);font-size:.76rem;text-align:left;pa
 .frow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:8px 0}
 .field{display:flex;flex-direction:column;gap:4px;min-width:150px;flex:1 1 150px}
 .field label{font-size:.82rem;color:var(--mut);font-weight:600}
-.field input,.field select{padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-size:.92rem;background:var(--surface);color:var(--text)}
+.field input,.field select{padding:8px 10px;border:1px solid var(--ctl);border-radius:9px;font-size:.92rem;background:var(--surface);color:var(--text)}
 .calcout{margin-top:10px;background:#0e1b25;color:#e6eef5;border-radius:10px;padding:12px 14px;font-size:.95rem}.calcout b{color:#7fe3b0}
 /* /ds-opt:calc */
 
 .unknown li{margin:8px 0}.unknown .q{font-weight:700}.unknown .why{color:var(--mut);font-size:.9rem}
 footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area-inset-bottom));color:var(--mut);font-size:.82rem;text-align:center;background:var(--surface)}
 
+@media(max-width:900px){#navTitle{display:none}}   /* condensed title only where a single nav row fits */
 @media(max-width:640px){nav.bar .wrap{min-height:0;row-gap:4px}}
 
 @media print{
-  nav.bar,.tool,.printbtn,.navbtn,.lawbtn,.spacer,.skip{display:none!important}
+  nav.bar,.tool,.printbtn,.navbtn,.lawbtn,.spacer,.skip,#toTop,#progress{display:none!important}
+  .kpi{box-shadow:none;break-inside:avoid}
+  figure.chartfig,.chart .row{break-inside:avoid}
   details.acc>.body,.lawtext{display:block!important}
   details.acc>summary::before{display:none}
   body{background:#fff;color:#000}
@@ -166,7 +211,6 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   .lawtext{background:#fff;color:#000;border:1px solid #999}.lawtext .src,.lawtext .src a{color:#333}
   a[href]:after{content:" (" attr(href) ")";font-size:.7em;color:#555}
   header.top{background:#fff;color:#000;border-bottom:2px solid #000}
-  .chip{background:#eee;color:#000;border-color:#999}
   .sec+.sec{border-top:1px solid #ccc}
 }
 </style>
@@ -177,12 +221,6 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 <header class="top"><div class="wrap">
   <h1 data-cfg="title">{REPORT_TITLE}</h1>
   <p data-cfg="subtitle">{ONE_LINE_DESCRIPTION}</p>
-  <div class="meta">
-    <span class="chip" id="confChip">Confidence: <span data-cfg="confidence">{HIGH|MEDIUM|LOW}</span></span>
-    <span class="chip">2x-confirmed: <span data-cfg="coveragePct">{NN}</span>%</span>
-    <span class="chip">Sources: <span data-cfg="sourceCount">{N}</span></span>
-    <span class="chip">Accessed: <span data-cfg="accessDate">{YYYY-MM-DD}</span></span>
-  </div>
 </div></header>
 
 <div class="disclaimer"><div class="wrap">
@@ -191,6 +229,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 </div></div>
 
 <nav class="bar"><div class="wrap" id="navLinks">
+  <span id="navTitle" data-cfg="title" aria-hidden="true">{REPORT_TITLE}</span>
   <a class="navbtn" href="#ozet">Summary</a>
   <a class="navbtn" href="#bulgular">Findings</a>
   <a class="navbtn" href="#unknowns">Unknowns</a>
@@ -215,9 +254,25 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
     Print / PDF
   </button>
-</div></nav>
+</div><div id="progress" aria-hidden="true"></div></nav>
 
 <main class="wrap" id="content">
+
+  <!-- KPI row: report trust metrics as stat tiles (label / value / sub). Meter classes + dot color set by wireKpis(). -->
+  <section class="kpis" aria-label="Report metrics">
+    <div class="kpi"><span class="lbl">Confidence</span>
+      <span class="val"><span class="dotb" id="confDot" aria-hidden="true"></span><span data-cfg="confidence">{HIGH|MEDIUM|LOW}</span></span>
+      <span class="sub" data-cfg="confidenceNote">{one-line basis, e.g. "all key datums 2x-confirmed"}</span></div>
+    <div class="kpi"><span class="lbl">2x-confirmed</span>
+      <span class="val"><span data-cfg="coveragePct">{NN}</span>%</span>
+      <div class="meter" id="covMeter" role="img"><i id="covFill"></i></div></div>
+    <div class="kpi"><span class="lbl">Sources</span>
+      <span class="val" data-cfg="sourceCount">{N}</span>
+      <span class="sub"><span data-cfg="officialCount">{n}</span> official · <span data-cfg="secondaryCount">{m}</span> secondary</span></div>
+    <div class="kpi"><span class="lbl">Accessed</span>
+      <span class="val date" data-cfg="accessDate">{YYYY-MM-DD}</span>
+      <span class="sub">Generated: <span data-cfg="generatedAtShort">{YYYY-MM-DD}</span></span></div>
+  </section>
 
   <section class="sec" id="ozet">
     <h2>Summary</h2>
@@ -272,6 +327,19 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       <p class="src">{context-only statement with no qualifying source} <span class="badge dogrulanmadi">unverified</span></p>
     </div>
 
+    <!-- ds-opt:chart — comparison bars when the topic has 2-7 comparable magnitudes (rates, prices,
+         limits). Rows built by renderCharts() from CONFIG.charts (safe DOM). Every value is direct-
+         labeled at the bar tip AND repeated in the data table, so no tooltip layer is needed.
+         >7 items → table only, never more bars. hl:true = the story's item (accent); others stay primary. -->
+    <figure class="card chartfig">
+      <figcaption><h3>{CHART_TITLE}</h3><p class="src">{unit / period} · <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></p></figcaption>
+      <div class="chart" id="chart1" role="img" aria-label="{CHART_TITLE} — values listed in the data table below"></div>
+      <details class="acc"><summary>Data table</summary><div class="body tblwrap">
+        <table><thead><tr><th>{Item}</th><th>{Value}</th></tr></thead><tbody id="chart1-table"></tbody></table>
+      </div></details>
+    </figure>
+    <!-- /ds-opt:chart -->
+
     <!-- ds-opt:strip — two-column strip packs related blocks side by side (shortens the page) -->
     <div class="strip">
       <div class="card"><h3>{left block}</h3><p>{content}</p></div>
@@ -317,6 +385,10 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 
 </main>
 
+<button id="toTop" type="button" aria-label="Back to top">
+  <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>
+</button>
+
 <footer><div class="wrap" data-cfg="footer">Sources as of access date | Single file, fully offline | Generated: <span data-cfg="generatedAt">{ISO}</span></div></footer>
 
 <script>
@@ -325,12 +397,16 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 const CONFIG = {
   title:"{REPORT_TITLE}", subtitle:"{ONE_LINE_DESCRIPTION}",
   summary:"{EXECUTIVE_SUMMARY}",
-  confidence:"{HIGH|MEDIUM|LOW}", coveragePct:"{NN}", sourceCount:"{N}",
-  accessDate:"{YYYY-MM-DD}", generatedAt:"{ISO}",
+  confidence:"{HIGH|MEDIUM|LOW}", confidenceNote:"{one-line basis}", coveragePct:"{NN}",
+  sourceCount:"{N}", officialCount:"{n}", secondaryCount:"{m}",
+  accessDate:"{YYYY-MM-DD}", generatedAt:"{ISO}", generatedAtShort:"{YYYY-MM-DD}",
   palette:"slate",   // default theme; one of THEMES keys
   disclaimer:"For informational purposes only; not binding or professional advice. Data may change; confirm decisions with the official source.",
   footer:"Sources as of access date | Single file, fully offline",
-  someValue:"{N}"    // topic scalars referenced by [data-cfg]
+  someValue:"{N}",   // topic scalars referenced by [data-cfg]
+  charts:[           /* ds-opt:chart — comparison bars; prune the key with the block when unused */
+    // {id:"chart1", unit:"{unit}", items:[{label:"{item}", value:12.5, display:"{optional formatted}", hl:false, dim:false}]}
+  ]
 };
 
 // ---- embedded palettes (akis palettes.js). Each sets the brand 5; semantic colors stay constant. ----
@@ -366,7 +442,87 @@ function fillConfig(){
     const k = el.getAttribute("data-cfg");
     if (Object.prototype.hasOwnProperty.call(CONFIG, k)) el.textContent = CONFIG[k];
   });
-  const cc = document.getElementById("confChip"); if (cc) cc.classList.add("conf-" + CONFIG.confidence);
+}
+// KPI tiles: confidence dot (color never alone — the text label is beside it) + coverage meter severity
+function wireKpis(){
+  const dot = document.getElementById("confDot");
+  const cls = {HIGH:"ok", MEDIUM:"warn", LOW:"bad"}[String(CONFIG.confidence).toUpperCase()];
+  if (dot && cls) dot.classList.add(cls);
+  const m = document.getElementById("covMeter"), f = document.getElementById("covFill");
+  if (m && f){
+    const pct = Math.max(0, Math.min(100, parseFloat(CONFIG.coveragePct) || 0));
+    m.classList.add(pct >= 80 ? "ok" : pct >= 50 ? "warn" : "bad");
+    f.style.width = pct + "%";
+    m.setAttribute("aria-label", pct + "% of datums confirmed by 2+ independent sources");
+  }
+}
+// sticky nav: condensed title after the header scrolls out, scrollspy aria-current, progress bar, back-to-top
+function wireSticky(){
+  const bar = document.querySelector("nav.bar"), hdr = document.querySelector("header.top");
+  if (bar){   // live nav height -> --navH drives html scroll-padding-top (nav wraps to 2 rows on narrow screens)
+    const setH = function(){ document.documentElement.style.setProperty("--navH", bar.offsetHeight + "px"); };
+    if ("ResizeObserver" in window) new ResizeObserver(setH).observe(bar);
+    setH();
+  }
+  if (bar && hdr && "IntersectionObserver" in window){
+    new IntersectionObserver(function(en){ bar.classList.toggle("scrolled", !en[0].isIntersecting); }, {threshold:0}).observe(hdr);
+  }
+  const links = [].slice.call(document.querySelectorAll(".navbtn[href^='#']"));
+  const byId = {}; links.forEach(function(a){ byId[a.getAttribute("href").slice(1)] = a; });
+  const secs = [].slice.call(document.querySelectorAll("main .sec[id]")).filter(function(s){ return byId[s.id]; });
+  if (secs.length && "IntersectionObserver" in window){
+    const spy = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (!e.isIntersecting) return;
+        links.forEach(function(a){ a.removeAttribute("aria-current"); });
+        byId[e.target.id].setAttribute("aria-current", "true");
+      });
+    }, {rootMargin:"-40% 0px -55% 0px"});
+    secs.forEach(function(s){ spy.observe(s); });
+  }
+  const prog = document.getElementById("progress"), toTop = document.getElementById("toTop");
+  let ticking = false;
+  function onScroll(){
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(function(){
+      ticking = false;
+      const h = document.documentElement, max = h.scrollHeight - h.clientHeight;
+      if (prog) prog.style.transform = "scaleX(" + (max > 0 ? Math.min(1, h.scrollTop / max) : 0) + ")";
+      if (toTop) toTop.classList.toggle("show", h.scrollTop > 600);
+    });
+  }
+  window.addEventListener("scroll", onScroll, {passive:true}); onScroll();
+  if (toTop) toTop.addEventListener("click", function(){ window.scrollTo({top:0}); });
+}
+// ds-opt:chart — bars + data-table rows from CONFIG.charts, safe DOM only (no innerHTML)
+function renderCharts(){
+  (CONFIG.charts || []).forEach(function(c){
+    const host = document.getElementById(c.id); if (!host) return;
+    const items = (c.items || []).filter(function(it){ return isFinite(Number(it.value)); });
+    if (!items.length) return;
+    const max = Math.max.apply(null, items.map(function(it){ return Number(it.value); }));
+    const tbody = document.getElementById(c.id + "-table");
+    const hasHl = items.some(function(it){ return it.hl; });   // emphasis: hl keeps hue, rest go gray
+    items.forEach(function(it){
+      const shown = it.display != null ? String(it.display) : String(it.value) + (c.unit ? " " + c.unit : "");
+      const row = document.createElement("div");
+      row.className = "row" + ((it.dim || (hasHl && !it.hl)) ? " dim" : "");
+      const cl = document.createElement("span"); cl.className = "cl"; cl.textContent = it.label; cl.title = it.label;
+      const track = document.createElement("span"); track.className = "track";
+      const plot = document.createElement("span"); plot.className = "plot";
+      const barEl = document.createElement("i"); barEl.className = "bar";
+      barEl.style.width = (max > 0 ? (Number(it.value) / max * 100) : 0) + "%";
+      const cv = document.createElement("span"); cv.className = "cv"; cv.textContent = shown;
+      plot.appendChild(barEl); track.appendChild(plot); track.appendChild(cv);
+      row.appendChild(cl); row.appendChild(track); host.appendChild(row);
+      if (tbody){
+        const tr = document.createElement("tr");
+        const td1 = document.createElement("td"); td1.textContent = it.label;
+        const td2 = document.createElement("td"); td2.textContent = shown;
+        tr.appendChild(td1); tr.appendChild(td2); tbody.appendChild(tr);
+      }
+    });
+  });
 }
 function wireTheme(){
   let initial = CONFIG.palette;
@@ -431,7 +587,7 @@ function wirePrint(){
   });
 }
 document.addEventListener("DOMContentLoaded", function(){
-  fillConfig(); wireTheme(); wireLawToggles(); wireSearch(); wirePrint(); openHashDetails();
+  fillConfig(); wireKpis(); wireSticky(); renderCharts(); wireTheme(); wireLawToggles(); wireSearch(); wirePrint(); openHashDetails();
   window.addEventListener("hashchange", openHashDetails);
 });
 </script>

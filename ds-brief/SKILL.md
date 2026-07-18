@@ -99,9 +99,10 @@ Read the artifact; apply the [references/verification.md](references/verificatio
 
 Build only by cloning `assets/brief-template.html` (never generate HTML from scratch). Fill these slots:
 
-- `CONFIG` SSOT — `palette` defaults to `slate` unless the topic suggests another of the 6 embedded themes
+- `CONFIG` SSOT — `palette` defaults to `slate` unless the topic suggests another of the 6 embedded themes; trust scalars (`confidence`, `confidenceNote`, `coveragePct`, `sourceCount`, `officialCount`, `secondaryCount`, dates) feed the KPI stat-tile row
 - Nav links matching section ids · sections · source chips (official/secondary by tier) · semantic colors (constant across themes)
-- Verbatim `.lawtext` blocks (extracted, not paraphrased) · badges · Unknowns section · Sources table · confidence + `validationCoverage` in the header
+- Verbatim `.lawtext` blocks (extracted, not paraphrased) · badges · Unknowns section · Sources table · KPI row (confidence + coverage meter + sources + access date) as the first block of `main`
+- `CONFIG.charts` (ds-opt:chart) **only when the topic has 2-7 comparable magnitudes** (rates, costs, limits) — single hue, `hl` for the story's item, auto-built data table; >7 items → table, never more bars (rules: [references/report-template.md](references/report-template.md) § Dataviz layer)
 
 Then: localize all visible UI labels to the request language; use the compact primitives (fluid spacing, intrinsic `.grid.auto`, `.strip`, `.pills`, 1px section rhythm, accent-bar headings) and native `<details>` collapsibles. Add an interactive calculator/scenario **only when the topic genuinely computes something**; `--no-interactive` → minimal JS, everything expanded. **Prune:** delete every unused `ds-opt:NAME` block (CSS + HTML) so each report ships only the CSS it needs. Apply [references/report-template.md](references/report-template.md).
 
@@ -115,7 +116,7 @@ Then: localize all visible UI labels to the request language; use the compact pr
 
 ### Phase 6: Output
 
-Write the HTML, then verify: offline-open (no network reference), clean print preview (chrome hidden, collapsibles force-open, page breaks clean), mobile width (no overflow at ≤480px). Emit summary + Value Delivered.
+Write the HTML, then verify: offline-open (no network reference, zero console errors), clean print preview (chrome hidden, collapsibles force-open, page breaks clean), mobile width (no horizontal overflow at ≤480px and at 320px), anchor links land below the sticky nav, chart row count equals its data-table row count (when charts used). Emit summary + Value Delivered.
 
 **Summary:**
 ```
