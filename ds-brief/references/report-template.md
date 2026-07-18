@@ -13,7 +13,7 @@ Distilled from four hand-built guides (gvk-20b, vergi-kilavuzu ×2, is-hukuku) a
 | Verbatim quote | Official text (law, spec, standard) shown byte-for-byte in a monospace `.lawtext` block + a source line. Quote is *extracted*, never paraphrased or generated. |
 | Access date + disclaimer | Every report shows source access dates (and publication dates in the Sources table; `unknown` when undated) plus an "informational only — not advice or a binding opinion" notice. |
 | Unknowns section | Mandatory closing section listing open questions (what was sought, not found, why). |
-| Confidence + coverage | Header/summary shows overall confidence (HIGH/MEDIUM/LOW) and `validationCoverage` (% of datums 2×-confirmed). |
+| Confidence + coverage | A **KPI stat-tile row** (first block of `main`) shows Confidence (colored dot + text label — never color alone), 2×-confirmed % (with a severity meter), source count (official/secondary split), and access date. Tile contract: uppercase label · large value (proportional figures, fluid `clamp()` size) · muted sub-line. |
 
 ## Print / PDF discipline (the new emphasis)
 
@@ -43,16 +43,28 @@ A visible **"🖨 Print / PDF"** button calls `window.print()` → the browser's
 - **Pill-chip dense listing (`.pills`/`.pill`):** short items as tight rounded chips with a gradient-dot bullet — never half-empty cards.
 - Readable measure: long body text capped at `--measure: 68ch`.
 
+## Dataviz layer (validated 2026-07-18, dataviz-skill six-checks)
+
+- **KPI tiles + meter:** headline numbers are stat tiles, never chips or a one-bar chart. The coverage meter's fill carries severity (`ok ≥80 / warn ≥50 / bad <50`), its unfilled track is a **lighter step of the same hue** (`color-mix` 15%), and it carries an `aria-label` with the plain-language reading.
+- **Comparison bars (`ds-opt:chart`):** only for 2–7 comparable magnitudes (rates, costs, limits); >7 items → table only. Single hue: fill = **theme `--primary`** (all 6 themes ≥3:1 on surface — validator PASS). **Emphasis form:** `hl:true` keeps the primary hue and every other row is auto-dimmed to gray — never primary-vs-accent (validator: indigo ΔE 7.9, rose 13.6 = normal-vision FAIL; 4 accents < 3:1 contrast). The dim gray's contrast WARN is relieved as the validator requires: every bar carries a direct value label and a `<details>` data table is built from the same items.
+- **Mark specs:** bar 18px (≤24 cap), 4px rounded data-end + square baseline, 2px surface gaps between rows, 1px hairline baseline, labels/values in text tokens (never the series color).
+- **Value placement (deliberate deviation):** values sit in a fixed right-aligned column (an implicit value axis), not at each bar tip — guarantees zero label/mark overlap at every viewport width; the data table carries exact values. Tooltips are omitted: every mark is already direct-labeled + tabled.
+- Re-run `dataviz` skill's `scripts/validate_palette.js` before changing any theme, semantic, or chart color.
+
 ## Interaction (adaptive)
 
-**Always on:** sticky nav, theme switcher, live search with `<mark>` highlight (auto-opens any `<details>` containing a match), source chips, verbatim-text toggles.
+**Always on:** sticky nav with **condensed report title** (appears when the header scrolls out; hidden ≤900px), **scrollspy** (`aria-current` on the active section's nav button), **reading-progress bar** (2px gradient under the nav), **back-to-top** button (appears after 600px), theme switcher, live search with `<mark>` highlight (auto-opens any `<details>` containing a match), source chips, verbatim-text toggles.
 **Collapsibles = native `<details>/<summary>`** (work with zero JS; `id` + hash deep-link opens the target on load/`hashchange`).
 **Topic-dependent (only if it genuinely helps, e.g. tax / labor / pricing):** interactive calculator, scenario wizard. Don't add a calculator to a topic that has nothing to compute.
 **`--no-interactive`:** minimal JS, document-pure output (everything expanded, no toggles) — safest for archival/printing.
 
 ## Layout & a11y
 
-- Responsive via intrinsic grids + fluid spacing; canonical breakpoints only when truly needed (`640` for nav wrap).
+- Responsive via intrinsic grids + fluid spacing; canonical breakpoints only when truly needed (`900` condensed nav title, `640` nav wrap, `380` chart label stacking).
+- **Wrap/overlap discipline:** `overflow-wrap:break-word` inherited from `body` (long words/URLs never force horizontal overflow — test 320px); `text-wrap:balance` on headings, `pretty` on paragraphs; every grid/flex child that can shrink carries `min-width:0`; chart bars grow inside a dedicated `.plot` box so the value column can never be overlapped.
+- **Sticky-chrome offset is measured, not hardcoded:** JS keeps `--navH` = live nav height (ResizeObserver); `html{scroll-padding-top:calc(var(--navH) + 10px)}` so anchors and tabbed-to elements never land under the bar, even when the nav wraps to two rows.
+- **Contrast rules:** links + focus ring + law-button text use `--primary`, never `--accent` (accents fail 4.5:1 text / 3:1 focus contrast on several themes — slate `#0ea5e9` = 2.7:1). Interactive-control borders use `--ctl` (30% text mix), stronger than the decorative `--line` (13%).
+- **Touch targets:** `@media(pointer:coarse)` bumps nav buttons / tools / print / law buttons to ≥44px and back-to-top to 48px.
 - Semantic HTML5 (`header`, `nav`, `main`, `section`, `footer`, `h1-h3`, `ul/li`, `details/summary`).
 - **Skip link** (`.skip`) first in `<body>`; `prefers-reduced-motion` guard disables transitions; `[hidden]{display:none!important}` wins specificity battles.
 - **Inline SVG icons** (`svg.ico`, `currentColor`) for search/print/theme — no emoji in structural controls (cleaner print), no icon font.
