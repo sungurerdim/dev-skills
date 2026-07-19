@@ -190,6 +190,10 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 **Gate:** User has provided new direction or confirmed abort. If fails (no response) → after one re-prompt, treat as abort; proceed to Summary with status FAIL, recording all plans and step dispositions with `objective_not_achieved` noted.
 
+### Mechanical Done Gate (SKILL-SPEC §4) [any file modified]
+
+Per-step verification criteria are the step-level arm; the objective also needs the project-level one. Resolve `{check-cmd}` at Setup — ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision. Capture its baseline during Setup's quick check; baseline red → done condition is "no *new* red", baseline reds recorded as findings, never inherited as green. Before Phase 9: run the full `{check-cmd}` once — per-step greens can compose into a red. New red → treat as "all steps pass but final verification fails" (Edge Cases): fix within budget or enter Re-plan; budget exhausted → revert the offending step's changes (`git checkout -- {files}`), disposition `failed (mechanical gate)`. The aggregate run's exact command + observed output is the Completion Evidence; status `OK` requires no new red.
+
 ### Phase 9: Summary
 
 **Mandatory.** Always execute, always produce output. FRC+DSC accounting. **Output:**

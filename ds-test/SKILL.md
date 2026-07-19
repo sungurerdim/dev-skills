@@ -191,7 +191,7 @@ Capture current actual behavior of a legacy module as a characterization baselin
 
 ### Phase 3: Verify
 
-After any generate/update/fix: (1) run full test suite (or scoped subset); (2) all generated/modified tests must pass; (3) no previously passing test should now fail (regression check); (4) report coverage delta if coverage tool is configured.
+After any generate/update/fix: (1) run full test suite (or scoped subset); (2) all generated/modified tests must pass; (3) no previously passing test should now fail (regression check); (4) report coverage delta if coverage tool is configured; (5) **Mechanical Done Gate (SKILL-SPEC §4):** generated/modified test files pass the project's lint/type checks too — resolve `{check-cmd}` from the ds-quality enforcement arm when installed (stop-hook / pre-commit hook / auto-lint), else stack-native lint/type commands, and run it on the touched test files; a test that passes but breaks the lint/type gate blocks "done" the same as a failing test (≤3 fix attempts, then revert the test file via `git checkout -- {test-file}`, disposition `failed (mechanical gate)`). The full-suite run's exact command + observed output is the Completion Evidence; a red that predates this run is reported red-at-baseline, never inherited as green.
 
 **Gate:** All generated tests pass; zero regressions. If fails → collect runner output per failing test, classify (test wrong / app wrong / environment / flaky). Fix test-side inline (max 3 iterations per test). App-bug failures → write to `ds/audit/findings.md` with scope `app-bugs`. Environment → surface setup instructions. Do not commit failing tests — note as `failing` for the summary, report count in summary.
 

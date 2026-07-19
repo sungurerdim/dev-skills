@@ -160,7 +160,9 @@ Per [references/rules-scaffold.md](references/rules-scaffold.md). Generate indep
 4. CI workflow references correct paths and commands.
 5. **Twelve-Factor checks** on generated artifacts ([references/principles.md §3](references/principles.md)): `Dockerfile` logs to stdout (no `--logfile=` paths), binds via `$PORT` env var (no hardcoded ports), runs as non-root `USER`, has `HEALTHCHECK`. `docker-compose.yml` uses `restart: unless-stopped`, externalizes config via `environment:` from `.env`. Every CI action is SHA-pinned.
 
-**Gate:** All verifications pass. If fails → fix inline (correct YAML, add missing `.gitignore` entry, remove hardcoded port), re-verify once; if not auto-fixable (e.g., SHA-pin needs network lookup), insert `# TODO: SHA-pin this action` comment, mark `partial`, surface HIGH finding — do not block summary.
+6. **Mechanical Done Gate (SKILL-SPEC §4):** the scaffold's own toolchain is `{check-cmd}` — the exact format/lint/type/test commands the generated configs define. Dependencies installed (or installable with one standard command the user approved) → run `{check-cmd}` once; the example test + lint pass green is the proof the scaffold actually works. Red → fix the generated file, re-run the same command (≤3 attempts); still red → record `failed (mechanical gate)` with the captured error for that file, surface HIGH. Toolchain not runnable in this environment (no install approval, offline) → mark every generated config `unverified — {check-cmd} not run`, list the exact commands under Next steps, and never claim the scaffold verified.
+
+**Gate:** All verifications pass, and `{check-cmd}` ran green or every skipped check is explicitly marked `unverified`. If fails → fix inline (correct YAML, add missing `.gitignore` entry, remove hardcoded port), re-verify once; if not auto-fixable (e.g., SHA-pin needs network lookup), insert `# TODO: SHA-pin this action` comment, mark `partial`, surface HIGH finding — do not block summary.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 

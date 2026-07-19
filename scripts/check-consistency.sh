@@ -178,8 +178,16 @@ for d in ds-*/; do
   done
 done
 
+# 18. v5 — Mechanical Done Gate: every code-modifying skill carries the gate
+#     (SKILL-SPEC section 4, Mechanical Done Gate). List = skills that create or
+#     modify project files; read-only/planning skills are exempt by design.
+for s in ds-compliance ds-freeze ds-init ds-backend ds-frontend ds-mobile ds-review ds-simplify ds-fix ds-test ds-deps ds-tune ds-solve ds-issue ds-commit; do
+  grep -q "Mechanical Done Gate" "$s/SKILL.md" 2>/dev/null \
+    || err "$s/SKILL.md missing Mechanical Done Gate (SKILL-SPEC section 4 — code-modifying skill)"
+done
+
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate all consistent"
 else
   exit 1
 fi

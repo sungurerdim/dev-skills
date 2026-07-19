@@ -188,12 +188,13 @@ Record every decision. Batch pending deletions by scope.
 Per approved batch:
 
 1. Apply the deletion / inline / compaction in-place.
-2. Re-run the project's quick test command directly (`npm test --bail`, `go test ./...`, `pytest -x`, `flutter test`, etc. — fail-fast variant). Test failure → restore the batch's files (`git restore -- {files}` — no commit exists yet at this step), mark `failed (tests broke)`, continue to next scope.
+2. **Mechanical Done Gate (SKILL-SPEC §4):** run `{check-cmd}` — resolved in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command; else stack-native lint/type + fail-fast test (`npm test --bail`, `go test ./...`, `pytest -x`, `flutter test`); none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision. Baseline captured before the first batch; baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. New red (tests OR lint/type — a deletion can break the type graph with tests still green) → restore the batch's files (`git restore -- {files}` — no commit exists yet at this step), mark `failed (mechanical gate)` with the captured error, continue to next scope.
 3. Invoke `/ds-commit --single` with: `refactor(simplify): remove {n} {scope} findings`. Record commit hash.
+4. After the last batch: run the full `{check-cmd}` once — per-batch greens can compose into a red; the aggregate run's exact command + observed output is the Completion Evidence.
 
 Parallel execution per scope allowed. One commit per scope-batch so user can revert a single scope cleanly.
 
-**Gate:** Every approved batch either committed or cleanly rolled back; no test failures left in-tree. If fails → failure surfaces before the batch commit → `git restore -- {files}`; failure discovered after the commit landed → `git revert {batch-commit-hash}`; either way mark `failed (tests broke, rolled back)`, continue to next scope.
+**Gate:** Every approved batch either committed or cleanly rolled back; aggregate `{check-cmd}` shows no new red. If fails → failure surfaces before the batch commit → `git restore -- {files}`; failure discovered after the commit landed → `git revert {batch-commit-hash}`; either way mark `failed (mechanical gate, rolled back)`, continue to next scope. Never report `OK` with a new red.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 

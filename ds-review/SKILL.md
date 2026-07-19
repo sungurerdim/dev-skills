@@ -273,7 +273,7 @@ Under `--auto`: skip the menu — resolves to Fix All (respecting the confidence
 
 Apply fixes grouped by file: different files parallel; same file sequential (re-read after each edit); minimal diff, preserve surrounding style; before adding any import/API, verify it exists in codebase or deps; cross-module change → `needs_approval`.
 
-After all fixes: run available lint/type/test checks. New errors introduced → repeat fix-verify (max 3 iterations).
+**Mechanical Done Gate (SKILL-SPEC §4):** resolve `{check-cmd}` at setup — ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision, never silently skip. Capture the baseline before the first fix; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each fix batch: run `{check-cmd}` — new errors introduced → repeat fix-verify with the same command (max 3 iterations). Before Phase 7: run the full `{check-cmd}` once — per-batch greens can compose into a red; the aggregate run's exact command + observed output is the Completion Evidence, and a new red blocks `OK`.
 
 **Loop mode (`--loop`):** after applying: (1) re-read modified files + direct dependents (importers, callers); (2) re-analyze for new findings caused by fixes (cascade breakage); (3) new findings → apply fixes; (4) max 3 iterations — still issues after 3 → report remaining and stop.
 
