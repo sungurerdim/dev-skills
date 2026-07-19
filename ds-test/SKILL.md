@@ -57,8 +57,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | `--prune` | Find and delete low-value tests, replace with meaningful ones |
 | `--scope={path}` | Limit to specific file, directory, or module |
 | `--baseline[=path]` | Characterization baseline: capture current actual behavior of a legacy module before refactoring; tests assert what the code DOES today, not what it should do. Optional `=path` narrows to a specific file, directory, or module. |
-| `--auto` | No questions, generate + run + fix cycle |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 ### Mode Menu (no mode flag passed)
 
@@ -143,7 +142,7 @@ Per uncovered source file (or scoped path):
 
 1. Identify changed source files (from `git diff` or user-specified scope); per changed file, find its corresponding test file.
 2. Compare source changes: new params, renamed methods, changed return types, removed functions.
-3. Update test file: new params → update calls, add tests for new param edge cases; renamed method → update references; changed return type → update assertions; removed function → remove tests (with confirmation) or mark `skipped` with TODO; new function → generate new tests (per Phase 2a).
+3. Update test file: new params → update calls, add tests for new param edge cases; renamed method → update references; changed return type → update assertions; removed function → remove tests (with confirmation) or mark `skipped` with TODO; new function → generate new tests (per Phase 2a). Under `--auto`: skip the confirmation — removed-function tests are removed automatically (reversible via git), recorded in the summary.
 4. Run updated tests to verify passing.
 
 **Gate:** Updated tests pass; no previously passing tests regressed. If fails → previously passing test now fails → do not weaken assertion; revert test file via `git checkout -- {test-file}`, note `{ test, reason: "regression after update", disposition: "reverted" }` for the summary, write a finding to `ds/audit/findings.md` with scope `app-bugs` identifying the source change that broke the test.
@@ -171,7 +170,7 @@ Per uncovered source file (or scoped path):
 
 If no test framework exists:
 
-1. Detect stack from manifests; recommend canonical framework for stack (see [references/frameworks.md](references/frameworks.md)); ask user to confirm framework choice.
+1. Detect stack from manifests; recommend canonical framework for stack (see [references/frameworks.md](references/frameworks.md)); ask user to confirm framework choice. Under `--auto`: skip the question — the recommended canonical framework is selected automatically.
 2. Install + create config: add test dependency to manifest (`package.json`, `pyproject.toml`, etc.); create test config (`jest.config.ts`, `pytest.ini`, etc.); create test directory with example test; add test script to manifest (`"test": "vitest"` in `package.json` etc.); add test step to CI config if it exists.
 3. Run example test to verify setup works.
 
@@ -198,7 +197,7 @@ After any generate/update/fix: (1) run full test suite (or scoped subset); (2) a
 
 ### Phase 4: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the Unattended Mode rule-4 exception list are skipped and recorded `needs-human` instead.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → unresolved → mark `skipped (no response)` and proceed.
 
@@ -252,7 +251,7 @@ Every test MUST justify its existence by addressing a **concrete, specific risk*
 **Prune phase (`--prune` or part of `--auto`):** flag existing tests that provide no concrete value:
 
 1. Search for tests asserting only: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, 1:1 reimplementation of source code, or oversized snapshots (>100 lines — assert everything, verify nothing). Flag as CRITICAL (reward-hacking class, not merely low-value): assertions hard-coding expected outputs for special-cased known inputs, and test edits that weaken or bypass assertions to reach green.
-2. Present flagged tests as table `| # | Test | File:Line | Reason | Action |` grouped by Reason with counts; state the question (`Delete these N tests?`). Ask: **Delete all** / **Delete all <reason>** (per-reason bulk alongside the total) / **Review each** / **Keep all**. "All" = exactly the displayed set. `--auto`: delete silently, report count in summary.
+2. Present flagged tests as table `| # | Test | File:Line | Reason | Action |` grouped by Reason with counts; state the question (`Delete these N tests?`). Ask: **Delete all** / **Delete all <reason>** (per-reason bulk alongside the total) / **Review each** / **Keep all**. "All" = exactly the displayed set. Under `--auto`: no question shown — resolves automatically to delete all flagged tests (reversible via git), reported with reasons in the summary.
 3. **Replacement rule:** after deleting a low-value test, check if file/module now has meaningful untested logic. Yes → generate a valuable replacement test targeting a real risk.
 4. **Mutation check (advisory):** stack's mutation tool available (per-stack table in [references/frameworks.md §Mutation Testing](references/frameworks.md)) → run it on the scoped module, report mutation score beside line coverage, treat every surviving mutant as a weak-assertion finding, and feed each into `--generate`/`--update` as a targeted instruction (`mutant at {file}:{line} survived — add the assertion that kills it`) instead of regenerating whole files. Tool absent → gap-note `mutation tool unavailable — assertion quality verified by pattern review only`, apply the step-1 pattern list as the fallback detector. Coverage alone is not proof: a documented real-world suite reported 93% line coverage against a 58.62% mutation score — a 34-point gap of assertions that constrain nothing.
 

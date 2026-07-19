@@ -45,10 +45,9 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 | `--scope={list}` | Comma-separated scopes (table below) or `all` |
 | `--framework={f}` | Override detection: `react`, `vue`, `svelte`, `angular`, `flutter`, `swiftui`, `compose`, `rn` |
 | `--check` | Report only, zero modifications |
-| `--auto` | No questions; `needs_approval` items listed and skipped |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
-Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — scan + report, no changes / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu.
+Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — scan + report, no changes / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu. `--auto` always disambiguates, selecting Audit & Fix (best-judgment default — scan and fix autonomously) across all scopes.
 
 ## Scopes
 
@@ -133,7 +132,7 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
 2. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching frontend scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 3. **IDU:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 4. **Design system detection.** Search for: CSS custom properties (`:root { --color-* }`), Tailwind config, CSS modules theme; styled-components / Emotion / MUI / Chakra theme; Flutter `ThemeData`/`ColorScheme`; SwiftUI Color assets; Compose `MaterialTheme`; `tokens.json`/`tokens.yaml`/`design-tokens.*`.
-5. **Mode + scope.** Ask or use flags: Audit / Audit & Fix / Design / Custom; map scope selection to reference files (default: all).
+5. **Mode + scope.** Ask or use flags: Audit / Audit & Fix / Design / Custom; map scope selection to reference files (default: all). **Under `--auto`:** no ask — mode resolves to Audit & Fix, scope resolves to all (Unattended Mode rule 2).
 
 **Gate:** Framework identified; design system state cataloged (exists/partial/absent); mode + scope confirmed. If fails → framework undetectable → prompt "Which frontend framework?" (offer list); no response → fall back to plain HTML/CSS, announce; design system inconclusive → record `design_system: "unknown"`, proceed (missing tokens surface as findings).
 
@@ -182,7 +181,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → mark `skipped (no decision)`, proceed; do not retry.
 
@@ -192,7 +191,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 2. **Component catalog** — state coverage matrix, missing state recs, a11y compliance per component.
 3. **A11y checklist** — WCAG 2.2 AA list specific to detected framework + components.
 
-**Gate:** Artifacts generated and written; user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue.
+**Gate:** Artifacts generated and written; user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue. **Under `--auto`:** no ask — retries once with a sanitized fallback path; still unwritable → `failed (write error)`, recorded in the generated-artifacts list, run continues.
 
 ### Phase 8: Summary
 

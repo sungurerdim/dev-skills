@@ -45,8 +45,7 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 |------|--------|
 | `--quick` | T1-T2 sources only |
 | `--deep` | All tiers |
-| `--auto` | No questions; `needs_approval` items listed and skipped |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Without flags: present depth selection to user.
 
@@ -60,8 +59,8 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 
 ### Phase 1: Setup [SKIP with flags]
 
-1. **Depth selection.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — T1-T4, balanced / Quick — T1-T2, fast / Deep — all tiers, 20+ sources / (Cancel). A disambiguating flag (`--quick`/`--deep`) skips the menu.
-2. **Scope selection.** Ask areas: Local codebase / Security-CVE / Changelog-releases / Dependencies.
+1. **Depth selection.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — T1-T4, balanced / Quick — T1-T2, fast / Deep — all tiers, 20+ sources / (Cancel). A disambiguating flag (`--quick`/`--deep`) skips the menu. `--auto` also skips the menu — defaults to Standard (T1-T4), the stated recommended default.
+2. **Scope selection.** Ask areas: Local codebase / Security-CVE / Changelog-releases / Dependencies. **Under `--auto`:** skip the ask — all areas run, the fullest-coverage default.
 
 **Gate:** Depth + scope selected. If fails → no selection after one re-prompt → default Standard (T1-T4) all scopes, warn user, proceed.
 
@@ -120,7 +119,7 @@ Verify all claims cite sources; check contradictions; remove unsupported asserti
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — every item resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the rule-4 exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → record unresolved as `pending-user-decision`, proceed to Output with WARN, list at bottom.
 

@@ -51,8 +51,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 | `--spec` | Generate OpenAPI spec, migration files, or auth documentation |
 | `--migrate` | Generate or review database migrations |
 | `--scope={x}` | Specific scope: api, db, auth, data-pipeline, llm (comma-separated) |
-| `--auto` | All scopes, no questions, single-line summary |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Without flags: present an up-front mode menu — Audit (recommended) / Design / (Cancel); each option's effect matches its row in the Arguments table above. A disambiguating flag (`--audit`/`--design`/`--scope`/`--auto`) skips the menu.
 
@@ -239,14 +238,14 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 ### Phase 4: Design [--design mode]
 
-1. Ask user for requirements (entities, relationships, user roles).
+1. Ask user for requirements (entities, relationships, user roles). **Under `--auto`:** infer requirements from the blueprint profile, existing schema/spec files, and prior art in the codebase; no context found → proceed with minimal conventional CRUD defaults and record every assumption in the summary.
 2. Generate per scope:
    - **API:** endpoint list with methods, paths, request/response shapes, status codes
    - **DB:** ER diagram (text), table definitions, index strategy
    - **Auth:** flow diagram (text), token strategy, permission model
 3. Present design for user review + iteration.
 
-**Gate:** User approves design or requests changes. If fails → changes requested → apply, re-present; after 3 rounds with no approval → ask "Continue with current / Abort?"; honor choice, record in the generated-artifacts list.
+**Gate:** User approves design or requests changes. If fails → changes requested → apply, re-present; after 3 rounds with no approval → ask "Continue with current / Abort?"; honor choice, record in the generated-artifacts list. **Under `--auto`:** no approval loop — the design finalizes on the first best-judgment pass and is recorded directly in the generated-artifacts list.
 
 ### Phase 5: Spec [--spec mode]
 
@@ -258,7 +257,7 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block is shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolve `skipped (needs-human)` instead.
 
 **Gate:** All items resolved. If fails → forced binary re-prompt; no response → `skipped (no response)` and proceed.
 
@@ -313,8 +312,8 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 |-----------|--------|
 | No backend code found | Switch to design mode, ask what to build |
 | Framework not recognized | Use generic patterns, warn about framework-specific optimizations |
-| Multiple ORMs / auth libraries | Ask user which is primary |
-| Migration would cause data loss | Flag as CRITICAL, require explicit approval |
+| Multiple ORMs / auth libraries | Ask user which is primary. **Under `--auto`:** infer the primary from usage frequency/config and record the assumption in the summary. |
+| Migration would cause data loss | Flag as CRITICAL, require explicit approval. **Under `--auto`:** still generated with the CRITICAL flag retained and a safer expand-contract alternative proposed alongside it — never silently applied to a live database (this skill generates spec files only). |
 
 ## Severity
 

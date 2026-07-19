@@ -26,10 +26,8 @@ rm -rf /tmp/dev-skills
 
 ```bash
 /ds-deps                  # full classify + execute with approval
-/ds-deps --preview        # classify only, no upgrade
-/ds-deps --dry-run        # classify + security scan, no writes
-/ds-deps --auto           # apply safe groups, skip majors (needs-approval)
-/ds-deps --force-approve  # apply every upgrade incl. majors (breaking-change risk)
+/ds-deps --preview        # classify + security scan + report, no writes
+/ds-deps --auto           # zero-interaction — safe groups + majors resolved by best judgment
 /ds-deps --scope=security # security advisories only
 ```
 

@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed — unified unattended mode (`--auto`) + flag vocabulary simplification (2026-07)
+
+- **SKILL-SPEC.md** — new canonical **Unattended Mode (`--auto`)** section (§2): a single universal flag for zero-interaction runs across all 30 skills and both orchestrators. Every decision (mode, scope, approval, Category A/B findings, CRITICAL findings) resolves via the skill's own best judgment; only a small fixed **irreversible-exception list** (force-push/history-rewrite on shared branches, permanent branch/tag/resource deletion with no backup, secret rotation/deletion/transmission, values only a human can supply) auto-skips and is recorded `needs-human` — never executed blind, never silently dropped. New **Flag Vocabulary** section fixes one small, consistent flag language (`--auto`, `--preview`, `--scope=`, `--mode=`, `--resume`, `--clean`, `--status`) and bans bare positional subcommands.
+- **`--force-approve` removed everywhere** (~26 skills) — fully subsumed by `--auto`, which now resolves Category B (and CRITICAL) findings automatically instead of merely listing and skipping them.
+- **`ds-solve`** — inverted its default/`--confirm` polarity to match every other skill: the no-flag default now pauses for confirmation after Setup and after Plan (where `--confirm` used to add that pause); `--confirm` is removed; `--auto` skips both checkpoints.
+- **`ds-ship` / `ds-pipeline`** — `--auto` now explicitly propagates to every delegated skill invocation (new Orchestration Contract §10.3 rule 4), so `/ds-ship --auto` runs the entire cascade — including PR opening — with zero prompts, suited to a remote/unattended caller. `ds-ship`'s `--no-pr-suggest` removed (subsumed by `--auto`); `ds-pipeline` gained `--auto` (previously had none).
+- **`ds-brief`** — `--no-interactive` renamed to `--static` (its function — static/print-pure HTML output — was unrelated to interaction suppression; the old name collided with the `--auto` concept).
+- **`ds-tune`** — bare `run`/`status` subcommands converted to `--run`/`--status` to match the suite-wide flag convention.
+- **`--dry-run` retired** — merged into `--preview` (the sole canonical no-mutation-preview flag) across every skill that had it (`ds-deps`, `ds-init`, `ds-issue`, `ds-solve`).
+- **`ds-rig` / `ds-repo`** — each documents an explicit, spec-cited extension to the irreversible-exception list (unpinned installs, credential-passthrough servers, unmerged-branch deletion, visibility/permission changes) so their existing "never silent" floors compose correctly with `--auto` instead of contradicting it.
+- `scripts/check-consistency.sh` — flag-integrity check updated to reject the retired flags and to require every skill's Arguments table to define `--auto`.
+
 ### Added — harness-context-file audit scope (2026-07)
 
 - **`ds-docs` `harness` scope** — audits/trims AI-harness context files (CLAUDE.md, AGENTS.md, `.cursor/rules/`, Windsurf/Devin rules, Copilot instructions, GEMINI.md, Aider conventions) against 8 sourced rules (DOC-10..17: secrets, code-derivable content, generic advice, pasted reference material, length budget, missing recommended content, negative framing, monorepo nesting); gated behind user approval since a harness file shapes every future session. Research basis: ETH Zurich AgentBench, an independent 1,188-test benchmark, and official Anthropic/Cursor/Windsurf/Aider guidance — static hand-written context files usually add little or measurably hurt task success.

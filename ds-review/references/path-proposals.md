@@ -109,4 +109,4 @@ The "all matching" affordance applies the same path letter to every finding with
 
 - A path marked `HIGH` risk MUST be classified Category B (approval-gated) regardless of `--auto`.
 - A path that modifies more than 10 files MUST be classified Category B, even if scope-level risk is LOW.
-- A path whose rollback is `manual` cannot be applied under `--auto` without explicit `--force-approve`.
+- A path whose rollback is `manual` resolves under `--auto` per SKILL-SPEC's Unattended Mode rule 3 (applied by best judgment) unless it independently matches the rule-4 irreversible-exception list (force-push, permanent deletion, secret rotation, human-only value) — then it is `skipped (needs-human)`.

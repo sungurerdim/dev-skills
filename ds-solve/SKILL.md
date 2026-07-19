@@ -31,7 +31,7 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 **Dimensions:** none (carrier)
 
-- **Autonomous by default.** User states the problem; skill handles the rest, consulting the user only for (1) escalation (all plans exhausted) and (2) irreversible actions (needs-approval).
+- **Interactive by default at two checkpoints.** User states the problem; skill pauses for confirmation after Setup (objective, red lines, verification criterion) and after Plan (step list) before executing. Outside those two checkpoints the skill is autonomous — research, execution, backtracking, and re-planning proceed without further questions except (1) escalation (all plans exhausted) and (2) irreversible actions (needs-approval). `--auto` removes both checkpoints for a fully unattended run.
 - Red lines auto-detected from project docs and applied automatically, shown as output (not a question); add more via `--red-line="{constraint}"`.
 - Every attempt recorded in episodic memory — zero silent drops. Infinite loop protection: 3 plans × 3 research rounds × 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
@@ -43,18 +43,16 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 
 | Flag | Effect |
 |------|--------|
-| (none) | Autonomous: auto-detect red lines, infer verification, plan + execute without asking |
+| (none) | Interactive by default: auto-detect red lines, infer verification, pause for confirmation after Setup and after Plan, then execute |
 | `--red-line="{text}"` | Add explicit red line (repeatable). Combined with auto-detected ones. |
-| `--confirm` | Pause for user confirmation after Setup + Plan phases before executing |
 | `--resume` | Resume from `ds/audit/solve.json` progress artifact |
 | `--status` | Show current solve session status |
-| `--dry-run` | Plan + Research only, no execution |
+| `--preview` | Plan + Research only, no execution |
 | `--budget=PxRxA` | Override budget (default: `3x3x5` = 3 plans, 3 rounds, 5 alternatives) |
 | `--clean` | Delete existing `ds/audit/solve.json` state, start fresh |
-| `--auto` | No questions; `needs_approval` items listed and skipped |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
-**Input validation:** unknown flag → warn `Unknown flag: {flag}. Ignoring.`, continue. Invalid budget format → warn, use default `3x3x5`. Budget below minimum (1x1x2) → warn, clamp to minimum. `--dry-run` + `--resume` → warn conflict, `--resume` priority (resume existing session in dry-run mode).
+**Input validation:** unknown flag → warn `Unknown flag: {flag}. Ignoring.`, continue. Invalid budget format → warn, use default `3x3x5`. Budget below minimum (1x1x2) → warn, clamp to minimum. `--preview` + `--resume` → warn conflict, `--resume` priority (resume existing session in preview mode).
 
 ## Delegation
 
@@ -95,21 +93,23 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
    | a build | `{build_command}` succeeds |
    | a behavior | construct a validation command or script |
 
-   No mechanical criterion inferrable → use the most conservative proxy and state the assumption; ask the user only when zero proxy is possible (`--confirm` mode: always ask).
+   No mechanical criterion inferrable → use the most conservative proxy and state the assumption; ask the user only when zero proxy is possible. Under `--auto`: never ask — always use the conservative proxy.
 4. **Quick check.** Run verification immediately. Already passes → report OK, skip to Summary.
 5. **Initialize.** Create `ds/audit/solve.json` with canonical envelope (`skill: ds-solve`, `prefix: SOL`, `version: 1`, `git_hash: {HEAD}`, `timestamp`, `phases`, `current_phase`, `data: {...}`). Schema in [references/backtrack-logic.md](references/backtrack-logic.md). Verify `.gitignore` contains `ds/audit/` — add it to root `.gitignore` if absent, report addition.
 
 **Output:** Objective + red lines table + verification criterion (statements, not questions).
 
+**Setup checkpoint (default):** pause here for confirmation — `Proceed with this objective, red lines, and verification criterion? (yes / adjust / cancel)`. Under `--auto`: skip this checkpoint — proceed automatically once the Gate below passes.
+
 **Security-sensitive auto-gate ([references/principles.md §5](references/principles.md)):** objective involves modifying auth config, `.env*`, secrets-manager integration, crypto functions, or signing/credential code → automatically mark all steps in those files as `needs_approval` regardless of scope. User reviews each before execution.
 
-**Gate:** Objective parsed; red lines applied; verification criterion defined; state file created. If fails (no objective + `--confirm` unavailable to prompt) → exit with WARN "ds-solve: no objective provided — re-run with a description of what you want to fix or achieve."
+**Gate:** Objective parsed; red lines applied; verification criterion defined; state file created. If fails (no objective, and `--auto` is active so nothing can prompt) → exit with WARN "ds-solve: no objective provided — re-run with a description of what you want to fix or achieve."
 
 ### Phase 2: Plan — Decompose objective into ordered steps
 
 1. Read relevant files. Verify each exists before referencing. _(W1)_
 2. Decompose into 2-10 ordered steps. Each step: **Description**, **Verification** (command/check), **Red line risk** (which red lines the step puts at risk).
-3. Record plan to `ds/audit/solve.json` as `plan-N`; show plan table + proceed (`--confirm`: pause for approval). **Output:** numbered step table:
+3. Record plan to `ds/audit/solve.json` as `plan-N`; show plan table and pause for approval by default (`Proceed with this plan? (yes / adjust / cancel)`). Under `--auto`: skip the pause and proceed automatically. **Output:** numbered step table:
 
    ```
    Plan {n}: {plan_summary} ({N} steps)
@@ -117,7 +117,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
    | 1 | {step_desc} | `{verify_cmd}` exits 0 | #{id} ({constraint}) |
    ```
 
-**Gate:** Plan recorded; every step has verification criterion. If fails (step without mechanically verifiable criterion + `--confirm` can't ask) → use conservative proxy ("command exits 0", "no new errors introduced"), record assumption in state.data as `{ step: N, criterion_assumed: true, proxy: "{description}" }`; flag step as LOW confidence in plan table.
+**Gate:** Plan recorded; every step has verification criterion. If fails (step without mechanically verifiable criterion, and `--auto` is active so nothing can ask) → use conservative proxy ("command exits 0", "no new errors introduced"), record assumption in state.data as `{ step: N, criterion_assumed: true, proxy: "{description}" }`; flag step as LOW confidence in plan table.
 
 ### Phase 3: Research
 
@@ -177,7 +177,7 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 **Fresh-context check (before presenting):** an approval presentation written by the same context that produced the attempts validates its own output (echo chamber). Fresh context available (a second pass that receives only the final diff + red-line list, none of the solving trajectory) → have it re-derive each item's risk and confirm every red line holds; unavailable → re-derive in-session from the diff + red lines re-read from disk, writing that assessment before consulting the attempt history. Assessments diverge → present the stricter one.
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** state the question (`Approve these N steps?`) and present each item compactly grouped by risk with counts (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply all / per-risk bulk (`Apply all {risk}` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** state the question (`Approve these N steps?`) and present each item compactly grouped by risk with counts (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply all / per-risk bulk (`Apply all {risk}` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the Unattended Mode rule-4 exception list are skipped and recorded `needs-human` instead.
 
 **Gate:** All items resolved (applied → `fixed`/`failed`, declined → `skipped`). If fails (no response) → mark unresolved `skipped (user did not respond)` in state.data, continue.
 
@@ -204,7 +204,7 @@ Step disposition table:
 |------|------------|------|----------|-------------|
 | 1. {desc} | fixed | plan-1 | 2 | {criterion}: PASS |
 
-**Dispositions:** `fixed` (verification passed, red lines held) | `failed` (all alternatives exhausted across all rounds) | `skipped` (not attempted — plan changed / `--dry-run` / user declined, with reason) | `needs-input` (requires user info, asked before summary) | `needs-approval` (irreversible or cross-module — awaiting confirmation) | `not-applicable` (rendered unnecessary by a different plan).
+**Dispositions:** `fixed` (verification passed, red lines held) | `failed` (all alternatives exhausted across all rounds) | `skipped` (not attempted — plan changed / `--preview` / user declined, with reason) | `needs-input` (requires user info, asked before summary) | `needs-approval` (irreversible or cross-module — awaiting confirmation) | `not-applicable` (rendered unnecessary by a different plan).
 
 **Gate:** `fixed + failed + skipped + needs_input + needs_approval + not_applicable = total_steps`. If fails (equation does not balance) → assign unaccounted steps `skipped (accounting gap)` and re-emit the summary as WARN "step accounting gap — {n} steps unaccounted".
 
@@ -287,7 +287,7 @@ Not a finding-based skill. Severity applies to issues discovered during executio
 | User changes red lines mid-run | Re-validate all completed steps against new lines. Violation found → backtrack to that step. |
 | Objective is vague | Infer most conservative measurable proxy and state the assumption. Example: "{vague_goal}" → use `{benchmark_command}` < {threshold}. Only ask if zero proxy possible. |
 | All steps pass but final verification fails | Plan decomposition missed something. Enter Re-plan with constraint: "individual step success insufficient". |
-| Irreversible change in a step | Flag as `needs-approval`. `--auto` without `--force-approve` → skip and note. |
+| Irreversible change in a step | Flag as `needs-approval`. Under `--auto` → resolves per Unattended Mode rule 3 (applied, with reasoning recorded) unless it matches the rule-4 exception list, then skipped and recorded `needs-human`. |
 | No project documentation found | Proceed with zero auto-detected red lines + any `--red-line` flags. Apply universal defaults: "existing tests pass", "no new errors introduced". |
 | Budget override too small | Warn if budget < 1x1x2. Clamp to minimum. |
 | Contradictory red lines | Apply more restrictive constraint. Log conflict in episodic memory. Restrictive choice blocks all alternatives → surface in Escalation report (not before). |

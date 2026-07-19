@@ -31,8 +31,8 @@ rm -rf /tmp/dev-skills
 /ds-ship --stage=pre-launch  # override auto-classification
 /ds-ship --only=ds-review,ds-compliance
 /ds-ship --skip=ds-mobile
-/ds-ship --auto           # list B items, skip (needs-approval)
-/ds-ship --force-approve  # apply every B item — use after a Preview pass
+/ds-ship --auto           # zero-interaction full cascade — every decision resolved by best judgment;
+                          # forwarded to every delegated skill; suited to a remote/unattended caller
 /ds-ship --clean-all      # wipe ds/audit/ entirely after a completed pass
 ```
 

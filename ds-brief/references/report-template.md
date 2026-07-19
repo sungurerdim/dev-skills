@@ -56,7 +56,7 @@ A visible **"🖨 Print / PDF"** button calls `window.print()` → the browser's
 **Always on:** sticky nav with **condensed report title** (appears when the header scrolls out; hidden ≤900px), **scrollspy** (`aria-current` on the active section's nav button), **reading-progress bar** (2px gradient under the nav), **back-to-top** button (appears after 600px), theme switcher, live search with `<mark>` highlight (auto-opens any `<details>` containing a match), source chips, verbatim-text toggles.
 **Collapsibles = native `<details>/<summary>`** (work with zero JS; `id` + hash deep-link opens the target on load/`hashchange`).
 **Topic-dependent (only if it genuinely helps, e.g. tax / labor / pricing):** interactive calculator, scenario wizard. Don't add a calculator to a topic that has nothing to compute.
-**`--no-interactive`:** minimal JS, document-pure output (everything expanded, no toggles) — safest for archival/printing.
+**`--static`:** minimal JS, document-pure output (everything expanded, no toggles) — safest for archival/printing.
 
 ## Layout & a11y
 

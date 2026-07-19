@@ -50,10 +50,9 @@ description: Store and release management — store submission, listing optimiza
 | `--release` | Release management: version, notes, staged rollout |
 | `--post-launch` | Post-launch monitoring checklist |
 | `--perf-budget` | Author a formal perf budget (LCP, INP, p99, bundle size, startup) + wire CI enforcement via `/ds-devops` |
-| `--auto` | All modes, no questions, single-line summary |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
-No flags → present an up-front menu of every mode in the Arguments table (each with its one-line effect), Setup marked (recommended), plus (Cancel). A disambiguating flag skips the menu.
+No flags → present an up-front menu of every mode in the Arguments table (each with its one-line effect), Setup marked (recommended), plus (Cancel). A disambiguating flag skips the menu. `--auto` alone (no mode flag) also skips the menu — runs every mode in sequence, the skill's best-judgment default (Unattended Mode rule 2).
 
 ### Perf Budget Mode (`--perf-budget`)
 
@@ -124,6 +123,8 @@ Generates the **App Review Information → Notes** body upfront so reviewer neve
 | Regional differences | default "consistent across all regions" | confirm or override |
 | Regulated industry | default "N/A" | confirm or override |
 | Reviewer-only contact | — | required input |
+
+**Under `--auto`:** auto-detected fields (app purpose, test path, auth providers, payment processors, AI services, data handling, account deletion) still populate automatically; fields with no inferable value (demo credentials, reviewer-only contact) are never fabricated — they match the Unattended Mode rule-4 exception list (a value only a human can supply) and are recorded `needs-human` in the summary instead of prompted for.
 
 **Output:** `ds/launch/submission-notes-apple.txt` + `ds/launch/submission-notes-google.txt` + `ds/launch/submission-meta.yml` (audit trail, committed). Generic template + cookbook of pre-written reject replies in [references/app-store-submission-template.md](references/app-store-submission-template.md). **Pre-submission self-audit:** mode runs `--review` active-detection scan first — any CRITICAL → submission notes not generated until fixed; WARN if HIGH findings present but not blocking.
 
@@ -223,7 +224,7 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 2. **IDU:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
 3. Detect platform from project signals (`pubspec.yaml` → mobile, `package.json` → web, Electron/Tauri config or macOS/MSIX packaging manifests → desktop, etc.) + current launch stage: pre-submission, in-review, post-launch. Desktop detected → activate the Desktop Distribution scope.
 
-**Gate:** Platform + mode confirmed. If fails → ambiguous platform → prompt iOS / Android / Web / Desktop / All; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
+**Gate:** Platform + mode confirmed. If fails → ambiguous platform → prompt iOS / Android / Web / Desktop / All (**under `--auto`:** default to All — safest coverage, no prompt); no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
 
 ### Phase 2: Detect Current State
 
@@ -257,7 +258,7 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — every item resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the rule-4 exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → record unresolved as `pending-user-decision`, proceed to Summary with WARN, list prominently.
 
@@ -292,7 +293,7 @@ Zero-change run: `Submission package already complete — no missing fields`.
 | Situation | Action |
 |-----------|--------|
 | No store config found | Start from setup mode |
-| Platform ambiguous | Ask: iOS / Android / Web / All |
+| Platform ambiguous | Ask: iOS / Android / Web / All (`--auto`: default to All) |
 | Privacy label mismatch | Flag specific discrepancy, suggest correction |
 | Missing required metadata | List missing items, prioritize by blocking vs non-blocking |
 

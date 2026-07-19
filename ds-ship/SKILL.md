@@ -78,13 +78,13 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 | `--html` | Additionally produce `ds/audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |
 | `--skip={list}` | Comma-separated skills to skip (e.g. `--skip=ds-mobile,ds-launch`) |
 | `--only={list}` | Comma-separated skills to include (override classification defaults) |
-| `--auto` | Run every phase; Category B items listed and skipped (needs-approval) |
-| `--force-approve` | Apply every Category B item without asking |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. Forwarded to every delegated skill (Orchestration Contract §10.3 rule 4). |
 | `--resume` | Resume from `ds/audit/ship.json` without prompt |
 | `--clean` | Delete existing state, start fresh |
 | `--clean-all` | Delete `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
-| `--no-pr-suggest` | Skip Phase 5c PR suggestion (solo-dev main-only workflow) |
 | `--scope-freeze` | Force the Scope-Freeze branch: run `/ds-freeze` first, narrow every later phase to its `ship` set |
+
+**Unattended full run:** `/ds-ship --auto` runs the entire cascade — classification, all delegations (each receiving `--auto`), Category A+B resolution, PR opening, launch gates — with zero prompts, suitable for a remote/no-interaction caller. Only items matching SKILL-SPEC's Unattended Mode rule-4 exception list (force-push, branch/history deletion, secret rotation, human-only values) are skipped and recorded `needs-human` in the final report.
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Full (recommended) — full ship cascade across phases / Preview — plan only, no delegated changes / Resume — continue from saved state / (Cancel). A disambiguating flag skips the menu.
 
@@ -126,7 +126,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 ### Phase 0: Assess
 
-1. **Recovery check:** DETECT `ds/audit/ship.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present + `--clean-all` → delete `ds/audit/` entirely, fresh. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → skip `done` phases + delegation steps, announce `[SHP] Resuming from Phase {N}, step {K}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`.
+1. **Recovery check:** DETECT `ds/audit/ship.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present + `--clean-all` → delete `ds/audit/` entirely, fresh. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; under `--auto`, resume automatically — no prompt). Resume → skip `done` phases + delegation steps, announce `[SHP] Resuming from Phase {N}, step {K}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`.
 
 2. **State shape:**
    ```json
@@ -153,20 +153,20 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 5. **Git posture.** Active branch, uncommitted changes, unpushed commits, last-activity date, frozen vs active signal.
 
-6. **Value proposition extraction.** Extract the project's one-paragraph concrete promise from docs. Surface: "I read this as: {paragraph}. Confirm before I measure everything against it? [Y/n]".
+6. **Value proposition extraction.** Extract the project's one-paragraph concrete promise from docs. Interactive: surface "I read this as: {paragraph}. Confirm before I measure everything against it? [Y/n]". `--auto`: accept the extracted paragraph as-is, no prompt.
 
 7. **Promise census.** Extract every concrete capability claim from README / SPEC / docs/ / AI instruction file (per host — see ds-blueprint `references/detection.md` § Instruction Files) / blueprint profile. For each, query source (grep + LSP if available) for implementation. Classify:
    - `promised-not-implemented` — doc claims X; no matching module/function/endpoint
    - `implemented-not-documented` — code has X; no doc mentions it
    - `drift` — both exist; behavior diverges (default changed, signature changed, removed flag still listed)
 
-8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, monetization intent (free / paid product / internal), performance targets, compliance scope, deprecated features, renamed modules, **ecosystem integrations (Google Workspace / Apple ecosystem / none)**, **release scope reduction intent (full backlog vs frozen MVP set — triggers the Scope-Freeze branch)**. Ask. Wait.
+8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, monetization intent (free / paid product / internal), performance targets, compliance scope, deprecated features, renamed modules, **ecosystem integrations (Google Workspace / Apple ecosystem / none)**, **release scope reduction intent (full backlog vs frozen MVP set — triggers the Scope-Freeze branch)**. Interactive: ask, wait. `--auto`: resolve every item from repo signals (package.json/manifest audience hints, existing license/visibility, detected billing surfaces, blueprint profile) with the most conservative reading when signal is absent (private, free/internal, no compliance scope beyond what's detected) — record each inferred answer in the report so it stays auditable.
 
 9. **Integration signal reading.** Read blueprint profile's `Integrations:` field. If `google-workspace` or `apple-ecosystem`, note which skills have conditional A9 rules (ds-backend, ds-mobile, ds-compliance, ds-launch, ds-frontend) and include these in the Dimension Coverage table as `conditional (integrations active)`. If absent or `none`, note A9 as `N/A (integrations signal: none)`.
 
-10. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. New feature with open design → insert `/ds-pipeline` first per the Feature-planning branch above. Show plan; user confirms or trims.
+10. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. New feature with open design → insert `/ds-pipeline` first per the Feature-planning branch above. Interactive: show plan, user confirms or trims. `--auto`: accept the matrix-derived sequence as-is, no prompt.
 
-**Gate:** Value proposition confirmed; skill sequence approved; `ds/audit/ship.json` populated with stage + type + promise census + sequence. No execution past this gate without approval. If fails → abort with "ds-ship: aborted — value proposition or skill sequence not confirmed. Re-run after clarifying purpose or use `--stage=X` to override." Never proceed on a vague or unconfirmed plan.
+**Gate:** Value proposition confirmed; skill sequence approved; `ds/audit/ship.json` populated with stage + type + promise census + sequence. No execution past this gate without approval (under `--auto`, "approval" is the recorded best-judgment resolution of steps 6/8/10 above — the gate still holds, nothing proceeds unrecorded). If fails → abort with "ds-ship: aborted — value proposition or skill sequence not confirmed. Re-run after clarifying purpose or use `--stage=X` to override." Never proceed on a vague or unconfirmed plan.
 
 ### Phase 1: Ideal-vs-Current Gap
 
@@ -183,7 +183,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 
 1. **Pre-delegation note** — append to `ds/audit/report.md` under `## Orchestration log`: `[P{N}.{K}] invoke {skill} — reason: {one sentence} — expected: findings update | fixes applied | metric produced`.
 2. **Update state** — `delegation_queue` entry → `in_progress`.
-3. **Invoke** via host's skill-invocation mechanism. Pass only documented arguments.
+3. **Invoke** via host's skill-invocation mechanism. Pass only documented arguments. If ds-ship itself was invoked with `--auto`, append `--auto` to the delegated invocation's arguments (Orchestration Contract §10.3 rule 4) — a delegate never runs interactively just because it's a child call.
 4. **Wait for done** — complete when ANY: (a) its `ds/audit/<skill>.json` no longer exists, (b) its Summary line emitted in chat, (c) `ds/audit/findings.md` has new entries with that skill's `source` since pre-delegation. None holds within the user-driven turn → mark delegation `failed` in orchestration log (`delegated skill {name} did not signal completion`), proceed to next. Never block waiting for a deletion event the orchestrator cannot observe.
 5. **Re-read findings diff** — only entries added since pre-delegation are new. Classify each A or B per Phase 0 rules.
 6. **Route** — A entries → apply inline if the delegated skill did not already apply. B entries → append to `category_B_batch`.
@@ -201,7 +201,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 7. `/ds-test`
 8. `/ds-fix`
 
-**Category B batch at end of Phase 2.** Present all B items — one line each (`[severity] title — file:line · impact/effort/risk · owner`) grouped by owning skill with counts; state the question (`Decide these N items?`). Modes: interactive → Apply all / per-owner bulk (`Apply all ds-review` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL; "all" = exactly the displayed set); `--auto` without `--force-approve` → list + skip; `--force-approve` → apply all. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
+**Category B batch at end of Phase 2.** Present all B items — one line each (`[severity] title — file:line · impact/effort/risk · owner`) grouped by owning skill with counts; state the question (`Decide these N items?`). Interactive: Apply all / per-owner bulk (`Apply all ds-review` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL; "all" = exactly the displayed set). `--auto`: no prompt — every B item resolved per SKILL-SPEC Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning), except items matching the rule-4 exception list, which become `skipped (needs-human)`. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
 
 **Gate:** Every queued delegation `done`; every B item has a decision; `ds/audit/findings.md` reflects current state. If fails → log each incomplete delegation as `failed (did not signal completion)`, mark undecided B as `deferred`, continue to Phase 3 with collected findings; never block on a single failed delegation.
 
@@ -244,10 +244,11 @@ Orchestrator never pushes or opens a PR on its own; user is always free to keep 
 1. Current branch is not `main` / `master`.
 2. Branch ahead of upstream by ≥1 commit (no upstream or up-to-date → skip).
 3. `gh` CLI available + authenticated.
-4. `--no-pr-suggest` absent.
-5. State does not show `pr_suggestion: muted`.
+4. State does not show `pr_suggestion: muted` (a persisted prior decision, honored even under `--auto`).
 
-**When triggered:** `Branch {name} is ahead of upstream by {N} commits with applied fixes from this run. Open a PR via /ds-pr? (y/n/always-skip)` — `y` → invoke `/ds-pr`, record result hash in state, include PR URL in Phase 6 report; `n` → record `pr_suggested: declined (this run)`, next run asks again; `always-skip` → record `pr_suggestion: muted` in `ds/audit/ship.json`, subsequent runs skip until `--clean` or manual edit.
+**When triggered — interactive:** `Branch {name} is ahead of upstream by {N} commits with applied fixes from this run. Open a PR via /ds-pr? (y/n/always-skip)` — `y` → invoke `/ds-pr`, record result hash in state, include PR URL in Phase 6 report; `n` → record `pr_suggested: declined (this run)`, next run asks again; `always-skip` → record `pr_suggestion: muted` in `ds/audit/ship.json`, subsequent runs skip until `--clean` or manual edit.
+
+**When triggered — `--auto`:** no prompt — opening a PR is reversible (closable) and not on the Unattended Mode rule-4 exception list, so it resolves like any other Category B item: invoke `/ds-pr`, record `pr_suggested: auto-approved`, include PR URL in Phase 6 report.
 
 **Report note:** Phase 6 report includes one line: `PR: {url} | declined-this-run | not-applicable ({reason}) | muted`.
 
@@ -350,7 +351,7 @@ Status values: `audited` (skill ran and produced findings), `owner-skipped` (ski
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Remaining unresolved B items (rare — most resolved inline per phase). Modes: `--auto` → list+skip; `--force-approve` → apply all; interactive → state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Remaining unresolved B items (rare — most resolved inline per phase). Interactive: state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. `--auto`: no prompt — resolved per SKILL-SPEC Unattended Mode rule 3, except rule-4 exception-list items, which become `skipped (needs-human)`.
 
 **Gate:** All needs-approval resolved. If fails (user declines) → mark unresolved `skipped (user declined)`, include in report's "Awaiting User Decision" section, proceed.
 

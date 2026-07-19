@@ -49,8 +49,7 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 | `--scope={list}` | security, privacy, regulatory, web, network, arch, perf, a11y, i18n, or `all` |
 | `--type={t}` | Override auto-detection: `web`, `api`, `cli`, `library` |
 | `--secrets-migrate` | Interactive rotation / vault migration walkthrough for hardcoded secrets |
-| `--auto` | No questions; `needs_approval` items listed and skipped |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Without flags: present mode selection.
 
@@ -66,7 +65,7 @@ Per hardcoded secret detected in security scope:
 3. **Apply** — replace hardcoded with reference, add `.env.example` placeholder entry, README line pointing at vault, and (if `gh` supported) add GitHub Action secret with blank value for user to populate.
 4. **Git history** — secret ever committed → propose `git-filter-repo` surgery as Category B. Autonomous history rewrite is forbidden.
 
-Every secret is its own needs-approval item. `--auto` lists them, marks all `skipped (needs-approval)`.
+Every secret is its own needs-approval item, and secret rotation/migration matches the Unattended Mode irreversible-exception list (rotating/transmitting a real credential). `--auto` never decides these — lists each and marks all `skipped (needs-human)`.
 
 ## Scopes
 
@@ -124,25 +123,25 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 4. **Mode selection.** No `--mode` → present a menu covering every mode, each with a one-line what-it-does: Audit Only (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / (Cancel). A disambiguating flag (e.g. `--mode`, `--secrets-migrate`) skips the menu.
 
-5. **Scope selection.** No `--scope` → ask which domains (default: all applicable). Regulatory scope: detect frameworks (GDPR, KVKK, CCPA, etc.) from codebase patterns, confirm.
+5. **Scope selection.** No `--scope` → ask which domains (default: all applicable). Regulatory scope: detect frameworks (GDPR, KVKK, CCPA, etc.) from codebase patterns, confirm. **Under `--auto`:** no prompts — default applies (all applicable domains); detected regulatory frameworks are used without confirmation.
 
 6. **Overlap routing (runtime enforcement — OVERLAP-1, -2, -4):**
    - **Mobile project detected** (`pubspec.yaml` with `flutter:` OR `Info.plist` OR `AndroidManifest.xml`) → invoke `/ds-mobile --scope=security,privacy,regulatory`, wait for completion, read its `ds/audit/findings.md` updates, remove `security/privacy/regulatory` from active scope. Keep only non-mobile-covered scopes (a11y, i18n, web, network, perf, arch) locally. Rationale: ds-mobile authoritative; running both duplicates findings.
    - **a11y scope active + project has frontend** (framework detected in `package.json` / equivalent) → announce delegation: "a11y implementation + fixes delegated to /ds-frontend. This run keeps regulatory framing only (ADA / EN301549 mapping)." Mark a11y `framing-only`; emit only regulatory-mapping findings.
    - **Privacy scope active** → canonical owner. Announce: "/ds-launch --privacy narrows to store-label-correctness. This run emits canonical privacy findings, including event-property PII scanning."
 
-**Gate:** Project type identified; mode + scope confirmed; regulatory frameworks resolved; overlap routing applied. If fails → type undetected + no `--type` response → default `web`, announce, proceed; regulatory ambiguous after detection → present detected signals, require explicit framework selection before proceeding.
+**Gate:** Project type identified; mode + scope confirmed; regulatory frameworks resolved; overlap routing applied. If fails → type undetected + no `--type` response → default `web`, announce, proceed; regulatory ambiguous after detection → present detected signals, require explicit framework selection before proceeding. **Under `--auto`:** no framework-selection prompt — apply the best-guess framework(s) from detected signals (audience, data locality, stack) and record the assumption in the summary.
 
 ### Phase 2: Architecture Discovery
 
 **When:** scope includes 3+ domains or `all`. Skip for narrow scans.
 
 1. Analyze architecture (pattern, auth, DB, ORM, API style, testing, CI/CD, i18n, deployment).
-2. Present detected architecture for confirmation.
+2. Present detected architecture for confirmation. **Under `--auto`:** no confirmation — proceed directly on the auto-detected architecture.
 3. Classify rules:
    - **CAT-1 Conformance:** universal best practice, existing pattern misused, bug, security flaw — auto-fixable
    - **CAT-2 Enhancement:** new layers/patterns not in current architecture — needs approval
-4. Present enhancement opportunities, ask which to include (default: none).
+4. Present enhancement opportunities, ask which to include (default: none). **Under `--auto`:** no prompt — default applies (none included).
 
 **Gate:** Architecture confirmed; every rule classified CAT-1 / CAT-2; approved enhancements finalized. If fails → user unconfirmed (no response or rejection) → re-present detected architecture with brief explanation, ask once more; still unconfirmed → proceed with auto-detected, add WARN: `"Architecture unconfirmed — CAT-2 classifications may be inaccurate"` to the report.
 
@@ -207,17 +206,17 @@ Architecture: {detected-summary}
 
 ### Phase 6: Fix [SKIP if audit-only]
 
-**Overwrite prevention:** before generating/modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if target exists. Exists → do NOT overwrite — show diff between existing + proposed, ask: "Update existing / Keep existing / Show diff".
+**Overwrite prevention:** before generating/modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if target exists. Exists → do NOT overwrite — show diff between existing + proposed, ask: "Update existing / Keep existing / Show diff". **Under `--auto`:** no prompt — Keep existing when it already has non-trivial content, otherwise update; the decision and diff are recorded in the summary.
 
 1. Present fix plan — one line per fix (`[severity] title — file:line`) grouped by category/severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
-2. Confirmation: `quick-fix` → apply all, summary only; `audit+fix` → show plan, offer Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / proceed / cancel; `audit` → ask which severities.
+2. Confirmation: `quick-fix` → apply all, summary only; `audit+fix` → show plan, offer Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / proceed / cancel; `audit` → ask which severities. **Under `--auto`:** no prompt — apply all (matches `quick-fix` behavior), summary only.
 3. Apply fixes grouped by file. Different files in parallel, same file sequential.
 
 **Gate:** All standard fixes attempted; each recorded. If fails → CAT-1 fix unappliable (file write error, merge conflict, generated doc exists + user chose "Keep existing") → record `failed` with specific error, continue with remaining, surface all failed IDs in Phase 8 summary.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list (e.g. secret rotation, per the Secrets Migrate section) resolve `skipped (needs-human)` instead.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → re-present each with forced binary prompt (Apply / Skip); user declines → mark `skipped (no response)`, proceed.
 
@@ -251,7 +250,7 @@ Zero-finding run: `Compliance scope clean — no regulatory or security findings
 
 | Situation | Action |
 |-----------|--------|
-| Regulatory framework ambiguous | List detected signals, ask user to confirm applicable frameworks |
+| Regulatory framework ambiguous | List detected signals, ask user to confirm applicable frameworks. Under `--auto`: apply best-guess framework(s) from detected signals, no prompt. |
 | Rule references external policy that changed | Flag as needs-verification, use last known version |
 | Fix requires architectural change | Classify as needs-approval, present to user |
 | Compliance doc template generation fails | Generate partial template, list missing sections |

@@ -51,12 +51,11 @@ Four modes: `--tactical` for file-level quality fixes, `--strategic` for archite
 | `--meta-scope={list}` | Meta-quality scope(s): `ssot`, `dry`, `kiss`, `yagni`, `soc`, `api-surface`, `overengineering`, `redundancy`, `obsolete`, `duplicate`, `all`. Default: `all` |
 | `--criteria-fit` | Enable Phase 3b: project-ideal vs codebase-actual baselines from [references/criteria-fit.md](references/criteria-fit.md) |
 | `--suggest-paths` | Enable Phase 4a path proposals: 3 consolidation paths per finding (effort / impact / risk) from [references/path-proposals.md](references/path-proposals.md) |
-| `--auto` | All scopes, no questions, single-line summary |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | `--preview` | Analyze + report findings without applying fixes |
 | `--scope={name}` | Specific scope(s), comma-separated |
 | `--diff[={ref}]` | Restrict analysis to changed files: bare → working tree + staged vs HEAD; with `{ref}` → merge-base diff vs that ref |
 | `--loop` | Re-run until clean or max 3 iterations (tactical only) |
-| `--force-approve` | Auto-apply needs_approval items without asking |
 | `--no-bootstrap` | Skip auto-invoke of `/ds-blueprint` when findings absent/stale (testing only) |
 
 Without flags: present mode selection.
@@ -166,6 +165,8 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 4. **Scope selection.** No `--scope` → ask which scopes (default: all for selected mode).
 5. Uncommitted changes detected → ask: continue / stash first / cancel.
 
+Under `--auto`: this phase is skipped entirely — mode resolves to All (tactical → strategic → meta-quality sequentially, `--perf` excluded unless explicit), scope resolves to every scope for each selected mode, and uncommitted changes are proceeded through (no stash) as the best-judgment default.
+
 **Gate:** Mode + scope confirmed (explicitly or via flags). If fails → re-present menu; user declines / no response after 2 prompts → exit with WARN "No mode selected — run /ds-review with --tactical, --strategic, --perf, or --meta-quality to proceed."
 
 ### Phase 2: Analyze
@@ -242,6 +243,8 @@ Compare project's implied/stated criteria to baselines for detected type. Baseli
 3. Compare findings vs baseline. Above baseline → flag as `criteria-mismatch`.
 4. Mismatch → ask user: "{scope} count ({n}) exceeds {type} baseline ({max}). Loosen criteria for this project or tighten the codebase?"
 
+Under `--auto`: skip the question — resolves to tighten the codebase (the stricter default) unless the codebase's own committed conventions already document the looser criteria in ≥3 files, recording the reasoning in the summary.
+
 **Gate:** Criteria-fit assessment recorded for each active scope. If fails (type undetected + user declines to specify) → use generic baselines, mark assessment `low-confidence`, proceed.
 
 ### Phase 4a: Suggest-Paths (--meta-quality + --suggest-paths)
@@ -254,11 +257,15 @@ For each finding from Phase 3a, generate 3 paths from [references/path-proposals
 
 Each path includes: estimated effort (hours), impact (scope reach), risk (regression surface), rollback approach. Present paths grouped by finding. User selects per-finding: `Path A / B / C / Skip / Apply same path to all matching findings`.
 
+Under `--auto`: skip the selection — each finding resolves to Path B (Moderate) by default, the lowest-risk fix that doesn't leave duplication in place; findings with no safely automatable path resolve `Skip`, both recorded with reasoning in the summary.
+
 **Gate:** Every finding has selected path or explicit `Skip`. If fails → assign `skip (no path selected)`, proceed.
 
 ### Phase 4: Plan Review [SKIP if --auto]
 
 Print findings table — one line per finding (ID, severity, title, file:line) grouped by severity with counts; state the question (`Fix which of these N findings?`). Ask: Fix All (recommended) / By Severity (per-severity bulk `Fix all CRITICAL`/`Fix all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Report Only. "All" = exactly the displayed set. **LOW-noise cap:** LOW findings appear as per-scope count rows (`LOW: {n} in {scope}`) in this table; selecting Review Each or `Fix all LOW` first prints the itemized LOW list (one line each), so any "all" still names exactly the displayed set — the count always shows, the noise stays rolled up.
+
+Under `--auto`: skip the menu — resolves to Fix All (respecting the confidence gate and CRITICAL escalation below), with reasoning recorded in the summary.
 
 **Gate:** User selected plan action. If fails → re-present once; no selection after 2 attempts → default Report Only, note the default in the run summary.
 
@@ -276,13 +283,13 @@ Per fix, include education: **why** (impact if unfixed), **avoid** (anti-pattern
 
 ### Phase 5a: Needs-Approval Review [CONDITIONAL]
 
-Items flagged `needs_approval` (cross-module changes, architectural decisions): `--auto` without `--force-approve` → list items, skip, note in summary; `--force-approve` → apply all; interactive → state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Items flagged `needs_approval` (cross-module changes, architectural decisions): **Interactive** → state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the Unattended Mode rule-4 exception list are skipped and recorded `needs-human` instead.
 
 **Gate:** All resolved (applied, skipped, deferred). If fails → user declined → mark unresolved disposition `deferred (user did not respond)`, proceed.
 
 ### Phase 5b: CRITICAL Escalation
 
-Any CRITICAL → flag for manual review before auto-fixing. Interactive mode: show finding with full context, ask explicit confirmation. CRITICAL verified with extra scrutiny — re-read file section + surrounding context.
+Any CRITICAL → flag for manual review before auto-fixing. Interactive mode: show finding with full context, ask explicit confirmation. CRITICAL verified with extra scrutiny — re-read file section + surrounding context. Under `--auto`: no confirmation is shown — CRITICAL fixes resolve automatically per Unattended Mode rule 3, applied with the same scrutiny and recorded in the summary, unless the finding matches the rule-4 exception list, in which case it is skipped and recorded `needs-human`.
 
 **Gate:** Every CRITICAL explicitly confirmed or downgraded. If fails (user doesn't respond to confirmation) → do NOT apply CRITICAL fix; mark disposition `deferred (awaiting manual review)`, include in Needs Approval section of summary, continue with non-CRITICAL.
 

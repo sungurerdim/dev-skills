@@ -48,7 +48,7 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 
 | Flag | Effect |
 |------|--------|
-| `--auto` | All phases, no questions, single-line summary |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | `--preview` | Analyze + dashboard, no changes |
 | `--init` | Profile creation/refresh only (no analysis) — includes the Foundation pass |
 | `--refresh` | Re-scan profile (decisions preserved; foundation lines untouched) |
@@ -57,7 +57,6 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 | `--resume` | Resume from `ds/audit/blueprint.json` without prompting |
 | `--clean` | Delete existing state, start fresh |
 | `--memory-cleanup` | Optional phase: scan AI agent memory index (`MEMORY.md`) for stale `[[link]]` references + offer consolidation. Default OFF — opt-in only |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present mode selection.
 
@@ -67,7 +66,7 @@ Profile embedded in project's AI instruction file between `## Blueprint Profile`
 
 **Legacy marker migration** (non-standard markers: HTML comments like `<!-- *-start -->` / `<!-- *-end -->`, or variant headings like `## X Blueprint Profile`): read content between legacy markers, replace with standard headings, preserve all existing content (scores, config, project map, run history), remove old markers.
 
-**Instruction file detection** — search for known AI instruction files (see [references/detection.md](references/detection.md) § Instruction Files). Use first match. None found: ask which tool user uses, create appropriate file.
+**Instruction file detection** — search for known AI instruction files (see [references/detection.md](references/detection.md) § Instruction Files). Use first match. None found: ask which tool user uses, create appropriate file. **Under `--auto`:** no prompt — default to `CLAUDE.md` (the most common AI instruction file) and create it.
 
 **Profile format** — minimal, AI-parseable, calibration-only. Run history, score deltas, status messages NEVER go here — they live in `git log -- <instruction-file>`, `ds/audit/findings.md`, terminal summaries.
 
@@ -361,7 +360,7 @@ In `--auto`: print as part of summary, no interaction.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
-`--auto` → list+skip. `--force-approve` → apply all. Interactive → present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolve `skipped (needs-human)` instead.
 
 **Gate:** All items resolved. If fails → unresolved → re-present each with forced binary prompt; user declines → mark `skipped (no response)`, proceed.
 
@@ -372,7 +371,7 @@ Optional phase. Scans AI agent memory index (`MEMORY.md` under host's project-me
 1. Open `MEMORY.md`. Absent or under 200 lines → skip with note "Memory index under threshold — no cleanup needed".
 2. Parse `[[link]]` references; check each for a matching file in the memory directory.
 3. Group findings: **Broken links** (`[[name]]` with no matching file — likely deleted memory); **Stale entries** (files referenced by zero `[[link]]`s — orphans); **Truncated** (index over 200 lines — Claude Code truncation threshold).
-4. Present consolidation menu: `Delete broken links / Remove orphan files / Trim index / All / Skip`. Apply only what user approves. Every change reversible (memory dir is under user's home, not the repo).
+4. Present consolidation menu: `Delete broken links / Remove orphan files / Trim index / All / Skip`. Apply only what user approves. Every change reversible (memory dir is under user's home, not the repo). **Under `--auto`:** no menu — apply the full cleanup (delete broken links, remove orphans, trim index) since every change is reversible, and record it in the summary.
 
 **Gate:** Cleanup applied or user declined. If fails (memory dir not found) → skip silently, note "MEMORY.md not located — pass `--memory-cleanup` only when running inside a host that uses MEMORY.md".
 
@@ -436,6 +435,6 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 |----------|----------|
 | Empty project | Report baseline scores, note no code to assess |
 | Monorepo | Score each workspace independently, aggregate in summary |
-| No instruction file found | Create new profile, ask user for target file location |
+| No instruction file found | Create new profile, ask user for target file location. Under `--auto`: default to `CLAUDE.md`, no prompt. |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

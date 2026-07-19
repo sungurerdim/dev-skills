@@ -51,8 +51,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 | `--monitor` | Set up monitoring, logging, alerting, crash reporting |
 | `--incident` | Incident response: detection, triage, mitigation, post-mortem |
 | `--cost` | Analyze infra costs: identify over-provisioned resources, suggest right-sizing, calculate cost at 1x/10x/100x scale |
-| `--auto` | All modes, no questions, single-line summary |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Without a flag: present an up-front menu covering every mode, one row each. A disambiguating flag skips the menu.
 
@@ -135,7 +134,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 2. Flags → proceed directly. No flags → interactive menu.
 3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`) + target: VPS, PaaS, serverless, container orchestration.
 
-**Gate:** Mode + context confirmed. If fails → re-present interactive menu; context absent (no Dockerfile, no target detected) → "What is your deployment target? (VPS / PaaS / serverless / container)" — abort with WARN if no response after 3 prompts.
+**Gate:** Mode + context confirmed. If fails → re-present interactive menu; context absent (no Dockerfile, no target detected) → "What is your deployment target? (VPS / PaaS / serverless / container)" — abort with WARN if no response after 3 prompts. **Under `--auto`:** no prompt — infer the target from repo signals (Dockerfile, PaaS config files, serverless manifests); still undetected → default `VPS`, WARN in the summary.
 
 ### Phase 2: Discover
 
@@ -170,7 +169,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 4. **CI deploy step:** delegated to `/ds-devops` (OVERLAP-3). This skill does not audit or modify CI pipeline structure. Missing deploy-on-merge workflow → emit single finding `missing-ci-deploy-step → delegated to ds-devops`, continue. `/ds-devops` owns pipeline YAML; `/ds-deploy` owns deploy target (container, TLS, monitoring).
 5. **Backup script:** automated DB + file backup with rotation.
 
-Present generated files for review before writing.
+Present generated files for review before writing. **Under `--auto`:** no review pause — write directly and list every generated file in the summary.
 
 **Gate:** Generated files syntactically valid. If fails → identify invalid files, show syntax error, fix inline + re-validate; un-fixable after retry → skip writing, record `status: "failed (syntax error)"`, surface raw error for manual correction.
 
@@ -178,7 +177,7 @@ Present generated files for review before writing.
 
 Structured logging configuration (JSON format, log levels); crash reporting setup with PII redaction rules; health check endpoint implementation; uptime monitoring configuration; alert rules (error rate > 5%, response time > 2s, disk > 80%).
 
-**Gate:** Monitoring configs valid + PII redaction configured. If fails → PII redaction missing → block writing crash-reporting config, prompt user to confirm redaction rules before proceeding; invalid config → fix inline + re-validate once; still invalid → skip, record `status: "failed (invalid config)"`, continue.
+**Gate:** Monitoring configs valid + PII redaction configured. If fails → PII redaction missing → block writing crash-reporting config, prompt user to confirm redaction rules before proceeding; invalid config → fix inline + re-validate once; still invalid → skip, record `status: "failed (invalid config)"`, continue. **Under `--auto`:** no prompt — apply a conservative default redaction ruleset (mask email, phone, tokens, and any field named `password`/`secret`/`ssn`) and record the applied ruleset in the summary.
 
 ### Phase 6: Incident Response [--incident]
 
@@ -188,7 +187,7 @@ Incident severity classification (P1-P4); detection → triage → mitigate → 
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolve `skipped (needs-human)` instead.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue to Summary; do not retry.
 
@@ -224,8 +223,8 @@ Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list 
 | Situation | Action |
 |-----------|--------|
 | No deployment config found | Switch to generate mode |
-| Unknown deployment target | Ask: VPS / PaaS / serverless / container |
-| Port conflicts in compose | Suggest alternative ports, ask user |
+| Unknown deployment target | Ask: VPS / PaaS / serverless / container. Under `--auto`: default `VPS`, no prompt. |
+| Port conflicts in compose | Suggest alternative ports, ask user. Under `--auto`: auto-select the next available port, no prompt. |
 | Secrets found in config files | Flag as CRITICAL, suggest secrets management approach |
 
 ## Severity
@@ -243,7 +242,7 @@ Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list 
 |----------|----------|
 | Serverless project | Skip Docker / VPS checks, focus on function config, cold start, limits |
 | Static site | Minimal: CDN + SSL, skip backend monitoring |
-| Monorepo | Ask which service to deploy, respect workspace boundaries |
+| Monorepo | Ask which service to deploy, respect workspace boundaries. Under `--auto`: process every service with a detected deploy target (Dockerfile/manifest), no prompt. |
 | Already on PaaS (Vercel / Railway) | Focus on platform-specific config, not VPS hardening |
 | GPU / ML workload | Include GPU container config, model serving patterns |
 

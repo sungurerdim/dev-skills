@@ -46,13 +46,12 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 
 | Flag | Effect |
 |------|--------|
-| `--auto` | No questions, auto-detect everything, create PR directly |
 | `--no-auto-merge` | Skip auto-merge setup |
 | `--preview` | Show PR plan without creating |
 | `--draft` | Create as draft PR (implies --no-auto-merge) |
 | `--no-tidy` | Skip history tidy, push commits as-is |
 | `--request-review` | After creation, request an automated Copilot review (`gh pr edit --add-reviewer "@copilot"`) |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 ## Delegation
 
@@ -75,7 +74,7 @@ Validate → History Tidy → Quality Gates → Analyze → Build → [Review] �
 3. Verify not on base branch, not detached HEAD
 4. `git fetch origin {base}`
 5. No commits ahead → stop. Behind base → ask rebase (--auto: rebase automatically)
-6. Check existing PR → show URL, ask: Update / Skip
+6. Check existing PR → show URL, ask: Update / Skip (`--auto`: Update automatically)
 
 **Gate:** All pre-checks passed; branch has commits ahead of base. If fails → stop with the specific check that failed:
 
@@ -160,6 +159,8 @@ Ask user:
 - **Create as draft** — draft PR for further work
 - **Cancel**
 
+Under `--auto`: skip this phase entirely — merge strategy resolves to Create + Auto-merge (the recommended default) unless `--no-auto-merge` or `--draft` is also passed.
+
 **Gate:** User confirmed PR creation option. Title, body, and merge strategy decided. If fails → if the user selects Cancel, exit cleanly without creating a PR and without modifying the branch; if the user provides no response after one re-prompt, exit with "PR creation cancelled — re-run /ds-pr when ready."
 
 ### Phase 5: Create
@@ -171,7 +172,7 @@ Ask user:
    EOF
    ```
 2. `--request-review` → `gh pr edit {number} --add-reviewer "@copilot"`; command fails (Copilot review unavailable) → warn, continue.
-3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → offer once: this skill validates only its own PR titles — a CI title gate catches non-agent PRs before they break the squash-merge → release-please changelog chain. Accept → generate the workflow file for review; decline → gap-note in summary. Never write without confirmation.
+3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → offer once: this skill validates only its own PR titles — a CI title gate catches non-agent PRs before they break the squash-merge → release-please changelog chain. Accept → generate the workflow file for review; decline → gap-note in summary. Never write without confirmation. Under `--auto`: resolves automatically per Unattended Mode rule 3 — the workflow file is generated (reversible via git, not on the irreversible-exception list) and noted in the summary.
 
 **Gate:** PR created successfully. `gh pr create` returned PR URL. If fails → stop with explicit error from `gh pr create` output; do not proceed to Merge Setup; suggest: check `gh auth status`, verify the branch was pushed, and re-run /ds-pr --no-tidy to skip the tidy step if the branch state changed.
 
@@ -205,7 +206,7 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the Unattended Mode rule-4 exception list are skipped and recorded `needs-human` instead.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → record unresolved item as `pending-user-decision`, proceed to Summary with WARN, list unresolved items.
 

@@ -41,12 +41,11 @@ Documentation drifts from code the moment it's written. This skill detects the g
 
 | Flag | Effect |
 |------|--------|
-| `--auto` | Detect, analyze, generate all missing docs |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | `--preview` | Analyze gaps only, no generation |
 | `--scope={x}` | Single scope: readme, api, dev, user, ops, support, changelog, compliance, adr, harness, refine, verify |
 | `--adr` | ADR mode: scan architecture decisions, propose/maintain numbered ADR files under `docs/adr/` |
 | `--update` | Regenerate even if docs exist |
-| `--force-approve` | Auto-apply needs_approval items (structural changes) |
 
 Without flags: present mode selection to the user.
 
@@ -86,9 +85,9 @@ Without flags: present mode selection to the user.
 **Operations (`--adr` mode):**
 
 1. **Inventory:** list existing ADRs, verify numbering contiguous, flag any missing status/date/sections. Spot-check each `accepted` ADR's referenced file paths/symbols against current code — a since-removed reference → flag `drifted`, propose a status review (deprecate / supersede); never silently trust an ADR the system has outgrown.
-2. **Proposal candidates:** every Category B decision surfaced in recent `ds/audit/findings.md` runs (scope `ideal-gap`, `architecture`, `stack-fitness`) without a matching ADR → propose a draft ADR. User approves each before writing.
+2. **Proposal candidates:** every Category B decision surfaced in recent `ds/audit/findings.md` runs (scope `ideal-gap`, `architecture`, `stack-fitness`) without a matching ADR → propose a draft ADR. User approves each before writing. **Under `--auto`:** no approval shown — each draft resolves per Unattended Mode rule 3 (written using best-judgment synthesis of the finding), recorded in the summary.
 3. **Supersedence:** new ADR contradicting an earlier one cites superseded ADR; earlier ADR updated to `status: superseded-by NNNN`.
-4. **No autonomous ADR writes.** Every new ADR is Category B — user approves title + draft before file creation.
+4. **No autonomous ADR writes.** Every new ADR is Category B — user approves title + draft before file creation. **Under `--auto`:** this gate resolves automatically per Unattended Mode rule 3 — nothing about drafting a documentation file (git-reversible, no credential, no business/legal call) matches the irreversible-exception list, so it is never left `needs-human`.
 
 ### Harness scope (activated by `--scope=harness` or when `harness` scope is explicitly selected)
 
@@ -115,7 +114,7 @@ These files are re-injected into every session as low-trust background context, 
 
 **Gate:** Every present file inventoried and classified; every DOC-11 flag verified against source. If fails → source unreadable → mark item `inconclusive`, do not cut it.
 
-Never auto-apply. Category B: show the proposed diff (cuts + additions + one-line rationale each) and get approval before writing — a harness context file shapes every future session's behavior across the whole project, a higher blast radius than most doc edits.
+Never auto-apply. Category B: show the proposed diff (cuts + additions + one-line rationale each) and get approval before writing — a harness context file shapes every future session's behavior across the whole project, a higher blast radius than most doc edits. **Under `--auto`:** resolves automatically per Unattended Mode rule 3 — the diff applies using the same cut/keep judgment shown here, recorded in the summary; nothing about editing a harness file matches the irreversible-exception list.
 
 ## Delegation
 
@@ -229,7 +228,7 @@ Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy) | Doc File:Line | C
 
 ### Phase 4: Plan Review (skip if --auto)
 
-Display plan (target files, sections, sources). Ask: Generate All / High Priority Only / Abort.
+Display plan (target files, sections, sources). Ask: Generate All / High Priority Only / Abort. **Under `--auto`:** this phase is skipped entirely — resolves to Generate All (best-judgment default: every detected gap is addressed) per Unattended Mode rule 2.
 
 **Gate:** User approved plan or `--auto`. If fails → Abort → exit cleanly `docs: ABORTED | Generated: 0`; High Priority Only → update scopes_selected to HIGH/CRITICAL only, proceed.
 
@@ -239,7 +238,7 @@ Principles: extract from code, don't invent — read source for actual signature
 
 **Compliance scope (when scope = compliance):**
 
-- **Overwrite prevention:** target file exists → do NOT overwrite. Show diff between existing + proposed, ask "Update / Keep / Show diff".
+- **Overwrite prevention:** target file exists → do NOT overwrite. Show diff between existing + proposed, ask "Update / Keep / Show diff". **Under `--auto`:** no ask — resolves per Unattended Mode rule 3 (Update when the proposed version is more accurate/complete than the existing one, else Keep), decision recorded in the summary.
 - **Infrastructure-detail safety:** compliance docs MUST NOT embed hardcoded server addresses, internal endpoints, secret-management tool names, or proprietary internal tool names. Use placeholders (`{your-domain}`, `{DPA-contact-email}`, `{your-cloud-region}`). Disclosing internal infra in a public privacy policy is itself a security finding.
 
 Compliance template structures (scan codebase for data flows, third-party SDKs, privacy configs, API patterns):
@@ -258,7 +257,7 @@ Compliance template structures (scan codebase for data flows, third-party SDKs, 
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue to Summary; do not retry.
 
@@ -297,7 +296,7 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 |-----------|--------|
 | Source code contradicts existing documentation | Flag as drift, update doc to match code |
 | Referenced file or function no longer exists | Flag as stale, suggest removal |
-| Generated doc exceeds 500 lines (or 5,000 words) | Split into multiple files at next H2 boundary; ask user for structure preference |
+| Generated doc exceeds 500 lines (or 5,000 words) | Split into multiple files at next H2 boundary; ask user for structure preference. **Under `--auto`:** no ask — splits at the next H2 boundary using the stated default, recorded in the summary |
 | Verify scope finds broken internal links | List all broken links with suggested fixes |
 | Harness context file exceeds its vendor length budget (DOC-14) | Trim DOC-10–13 findings first; still over → propose split (nested per-directory files or path-scoped rules) |
 

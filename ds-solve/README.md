@@ -25,11 +25,12 @@ rm -rf /tmp/dev-skills
 ## Use
 
 ```bash
-/ds-solve                    # Interactive: detect red lines, ask objective, plan, solve
-/ds-solve --auto             # Skip confirmations, still escalates on exhaustion
+/ds-solve                    # Interactive by default: auto-detect red lines, infer verification,
+                             # pause for confirmation after Setup and after Plan, then execute
+/ds-solve --auto             # Zero-interaction — skips both checkpoints, still escalates on exhaustion
 /ds-solve --resume           # Resume from ds/audit/solve.json
 /ds-solve --status           # Show current session progress
-/ds-solve --dry-run          # Plan + Research only, no execution
+/ds-solve --preview          # Plan + Research only, no execution
 /ds-solve --budget=2x2x3     # Custom budget: 2 plans, 2 rounds, 3 alternatives
 ```
 
