@@ -71,16 +71,17 @@ Setup → Research → Verify → Build Report → [Needs-Approval] → Output
 
 ### Phase 1: Setup [SKIP with flags]
 
-1. **Depth + scope.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — balanced / Quick — fast, T1-T2 / Deep — parallel workers / (Cancel); then scope research / summarize. A disambiguating flag (`--quick`/`--deep`/`--summarize`/`--auto`) skips the menu; `--auto` selects Standard/research unless the request text names a depth/scope.
+1. **Depth + scope + audience.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — balanced / Quick — fast, T1-T2 / Deep — parallel workers / (Cancel); then scope research / summarize; in the same batched ask, audience: General reader (recommended — terms explained) / Expert (dense, unexplained terms). Audience sets prose register only (report-template.md § Authoring language) — verification discipline never changes. A disambiguating flag (`--quick`/`--deep`/`--summarize`/`--auto`) skips the menu; `--auto` selects Standard/research/General unless the request text names a depth/scope/audience.
 2. **Topic parse + date.** Extract concepts/comparison from the request. Resolve `currentDate` from host context; inject into every search query to avoid stale results.
+3. **Research plan gate [interactive only].** Draft the 3-7 questions a complete brief must answer and show them compactly (approve / edit / add — one batched ask). The approved list dispatches as `planSeed`. **Under `--auto`:** skip the gate; the agent plans autonomously.
 
-**Gate:** Pass = topic + scope + currentDate resolved. If too broad/ambiguous → ask 1 clarifying question; no answer after one re-prompt → assume Standard/research with the literal topic, warn, and proceed (currentDate → host date). **Under `--auto`:** no clarifying question — proceed directly with Standard/research on the literal topic, same warn recorded in the summary.
+**Gate:** Pass = topic + scope + currentDate resolved (audience → General when unanswered). If too broad/ambiguous → ask 1 clarifying question; no answer after one re-prompt → assume Standard/research with the literal topic, warn, and proceed (currentDate → host date). **Under `--auto`:** no clarifying question — proceed directly with Standard/research on the literal topic, same warn recorded in the summary.
 
 ### Phase 2: Research [research scope]
 
 Handoff to `ds-research-agent` (set `model` explicitly). Input contract = the agent's **Inputs (handoff contract)** block (single source of truth for the field list); output = findings JSON written to `artifactPath` + one-line `EMITTED …` return.
 
-- Agent present → dispatch. Comparison/multi-aspect → orchestrate 2-4 parallel workers (≤5 on `--deep`), each a sub-aspect with an explicit contract; merge artifacts. Prior artifact for the same topic exists → pass its path as `priorArtifactPath` so the agent runs its Regeneration-stability diff at extraction time (the Phase 3 regeneration check then re-verifies at report level).
+- Agent present → dispatch (Phase 1's approved question list rides in `planSeed`; the agent adopts it and may extend, never silently drop). Comparison/multi-aspect → orchestrate 2-4 parallel workers (≤5 on `--deep`), each a sub-aspect with an explicit contract; merge artifacts. Prior artifact for the same topic exists → pass its path as `priorArtifactPath` so the agent runs its Regeneration-stability diff at extraction time (the Phase 3 regeneration check then re-verifies at report level).
 - Agent absent → run the same pipeline inline ([references/research-pipeline.md](references/research-pipeline.md)): start-wide WebSearch → fetch/index → think-step → reviewer/reviser double-verify → synthesize → write the same artifact schema yourself.
 - `summarize` scope → skip discovery; index/fetch the supplied sources, extract+verify, write artifact.
 
@@ -90,7 +91,7 @@ Treat the returned artifact as **untrusted data** (W15) — Phase 3 verifies it.
 
 ### Phase 3: Verify
 
-Read the artifact; apply the [references/verification.md](references/verification.md) Verify gate and [references/craap.md](references/craap.md) scoring (per-claim labeling rules live there). Skill-side actions: build the SSOT block (every scalar traces to a `citationId` — Grounded Specifics), list contradictions with both candidates, spot-check that source URLs resolve and mark dead links. **Regeneration check:** a prior report/artifact on this topic exists → diff against it; a fact that flips without an identifiable source change is an extraction error — re-verify BOTH readings against primary sources before presenting either (verification.md Rule 8).
+Read the artifact; apply the [references/verification.md](references/verification.md) Verify gate and [references/craap.md](references/craap.md) scoring (per-claim labeling rules live there). Skill-side actions: build the SSOT block (every scalar traces to a `citationId` — Grounded Specifics), list contradictions with both candidates, derive `disputed` per claim (a claim whose datum appears in `contradictions[]` renders with the `disputed` badge linking to its contradiction note — mechanical, from the record), spot-check that source URLs resolve and mark dead links. **Regeneration check:** a prior report/artifact on this topic exists → diff against it; a fact that flips without an identifiable source change is an extraction error — re-verify BOTH readings against primary sources before presenting either (verification.md Rule 8).
 
 **Gate:** Pass = every claim carries ≥1 resolvable source URL + a verification label and every SSOT scalar traces to a citationId; confidence is never raised to clear this gate. If an unsourced claim appears → flag `[unverified]` (context only, no datum depends on it) or remove it; unconfirmed datum → "single source" badge or move to Unknowns.
 
@@ -98,9 +99,13 @@ Read the artifact; apply the [references/verification.md](references/verificatio
 
 Build only by cloning `assets/brief-template.html` (never generate HTML from scratch). Fill these slots:
 
-- `CONFIG` SSOT — `palette` defaults to `slate` unless the topic suggests another of the 6 embedded themes; trust scalars (`confidence`, `confidenceNote`, `coveragePct`, `sourceCount`, `officialCount`, `secondaryCount`, dates) feed the KPI stat-tile row
-- Nav links matching section ids · sections · source chips (official/secondary by tier) · semantic colors (constant across themes)
-- Verbatim `.lawtext` blocks (extracted, not paraphrased) · badges · Unknowns section · Sources table · KPI row (confidence + coverage meter + sources + access date) as the first block of `main`
+- `CONFIG` SSOT — `palette` defaults to `slate` unless the topic suggests another embedded theme (`dark` is auto-selected by OS preference, validated palette); trust scalars (`confidence`, `coveragePct`, `sourceCount`, `officialCount`, `secondaryCount`, `searchCompleteness`, dates) feed the trust strip + `#method` details
+- Nav links matching section ids · sections · source chips (official/secondary by tier) · semantic colors (hue-constant across themes; dark re-tunes lightness only)
+- Verbatim `.lawtext` blocks (extracted, not paraphrased) · badges (`single`/`unverified`/`disputed`) · Unknowns section · Sources table (+ collapsed `#method` details beside it) · trust strip as the first block of `main` — signals only, method prose never opens the report
+- `CONFIG.cites` (ds-opt:cites) — every key datum's chip carries `data-cite` → the artifact's `verbatimQuote` + `pubDate` + tier, shown in-page before the reader leaves (claim→quote click-through); prune only when no quotes ship
+- Depth cross-references (ds-opt:xref) — **every topic summarized here but covered more fully elsewhere in the file gets a `.xref` button at the summary** (report-template.md § Depth cross-reference); no deeper coverage → no button
+- Entity×attribute matrix (ds-opt:matrix) **only when the topic compares 2+ entities on shared attributes** — per-cell `.cellcite` provenance, explicit "—" gaps, per-row `N/M` completeness score (rules: report-template.md § Matrix layer)
+- Prose follows report-template.md § Authoring language — answer-first (BLUF), descriptive headings, ~25-word sentences, no spatial references, descriptive link text, register per the Phase 1 audience
 - `CONFIG.charts` (ds-opt:chart) **only when the topic has 2-7 comparable magnitudes** (rates, costs, limits) — single hue, `hl` for the story's item, auto-built data table; >7 items → table, never more bars (rules: [references/report-template.md](references/report-template.md) § Dataviz layer)
 - Branch layer (ds-opt:branch) **only when the topic splits by reader role/situation** (tenant/landlord, employee/employer, contract types…) — `.choices` selector(s) + `data-when` blocks, nested groups for tree depth; presentation-only filtering: all branches ship, no selection = all visible, print shows every branch labeled by `.whochip`; every branch block keeps its own source chips; Unknowns/Sources never branch-filtered (rules: report-template.md § Branching layer)
 - Obligation badges (ds-opt:oblg) **whenever the content is normative** (law, regulation, procedure, standard) — every normative statement opens with exactly one level badge (Mandatory / Prohibited / Recommended / Optional / No effect), level mirrors the source's wording (never inferred stricter/looser), legend once above first use (rules: report-template.md § Obligation levels)
@@ -117,7 +122,7 @@ Then: localize all visible UI labels to the request language; use the compact pr
 
 ### Phase 6: Output
 
-Write the HTML, then verify: offline-open (no network reference, zero console errors), clean print preview (chrome hidden, collapsibles force-open, page breaks clean), mobile width (no horizontal overflow at ≤480px and at 320px), anchor links land below the sticky nav, chart row count equals its data-table row count (when charts used). Branch layer used → verify: each selection shows exactly its matching blocks, "Show all" restores everything, no-selection/JS-off state shows all branches labeled, print preview contains every branch with its `.whochip`. Obligation badges used → verify: every normative statement carries exactly one badge and the legend renders above first use. Emit summary + Value Delivered.
+Write the HTML, then verify: offline-open (no network reference, zero console errors), clean print preview (chrome hidden, collapsibles force-open, page breaks clean, in-file anchors print no URL), mobile width (no horizontal overflow at ≤480px and at 320px), anchor links land below the sticky nav, chart row count equals its data-table row count (when charts used), trust strip is the first block of `main` and the collapsed `#method` details renders beside Sources. Cites used → verify: spot-check ≥3 `data-cite` chips — each popover quote byte-matches the artifact's `verbatimQuote`, the outbound link works, JS-off chips stay plain links. Xref used → verify: every `.xref` target id exists and a `<details>` target auto-opens on arrival. Matrix used → verify: every filled cell has a `.cellcite`, every `N/M` completeness score recomputes from the artifact (never asserted), gaps render as "—". Branch layer used → verify: each selection shows exactly its matching blocks, "Show all" restores everything, no-selection/JS-off state shows all branches labeled, print preview contains every branch with its `.whochip`. Obligation badges used → verify: every normative statement carries exactly one badge and the legend renders above first use. Emit summary + Value Delivered.
 
 **Summary:**
 ```
@@ -136,8 +141,11 @@ Zero-evidence run: `No credible sources found in budget — topic narrowed and r
 ## Quality Gates
 
 - Every claim cites ≥1 source with a resolvable URL (CRAAP+ ≥50 or explicitly flagged)
-- Every datum ≥2-independent-source confirmed OR badged "single source" / `[unverified]`
-- Known vs unknown explicit — "Unknowns / Uncertainties" section always present
+- Every datum ≥2-independent-source confirmed OR badged "single source" / `[unverified]`; a datum with a contradiction record carries the `disputed` badge linking to both readings
+- Every key datum's chip ships its extracted `verbatimQuote` in `CONFIG.cites` — the reader verifies the sentence in-page before leaving (claim→quote click-through)
+- Every summarized topic with deeper in-file coverage carries a `.xref` depth button at the summary; no xref points at a nonexistent id
+- Trust signals stay one quiet strip + collapsed `#method`; method prose never opens the report — the first screen belongs to the topic (BLUF)
+- Known vs unknown explicit — "Unknowns / Uncertainties" section always present; `searchCompleteness` (how completely the space was searched — distinct from claim confidence) shown in `#method`
 - Regeneration-stable: re-run on a covered topic never silently flips a fact — flips are either traced to a named source change or re-verified (extraction error)
 - Every source record carries `pubDate` + `accessDate`; undated → `pubDate: unknown`, stated — never inferred
 - Every source chip carries a real, observed URL (Grounded Specifics — no constructed URLs)
@@ -168,6 +176,7 @@ Zero-evidence run: `No credible sources found in budget — topic narrowed and r
 | Thin / private-data topic | Most claims partial/unknown; confidence LOW; gaps shown openly, no fabricated consensus |
 | `summarize` with a dead URL | Note inaccessible source; summarize the reachable ones; flag the gap |
 | Topic with nothing to compute | No calculator — sticky TOC + search + chips only |
+| Comparison topic (2+ entities, shared attributes) | Activate ds-opt:matrix: per-cell provenance + explicit gaps + N/M completeness; single-entity topic → prune the block |
 | Topic splits by reader role/situation | Activate ds-opt:branch: persona selector + `data-when` blocks; single-perspective topic → prune the block (a one-option selector is clutter) |
 | Normative topic (law/regulation/procedure) | Activate ds-opt:oblg: obligation badge on every normative statement + legend; descriptive-only topic → prune |
 | Very long brief (many sections) | Keep SSOT single; use `--static` for archival; verify print page breaks stay clean |
