@@ -80,7 +80,8 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 - **Code files:** format + lint (no tests) on changed files only. Tool unavailable → offer install, ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`. **Under `--auto`:** no prompt — install and continue when installation is non-interactive and low-risk (a local dev-dependency); otherwise mark `⚠ Skipped (tool unavailable)` and continue.
 - **Docs/config only:** skip code checks.
 - **Format/lint modifications:** include in the same commit, not separate.
-- **On failure:** ask "Fix first (recommended) / Commit anyway". **Under `--auto`:** no prompt — Fix first (the recommended default).
+- **Mechanical Done Gate (SKILL-SPEC §4):** ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command IS the pre-commit check: run it on the changed files instead of the ad-hoc format+lint pass, and never bypass its hook. No arm → the format+lint pass above stands; no check tooling at all → Verification-Infrastructure Gap — note it once in the summary, offer `/ds-quality`.
+- **On failure:** ask "Fix first (recommended) / Commit anyway". "Commit anyway" records WARN + the red check output in the summary — a red commit is never reported as clean. **Under `--auto`:** no prompt — Fix first (the recommended default).
 
 **Gate:** No merge conflicts; quality gates passed or user proceeded. If fails → conflicts present; stop, list conflicting files, instruct user to resolve and re-run; no partial auto-commit.
 

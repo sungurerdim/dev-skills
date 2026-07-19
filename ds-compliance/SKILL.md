@@ -220,6 +220,20 @@ Architecture: {detected-summary}
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → re-present each with forced binary prompt (Apply / Skip); user declines → mark `skipped (no response)`, proceed.
 
+### Mechanical Done Gate (SKILL-SPEC §4) [any fix applied]
+
+Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else detect stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision, never silently skip. Run `{check-cmd}` once at baseline; baseline red → record red-at-baseline — done condition becomes "no *new* red", baseline reds reported as findings, never inherited as green.
+
+After each Phase 6/7 fix batch: run `{check-cmd}` on the touched scope. Before Phase 8: run the full `{check-cmd}` once — aggregate result gates the summary.
+
+| Result | Action |
+|--------|--------|
+| Green (no new red) | Proceed; quote the exact command + observed output as Completion Evidence |
+| New red, ≤3 attempts on the fix | Repair, re-run the same command — same command string, same scope |
+| New red after 3 attempts | Revert the offending fix via `git checkout -- {file}`, disposition `reverted (mechanical gate)` with captured error, continue with remaining |
+
+Never report `OK` while `{check-cmd}` shows a new red.
+
 ### Phase 8: Summary
 
 ```

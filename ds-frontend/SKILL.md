@@ -193,6 +193,10 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 **Gate:** Artifacts generated and written; user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue. **Under `--auto`:** no ask — retries once with a sanitized fallback path; still unwritable → `failed (write error)`, recorded in the generated-artifacts list, run continues.
 
+### Mechanical Done Gate (SKILL-SPEC §4) [any fix applied]
+
+Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands (include the a11y lint layer from Phase 2 when wired); none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Capture the baseline before Phase 5; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each Phase 5/6 fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 8: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Re-reading the modified file (Phase 5 step 3) is necessary but is not this gate — only the check command's green is. Never report `OK` with a new red. Audit-only/`--check`/design-only runs → gate N/A, state it.
+
 ### Phase 8: Summary
 
 ```

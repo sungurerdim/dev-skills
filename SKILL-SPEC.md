@@ -663,6 +663,32 @@ Five universal gates applied after every skill execution:
 | 4 | Stack Consistency | Changes compatible with project's existing stack, framework, and patterns | Revert incompatible changes |
 | 5 | Artifact-First Recovery | After context gap → re-read files. Tool error → different approach. Before done → re-read and verify. | Re-read modified files, verify requirement met |
 
+### Mechanical Done Gate (code-modifying skills)
+
+Normative for every skill that creates or modifies project files (code, config, tests, build inputs). Rationale: prose rules inside a skill depend on the model obeying them, and instruction-following degrades first on low-capability models — a written revert rule was present yet skipped in cross-host testing. Enforcement must therefore come from a machine signal the model cannot skip, not from the model's recall of a rule (W6, W12; cross-host F1/F4/F6). `scripts/check-consistency.sh` check #18 enforces the presence of this gate in every listed code-modifying skill.
+
+**Setup — resolve the check command once, during the skill's setup phase:**
+
+| Condition | Action |
+|-----------|--------|
+| ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint detected) | Use its gate command as `{check-cmd}`; note the arm as backstop in the summary |
+| No arm installed + ds-quality present on host | Offer `/ds-quality` bootstrap once; declined → detect stack-native format/lint/type/test commands as `{check-cmd}`, note declined offer in summary |
+| No arm + ds-quality absent | Detect stack-native format/lint/type/test commands as `{check-cmd}` (gap-note: "enforcement arm via ds-quality") |
+| No check tooling detectable at all | Verification-Infrastructure Gap: report it, offer setup, record the user's decision — never silently skip verification |
+
+Run `{check-cmd}` once at setup to capture the baseline. Baseline red → record which checks are red-at-baseline; the done condition for this run is "no *new* red vs baseline", and the baseline reds are reported as findings, never silently inherited or claimed green.
+
+**Loop — after each applied change batch:** run `{check-cmd}` for the touched scope. Before reporting done: run the full `{check-cmd}` once — aggregate green required; per-batch greens can still compose into a red.
+
+| Result | Action |
+|--------|--------|
+| Green | Proceed; evidence = exact command + observed output (Completion Evidence band) |
+| Red, ≤3 fix attempts on this item | Fix, re-run the same command — same command string, same scope, no substitution |
+| Red after 3 attempts | Revert the offending change (`git checkout -- {file}`), record disposition `reverted` with the captured error, continue with remaining items |
+| New red traceable to no single item | Stop, report the diff and the failing output; do not bisect past 3 attempts without user direction |
+
+Never report `done`/`OK` while `{check-cmd}` shows a new red. Skills that already own a stricter domain loop (e.g. ds-test's regression check, ds-tune's metric gate) keep it; this gate is the floor, not a replacement.
+
 ### Severity Standard
 
 Four levels, used consistently across all skills:

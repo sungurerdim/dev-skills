@@ -222,6 +222,10 @@ Look up typecheck tool from `references/toolchains.md`; detect if type checking 
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt per item; no response → mark `skipped (no response)` and proceed.
 
+### Mechanical Done Gate (SKILL-SPEC §4)
+
+This skill's five passes ARE the project's `{check-cmd}` — the gate here is self-referential but still explicit: after all mutating scopes, re-run every mutated scope's check command once (aggregate re-verify — per-scope greens can compose into a red, e.g. a lint auto-fix that breaks the type graph). The aggregate run's exact commands + observed outputs are the Completion Evidence. Residual red in any scope → status is `WARN`/`FAIL` with the counts, never `OK` — and the summary names the follow-up owner (code-level fixes → `/ds-review`; permanent enforcement so red blocks "done" host-wide → `/ds-quality`, offered once when no enforcement arm is installed). Baseline red that predates this run is reported as red-at-baseline, never silently inherited.
+
 ### Phase 8: Summary
 
 Per-scope status table `| Scope | Status | Details |` — one row each in run order: L10n ({count or message}), Format ({files-fixed} fixed), Lint ({issues-found} issues), Typecheck ({errors-found} errors), Security ({findings} findings). Status legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped).

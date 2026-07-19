@@ -261,6 +261,10 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 **Gate:** All items resolved. If fails → forced binary re-prompt; no response → `skipped (no response)` and proceed.
 
+### Mechanical Done Gate (SKILL-SPEC §4) [any project file modified — applied fixes, flag-gate tasks from ds-freeze]
+
+Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Capture the baseline before the first modification; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each applied fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 7: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Never report `OK` with a new red. Spec-only/design-only runs (no working-tree modification) → gate not applicable, state `no files modified — mechanical gate N/A`.
+
 ### Phase 7: Summary
 
 ```

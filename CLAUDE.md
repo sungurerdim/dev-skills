@@ -86,6 +86,10 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 - **Dimension Ownership Design Rule:** every SKILL.md declares `**Dimensions:**` line; no dimension unowned; overlap = spec violation; enforced by `check-consistency.sh`.
 - **Taxonomy Amendment Process:** new dimensions proposed via Issue/PR with name + layer + skill + framework reference; gates: no overlap + capacity; merge updates 3 files.
 
+## v5 Invariants (2026-07-19)
+
+- **Mechanical Done Gate (SKILL-SPEC §4):** every code-modifying skill resolves a `{check-cmd}` (ds-quality arm when installed, else stack-native format/lint/type/test), captures a baseline, re-runs after each change batch and once in aggregate before "done" — new red → fix ≤3 attempts, then revert + record; baseline red reported red-at-baseline, never inherited; no tooling → Verification-Infrastructure Gap surfaced, never silently skipped. Rationale: prose gates degrade first on low-capability executors — enforcement must be a machine signal, not model recall. Enforced by `check-consistency.sh` check #18 (15-skill list). ds-ship adds enforcement-arm-first sequencing + capability-tier routing for delegations.
+
 ## Philosophy
 
 - Every dependency is a future breaking change

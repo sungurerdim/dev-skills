@@ -190,6 +190,10 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 7. **Mark done** — queue entry → `done`; append `[P{N}.{K}] {skill} completed — A: {x}, B: {y}, deferred: {z}`.
 8. **Advance** — next delegation → repeat from step 1. Queue empty → next phase.
 
+**Enforcement-arm-first rule (before any code-modifying delegation):** check whether a ds-quality enforcement arm is installed (stop-hook / pre-commit hook / auto-lint). Installed → note it in the orchestration log as the mechanical backstop every delegate's Mechanical Done Gate (SKILL-SPEC §4) resolves against. Missing → offer `/ds-quality` bootstrap once as an early delegation (Category B; under `--auto` → installed per Unattended Mode rule 3); declined → record the gap in the report (`enforcement arm absent — delegate gates run instruction-only`) and continue. Rationale: prose gates inside delegated skills depend on the executing model obeying them; the arm makes red-blocks mechanical regardless of executor capability.
+
+**Capability-tier routing (when the host supports per-delegation model selection):** set the tier explicitly, never rely on defaults — read-only search/enumeration legs → fast tier; code-modifying delegations (ds-review, ds-fix, ds-test, ds-simplify, ds-deps, …) → mid tier or better; architecture verdicts, CRITICAL confirmations, and the final ship-readiness call → top tier. A below-mid-tier executor on a code-modifying delegation requires the enforcement arm installed first (rule above) — instruction-following degrades first on low-capability models, so the mechanical arm is the non-negotiable backstop, not the skill text.
+
 **Default Phase 2 delegation order (adjusted by stage + type):**
 
 1. `/ds-blueprint` — always first, full run every cycle (a new invocation = a new run-cycle; prior-cycle findings are stale by definition, diff baseline only)

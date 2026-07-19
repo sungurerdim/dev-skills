@@ -214,6 +214,10 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → record `pending-user-decision` as the finding's disposition, proceed to Summary with status WARN, list unresolved items prominently.
 
+### Mechanical Done Gate (SKILL-SPEC §4) [any fix applied]
+
+Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else platform-native analyze/lint/type/test commands (`flutter analyze` + `flutter test`, `dart analyze`, eslint/tsc + jest for RN, `swiftlint`/xcodebuild test, gradle lint/test); none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Capture the baseline before Phase 7; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each Phase 7/8 fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 9: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Re-reading modified files (Quality Gate 5) is necessary but is not this gate — only the check command's green is. Never report `OK` with a new red. Audit-only/report-only runs → gate N/A, state it.
+
 ### Phase 9: Summary
 
 ```
