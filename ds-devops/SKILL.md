@@ -45,9 +45,8 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 |------|--------|
 | `--mode={x}` | `audit`, `audit+fix`, `quick-fix` |
 | `--scope={x}` | Comma-separated: ci, signing, deps, release-pipeline, or `all` |
-| `--auto` | All scopes, no questions, single-line summary |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | `--preview` | Dry run — show what would be checked without loading rules or scanning |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 Without flags: present mode + scope selection to the user.
 
@@ -91,7 +90,9 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 5. **Mode selection.** No `--mode` → present the full menu: Full Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, summary only / (Cancel). A disambiguating flag skips the menu.
 6. **Scope selection.** No `--scope` → ask which scopes to audit (default: all).
 
-**Gate:** Project type + CI platform identified; mode and scope confirmed. If fails → undetermined type → "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce.
+**Under `--auto`:** both menus are skipped — mode resolves to `audit+fix` (best-judgment default: scan and fix autonomously) and scope resolves to `all` (Unattended Mode rule 2).
+
+**Gate:** Project type + CI platform identified; mode and scope confirmed. If fails → undetermined type → "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce. **Under `--auto`:** no prompts — undetermined type/platform resolves to whatever manifest signals are present, or "no CI configured" (an Edge Case, not a blocker) when truly absent; recorded in the summary instead of asked.
 
 ### Phase 2: Rule Loading
 
@@ -155,6 +156,8 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 | `audit+fix` | Auto-transition to fix |
 | `quick-fix` | Auto-apply all, summary only |
 
+**Under `--auto`:** no prompt shown regardless of mode — every finding, including CRITICAL, resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning `Fix all` would have used), except items matching the irreversible-exception list, which become `needs-human`.
+
 **Gate:** User selected post-report action; mode-specific next step determined. If fails → no response / dismissed prompt → default "Report only" (no fixes), announce default, proceed to Summary.
 
 **Approval-menu convention (Phases 6-7):** present each item on one compact line (`[severity] title — file:line`), grouped by severity with counts; state the question; offer `Apply all` plus per-severity bulk (`Apply all HIGH`) alongside the total (CRITICAL bulk still confirms per item); `approve-all` excludes CRITICAL; `all` = exactly the displayed set.
@@ -162,7 +165,7 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 ### Phase 6: Fix [SKIP if audit-only or --preview]
 
 1. Present fix plan per the approval-menu convention — one line per fix (rule, `[severity]`, file:line, action); question `Apply these N fixes?`.
-2. Confirmation: quick-fix proceeds; audit+fix asks Apply all / per-severity bulk / proceed / cancel.
+2. Confirmation: quick-fix proceeds; audit+fix asks Apply all / per-severity bulk / proceed / cancel. **Under `--auto`:** no confirmation shown — resolves per Unattended Mode rule 3.
 3. Apply fixes grouped by file.
 4. Present fix summary.
 
@@ -174,7 +177,7 @@ ds-devops: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** apply the approval-menu convention (question `Approve these N items?`); ask Apply all / per-severity bulk / Review Each / Skip All.
+**Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** apply the approval-menu convention (question `Approve these N items?`); ask Apply all / per-severity bulk / Review Each / Skip All.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue; do not retry.
 
@@ -200,7 +203,7 @@ Zero-finding run: `CI/CD scope clean — pipeline meets reviewed checks`.
 
 | Situation | Action |
 |-----------|--------|
-| CI platform not detected | Ask user which CI platform they use |
+| CI platform not detected | Ask user which CI platform they use. **Under `--auto`:** no ask — treated as "no CI configured", reported as a HIGH finding (Edge Cases) instead of blocking |
 | Signing certificate expired or missing | Flag as CRITICAL, generate renewal checklist |
 | Dependency audit tool unavailable | Skip dependency scope, warn in summary |
 | Pipeline config syntax varies by CI platform | Detect platform first, generate platform-specific config |

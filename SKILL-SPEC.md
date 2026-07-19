@@ -24,7 +24,7 @@ Every SKILL.md follows this section sequence:
 | 1 | Title + Tagline | Yes | One-line skill identity |
 | 2 | Triggers | Yes | When to auto-activate this skill. MUST include `INVOKE / DON'T INVOKE` table (3-5 rows) — see §2 Trigger Discipline |
 | 3 | Contract | Yes | Behavioral boundaries and guarantees. MUST include `**Dimensions:**` declaration line listing owned taxonomy dimensions (see §11). |
-| 4 | Arguments | Yes | Flags, modes, defaults |
+| 4 | Arguments | Yes | Flags, modes, defaults. MUST include `--auto` with the canonical row (see §2 Unattended Mode) — no skill-local variant. |
 | 5 | Scopes | If applicable | What the skill inspects or generates |
 | 6 | Delegation | Yes | Single pipe-separated line: `**Owns:** ... \| **Delegates:** ... \| **Receives:** ...` (see §10.2) |
 | 7 | Execution Flow | Yes | Phase overview (single line) |
@@ -290,6 +290,50 @@ Skills that present choices to the user (scope selection, fix application, appro
 3. **No nested prompts** — a single Phase asks at most one menu. Multi-decision phases batch their decisions or split into sub-phases.
 4. **`(Cancel)` always last** — every menu includes an explicit cancel/skip option so the user is never trapped.
 
+### Unattended Mode (`--auto`)
+
+`--auto` is the single, universal flag for running a skill — or an entire orchestrator chain — with zero user interaction. Every `ds-*` skill's Arguments table MUST include it with exactly this contract; no skill re-derives, narrows, or renames it locally beyond the fixed exception list in rule 4.
+
+**Contract:**
+
+1. **Zero prompts.** Under `--auto`, no menu, no approval gate, no `Approve? [Y/n]`, no free-text question is ever shown. Every point in this spec that says "ask the user" instead resolves via the skill's own best judgment against the evidence it has gathered (findings, code, project profile, prior art in the codebase).
+2. **`--auto` disambiguates every menu.** It satisfies Up-Front Mode Menu rule 4 and Interaction Discipline in full — mode, scope, and approval selection all resolve to the skill's best-judgment default without ever being displayed.
+3. **Category A and Category B both resolve automatically.** Unlike a plain interactive run, `--auto` does not merely list Category B / `needs-approval` items and stop — it applies them, using the same impact/effort/risk reasoning the interactive approval block would show a human, and records that reasoning in the summary. CRITICAL findings are included (All-Affordance Rule 4 is an interactive-mode floor only — see there).
+4. **Small irreversible-exception list — the only things `--auto` does not decide.** A short, fixed set of actions that are (a) genuinely irreversible and (b) unrecoverable via git or any rollback path are auto-skipped and recorded as `needs-human` rather than executed blind:
+   - Force-push or history rewrite on a shared/remote branch
+   - Permanent deletion of a branch, tag, or remote resource with no local backup
+   - Rotating, deleting, or transmitting a real secret/credential
+   - Any action requiring a value only a human can supply (a live credential, a business/legal/financial decision not inferable from the repo)
+
+   This list does not grow ad hoc — a skill that needs to add to it does so explicitly in its own Contract section, citing which clause above it matches. Everything not on this list is resolved per rules 1-3, never asked, never silently dropped (ties to FRC and W11 Error Ownership).
+5. **Summary is the only output.** Under `--auto`, intermediate phase narration collapses to the minimum needed for the Outcome Report; the run still ends with the standard Task/Done/Gain summary, listing every `needs-human` item from rule 4 explicitly so nothing silently vanishes.
+6. **Propagation.** An orchestrator (`ds-ship`, `ds-pipeline`) invoked with `--auto` MUST forward `--auto` to every skill it delegates to (Orchestration Contract §10.3). A delegated skill never falls back to interactive mode just because it was invoked as a child, not the top-level call.
+7. **One flag, not several.** No skill exposes a second flag whose function is "suppress prompts" or "apply everything" — `--auto` already covers both (rule 3). A skill that previously exposed `--force-approve`, an inverted `--confirm`, or a skill-local "skip this one prompt" flag (e.g. `--no-*-suggest`) removes it; that behavior is already implied by `--auto`. A flag whose function is genuinely different (output format, dependency-graph scope, git behavior) is unaffected by this rule.
+
+**Canonical Arguments-table row** — every skill pastes this verbatim (only the skill name changes if referenced elsewhere):
+
+```markdown
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+```
+
+**Absent `--auto`:** every gate in this spec (Interaction Discipline, All-Affordance Rule, Up-Front Mode Menu, FRC rule 3) behaves exactly as written — interactive by default. `--auto` is opt-in for every skill except where a skill's own Contract states an autonomous default (e.g. `ds-solve`); even there, `--auto` is the flag that removes that skill's own optional interactive checkpoint, keeping the axis identical across the suite: **no flag → most interactive available default; `--auto` → zero questions.**
+
+### Flag Vocabulary
+
+One small, consistent vocabulary across all skills — a skill MUST NOT invent a new flag where one of these already covers the need:
+
+| Flag | Meaning | Notes |
+|------|---------|-------|
+| `--auto` | Zero-interaction run | See Unattended Mode above. The only flag on this axis. |
+| `--preview` | Show the plan/diff without applying it | Canonical no-mutation flag. `--dry-run` is not used — rename to `--preview`. |
+| `--scope=<value>` | Restrict to a subset (paths, categories, or names) | Placeholder name may hint at shape (`<path>`, `<list>`) but stays lowercase, singular, one spelling per skill. |
+| `--mode=<value>` | Select among named operating modes | Only when a skill has 3+ modes that don't fit `--scope`. |
+| `--resume` | Continue a previous run from saved state | Boolean; a skill needing a target (e.g. resume a specific issue) uses a dedicated named flag instead, never overloads `--resume`'s arity. |
+| `--clean` | Discard saved state, start fresh | Pairs with `--resume`; see State Management. |
+| `--status` | Report current state, read-only, no mutation | Reserved for this meaning only — a skill needing a different read-only report uses a distinct flag name. |
+
+Every flag is spelled `--flag` or `--flag=value` — no bare positional subcommands (e.g. a skill does not accept `run` / `status` as bare words; it exposes `--run` / `--status`).
+
 ### All-Affordance Rule
 
 Every menu, list, or selection point that a skill presents to the user MUST include an **"all"** affordance (synonym: `apply-all`, `approve-all`, `all matching`) when more than one item is available.
@@ -305,9 +349,9 @@ Every menu, list, or selection point that a skill presents to the user MUST incl
 **Rules:**
 
 1. "All" affordance is **always visible** but is **not the default** unless the skill's recommendation policy says so explicitly.
-2. **Destructive scope** — when "all" would trigger destructive actions (rm, force-push, drop, schema migration, credential rotation), each item in the batch STILL requires a separate final confirmation. "All" approves intent, not bypass.
+2. **Destructive scope** — when "all" would trigger destructive actions (rm, force-push, drop, schema migration, credential rotation), each item in the batch STILL requires a separate final confirmation. "All" approves intent, not bypass. **Under `--auto`:** items matching the Unattended Mode rule-4 exception list are auto-skipped and recorded `needs-human`; everything else in the destructive batch resolves per Unattended Mode rule 3 (no confirmation exists to wait for).
 3. **Secret exclusion** — when "all" stages files (`git add -A`-style flows), `.env`, `*.pem`, `credentials.*`, `secrets.*`, and lockable variants are excluded automatically. The summary surfaces the exclusion list.
-4. **CRITICAL findings are never auto-included in `approve-all`** — they always require a separate, explicit confirmation per finding.
+4. **CRITICAL findings are never auto-included in `approve-all`** — they always require a separate, explicit confirmation per finding. **This is an interactive-mode floor only**; under `--auto` there is no one to confirm with, so CRITICAL findings resolve per Unattended Mode rule 3 (applied, not stranded) unless they independently match the rule-4 exception list.
 5. **Single-option menus are exempt.** A menu with one option does not need an "all" affordance.
 6. **Category bulk affordances** — whenever items carry a natural grouping (severity, type, scope, safety class), the menu offers a bulk option **per group in addition to the total "all"**: e.g. `Apply all CRITICAL`, `Apply all HIGH`, `Apply all <type>`, alongside `Apply all`. The total "all" is never replaced by category options — both are always present. This lets the user clear a whole class in one action without losing the single-action-for-everything path. (CRITICAL category bulk still confirms per item per rule 2/4.)
 
@@ -320,7 +364,7 @@ Every **multi-mode / multi-function** skill (more than one mode, scope, or opera
 1. The menu **covers every scenario** the skill supports (one row per mode/scope), each with a one-line "what it does" so the choice is unambiguous.
 2. A **recommended** default is marked `(recommended)` but is not auto-selected without showing the menu, unless the user passed an explicit flag.
 3. The menu includes the All-Affordance options (`all scopes` / `everything`) and `(Cancel)` last.
-4. When a flag already disambiguates (e.g. `--status`, `--scope=x`), the menu is skipped — the flag IS the choice.
+4. When a flag already disambiguates (e.g. `--status`, `--scope=x`, `--auto`), the menu is skipped — the flag IS the choice. `--auto` always disambiguates, selecting the skill's best-judgment default (Unattended Mode rule 2).
 
 ### Selection Transparency Rule
 
@@ -755,7 +799,7 @@ In practice only long autonomous skills qualify (e.g. `ds-tune` experiment loops
    - File + `--clean` given → delete state file, fresh start. If `ds/audit/` is then empty, remove the directory.
    - File exists → continue to step 2.
 2. **READ STATE** — Parse the JSON.
-   - If `git_hash` ≠ current HEAD → warn: `State from commit {state_hash} differs from HEAD {current}. Source-reading phases will re-verify. Resume? [Y/n]`. User N → delete state, fresh start. User Y or `--resume` given → continue.
+   - If `git_hash` ≠ current HEAD → warn: `State from commit {state_hash} differs from HEAD {current}. Source-reading phases will re-verify. Resume? [Y/n]`. User N → delete state, fresh start. User Y, `--resume` given, or `--auto` given → continue (under `--auto`, resuming is the best-judgment default — re-verification in step 3 catches genuine drift).
    - Determine `current_phase` and `done` phases from the `phases` array.
 3. **RE-VERIFY** — For phases marked `in_progress`:
    - Re-read source files that phase depends on.
@@ -773,7 +817,7 @@ In practice only long autonomous skills qualify (e.g. `ds-tune` experiment loops
 | Summary phase completes successfully | Delete state file. If `ds/audit/` is then empty, remove the directory. |
 | `--clean` flag | Delete existing state before fresh start |
 | User chose "start fresh" on hash mismatch | Delete state |
-| `--resume` not given, state exists | Ask: `Resume previous run? [Y/n]`. N → delete + fresh. Y → resume. |
+| `--resume` not given, state exists | Ask: `Resume previous run? [Y/n]`. N → delete + fresh. Y → resume. Under `--auto`: resume (no prompt). |
 
 **`.gitignore` enforcement (first fresh invocation per project):**
 - Setup phase checks root `.gitignore` for `ds/audit/` pattern.
@@ -812,7 +856,7 @@ Skills that audit code should offer a consistent mode pattern:
 | `audit+fix` | Scan, report, then fix CAT-1 findings automatically |
 | `quick-fix` | Fix CAT-1 findings without full report |
 
-Skills may add domain-specific modes (e.g., `release-ready`, `design`). Mode selection is presented as an interactive menu when no flag is provided.
+Skills may add domain-specific modes (e.g., `release-ready`, `design`). Mode selection is presented as an interactive menu when no flag is provided; `--auto` selects the skill's best-judgment default without showing the menu (Unattended Mode rule 2).
 
 ### Finding Resolution Completeness (FRC)
 
@@ -833,7 +877,7 @@ Every finding produced by an audit phase MUST appear in the summary with exactly
 
 1. Every finding gets exactly one disposition — `fixed + failed + skipped + needs-input + needs-approval + not-applicable = total`
 2. `needs-input` findings MUST trigger a question to the user before the summary phase. Present the finding context and ask for the required input. If the user provides input → attempt fix → `fixed` or `failed`. If the user declines → `skipped`.
-3. `needs-approval` findings MUST trigger a review step before the summary phase. Present all needs-approval items with context (why they are risky: cross-module, destructive, architectural). Ask: Apply All / Review Each / Skip All. `--auto` without `--force-approve` → list and skip. `--force-approve` → apply all without asking. If the user approves → attempt fix → `fixed` or `failed`. If the user skips → `skipped (user declined)`.
+3. `needs-approval` findings MUST trigger a review step before the summary phase. Present all needs-approval items with context (why they are risky: cross-module, destructive, architectural). Ask: Apply All / Review Each / Skip All. If the user approves → attempt fix → `fixed` or `failed`. If the user skips → `skipped (user declined)`. **Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`, using the same impact/effort/risk reasoning the review step would have shown) except items matching the Unattended Mode rule-4 exception list, which become `skipped (needs-human)`.
 4. `skipped` findings MUST include a parenthetical reason: `Skipped: 2 (1 platform limit, 1 user declined)`
 5. The summary table lists every finding with its disposition — no finding appears only in the audit phase and disappears from the summary.
 
@@ -1613,10 +1657,11 @@ A skill is an orchestrator when its primary purpose is to coordinate other ds-* 
 1. **No own analysis.** Orchestrator never rediscovers what a delegated skill discovers. It consumes `ds/audit/findings.md` as the single source of truth.
 2. **Staleness bootstrap.** When `ds/audit/findings.md` is absent or stale (git-hash mismatch), the orchestrator invokes the canonical full-scanner (`ds-blueprint`) before any other delegation.
 3. **Delegation loop.** For every invoked skill: pre-note (log to own report) → invoke → wait for done → re-read findings diff → classify Category A/B → route → mark done → advance.
-4. **Resume discipline.** Orchestrator state (`ds/audit/<orchestrator>.json`) records the delegation queue, A/B counters, and the pending approval batch so a fresh invocation resumes from the last completed step.
-5. **Report SSOT.** Only the orchestrator writes `ds/audit/report.md`. Rerun overwrites.
-6. **Planner / Generator / Evaluator separation.** Orchestrators MUST keep the three concerns separate: the planner (Phase 0 in ds-ship — classify + propose sequence) decides what to invoke; the generator is each delegated skill (which produces the work); the evaluator (Phase 2-7 review steps) judges the output and gates the next step. Conflating these — letting the planner judge its own plan, or letting a generator self-evaluate — collapses to single-agent quality (≤5% actionable rate per arXiv 2511.15755). The Category A/B approval gate is the canonical evaluator boundary.
-7. **Utility-guided invocation.** Each delegation MUST justify itself: state the expected finding count or artifact and the cost (token budget, runtime). If the expected utility does not exceed the cost (e.g., re-running ds-blueprint on a clean codebase) → skip with a note, do not invoke for completeness.
+4. **Flag propagation.** When the orchestrator itself was invoked with `--auto`, it MUST pass `--auto` on every delegated invocation at the "invoke" step of rule 3 — a delegated skill never runs interactively just because it wasn't the top-level call. The orchestrator's own gates (Phase-level confirmations, Category A/B batches it presents itself) resolve per Unattended Mode identically to any other skill.
+5. **Resume discipline.** Orchestrator state (`ds/audit/<orchestrator>.json`) records the delegation queue, A/B counters, and the pending approval batch so a fresh invocation resumes from the last completed step.
+6. **Report SSOT.** Only the orchestrator writes `ds/audit/report.md`. Rerun overwrites.
+7. **Planner / Generator / Evaluator separation.** Orchestrators MUST keep the three concerns separate: the planner (Phase 0 in ds-ship — classify + propose sequence) decides what to invoke; the generator is each delegated skill (which produces the work); the evaluator (Phase 2-7 review steps) judges the output and gates the next step. Conflating these — letting the planner judge its own plan, or letting a generator self-evaluate — collapses to single-agent quality (≤5% actionable rate per arXiv 2511.15755). The Category A/B approval gate is the canonical evaluator boundary.
+8. **Utility-guided invocation.** Each delegation MUST justify itself: state the expected finding count or artifact and the cost (token budget, runtime). If the expected utility does not exceed the cost (e.g., re-running ds-blueprint on a clean codebase) → skip with a note, do not invoke for completeness.
 
 ### 10.4 HTML Report Contract (optional)
 
@@ -1640,11 +1685,9 @@ All skills that mutate code or configuration MUST classify every action:
 **MUST:**
 
 1. Category A is never silently promoted to B, and Category B is never compressed into A (honest classification).
-2. All Category B items surface in one batched approval block, not one-by-one.
-3. Each B item presents: current → proposed, reason (concrete benefit), impact, effort, risk, rollback path.
-4. `--auto` without `--force-approve` lists B items and marks them `skipped (needs-approval)`.
-5. `--force-approve` applies all B items without asking.
-6. A and B findings are recorded in `ds/audit/findings.md` with a `category` column alongside `severity`.
+2. All Category B items surface in one batched approval block, not one-by-one. **Under `--auto`:** no approval block is shown — B items resolve per Unattended Mode rule 3, except items matching the rule-4 exception list, which become `skipped (needs-human)`.
+3. Each B item presents: current → proposed, reason (concrete benefit), impact, effort, risk, rollback path — recorded in the summary regardless of whether a human or `--auto` made the call.
+4. A and B findings are recorded in `ds/audit/findings.md` with a `category` column alongside `severity`.
 
 ---
 
@@ -1848,7 +1891,7 @@ Phase1 → Phase2 → [Phase3] → Phase4 → Summary
 
 ### Phase N-1: Needs-Approval Review [needs-approval > 0]
 
-Present needs_approval items with risk context. Modes: --auto → list+skip, --force-approve → apply all, interactive → Apply All / Review Each / Skip All.
+Present needs_approval items with risk context. Interactive: Apply All / Review Each / Skip All. `--auto`: resolved per Unattended Mode rule 3, no prompt.
 
 **Gate:** All needs-approval items resolved.
 

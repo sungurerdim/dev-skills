@@ -37,7 +37,7 @@ or a universal git pre-commit hook.
 
 - Installs a deterministic, local, no-CI quality gate: one entry point (format → lint → type → test) + a host-appropriate enforcement arm that blocks "done" (or the commit) until it passes green; bootstraps missing tooling when asked.
 - **Enforcement mechanism is host-dependent — no single claim covers every host.** Stop-time (full strength — blocks "done" itself): Claude Code Stop hook (existing, unchanged) · Codex CLI `Stop` hook · Gemini CLI `AfterAgent` hook. Edit-time: Aider `.aider.conf.yml` auto-lint/auto-test. Commit-time (weaker — an agent can still narrate "done" between an edit and the next commit; documented honestly, not hidden): GitHub Copilot `preToolUse` commit-deny hook · git `pre-commit` hook (universal fallback for Cursor, Windsurf, plain terminal).
-- Modes are flag-disambiguated (`--install`/`--run`/`--check`/`--status`/`--disable`/`--project-hook`/`--uninstall`/`--arm`); no flag = bootstrap this repo. When invoked with no flag and intent is ambiguous, present an up-front menu covering every mode (`(recommended)` default + `(Cancel)`).
+- Modes are flag-disambiguated (`--install`/`--run`/`--check`/`--status`/`--disable`/`--project-hook`/`--uninstall`/`--arm`/`--auto`); no flag = bootstrap this repo. When invoked with no flag and intent is ambiguous, present an up-front menu covering every mode (`(recommended)` default + `(Cancel)`). `--auto` skips this menu too — selects the skill's best-judgment default (bootstrap this repo, i.e. the no-flag behavior) without prompting.
 - LOCAL ONLY — never creates or edits CI / remote pipelines. Idempotent (safe to re-run, never duplicates hooks). Non-destructive — never weakens, skips, or mocks-away checks to get green.
 - Runs the passes via the tools already present; delegates one-shot fixing of what they report to ds-fix. This skill owns the *gate + enforcement mechanism*, not the fixes.
 - Touch only quality-infra files — configs, scripts, `.claude/settings*.json`, `.aider.conf.yml`, `.git/hooks/pre-commit`, the global hook, the project marker, and (only if no tests exist) a real starter test. Never delete or rewrite existing source or tests beyond the task.
@@ -52,6 +52,7 @@ or a universal git pre-commit hook.
 |------|--------|
 | `--install` | One-time global install/refresh of the Claude Code arm: gate + detector scripts, `.hooks.Stop` registration, default `auto` config. No project changes. |
 | (none) | **Bootstrap THIS repo's missing tooling** (formatter/linter/type/test + a real starter test if none), then select and wire an enforcement arm. Detect → establish signals → entry point → select arm → prove (Phase 5). |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | `--run` / `--check` | Run this repo's resolved quality command now (marker → else auto-detect) and report; no setup |
 | `--status` | Report mode/roots, what auto-arm resolves here, which arm(s) are wired, and global install state |
 | `--arm <claude-code\|aider\|git-hook\|copilot\|gemini\|codex>` | Force a specific enforcement arm instead of auto-detecting the host; skips the selection menu |
@@ -75,7 +76,7 @@ Detect toolchain → Establish quality signals → Single entry point → Enforc
 - Identify the host: `.aider.conf.yml` or an active Aider session → Aider; `~/.claude/` present / running inside Claude Code → Claude Code; `.codex/` or `~/.codex/` → Codex CLI; `.gemini/` or `~/.gemini/` → Gemini CLI; `.github/hooks/` or `~/.copilot/` → Copilot; none → universal (git pre-commit).
 - **Report the detected stack + host before changing anything.**
 
-**Gate:** Stack, existing tooling, and host are all identified from real manifests/lockfiles/configs — never assumed. If fails → no manifest/lockfile detected (unknown stack) → ask the user which language/toolchain to target before proceeding; do not guess.
+**Gate:** Stack, existing tooling, and host are all identified from real manifests/lockfiles/configs — never assumed. If fails → no manifest/lockfile detected (unknown stack) → ask the user which language/toolchain to target before proceeding; do not guess. **Under `--auto`:** this blocker matches the Unattended Mode rule-4 exception list (no value inferable from the repo) — skip the ask, stop this phase, and record `needs-human: unknown stack — specify language/toolchain`.
 
 ### Phase 2 — Establish the quality signals
 For the detected stack (see [references/toolchains.md](references/toolchains.md) for exact commands + bootstrap), ensure each EXISTS and RUNS; create minimal **standard** config only where missing, preferring tools already in the lockfile:
@@ -99,14 +100,14 @@ Exactly one command, fail-fast, in order **format-check → lint → type-check 
 
 The entry point runs only checks that actually exist for the detected stack. Never invent a check that has no tool. Verify a human can run it and it exits non-zero on failure.
 
-**Gate:** Single entry point exists, runs fail-fast in the required order, and exits non-zero on failure. If fails → no supported build system present and the template is unusable in this shell → surface the blocker and ask the user to specify an entry-point mechanism; do not fabricate a passing command.
+**Gate:** Single entry point exists, runs fail-fast in the required order, and exits non-zero on failure. If fails → no supported build system present and the template is unusable in this shell → surface the blocker and ask the user to specify an entry-point mechanism; do not fabricate a passing command. **Under `--auto`:** same exception-list case as Phase 1 — record `needs-human: no entry-point mechanism available` instead of asking, and stop this phase without fabricating a command.
 
 ### Phase 4 — Enforcement (select the arm, then wire it)
 Every arm enforces the **same** entry point from Phase 3 — they differ only in *when* they run it.
 Detected host (Phase 1) picks a default; if more than one applies or detection is ambiguous, present
 the menu: `[1] Claude Code Stop hook (stop-time; recommended if using Claude Code)` / `[2] Aider auto-lint/auto-test (edit-time)`
 / `[3] git pre-commit hook (commit-time, universal — works with any host)` / `[4] Copilot hooks (commit-deny + stop report)`
-/ `[5] Gemini CLI AfterAgent hook (stop-time)` / `[6] Codex CLI Stop hook (stop-time)` / `(Cancel)`. `--arm` skips the menu.
+/ `[5] Gemini CLI AfterAgent hook (stop-time)` / `[6] Codex CLI Stop hook (stop-time)` / `(Cancel)`. `--arm` skips the menu. `--auto` also skips the menu — when detection is ambiguous, picks the best-judgment default (Claude Code Stop hook if running inside Claude Code, else the first-detected host in Arm A→F order, else Arm C git pre-commit as the universal fallback), recording the choice in the summary.
 
 **Arm A — Claude Code (Stop hook, stop-time).** Unchanged, existing mechanism:
 - Global gate, installed once (`--install`): `~/.claude/hooks/ds-quality-gate.sh`, registered in `~/.claude/settings.json` under `.hooks.Stop`. On every Stop it resolves a command in priority order: (1) explicit marker `<root>/.claude/ds-quality.json` (`enabled:false` = per-repo kill switch) → (2) auto-arm — no marker, repo under a trusted root (default `~/projects`): `ds-quality-detect.sh` builds the fail-fast command from tools/configs that already exist → (3) inert — nothing detectable, or repo outside trusted roots → `exit 0`.

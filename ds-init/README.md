@@ -33,7 +33,8 @@ Run `/ds-init`, or ask to scaffold a new project.
 | **Interactive** (default) | Guide through type + stack selection |
 | **--minimal** | Bare minimum directory structure |
 | **--full** | Full production setup (CI, Docker, testing, docs) |
-| **--dry-run** | Preview files without creating them |
+| **--preview** | Preview files without creating them |
+| **--auto** | Zero-interaction — every decision resolved by best judgment |
 
 ## Supported Types
 

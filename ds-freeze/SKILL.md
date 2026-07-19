@@ -42,13 +42,14 @@ Every feature stays "in scope" until someone explicitly says otherwise, so a rel
 | Flag | Effect |
 |------|--------|
 | (none) | Full flow: inventory → triage → manifest → implement kept → file deferred → doc sync |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | `--preview` | Phase 1–2 only: candidate inventory, no triage or mutation |
 | `--milestone={name}` | Label for the release manifest / tracking issue (e.g. `v1.0`, `mvp`); asked if omitted |
 | `--scope={area}` | Restrict inventory to one module/domain (large monorepos) |
 | `--resume={#N}` | Resume from an existing tracking issue number; re-reads its checklists, unchecked items stay undecided |
 | `--skip-implement` | Stop after Phase 4 (manifest + filing) — implementation deferred to a separate `/ds-issue --do` pass |
 
-Without flags: present an up-front menu covering every mode — Full flow (recommended) — inventory through doc sync / Preview — inventory only, no mutation / Manifest only — triage + filing, no implementation (`--skip-implement`) / Resume — continue an existing tracking issue / (Cancel). A disambiguating flag skips the menu.
+Without flags: present an up-front menu covering every mode — Full flow (recommended) — inventory through doc sync / Preview — inventory only, no mutation / Manifest only — triage + filing, no implementation (`--skip-implement`) / Resume — continue an existing tracking issue / (Cancel). A disambiguating flag skips the menu. `--auto` always disambiguates, selecting Full flow with every triage/approval decision made by best judgment (Unattended Mode rule 2).
 
 ## Scopes
 
@@ -67,12 +68,12 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 ### Phase 1: Setup + Load
 
 1. No state file to recover (Contract) — `--resume={#N}` given → re-read that tracking issue's checklists (or `docs/release/*.md` if it's a doc-tracked run) and treat unchecked items as still undecided; absent → fresh start.
-2. Resolve `--milestone`; absent → ask: `Which release/milestone is this freeze for?`
+2. Resolve `--milestone`; absent → ask: `Which release/milestone is this freeze for?` **Under `--auto`:** no ask — resolves to the best available repo signal (unreleased CHANGELOG heading, next semver bump inferred from the current manifest version, or a date-stamped fallback `release-{YYYY-MM-DD}`), recorded in the tracking artifact and summary header.
 3. Findings freshness check (W10): `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle) and covers `promise-census`/`ideal-gap` → reuse those rows instead of re-deriving. Prior-cycle findings — however recent — are diff context only, never a re-derivation substitute. Stale/absent → advisory handoff to `/ds-blueprint` if present; absent → own lightweight pass: read README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / `docs/`, `specs/`, `research/` for capability claims, cross-check against source.
 4. Load open GitHub issues (`gh issue list --state open`); `gh` unavailable or unauthenticated → note the gap, continue with doc/code-derived candidates only.
 5. Mode menu (see Arguments) unless a disambiguating flag was passed.
 
-**Gate:** milestone named; at least one candidate source resolved (findings, docs, or issues). If fails → ask the user for doc paths or issue numbers manually; zero sources after asking → report "nothing to triage" and stop.
+**Gate:** milestone named; at least one candidate source resolved (findings, docs, or issues). If fails → ask the user for doc paths or issue numbers manually; zero sources after asking → report "nothing to triage" and stop. **Under `--auto`:** no ask — zero sources found resolves straight to "nothing to triage", run stops (there is no evidence left to judge from).
 
 ### Phase 2: Inventory
 
@@ -88,6 +89,8 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 2. Show every item compactly, grouped by domain with counts: `[domain] {item} — {source} · {one-line description}`. Offer per-domain bulk (`Ship all {domain}` / `Defer all {domain}`), the total `all` affordance (not marked recommended — this needs judgment), and per-item override. `(Cancel)` last.
 3. Record each item's disposition as the user confirms it.
 
+**Under `--auto`:** no question is shown — this is the skill's central collaborative decision, so it still gets a per-item disposition, just resolved by best judgment against the gathered evidence instead of asked: complete + tested + doc-aligned → `ship`; built but risky, incomplete, or under-tested → `defer-hidden`; not yet built or trivial to omit → `defer-backlog`. Genuinely ambiguous items (evidence doesn't clearly support `ship`) still default to `defer-backlog` per W5 — `--auto` never silently ships something nobody confirmed. Every resolution and its reasoning is recorded in the manifest and Phase 7 report exactly as an interactive decision would be.
+
 **Gate:** every candidate has exactly one disposition. If fails (items left undecided) → default undecided items to `defer-backlog`, flag each as `auto-deferred — no decision given` in the manifest and report.
 
 ### Phase 4: Release Manifest
@@ -100,8 +103,8 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 
 ### Phase 5: Implement Kept Set [SKIP if --skip-implement]
 
-1. For each `ship` item mapped to an open issue → delegate `/ds-issue --do #N`, wait for its completion signal, re-read the issue + `git diff` to verify the claimed outcome (W15) rather than trusting the delegate's summary.
-2. For each `defer-hidden` item → delegate a bounded flag-gate task to the owning build skill (advisory handoff: `/ds-backend`, `/ds-frontend`, or `/ds-review`, whichever owns that surface) — instruction: gate the feature behind a flag/toggle for this release, do not delete. Verify the feature is unreachable by default before marking done.
+1. For each `ship` item mapped to an open issue → delegate `/ds-issue --do #N`, wait for its completion signal, re-read the issue + `git diff` to verify the claimed outcome (W15) rather than trusting the delegate's summary. **Under `--auto`:** the delegate call forwards `--auto` (Unattended Mode rule 6) so its own execution proceeds without prompts too.
+2. For each `defer-hidden` item → delegate a bounded flag-gate task to the owning build skill (advisory handoff: `/ds-backend`, `/ds-frontend`, or `/ds-review`, whichever owns that surface) — instruction: gate the feature behind a flag/toggle for this release, do not delete. Verify the feature is unreachable by default before marking done. **Under `--auto`:** same forwarding — the delegate runs with `--auto`.
 3. `defer-backlog` items get no code action this run — confirmed filed only (Phase 4).
 4. Aggregate green check: after all kept-set/flag-gate work, run the project's test suite (delegate `/ds-test` when present; absent → native test command; neither → gap-note per Verification-Infrastructure rule). Per-item greens don't compose into a green release — the suite must pass before doc sync.
 
@@ -109,7 +112,7 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 
 ### Phase 6: Documentation Sync
 
-1. Delegate to `/ds-docs`: update README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / specs so every `ship` item's promise matches its implementation, and every `defer-hidden`/`defer-backlog` item is either dropped from "current capabilities" framing or explicitly marked "planned — see #N", never left claiming a deferred feature is live. `ds-docs` absent → advisory handoff: inline-patch the obvious feature-list/README lines this run already touched, gap-note the rest for a manual doc pass.
+1. Delegate to `/ds-docs`: update README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / specs so every `ship` item's promise matches its implementation, and every `defer-hidden`/`defer-backlog` item is either dropped from "current capabilities" framing or explicitly marked "planned — see #N", never left claiming a deferred feature is live. `ds-docs` absent → advisory handoff: inline-patch the obvious feature-list/README lines this run already touched, gap-note the rest for a manual doc pass. **Under `--auto`:** the `/ds-docs` delegate call forwards `--auto` (Unattended Mode rule 6).
 2. Re-run the promise-census check from Phase 1: confirm zero `ship` items remain `promised-not-implemented` and zero deferred items remain claimed-live in docs.
 
 **Gate:** docs reflect the frozen manifest — zero deferred items claimed live, zero shipped items undocumented. If fails → list the mismatches in the Phase 7 report under "Doc gaps remaining"; never block the run on this alone.
@@ -135,7 +138,7 @@ W1: every candidate and disposition traces to a read file/issue/doc — no memor
 | Situation | Action |
 |-----------|--------|
 | `ds-docs` unavailable | Advisory handoff — inline-patch touched doc lines, gap-note the rest |
-| Flag-gate delegate (ds-backend/ds-frontend/ds-review) unavailable | Escalate the `defer-hidden` item to the user: ship as-is or manual gate instruction |
+| Flag-gate delegate (ds-backend/ds-frontend/ds-review) unavailable | Escalate the `defer-hidden` item to the user: ship as-is or manual gate instruction. **Under `--auto`:** no escalation — falls back to the same advisory-handoff pattern used elsewhere (inline-patch a bounded gate if one is safely reachable this run, else gap-note); never silently ships an item marked `defer-hidden` |
 | `gh` unavailable for the whole run | Fall back to `docs/release/{milestone}-scope.md` tracking file end to end |
 | Delegated `ds-issue --do #N` fails | Record `failed` with the blocker, continue to the next item, never mark a `ship` item done without evidence |
 
@@ -147,7 +150,7 @@ W1: every candidate and disposition traces to a read file/issue/doc — no memor
 | No open issues and no doc promises found | Report "nothing to triage" and stop — mutate nothing |
 | User defers everything | Manifest still written; report `Ship: 0` and flag WARN — an empty release scope is a signal, not silently accepted |
 | Item spans multiple domains | List once under its primary domain, cross-reference the others in its description |
-| `defer-hidden` item has no clean flag point (tightly coupled) | Escalate as `needs-approval`: least-invasive hide (route/nav removal) or leave as `ship` — never silently leave it exposed |
+| `defer-hidden` item has no clean flag point (tightly coupled) | Escalate as `needs-approval`: least-invasive hide (route/nav removal) or leave as `ship` — never silently leave it exposed. **Under `--auto`:** resolves automatically to the least-invasive hide (route/nav removal) without asking — respects the triage disposition; not on the irreversible-exception list, so never left `needs-human` |
 | Tracking issue already exists for this milestone (`--resume`) | Re-read its checklists; unchecked items resume as undecided in Phase 3 |
 | `--do --all`-style bulk implementation requested | Not supported — Phase 5 runs `ds-issue --do #N` one kept item at a time; a curated subset, not the whole backlog |
 

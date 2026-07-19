@@ -44,8 +44,7 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 | `--preview` | Show commit plan only, don't execute |
 | `--single` | Force single commit |
 | `--staged-only` | Commit only staged changes |
-| `--auto` | No questions; `needs_approval` items listed and skipped |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Default scope: all uncommitted changes (staged + unstaged + untracked).
 
@@ -68,8 +67,8 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 **Branch management:**
 
-- **On main/master:** suggest feature branch (`{type}/{short-description}`); offer commit-on-main. If `release-please-config.json`, `.release-please-manifest.json`, `.releaserc*`, or a `semantic-release` config in `package.json` is present, mark commit-on-main as "Not recommended — bypasses changelog pipeline".
-- **On feature branch:** changes outside branch scope → ask: continue here (recommended) / create new branch.
+- **On main/master:** suggest feature branch (`{type}/{short-description}`); offer commit-on-main. If `release-please-config.json`, `.release-please-manifest.json`, `.releaserc*`, or a `semantic-release` config in `package.json` is present, mark commit-on-main as "Not recommended — bypasses changelog pipeline". **Under `--auto`:** no prompt — commit on main only when the repo's own convention already does so (prior history commits directly to main, no branch-protection signal); otherwise create the feature branch.
+- **On feature branch:** changes outside branch scope → ask: continue here (recommended) / create new branch. **Under `--auto`:** continue here (the recommended default), no prompt.
 
 **Conflict check:** `UU`/`AA`/`DD` in status → stop.
 
@@ -77,11 +76,11 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 - **IDU:** Profile → Toolchain. Findings(commit-relevant) → context for grouping. Absent → own detection.
 - **Always:** secret scan + large file check.
-- **Always: repo completeness check** — untracked source files referenced by tracked code: list untracked (`git ls-files --others --exclude-standard`), filter to source extensions (`.ts/.tsx/.js/.jsx/.go/.py/.dart/.rs/.rb/.php/.ex/.scala/.cs/.c/.cpp/.h/.swift/.vue/.svelte`; exclude build output, lockfiles, generated), grep tracked files for filename references + relative path patterns. Referenced-but-untracked → ask **"Used by your code but not tracked — CI will fail. Stage them?"**: Stage all (recommended) / Review each / Skip. Approve → `git add`, include in commit. Skip → warn "CI will likely fail".
-- **Code files:** format + lint (no tests) on changed files only. Tool unavailable → offer install, ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`.
+- **Always: repo completeness check** — untracked source files referenced by tracked code: list untracked (`git ls-files --others --exclude-standard`), filter to source extensions (`.ts/.tsx/.js/.jsx/.go/.py/.dart/.rs/.rb/.php/.ex/.scala/.cs/.c/.cpp/.h/.swift/.vue/.svelte`; exclude build output, lockfiles, generated), grep tracked files for filename references + relative path patterns. Referenced-but-untracked → ask **"Used by your code but not tracked — CI will fail. Stage them?"**: Stage all (recommended) / Review each / Skip. Approve → `git add`, include in commit. Skip → warn "CI will likely fail". **Under `--auto`:** no prompt — Stage all (the recommended default).
+- **Code files:** format + lint (no tests) on changed files only. Tool unavailable → offer install, ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`. **Under `--auto`:** no prompt — install and continue when installation is non-interactive and low-risk (a local dev-dependency); otherwise mark `⚠ Skipped (tool unavailable)` and continue.
 - **Docs/config only:** skip code checks.
 - **Format/lint modifications:** include in the same commit, not separate.
-- **On failure:** ask "Fix first (recommended) / Commit anyway".
+- **On failure:** ask "Fix first (recommended) / Commit anyway". **Under `--auto`:** no prompt — Fix first (the recommended default).
 
 **Gate:** No merge conflicts; quality gates passed or user proceeded. If fails → conflicts present; stop, list conflicting files, instruct user to resolve and re-run; no partial auto-commit.
 
@@ -195,17 +194,17 @@ Stage files → build message → commit.
 
 **Message-format gate (advisory tool):** `commitlint.config.*` present → validate each proposed message with commitlint before committing; rejection → fix the message, retry. Absent → the format tables above are the fallback; repo has CI + multiple contributors → add summary note "commit format enforced only in this session — no commitlint gate for future contributors".
 
-**Gate:** Commits created in conventional format with `Co-Authored-By:`. If fails → pre-commit hook rejected; show output, ask "Fix and retry (recommended) / Commit anyway (--no-verify, explain risk)"; bypass → add WARN note in summary. Secret-pattern file explicitly re-added by user → stage exactly that file, keep the rest of the pattern excluded.
+**Gate:** Commits created in conventional format with `Co-Authored-By:`. If fails → pre-commit hook rejected; show output, ask "Fix and retry (recommended) / Commit anyway (--no-verify, explain risk)"; bypass → add WARN note in summary. Secret-pattern file explicitly re-added by user → stage exactly that file, keep the rest of the pattern excluded. **Under `--auto`:** no prompt — fix and retry (the recommended path), never bypass via `--no-verify`; still failing after one retry → stop and report the blocker (hooks are never skipped, this is not on the irreversible-exception list).
 
 ### Phase 4: Verify
 
 `git log` to confirm. Verify working tree clean (unless `--staged-only`).
 
-**Gate:** `git log` shows expected commits; working tree clean. If fails → re-read `git status`, identify remaining untracked/modified, ask "Stage remaining and commit / Leave as-is".
+**Gate:** `git log` shows expected commits; working tree clean. If fails → re-read `git status`, identify remaining untracked/modified, ask "Stage remaining and commit / Leave as-is". **Under `--auto`:** no prompt — leave as-is (the safer default, avoids committing unplanned drift) and note the remaining files in the summary.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolve `skipped (needs-human)` instead.
 
 **Gate:** All needs_approval items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt per item (Apply / Skip); no response → mark `skipped (no response)` and proceed.
 
@@ -239,10 +238,10 @@ Zero-change run: `Nothing to commit — working tree clean`.
 | Scenario | Behavior |
 |----------|----------|
 | No changes | Report "nothing to commit", exit |
-| All untracked | Ask which files to include |
+| All untracked | Ask which files to include. Under `--auto`: stage all (matches the default scope), no prompt. |
 | Merge conflict markers | Warn, do not commit until resolved |
 | Untracked file referenced by tracked code | Completeness gate catches it — stage prompt |
 | Untracked file with no tracked references | Ignore — not a completeness issue |
-| >20 untracked source files | Show count + top 5 referenced; ask "Stage referenced (N) / Review / Skip" |
+| >20 untracked source files | Show count + top 5 referenced; ask "Stage referenced (N) / Review / Skip". Under `--auto`: stage referenced, no prompt. |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

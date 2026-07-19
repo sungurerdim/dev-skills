@@ -43,8 +43,7 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 |------|--------|
 | `--preview` | Scan + report, no approval prompt, no deletion |
 | `--scope={x}` | Single scope: dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan, all |
-| `--auto` | All phases, list Category B items (every deletion is B), skip without asking |
-| `--force-approve` | Apply every pending deletion without asking |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Without flags: present mode menu (full scan / preview / single scope).
 
@@ -75,7 +74,7 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scan, appended with own `source` + current `git_hash`.
 
-2. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel). A disambiguating flag skips the menu.
+2. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel). A disambiguating flag skips the menu. Under `--auto`: skip the menu — mode resolves to Full Scan (all scopes).
 
 3. **Project detection.** Identify language(s) + LSP availability. LSP present (TypeScript, Go, Python, Dart, Rust) → use `findReferences` / `documentSymbol`. LSP absent → grep fallback.
 
@@ -178,8 +177,7 @@ All findings are Category B — every deletion requires approval.
 1. Present full table — one line per row (`type · target — file:line`) grouped by scope with counts; state the question (`Delete these N items?`). "All" = exactly the displayed set.
 2. Offer: **Apply All** / **Apply by Scope** (per-scope bulk alongside the total) / **Review Each** / **Skip All**.
 3. Apply All → all rows → `delete`. Skip All → all → `skipped (user declined)`. Review Each → per-row `keep | delete | defer`. Apply by Scope → per-scope bulk.
-4. `--auto` without `--force-approve`: list all, mark `skipped (needs-approval)`.
-5. `--force-approve`: all rows → `delete`.
+4. **Under `--auto`:** no approval batch is shown — every row resolves automatically to `delete`, using the same impact/effort/risk reasoning the interactive batch would show (reversible via the batch's git commit in Phase 5, so not on the irreversible-exception list), recorded in the summary.
 
 Record every decision. Batch pending deletions by scope.
 

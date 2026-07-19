@@ -19,7 +19,7 @@ The durable record is the GitHub issue + its comments + git — not a local `ds/
 
 **Version gate (once per run):** `gh --version` ≥ 2.94.0 → native sub-issue / issue-type / dependency flags and their JSON fields are available (GitHub.com and GHES 3.17+; blocked-by/blocking relationships need GHES 3.19+). Below 2.94.0 → use the REST/task-list fallbacks marked below and recommend upgrading.
 
-**Read-phase command allowlist:** `--status`, `--sweep` classification, and every `--dry-run` restrict `gh` to `issue view` / `issue list` / `search issues` / `label list` (+ `repo view` for the slug). Mutating commands (`issue create/edit/close/comment`, `label create`) run only after the per-item confirmation the SKILL gates require.
+**Read-phase command allowlist:** `--status`, `--sweep` classification, and every `--preview` restrict `gh` to `issue view` / `issue list` / `search issues` / `label list` (+ `repo view` for the slug). Mutating commands (`issue create/edit/close/comment`, `label create`) run only after the per-item confirmation the SKILL gates require (or, under `--auto`, the best-judgment resolution the SKILL gates specify).
 
 ## Dedup search (Phase 2)
 
@@ -94,7 +94,7 @@ gh issue comment <n> --repo <slug> --body-file - <<'EOF'   # plan, evidence, dec
 EOF
 ```
 
-The `--do` mode posts its plan (under `--dry-run`) and its close-evidence here; `--status` reads these comments back but judges done-ness from code, not from the comment text. These comments ARE the run's audit trail — there is no local log.
+The `--do` mode posts its plan (under `--preview`) and its close-evidence here; `--status` reads these comments back but judges done-ness from code, not from the comment text. These comments ARE the run's audit trail — there is no local log.
 
 ## Milestones (optional)
 

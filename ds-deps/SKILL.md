@@ -45,13 +45,11 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 
 | Flag | Effect |
 |------|--------|
-| `--preview` | Classify + report, no upgrade |
+| `--preview` | Classify + security scan + report only — no upgrade execution |
 | `--scope={x}` | Specific group: patch, minor, major, security, all |
-| `--auto` | Apply safe-patch + safe-minor; list majors, skip without asking |
-| `--force-approve` | Apply every classified upgrade including majors — majors can ship breaking changes; expect to fix call sites |
-| `--dry-run` | Classifier + security scan only, skip upgrade execution |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
-Without flags: present an up-front menu — Upgrade safe groups (recommended: apply safe-patch + safe-minor, surface majors), plus each mode in the Arguments table (Preview / Scoped / Dry-run) and (Cancel). A disambiguating flag skips the menu.
+Without flags: present an up-front menu — Upgrade safe groups (recommended: apply safe-patch + safe-minor, surface majors), plus each mode in the Arguments table (Preview / Scoped) and (Cancel). A disambiguating flag skips the menu.
 
 ## Scopes
 
@@ -168,7 +166,7 @@ Write findings to `ds/audit/findings.md` with `scope=deps` and `category` column
 
 **Gate:** Plan table displayed, every dep accounted for. If fails → missing dep → re-check Phase 2/3 output, add row with `class: "unknown"` + `notes: "classification failed — manual review required"`; do not proceed to Execute until table is complete or missing dep is explicitly user-skipped.
 
-### Phase 5: Execute [skip if --preview or --dry-run]
+### Phase 5: Execute [skip if --preview]
 
 Per group, in order: **security** → **safe-patch** → **safe-minor** → (approval) → **review-major** → **removal**.
 
@@ -192,14 +190,14 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 **Review-major group (requires approval):**
 
 1. Present every entry — one line each (`name: current → proposed · breaking?`) grouped by package class with counts; state the question (`Upgrade which of these N majors?`). "All" = exactly the displayed set. Full detail (breaking notes, migration steps from changelog, rollback path) under each entry.
-2. Modes: **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**. `--auto` without `--force-approve` → skip all, mark needs-approval. `--force-approve` → apply all.
+2. Modes: **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**. **Under `--auto`:** no menu shown — every major resolves per Unattended Mode rule 3 (applied using the same impact/effort/risk reasoning the menu would have shown, recorded in the summary); nothing about a major version bump matches the irreversible-exception list, so none is stranded as `needs-human`.
 3. Per approved major: apply bump, run **full** test suite (not quick); fail → revert + mark failed; pass → commit.
 4. One commit per major: `chore(deps): upgrade {name} to {major-version}`. Body: breaking notes + migration link.
 
 **Removal group (requires approval):**
 
 1. Present candidates with "0 source references" evidence.
-2. Approve → remove from manifest + lockfile, run quick tests, commit `chore(deps): remove unused {name}`.
+2. Approve → remove from manifest + lockfile, run quick tests, commit `chore(deps): remove unused {name}`. **Under `--auto`:** resolves automatically per Unattended Mode rule 3 — removed, quick-tested, and committed without approval (git history keeps this fully reversible).
 
 **Gate:** Every group has a commit or `failed`/`skipped` record. Working tree clean of THIS skill's changes. If fails → dirty tree (partial apply, no commit) → revert exactly the touched files via `git restore -- {manifest} {lockfile}` — never a tree-wide `git checkout -- .`, which would destroy the user's unrelated uncommitted work — mark `failed (dirty working tree)` for the summary, continue; revert itself fails → halt + surface conflict with modified-file list.
 
@@ -207,7 +205,7 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 
 Covers ONLY items still undecided after Phase 5 (deferred majors/removals, `--auto`-skipped items) — items already decided in Phase 5's inline approval are never re-presented (no double-asking).
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — remaining items (deferred majors/removals) resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** Every B item has a decision (applied → fixed/failed, or explicitly skipped). If fails → undecided after prompt (dismissed/timed out) → mark `skipped (no decision)` for the summary, continue to Summary; do not re-prompt.
 
@@ -249,7 +247,7 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 |-----------|--------|
 | Registry unreachable | Retry once with 10s timeout; persistent → skip dep, continue |
 | Changelog URL missing | Treat as breaking unless SemVer patch with no release notes flag; classify `review-major` |
-| Test command not defined | Ask user for test command; offer to skip test gate with warning (marks group `unverified`) |
+| Test command not defined | Ask user for test command; offer to skip test gate with warning (marks group `unverified`). **Under `--auto`:** no ask — skips the test gate with warning and marks the group `unverified`, recorded in the summary |
 | Lockfile conflict after upgrade | Revert, mark `failed (lockfile conflict)`, continue |
 | Peer-dep incompatibility | Mark `failed (peer-dep conflict)` with conflicting pair in evidence |
 | Advisory with no fixed version | Report HIGH finding, mark `blocked (no fix available)` |

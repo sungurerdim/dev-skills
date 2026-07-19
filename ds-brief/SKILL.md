@@ -50,10 +50,9 @@ AI reports fabricate sources, repeat data instead of single-sourcing it, and pro
 | `--quick` | Shallow research (T1-T2, fast), atomic |
 | `--deep` | All tiers, parallel workers |
 | `--summarize <sources>` | `summarize` scope: index+summarize user-supplied URLs/text → report (no discovery) |
-| `--no-interactive` | Static/print-pure output: everything expanded, minimal JS |
-| `--auto` | Skip the needs-approval review (apply non-CRITICAL, list at end) |
+| `--static` | Static/print-pure output: everything expanded, minimal JS |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | (no flag) | Ask depth + scope |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
 
 ## Scopes
 
@@ -72,10 +71,10 @@ Setup → Research → Verify → Build Report → [Needs-Approval] → Output
 
 ### Phase 1: Setup [SKIP with flags]
 
-1. **Depth + scope.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — balanced / Quick — fast, T1-T2 / Deep — parallel workers / (Cancel); then scope research / summarize. A disambiguating flag (`--quick`/`--deep`/`--summarize`) skips the menu.
+1. **Depth + scope.** No flag → present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — balanced / Quick — fast, T1-T2 / Deep — parallel workers / (Cancel); then scope research / summarize. A disambiguating flag (`--quick`/`--deep`/`--summarize`/`--auto`) skips the menu; `--auto` selects Standard/research unless the request text names a depth/scope.
 2. **Topic parse + date.** Extract concepts/comparison from the request. Resolve `currentDate` from host context; inject into every search query to avoid stale results.
 
-**Gate:** Pass = topic + scope + currentDate resolved. If too broad/ambiguous → ask 1 clarifying question; no answer after one re-prompt → assume Standard/research with the literal topic, warn, and proceed (currentDate → host date).
+**Gate:** Pass = topic + scope + currentDate resolved. If too broad/ambiguous → ask 1 clarifying question; no answer after one re-prompt → assume Standard/research with the literal topic, warn, and proceed (currentDate → host date). **Under `--auto`:** no clarifying question — proceed directly with Standard/research on the literal topic, same warn recorded in the summary.
 
 ### Phase 2: Research [research scope]
 
@@ -104,13 +103,13 @@ Build only by cloning `assets/brief-template.html` (never generate HTML from scr
 - Verbatim `.lawtext` blocks (extracted, not paraphrased) · badges · Unknowns section · Sources table · KPI row (confidence + coverage meter + sources + access date) as the first block of `main`
 - `CONFIG.charts` (ds-opt:chart) **only when the topic has 2-7 comparable magnitudes** (rates, costs, limits) — single hue, `hl` for the story's item, auto-built data table; >7 items → table, never more bars (rules: [references/report-template.md](references/report-template.md) § Dataviz layer)
 
-Then: localize all visible UI labels to the request language; use the compact primitives (fluid spacing, intrinsic `.grid.auto`, `.strip`, `.pills`, 1px section rhythm, accent-bar headings) and native `<details>` collapsibles. Add an interactive calculator/scenario **only when the topic genuinely computes something**; `--no-interactive` → minimal JS, everything expanded. **Prune:** delete every unused `ds-opt:NAME` block (CSS + HTML) so each report ships only the CSS it needs. Apply [references/report-template.md](references/report-template.md).
+Then: localize all visible UI labels to the request language; use the compact primitives (fluid spacing, intrinsic `.grid.auto`, `.strip`, `.pills`, 1px section rhythm, accent-bar headings) and native `<details>` collapsibles. Add an interactive calculator/scenario **only when the topic genuinely computes something**; `--static` → minimal JS, everything expanded. **Prune:** delete every unused `ds-opt:NAME` block (CSS + HTML) so each report ships only the CSS it needs. Apply [references/report-template.md](references/report-template.md).
 
 **Gate:** Pass = single file, zero external dependencies, opens offline in a browser, `textContent`/DOM only (no `innerHTML` with data), no inline `on*` handlers. If an external dependency or `innerHTML`-with-data is found → replace with an inline asset / safe DOM construction and re-check before proceeding.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** state the question (`Approve these N items?`) and present each item compactly (one line `[type] detail — source/location`) grouped by type (low-confidence claim · dead link · single-source datum) with counts; ask Apply all / per-type bulk (`Apply all dead links` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Interactive:** state the question (`Approve these N items?`) and present each item compactly (one line `[type] detail — source/location`) grouped by type (low-confidence claim · dead link · single-source datum) with counts; ask Apply all / per-type bulk (`Apply all dead links` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolve `skipped (needs-human)` instead.
 
 **Gate:** Pass = all items resolved. If any remain → record them as `pending-user-decision`, proceed to Output with WARN, and list them at the bottom.
 
@@ -165,6 +164,6 @@ Zero-evidence run: `No credible sources found in budget — topic narrowed and r
 | Thin / private-data topic | Most claims partial/unknown; confidence LOW; gaps shown openly, no fabricated consensus |
 | `summarize` with a dead URL | Note inaccessible source; summarize the reachable ones; flag the gap |
 | Topic with nothing to compute | No calculator — sticky TOC + search + chips only |
-| Very long brief (many sections) | Keep SSOT single; use `--no-interactive` for archival; verify print page breaks stay clean |
+| Very long brief (many sections) | Keep SSOT single; use `--static` for archival; verify print page breaks stay clean |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

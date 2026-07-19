@@ -46,8 +46,7 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 | `--preview` | Research + synthesis + gap table, no approval block |
 | `--competitors={n}` | Target count of comparables (default 7; min 3, max 12) |
 | `--scope={x}` | Narrow to a single dimension: architecture, stack, data-model, ux, security, privacy, operational, all |
-| `--auto` | No questions; `needs_approval` items listed and skipped |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Without flags: full benchmark across every dimension.
 
@@ -75,15 +74,15 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 1. **Blueprint profile check.** Search `## Blueprint Profile`. Found → read type, stack, audience, priorities. Absent → own detection + prompt for problem definition.
 
-**Gate:** Profile located or problem definition ready. If fails → no profile + own detection insufficient (empty repo, no manifest) → prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition."
+**Gate:** Profile located or problem definition ready. If fails → no profile + own detection insufficient (empty repo, no manifest) → prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition." **Under `--auto`:** no prompt — infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `needs-human: no problem definition inferable`.
 
 ### Phase 2: Define Problem Space
 
 1. Extract from blueprint profile: project name, one-sentence value proposition, target audience, stated constraints.
-2. Profile missing → ask user: one-sentence problem statement; target audience (public users / internal team / developers / operators); non-negotiable constraints (keep language, keep framework, keep primary DB).
-3. Present extracted definition: `"Researching ideal for: {problem} for {audience} under {constraints} — confirm? [Y/n]"`. Accept affirmative (`y`/`yes`/`ok`/`confirmed`/`looks good`); suggested changes → apply, redisplay, re-confirm; decline/abort → exit cleanly.
+2. Profile missing → ask user: one-sentence problem statement; target audience (public users / internal team / developers / operators); non-negotiable constraints (keep language, keep framework, keep primary DB). **Under `--auto`:** infer all three from repo signals (README, manifest, existing stack) instead of asking.
+3. Present extracted definition: `"Researching ideal for: {problem} for {audience} under {constraints} — confirm? [Y/n]"`. Accept affirmative (`y`/`yes`/`ok`/`confirmed`/`looks good`); suggested changes → apply, redisplay, re-confirm; decline/abort → exit cleanly. **Under `--auto`:** skip confirmation — proceed directly on the extracted definition.
 
-**Gate:** User confirmed problem space. If fails (no response or ambiguous after 2 prompts) → treat as implicit confirmation of the auto-extracted statement, add WARN `"Problem space auto-confirmed — no explicit user confirmation"` to state, proceed.
+**Gate:** User confirmed problem space. If fails (no response or ambiguous after 2 prompts) → treat as implicit confirmation of the auto-extracted statement, add WARN `"Problem space auto-confirmed — no explicit user confirmation"` to state, proceed. **Under `--auto`:** always treated as implicit confirmation — same WARN recorded in the summary.
 
 ### Phase 3: Research
 
@@ -145,7 +144,7 @@ Present every Category B gap in one block — one scannable line per gap (`dimen
 
 > "These gaps change architecture or scope. For each: **Close** (commit to fixing), **Defer** (note but leave for later), **Intentional deviation** (record as ADR — we chose not to match the ideal)."
 
-Modes: `--auto` → list all, mark `skipped (needs-approval)`. `--force-approve` → mark all `close`. Interactive → per row, plus per-dimension bulk (`Close all <dimension>`) alongside a total `Close all`; "all" = exactly the displayed set.
+**Interactive:** per row, plus per-dimension bulk (`Close all <dimension>`) alongside a total `Close all`; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — each gap resolves to `close` or `defer` using the same impact/effort/risk reasoning the block would show (constraint-conflicting or low-confidence gaps default to `defer`), recorded in the summary; nothing here matches the irreversible-exception list since Category B here only closes findings, never mutates code directly.
 
 Per "Intentional deviation" → offer `/ds-docs --adr` to record rationale (so future contributors see *why*).
 
@@ -164,9 +163,9 @@ Category A gaps recorded as findings but not executed here — consumers (ds-shi
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
-Resolved inline in Phase 6. If skipped via `--auto`, surface summary here with count.
+Resolved inline in Phase 6, including under `--auto` (rule 3 — resolved, not merely listed). This phase only surfaces the resulting counts.
 
-**Gate:** Every gap decided in Phase 6 has a disposition; zero left undecided. If fails → a gap was skipped during `--auto` → list it here with its default disposition (`deferred`) before Summary.
+**Gate:** Every gap decided in Phase 6 has a disposition; zero left undecided. If fails → a gap was left undecided → list it here with its default disposition (`deferred`) before Summary.
 
 ### Phase 9: Summary
 

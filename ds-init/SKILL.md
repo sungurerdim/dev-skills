@@ -50,11 +50,10 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 | `--stack={stack}` | Technology stack: next, react, vue, svelte, flutter, fastapi, express, go, rust |
 | `--minimal` | Bare minimum structure only |
 | `--full` | Full production structure (CI, Docker, testing, docs) |
-| `--dry-run` | Show what would be created without writing files |
-| `--auto` | No questions; `needs_approval` items listed and skipped |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--preview` | Show what would be created without writing files |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
-No flag → up-front interactive menu covering every project type (no default — type is user-driven), question "What type of project are you scaffolding?". A disambiguating flag (`--type`) skips the menu.
+No flag → up-front interactive menu covering every project type (no default — type is user-driven), question "What type of project are you scaffolding?". A disambiguating flag (`--type`) skips the menu. `--auto` also skips it — see Phase 1 for its best-judgment resolution.
 
 | Option | What it does |
 |--------|--------------|
@@ -97,14 +96,16 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 4. Ask for stack choice within selected type. **Boring-technology default (advisory):** when the user is undecided, recommend proven mainstream options (Postgres, established frameworks) over novel ones and say why — every company has roughly three "innovation tokens" to spend on unproven tech (McKinley); novel choices carry a larger magnitude of unknown unknowns, and "boring" ≠ "bad". User's explicit stack choice always wins without debate.
 5. Ask: `--minimal` or `--full`? (default: full).
 
-**Gate:** Project type and stack confirmed. If fails → no response after two attempts → exit cleanly with "ds-init: ABORTED — project type required"; generate no files.
+**Under `--auto`:** no menus shown. Type/stack resolve from existing signals when present (Phase 2 scan); a genuinely empty, signal-less directory with no `--type`/`--stack` has no evidence to judge from, so it resolves to the lowest-blast-radius default — `library`, boring-technology stack for the detected language or `Assumed: type=library — flag if wrong` when even the language is unknown, recorded in the summary. `--minimal`/`--full` resolves to its stated default (`full`).
+
+**Gate:** Project type and stack confirmed. If fails → no response after two attempts → exit cleanly with "ds-init: ABORTED — project type required"; generate no files. (`--auto` never hits this path — Phase 1 always resolves a type per the paragraph above.)
 
 ### Phase 2: Detect Existing Setup
 
 1. Scan for existing config files (`.eslintrc`, `tsconfig`, `Dockerfile`, `.github/workflows`, etc.) → mark as SKIP.
 2. Report: "Found {n} existing config files — these will be preserved."
 
-**Gate:** Conflict list confirmed. If fails → no response to overwrite confirmation → default SKIP for that file, announce, continue scanning; re-run after resolving conflicts.
+**Gate:** Conflict list confirmed. If fails → no response to overwrite confirmation → default SKIP for that file, announce, continue scanning; re-run after resolving conflicts. **Under `--auto`:** same default — every conflicting file resolves to SKIP (preserve existing) without asking; this is the safe, non-destructive default rather than a `needs-human` case.
 
 ### Phase 3: Generate Structure
 
@@ -163,7 +164,7 @@ Per [references/rules-scaffold.md](references/rules-scaffold.md). Generate indep
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt per item; no response → mark `skipped (no response)`, proceed.
 
@@ -216,8 +217,8 @@ Next steps:
 | Situation | Action |
 |-----------|--------|
 | Unknown project type | Present type selection menu |
-| Stack not recognized | List supported stacks, ask user to choose |
-| File conflict detected | Show diff, ask: overwrite / skip / merge |
+| Stack not recognized | List supported stacks, ask user to choose. **Under `--auto`:** no ask — resolves to the boring-technology default for the detected type (Phase 1) |
+| File conflict detected | Show diff, ask: overwrite / skip / merge. **Under `--auto`:** resolves to skip (preserve existing) without asking, per Phase 2's default |
 | Write permission denied | Report error, suggest checking permissions |
 
 ## Edge Cases
@@ -225,8 +226,8 @@ Next steps:
 | Scenario | Behavior |
 |----------|----------|
 | Non-empty directory | Scan existing files, only add missing pieces |
-| Monorepo detected | Ask which package to scaffold, respect workspace config |
-| Multiple stacks | Ask user to choose primary, note secondary |
+| Monorepo detected | Ask which package to scaffold, respect workspace config. **Under `--auto`:** no ask — scaffolds the workspace root config only, notes per-package scaffolding as a follow-up in the summary |
+| Multiple stacks | Ask user to choose primary, note secondary. **Under `--auto`:** no ask — the stack with the most source files becomes primary, others noted as secondary in the summary |
 | Custom stack not listed | Generate generic structure with user-specified conventions |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

@@ -28,8 +28,7 @@ rm -rf /tmp/dev-skills
 /ds-simplify                  # full scan, interactive approval
 /ds-simplify --preview        # scan + report, no approval, no deletion
 /ds-simplify --scope=dead-code
-/ds-simplify --auto           # list findings, skip every deletion (needs-approval)
-/ds-simplify --force-approve  # apply every finding — dangerous, use sparingly
+/ds-simplify --auto           # zero-interaction — every finding resolved by best judgment
 ```
 
 ## Scopes

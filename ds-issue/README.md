@@ -33,7 +33,8 @@ Requires the `gh` CLI, authenticated (`gh auth login`).
 | `/ds-issue --status` | Code-verified done-audit (read-only) — what's done, claimed-but-unproven, in-progress, blocked |
 | `/ds-issue --do #N` | Execute issue #N end-to-end (re-verify → impact map → implement → code-proven close) |
 | `/ds-issue --do --all` | Execute every open issue end-to-end, in priority order; confirm each per item; skip-and-record blockers, continue |
-| `/ds-issue --do #N --dry-run` | Plan only — impact map + plan posted as a comment; no files changed |
+| `/ds-issue --do #N --preview` | Plan only — impact map + plan posted as a comment; no files changed |
+| `/ds-issue --auto` | Zero-interaction run — every decision (including `--do --all`) resolved by best judgment |
 
 ## Project adapter (optional)
 

@@ -37,16 +37,16 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
+- **Unattended Mode rule-4 exception-list extension** (per SKILL-SPEC §Unattended Mode rule 4): repo visibility changes (public↔private) and admin/permission changes are added to the exception list, citing "a business/legal decision not inferable from the repo" — under `--auto` these always resolve `needs-human`, never applied blind.
 
 ## Arguments
 
 | Flag | Effect |
 |------|--------|
-| `--auto` | All scopes, no questions, fix everything |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | `--preview` | Audit only, no changes |
 | `--scope={x}` | Specific scope(s), comma-separated |
 | `--oss-ready` | OSS-readiness mode (see `oss-readiness` scope below) |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL + unmerged-branch deletion still confirm per item) |
 
 No flags → present mode selection.
 
@@ -74,10 +74,10 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 
 ### hygiene (4 checks)
 
-1. **Stale branches** — no open PR + last commit > 30 days ago. UNMERGED work — deletion loses commits: always `needs-approval`, confirmed per item even under `--auto`/`--force-approve`; never bulk-deleted
+1. **Stale branches** — no open PR + last commit > 30 days ago. UNMERGED work — deletion loses commits: always `needs-approval`, confirmed per item even under `--auto` — matches the Unattended Mode rule-4 exception list (permanent deletion with no backup); recorded `needs-human` rather than executed blind; never bulk-deleted
 2. **Merged branches** — already merged into default but not deleted (commits preserved in base — safe to bulk-delete after one confirmation)
 3. **Orphan remotes** — remote-tracking refs whose upstream no longer exists (`git remote prune` — safe)
-4. **History bloat** — blobs > 10 MB in history inflating every clone (`git rev-list --objects --all` + `git cat-file --batch-check` size sort). Finding proposes `git filter-repo --strip-blobs-bigger-than <size>` (the recommended tool — not `git filter-branch` or BFG) + post-rewrite `git gc`, with LFS migration as the keep-the-file alternative. History rewrite is destructive and breaks every existing clone: always `needs-approval` with an explicit team-coordination + backup warning, never autonomous — same rule as the git-secret-history surgery (oss-readiness check 15)
+4. **History bloat** — blobs > 10 MB in history inflating every clone (`git rev-list --objects --all` + `git cat-file --batch-check` size sort). Finding proposes `git filter-repo --strip-blobs-bigger-than <size>` (the recommended tool — not `git filter-branch` or BFG) + post-rewrite `git gc`, with LFS migration as the keep-the-file alternative. History rewrite is destructive and breaks every existing clone: always `needs-approval` with an explicit team-coordination + backup warning, never autonomous — same rule as the git-secret-history surgery (oss-readiness check 15). Matches the Unattended Mode rule-4 exception list (history rewrite on a shared branch) — under `--auto`, recorded `needs-human`, never executed blind
 
 ### metadata (7 checks)
 
@@ -116,7 +116,7 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 12. **Short description** — repo description populated, one sentence, ≤100 chars
 13. **Homepage URL** — populated when project has docs site / landing page
 14. **Dependabot or renovate** — `.github/dependabot.yml` or `renovate.json` present, enabled for supported stacks
-15. **Git secret history** — scan git history for hardcoded secrets (`git log -p -S"api_key"` / `git-secrets --scan-history` / `trufflehog`). Any hit → Category B finding with `git-filter-repo` surgery proposal; autonomous deletion is forbidden.
+15. **Git secret history** — scan git history for hardcoded secrets (`git log -p -S"api_key"` / `git-secrets --scan-history` / `trufflehog`). Any hit → Category B finding with `git-filter-repo` surgery proposal; autonomous deletion is forbidden. Matches the Unattended Mode rule-4 exception list (secret rotation/deletion + history rewrite) — under `--auto`, recorded `needs-human`, never executed.
 16. **SPDX file headers** — source files carry a case-sensitive `SPDX-License-Identifier: <expr>` comment at/near the top; the declared identifier matches the LICENSE file. Missing headers → LOW finding with bulk-add proposal (Category A — mechanical, no public-facing text change)
 
 OSS-readiness emits Category B findings for anything user-visible (README rewrites, LICENSE changes, trademark concerns). Templates, metadata, Dependabot config may be Category A when they don't alter public-facing text.
@@ -174,9 +174,9 @@ Display findings table with ALL checks accounted:
 
 ### Phase 4: Plan Review [SKIP if --auto]
 
-Ask user: Fix All / By Severity / Review Each / Report Only.
+Ask user: Fix All / By Severity / Review Each / Report Only. **Under `--auto`:** this phase is skipped entirely — proceed straight to Apply, resolving each finding per Unattended Mode rule 3 (Category A fixes applied automatically; needs-approval items handled in Phase 6 under its own `--auto` rule).
 
-**needs-input findings:** before Apply, resolve each. Example: "Homepage URL is empty — do you have a URL to set? (provide URL / skip)".
+**needs-input findings:** before Apply, resolve each. Example: "Homepage URL is empty — do you have a URL to set? (provide URL / skip)". **Under `--auto`:** a value only a human can supply matches the Unattended Mode rule-4 exception list — skip the ask and record `needs-human`, never guessed.
 
 **Gate:** User selected action plan; needs-input items resolved. If fails → no action selection after re-prompt → default Report Only (no changes); needs-input declined → record `skipped (user declined input)`, list prominently in Phase 7 summary.
 
@@ -195,7 +195,7 @@ Per finding, assign disposition:
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — every item resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the rule-4 exception list (e.g. unmerged-branch deletion, history rewrite), which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → record `pending-user-decision`, proceed to Summary with WARN, list unresolved in disposition table.
 
@@ -236,7 +236,7 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 - Scope boundary — only modify what was requested
 - Every finding gets a disposition (FRC)
 - Every scope check evaluated and accounted for (DSC)
-- Destructive changes: merged-branch deletion + reversible settings may batch under `--auto`; UNMERGED (stale) branch deletion, permission changes, and visibility changes always confirm per item — no flag bypasses this (All-Affordance rule 2)
+- Destructive changes: merged-branch deletion + reversible settings resolve automatically under `--auto` (Unattended Mode rule 3); UNMERGED (stale) branch deletion, permission changes, and visibility changes always confirm per item interactively and become `needs-human` under `--auto` — no flag bypasses this (All-Affordance rule 2, Unattended Mode rule 4)
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
 
 ## Error Recovery
@@ -258,6 +258,6 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 | Fork repository | Note fork status, skip protection (forked from upstream) |
 | Empty repository | Skip hygiene, minimal metadata check |
 | Free private plan | Mark protection + auto-merge checks as N/A with reason |
-| needs-input in `--auto` mode | Skip with `⚠ SKIPPED (requires input)` — list prominently in summary |
+| needs-input in `--auto` mode | Record `needs-human` (matches rule-4: value only a human can supply, e.g. homepage URL) — list prominently in summary |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.

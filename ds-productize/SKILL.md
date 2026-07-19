@@ -49,8 +49,7 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 | `--audit` | Audit existing monetization/pricing/gtm state for gaps (recommended default) |
 | `--plan` | Produce a productization plan (`ds/productize/plan.md`): model choice, tier design, GTM checklist |
 | `--scope={x}` | Specific scope: monetization, pricing, gtm (comma-separated) |
-| `--auto` | All scopes, no questions, single-line summary; B items listed and skipped |
-| `--force-approve` | Apply `needs_approval` items without asking (CRITICAL still confirms per item) |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Without flags: present the full mode menu — Audit (recommended) — find gaps in monetization/pricing/gtm / Plan — design the productization path from current state / All — audit then plan / (Cancel). A disambiguating flag skips the menu.
 
@@ -99,7 +98,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 
 1. Flags → proceed directly. No flags → interactive menu.
 2. **IDU:** Profile → {Type + Stack, Config.audience, Config.deploy, Config.data}. Findings({monetization, pricing, gtm, spec-alignment}) → verify + use. Absent → own analysis.
-3. Ask the monetization-intent block once (single block, only unknowns): current/target model, target price range, B2B vs B2C vs prosumer, platforms (store IAP vs web checkout vs both).
+3. Ask the monetization-intent block once (single block, only unknowns): current/target model, target price range, B2B vs B2C vs prosumer, platforms (store IAP vs web checkout vs both). **Under `--auto`:** skip the ask — apply the same not-stated fallback as the Gate below without waiting; monetization intent is a business decision that Unattended Mode rule 4 does not let `--auto` invent where it isn't inferable from the repo, so unknowns are recorded `not-stated`/`needs-human` rather than guessed.
 4. Load references by active scope: [references/rules-monetization.md](references/rules-monetization.md) (monetization + pricing surface), [references/rules-pricing.md](references/rules-pricing.md) (pricing method, channels, unit economics), [references/rules-gtm.md](references/rules-gtm.md) (gtm).
 
 **Gate:** Mode + scope + intent answers recorded. If fails → no response to intent block → proceed with `--audit --scope=monetization,pricing,gtm`, mark unknown intents `not-stated`, WARN, calibrate findings to "model not yet chosen" instead of guessing one.
@@ -133,7 +132,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-`--auto`: list and skip. `--force-approve`: apply all. **Interactive:** state the question (`Decide these N items?`) and present each item compactly (one line `[severity] title — file:line or surface`) grouped by scope with counts; ask Apply all / per-scope bulk (`Apply all pricing` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — every item resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the rule-4 exception list, which become `skipped (needs-human)`. **Interactive:** state the question (`Decide these N items?`) and present each item compactly (one line `[severity] title — file:line or surface`) grouped by scope with counts; ask Apply all / per-scope bulk (`Apply all pricing` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → no response → `skipped (no response)`, proceed.
 
@@ -166,8 +165,8 @@ Zero-change run: `No gaps — monetization/pricing/gtm surfaces meet reviewed sc
 
 | Situation | Action |
 |-----------|--------|
-| No monetization surface at all (pure OSS/internal tool) | Ask whether paid intent exists; no → exit with `not-applicable`, suggest ds-repo --oss-ready |
-| Payment provider undetectable but billing code present | Ask user which provider; unanswered → audit provider-agnostic checks only, mark provider checks `N/A (provider unknown)` |
+| No monetization surface at all (pure OSS/internal tool) | Ask whether paid intent exists; no → exit with `not-applicable`, suggest ds-repo --oss-ready (`--auto`: skip the ask — assume no paid intent, exit `not-applicable`) |
+| Payment provider undetectable but billing code present | Ask user which provider; unanswered → audit provider-agnostic checks only, mark provider checks `N/A (provider unknown)` (`--auto`: skip the ask — go straight to provider-agnostic checks) |
 | Store-distributed app (IAP rules apply) | Route store-specific execution to ds-launch; keep model/tier/entitlement checks here |
 | User rejects every B item | Plan records rejections as intentional decisions; report Ship-ready-to-sell: no with open count |
 

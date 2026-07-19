@@ -134,11 +134,22 @@ done
 # 14. v5 — Flag integrity: a mode flag this skill uses in its own body must be
 #     defined in its Arguments table (ghost-flag class — found 9x in the 2026-07 audit).
 #     Lines referencing other skills (/ds-*) are excluded from the usage scan.
+#     force-approve/dry-run/no-interactive/confirm are retired (folded into --auto
+#     or renamed — see SKILL-SPEC.md Unattended Mode) and MUST NOT reappear.
 for f in ds-*/SKILL.md; do
-  for flag in auto force-approve preview dry-run resume clean; do
+  for flag in auto preview resume clean status static run; do
     grep -v '/ds-' "$f" | grep -q "\`--$flag\`" || continue
     grep -qE "^\| *.?\`--$flag" "$f" || err "$f uses \`--$flag\` but its Arguments table does not define it"
   done
+  for retired in force-approve dry-run no-interactive confirm; do
+    grep -q -- "--$retired\b" "$f" && err "$f references retired flag --$retired (see SKILL-SPEC.md Unattended Mode / Flag Vocabulary)"
+  done
+done
+
+# 14b. v5 — Every skill's Arguments table MUST define --auto with the canonical
+#      contract (SKILL-SPEC.md §2 Unattended Mode) — no skill-local variant/omission.
+for f in ds-*/SKILL.md; do
+  grep -qE "^\| *.?\`--auto\`" "$f" || err "$f Arguments table missing mandatory --auto row (SKILL-SPEC.md Unattended Mode)"
 done
 
 # 15. v5 — Severity vocabulary: rule files use only the canonical set
