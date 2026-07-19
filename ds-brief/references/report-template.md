@@ -51,6 +51,40 @@ A visible **"🖨 Print / PDF"** button calls `window.print()` → the browser's
 - **Value placement (deliberate deviation):** values sit in a fixed right-aligned column (an implicit value axis), not at each bar tip — guarantees zero label/mark overlap at every viewport width; the data table carries exact values. Tooltips are omitted: every mark is already direct-labeled + tabled.
 - Re-run `dataviz` skill's `scripts/validate_palette.js` before changing any theme, semantic, or chart color.
 
+## Branching layer (`ds-opt:branch` — scenario/persona adaptive content)
+
+**Activate when** the topic splits by reader role or situation — tenant/landlord, employee/employer, buyer/seller, fixed/indefinite contract, company-size bands. One clear signal: the same question has different answers depending on who is asking. No such split → prune the block entirely (a selector with one meaningful option is clutter).
+
+| Rule | Detail |
+|------|--------|
+| One decision = one `.choices[data-key]` group | `.choice` buttons carry `data-val`; the last option is always the localized "Show all" reset (`data-val=""`). Level-1 (persona) uses `.choices.big` cards with icon + one-line description; nested levels use compact pills. |
+| Tree depth is free | Nest a `.choices` group inside a `data-when` block — the child decision appears only when its parent branch is selected. Grammar: `data-when="key:val"`, OR via `\|` (`persona:tenant\|landlord`), AND via space (`persona:tenant contract:fixed`). |
+| Presentation-only filtering | ALL branches ship in the file; selection toggles `hidden` only. No selection (or JS off) = everything visible. Print force-shows every branch. Accuracy discipline is branch-independent: every branch block keeps its own source chips/badges; Unknowns and Sources are never branch-filtered. |
+| `.whochip` on every branch block | Names the block's branch at all times — the reader (and the printout) always knows whose rule a block states. |
+| A11y | Buttons carry `aria-pressed`; each group `role="group"` + `aria-label`; a visually-hidden `aria-live` region (`#branchLive`) announces the choice. |
+| Persistence | Selection persists per key via `localStorage` (try/catch); "Show all" clears it. |
+| `--static` | Drop the `.choices` controls, keep every branch expanded with its `.whochip` label. |
+
+## Obligation levels (`ds-opt:oblg` — legal/official/rules content)
+
+**Activate when** the brief contains normative content — law, regulation, official procedure, standards, contractual rules. The reader must never have to guess whether a statement binds them.
+
+| Rule | Detail |
+|------|--------|
+| One badge per normative statement | Every actionable/normative claim opens with exactly one `.oblg` badge: `must` (Mandatory — sanctioned if skipped) · `mustnot` (Prohibited — sanctioned if done) · `should` (Recommended — advisable, no sanction) · `may` (Optional — reader's choice) · `free` (No effect — changes nothing). Labels localized at build. |
+| Level traces to the source | The badge mirrors the source's own wording ("shall"/"must"/"may"/"is prohibited") — never inferred stricter or looser than the source states. The obligation level is itself a datum: it follows the same ≥2-source / "single source" badge discipline as any other claim. Ambiguous wording → the weaker level + a note naming the ambiguity. |
+| Legend once | A compact `.oblg-legend` strip appears above the first badged content, explaining all five levels in one line each. |
+| Shape ≠ source chips | `.oblg` is square-ish and leading; source chips are pills and trailing — the two signal classes never blur. Never color alone: the label text always carries the meaning (must and mustnot share the hard-rule red deliberately). |
+| Descriptive content exempt | Purely descriptive claims (history, statistics, definitions) carry no badge — badging everything would bury the normative signal. |
+
+## Motion & visual polish (all guarded)
+
+- **Scroll-reveal:** JS adds `.reveal` then `.in` on intersection (cards, KPIs, notes, accordions, chart figures). Progressive enhancement — JS-off, `prefers-reduced-motion`, and print all render fully visible; never author `.reveal` into the HTML by hand.
+- **Hover elevation:** cards + KPI tiles lift (`translateY(-2px)` + `--shh` shadow step) under `@media(hover:hover)` only; coverage-meter fill animates width once on load.
+- **Header glow orbs:** two pure-CSS radial-gradient decorations on `header.top` (`::before`/`::after`) — no images, hidden in print.
+- **Icon sprite (`ds-opt:icons`):** inline `<symbol>` sprite (info, alert, check, doc, scale, calc, user, home, q, link), `currentColor` strokes, used via `<svg class="ico"><use href="#i-…"/></svg>`; decorative uses carry `aria-hidden="true"`. Prune when no `<use>` remains. Never emoji in structural UI.
+- All motion dies under `prefers-reduced-motion` (global transition kill + explicit `.reveal` opt-out) and in print (`.reveal{opacity:1}`).
+
 ## Interaction (adaptive)
 
 **Always on:** sticky nav with **condensed report title** (appears when the header scrolls out; hidden ≤900px), **scrollspy** (`aria-current` on the active section's nav button), **reading-progress bar** (2px gradient under the nav), **back-to-top** button (appears after 600px), theme switcher, live search with `<mark>` highlight (auto-opens any `<details>` containing a match), source chips, verbatim-text toggles.

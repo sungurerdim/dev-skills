@@ -7,7 +7,7 @@
      SSOT = the CONFIG object near the bottom. Fill {placeholder} slots; never load anything over the network.
      Security: text goes in via textContent / DOM nodes only. No innerHTML with data. No inline on* handlers.
      Color inputs (theme + CONFIG colors) pass safeColor() regex before being applied (CSS-injection defense).
-     Optional blocks are tagged ds-opt:NAME (calc, pills, strip, lawtext, search, theme, chart): paired
+     Optional blocks are tagged ds-opt:NAME (calc, pills, strip, lawtext, search, theme, chart, branch, icons): paired
      ds-opt:NAME … /ds-opt:NAME for multi-line, or a trailing /* ds-opt:NAME */ on a single line.
      Build phase (Phase 4 prune) deletes the CSS+HTML of any ds-opt block the brief does not use, so
      each report ships only the CSS it needs. Untagged = core (always kept). JS handlers are null-guarded:
@@ -31,6 +31,7 @@
   --badbg:color-mix(in srgb, var(--bad) 9%, var(--surface));
   --warnbg:color-mix(in srgb, var(--warn) 12%, var(--surface));
   --sh:0 1px 3px color-mix(in srgb, var(--text) 8%, transparent),0 6px 24px color-mix(in srgb, var(--text) 6%, transparent);
+  --shh:0 4px 12px color-mix(in srgb, var(--text) 10%, transparent),0 14px 40px color-mix(in srgb, var(--text) 9%, transparent);   /* hover elevation step */
 
   /* ---- fluid spacing scale (single clamp scale; no per-breakpoint padding overrides) ---- */
   --space-2xs:clamp(4px,.6vw,6px); --space-xs:clamp(8px,1.2vw,12px); --space-s:clamp(12px,1.8vw,16px);
@@ -55,9 +56,19 @@ svg.ico{width:1em;height:1em;vertical-align:-.12em;flex:0 0 auto}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}   /* focus ring ≥3:1 on every theme (accent fails on slate/teal/amber) */
 .tool:focus-within{border-color:var(--primary)}
 
-header.top{background:linear-gradient(135deg,var(--primary),color-mix(in srgb,var(--primary) 70%,var(--accent)));color:#fff;padding:var(--space-m) 0 var(--space-s)}
+header.top{background:linear-gradient(135deg,var(--primary),color-mix(in srgb,var(--primary) 70%,var(--accent)));color:#fff;padding:var(--space-m) 0 var(--space-s);position:relative;overflow:hidden}
+/* decorative glow orbs — pure CSS, no images; hidden in print */
+header.top::before,header.top::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+header.top::before{width:340px;height:340px;right:-80px;top:-170px;background:radial-gradient(circle,color-mix(in srgb,#fff 16%,transparent),transparent 65%)}
+header.top::after{width:280px;height:280px;left:-100px;bottom:-170px;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 32%,transparent),transparent 70%)}
+header.top .wrap{position:relative;z-index:1}
 header.top h1{margin:0 0 6px;font-size:clamp(20px,2.6vw,28px);letter-spacing:.2px}
 header.top p{margin:0;opacity:.93;font-size:.93rem;max-width:var(--measure)}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}   /* visually hidden (screen-reader live region) */
+/* scroll-reveal: JS adds .reveal then .in on intersection — JS-off / reduced-motion / print = fully visible */
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
 /* KPI row — stat tiles (label / value / sub; meter for the coverage ratio). Dataviz: a handful of
    headline numbers = KPI row, not chips; the meter's unfilled track is a lighter step of the same hue. */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:var(--space-xs);margin:var(--space-s) 0 0}
@@ -103,7 +114,10 @@ main{padding:var(--space-s) 0 var(--space-xl)}
 .grid{display:grid;gap:var(--space-s)}
 .auto{grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
 .grid>*{min-width:0}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--space-s);box-shadow:var(--sh)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--space-s);box-shadow:var(--sh);transition:transform .18s ease,box-shadow .18s ease}
+@media(hover:hover){.card:hover,.kpi:hover{transform:translateY(-2px);box-shadow:var(--shh)}}   /* hover lift; killed by reduced-motion global */
+.kpi{transition:transform .18s ease,box-shadow .18s ease}
+.meter>i{transition:width .8s ease}
 .card h3{font-size:1.04rem;margin:0 0 8px}
 .card.ok{background:var(--okbg);border-color:color-mix(in srgb,var(--ok) 30%,var(--line))}
 .card.bad{background:var(--badbg);border-color:color-mix(in srgb,var(--bad) 30%,var(--line))}
@@ -136,6 +150,21 @@ ul.dot li::before{content:"•";position:absolute;left:0;color:var(--accent);fon
 .badge.dogrulanmadi{background:var(--badbg);color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line))}
 /* (confirmed datums use normal styling — no "confirmed" badge, per verification.md) */
 
+/* ds-opt:oblg — obligation-level badges for legal/official/rules content. Every normative statement
+   carries exactly ONE, placed at the start of the item. The reader must always see instantly whether a
+   rule is mandatory, prohibited, recommended, optional, or without effect. Square-ish shape (vs pill
+   source chips) so the two signal classes never blur. Level comes from the SOURCE's wording ("shall"/
+   "must"/"may"...), never inferred stricter or looser; unclear wording → lower level + note. */
+.oblg{display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border-radius:7px;padding:3px 10px;margin-right:6px;vertical-align:middle;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.oblg.must{background:var(--bad);color:#fff}
+.oblg.mustnot{background:var(--bad);color:#fff}   /* same hard-rule red as must — the localized label (e.g. PROHIBITED) is the differentiator, never color alone */
+.oblg.should{background:var(--warn);color:#fff}
+.oblg.may{background:var(--surface);color:var(--mut);border:1px solid var(--ctl)}
+.oblg.free{background:var(--surface);color:var(--mut);border:1px dashed var(--ctl)}
+.oblg-legend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:10px 0;font-size:.82rem;color:var(--mut)}
+.oblg-legend span{display:inline-flex;align-items:center;gap:2px}
+/* /ds-opt:oblg */
+
 /* ds-opt:chart — comparison bars. Dataviz specs: single hue (theme primary), bar 18px ≤ 24px cap,
    4px rounded data-end + square baseline, 2px surface gaps, hairline baseline, value at the tip in
    text tokens (never the series color). Emphasis form: hl:true keeps the primary hue and every other
@@ -162,6 +191,21 @@ figure.chartfig{margin:12px 0 0}
 .pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:8px;font-size:.9rem}
 .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:linear-gradient(90deg,var(--primary),var(--accent))}
 /* /ds-opt:pills */
+
+/* ds-opt:branch — scenario/persona branching. One .choices group = one decision (data-key); .choice
+   buttons carry data-val. Content blocks carry data-when="key:val" (OR via |, AND via space). No
+   selection => every branch visible (JS-off / first-open / print safe). Selection filters PRESENTATION
+   only — all branches always ship in the file. .whochip labels a block's branch at all times. */
+.choices{display:flex;flex-wrap:wrap;gap:var(--space-xs);margin:12px 0 6px}
+.choice{border:1px solid var(--ctl);background:var(--surface);color:var(--text);border-radius:12px;padding:9px 15px;cursor:pointer;font-size:.9rem;font-weight:600;display:inline-flex;align-items:center;gap:8px;min-height:38px;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.choice:hover{border-color:color-mix(in srgb,var(--primary) 45%,var(--line));transform:translateY(-1px)}
+.choice[aria-pressed="true"]{background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 14%,var(--surface)),color-mix(in srgb,var(--accent) 9%,var(--surface)));border-color:color-mix(in srgb,var(--primary) 55%,var(--line));color:var(--primary);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 35%,transparent)}
+.choices.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
+.choices.big .choice{flex-direction:column;align-items:flex-start;gap:4px;padding:13px 16px;border-radius:var(--r);text-align:left}
+.choices.big .choice .d{display:block;font-weight:400;font-size:.82rem;color:var(--mut)}
+.choices.big .choice[aria-pressed="true"] .d{color:color-mix(in srgb,var(--primary) 70%,var(--mut))}
+.whochip{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border-radius:999px;padding:2px 9px;background:color-mix(in srgb,var(--primary) 9%,var(--surface));color:var(--primary);border:1px solid color-mix(in srgb,var(--primary) 30%,var(--line));vertical-align:middle}
+/* /ds-opt:branch */
 
 /* ds-opt:lawtext — verbatim official text */
 .lawbtn{border:1px solid var(--ctl);background:var(--surface);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.84rem;font-weight:600;color:var(--primary);margin:8px 6px 0 0}
@@ -201,7 +245,10 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 @media(max-width:640px){nav.bar .wrap{min-height:0;row-gap:4px}}
 
 @media print{
-  nav.bar,.tool,.printbtn,.navbtn,.lawbtn,.spacer,.skip,#toTop,#progress{display:none!important}
+  nav.bar,.tool,.printbtn,.navbtn,.lawbtn,.spacer,.skip,#toTop,#progress,.choices{display:none!important}
+  [data-when][hidden]{display:revert!important}   /* every branch prints, labeled by its .whochip */
+  .reveal{opacity:1!important;transform:none!important}
+  header.top::before,header.top::after{display:none}
   .kpi{box-shadow:none;break-inside:avoid}
   figure.chartfig,.chart .row{break-inside:avoid}
   details.acc>.body,.lawtext{display:block!important}
@@ -218,6 +265,22 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 <body>
 <a class="skip" href="#content">Skip to content</a>
 
+<!-- ds-opt:icons — inline SVG sprite (currentColor strokes). Use: <svg class="ico"><use href="#i-name"/></svg>
+     Decorative uses carry aria-hidden="true" on the <svg>. Prune the block when no <use> remains. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 11v5"/></g></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></g></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></g></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M4 7h16"/><path d="m7 7-3 6a3 3 0 0 0 6 0L7 7zM17 7l-3 6a3 3 0 0 0 6 0l-3-6z"/></g></symbol>
+  <symbol id="i-calc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"/></g></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></g></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></g></symbol>
+  <symbol id="i-q" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7M12 17h.01"/></g></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></g></symbol>
+</defs></svg>
+<!-- /ds-opt:icons -->
+
 <header class="top"><div class="wrap">
   <h1 data-cfg="title">{REPORT_TITLE}</h1>
   <p data-cfg="subtitle">{ONE_LINE_DESCRIPTION}</p>
@@ -231,6 +294,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 <nav class="bar"><div class="wrap" id="navLinks">
   <span id="navTitle" data-cfg="title" aria-hidden="true">{REPORT_TITLE}</span>
   <a class="navbtn" href="#ozet">Summary</a>
+  <!-- ds-opt:branch --><a class="navbtn" href="#senaryo">{Your situation}</a><!-- /ds-opt:branch -->
   <a class="navbtn" href="#bulgular">Findings</a>
   <a class="navbtn" href="#unknowns">Unknowns</a>
   <a class="navbtn" href="#sources">Sources</a>
@@ -290,10 +354,78 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     </div>
   </section>
 
+  <!-- ds-opt:branch — scenario/persona layer. ACTIVATE when the topic splits by reader role or situation
+       (tenant/landlord, employee/employer, buyer/seller, fixed/indefinite contract, company size bands...).
+       Rules:
+       - One .choices[data-key] group per decision; nested groups (a group inside a data-when block) give
+         tree-depth for free — a child decision only appears once its parent branch is selected.
+       - Blocks carry data-when="key:val"; OR via | ("persona:tenant|landlord"); AND via space
+         ("persona:tenant contract:fixed"). Untagged blocks = shared, always visible.
+       - Branching filters PRESENTATION only: all branches ship in the file; no selection = all visible
+         (labeled); print shows every branch with its .whochip. Never move a claim's sources, badges, or
+         Unknowns entries out of a branch — accuracy discipline is branch-independent.
+       - Each branch block carries a .whochip naming its branch, so the reader always knows whose rule
+         they are reading (and print stays unambiguous).
+       - The last option of every group is the localized "Show all" reset (data-val=""). -->
+  <section class="sec" id="senaryo">
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> {YOUR_SITUATION_TITLE}</h2>
+    <p class="lead">{one line: pick your situation — the report shows only what applies to you; "Show all" restores both perspectives}</p>
+    <span class="vh" id="branchLive" aria-live="polite"></span>
+    <div class="choices big" data-key="persona" role="group" aria-label="{choose your situation}">
+      <button class="choice" type="button" data-val="tenant"><span><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> {Tenant}</span><span class="d">{one line: what this view covers}</span></button>
+      <button class="choice" type="button" data-val="landlord"><span><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg> {Landlord}</span><span class="d">{one line}</span></button>
+      <button class="choice" type="button" data-val=""><span>{Show all}</span><span class="d">{both perspectives, labeled}</span></button>
+    </div>
+
+    <div class="card" data-when="persona:tenant">
+      <h3>{tenant-specific heading} <span class="whochip">{Tenant}</span></h3>
+      <ul class="tick"><li>{claim} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li></ul>
+      <!-- nested decision: exists only inside this branch -->
+      <div class="choices" data-key="contract" role="group" aria-label="{contract type}">
+        <button class="choice" type="button" data-val="fixed">{Fixed-term}</button>
+        <button class="choice" type="button" data-val="indef">{Indefinite}</button>
+        <button class="choice" type="button" data-val="">{Show all}</button>
+      </div>
+      <div class="note ok" data-when="contract:fixed"><span class="whochip">{Fixed-term}</span> {rule that applies only to fixed-term} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></div>
+      <div class="note" data-when="contract:indef"><span class="whochip">{Indefinite}</span> {rule for indefinite} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></div>
+    </div>
+    <div class="card" data-when="persona:landlord">
+      <h3>{landlord-specific heading} <span class="whochip">{Landlord}</span></h3>
+      <ul class="tick"><li>{claim} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li></ul>
+    </div>
+    <div class="card warn" data-when="persona:tenant|landlord">
+      <h3>{applies to both selected views} <span class="whochip">{Both}</span></h3>
+      <ul class="dot"><li>{conditional claim} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li></ul>
+    </div>
+  </section>
+  <!-- /ds-opt:branch -->
+
   <!-- BULGULAR: one .sec per finding section. Each claim gets a source chip; each datum a badge if not 2x-confirmed. -->
   <section class="sec" id="bulgular">
     <h2>{SECTION_TITLE}</h2>
     <p class="lead">{section lead}</p>
+
+    <!-- ds-opt:oblg — legend once, above the first rules content; then every normative statement opens
+         with exactly one obligation badge. The reader always knows: must do / must not / recommended /
+         optional / no effect. Level mirrors the source's wording — never inferred stricter or looser. -->
+    <div class="oblg-legend" role="note" aria-label="{obligation legend}">
+      <span><span class="oblg must">{Mandatory}</span> {sanctioned if skipped}</span>
+      <span><span class="oblg mustnot">{Prohibited}</span> {sanctioned if done}</span>
+      <span><span class="oblg should">{Recommended}</span> {advisable, not sanctioned}</span>
+      <span><span class="oblg may">{Optional}</span> {allowed, reader's choice}</span>
+      <span><span class="oblg free">{No effect}</span> {makes no legal/practical difference}</span>
+    </div>
+    <div class="card">
+      <h3>{RULES_GROUP_TITLE}</h3>
+      <ul class="dot">
+        <li><span class="oblg must">{Mandatory}</span> {normative claim — what must be done, by whom, by when} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li>
+        <li><span class="oblg mustnot">{Prohibited}</span> {what must not be done + consequence} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li>
+        <li><span class="oblg should">{Recommended}</span> {advisable practice + why} <a class="src-chip secondary" href="{URL}" target="_blank" rel="noopener">{source}</a></li>
+        <li><span class="oblg may">{Optional}</span> {allowed choice + tradeoff} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li>
+        <li><span class="oblg free">{No effect}</span> {common belief that actually changes nothing} <a class="src-chip secondary" href="{URL}" target="_blank" rel="noopener">{source}</a></li>
+      </ul>
+    </div>
+    <!-- /ds-opt:oblg -->
 
     <!-- ds-opt:pills — dense pill listing where items are short (services, items, options) -->
     <div class="pills">
@@ -586,8 +718,60 @@ function wirePrint(){
     document.querySelectorAll(".lawtext").forEach(function(l){ l.classList.add("show"); });
   });
 }
+// ds-opt:branch — choice groups filter [data-when] blocks. No selection = all visible (JS-off/print
+// safe); "Show all" option = data-val="". Selection persists per key (try/catch — file:// may block).
+// data-when grammar: AND across space-separated conditions, OR across |-separated values.
+function wireBranches(){
+  const groups = [].slice.call(document.querySelectorAll(".choices[data-key]"));
+  if (!groups.length) return;
+  const sel = {};
+  function apply(){
+    document.querySelectorAll("[data-when]").forEach(function(el){
+      let show = true;
+      el.getAttribute("data-when").split(/\s+/).forEach(function(c){
+        const i = c.indexOf(":"); if (i < 0) return;
+        const cur = sel[c.slice(0, i)];
+        if (cur && c.slice(i + 1).split("|").indexOf(cur) < 0) show = false;
+      });
+      el.hidden = !show;
+    });
+    groups.forEach(function(g){
+      const cur = sel[g.getAttribute("data-key")] || "";
+      g.querySelectorAll(".choice").forEach(function(b){
+        b.setAttribute("aria-pressed", String((b.getAttribute("data-val") || "") === cur));
+      });
+    });
+  }
+  groups.forEach(function(g){
+    const k = g.getAttribute("data-key");
+    try { const s = localStorage.getItem("ds-brief-sel-" + k); if (s) sel[k] = s; } catch(e){}
+    g.addEventListener("click", function(ev){
+      const b = ev.target.closest(".choice"); if (!b || !g.contains(b)) return;
+      const v = b.getAttribute("data-val") || "";
+      sel[k] = v;
+      try { v ? localStorage.setItem("ds-brief-sel-" + k, v) : localStorage.removeItem("ds-brief-sel-" + k); } catch(e){}
+      apply();
+      const live = document.getElementById("branchLive");
+      if (live) live.textContent = b.textContent.trim();   // announce the (already localized) choice
+    });
+  });
+  apply();
+  window.addEventListener("beforeprint", function(){ document.querySelectorAll("[data-when]").forEach(function(el){ el.hidden = false; }); });
+  window.addEventListener("afterprint", apply);
+}
+// scroll-reveal: progressive enhancement — without JS (or with reduced motion) nothing is ever hidden
+function wireReveal(){
+  if (!("IntersectionObserver" in window)) return;
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  const io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, {rootMargin:"0px 0px -8% 0px", threshold:.05});
+  document.querySelectorAll("main .card, main .kpi, main .note, main details.acc, main figure.chartfig").forEach(function(el){
+    el.classList.add("reveal"); io.observe(el);
+  });
+}
 document.addEventListener("DOMContentLoaded", function(){
-  fillConfig(); wireKpis(); wireSticky(); renderCharts(); wireTheme(); wireLawToggles(); wireSearch(); wirePrint(); openHashDetails();
+  fillConfig(); wireKpis(); wireSticky(); renderCharts(); wireTheme(); wireLawToggles(); wireSearch(); wirePrint(); wireBranches(); wireReveal(); openHashDetails();
   window.addEventListener("hashchange", openHashDetails);
 });
 </script>
