@@ -120,6 +120,7 @@ Skills that touch tests MUST honor:
 
 - **Test Pyramid** — unit-heavy, integration-medium, E2E-light. Never invert.
 - **Test realism** — real OS paths, production-equivalent layouts, realistic data (`user@example.com`, not `a@b.c`). No mocks for code you own — test the real thing.
+- **Critical-flow wiring check** — for money-moving, auth-gating, or data-deleting flows, at least one test must exercise the flow's REAL dispatch/registry/facade — the same object production traffic runs through. Mocking that internal dispatch layer can hide a handler that exists but was never registered (a wiring bug invisible to both the handler's own unit test and a facade-mocked integration test). Only true external boundaries (network, third-party API, filesystem, time) may be mocked in this specific test.
 - **Boundary conditions** — every test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable.
 - **AAA pattern** — Arrange / Act / Assert. One concept per test.
 - **Coverage as diagnostic, not goal** — low coverage signals risk; high coverage does not signal quality. Don't chase 100%.
@@ -127,7 +128,7 @@ Skills that touch tests MUST honor:
 - **Tests fail loudly** — actionable error messages: what was expected, what was received, how to reproduce.
 - **Regression tests for every bug fix** — written before the fix lands.
 
-**Sources:** Martin Fowler — Practical Test Pyramid (https://martinfowler.com/articles/practical-test-pyramid.html), Test Coverage (https://martinfowler.com/bliki/TestCoverage.html); Kent Beck — *Test-Driven Development by Example* (AAA pattern); Robert C. Martin — *Clean Code* chapter on testing.
+**Sources:** Martin Fowler — Practical Test Pyramid (https://martinfowler.com/articles/practical-test-pyramid.html), Test Coverage (https://martinfowler.com/bliki/TestCoverage.html), Mocks Aren't Stubs (https://martinfowler.com/articles/mocksArentStubs.html); Kent Beck — *Test-Driven Development by Example* (AAA pattern); Robert C. Martin — *Clean Code* chapter on testing.
 
 ---
 
