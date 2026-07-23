@@ -77,7 +77,7 @@ Without flags: present mode selection.
 
 ### Strategic Scopes (--strategic)
 
-9 scopes, 106 checks. Definitions in [references/scopes-strategic.md](references/scopes-strategic.md). Detect/fix patterns for architecture and testing in [references/rules-quality.md](references/rules-quality.md).
+9 scopes, 103 checks. Definitions in [references/scopes-strategic.md](references/scopes-strategic.md). Detect/fix patterns for architecture and testing in [references/rules-quality.md](references/rules-quality.md).
 
 | Group | Scopes |
 |-------|--------|

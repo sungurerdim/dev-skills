@@ -7,7 +7,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | Section | Rules | Line |
 |---------|-------|------|
 | **Architecture & Code Quality** | ARC-01–12 (11 HIGH, 1 MEDIUM) | ~12 |
-| **Testing** | TST-01–06 (1 CRITICAL, 5 HIGH) | ~105 |
+| **Testing** | TST-01–07 (1 CRITICAL, 5 HIGH, 1 MEDIUM) | ~105 |
 
 ---
 
@@ -173,3 +173,9 @@ Linter + type checker must pass.
   - Go: `go vet` + `golangci-lint`
   - Rust: `clippy` (default)
 - **Source:** TypeScript Strict Mode Documentation, mypy Documentation, golangci-lint, Rust Clippy
+
+### TST-07 [MEDIUM] Generated End-User-Facing Output Gets Its Own Quality Gate
+When the project generates a separate artifact meant for someone else's end users — a customer-facing static site, an exported report/PDF, an embeddable widget — rather than serving its own routes, that artifact carries its own performance/accessibility/quality gate. A drift-check that only verifies the *template* stayed in sync with its source is not a substitute for verifying the *generated output* itself.
+- **Detect:** A project's performance/a11y/Lighthouse CI config targets only the app's own routes; a separately-produced generated artifact (customer site, exported document, embeddable widget) has no equivalent gate. An existing check named like a quality gate (`template:check`, `export:verify`) actually only asserts template-source drift, not output quality — a name that reads as coverage but isn't.
+- **Fix:** Add a dedicated gate for the generated artifact using the same baseline thresholds as the main app's gate, run against representative generated output — not just the template source. Rename any drift-only check so its name doesn't imply broader coverage than it has.
+- **Source:** Extends TST-02 (coverage as diagnostic) to artifact-level coverage — the gate must reach every surface real users see, not only the surfaces the app itself renders
