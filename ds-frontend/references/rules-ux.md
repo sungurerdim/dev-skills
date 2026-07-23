@@ -9,7 +9,7 @@ Applies to all UI platforms: web, mobile, desktop.
 | Section | Rules | Line |
 |---------|-------|------|
 | **Heuristics (Nielsen 10 + dev-skills UX-10a/10b)** | UX-01 to UX-10, UX-10a, UX-10b (12 rules) | ~15 |
-| **Onboarding / First-Use Flow** | UX-ON-01 to UX-ON-03 (3 rules) | ~110 |
+| **Onboarding / First-Use Flow** | UX-ON-01 to UX-ON-04 (4 rules) | ~110 |
 | **Activation / Time-to-Value** | UX-AC-01 to UX-AC-02 (2 rules) | ~140 |
 | **Interaction Laws (Laws of UX)** | UX-LX-01 to UX-LX-07 (7 rules) | ~150 |
 | **Perceived Performance & Optimism** | UX-PP-01 to UX-PP-02 (2 rules) | ~220 |
@@ -132,6 +132,13 @@ Setup/onboarding requests only the information required to reach first value; op
 - **Fix:** Move non-blocking fields to post-onboarding settings, defaults, or just-in-time prompts triggered when the field becomes relevant.
 - **Impact:** Every non-essential field in the setup path raises drop-off before the user has experienced any value.
 - **Source:** Nielsen Norman Group — Progressive Disclosure
+
+### UX-ON-04 [MEDIUM] Auto-Navigate + Auto-Resume for Unavoidable Manual External Steps
+When an otherwise-automated setup/connection flow hits one step with no programmatic API — a manual console toggle, a one-time consent screen, an app-store approval — the app deep-links the user to the exact right external page and auto-resumes the flow on return, instead of leaving a written instruction to go do it themselves.
+- **Detect:** A setup/onboarding flow describing an external step only as prose ("go to Settings → API → enable X, then come back") with no deep link to the exact page; no detection of the user's return (focus/visibility-change, redirect callback, or polling) to auto-continue; the user must manually find their way back and re-trigger the next step themselves.
+- **Fix:** Deep-link directly to the specific external page/screen the manual step requires (not its parent settings area). On return, auto-detect completion (poll the resource, listen for a redirect callback, or check on focus-regain) and resume the flow at the next step without requiring manual re-navigation.
+- **Impact:** A "go do this yourself" instruction is a common abandonment point — users lose the thread in an unfamiliar external UI and don't return; auto-navigate + auto-resume preserves the flow's momentum through a step the app genuinely can't automate away.
+- **Source:** Extends UX-ON-01 (bounded first-run path) to the specific case of an unavoidable external dependency with no automatable API
 
 ---
 

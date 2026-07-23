@@ -2,13 +2,13 @@
 
 For concrete Detect/Fix patterns: architecture and testing scopes use `rules-quality.md`. Other scopes use structural analysis described in Focus column.
 
-Strategic, architecture-level analysis scopes. 9 scopes, 106 checks.
+Strategic, architecture-level analysis scopes. 9 scopes, 103 checks.
 
 ## Scope Definitions
 
 | Scope | ID Range | Focus |
 |-------|----------|-------|
-| architecture | ARC-01 to ARC-15 | Coupling/cohesion scores, circular deps, layer violations, god classes, feature envy, dependency direction |
+| architecture | ARC-01 to ARC-12 | Coupling/cohesion scores, circular deps, layer violations, god classes, feature envy, dependency direction |
 | patterns | PAT-01 to PAT-15 | Inconsistent error handling/logging/async, SOLID/DRY violations, primitive obsession, data clumps, framework anti-patterns |
 | testing | TST-01 to TST-10 | Coverage by module, critical path test existence, test-to-code ratio, missing negative/boundary tests, test isolation, mock balance, flaky indicators |
 | maintainability | MNT-01 to MNT-12 | Cyclomatic complexity >15, cognitive complexity >20, methods >50 lines, >4 parameters, nesting >3, magic numbers, hardcoded config, boolean flags, temporal coupling |

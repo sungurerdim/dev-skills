@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Database** | DB-01 to DB-10 (2 CRITICAL, 4 HIGH, 3 MEDIUM, 1 LOW) | ~12 |
+| **Database** | DB-01 to DB-11 (2 CRITICAL, 4 HIGH, 4 MEDIUM, 1 LOW) | ~12 |
 
 ---
 
@@ -264,3 +264,13 @@ Never trust a client-supplied `tenant_id`; derive it from the authenticated sess
 **Why:** Every PII column that exists without a purpose is breach surface plus regulatory liability at rest; PII that leaks into logs escapes every access control the database enforced.
 
 **Source:** GDPR Art. 5(1)(c); Elastic PII-detection guidance (regex limits); Pydantic Logfire LLM-logging guidance
+
+### DB-11 Declared Duplicate-Prevention Strategy Registry [MEDIUM]
+
+**Detect:** Multiple entity types each carrying their own hand-rolled duplicate-prevention logic (email-match-and-prompt for one, a deterministic composite key for another, TOCTOU self-heal for a third) with no shared registry connecting them. A new create-capable entity type added to the schema with no corresponding duplicate-prevention decision recorded anywhere, and no mechanical check that would fail on that omission.
+
+**Fix:** Define one declarative registry — `{entityType, strategy, rationale}` — where `strategy` is one of `match-and-prompt` / `deterministic-id` / `toctou-heal` / `not-applicable (reason)`. Don't force every entity onto the same strategy (shapes differ too much for that to be anything but a YAGNI violation); require only that each declares one. Add a gate that fails when a create path exists with no registry entry, mirroring how a reconstructibility or nullability-completeness registry gates schema changes elsewhere in the codebase.
+
+**Why:** Without a registry-backed gate, a newly added entity type can ship with zero duplicate protection and nothing fails — the record just silently duplicates in production, a regression class invisible to code review because there's no shared place reviewers check.
+
+**Source:** Declarative-registry-plus-gate pattern generalized from schema-completeness/exhaustiveness checking (same shape as an SSOT-registry for any per-entity axis — data-classification, migration-safety, or duplicate-prevention)

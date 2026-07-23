@@ -7,7 +7,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | Section | Rules | Line |
 |---------|-------|------|
 | **Security** | SEC-01–13 (4 BLOCKER, 5 CRITICAL, 4 HIGH) | ~12 |
-| **Privacy** | PRV-01–05, PRV-26–29 (2 BLOCKER, 2 CRITICAL, 5 HIGH) | ~139 |
+| **Privacy** | PRV-01–05, PRV-26–30 (2 BLOCKER, 2 CRITICAL, 6 HIGH) | ~139 |
 | **Regulatory Compliance** | PRV-06–19, PRV-21–25 (11 BLOCKER, 8 CRITICAL) | ~230 |
 | **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~500 |
 
@@ -236,6 +236,13 @@ Data classification (PII/sensitive, external-sync target, access-role restrictio
 - **Fix:** Define one declarative registry (`{field, sensitivity, syncTarget, accessRoles}`); make every consumer — encryption whitelist, redaction filter, access-control check — derive from it; add a gate that hard-fails when a new schema field has no registry entry.
 - **Impact:** Hand-synced parallel classification lists drift silently — a field marked sensitive in one list but missing from another means it's inconsistently encrypted, redacted, or access-controlled depending on which code path checks which list.
 - **Source:** Single-source-of-truth data-classification practice (extends the general SSOT principle to the PII/sensitivity axis specifically)
+
+### PRV-30 [HIGH] Data-Residency Invariant Covers Every Export Path
+When the product states a data-residency/data-locality invariant ("user data lives only in X," "nothing leaves the audited store"), every write/export path is checked against it — including secondary, opt-in, or admin-only features — not just the primary storage/sync path the invariant was originally written for.
+- **Detect:** A documented or asserted residency rule that holds for the primary storage path, while an opt-in secondary feature (report export, third-party integration sync, admin tooling, "export to spreadsheet") writes the same class of data to a location the invariant doesn't cover. Found by cross-referencing every write/export call site against the stated invariant directly — not by trusting the invariant's own documentation, which describes intent, not the audited call sites.
+- **Fix:** Move the export target inside the covered boundary, replace it with a residency-neutral alternative (local file download instead of a third-party write), or record an explicit, documented exception with its own compensating control (audit log entry, opt-in confirmation UI) — never leave a write path silently uncovered by the stated invariant.
+- **Impact:** A residency invariant that's true for the primary path but silently false for one opt-in feature undermines the compliance claim made about the whole system — exactly the kind of gap that surfaces first in a breach investigation or customer audit, after the claim has already been relied on.
+- **Source:** Data-flow-mapping / data-residency-audit practice (GDPR Art. 30 records-of-processing methodology, generalized beyond GDPR specifically); companion to PRV-29 and ds-backend DB-11 — same "declared invariant, gate every path" shape applied to the residency axis
 
 ---
 
