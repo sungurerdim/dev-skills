@@ -18,9 +18,9 @@ Utility/productivity product with a generous free tier and no data justifying it
 
 ## MON-03 [CRITICAL] Client-only entitlement enforcement
 Paid capability gated in UI/client code only.
-- **Detect:** Feature flag / tier check present in client bundle with no corresponding server-side check on the API that serves the paid capability.
-- **Fix:** Enforce entitlement on the server route or backend function; client check is UX, server check is the gate.
-- **Impact:** Anyone with devtools or a modified client gets paid features free.
+- **Detect:** Feature flag / tier check present in client bundle with no corresponding server-side check on the API that serves the paid capability. For high-value paid features specifically: the underlying data is fully readable/exportable without going through the gated action at all (a compromised or patched client can skip the API call entirely and still reach usable data).
+- **Fix:** Enforce entitlement on the server route or backend function; client check is UX, server check is the gate. For high-value paid data: additionally bind data-at-rest encryption to a key obtainable only via a currently-valid entitlement/session — this is defense-in-depth, not a replacement for the mandatory server-side check, but it means a UI/API bypass leaves an attacker with ciphertext, not usable data.
+- **Impact:** Anyone with devtools or a modified client gets paid features free. Without the data-level binding, this holds even for an attacker who bypasses the API check entirely — the gated data itself is readable the moment the check is skipped.
 - **Source:** OWASP API Top 10 — broken function-level authorization.
 
 ## MON-04 [CRITICAL] Payment webhook accepted without signature verification
