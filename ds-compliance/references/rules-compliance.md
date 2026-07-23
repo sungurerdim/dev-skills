@@ -6,8 +6,8 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Security** | SEC-01–12 (4 BLOCKER, 5 CRITICAL, 3 HIGH) | ~12 |
-| **Privacy** | PRV-01–05, PRV-26–28 (2 BLOCKER, 2 CRITICAL, 4 HIGH) | ~139 |
+| **Security** | SEC-01–13 (4 BLOCKER, 5 CRITICAL, 4 HIGH) | ~12 |
+| **Privacy** | PRV-01–05, PRV-26–29 (2 BLOCKER, 2 CRITICAL, 5 HIGH) | ~139 |
 | **Regulatory Compliance** | PRV-06–19, PRV-21–25 (11 BLOCKER, 8 CRITICAL) | ~230 |
 | **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~500 |
 
@@ -134,6 +134,15 @@ AI assistants can emit near-verbatim third-party or copyleft code without attrib
 - **Impact:** In *Doe v. GitHub* most claims were dismissed but an open-source-license-violation claim survives; the EU AI Act (Reg. 2024/1689) GPAI transparency duties applied 2 Aug 2025; general enforcement and penalties apply 2 Aug 2026, while high-risk obligations shifted under the Digital Omnibus — timeline in PRV-21.
 - **Source:** [Doe v. GitHub case updates](https://githubcopilotlitigation.com/case-updates.html); [EU AI Act (EC)](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
 
+### SEC-13 [HIGH] Identity/Session Storage Tier & Token-Refresh Re-hydration
+Session/identity data used for a boot-time decision (per-account storage selection, cache partitioning) persists in cold-start-durable storage, not storage that's cleared on process/tab restart.
+- **Detect:**
+  - Identity/auth-claim data (a stable user ID, session claims) required at boot for a storage/partition decision is kept in session-scoped storage (cleared on tab/process restart) rather than persistent storage
+  - A token-refresh flow that renews only the access token without re-fetching/re-validating the identity claims the app's boot logic depends on
+- **Fix:** Move boot-critical identity/session data to storage that survives a cold start (persistent local storage, not session-scoped); make token-refresh re-hydrate the full identity payload, not just the access token.
+- **Impact:** Mobile WebViews and app-kill scenarios routinely wipe session-scoped storage — the real-world failure mode is "logged in, no data": the app boots, authentication looks fine, but the wrong (or no) data partition loads because the boot-time identity read came back empty. A refresh path that renews the token but never re-hydrates identity reintroduces the same bug after every refresh.
+- **Source:** Mobile WebView storage-lifetime documentation (session vs. persistent storage semantics)
+
 ---
 
 ## Privacy
@@ -218,6 +227,15 @@ Server-side/cookieless analytics still meets consent obligations; aggregate outp
   - Aggregate analytics exposing small cohorts (user counts below a minimum group size) in dashboards/exports
 - **Fix:** Enforce consent centrally in the server-side pipeline — event dispatch conditional on consent status. For aggregate outputs, suppress small cohorts: practical k-anonymity thresholds range k=3–5 (basic suppression) up to k=10–30+ in regulated contexts — no formal consensus exists, so document the chosen k rather than hard-coding an industry claim; pure k-anonymity is vulnerable to differencing attacks, so combine with noise for sensitive metrics
 - **Source:** ePrivacy Directive (first-party cookies in scope); k-anonymity literature (no formal threshold standard — contested/verify-current)
+
+### PRV-29 [HIGH] Field-Sensitivity Registry SSOT
+Data classification (PII/sensitive, external-sync target, access-role restriction) is defined once per field in a single declarative registry — every consumer derives from it, never from a hand-synced parallel list.
+- **Detect:**
+  - Two or more independently-maintained lists classifying the same fields as sensitive/PII (e.g. an encryption-whitelist array and a separate redaction-filter list that a comment claims "mirrors" the other, with no shared source)
+  - A new schema field added with no corresponding entry in the sensitivity registry, and no mechanical gate that fails on that omission
+- **Fix:** Define one declarative registry (`{field, sensitivity, syncTarget, accessRoles}`); make every consumer — encryption whitelist, redaction filter, access-control check — derive from it; add a gate that hard-fails when a new schema field has no registry entry.
+- **Impact:** Hand-synced parallel classification lists drift silently — a field marked sensitive in one list but missing from another means it's inconsistently encrypted, redacted, or access-controlled depending on which code path checks which list.
+- **Source:** Single-source-of-truth data-classification practice (extends the general SSOT principle to the PII/sensitivity axis specifically)
 
 ---
 
