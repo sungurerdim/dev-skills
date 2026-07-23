@@ -6,7 +6,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Architecture & Code Quality** | ARC-01–11 (10 HIGH, 1 MEDIUM) | ~12 |
+| **Architecture & Code Quality** | ARC-01–12 (11 HIGH, 1 MEDIUM) | ~12 |
 | **Testing** | TST-01–06 (1 CRITICAL, 5 HIGH) | ~105 |
 
 ---
@@ -111,6 +111,13 @@ Reused logic lives in one place. AI-assisted churn drove copy/pasted lines from 
 - **Detect:** Near-identical functions or blocks differing only in literals. A new helper that duplicates an existing one. Code rewritten within two weeks of being added (high churn). Search: clone detectors `jscpd`, `pmd cpd`, or LSP "find similar".
 - **Fix:** Reuse or extend the existing implementation instead of regenerating. Consolidate clones to a single source of truth. Three similar lines are fine; a fourth copy means extract.
 - **Source:** GitClear — AI Copilot Code Quality 2025 (https://www.gitclear.com/ai_assistant_code_quality_2025_research)
+
+### ARC-12 [HIGH] God-Module Decomposition via Strangler-Fig Phases
+A "god module" (a file re-exporting dozens of symbols that most of the codebase imports through, commonly anchoring a circular-dependency chain) is decomposed in ordered, independently-shippable phases — never a single big-bang rewrite.
+- **Detect:** A module with dozens of re-exported symbols that a large fraction of the codebase imports through; a circular-dependency chain anchored on that module; a "god object" (single module/class merging many unrelated domains) proposed for a one-pass rewrite, or for replacement by N smaller per-layer god modules (a non-fix that doesn't address the root cause).
+- **Fix:** Phase 1 — migrate simple/leaf dependents (constants, pure utilities) to their canonical source instead of through the god module. Phase 2 — break any *real* remaining circular dependency via event-bus/inversion-of-control (one module emits an event instead of calling the other directly). Phase 3 — decompose any remaining god-object into domain-namespaced sub-modules, migrating call sites last (touches the most call sites, so it goes last). Preserve backward-compatible re-exports throughout every phase; remove them only once every consumer has migrated.
+- **Impact:** A single big-bang rewrite of a heavily-imported god module is high-risk and hard to review incrementally; the phased strangler-fig approach ships independently-verifiable steps and never leaves the codebase in a half-migrated, harder-to-reason-about state.
+- **Source:** Martin Fowler — StranglerFigApplication (https://martinfowler.com/bliki/StranglerFigApplication.html); event-driven inversion-of-control pattern for breaking circular dependencies
 
 ---
 
