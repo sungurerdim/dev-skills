@@ -118,11 +118,11 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 
 ## Delegation
 
-**Owns:** orchestration, report-consolidation, ship-readiness, stage-classification, promise-census-aggregation | **Delegates:** every ds-* skill per the sequence matrix above + optional `/ds-pr` at Phase 5c when branch state warrants | **Receives:** none — ds-ship is the top of the stack
+**Owns:** orchestration, report-consolidation, ship-readiness, stage-classification, promise-census-aggregation | **Delegates:** every ds-* skill per the sequence matrix above + optional `/ds-pr` at Phase 5c when branch state warrants + optional `/ds-issue` at Phase 7b when unresolved items would otherwise only survive in gitignored `ds/audit/` state | **Receives:** none — ds-ship is the top of the stack
 
 ## Execution Flow
 
-P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs → P5 Launch Gates → [P5c PR Suggestion] → P6 Report → [Needs-Approval] → Summary
+P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs → P5 Launch Gates → [P5c PR Suggestion] → P6 Report → [Needs-Approval] → [P7b Durable Tracking] → Summary
 
 ### Phase 0: Assess
 
@@ -149,6 +149,8 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
    - launched: pre-launch + `CHANGELOG.md` with released versions / git tags
    - frozen: launched + no commits in past 180 days
 
+   **Cite the match:** record which concrete signal(s) fired for the chosen stage (e.g. `stage=implementation: src/ non-trivial (47 files), tests/ present, no .github/workflows/, no Dockerfile`) in `ds/audit/ship.json` and the report — a stage label with no cited file/command evidence is not a valid classification; re-derive it before proceeding.
+
 4. **Document census** (table): `| Document | Status | Size | Last commit |` — one row per README.md, SPEC.md, docs/*, AI instruction file, `ds/audit/findings.md`; status ∈ fresh / stale / draft / absent.
 
 5. **Git posture.** Active branch, uncommitted changes, unpushed commits, last-activity date, frozen vs active signal.
@@ -164,9 +166,9 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 9. **Integration signal reading.** Read blueprint profile's `Integrations:` field. If `google-workspace` or `apple-ecosystem`, note which skills have conditional A9 rules (ds-backend, ds-mobile, ds-compliance, ds-launch, ds-frontend) and include these in the Dimension Coverage table as `conditional (integrations active)`. If absent or `none`, note A9 as `N/A (integrations signal: none)`.
 
-10. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. New feature with open design → insert `/ds-pipeline` first per the Feature-planning branch above. Interactive: show plan, user confirms or trims. `--auto`: accept the matrix-derived sequence as-is, no prompt.
+10. **Skill sequence proposal.** Stage + type → propose sequence per matrix, adjusted by user answers. New feature with open design → insert `/ds-pipeline` first per the Feature-planning branch above. Interactive: show plan, user confirms or trims. `--auto`: accept the matrix-derived sequence as-is, no prompt. **Every matrix-mandated skill for this stage+type that does NOT end up in the approved sequence gets a recorded exclusion reason in `ds/audit/ship.json` right here** — one of: `project-type-exclusivity` (name the rule, e.g. "mobile → ds-mobile subsumes ds-compliance"), `signal-absent` (name the Phase 0 signal, e.g. "no billing surface, no paid intent stated"), or `user-trimmed` (interactive only — the user's stated reason, or "no reason given" verbatim if none was offered — never silently inferred). A skill missing from both the approved sequence AND this exclusion list is an incomplete plan, not a decision — do not advance the gate below on it.
 
-**Gate:** Value proposition confirmed; skill sequence approved; `ds/audit/ship.json` populated with stage + type + promise census + sequence. No execution past this gate without approval (under `--auto`, "approval" is the recorded best-judgment resolution of steps 6/8/10 above — the gate still holds, nothing proceeds unrecorded). If fails → abort with "ds-ship: aborted — value proposition or skill sequence not confirmed. Re-run after clarifying purpose or use `--stage=X` to override." Never proceed on a vague or unconfirmed plan.
+**Gate:** Value proposition confirmed; skill sequence approved; every matrix-mandated skill is either in the sequence or carries a recorded exclusion reason; `ds/audit/ship.json` populated with stage + type + promise census + sequence + exclusions. No execution past this gate without approval (under `--auto`, "approval" is the recorded best-judgment resolution of steps 6/8/10 above — the gate still holds, nothing proceeds unrecorded). If fails → abort with "ds-ship: aborted — value proposition, skill sequence, or exclusion reasons not confirmed. Re-run after clarifying purpose or use `--stage=X` to override." Never proceed on a vague or unconfirmed plan, and never drop a mandated skill without a reason attached.
 
 ### Phase 1: Ideal-vs-Current Gap
 
@@ -260,6 +262,8 @@ Orchestrator never pushes or opens a PR on its own; user is always free to keep 
 
 ### Phase 6: Consolidated Report
 
+**Sequence-completeness check (run before writing the report):** compute the full mandated skill set for this run — the stage/type matrix row (Project Type ↔ Skill Sequence table) plus every applicable conditional branch (Feature-planning, Monetization, Scope-Freeze, project-type-exclusivity, and the per-type "Additional rules" row). Diff it against `delegation_queue` (skills that actually ran) unioned with the exclusion-reason list from Phase 0 step 10. Any mandated skill in neither set is a **Sequence Gap** — this is a defect in the run itself, not a finding about the target project; list it in the `## Sequence Gaps` report section with the missing skill + which rule/branch mandated it. A pre-launch or launched-stage run with an unresolved Sequence Gap MUST NOT report `Ship-ready: yes` — go back and either run the missing skill or attach a concrete exclusion reason first.
+
 Write `ds/audit/report.md` overwriting prior content. **Blocker classification (SKILL-SPEC §15):** a human-required finding counts toward `{K} blockers` only if it passes the mandated-blocker test (external mandate + citable source + rejection/legal/production risk if skipped) — every other human-required finding goes to "Recommended Human Actions" and never blocks the verdict.
 
 ```markdown
@@ -276,10 +280,12 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 - Autonomous fixes applied (Category A): {N}
 - Awaiting user decision (Category B): {M}
 - Ship-ready: yes | no ({K} mandated blockers remain — cited sources in Awaiting User Decision; advisory items never counted)
+- Sequence gaps: {n} ({0 if none — a pre-launch/launched run with n > 0 cannot report Ship-ready: yes})
 - Doc token reduction: {before} → {after} ({%})
 - Score delta (`--uplift` runs only): overall {prev} → {now} (model {prev-model} → {curr-model})
 - Security baseline ([references/principles.md §5](references/principles.md)): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
 - PR: {url} | declined-this-run | not-applicable ({reason}) | muted
+- Tracking: {n} filed ({refs}) | declined-this-run | not-applicable (0 unresolved) | muted
 
 ## Architectural Changes (approved + applied)
 | Change | Rationale | Concrete benefit |
@@ -289,6 +295,10 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 
 ## Awaiting User Decision (Category B)
 | Proposal | Why needed | Risk / effort | Priority |
+
+## Sequence Gaps
+| Missing skill | Mandated by | Status |
+Empty table = every matrix-mandated skill for this stage+type either ran or carries a recorded exclusion reason (Phase 0 step 10); omit this section entirely when empty.
 
 ## Recommended Human Actions (advisory — not blocking)
 | Action | Why | Where |
@@ -346,7 +356,7 @@ Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §
 | D10 | {audited | owner-skipped | unowned} | ds-backend + ds-frontend + ds-deploy + ds-docs |
 | E | N/A (carrier) | ds-ship, ds-pipeline, etc. | Process carriers — not quality dimensions |
 
-Status values: `audited` (skill ran and produced findings), `owner-skipped` (skill exists but was not invoked), `unowned` (no skill claims this dimension). ⚠️ Unowned dimensions MUST be flagged with an explicit warning prefix in the report summary.
+Status values: `audited` (skill ran and produced findings), `owner-skipped: {reason}` (skill exists but was not invoked — the reason MUST cite the concrete Phase 0 signal or rule that justified it, e.g. `owner-skipped: monetization=internal, no billing surface detected (Phase 0 step 8)` — a bare `owner-skipped` with no cited reason is not a valid status; resolve it to `audited` (run the skill) or `unowned` (flag) before reporting), `unowned` (no skill claims this dimension). ⚠️ Unowned dimensions MUST be flagged with an explicit warning prefix in the report summary. A general impression ("looks fine", "not needed here") is never a substitute for a cited signal — every non-`audited` status traces to something read this run (a file, a Phase 0 answer, a rule name), never to overall judgment alone.
 ```
 
 **`--html`: additionally write `ds/audit/report.html`** — self-contained, offline, ASCII-only. Sections: (1) header with stage gauge; (2) orchestration flow — inline Mermaid diagram, nodes per phase + delegated skill, edges for ordering, approval gates as diamonds; (3) findings heatmap — severity × scope grid, background color by count, ASCII-safe hex; (4) Category A/B counters (bar); (5) ship-readiness gauge 0–100 from open CRITICAL + open B count; (6) major sections in `<details>` (collapsed). Inline CSS + inline SVG + statically rendered Mermaid SVG (not JavaScript-rendered). No external CDN, remote font, or remote script.
@@ -358,6 +368,23 @@ Status values: `audited` (skill ran and produced findings), `owner-skipped` (ski
 Remaining unresolved B items (rare — most resolved inline per phase). Interactive: state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. `--auto`: no prompt — resolved per SKILL-SPEC Unattended Mode rule 3, except rule-4 exception-list items, which become `skipped (needs-human)`.
 
 **Gate:** All needs-approval resolved. If fails (user declines) → mark unresolved `skipped (user declined)`, include in report's "Awaiting User Decision" section, proceed.
+
+### Phase 7b: Durable Tracking Handoff [optional — suggestion only, never forces]
+
+Every unresolved item at run's end (deferred Category B, open blockers, Sequence Gaps) lives only in `ds/audit/` — gitignored, single-run, gone on `--clean-all`. This phase offers it a durable home via `/ds-issue` (GitHub Issues, or its own last-resort local `tasks.md` when no GitHub remote exists — same delegation either way, ds-issue resolves which).
+
+**Trigger conditions (all must hold — any unmet → silent skip, no prompt, no noise):**
+1. At least one unresolved Category B item, blocker, or Sequence Gap remains after Phase 7.
+2. `/ds-issue` is available (any repo shape — it handles both GitHub and local-fallback mode itself).
+3. State does not show `tracking_handoff: muted` (a persisted prior decision, honored even under `--auto`).
+
+**When triggered — interactive:** `{n} unresolved items would otherwise only survive in ds/audit/report.md (gitignored, cleared by --clean-all). File them via /ds-issue? (y/n/always-skip)` — `y` → delegate to `/ds-issue` (default intake) once per item, labeled with severity + owning skill; record filed issue URLs (or `tasks.md` line refs in local mode) in the report; `n` → record `tracking_handoff: declined (this run)`, next run asks again; `always-skip` → record `tracking_handoff: muted` in `ds/audit/ship.json`, subsequent runs skip until `--clean` or manual edit.
+
+**When triggered — `--auto`:** no prompt — filing an issue is reversible (closable) and not on the Unattended Mode rule-4 exception list, so it resolves like any other Category B item: delegate to `/ds-issue` for each, record `tracking_handoff: auto-approved`, include the filed references in the report.
+
+**Report note:** Phase 6 report gains one line: `Tracking: {n} filed ({refs}) | declined-this-run | not-applicable (0 unresolved) | muted`.
+
+**Gate:** Decision recorded in state (filed / declined / not-applicable / muted); step never blocks progression. If fails (no or unrecognizable response) → record `tracking_handoff: no_response`, treat as `declined (this run)`, continue without further prompting.
 
 ### Phase 8: Summary
 
