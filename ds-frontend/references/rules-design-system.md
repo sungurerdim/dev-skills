@@ -6,7 +6,7 @@ Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Design Tokens** | TOK-01 to TOK-11 (3 HIGH, 6 MEDIUM, 2 LOW) | ~14 |
+| **Design Tokens** | TOK-01 to TOK-12 (3 HIGH, 7 MEDIUM, 2 LOW) | ~14 |
 | **Theming** | THM-01 to THM-05 (2 HIGH, 2 MEDIUM, 1 LOW) | ~124 |
 
 ---
@@ -118,6 +118,13 @@ Stacking order comes from a small set of named layer tokens (e.g. `dropdown < st
 - **Fix:** Define 5–6 named layer tokens covering the app's real stacking tiers; map every `z-index` declaration to one; the shared overlay primitive (CMP-09) consumes the top layers so a popover opened from inside a modal always renders above it.
 - **Impact:** Ad-hoc z-index is the classic symptom of a missing layering architecture — each "just make it 9999" fix silently breaks a different surface, and the true stacking order becomes unknowable from reading any single file. A token scale makes stacking deterministic and reviewable.
 - **Source:** CSS stacking-context practice; see CMP-09 (overlay layer contract)
+
+### TOK-12 [MEDIUM] Variant-Axis Completeness (density, theme, RTL-mirroring)
+When a variant axis (density, theme, RTL-mirroring) is layered on top of an existing token scale, every token in the base scale must have all variants defined — not merely that the default variant renders correctly.
+- **Detect:** A variant axis (e.g. a body-level data attribute like `data-density`, a theme class) that only a small subset of components actually consume, rather than a true second dimension over the full base scale (spacing, color, etc.) — the completeness audit checks presence of a default value only, not presence-per-variant across every token.
+- **Fix:** Extend the base scale to define every variant value per token (e.g. 3 density values per spacing token); extend the token-completeness audit to verify all variants are defined for every token, not just the default.
+- **Impact:** A partially-implemented variant axis passes a naive "does the default render" gate while being functionally decorative — the preference toggles a data attribute that most of the UI ignores.
+- **Source:** W3C Design Tokens Community Group format spec (variant/mode tokens)
 
 ---
 

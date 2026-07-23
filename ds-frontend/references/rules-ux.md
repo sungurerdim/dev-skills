@@ -15,8 +15,10 @@ Applies to all UI platforms: web, mobile, desktop.
 | **Perceived Performance & Optimism** | UX-PP-01 to UX-PP-02 (2 rules) | ~220 |
 | **Forms: Validation Strategy** | UX-FM-01 (1 rule) | ~240 |
 | **Deceptive Patterns** | UX-DP-01 to UX-DP-03 (3 rules) | ~255 |
-| **UX Writing** | UX-WR-01 to UX-WR-02 (2 rules) | ~285 |
+| **UX Writing** | UX-WR-01 to UX-WR-03 (3 rules) | ~285 |
 | **Information Architecture** | UX-IA-01 (1 rule) | ~305 |
+| **Filtering & Bulk Selection** | UX-11 (1 rule) | ~325 |
+| **Status & Health Communication** | UX-12 (1 rule) | ~335 |
 
 ---
 
@@ -280,6 +282,13 @@ Titles, headings, labels, and buttons use sentence case — not Title Case, not 
 - **Impact:** Sentence case reads faster, localizes safely, and removes per-screen casing debates.
 - **Source:** [Material Design — Writing guidance](https://m2.material.io/design/communication/writing.html) (2×-confirmed)
 
+### UX-WR-03 [LOW] Single-Heading Principle (Prune Redundant Subtitles)
+A subtitle/description directly under a heading renders only if it adds information the heading doesn't already state — a subtitle that merely paraphrases the heading in different words is pruned.
+- **Detect:** A subtitle/description under a page or section heading that restates the heading (e.g. "History" heading, "Past records" subtitle) rather than adding a constraint, legal notice, count, or concrete detail the heading omits.
+- **Fix:** Remove subtitles that only paraphrase; keep or add ones with genuine added information (a caveat, a behavior note, a count); remove the now-unused i18n string. Exempt: structural group/section labels within a multi-part form — those organize, they don't repeat.
+- **Impact:** A paraphrasing subtitle adds visual clutter and scan cost with zero new information — pruning it is a pure, risk-free legibility win.
+- **Source:** Nielsen Norman Group — content redundancy / scannability practice
+
 ---
 
 ## Information Architecture
@@ -290,6 +299,26 @@ Visible navigation supports 2-3 tiers; deeper hierarchies switch to breadcrumbs 
 - **Fix:** Cap visible nav at 2-3 tiers; add breadcrumbs on every page below tier 2 (ancestors linked, current page unlinked); deep sections get section landing pages instead of deeper flyouts.
 - **Impact:** Over-deep menus hide content from discovery; missing breadcrumbs strand deep-linked visitors (search/social arrivals) with no sense of place.
 - **Source:** [NN/g — Local navigation](https://www.nngroup.com/articles/local-navigation/); [NN/g — Breadcrumbs](https://www.nngroup.com/articles/breadcrumb-navigation-useful/) (2×-confirmed)
+
+---
+
+## Filtering & Bulk Selection
+
+### UX-11 [MEDIUM] Mute-Not-Hide Filtering + Distinct Select-All/Clear-All
+When a filter is applied to a list/grid/calendar view where surrounding context matters (adjacency, occupancy, availability), non-matching items are de-emphasized (muted/desaturated), never hidden outright — and bulk-selection panels expose "select all" and "clear all" as two distinct, unambiguous controls.
+- **Detect:** A filter/highlight interaction on a spatially-contextual list/grid/calendar view that sets non-matching items to `display: none` (destroying adjacency/occupancy information) instead of a muted/faded style; a mute pass applied only at mount and not reapplied after re-render; a bulk-selection panel with a single toggle button whose action (select-all vs clear-all) silently depends on hidden prior state.
+- **Fix:** Replace hide-on-filter with an idempotent mute pass (lower opacity/desaturate, stays interactive) that reapplies on every re-render; split any ambiguous toggle into two explicitly labeled "Select all" / "Clear all" (or "Select none") controls.
+- **Impact:** Hiding non-matching items destroys the spatial context users rely on to judge adjacency/availability; an ambiguous select/clear toggle causes real data loss when it silently clears instead of selecting.
+- **Source:** Gestalt continuity/context principles; NN/g bulk-action affordance clarity
+
+## Status & Health Communication
+
+### UX-12 [MEDIUM] Cascading Health/Status-Check Severity Demotion
+When multiple health/status checks have a dependency relationship (a root check gating several downstream checks), a downstream check's displayed severity demotes when a known upstream root-cause check has already failed — never presented as N independent criticals for one root cause.
+- **Detect:** A status/health dashboard with dependency-ordered checks (e.g. connectivity → auth → sync → feature-specific) where a single outage condition (e.g. offline) causes multiple simultaneous, unrelated-looking CRITICAL badges instead of one root-cause indicator plus demoted symptoms.
+- **Fix:** Order checks by dependency; when an upstream check fails, demote dependent checks' displayed severity (e.g. to informational/"blocked by X") rather than each reporting independently.
+- **Impact:** An inflated list of unrelated-looking criticals for one root cause obscures the actual starting point for diagnosis and erodes trust in the status panel.
+- **Source:** Cascading-failure / root-cause-first alerting practice (SRE incident-communication conventions)
 
 ---
 

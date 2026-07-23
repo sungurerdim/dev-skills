@@ -6,8 +6,8 @@ Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Component Quality** | CMP-01 to CMP-17 (9 HIGH, 7 MEDIUM, 1 LOW) | ~12 |
-| **Interactions** | INT-01 to INT-04 (2 MEDIUM, 2 LOW) | ~176 |
+| **Component Quality** | CMP-01 to CMP-22 (10 HIGH, 11 MEDIUM, 1 LOW) | ~12 |
+| **Interactions** | INT-01 to INT-05 (3 MEDIUM, 2 LOW) | ~176 |
 
 ---
 
@@ -44,6 +44,7 @@ Data-driven components show meaningful empty state instead of blank space when d
   - Vue: `v-if="items.length"` without `v-else`
 - **Fix:** Add empty state with: headline (what's empty), explanation (why), CTA button (what to do next). Use encouraging tone, not error tone.
   Example: "No projects yet" + "Create your first project to get started" + [Create Project] button.
+  Search/filter inputs specifically: seed an initial unfiltered result set (first N items) at mount rather than gating results behind a minimum query length — an empty result area at mount is ambiguous ("no data" vs. "type more") when data actually exists to show.
 - **Impact:** Blank states confuse users ("is it loading? broken? empty?"). Empty states with CTAs drive engagement.
 - **Source:** Material Design Empty States, Luke Wroblewski Empty State Design
 
@@ -170,6 +171,41 @@ All icons come from one icon set, sized by tokens, colored via `currentColor`/se
 - **Impact:** Mixed icon languages are one of the fastest "this product is stitched together" signals a user perceives, without being able to name why; hardcoded icon colors silently break in dark mode; drifting metaphors force users to re-learn the same action per screen.
 - **Source:** Design-system iconography practice (Material Symbols, SF Symbols usage guidelines)
 
+### CMP-18 [MEDIUM] Select-or-Create Pattern for Entity-Linking Pickers
+Any UI flow that lets a user add a new related record by typing a name (tag, category, contact, or other reusable entity) first searches existing matching records and offers to select one, before offering "create new".
+- **Detect:** An "add new {entity}" flow that links a reusable/searchable entity (contact, tag, category, org) and jumps straight to a blank creation form with no prior existing-record search/autocomplete step.
+- **Fix:** Add a search-existing step (autocomplete/picker) before the create-new fallback; only fall through to creation when no match is selected.
+- **Impact:** Skipping the search-existing step is the direct cause of accidental duplicate entities, which then silently fragments data (the same person/tag existing twice under different records).
+- **Source:** Autocomplete/typeahead entity-resolution UX practice
+
+### CMP-19 [HIGH] Provenance Display for Override-vs-Default Fields
+A field that overrides a shared/system/org-level default renders its input value as ONLY the explicit override (empty if none) — the live system default appears solely as placeholder text, never merged into the value.
+- **Detect:** An editable field whose value is computed as `override || systemDefault` (or equivalent merge) rather than showing the override alone with the default as placeholder — saving that form untouched would permanently freeze the current system default as a per-record override.
+- **Fix:** Render the input's value as the explicit override only (empty when none exists); show the live default as placeholder; pair with a visible "customized" indicator and a reset-to-default action when an override is active.
+- **Impact:** Merging the resolved value into the input is a silent-freeze bug — an untouched "Save" permanently pins what should have stayed a live-following default, and the bug is invisible until the org-wide default is later changed and the frozen record doesn't follow.
+- **Source:** Live incident pattern (org-default-merged-into-editable-value freeze bug)
+
+### CMP-20 [MEDIUM] Unified Status-Center Rollup
+Multiple independent status/notification indicators a user could see simultaneously (connectivity, sync, error/conflict count, update-available) consolidate into one rollup indicator backed by a single status-collection function.
+- **Detect:** A topbar/header with 3+ separate, always-visible status badges whose meanings overlap or that could report inconsistent/duplicated information because each derives its state independently.
+- **Fix:** Consolidate into one rollup indicator fed by a single status-collection function; a detail popover partitions facets from that same collection (never re-derives independently, so nothing is double-counted).
+- **Impact:** Competing status badges with overlapping meaning confuse users about whether something is actually wrong; a single rollup plus itemized popover answers that question at a glance.
+- **Source:** Status/notification consolidation practice (dashboard information-architecture convention)
+
+### CMP-21 [MEDIUM] Event-Delegation Over Inline Handlers
+A framework-free/vanilla-DOM UI wires interactivity via a single delegated document-level listener plus a declarative action attribute (e.g. `data-action="module.method"`), not inline `onclick="..."` handlers.
+- **Detect:** Inline event-handler attributes (`onclick`, `onchange`, etc.) in templates, especially ones referencing module-scoped functions that had to be bridged onto the global namespace to be reachable from markup.
+- **Fix:** Replace with one delegated listener at the document/root level dispatching on a `data-action`-style attribute to a registerable handler map; remove the global-namespace bridge objects this required.
+- **Impact:** Inline handlers force a global-namespace bridge for every referenced module/function, hurt testability (handler wiring isn't a separate, inspectable map), and are incompatible with a strict CSP (`script-src 'self'`, no `unsafe-inline`) — flag as both a CSP blocker and a testability gap.
+- **Source:** Content Security Policy Level 3 (`unsafe-inline` restriction); event-delegation pattern (DOM Events spec)
+
+### CMP-22 [MEDIUM] Reload-Safe Form-State Snapshot/Restore
+A forced-reload path that can interrupt an open form/modal (new-version-deploy prompt, cache-bust redirect) snapshots the form's field values before reload and restores them after, excluding any field explicitly marked sensitive/no-persist.
+- **Detect:** A forced-reload flow (version-update prompt, cache invalidation redirect) with no form-state preservation for an open form/modal at the time reload fires.
+- **Fix:** Snapshot the open form/modal's field values on the page's unload/hide event to short-lived storage; restore them once the app re-opens the same route/modal after reload; exclude fields explicitly marked sensitive, even transiently.
+- **Impact:** Losing in-progress form input to a forced reload the user didn't initiate is a silent-data-loss UX risk that measurably makes users defer or avoid updates/edits.
+- **Source:** Page Lifecycle API (`pagehide`/`visibilitychange`) — MDN
+
 ---
 
 ## Interactions
@@ -214,3 +250,10 @@ Animations target transform and opacity (GPU-composited) instead of layout-trigg
   - Mobile: use platform GPU animation APIs (React Native: useNativeDriver: true)
 - **Impact:** Layout-triggering animations → jank (dropped frames). Compositor-only animations run on GPU at 60fps+.
 - **Source:** Google Web Fundamentals Rendering Performance, CSS Triggers
+
+### INT-05 [MEDIUM] Zero-Refresh In-Page Filter/Toggle
+An in-page filter/toggle/tab-switch handler within an already-rendered view mutates DOM/state directly (class toggle, targeted patch) rather than calling the view's full render/navigate function.
+- **Detect:** A filter chip, column-filter, or tab-switch handler within the same view that calls the top-level render/navigate function instead of patching the DOM/state directly.
+- **Fix:** Flip CSS classes or patch the affected DOM/state directly for in-page interactions; reserve full-view re-render/navigation for actual route changes.
+- **Impact:** An unnecessary full re-render discards scroll position and focus and is perceptibly slower than a targeted patch — reserved cost that a real route change would justify, spent on a same-view toggle.
+- **Source:** Live audit pattern (in-page interaction vs. route-level render)

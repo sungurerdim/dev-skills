@@ -10,6 +10,8 @@ Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix a
 | **Advanced** | RSP-05 to RSP-08 (2 MEDIUM, 1 MEDIUM, 1 LOW) | ~72 |
 | **Core Web Vitals** | RSP-09 to RSP-11 (2 HIGH, 1 MEDIUM) | ~148 |
 | **Symmetry & Print** | RSP-12 to RSP-14 (1 HIGH, 2 MEDIUM) | ~193 |
+| **Alignment & Visual Geometry** | RSP-15 to RSP-18 (2 HIGH, 1 MEDIUM, 1 LOW) | ~230 |
+| **Cascade & Delivery** | RSP-19 to RSP-20 (2 MEDIUM) | ~275 |
 | **Alignment & Visual Geometry** | RSP-15 to RSP-18 (2 HIGH, 1 MEDIUM, 1 LOW) | ~218 |
 
 ---
@@ -243,3 +245,19 @@ Type sits on a consistent rhythm, and visually-heavy shapes are aligned opticall
 - **Fix:** Derive line-heights and block margins from the same base unit as the spacing scale (multiples, not arbitrary values); nudge asymmetric glyphs by 1–2px toward visual balance (optical centering) and encode the nudge in the icon component, not per-call-site; where supported, hang leading punctuation (`hanging-punctuation` / negative indent) so text edges stay flush. Advisory: propose, never churn a working layout for rhythm alone.
 - **Impact:** Rhythm and optical corrections are the difference between "clean" and "template-y" — low individual cost, compounding aesthetic effect.
 - **Source:** Baseline-rhythm typography practice; optical-adjustment guidance (icon design conventions)
+
+## Cascade & Delivery
+
+### RSP-19 [MEDIUM] CSS Cascade Source-Order for Media Overrides
+A same-specificity `@media` rule overriding a base selector must be declared AFTER that base rule in source order — media queries don't add specificity, so a later same-specificity base rule wins regardless of viewport width.
+- **Detect:** For each `@media` block, check whether an identical-specificity non-media selector targeting the same property is declared later in the same file/bundle (including later imports/bundling order) — if so, the base rule always wins and the media override never applies at any viewport.
+- **Fix:** Move the base declaration before the media override in source order, or intentionally increase the override's specificity so source order no longer matters.
+- **Impact:** A silently dead responsive override is invisible in code review (both rules "look correct" in isolation) and only surfaces as "this breakpoint doesn't work" during manual device testing.
+- **Source:** MDN CSS Cascade — specificity and source order
+
+### RSP-20 [MEDIUM] Lazy Route-Based Code-Splitting for Zero-Build/Vanilla Stacks
+A build-free/vanilla-module frontend can still achieve route-based code-splitting: replace an eager static-import module registry with a lazy loader map exposed through a Proxy that preserves existing synchronous-access call sites.
+- **Detect:** A vanilla/no-bundler frontend with a static import registry (`import ViewA from './a.js'` for every route/view) all loaded eagerly at boot; a lazy-loaded view that synchronously renders/embeds another view with no declared dependency, so the embed silently renders blank on first navigation to that route.
+- **Fix:** Replace the eager registry with a `name → () => import(path)` loader map behind a Proxy (returns `undefined` before load, preserving synchronous property-access call sites once loaded); when a view synchronously embeds another view in its render, declare that dependency explicitly (an `embeds` list) so the loader pre-loads it before rendering.
+- **Impact:** Route-based code-splitting is achievable without adopting a bundler, cutting initial payload; the explicit `embeds` declaration prevents a silent blank-render regression when a transitive view dependency hasn't loaded yet.
+- **Source:** MDN dynamic `import()`; JavaScript Proxy (MDN)
