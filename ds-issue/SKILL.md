@@ -5,7 +5,7 @@ description: GitHub-Issues lifecycle in one skill — file a verified deduped is
 
 # /ds-issue
 
-AI assistants file issues from memory (unverified anchors, duplicates, dead content), claim "done" nobody proved from code, "fix" issues that are already stale, and touch one file while five callers break. This skill makes the whole GitHub-Issues loop trustworthy — record side and work side — with GitHub itself as the only durable store. No local files.
+AI assistants file issues from memory (unverified anchors, duplicates, dead content), claim "done" nobody proved from code, "fix" issues that are already stale, and touch one file while five callers break. This skill makes the whole GitHub-Issues loop trustworthy — record side and work side — with GitHub Issues as the sole durable store whenever a GitHub remote exists. No local files in that case. A repo with no GitHub remote at all gets a deliberately reduced last-resort local mode (root `tasks.md`) — never chosen merely because `gh` isn't authenticated.
 
 **GitHub-Issues lifecycle — verified intake · dedup sweep · code-verified status · issue-bound execution.**
 
@@ -34,7 +34,8 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 - **`--do`** executes exactly one issue: re-verify root cause (stale → stop) → impact-surface map → internal bounded plan → implement + verify each unit → aggregate done-signal green → close with code-proven evidence. `--do #N --preview` stops after planning.
 - **`--do --all`** runs the same per-issue flow over every open issue in priority order (CRITICAL→LOW, then issue number), confirming each issue's changes before applying; a stale / blocked / aggregate-red issue is recorded and skipped, the loop continues, and the run ends with a per-issue outcome table. `--do --all --preview` plans every issue without changing files. **Under `--auto`:** the entire backlog processes with zero confirmation — queue confirmation and every per-issue confirmation are skipped; each issue's changes resolve per Unattended Mode rule 3, and an item matching the rule-4 exception list is skipped and recorded `needs-human` rather than blocking the queue.
 - Every `file:line`/symbol/version traces to something read this run — no memory claims.
-- **State-exempt — zero local footprint.** GitHub (the issue, its comments, the closed flag) + git are the durable record; nothing is written to `ds/audit/` and no temp files are used (issue/comment/PR bodies pass to `gh` via heredoc, not a written file). Resuming = re-reading the issue + its comments + `git diff`.
+- **State-exempt — zero local footprint (GitHub mode).** GitHub (the issue, its comments, the closed flag) + git are the durable record; nothing is written to `ds/audit/` and no temp files are used (issue/comment/PR bodies pass to `gh` via heredoc, not a written file). Resuming = re-reading the issue + its comments + `git diff`.
+- **Last-resort local mode** (no GitHub remote found — see Phase 1 step 1a): a single root `tasks.md` (distinct from Spec Kit's per-feature `specs/{feature}/tasks.md` execution plan — this one is the backlog, checked into git) replaces every `gh issue *` call one-for-one: intake appends a `- [ ] {title}` entry with the same body checklist inline; `--sweep` dedups by reading and comparing existing entries instead of `gh search issues`; `--status` reads entries instead of `gh issue list`; `--do #N` addresses the Nth entry, `--do --all` walks every open (`- [ ]`) entry in the file's own order (no label-driven priority — local mode has no labels), and closing rewrites the line to `- [x]` with the evidence appended inline instead of `gh issue close`. Cross-issue linking, `gh search`-based dedup, and label-driven priority ordering are GitHub-only capabilities — gap-noted once per run in local mode, never silently faked.
 - `--status` and `--do --preview` mutate no code; intake/sweep/`--do` create/edit/close only after explicit user confirmation. **Under `--auto`:** every confirmation is skipped — creates/edits/closes resolve per Unattended Mode rule 3 and are recorded in the summary instead.
 - Standalone. Uses a committed adapter (`.dev-skills/issue-ops.json`) when present; auto-detects repo, done-signal, criteria, hazards when absent.
 - FRC+DSC enforced.
@@ -62,7 +63,7 @@ AI assistants file issues from memory (unverified anchors, duplicates, dead cont
 
 ## Delegation
 
-**Owns:** issue intake, dedup sweep, code-verified status audit, end-to-end issue execution with impact-mapping + code-proven close | **Delegates:** ds-fix → format/lint/type passes; ds-test → regression-test generation; ds-pr → opening a PR; ds-commit → atomic commit grouping; ds-pipeline → spec-first planning when a feature's design is still open; heavy code search → read-only search subagent (verify its `file:line` returns) | **Receives:** ds-blueprint → fresh `ds/audit/findings.md` it may read instead of re-scanning; ds-freeze → file triaged items (release:{milestone} labels) + execute ship items via --do
+**Owns:** issue intake, dedup sweep, code-verified status audit, end-to-end issue execution with impact-mapping + code-proven close | **Delegates:** ds-fix → format/lint/type passes; ds-test → regression-test generation; ds-pr → opening a PR; ds-commit → atomic commit grouping; ds-pipeline → spec-first planning when a feature's design is still open; heavy code search → read-only search subagent (verify its `file:line` returns) | **Receives:** ds-blueprint → fresh `ds/audit/findings.md` it may read instead of re-scanning; ds-freeze → file triaged items (release:{milestone} labels) + execute ship items via --do; ds-ship → Phase 7b durable-tracking handoff for unresolved Category B items/blockers/Sequence Gaps
 
 ## Execution Flow
 
@@ -70,12 +71,13 @@ Setup + Load → [mode menu if ambiguous] → dispatch by mode → [intake | swe
 
 ### Phase 1: Setup + Load
 
-1. Load the adapter if present (repo slug, doctrine docs, label taxonomy, audit→type map, done-signal, hazard checklist, history docs); absent → auto-detect: repo from `git remote`/`gh repo view`; done-signal from lockfile+scripts; criteria from a root AI-instruction file. See [references/adapter.md](references/adapter.md).
-2. **Mode menu (up-front, covers every scenario)** — a flag (`--sweep`/`--status`/`--do #N`/`--do --all`) or a clear raw note IS the choice → skip the menu. Otherwise present one row per mode: `File a new issue from a note (recommended)` · `Sweep the tracker for duplicates (--sweep)` · `Audit what's actually done, from code (--status)` · `Do issue(s) end-to-end — one #N or all open (--do)` · `(Cancel)`. Each row states what it does so the choice is unambiguous. `--auto` alone (no other mode flag) also skips the menu — best-judgment default: intake when raw input is given, else `--status` (read-only, the safest action with no explicit target).
+1. **Repo-mode detection [GATE]:** `git remote get-url origin` (or any remote) resolves to a `github.com` host AND `gh repo view` succeeds → **GitHub mode** (below, unchanged). No git repo, no remote at all, or the remote host isn't `github.com` → **local mode** (`tasks.md`, Contract above) — this is a repo-shape fact, checked once per run, never re-asked. `gh` installed + a GitHub remote exists but `gh` reports unauthenticated → stay in GitHub mode, stop with `gh auth login` (Edge Cases) — auth is fixable in seconds; local mode is not a substitute for logging in.
+2. **GitHub mode only:** load the adapter if present (repo slug, doctrine docs, label taxonomy, audit→type map, done-signal, hazard checklist, history docs); absent → auto-detect: repo from `git remote`/`gh repo view`; done-signal from lockfile+scripts; criteria from a root AI-instruction file. See [references/adapter.md](references/adapter.md). **Local mode:** load `tasks.md` if present (create empty on first intake); done-signal from lockfile+scripts; criteria from a root AI-instruction file — same detection, no adapter concept (adapter is a GitHub-repo-slug construct).
+3. **Mode menu (up-front, covers every scenario)** — a flag (`--sweep`/`--status`/`--do #N`/`--do --all`) or a clear raw note IS the choice → skip the menu. Otherwise present one row per mode: `File a new issue from a note (recommended)` · `Sweep the tracker for duplicates (--sweep)` · `Audit what's actually done, from code (--status)` · `Do issue(s) end-to-end — one #N or all open (--do)` · `(Cancel)`. Each row states what it does so the choice is unambiguous. `--auto` alone (no other mode flag) also skips the menu — best-judgment default: intake when raw input is given, else `--status` (read-only, the safest action with no explicit target).
    - **Do-mode target sub-selection** — when `Do issue(s)` is chosen and no number was given, ask one target question: `Which? [#N — a specific issue] · [All open, in priority order (--do --all)] · (Cancel)`. This is the "all" affordance, placed exactly where scope is chosen; `All` confirms each issue's changes per item (destructive — All-Affordance rule 2). A number passed up front (`--do #N`/`--do --all`) skips this sub-selection. `--do --auto` with no number defaults to `--do --all` — the whole-backlog case is exactly what `--auto` is for.
-3. No recovery/state step — this skill writes no state (Contract). Re-grounding = re-read the issue + comments + `git diff`.
+4. No recovery/state step — this skill writes no state (Contract). Re-grounding = re-read the issue (or `tasks.md` entry) + comments (or inline evidence) + `git diff`.
 
-**Gate:** repo slug + done-signal resolved. If fails → ask the user for the `owner/repo` slug + done-signal command, record for this run, continue.
+**Gate:** GitHub mode: repo slug + done-signal resolved. Local mode: `tasks.md` path + done-signal resolved. If fails → GitHub mode: ask the user for the `owner/repo` slug + done-signal command, record for this run, continue. Local mode: ask for the done-signal command only (no slug to resolve), continue.
 
 ### Phase 2: Dedup / Reconcile [intake: full · --sweep: standalone]
 
@@ -147,7 +149,9 @@ Every run ends with the summary line + a **Value Delivered** block (1-5 concrete
 | Scenario | Behavior |
 |----------|----------|
 | No adapter present | Auto-detect repo/done-signal/criteria; hazards → six generic axes only |
-| `gh` not authenticated | Stop with `gh auth login` (critical tool) |
+| No git repo, no remote, or remote host isn't `github.com` | Local mode — root `tasks.md` replaces every `gh issue *` call (Contract); gap-note once that cross-issue linking, `gh search` dedup, and label priority are unavailable |
+| `gh` not authenticated (GitHub remote exists) | Stop with `gh auth login` (critical tool) — never fall back to local mode for a fixable auth gap |
+| Both a GitHub remote and an existing local `tasks.md` present | GitHub mode wins (the remote is the signal); flag the stale `tasks.md` once, ask whether to import its open entries as issues or leave it alone |
 | `gh` < 2.94.0 (no native sub-issue/dependency flags) | Fall back to REST sub-issue link / task-list body per [references/github-features.md](references/github-features.md); recommend upgrade |
 | No raw input given | Ask for a 1-2 sentence description, then start |
 | Refining an existing raw issue | Take the number; edit rather than create |

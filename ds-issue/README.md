@@ -50,5 +50,5 @@ Drop `.dev-skills/issue-ops.json` in the repo to sharpen the skill with your rep
 - **Bounded work** — over-large issues split into sub-issues; execution units stay ≤5 files
 - **No dead content** — body is functional only: Problem, Scope + non-goals, machine-checkable Done
 - **Confirm-before-create/close** — nothing is created, edited, or closed without explicit confirmation
-- **Zero local footprint** — writes no files; the GitHub issue + its comments + git are the durable record (no `ds/audit/`, no temp files)
+- **Zero local footprint (GitHub mode)** — writes no files; the GitHub issue + its comments + git are the durable record (no `ds/audit/`, no temp files). No GitHub remote at all → last-resort local mode (root `tasks.md`), never chosen just for a missed `gh auth login`
 - **Standalone** — works with or without a project adapter
