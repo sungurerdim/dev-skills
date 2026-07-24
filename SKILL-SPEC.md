@@ -850,7 +850,7 @@ In practice only long autonomous skills qualify (e.g. `ds-tune` experiment loops
 - If absent → append `ds/audit/` to root `.gitignore` and report the addition.
 - Legacy patterns (`.ds-findings.md`, `.ds-*-state.json`) present → remove them and note the migration.
 
-**Exempt skills — everything outside the qualifying four.** Only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist state; the other 24 skills are exempt and state the one-line exemption reason in their Contract section. Canonical exemption classes:
+**Exempt skills — everything outside the qualifying four.** Only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist state; the other 26 skills are exempt and state the one-line exemption reason in their Contract section. Canonical exemption classes:
 
 | Exemption class | Example skills | Reason |
 |-----------------|----------------|--------|
@@ -2091,7 +2091,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | D9 | Breaking-change management (semver/contract) | ds-deps (semver) + ds-review (API contract) | API/schema/export break detection, migration path quality | [Semantic Versioning](https://semver.org/) |
 | D10 | Admin & support operability | ds-backend (admin API + stats) + ds-frontend (admin UI) + ds-deploy (diagnostics + runbooks) + ds-docs (support docs) | Back-office/admin surfaces, operator statistics & reports, diagnostic bundles, error-remediation runbooks | [ITIL 4 Incident/Problem Management](https://www.axelos.com/resource-hub/practice/problem-management-itil-4-practice-guide) + [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) |
 | D11 | Agent environment & tooling rig | ds-rig | Machine-level AI-dev toolset install/update with version pinning, telemetry/call-home hardening, harness allow/ask/deny permission profiles, MCP tool-count token budget | [SLSA](https://slsa.dev/) (supply-chain pinning) + [12-Factor III Config](https://12factor.net/config) |
-| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-tune, ds-research, ds-brief, ds-freeze | Orchestration, spec pipeline, commits, PRs, release-scope triage — not quality dimensions | n/a — carrier, not a dimension |
+| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-research, ds-brief, ds-freeze | Orchestration, spec pipeline, commits, PRs, release-scope triage — not quality dimensions | n/a — carrier, not a dimension |
 
 ### Amendment
 
