@@ -7,7 +7,7 @@ Rules for repo settings, branch protection, and metadata. Each rule: ID, severit
 | Section | Rules | Line |
 |---------|-------|------|
 | **Settings** | RPO-01–04, RPO-09 (2 HIGH, 3 MEDIUM) | ~12 |
-| **Hygiene** | RPO-05–08 (1 HIGH, 2 MEDIUM, 1 LOW) | ~58 |
+| **Hygiene** | RPO-05–08, RPO-10 (1 HIGH, 2 MEDIUM, 2 LOW) | ~58 |
 
 ---
 
@@ -101,3 +101,10 @@ Repository has custom social preview image. Improves appearance when shared on s
   - Image dimensions not 1280x640px (2:1 ratio)
 - **Fix:** Create 1280x640px image with: project name, tagline or one-liner, visual identity (logo or icon). Upload via Settings > Social preview. Use readable font sizes and high contrast for legibility at small sizes
 - **Source:** GitHub documentation on social preview images
+
+### RPO-10 [LOW] A Public Repo's Backlog May Live in a Private Sibling
+Public repos where roadmap visibility is unwanted (marketing site) may skip their own issue tracker; their backlog items live as single entries in a private sibling repo's tracker.
+- **Detect:** Roadmap/strategy items leaking through a public repo's issues; or the opposite — a public repo with its tracker disabled and its backlog untracked anywhere.
+- **Fix:** Decide tracker placement per repo by visibility: public-safe repos keep their own tracker; visibility-sensitive public repos disable theirs and register backlog items in a designated private sibling's tracker (one entry per item, labeled by source repo).
+- **Impact:** Public backlogs leak competitive roadmap for zero benefit; untracked backlogs silently drop work — the private-sibling pattern avoids both.
+- **Source:** XR-084 — cross-project experience registry (2026).

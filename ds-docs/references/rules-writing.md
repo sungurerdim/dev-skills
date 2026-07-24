@@ -4,7 +4,7 @@
 |---------|-------|
 | **Structure & Content** | DOC-01 to DOC-04 (2 HIGH, 2 MEDIUM) |
 | **Maintenance & Tools** | DOC-05 to DOC-09 (3 MEDIUM, 2 LOW) |
-| **Harness Context Files** | DOC-10 to DOC-17 (1 CRITICAL, 3 HIGH, 3 MEDIUM, 2 LOW) |
+| **Harness Context Files** | DOC-10 to DOC-24 (1 CRITICAL, 4 HIGH, 7 MEDIUM, 3 LOW) |
 
 ## Structure & Content
 
@@ -334,3 +334,101 @@ Repo has a link checker configured (e.g., lychee) → run it and consume the rep
 **Why:** Independently implemented by three harnesses as the standard monorepo pattern — OpenAI's own repo carries 88 nested `AGENTS.md` files.
 
 **Source:** [agents.md](https://agents.md/); [How Claude remembers your project](https://code.claude.com/docs/en/memory) (nested `CLAUDE.md` discovery); [Gemini CLI GEMINI.md docs](https://geminicli.com/docs/cli/gemini-md/) (just-in-time directory scan)
+
+---
+
+### DOC-18 | HIGH | Structural Changes and Their Docs Land in the Same Commit
+
+File moves/adds/deletes, renames, and dependency version bumps update the affected docs (README, architecture, main guide, design system) in the same change — doc truth is part of "done".
+
+**Detect:** Docs claiming file counts, versions, paths, or module lists that no longer match the code; structural commits with no doc diff; doc updates tracked as separate "later" tasks.
+
+**Fix:** Treat the doc update as part of the structural change's definition of done: the commit that moves/renames/bumps also fixes every doc claim it invalidates. ds-docs' drift detection is the safety net, not the mechanism.
+
+**Why:** Same-commit coupling is the only doc-sync strategy that doesn't decay — every "update docs later" queue converges to permanently wrong docs.
+
+**Source:** XR-014 — cross-project experience registry (2026).
+
+---
+
+### DOC-19 | HIGH | Cross-Repo Documents Keep One Canonical Copy; Others Become Pointers
+
+In multi-repo products, every cross-cutting document (breach plan, DPIA, retention table) is canonical in exactly one repo; other repos hold a short pointer plus only their scope-specific notes.
+
+**Detect:** The same policy/compliance document independently editable in two repos; copies that have already diverged; a "shared" doc with no designated canonical home.
+
+**Fix:** Pick the canonical repo per document; convert every other copy into a pointer stub (link + repo-specific addenda only). Two independently-editable copies of regulatory content are never left standing.
+
+**Why:** Diverged compliance copies mean the org provably follows at most one of them — and in an audit, the divergence itself is the finding.
+
+**Source:** XR-015 — cross-project experience registry (2026).
+
+---
+
+### DOC-20 | MEDIUM | Living Compliance Docs Correct Through a Dated Review Log
+
+Regularly reviewed compliance documents (DPIA, security policy, breach plan) record corrections in a dated review-log section — what changed, when, and what triggered it — instead of silently overwriting past errors.
+
+**Detect:** Compliance docs whose history exists only in git (invisible to auditors reading the doc); errors fixed in place with no trace; no review-log section.
+
+**Fix:** Maintain a dated Review Log section per living compliance doc: date, what was corrected, trigger (code audit, doc-drift check, new decision). The document's accuracy history stays auditable and defensible on its face.
+
+**Why:** A silently-corrected compliance doc can't demonstrate it was ever reviewed — the review log is what turns "we fixed it" into evidence of a working review process.
+
+**Source:** XR-016 — cross-project experience registry (2026); complements the Breach Plan template's Review log section.
+
+---
+
+### DOC-21 | MEDIUM | Evidence-Based Decisions Are Locked; Reopening Requires New Evidence
+
+Engineering decisions grounded in measurement or experiment (model parameter, dependency version, a deliberately removed security/resilience layer) live in a decision ledger tagged "not to be revisited without new evidence", citing the triggering measurement.
+
+**Detect:** Measured decisions re-litigated on preference; a deliberately removed control re-added by a later audit that didn't know the removal was deliberate; decision records with no reference to the evidence that drove them.
+
+**Fix:** Record each evidence-based decision with its measurement/incident reference and an explicit reopening condition (new measured evidence, real threat-model change). Automated and human reviews route around locked decisions instead of re-flagging the same deliberate trade-off.
+
+**Why:** Without decision locks, every audit cycle re-fights settled questions — and eventually someone "fixes" a deliberate removal back in, un-measuring a measured system.
+
+**Source:** XR-017 — cross-project experience registry (2026); pairs with ADR supersedence.
+
+---
+
+### DOC-22 | MEDIUM | Accepted Debt Is Tracked With ID, Reason, and Fix Path
+
+Deliberately deferred architectural gaps are recorded openly: short ID, what's missing, why not fixed now, and the fix path.
+
+**Detect:** Known gaps living in team memory or code comments; the next review re-discovering and re-debating an already-accepted trade-off as a "new finding"; debt entries without a fix path.
+
+**Fix:** Register each accepted gap with an ID, the missing piece, the deferral rationale, and the concrete fix path; reviews cite the existing acceptance record instead of reopening it. Silent accumulation is the failure mode this kills.
+
+**Why:** Untracked debt is re-discovered at the worst time (incident, audit, onboarding) and re-debated from scratch; tracked debt is a managed queue with prices attached.
+
+**Source:** XR-018 — cross-project experience registry (2026).
+
+---
+
+### DOC-23 | MEDIUM | Numeric Claims Trace to a Reproducible Measurement Artifact
+
+Every quality/performance claim (accuracy, latency, size) is backed by a re-runnable measurement script and the raw log/record it produced, both kept in the repo.
+
+**Detect:** Docs stating numbers with no script that reproduces them; measurement logs lost to chat threads; claims that survive pipeline changes unre-measured.
+
+**Fix:** Pair every reported number with (1) the measurement script and (2) its raw output artifact, stored as repo sources; every documented figure must trace to that artifact. Re-run on relevant changes — this is Measure-Before-Optimize applied to documentation.
+
+**Why:** Untraceable numbers rot into marketing fiction; traceable ones let anyone — including future-you — re-verify the claim in one command.
+
+**Source:** XR-093 — cross-project experience registry (2026).
+
+---
+
+### DOC-24 | LOW | Third-Party Names Vendor-Neutral in Customer Copy; Re-Verified Against the Live Pipeline
+
+Customer-facing text describes third-party models/libraries in vendor-neutral, function-accurate terms, and the copy is periodically re-verified against the current pipeline.
+
+**Detect:** Customer copy naming specific vendors/models that the pipeline may swap; descriptions accurate at writing time but stale against the current implementation; no re-verification trigger on pipeline changes.
+
+**Fix:** Describe components by function ("speech-to-text engine", not the vendor's product name) unless the vendor name is contractual; re-verify the description against the actual current pipeline on a schedule and on every pipeline swap.
+
+**Why:** Vendor-named copy goes false the day the pipeline swaps suppliers — turning an implementation detail into a public misstatement.
+
+**Source:** XR-184 — cross-project experience registry (2026).

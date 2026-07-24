@@ -36,6 +36,7 @@ Track and optimize output size. Remove unused dependencies.
   - Python: remove unused packages from requirements
   - Go: `go build -ldflags="-s -w"` for smaller binaries
   - Docker: multi-stage builds, distroless/alpine base images
+  - Budget realism: derive the ceiling from the measured current size + ~10% margin, warn-only — never a fictional target. A hard budget bound to no gate, or already exceeded at adoption, is worse than none (it teaches everyone to ignore budgets); a measured-baseline trend gate that warns on +10% drift is the honest alternative. (XR-123)
 - **Source:** webpack Bundle Analysis Guide, esbuild/Vite Optimization, Docker Multi-Stage Builds
 
 ### PRF-04 [HIGH] Lazy Loading
@@ -155,7 +156,7 @@ Never interleave layout reads and writes in the same frame.
 ### PRF-14 [HIGH] Offscreen Rendering Skipped
 Offscreen content costs no layout/paint work.
 - **Detect:** Long scrollable lists (100+ items) fully rendered into the DOM with no virtualization/windowing; long below-fold sections without `content-visibility: auto` (+ `contain-intrinsic-size` to prevent scrollbar jumps)
-- **Fix:** Virtualize long lists (render viewport + overscan only); apply `content-visibility: auto` with `contain-intrinsic-size` to below-fold sections
+- **Fix:** Virtualize long lists (render viewport + overscan only); apply `content-visibility: auto` with `contain-intrinsic-size` to below-fold sections. Dense grid/calendar surfaces additionally render single-pass (no second layout/measure pass per frame) with lazy view loading — the periodic-refresh nature of these surfaces turns any per-frame excess into constant CPU/memory drain. (XR-163)
 - **Impact:** Full-list DOM rendering scales initial render and interaction cost with data size instead of viewport size
 - **Source:** web.dev content-visibility; virtualization guidance — React/TanStack docs (2×-confirmed 2026-07-17)
 

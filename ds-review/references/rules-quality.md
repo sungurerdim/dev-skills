@@ -6,8 +6,8 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Architecture & Code Quality** | ARC-01–12 (11 HIGH, 1 MEDIUM) | ~12 |
-| **Testing** | TST-01–07 (1 CRITICAL, 5 HIGH, 1 MEDIUM) | ~105 |
+| **Architecture & Code Quality** | ARC-01–15 (12 HIGH, 3 MEDIUM) | ~12 |
+| **Testing** | TST-01–10 (1 CRITICAL, 5 HIGH, 4 MEDIUM) | ~145 |
 
 ---
 
@@ -74,8 +74,8 @@ Single error handling pattern across codebase. Errors categorized and handled pe
   - Mixed error handling: some try-catch, some .catch(), some unhandled
   - Generic catch-all without specific handling
   - Error types not categorized (validation vs business vs infrastructure)
-  - Search: empty catch blocks, `catch (e) {}`, `except: pass`, `_ = err`
-- **Fix:** Define error hierarchy (ValidationError, NotFoundError, AuthError, InternalError). Global error handler middleware. Map errors to HTTP status codes. Log infrastructure errors, return safe messages to clients
+  - Search: empty catch blocks, `catch (e) {}`, `except: pass`, `_ = err`; business logic catching the language's broadest exception type (`catch (Object)`, bare `except:`); error types outside a central sealed hierarchy
+- **Fix:** Define error hierarchy (ValidationError, NotFoundError, AuthError, InternalError). Global error handler middleware. Map errors to HTTP status codes. Log infrastructure errors, return safe messages to clients. Structure errors as one central, sealed (closed-variant) exception hierarchy; business logic catches specific members, never the universal supertype; every caught error logs at warning or above — the combination makes 'silently swallowed' unrepresentable. (XR-078)
 - **Source:** Microsoft Error Handling Guidelines, Go Error Handling (Effective Go), Node.js Error Handling Best Practices
 
 ### ARC-07 [HIGH] Feature Modularization
@@ -118,6 +118,27 @@ A "god module" (a file re-exporting dozens of symbols that most of the codebase 
 - **Fix:** Phase 1 — migrate simple/leaf dependents (constants, pure utilities) to their canonical source instead of through the god module. Phase 2 — break any *real* remaining circular dependency via event-bus/inversion-of-control (one module emits an event instead of calling the other directly). Phase 3 — decompose any remaining god-object into domain-namespaced sub-modules, migrating call sites last (touches the most call sites, so it goes last). Preserve backward-compatible re-exports throughout every phase; remove them only once every consumer has migrated.
 - **Impact:** A single big-bang rewrite of a heavily-imported god module is high-risk and hard to review incrementally; the phased strangler-fig approach ships independently-verifiable steps and never leaves the codebase in a half-migrated, harder-to-reason-about state.
 - **Source:** Martin Fowler — StranglerFigApplication (https://martinfowler.com/bliki/StranglerFigApplication.html); event-driven inversion-of-control pattern for breaking circular dependencies
+
+### ARC-13 [MEDIUM] Native Platform Capability Documented Before Building an Integration Surface
+Before building a new integration/exposure surface (webhook, feed, sharing infrastructure), the underlying platform is checked for a native equivalent; when one exists, it is documented and used instead of custom code.
+- **Detect:** Custom webhook/feed/sharing code duplicating a capability the platform already exposes natively; no recorded check of the platform's native options predating the build decision.
+- **Fix:** Record the native-capability check as the first step of any new integration surface: what the platform offers, whether it satisfies the need, and — when it does — a doc pointing users at the native path instead of shipping custom code (YAGNI: no new surface without proven need).
+- **Impact:** Every custom surface duplicating a native capability is permanent maintenance debt purchased for zero user value — the platform's version is monitored, patched, and documented by someone else.
+- **Source:** XR-118 — cross-project experience registry (2026).
+
+### ARC-14 [MEDIUM] One Supported Model Per Concern; Parallel Modes Rejected and the Rejection Recorded
+When choosing a storage/integration model, one supported model serves everyone — even where a second mode would be technically superior for a user subset; the rejected alternative is recorded with rationale in the decision log.
+- **Detect:** Two parallel modes serving the same concern (e.g. personal-share storage AND shared-drive storage) each with partial edge-case handling; mode-conditional branches multiplying through sync/auth/quota code; no record of why the losing mode was rejected.
+- **Fix:** Pick one supported model per concern and hold it everywhere; document the rejected alternative and its rationale in the decision log (pairs with the decision-lock rule) so the debate doesn't reopen without new evidence. Diversity of modes multiplies the maintenance surface and breeds unnoticed edge-case divergence.
+- **Impact:** Every parallel mode doubles the test matrix and halves the attention each path gets — the second mode's edge cases are where data-loss bugs live.
+- **Source:** XR-119 — cross-project experience registry (2026).
+
+### ARC-15 [HIGH] Functional Parity Baseline: Routes Render, Settings Round-Trip, Shared Assets Single-Sourced, Primary Actions Scoped
+A functional floor holds across the app: every route passes a render smoke test, every settings surface round-trips (save→reload→verify), every shared asset reads from one SSOT, and every primary action carries an explicit scope decision.
+- **Detect:** Routes that crash or blank on direct load; settings that save but read back stale/default; the same asset/constant loaded from multiple sources; primary actions whose effective scope (this item? this view? everything?) is undefined or accidental.
+- **Fix:** Enforce the four-part baseline mechanically where possible: route render-smoke tests in the suite; settings round-trip tests per surface; shared-asset reads traced to one SSOT; each primary action's scope stated and reviewed. Gaps are findings even when no user has complained yet.
+- **Impact:** These four floors are where "works in the demo" diverges from "works" — each gap is a whole class of user-facing breakage with no error signal.
+- **Source:** XR-181 — cross-project experience registry (2026).
 
 ---
 
@@ -179,3 +200,24 @@ When the project generates a separate artifact meant for someone else's end user
 - **Detect:** A project's performance/a11y/Lighthouse CI config targets only the app's own routes; a separately-produced generated artifact (customer site, exported document, embeddable widget) has no equivalent gate. An existing check named like a quality gate (`template:check`, `export:verify`) actually only asserts template-source drift, not output quality — a name that reads as coverage but isn't.
 - **Fix:** Add a dedicated gate for the generated artifact using the same baseline thresholds as the main app's gate, run against representative generated output — not just the template source. Rename any drift-only check so its name doesn't imply broader coverage than it has.
 - **Source:** Extends TST-02 (coverage as diagnostic) to artifact-level coverage — the gate must reach every surface real users see, not only the surfaces the app itself renders
+
+### TST-08 [MEDIUM] Platform-Pinned Golden Tests: Excluded Locally, Run Fully in CI
+Pixel-exact golden/visual-regression tests pin one source-of-truth render platform; local gates exclude them by tag with an in-code reason; they run unfiltered only where the platform matches (CI).
+- **Detect:** Golden tests failing on developer machines because the render engine differs from CI; developers updating golden files from the wrong platform; goldens in the local pre-push gate with no platform pin.
+- **Fix:** Declare the golden source-of-truth platform explicitly; tag-exclude golden tests from local gates with a documented in-code reason; run them unfiltered on the pinned platform only. Golden updates happen only from the pinned platform.
+- **Impact:** Without the pin, developers conclude "tests are broken" and regenerate goldens on their own machines — quietly replacing the source of truth with whichever laptop ran last.
+- **Source:** XR-092 — cross-project experience registry (2026).
+
+### TST-09 [MEDIUM] Tests Patch at Entry-Point Re-Exports, Not Source Modules
+Tests patch dependencies at a stable location re-exported by the application's entry point; new patchable dependencies get a re-export line there.
+- **Detect:** Tests patching deep source-module paths (`patch('app.services.internal.x')`) that break on every file move; refactors failing dozens of tests that assert nothing about behavior.
+- **Fix:** Re-export patchable dependencies from the entry point (or a designated seam module); tests patch only that stable location; adding a testable dependency means adding one re-export line. Refactors then move code freely without touching tests.
+- **Impact:** Deep-path patching welds tests to the file layout — the suite punishes refactoring, which is the opposite of its job.
+- **Source:** XR-182 — cross-project experience registry (2026).
+
+### TST-10 [MEDIUM] Process-Global Caches Reset by an Autouse Fixture Before Every Test
+Suites touching process-global memoized singletons (settings, connections, compiled-query caches) reset them all via an automatic (autouse) fixture before each test.
+- **Detect:** Memoized globals leaking state between tests; tests passing alone but failing in suite (or vice versa); order-dependent flakes traced to a cached singleton.
+- **Fix:** Enumerate every process-global cache and clear them in one autouse fixture that runs before each test; new caches join the fixture in the same change that introduces them.
+- **Impact:** Cache leakage is the classic order-dependent flake generator — the suite's trustworthiness dies one "re-run it, it's fine" at a time.
+- **Source:** XR-183 — cross-project experience registry (2026).
