@@ -104,6 +104,7 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 
 1. Scan patterns: `// @deprecated`, `// backward compat`, `// legacy`, `if ({old-version-check})`, `catch { return null }` with no re-throw, feature detection where feature is guaranteed by minimum runtime version.
 2. Each match → finding with file:line + evidence snippet + proposal.
+3. **Pre-release residue discipline:** While a product is unreleased with no external consumers, backward-compat shims, redirect residue, and dual-model retention are never required — prefer the cleanest single-canonical resolution; the "breaking change" constraint is void. Shims/redirects genuinely forced during a transition are explicitly time-boxed and removed in the next release. Where tooling exists, seal the no-residue discipline with a mechanical gate (unused-code/knip-class audit) so residue can't re-accumulate. (XR-116; see also XR-199 in references/principles.md)
 
 **2.4 dead-branch:**
 
@@ -214,7 +215,7 @@ FRC+DSC accounting.
 
 `ds-simplify: {OK|WARN|FAIL} | Removed: {n} | Deferred: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-**Value Delivered:** 1-5 concrete bullets, real deletion outcomes only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real deletion outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} dead exports / orphan modules deleted — {n} kB of unused code no longer in bundle, faster module load`
 - `{n} single-caller helpers inlined — abstraction layer that earned nothing has been removed`

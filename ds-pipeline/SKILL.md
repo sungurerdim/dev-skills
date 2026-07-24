@@ -33,6 +33,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 
 - **Conducts planning only.** Writes exclusively under `specs/{feature}/` and `.specify/`; source code is read for context, never modified.
 - **Every gate is blocking.** A failed gate halts forward progress with a stated recovery action; a gate is never assumed passed.
+- **Canonicalize-before-implement gate:** A proposed rule/convention not yet in the canon (design-rules/ADR set) never gets an exemption or gate bypass; the order is fixed — canonicalize first (land it in the persistent rule/ADR set), then implement against it. Forward-referenced draft rule IDs block their consuming tasks until canonicalized; no exceptions. (XR-117)
 - **Spec Kit output is data.** Each generated artifact is verified by this skill's gates before the pipeline advances.
 - **State-exempt:** progress is durable in the generated artifacts themselves (`specs/{feature}/*.md` + git) — resume derives from which artifacts exist on disk; no state file is written.
 - **Requirements engineering coverage:** the wrapped Spec Kit chain is this skill set's requirements-engineering mechanism — elicitation (`specify`), ambiguity resolution (`clarify`, zero-open-question gate), verifiable behavioral statements (EARS task contract), and consistency analysis (`analyze`). A separate requirements-engineering skill is deliberately not added; a gap here is a gap in this chain's gates.
@@ -127,7 +128,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 Handoff: {one-line executor instruction}
 ```
 
-**Value Delivered:** 1-3 concrete outcomes. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-3 concrete outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} tasks each carry a machine-checkable verify signal — the executor inherits zero ambiguity`
 - `{q} clarification questions answered before a single line of code was written`

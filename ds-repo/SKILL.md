@@ -219,7 +219,7 @@ Clean checks — scopes where all checks passed:
 Clean: settings ({n}/{n} ✅), structure ({n}/{n} ✅)
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real repo-config outcomes only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real repo-config outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `Branch protection wired (required reviews, status checks, dismiss-stale) — accidental main-branch overwrites and unreviewed merges blocked`
 - `Squash-only merge + delete-branch-on-merge enabled — commit history stays linear, stale branches no longer accumulate`

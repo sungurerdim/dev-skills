@@ -347,7 +347,7 @@ scope_score = max(0, base_score + sum(penalties))
 
 Cap: any CRITICAL → max 40; 3+ HIGH → max 60.
 
-**Value Delivered:** 1-5 concrete fix outcomes. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete fix outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} CRITICAL/HIGH security findings closed ({n} hardcoded secrets, {n} injection vectors) — exposure window before next deploy eliminated`
 - `{n} N+1 query patterns fixed in {module} — p95 latency expected to drop on hot paths`
