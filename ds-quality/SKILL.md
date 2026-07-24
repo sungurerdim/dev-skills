@@ -109,6 +109,8 @@ the menu: `[1] Claude Code Stop hook (stop-time; recommended if using Claude Cod
 / `[3] git pre-commit hook (commit-time, universal — works with any host)` / `[4] Copilot hooks (commit-deny + stop report)`
 / `[5] Gemini CLI AfterAgent hook (stop-time)` / `[6] Codex CLI Stop hook (stop-time)` / `(Cancel)`. `--arm` skips the menu. `--auto` also skips the menu — when detection is ambiguous, picks the best-judgment default (Claude Code Stop hook if running inside Claude Code, else the first-detected host in Arm A→F order, else Arm C git pre-commit as the universal fallback), recording the choice in the summary.
 
+**Two-tier local hooks (design refinement).** Where the arm supports staged-vs-full scope, split by cost: pre-commit runs fast checks on staged files only (format, lint, l10n, secret scan); pre-push mirrors CI — full project + full test suite. **Hook reuse + version sync:** release/automation scripts reuse these hooks instead of re-coding them, and verify the installed hook version matches the versioned source at each run — `.git/hooks/` isn't committed and silently goes stale. (XR-083)
+
 **Arm A — Claude Code (Stop hook, stop-time).** Unchanged, existing mechanism:
 - Global gate, installed once (`--install`): `~/.claude/hooks/ds-quality-gate.sh`, registered in `~/.claude/settings.json` under `.hooks.Stop`. On every Stop it resolves a command in priority order: (1) explicit marker `<root>/.claude/ds-quality.json` (`enabled:false` = per-repo kill switch) → (2) auto-arm — no marker, repo under a trusted root (default `~/projects`): `ds-quality-detect.sh` builds the fail-fast command from tools/configs that already exist → (3) inert — nothing detectable, or repo outside trusted roots → `exit 0`.
 - Green → allow stop; red → emit `{"decision":"block","reason":<failing output>}`, forcing the agent to keep working. Never edits your code; loop-guarded via `stop_hook_active` so it cannot spin forever. Config: `~/.claude/ds-quality.config.json` → `{ "mode":"auto"|"off", "roots":["~/projects"] }`.
@@ -159,6 +161,8 @@ runs.
 **Arm F — Codex CLI (Stop hook, stop-time).** `<repo>/.codex/hooks.json` (project layer loads only in trusted projects; user-level: `~/.codex/hooks.json`), schema `hooks.Stop[].hooks[] = {type:"command", command, statusMessage}`:
 - Script contract mirrors Arm A: read stdin JSON; `stop_hook_active` true → exit 0 (loop guard); run the entry point; green → exit 0 with no output; red → stdout `{"decision":"block","reason":<failing output>}` — Codex keeps working, using the reason as the continuation prompt. Plain-text stdout is invalid for `Stop`; emit JSON only.
 
+**Arm G — optional, project-conditional (known-false-claims denylist).** When a shipped user-visible claim (marketing/docs/UI copy) has once been wrong, add it as multilingual regex to a permanent denylist scanned at commit/push time by whichever arm is wired; the same falsehood must not re-enter through another locale or PR — the list only grows. (XR-094)
+
 **Gate:** The correct arm for the detected host is selected and wired without clobbering existing config. If fails → `jq` missing (Arm A/D/F), `.aider.conf.yml` unwritable (Arm B), not a git repo (Arm C), or untrusted project layer (Arm F) → report the specific blocker per Edge Cases, fall back to `--run`-only enforcement — never silently skip enforcement.
 
 ### Phase 5 — Prove it works (demonstrate, don't claim)
@@ -182,7 +186,7 @@ Run all three and show output, for whichever arm(s) were wired:
 
 ## Report Format
 
-Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook|copilot|gemini|codex} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block (1-5 concrete bullets — e.g. "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place"). Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
+Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook|copilot|gemini|codex} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block (1-5 concrete bullets — e.g. "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place"; effect clauses in plain everyday language — concrete quantified benefit, never mechanical activity; SKILL-SPEC §5 rule 8). Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
 
 ## Quality Gates
 

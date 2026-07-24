@@ -14,6 +14,11 @@ Applies to all project types: web, API, CLI, library, mobile, monorepo.
 | **Runner & Host Hygiene** | DOP-24–25 (2 MEDIUM) |
 | **Observability & SLO** | DOP-26–29 (2 HIGH, 2 MEDIUM) |
 | **Backup, DR & Resilience** | DOP-30–31 (1 HIGH, 1 MEDIUM) |
+| **Release Automation** | DOP-32–35 (2 HIGH, 2 MEDIUM) |
+| **CI Hygiene** | DOP-36 (1 MEDIUM) |
+| **Tooling** | DOP-37 (1 MEDIUM) |
+| **Build Hygiene** | DOP-38–39 (2 MEDIUM) |
+| **Config Hygiene** | DOP-40 (1 LOW) |
 
 ## CI/CD & Workflow
 
@@ -51,7 +56,7 @@ CI checks should match local development checks.
   - CI runs different lint/test commands than package.json scripts or Makefile targets
   - CI has checks not runnable locally (or vice versa)
   - CI uses different tool versions than local (no `.tool-versions`, `.nvmrc`, or version pinning)
-- **Fix:** Align CI and local commands. Use `.tool-versions` or `.nvmrc` for version pinning. Provide `make ci` or equivalent that mirrors CI exactly.
+- **Fix:** Align CI and local commands. Use `.tool-versions` or `.nvmrc` for version pinning. Provide `make ci` or equivalent that mirrors CI exactly. The dotfile documents; the script enforces: build/release scripts detect the pinned runtime themselves — auto-prioritize it on PATH when present, warn explicitly when absent — rather than assuming the developer read the dotfile. (XR-106)
 - **Impact:** "Works on my machine" issues, CI-only failures block development
 - **GitHub Actions (2025-2026):** Use `actions/setup-node@v4` with `node-version-file: '.nvmrc'` for version parity. Use `act` (nektos/act) for local workflow testing.
 - **Source:** 12factor.net (Dev/prod parity), nektos/act README, GitHub Actions setup-node docs
@@ -373,3 +378,76 @@ Resilience assumptions are exercised, not assumed — at minimum in pre-producti
 - **Detect:** services with retry/timeout/failover logic that has never been exercised by any failure injection (no chaos/fault-injection config, no game-day/tabletop record)
 - **Fix:** Start minimal: kill one instance/dependency in staging and observe whether timeouts, retries, and alerts behave as designed; record the result. Full chaos-engineering platforms are optional — one exercised failure beats ten documented assumptions. Advisory only — never a blocker
 - **Source:** Principles of Chaos Engineering; SRE game-day practice
+
+## Release Automation
+
+### DOP-32 [HIGH] Single-Command Release Runs a Deterministic Gate Chain
+The one-command release pipeline replaces human memory with deterministic gates at every step.
+- **Detect:** Release scripts that skip dirty-tree checks, deploy unchanged code, bump versions manually, re-implement quality checks the hooks already own, or run the full heavy suite on every deploy regardless of cost.
+- **Fix:** Chain the gates: reject a dirty working tree → skip deploy when nothing changed since the last release tag → derive the semver bump from the CHANGELOG's [Unreleased] section (no real content → skip the release entirely) → trigger the existing pre-push quality gate once instead of re-coding it → age-gate the heavy layer (full E2E, link-proofing, cross-repo drift) with a timestamp file (run when older than N days, not per-deploy) → build/deploy → verify live. Allow `--emergency` to bypass gates only during a real incident.
+- **Impact:** Every gate the script owns is a failure class removed from human memory — unreleased-junk deploys, empty releases, and skipped quality checks stop depending on whoever runs the command.
+- **Source:** XR-085 — cross-project experience registry (2026).
+
+### DOP-33 [HIGH] Heavy Checks Run Before the Deploy-Triggering Action
+Identify which action actually triggers deployment, and sequence heavy checks strictly before it.
+- **Detect:** On push-equals-deploy hosts (static-page platforms, git-integrated deploys to a protected branch), heavy validation (build health, link check, fact drift) scheduled after push — i.e. after the deploy already started.
+- **Fix:** Map the deploy trigger explicitly. Where push IS the deploy, run the heavy layer pre-push — the gate and the deploy collapse onto the same action, so nothing can run "between" them. Where a separate deploy step exists, gate→push→deploy is acceptable.
+- **Impact:** Heavy checks sequenced after the trigger validate what production is already serving — every failure they catch is a live incident instead of a blocked push.
+- **Source:** XR-087 — cross-project experience registry (2026).
+
+### DOP-34 [MEDIUM] A Dormant Gate's First Real Run Expects Accumulated Failures
+A local gate/build pipeline that hasn't genuinely run in a long time is assumed to hide multiple independent latent failures; its re-activation is itself validated as a first real run.
+- **Detect:** A gate installed or reconfigured long ago, never since exercised end-to-end, treated as "known green"; surprise when its first genuine run fails in several unrelated ways.
+- **Fix:** Treat setup or reactivation of any gate as a first-real-run event: execute it fully, expect a batch of independent findings (environment drift, moved paths, stale versions), and budget for fixing them before trusting the gate. Zero findings from a long-dormant gate is a signal the gate isn't actually checking anything.
+- **Impact:** Teams that assume dormant gates are green ship through a gate that silently stopped working — the accumulated failures then surface in production instead of the pipeline.
+- **Source:** XR-178 — cross-project experience registry (2026).
+
+### DOP-35 [MEDIUM] Multi-Repo Releases: Thin Orchestrator, Repo-Owned Gates
+When independent repos release in sequence from one top-level script, each repo owns its gated release; the orchestrator only invokes and reports.
+- **Detect:** A top-level release script re-implementing per-repo checks; one repo's failure rolling back another's completed release; repos that can no longer release independently.
+- **Fix:** Keep each repo's gated release script authoritative inside that repo; the cross-platform orchestrator calls them in order and aggregates a combined summary. Each repo carries independent success/failure — a downstream failure never unwinds an upstream completed release, and every repo stays independently releasable.
+- **Impact:** Fat orchestrators become a second, drifting copy of every repo's release logic, and coupled rollbacks turn one repo's flake into a multi-product outage.
+- **Source:** XR-020 — cross-project experience registry (2026).
+
+## CI Hygiene
+
+### DOP-36 [MEDIUM] A CI Opt-Out Is Applied Consistently Across Sibling Repos
+Deciding against cloud CI is applied uniformly: workflow files, CI configs, badges, and doc sections are fully removed from every sibling repo — no half-CI residue.
+- **Detect:** Some sibling repos with live workflows after the opt-out decision; dead CI badges; pre-commit configs referencing removed CI; docs describing a pipeline that no longer runs.
+- **Fix:** Sweep all sibling repos in one pass: delete workflow files, badges, CI-referencing configs and doc sections; note the opt-out decision (and its local-gate replacement) once in each repo's docs.
+- **Impact:** Half-removed CI is worse than either state — green-looking badges and stale workflows tell contributors checks ran when nothing did.
+- **Source:** XR-177 — cross-project experience registry (2026).
+
+## Tooling
+
+### DOP-37 [MEDIUM] Orchestration Tooling Is Preinstalled on Every Target Platform
+Task-runner/orchestration scripts are written in a tool already present on all platforms the team targets.
+- **Detect:** Build/release orchestration requiring a tool absent by default on a supported platform (e.g. `make` on Windows); onboarding docs whose first step is installing the runner itself.
+- **Fix:** Choose the runner from the intersection of default installs across target platforms (e.g. bash where Git-for-Windows is assumed, or the language runtime the project already requires); if a non-universal tool is genuinely warranted, gate it behind an explicit documented install step, not an assumption.
+- **Impact:** A runner missing on one platform silently forks the team into "can run the automation" and "pastes commands from chat" — the second group ships the mistakes the automation existed to prevent.
+- **Source:** XR-176 — cross-project experience registry (2026).
+
+## Build Hygiene
+
+### DOP-38 [MEDIUM] Generated Artifacts Are Never Hand-Edited; Regenerated and Verified at the Gate
+Generated artifacts (compiled output, SRI hashes, cache manifests, template-derived files) are produced automatically at pre-commit and verified fresh before push — hand edits are forbidden.
+- **Detect:** Manual edits inside generated files; generated outputs stale relative to their sources at push time; no gate step comparing regenerated output to the committed copy.
+- **Fix:** Regenerate artifacts in the pre-commit hook; verify freshness (regenerate-and-diff) in the pre-push gate; treat any manual edit to a generated file as a gate failure pointing at the true source to change.
+- **Impact:** A hand-edited artifact is overwritten by the next regeneration — the "fix" silently evaporates, and stale artifacts (wrong SRI hash, old manifest) break production in ways that look like caching voodoo.
+- **Source:** XR-013 — cross-project experience registry (2026).
+
+### DOP-39 [MEDIUM] Cross-Surface Facts Come From One Canonical File With a Drift Gate
+A numeric/pricing fact living on multiple independently-deployed surfaces (backend config, client, marketing site) has one canonical facts file, documented source owners, and a zero-dependency drift check wired into the gate.
+- **Detect:** The same limit/TTL/price/count hardcoded in two or more surfaces; no canonical facts file; no automated check comparing the fact file to source owners and rendered copies; derived indicators (discount %, savings) as static strings.
+- **Fix:** Maintain one canonical facts file; document the owning source file per fact; render values through the template engine's data access wherever possible, and mark the genuinely untemplatable remainder (e.g. numbers spelled out in prose) as WIRED vs NOT-WIRED. Wire a zero-dependency drift script into pre-push (no-op when the full workspace isn't checked out) validating the facts file against owners and rendered copies. Compute derived indicators (discount/savings) from real values at runtime, floored so the displayed figure never exceeds the true one.
+- **Impact:** Fact drift across surfaces means the marketing site sells limits the backend doesn't honor — a support and legal problem discovered by customers, not tests.
+- **Source:** XR-012 — cross-project experience registry (2026).
+
+## Config Hygiene
+
+### DOP-40 [LOW] Ambiguous YAML Strings Are Quoted or Linted
+Any YAML/front-matter string value containing `: ` (colon-space) mid-string is quoted, enforced by lint.
+- **Detect:** Unquoted YAML scalars with embedded `: ` (titles, descriptions, commands); front-matter parsed differently than the author intended; no yamllint (or equivalent) in the gate.
+- **Fix:** Quote every string value containing `: `; add a YAML linter to the local gate so the class is caught before any build runs — this error is invisible until something consumes the parsed value.
+- **Impact:** An unquoted colon silently truncates or restructures the value — the build may pass while a title, description, or command ships half-parsed.
+- **Source:** XR-108 — cross-project experience registry (2026).

@@ -181,7 +181,7 @@ ds-devops: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue; do not retry.
 
-**Value Delivered:** 1-5 concrete bullets, real pipeline outcomes only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real pipeline outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `CI pipeline: {n} actions SHA-pinned (was `@v{x}` tag references) — supply-chain attack via action tag overwrite eliminated`
 - `Quality gates wired (lint → typecheck → test → build) with `concurrency` and `permissions: read` — broken releases caught before they hit users`

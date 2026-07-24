@@ -5,6 +5,9 @@
 | **Container Security** | DEP-01 to DEP-05, DEP-17 (2 CRITICAL, 4 HIGH) |
 | **Deployment Patterns** | DEP-06 to DEP-13 (2 HIGH, 4 MEDIUM, 2 LOW) |
 | **Release Engineering** | DEP-14 to DEP-16 (1 HIGH, 2 MEDIUM) |
+| **Deployment Verification** | DEP-18 to DEP-19 (2 HIGH) |
+| **Configuration** | DEP-20 to DEP-21 (1 CRITICAL, 1 HIGH) |
+| **Architecture & Topology** | DEP-22 (1 HIGH) |
 
 ## Container Security
 
@@ -244,3 +247,69 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 **Why:** Consumers can automate migration warnings only when deprecation is machine-readable; silent removals break integrations without recourse.
 
 **Source:** RFC 8594 (Sunset header); RFC 9745 (Deprecation header); semver.org
+
+## Deployment Verification
+
+### DEP-18 | HIGH | Static-Host Deploys Verified via the Host's Build API, SHA-Matched
+
+Push may start the deploy, but success is never assumed: the host's build-status API is polled until the reported commit SHA equals the pushed HEAD and the status is built.
+
+**Detect:** Release scripts that treat a successful push as a successful deploy; no poll of the host's builds/latest endpoint; "deployed" markers (tags) advanced before host confirmation; polls that wait forever.
+
+**Fix:** After push, poll the host's build API with a timeout: require status=built AND returned commit hash == pushed HEAD before advancing the deployed marker (git tag); on failure or timeout, fail immediately and loudly — no infinite wait, no optimistic tagging.
+
+**Why:** An unverified "deploy" that actually failed leaves production on the old build while every marker says otherwise — the worst debugging scenario: correct-looking state, wrong reality.
+
+**Source:** XR-088 — cross-project experience registry (2026).
+
+### DEP-19 | HIGH | Single-Node Restarts Follow the Safe Sequence
+
+Where true rolling update is impossible (one node), restarts follow: build → drain → queue-empty → backup → dependency-ordered stop/start → undrain → live-verify.
+
+**Detect:** Single-node restart scripts that stop services with jobs in flight, skip pre-restart backup of persistent data, stop/start in arbitrary order, or verify nothing after start.
+
+**Fix:** Sequence: build new images first → set a TTL'd drain flag blocking new work → wait for queues to empty → back up persistent data → stop in dependency order (writers first, infrastructure last), start in reverse → clear the drain flag → verify live via the health endpoint's git_sha matching the deployed build. The drain flag's TTL self-clears if the operator forgets it.
+
+**Why:** An unordered single-node restart truncates in-flight jobs and races services against their dependencies — turning a 30-second restart into data repair; the TTL'd flag prevents the classic "forgot to undrain" total outage.
+
+**Source:** XR-179 — cross-project experience registry (2026).
+
+## Configuration
+
+### DEP-20 | CRITICAL | Fail Fast on Missing or Placeholder Critical Config
+
+Security/compliance/finance-critical configuration has no code-level defaults; missing, placeholder, or wrong-environment values abort startup loudly.
+
+**Detect:** Code defaults for salts, mock/debug flags, connection params, TTLs, pricing, rate limits, API endpoints, OAuth client IDs; prod boots pointing at localhost; `.env.example` placeholder secrets accepted because they pass length checks; validation only at runtime OR only at build, not both.
+
+**Fix:** Validate all critical config at startup and fail immediately and loudly on missing or invalid values; explicitly reject known placeholder values from `.env.example` even when they satisfy format/length checks — booting with a public example salt makes every derived identity guessable. Ideal: two independent catch points, runtime fail-fast AND a release-build check.
+
+**Why:** A service silently running on placeholder or wrong-environment config is a breach (public salt), a finance bug (default pricing), or a data leak (wrong endpoint) wearing a green health check.
+
+**Source:** XR-081 — cross-project experience registry (2026).
+
+### DEP-21 | HIGH | Dev-Override Config Cannot Leak Into Production
+
+Auto-merged development override files (docker-compose.override.yml, .env.local, dev webpack config) are neutralized on production hosts by explicit production-file invocation, not by hoping the file is absent.
+
+**Detect:** Production operational commands relying on default file resolution (bare `docker-compose up`) on hosts where an override file could exist; override files carrying relaxed security flags (ENVIRONMENT=development disabling fail-fast checks).
+
+**Fix:** Every production operational command names its files explicitly (e.g. `-f docker-compose.yml -f docker-compose.prod.yml`) so presence of a dev override changes nothing; document and enforce this invocation convention rather than deleting/hiding the override file.
+
+**Why:** One auto-merged dev override on a prod host silently disables the exact fail-fast checks that guard production — the config equivalent of leaving the alarm system in test mode.
+
+**Source:** XR-082 — cross-project experience registry (2026).
+
+## Architecture & Topology
+
+### DEP-22 | HIGH | Account-Boundary Invariant: Customer-Owned and Product-Owned Infrastructure Never Mix
+
+Customer-owned server-side functions run only in the customer's own provider account; the product's central functions run only in the product's own account. The boundary is a named, documented red line — mechanically gated where possible.
+
+**Detect:** A customer-owned function (integration runtime, worker, script) deployed into the product vendor's account; product-central services (licensing, OAuth broker, OTA, support) holding a customer's business data or credentials; deploy tooling that can target either account from one undifferentiated config.
+
+**Fix:** Enforce both directions: customer-owned runtimes deploy only to the customer's account; product-central functions never store customer business data/credentials. Name the invariant in the architecture docs as a permanent red line, and guard it mechanically where the tooling allows (per-target deploy configs that cannot cross, account-ID assertions in deploy scripts).
+
+**Why:** Crossing this boundary converts an isolated single-tenant incident into a platform-wide breach — and contractually converts the vendor into a data processor for data it was never supposed to hold.
+
+**Source:** XR-197 — cross-project experience registry (2026).
