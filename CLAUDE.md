@@ -25,7 +25,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | `docs/` | Topic-organized references (backend, frontend, devops, compliance, business, launch, methodology, infrastructure) |
 | `references/` | Source material (`software-best-practices.md`, `launch-research.md`) |
 
-## Skills (29)
+## Skills (30)
 
 **Family map** — every skill on one screen; each row is one distinct job (no overlap after the off-domain extraction):
 

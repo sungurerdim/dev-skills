@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed — SKILL-SPEC: plain-language Value Delivered mandate (2026-07)
+
+- **SKILL-SPEC.md §5** — new rule 8: every Value Delivered bullet's benefit clause must be plain, everyday language a non-technical reader understands — the concrete effect, quantified when measurable, never the mechanical activity performed. Applied to all 30 skills' Value Delivered sections.
+
+### Added — Experience Rules (XR) registry rollout: 198 rules across all 30 skills (2026-07)
+
+- **XR registry integration** — 198 XR-numbered rules (140 integrated + 6 merged + 45 pre-existing + 7 skipped with recorded reasons) rolled out across every skill's rule files: `ds-backend` (AUTH/DB/API/DP, 30 rules + 13 generalized architecture-ADR rules + DB-11 duplicate-prevention registry), `ds-compliance` (PRV/NET/I18N/CSEC, 26 rules + CSP allowlist-completeness + PRV-30 data-residency export-path extend, 109→138 rules), `ds-frontend` (UX/CMP/TOK/THM/RSP, 14 rules + new `references/rules-scheduling.md` + 13 generalized UI/UX rules + UX-ON-04 deep-link/auto-resume, 111→149 across 6 files), `ds-mobile`/`ds-launch`/`ds-productize` (REL/DEV/PRF/MON/PRC release-and-billing rules including crypto-bound high-value paid data, mobile 174→179), `ds-devops`/`ds-deploy`/`ds-quality`/`ds-deps` (DOP/DEP/MON release-deploy-config rules + ds-quality two-tier hooks/denylist arm + ds-deps pin-rationale and formal dependency-adoption eligibility gate), `ds-docs`/`ds-review`/`ds-simplify`/`ds-repo`/`ds-pipeline` (DOC-18..24, ARC-12..15 including god-module strangler-fig decomposition, TST-07..10, ds-simplify pre-release residue discipline, ds-repo private-sibling backlog, ds-pipeline canonicalize-before-implement gate), and XR-199 breaking-first principle folded into all 22 shared `principles.md` copies.
+- `references/experience-rules.md` — new pointer-style registry mapping all 198 XR rules to their dev-skills home (no content duplication; source of truth stays in each skill's own rule files).
+- Root README mobile rule count corrected 174→179 to match `ds-mobile`.
+
+### Added — targeted rule and gate additions (2026-07)
+
+- **Mechanical Done Gate rollout** — SKILL-SPEC §4 gained a normative Mechanical Done Gate for code-modifying skills ({check-cmd} resolution, red-at-baseline handling, ≤3 fix attempts then revert); enforced in all 15 code-modifying skills and mechanically checked by `check-consistency.sh` #18.
+- **`ds-ship`** — sequence-completeness gate (every excluded skill needs a recorded, evidence-based reason) + durable tracking handoff of unresolved findings to `/ds-issue`.
+- **`ds-test`** — critical-flow wiring check for mock-hides-integration bugs (money/auth/data-deleting flows need one test against the real dispatch path) and unreproduced-bug triage guidance (W12 extension).
+- **`ds-issue`** — last-resort local `tasks.md` fallback for repos with no GitHub remote at all.
+- **`ds-deps`** — formal 5-criteria dependency-adoption eligibility gate plus license allowlist and provenance record.
+- **`ds-brief`** — competitive-analysis upgrade (claim-to-quote popovers, cross-reference links, comparison matrix, disputed-claim badges, validated dark theme) and a scenario-branching/obligation-badge visual polish layer.
+
 ### Changed — unified unattended mode (`--auto`) + flag vocabulary simplification (2026-07)
 
 - **SKILL-SPEC.md** — new canonical **Unattended Mode (`--auto`)** section (§2): a single universal flag for zero-interaction runs across all 30 skills and both orchestrators. Every decision (mode, scope, approval, Category A/B findings, CRITICAL findings) resolves via the skill's own best judgment; only a small fixed **irreversible-exception list** (force-push/history-rewrite on shared branches, permanent branch/tag/resource deletion with no backup, secret rotation/deletion/transmission, values only a human can supply) auto-skips and is recorded `needs-human` — never executed blind, never silently dropped. New **Flag Vocabulary** section fixes one small, consistent flag language (`--auto`, `--preview`, `--scope=`, `--mode=`, `--resume`, `--clean`, `--status`) and bans bare positional subcommands.
