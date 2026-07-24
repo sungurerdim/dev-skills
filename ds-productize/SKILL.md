@@ -144,7 +144,7 @@ ds-productize: {OK|WARN|FAIL} | Scope: {monetization,pricing,gtm} | Findings: {n
 
 FRC+DSC accounting. Audit output: findings table grouped by scope. Plan output: `ds/productize/plan.md` path + open-decision count.
 
-**Value Delivered:** 1-5 concrete bullets, real outputs only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real outputs only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} paid features had client-only gating — entitlements now flagged for server-side enforcement before launch`
 - `Pricing page decision table produced: {n} tiers, target tier marked, {model} model backed by published conversion benchmarks`

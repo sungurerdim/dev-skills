@@ -157,3 +157,24 @@ Since 1 Nov 2025, new apps and updates targeting Android 15 (API 35)+ on Google 
   - Verify alignment: `llvm-objdump -p lib.so | grep LOAD` (align must be ≥ 2**14) or Play Console pre-launch report warnings
 - **Fix:** Upgrade AGP ≥ 8.5.1 + NDK ≥ r28 and rebuild; update prebuilt native dependencies to 16 KB-compatible releases; test on a 16 KB-enabled emulator image before submission
 - **Source:** developer.android.com/guide/practices/page-sizes (deadline 1 Nov 2025, unconditional per primary doc)
+
+### REL-23 [HIGH] Mandatory Store Declarations Update in the Same Commit as the Capability
+Platform-mandated declarations (iOS privacy manifest + reason codes, Android Data Safety form, foregroundServiceType, background modes, entitlements, permissions) match exactly what the app uses — updated in the very commit that adds or removes the capability.
+- **Detect:** A new OS API/capability landed with the declaration deferred to "later"; declarations claiming more than the app uses (over-disclosure) or less (under-declaration); manifests treated as write-once instead of reviewed on every new OS-API use.
+- **Fix:** Treat declarations as generated-but-hand-verified output coupled to code: the commit adding a capability updates the matching declaration; the commit removing one prunes it. Review the full declaration set whenever a new OS API enters the codebase.
+- **Impact:** Under-declaration gets the build rejected or the OS kills the service in production; over-declaration is gratuitous disclosure that hurts review and user trust — both are one-commit fixes when coupled, week-long incidents when deferred.
+- **Source:** XR-089 — cross-project experience registry (2026).
+
+### REL-24 [HIGH] Long-Form Recording Formats Are Kill-Safe
+On platforms where the OS can kill the process at any moment, long-running recordings use self-framing formats recoverable after force-termination, with a tested repair path.
+- **Detect:** Long recordings written to containers that finalize their index only on clean close (MP4/moov-at-end); no repair function for truncated files; repair code never tested against a genuinely truncated file.
+- **Fix:** Prefer header-first, self-framing formats (e.g. FLAC for audio) whose partial files remain readable; ship a repair function that recovers the readable prefix of an interrupted file; test it with a real force-killed/truncated file, not a synthetic happy-path fixture.
+- **Impact:** With an index-at-end container, every OS kill during a long session destroys the entire recording — the user's one-hour session, unrecoverable, caused by format choice alone.
+- **Source:** XR-022 — cross-project experience registry (2026).
+
+### REL-25 [MEDIUM] Noisy Native Callback Floods Are Silenced at Startup
+High-frequency (per-frame) stats/log callbacks from native/third-party libraries are disabled or throttled once at app startup.
+- **Detect:** Per-frame or per-chunk callbacks from a native library left at defaults; main-thread pressure/ANRs during long operations traced to callback volume; file paths or PII from the library appearing in system logs (logcat) the app doesn't control.
+- **Fix:** At startup, disable or throttle the library's high-frequency callbacks/log emission via its configuration API; verify the silence in a smoke test. This closes both the responsiveness drain and the PII leak into system logs.
+- **Impact:** A callback flood is a double defect — ANRs during the longest (most valuable) operations, plus user file paths leaking into logs any debugging tool can read.
+- **Source:** XR-072 — cross-project experience registry (2026).

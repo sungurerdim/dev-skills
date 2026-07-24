@@ -254,6 +254,8 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 
 **Version management:** check current version, suggest bump (patch/minor/major), generate release notes from commits + staged rollout strategy. **Post-launch monitoring:** checklist covering crash-free rate targets, store rating tracking, review response, download monitoring, update cadence, force-update thresholds.
 
+**Marketplace re-verification trigger:** once publicly listed on a marketplace (e.g. Workspace Marketplace), any change to OAuth scopes or redirect URIs starts a new verification cycle — record this permanently in the security/scope-hygiene doc and gate scope/redirect changes as release events; an unreviewed change can get the listing suspended. (XR-125)
+
 **Gate:** Release artifacts generated. If fails → un-generatable release artifact (version bump, release notes, staged rollout, post-launch checklist) → log as `failed`, proceed with successful ones, list failures in summary with "manual action required".
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
@@ -270,7 +272,7 @@ ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|Desktop|All} | Ready: {n}
 
 Include checklist of remaining items before submission. FRC+DSC accounting.
 
-**Value Delivered:** 1-5 concrete bullets, real submission outcomes only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real submission outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `Store listing + privacy labels generated — submission no longer rejected for missing required fields`
 - `App Review Notes pre-filled — reviewer round-trip eliminated (saves 24-48h per round)`

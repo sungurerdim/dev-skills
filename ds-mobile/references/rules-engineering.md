@@ -8,9 +8,9 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 |---------|-------|------|
 | **Architecture & Code Quality** | ARC-01–10 (3 CRITICAL, 6 HIGH, 1 LOW) | ~12 |
 | **Testing** | TST-01–06 (1 CRITICAL, 5 HIGH) | ~100 |
-| **Performance** | PRF-01–09 (1 CRITICAL, 8 HIGH) | ~160 |
-| **Network & Data** | NET-01–07 (2 CRITICAL, 5 HIGH) | ~214 |
-| **Internationalization & Logging** | DEV-01–04 (4 HIGH) | ~262 |
+| **Performance** | PRF-01–10 (1 CRITICAL, 8 HIGH, 1 MEDIUM) | ~160 |
+| **Network & Data** | NET-01–07 (2 CRITICAL, 5 HIGH) | ~250 |
+| **Internationalization & Logging** | DEV-01–05 (5 HIGH) | ~300 |
 
 ---
 
@@ -243,6 +243,13 @@ Animations must not trigger expensive layout recalculations or rebuild entire su
   - Web: Animate `transform`/`opacity` only (compositor-only properties). `will-change` hint for known animation targets. `requestAnimationFrame` for frame sync
 - **Source:** Flutter Animations Overview, iOS Core Animation Programming Guide, Jetpack Compose Animation, React Native Reanimated
 
+### PRF-10 [MEDIUM] Embedded Large Assets Are Subset to Actual Coverage — Offline, Not In-Build
+Large bundled static assets (fonts, dictionaries, model files) are reduced to the range the supported languages/character sets actually require, via a manual offline maintenance task with the coverage boundary documented.
+- **Detect:** Full multi-megabyte assets bundled where a subset serves the shipped locales; subsetting wired into build/CI (needing network access, slowing every build); no documented statement of what the subset covers.
+- **Fix:** Subset assets to the supported coverage; run subsetting as a manual offline task executed only when the source asset changes (it needs network and is slow — keep it out of build/CI); document the resulting coverage boundary explicitly so a locale addition knows to re-run it.
+- **Impact:** Full assets inflate download size for every user forever; undocumented subsets are worse — a new locale ships with missing glyphs/entries and nobody knows why.
+- **Source:** XR-071 — cross-project experience registry (2026).
+
 ---
 
 ## Network & Data
@@ -324,3 +331,10 @@ JSON logs. No secrets/PII. Correlation IDs.
 - **Detect:** Unstructured log messages. Sensitive data in logs (tokens, passwords, PII). No request correlation
 - **Fix:** Structured JSON format. Sanitize sensitive fields. Add correlation IDs. Define log levels (debug/info/warn/error)
 - **Source:** OpenTelemetry Specification, Google SRE Book (Monitoring Distributed Systems)
+
+### DEV-05 [HIGH] Three Global Error Hooks Bound Together at Startup
+Uncaught async/framework errors are captured by three mechanisms bound together at app start — zone-based catch-all, framework error hook, platform-dispatcher hook — all feeding one central (consent-based) crash reporter.
+- **Detect:** Only one or two of the three hooks bound; hooks removed during a refactor; hooks wired to different sinks; business-logic errors routed into the uncaught-error hooks.
+- **Fix:** Bind all three at startup (e.g. Flutter: runZonedGuarded + FlutterError.onError + PlatformDispatcher.onError — or the platform's equivalents) and keep them permanently; route all three to the same central consent-based reporter. Scope them strictly to uncaught errors: business-logic failures are handled at their site, never here.
+- **Impact:** Each unbound hook is a class of crashes that vanishes without a trace — the app dies, no report is filed, and the team learns about it from store reviews.
+- **Source:** XR-175 — cross-project experience registry (2026).
