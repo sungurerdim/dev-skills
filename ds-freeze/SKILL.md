@@ -127,7 +127,7 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 
 Summary line: `ds-freeze: {OK|WARN|FAIL} | Ship: {n} | Defer-hidden: {h} | Defer-backlog: {b} | Implemented: {k}/{n+h} | Docs-synced: {yes|partial|no} | Tracking: {issue-url|docs/release/path}`
 
-**Value Delivered** — 1-3 concrete bullets, e.g.: `Release scope cut from {N} candidates to {n} ship items — {h} hidden behind a flag, {b} filed as backlog, docs now match exactly what ships.`
+**Value Delivered** — 1-3 concrete bullets in plain everyday language (concrete benefit, quantified when measurable, never mechanical activity; SKILL-SPEC §5 rule 8), e.g.: `Release scope cut from {N} candidates to {n} ship items — {h} hidden behind a flag, {b} filed as backlog, docs now match exactly what ships.`
 
 Zero-change run: `Preview only — {N} candidates found, nothing triaged`.
 

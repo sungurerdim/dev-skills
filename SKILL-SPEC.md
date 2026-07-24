@@ -1005,6 +1005,7 @@ Value Delivered:
 5. **Zero-change runs:** if nothing was applied (clean codebase or `--preview` mode), emit one bullet: `No changes applied — codebase is clean on {scopes scanned}` or `Preview only — {n} findings would be fixed; re-run without --preview to apply.`
 6. **Severity-weighted ordering.** List CRITICAL/HIGH-impact wins first, then MEDIUM, then LOW.
 7. **No filler.** "Improved code quality" is filler — replace with "5 cyclomatic-complexity violations resolved in `pkg/auth`; auth module now within 15-CCN budget."
+8. **Plain-language effect clause.** Every bullet's benefit clause is written in everyday language a non-technical reader understands: state the concrete effect on users/operators — quantified when measurable ("when ~1,000 people use the system at once, pages that used to freeze now respond ~40% faster") — never the mechanical activity ("changed x, y, z in middleware"). Technical identifiers may name the location (`file:line`, module); the benefit clause itself stays jargon-free. Litmus: a reader who has never seen the codebase should understand what got better and why it matters.
 
 **Examples — good:**
 

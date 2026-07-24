@@ -215,7 +215,7 @@ Stage files → build message → commit.
 
 FRC+DSC accounting. Commit hashes + branch + next-step hint (push or PR). Secret-pattern exclusions (if any): `{file}` list excluded from staging by filename pattern.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only. Example shapes (placeholders, not literal output):
+**Value Delivered:** 1-5 concrete bullets, real changes only. Example shapes (placeholders, not literal output): Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8).
 
 - `{n} unrelated changes split into atomic commits — bisect can now isolate any regression to a single concern`
 - `{n} secret patterns intercepted in commit body — credentials no longer leak into git history`

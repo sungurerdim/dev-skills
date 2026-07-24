@@ -147,7 +147,7 @@ Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
 ds-research: {OK|WARN|FAIL} | Sources: {n} | CRAAP+ avg: {score} | Claims: {n} verified | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real research outcomes only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real research outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} sources gathered across T1-T6 tiers ({tier-breakdown}) with CRAAP+ scoring — synthesis is evidence-weighted, not first-result-wins`
 - `Contradictions across sources surfaced ({n} disagreements) — decision-maker sees the disagreement, not a fabricated consensus`

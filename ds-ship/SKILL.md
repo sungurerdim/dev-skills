@@ -402,7 +402,7 @@ On success: delete `ds/audit/ship.json`. Keep `ds/audit/findings.md` + `ds/audit
 
 See Phase 6 above.
 
-**Value Delivered:** 1-5 concrete ship-readiness outcomes. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete ship-readiness outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} delegated skills run in milestone-correct order; {n} A items applied autonomously, {n} B items batched — sequencing tax eliminated`
 - `Promise census: {n} doc claims verified against source; {n} promised-not-implemented, {n} implemented-not-documented surfaced — "ship-ready" is now evidence, not optimism`

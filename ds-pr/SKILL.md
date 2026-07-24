@@ -216,7 +216,7 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 
 `FRC: Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-**Value Delivered:** 1-5 concrete bullets, real PR-creation outcomes only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real PR-creation outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `PR opened from net-diff analysis ({type} → {bump-effect}) — release-please will produce a clean changelog entry without journey noise`
 - `{n} unpushed commits tidied into {m} logical groups — bisect can isolate any regression`

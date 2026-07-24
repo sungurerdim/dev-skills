@@ -129,7 +129,7 @@ Write the HTML, then verify: offline-open (no network reference, zero console er
 ds-brief: {OK|WARN|FAIL} | Sources: {n} | 2x-confirmed: {pct}% | Claims: {n} ({verified}/{partial}/{unknown}) | Unknowns: {k} | File: {path}
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real outputs only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real outputs only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 - `Single-file offline HTML brief generated ({n} kB, zero external deps) — opens with no network, prints to clean PDF`
 - `{n} datums double-confirmed across ≥2 independent sources ({pct}% coverage); {m} single-source items flagged — reader sees what's solid vs thin`
 - `{k} open questions surfaced in "Unknowns" with tried sources/queries — gaps are visible, not papered over`
