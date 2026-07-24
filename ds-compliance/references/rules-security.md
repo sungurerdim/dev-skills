@@ -10,7 +10,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Security** | CSEC-01–03, CSEC-05, CSEC-06, CSEC-08 (2 BLOCKER, 2 CRITICAL, 2 CRITICAL) | ~12 |
+| **Security** | CSEC-01–03, CSEC-05, CSEC-06, CSEC-08–11 (3 BLOCKER, 3 CRITICAL, 1 HIGH, 2 MEDIUM) | ~12 |
 
 ---
 
@@ -72,3 +72,24 @@ Dependencies audited, versions pinned, lockfile committed.
   - Missing lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, Pipfile.lock, poetry.lock, go.sum) in git
 - **Fix:** Pin exact versions. Commit lockfiles. Run `npm audit` / `pip audit` / `safety check` regularly
 - **Source:** OWASP A03:2025 (Software Supply Chain Failures)
+
+### CSEC-09 [MEDIUM] Controls Scale to the Real Threat Model; No Cargo-Cult Layers
+Security/resilience controls map to the actual deployment threat model: best-effort hardening where it pays, no ritual layers that deliver nothing, removals documented with rationale.
+- **Detect:** Controls copied from a different deployment shape (app-layer cert pinning behind a CDN that rotates edge certs autonomously; mlockall/TLS/circuit breakers inside a same-host deployment); genuinely sensitive buffers left unzeroed; removed controls with no recorded reasoning.
+- **Fix:** Match each control to the real threat model. Add best-effort defenses where the asset warrants them (zero sensitive buffers; never throw on cleanup failure, never pass silently either). Remove or decline layers with no concrete benefit in this topology, and document the rationale. Re-evaluate only when the threat model actually changes (multi-host, external network hop, shared tenancy).
+- **Impact:** Cargo-cult layers consume maintenance and mask real gaps; the documented-rationale rule prevents the next audit from re-adding a deliberately removed control as a "finding".
+- **Source:** XR-019 — cross-project experience registry (2026).
+
+### CSEC-10 [HIGH] Crypto Components Get One Independent External Review Before Production-Final
+In products carrying sensitive/health data, cryptographic components (key wrapping, HKDF, role-bound envelopes/keyrings, OAuth PKCE implementation) are not production-final on self-assessment alone: at least one independent third-party review is obtained and its findings folded back in.
+- **Detect:** Custom or assembled crypto (key hierarchies, envelope schemes) validated only by the team that built it; "audited" claims tracing to internal review; external findings received but not mapped to decisions.
+- **Fix:** Commission one independent security review of the crypto layer before declaring it production-final; record the findings and the disposition of each in the security decision log. Internal review gates development; external review gates the production-final claim.
+- **Impact:** Crypto is the domain where self-assessment fails silently — a subtle key-derivation flaw invalidates every guarantee built on it, and only fresh outside eyes reliably catch it.
+- **Source:** XR-127 — cross-project experience registry (2026).
+
+### CSEC-11 [MEDIUM] Cross-Platform Security Asymmetry Documented Honestly
+When a security control is materially stronger on one platform than another, the asymmetry is documented explicitly — never presented as equal protection.
+- **Detect:** One security bullet covering all platforms while implementations differ (hard OS-enforced flag on platform A, best-effort emulation on platform B because the OS API doesn't exist); policy/marketing text asserting uniform protection.
+- **Fix:** Document per-platform control strength side by side: what is enforced, what is best-effort, what is absent and why (missing OS API). Propagate the honest version into user-facing security claims.
+- **Impact:** Asserted-but-absent protection on the weaker platform is a misleading security claim — discovered in an incident, it converts a technical limitation into a credibility and liability problem.
+- **Source:** XR-034 — cross-project experience registry (2026).

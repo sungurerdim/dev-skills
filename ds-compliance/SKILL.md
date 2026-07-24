@@ -5,7 +5,7 @@ description: Security and regulatory compliance — OWASP, privacy laws, data pr
 
 # /ds-compliance
 
-Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 112 rules across 9 compliance domains with file:line precision.
+Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 138 rules across 9 compliance domains with file:line precision.
 
 **Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and internationalization.
 
@@ -244,7 +244,7 @@ FRC+DSC accounting. `fixed + failed + skipped + needs_approval + not_applicable 
 
 **Gate:** Summary balances; every modified file re-read. If fails → identify findings without disposition, assign `disposition: skipped (accounting-fix)`, recompute summary, add WARN: `"{n} finding(s) auto-skipped to balance accounting"`.
 
-**Value Delivered:** 1-5 concrete compliance outcomes. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete compliance outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} CRITICAL secrets in source intercepted — credentials no longer leak into git history (rotation guidance attached)`
 - `{regulation} compliance: {n} consent gaps, {n} retention policy gaps closed — exposure window before {audit-date} eliminated`

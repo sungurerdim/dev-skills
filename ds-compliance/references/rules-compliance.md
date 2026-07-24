@@ -7,9 +7,9 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | Section | Rules | Line |
 |---------|-------|------|
 | **Security** | SEC-01–13 (4 BLOCKER, 5 CRITICAL, 4 HIGH) | ~12 |
-| **Privacy** | PRV-01–05, PRV-26–30 (2 BLOCKER, 2 CRITICAL, 6 HIGH) | ~139 |
-| **Regulatory Compliance** | PRV-06–19, PRV-21–25 (11 BLOCKER, 8 CRITICAL) | ~230 |
-| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~500 |
+| **Privacy** | PRV-01–05, PRV-26–45 (3 BLOCKER, 2 CRITICAL, 12 HIGH, 8 MEDIUM) | ~139 |
+| **Regulatory Compliance** | PRV-06–19, PRV-21–25 (11 BLOCKER, 8 CRITICAL) | ~354 |
+| **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~594 |
 
 ---
 
@@ -240,9 +240,114 @@ Data classification (PII/sensitive, external-sync target, access-role restrictio
 ### PRV-30 [HIGH] Data-Residency Invariant Covers Every Export Path
 When the product states a data-residency/data-locality invariant ("user data lives only in X," "nothing leaves the audited store"), every write/export path is checked against it — including secondary, opt-in, or admin-only features — not just the primary storage/sync path the invariant was originally written for.
 - **Detect:** A documented or asserted residency rule that holds for the primary storage path, while an opt-in secondary feature (report export, third-party integration sync, admin tooling, "export to spreadsheet") writes the same class of data to a location the invariant doesn't cover. Found by cross-referencing every write/export call site against the stated invariant directly — not by trusting the invariant's own documentation, which describes intent, not the audited call sites.
-- **Fix:** Move the export target inside the covered boundary, replace it with a residency-neutral alternative (local file download instead of a third-party write), or record an explicit, documented exception with its own compensating control (audit log entry, opt-in confirmation UI) — never leave a write path silently uncovered by the stated invariant.
+- **Fix:** Move the export target inside the covered boundary, replace it with a residency-neutral alternative (local file download instead of a third-party write), or record an explicit, documented exception with its own compensating control (audit log entry, opt-in confirmation UI) — never leave a write path silently uncovered by the stated invariant. Every export/create call names the shared-workspace target (parent folder/container) explicitly — never trust the API default (the acting user's personal root); verify this default-target behavior as part of shipping every new export feature. The single shared workspace itself follows discover-before-join: clients search for the existing canonical workspace before ever creating one. (XR-005)
 - **Impact:** A residency invariant that's true for the primary path but silently false for one opt-in feature undermines the compliance claim made about the whole system — exactly the kind of gap that surfaces first in a breach investigation or customer audit, after the claim has already been relied on.
 - **Source:** Data-flow-mapping / data-residency-audit practice (GDPR Art. 30 records-of-processing methodology, generalized beyond GDPR specifically); companion to PRV-29 and ds-backend DB-11 — same "declared invariant, gate every path" shape applied to the residency axis
+
+### PRV-31 [BLOCKER] Special-Category Data Never Reaches the Sync Provider
+Special-category/health data and national ID numbers never leave the local encrypted store — no sync provider (contacts, calendar, cloud workspace) ever receives them; the red line is mechanically locked.
+- **Detect:** Sensitive fields (health notes, national ID, special-category attributes) present in any provider-bound payload, mapping, or export; sync field lists that grow by default when the schema grows; no negative-pattern test asserting sensitive fields are absent from outbound payloads.
+- **Fix:** Share only the minimum operational fields (name, phone, maybe company) required for sync and communication; keep everything special-category in the local encrypted store with need-to-know access. Enforce the "no transfer" red line systemically — an allowlist-based outbound mapper (fields not listed cannot leave) — and seal it with a mechanical regression lock: a negative-pattern test that fails the build if a sensitive field ever appears in an outbound payload.
+- **Impact:** One accidental field mapping turns a KVKK/GDPR special-category violation into every synced contact — fines scale per record, and the provider copy is unrecoverable.
+- **Source:** XR-036 — cross-project experience registry (2026); KVKK Art. 6, GDPR Art. 9.
+
+### PRV-32 [HIGH] Every Deletion Flow Runs From One Canonical Key List
+All user-data deletion flows (self-service, admin-forced, regulatory) execute against a single shared function defining the canonical list of keys/PII fields to delete.
+- **Detect:** Two or more deletion code paths each maintaining their own list of keys/tables/fields; a PII field added to one flow but not the others.
+- **Fix:** Define the deletion key list once in one shared function; every deletion flow calls it. Adding a PII field means adding it in exactly one place.
+- **Impact:** Divergent deletion lists guarantee partial erasure — a compliance violation that surfaces only when a regulator or user audits what "deleted" actually left behind.
+- **Source:** XR-038 — cross-project experience registry (2026); GDPR Art. 17.
+
+### PRV-33 [HIGH] Consent Is Versioned; a Schema Bump Triggers Re-Consent
+User consent carries a schema version; any change to consent text or scope increments it, and the increment automatically routes previously-consented users back through consent.
+- **Detect:** Consent stored as a bare boolean; consent text/scope edited with no version change; existing users grandfathered silently onto new consent terms.
+- **Fix:** Store consent with a schema version number; bump it on every text/scope change; on login/next use, users whose stored version is lower re-consent before processing continues.
+- **Impact:** Un-versioned consent silently goes stale the day the policy text changes — every subsequent processing act rests on consent the user never gave.
+- **Source:** XR-040 — cross-project experience registry (2026); GDPR Art. 7.
+
+### PRV-34 [HIGH] Breach First-Notification Ships on Deadline, Even Incomplete
+When breach assessment cannot finish inside the regulatory window, a first notification goes out with available information and a committed follow-up — never delayed for completeness.
+- **Detect:** Breach runbook that sequences "complete investigation" before "notify regulator"; no template for a partial first notification; severity classification that defaults down under uncertainty.
+- **Fix:** If full assessment won't complete within the deadline (e.g. 72h), send the first notification with what is known and commit to a follow-up. Classify severity upward under uncertainty: "unknown whether personal data was accessed" is at least P2, never P4-pending-analysis.
+- **Impact:** A late-but-complete notification is a separate violation on top of the breach itself; regulators penalize the delay independently of the incident.
+- **Source:** XR-042 — cross-project experience registry (2026); complements PRV-17 timelines.
+
+### PRV-35 [MEDIUM] Ephemeral Personal Content Lives RAM-Only With a Failsafe TTL
+Transient sensitive content (audio, transcripts, uploaded documents) never touches disk: RAM-backed storage only, explicit deletion after use, plus a hard upper-bound TTL as the second line of defense.
+- **Detect:** Temp files of sensitive content written to disk-backed paths; RAM-store keys without TTL; deletion handled only by explicit cleanup steps that a crash or skipped branch can bypass.
+- **Fix:** Hold transient sensitive content only in RAM-backed stores (Redis on tmpfs-class storage, in-memory buffers); delete explicitly as each stage completes; AND set a failsafe maximum TTL on every PII key so a missed deletion step cannot make data immortal. Explicit deletion is primary; TTL is the backstop, not the mechanism.
+- **Impact:** One skipped cleanup path without a TTL backstop means sensitive content persists indefinitely — turning a processing pipeline into unintended long-term storage of user PII.
+- **Source:** XR-024 — cross-project experience registry (2026).
+
+### PRV-36 [MEDIUM] Demo/Sample Data Is Structurally Unable to Reach the Real Cloud
+Onboarding demo data stays local and justified-transient; writing it to the user's real cloud account is structurally impossible, and one click clears it completely.
+- **Detect:** Sample records created through the same write path as real data (and thus syncable); demo content appearing in the user's real provider account; no single-action full cleanup of demo data.
+- **Fix:** Create demo data only in a local, flagged, sync-excluded store — the sync layer must be structurally unable to pick it up (type-level exclusion, not an if-check); provide one-click complete removal. Prefer a persistent guided checklist card over a one-shot tour for onboarding guidance.
+- **Impact:** Demo records synced into a real account pollute the user's actual contacts/calendar with fake entries — a first-run experience that reads as data corruption and is genuinely hard to undo.
+- **Source:** XR-120 — cross-project experience registry (2026).
+
+### PRV-37 [MEDIUM] App-Generated Files Deleted by Naming Pattern; No Absolute Wipe Claims
+Deletability of temp/derived files is decided by the app's own fixed naming pattern — never by contextual state — and "secure delete" is presented as best-effort, not a guarantee.
+- **Detect:** Cleanup routines deciding deletability from state/context (source directory, session flags) such that a user-chosen file could match; marketing or UI text promising absolute secure wipe on copy-on-write filesystems.
+- **Fix:** Name every app-generated temp/derived file with a fixed, predictable pattern and delete only pattern matches — a user-selected file can then never be swept up. Implement secure delete as best-effort (zero-overwrite then unlink) and describe it as such; never claim absolute wipe where copy-on-write storage makes that unverifiable.
+- **Impact:** State-based deletion heuristics eventually delete a user's own file — irreversible and trust-ending; overclaimed wipe guarantees create legal exposure the filesystem cannot honor.
+- **Source:** XR-109 — cross-project experience registry (2026).
+
+### PRV-38 [HIGH] Diagnostics Are User-Triggered, Structurally PII-Free, Preview == Payload
+In a zero-telemetry product, the only diagnostic channel is user-initiated, allowlist-only in content, with a mandatory pre-send preview that is byte-identical to the sent payload, and fail-closed without configured infrastructure.
+- **Detect:** Any automatic/background error telemetry; diagnostic payloads assembled from free-form context (potential PII); preview rendered by different code than the sender; network requests fired without user action; channel silently active without configured endpoint.
+- **Fix:** Reject background telemetry entirely. Build the support/feedback channel as: user-triggered only; payload fields from a structural allowlist (nothing else can enter); full pre-send preview generated by the SAME function that produces the sent payload (preview == payload, byte-identical); zero network activity without the user's send action; fail-closed when infrastructure is unconfigured.
+- **Impact:** A diagnostics channel that sends more than it shows — or sends without being asked — converts a privacy-positioned product into a covert data collector; one such discovery destroys the product's core claim.
+- **Source:** XR-121 — cross-project experience registry (2026).
+
+### PRV-39 [MEDIUM] Deletion Promises Are Backed by Client-Verifiable Proof
+A "we don't keep your data / deleted within X" promise is backed by a mechanism the user can independently verify, not documentation alone.
+- **Detect:** Deletion/retention promises with no user-facing verification path; verification UI that shows reassuring text in pending/error states.
+- **Fix:** After deletion confirmation plus a short settling window, issue a live status query; render the provider's 404/absent response as the proof of deletion. Pending or errored checks show nothing reassuring; a manual "Verify" button remains the authoritative fallback.
+- **Impact:** An unverifiable deletion promise is marketing; a verifiable one is a defensible compliance position — and the only version privacy-conscious users believe.
+- **Source:** XR-039 — cross-project experience registry (2026).
+
+### PRV-40 [MEDIUM] Thresholds Chosen Above the Legal Minimum Carry Documented Rationale
+Any compliance threshold set differently from the legal minimum (age gate, retention period, consent scope) is documented with its rationale and the jurisdictions evaluated.
+- **Detect:** A stricter-than-required threshold with no recorded reason; nobody able to say whether a value is legal necessity or product choice; thresholds silently relaxed later because their origin was unknown.
+- **Fix:** For each such threshold, record: the legal minimum per relevant jurisdiction, the chosen value, and whether the delta is deliberate product policy or legal necessity. Keep it with the compliance docs so audits and future changes read intent, not archaeology.
+- **Impact:** Undocumented strictness gets "optimized away" by a future change that unknowingly drops below a legal floor in one jurisdiction — the worst possible way to discover why the threshold existed.
+- **Source:** XR-041 — cross-project experience registry (2026).
+
+### PRV-41 [HIGH] Regulatory Values Verified Against Primary Legal Text, Corrections Logged
+Every documented regulatory period, threshold, or statute reference is verified against the primary legal text for the data's actual legal category — never copied from memory or a similar-looking clause.
+- **Detect:** Retention periods, notification deadlines, or statute citations without a primary-source reference; values inherited from a previous doc version unverified; a discovered transcription error fixed silently in place.
+- **Fix:** Verify each legal value against the primary legislation matching the data's real legal character (e.g. the correct statute of limitations for that record type); cite the source. When a previously mis-transcribed value is found, correct it AND record the correction in a dated revision history (what changed, why).
+- **Impact:** A retention schedule built on a mis-copied clause systematically deletes too early (destroying legally required records) or too late (unlawful retention) — at scale, in both directions.
+- **Source:** XR-043 — cross-project experience registry (2026).
+
+### PRV-42 [HIGH] Outward Claims Match the Real Architecture Line by Line
+Security/retention/status claims in marketing copy, structured data, and policy pages match the actual architecture exactly.
+- **Detect:** "E2E encryption" where reality is TLS + at-rest; "InStock"/available structured data for an unreleased product; "no copies remain" while DR snapshots exist; retention claims that don't enumerate every held copy with duration and purpose.
+- **Fix:** Audit each outward claim against the real implementation line by line: name the actual encryption model; use truthful availability states (PreOrder, not InStock); disclose every retained copy (backups, PITR, DR snapshots) with its duration and purpose; strike absolute phrasings the architecture cannot honor.
+- **Impact:** Overclaimed security/retention is simultaneously a regulatory violation (misleading commercial practice, GDPR transparency) and the fastest possible credibility loss when a researcher or journalist checks.
+- **Source:** XR-154 — cross-project experience registry (2026).
+
+### PRV-43 [MEDIUM] Copyleft Obligations Mapped Clause-by-Clause in One Document
+Every copyleft dependency (e.g. LGPL) has a single document mapping each license clause to how the product satisfies it, updated in the same change as any version bump.
+- **Detect:** Copyleft dependencies with no obligation mapping (attribution, license-text access, source availability, relink right, no-added-restrictions); dependency upgrades that touch neither the mapping doc nor the in-app license screen.
+- **Fix:** Maintain one clause-by-clause mapping document per copyleft dependency: clause → concrete mechanism in the product. Make updating it (and the in-app license screen, if present) an explicit item on the dependency-upgrade checklist, landed in the same change.
+- **Impact:** An unmapped copyleft clause is a latent distribution violation; discovered by a rights-holder, it can force product recalls or source disclosure on their schedule, not yours.
+- **Source:** XR-044 — cross-project experience registry (2026); complements SEC-12.
+
+### PRV-44 [MEDIUM] Legal-Document Inclusion Managed From One SSOT
+Which legal documents a generated site/surface includes is decided by one SSOT rule set: the privacy set always; the commerce set only when selling is enabled.
+- **Detect:** Legal docs copy-pasted per generated site; privacy policy present on some generated surfaces but not others; distance-selling/refund documents appearing on sites that sell nothing (or missing where sales are enabled).
+- **Fix:** Centralize the inclusion policy: privacy/data-protection set unconditionally included on every generated surface; sales-related legal set (distance selling, refund terms) included exactly when the sales mode is active. Generation reads this policy; nobody hand-assembles legal page sets.
+- **Impact:** Hand-assembled legal sets guarantee some generated site ships without a legally required document — and the operator, not the platform vendor, carries that liability.
+- **Source:** XR-193 — cross-project experience registry (2026).
+
+### PRV-45 [MEDIUM] Public Unauthenticated Surfaces Are Isolated and PII-Free
+A public (no-login) surface (booking page, contact form landing) is an isolated entry point with PII-free routing, separate from the authenticated app.
+- **Detect:** Public pages served from the authenticated app shell (shared bundles exposing internal routes/state); URLs or client-visible payloads on the public surface carrying internal IDs or personal data of other parties.
+- **Fix:** Isolate the public surface as its own entry point (separate bundle/shell); keep its routing and payloads free of PII and internal identifiers; the public surface knows only what an anonymous visitor may know.
+- **Impact:** A public page sharing the app shell leaks internal structure and, worst case, other users' data to anonymous visitors — an unauthenticated breach surface indexed by search engines.
+- **Source:** XR-114 — cross-project experience registry (2026).
 
 ---
 

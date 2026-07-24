@@ -8,7 +8,7 @@ Network-level compliance rules for API security, transport layer, and DoS preven
 |---------|-------|------|
 | **Transport Security** | NET-01–04 (2 BLOCKER, 2 CRITICAL) | ~12 |
 | **API Protection** | NET-05–08 (1 BLOCKER, 2 CRITICAL, 1 HIGH) | ~55 |
-| **Resilience** | NET-09–12 (1 CRITICAL, 3 HIGH) | ~95 |
+| **Resilience** | NET-09–14 (1 CRITICAL, 5 HIGH) | ~95 |
 
 ---
 
@@ -51,7 +51,7 @@ All public-facing endpoints must have rate limiting to prevent abuse and DoS.
 ### NET-06 [CRITICAL] Request Size Limits
 Enforce maximum request body size to prevent memory exhaustion.
 - **Detect:** No body size limit configured. Missing `client_max_body_size` (nginx), `LimitRequestBody` (Apache), `bodyParser.json({limit})` (Express), `DATA_UPLOAD_MAX_MEMORY_SIZE` (Django)
-- **Fix:** Set reasonable limits: API JSON: 1-10MB, file uploads: explicit per-endpoint limit with streaming. Express: `app.use(express.json({limit: '1mb'}))`. Nginx: `client_max_body_size 10m;`
+- **Fix:** Set reasonable limits: API JSON: 1-10MB, file uploads: explicit per-endpoint limit with streaming. Express: `app.use(express.json({limit: '1mb'}))`. Nginx: `client_max_body_size 10m;` Validate the application limit against the CURRENT documented hard limit of the fronting CDN/proxy/gateway — read the provider's live documentation at change time, never a value remembered from training or an old note; re-verify when the provider tier or vendor changes. (XR-196)
 - **Source:** OWASP API4:2023
 
 ### NET-07 [CRITICAL] Request Timeout Configuration
@@ -93,3 +93,17 @@ Avoid DNS lookup on every request for frequently called services.
 - **Detect:** HTTP clients creating new connections per request without connection reuse. DNS resolution on every API call in hot paths
 - **Fix:** Use connection pooling (reuses existing connections, avoids DNS). For custom DNS: set TTL-based cache. Node: `http.Agent({keepAlive: true})`. Go: default `http.Client` reuses connections. Python: `requests.Session()` for connection reuse
 - **Source:** Performance and reliability best practices
+
+### NET-13 [HIGH] Client IP Read Only Behind a Configured Trusted Proxy, Rightmost Value
+Client IP is taken from a forwarded header only when the service is explicitly configured as behind a trusted proxy — and always from the rightmost (edge-appended) value.
+- **Detect:** `X-Forwarded-For` (or equivalent) parsed unconditionally; leftmost value used for rate limiting, audit, or access decisions; no configuration flag asserting the trusted-proxy topology.
+- **Fix:** Gate forwarded-header parsing behind an explicit trusted-proxy configuration; when enabled, use the rightmost value (appended by your own edge) — the leftmost is client-controlled and trivially spoofable; when not behind a proxy, use the socket peer address.
+- **Impact:** Leftmost-value parsing lets any client spoof its IP — defeating rate limits, poisoning audit trails, and bypassing IP-based access controls with a single header.
+- **Source:** XR-149 — cross-project experience registry (2026).
+
+### NET-14 [HIGH] WebSocket Attempts Share the REST Rate Budget; Every Endpoint Limited or Exempt-Listed
+WebSocket connection attempts consume the same per-user sliding-window budget as REST requests, and every endpoint is provably limited or explicitly exempt-listed.
+- **Detect:** WS upgrade paths bypassing the HTTP rate-limit middleware; separate (or absent) budgets for WS attempts; endpoints added without limiter coverage and without an entry on the documented exemption list.
+- **Fix:** Bind WS connection attempts to the same per-user sliding-window budget as REST; close over-budget attempts with a distinct close code. Maintain a mechanical guarantee (test or route-table audit) that every endpoint either passes through a limiter or appears on the explicit exemption list.
+- **Impact:** An unthrottled WS upgrade path is a free brute-force and resource-exhaustion channel that renders the REST rate limiter decorative.
+- **Source:** XR-028 — cross-project experience registry (2026); extends NET-05.
