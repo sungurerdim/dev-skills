@@ -1,15 +1,144 @@
 #!/usr/bin/env bash
 # Consistency gate for dev-skills — zero dependencies (bash + grep + awk).
 # Run locally: ./scripts/check-consistency.sh    CI runs the same file.
+# Self-test (proves the checks below actually fail on broken input):
+#   ./scripts/check-consistency.sh --self-test
 set -u
-cd "$(dirname "$0")/.."
 fail=0
 err() { echo "FAIL: $*"; fail=1; }
 
+# --- Checks 1, 8, 19, 20 are wrapped in functions purely so --self-test can run
+#     them in isolation against a fixture directory; execution order/logic/
+#     messages are otherwise identical to a plain top-to-bottom script. Each
+#     function operates on $PWD, same as every other check in this file. The
+#     remaining checks stay inline (unwrapped) — see BP-007 self-test note at
+#     the bottom of this file for why they're not all fixture-tested. ---
+
 # 1. Skill count == README badge count
-dirs=$(ls -d ds-*/ | wc -l | tr -d ' ')
-badge=$(grep -o 'skills-[0-9]*-blue' README.md | grep -o '[0-9]*')
-[ "$dirs" = "$badge" ] || err "skill dirs ($dirs) != README badge ($badge)"
+check_skill_badge() {
+  dirs=$(ls -d ds-*/ | wc -l | tr -d ' ')
+  badge=$(grep -o 'skills-[0-9]*-blue' README.md | grep -o '[0-9]*')
+  [ "$dirs" = "$badge" ] || err "skill dirs ($dirs) != README badge ($badge)"
+}
+
+# 8. Canonical gitignore: repo's own .gitignore has the ds/audit/ directory form,
+#    and no SKILL.md documents a non-canonical variant (ds/audit/*.json, .ds-audit/, ds-audit/)
+check_gitignore_canonical() {
+  grep -qxF 'ds/audit/' .gitignore || err ".gitignore missing canonical 'ds/audit/' line"
+  wrong=$(grep -rnE 'ds/audit/\*\.json|\.ds-audit/|(^|[^/-])ds-audit/' ds-*/SKILL.md || true)
+  [ -z "$wrong" ] || err "non-canonical .gitignore pattern documented:
+$wrong"
+}
+
+# 19. v5 — CLAUDE.md skill-count reciprocity (BP-002/BP-006/G4: heading, Skill
+#     count line, and flat list must all agree with the actual ds-*/ dir count)
+check_claude_md_counts() {
+  dirs=$(ls -d ds-*/ | wc -l | tr -d ' ')
+  heading_n=$(grep -oE '^## Skills \([0-9]+\)' CLAUDE.md | grep -oE '[0-9]+')
+  [ "$heading_n" = "$dirs" ] || err "CLAUDE.md '## Skills ($heading_n)' heading != actual skill dirs ($dirs)"
+  count_line_n=$(grep -oE '\*\*Skill count:\*\* [0-9]+' CLAUDE.md | grep -oE '[0-9]+')
+  [ "$count_line_n" = "$dirs" ] || err "CLAUDE.md '**Skill count:** $count_line_n' line != actual skill dirs ($dirs)"
+  flat_n=$(grep '^Flat list:' CLAUDE.md | grep -oE '`ds-[a-z-]+`' | wc -l | tr -d ' ')
+  [ "$flat_n" = "$dirs" ] || err "CLAUDE.md 'Flat list:' enumerates $flat_n skills != actual skill dirs ($dirs)"
+}
+
+# 20. v5 — Full Delegates/Receives graph reciprocity (BP-006/BP-007/BP-008: every
+#     skill's Delegates target must name the delegator back in its own Receives
+#     line — SKILL-SPEC §10.2 rule 4). Orchestrators (ds-ship, ds-pipeline) are
+#     excluded as sources, matching check 10's "they delegate by design" carve-out.
+check_delegates_receives_graph() {
+  for f in ds-*/SKILL.md; do
+    src="${f%%/*}"
+    case "$src" in ds-ship|ds-pipeline) continue;; esac
+    deleg_line=$(awk '/^\*\*Owns:\*\*/{print; exit}' "$f")
+    deleg_text=$(echo "$deleg_line" | sed -E 's/^.*\*\*Delegates:\*\* //; s/ \| \*\*Receives:\*\*.*//')
+    echo "$deleg_text" | grep -qE '^none([^a-z]|$)' && continue
+    for tgt in $(echo "$deleg_text" | grep -oE 'ds-[a-z][a-z-]*' | sort -u); do
+      [ "$tgt" = "$src" ] && continue
+      [ -f "$tgt/SKILL.md" ] || continue
+      recv_line=$(awk '/^\*\*Owns:\*\*/{print; exit}' "$tgt/SKILL.md")
+      recv_text=$(echo "$recv_line" | sed -E 's/^.*\*\*Receives:\*\* //')
+      echo "$recv_text" | grep -qE "(^|[^a-z-])$src([^a-z-]|\$)" \
+        || err "$f Delegates -> $tgt, but $tgt/SKILL.md:$(grep -n '^\*\*Owns:\*\*' "$tgt/SKILL.md" | cut -d: -f1) Receives does not reciprocate $src (SKILL-SPEC §10.2 rule 4)"
+    done
+  done
+}
+
+# --- Self-test (BP-007): fixture-proves the checks above actually fail on
+#     broken input. Builds a temp dir per check, deliberately breaks one
+#     input, runs the real check function against it, asserts a FAIL: line
+#     appears. Covers check_skill_badge (1), check_gitignore_canonical (8),
+#     check_claude_md_counts (19) and check_delegates_receives_graph (20) —
+#     the 4 checks factored into standalone functions. The remaining checks
+#     (2-7, 9-18) stay inline and entangled with full-repo state (SKILL-SPEC.md
+#     dimension table, agents/*.md, references/*.md globs, hardcoded skill
+#     lists) — fixturing them cheaply would mean re-deriving large slices of
+#     those inputs, so per the task's own "don't force it" allowance they are
+#     left uncovered by this fixture harness. Cleans up on exit regardless of
+#     outcome. ---
+assert_catches() {
+  local name="$1" dir="$2" fn="$3" out
+  out=$(cd "$dir" && fail=0 && "$fn" 2>&1)
+  if echo "$out" | grep -q '^FAIL:'; then
+    echo "SELF-TEST OK: $name caught the fixture:"
+    echo "$out" | sed 's/^/  /'
+  else
+    echo "SELF-TEST BROKEN: $name did NOT catch the deliberately-broken fixture (no-op check)"
+    st_fail=1
+  fi
+}
+
+self_test() {
+  local tmp
+  st_fail=0
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' RETURN
+
+  # Fixture: check_skill_badge — 2 skill dirs, README badge claims 99
+  mkdir -p "$tmp/f1/ds-alpha" "$tmp/f1/ds-beta"
+  printf '![skills](https://img.shields.io/badge/skills-99-blue)\n' > "$tmp/f1/README.md"
+  assert_catches "check_skill_badge" "$tmp/f1" check_skill_badge
+
+  # Fixture: check_gitignore_canonical — .gitignore missing the canonical line
+  mkdir -p "$tmp/f2/ds-alpha"
+  printf 'node_modules/\n' > "$tmp/f2/.gitignore"
+  printf '**Owns:** x | **Delegates:** none | **Receives:** none\n' > "$tmp/f2/ds-alpha/SKILL.md"
+  assert_catches "check_gitignore_canonical" "$tmp/f2" check_gitignore_canonical
+
+  # Fixture: check_claude_md_counts — 2 skill dirs, CLAUDE.md still says 5
+  mkdir -p "$tmp/f3/ds-alpha" "$tmp/f3/ds-beta"
+  cat > "$tmp/f3/CLAUDE.md" <<'EOF'
+## Skills (5)
+
+- **Skill count:** 5
+
+Flat list: `ds-alpha`, `ds-beta`
+EOF
+  assert_catches "check_claude_md_counts" "$tmp/f3" check_claude_md_counts
+
+  # Fixture: check_delegates_receives_graph — ds-alpha delegates to ds-beta,
+  # but ds-beta's Receives never names ds-alpha back (BP-008-shaped gap)
+  mkdir -p "$tmp/f4/ds-alpha" "$tmp/f4/ds-beta"
+  printf '**Owns:** a | **Delegates:** ds-beta -> some task | **Receives:** none\n' > "$tmp/f4/ds-alpha/SKILL.md"
+  printf '**Owns:** b | **Delegates:** none | **Receives:** ds-gamma -> unrelated\n' > "$tmp/f4/ds-beta/SKILL.md"
+  assert_catches "check_delegates_receives_graph" "$tmp/f4" check_delegates_receives_graph
+
+  if [ "$st_fail" = "0" ]; then
+    echo "SELF-TEST PASS: all 4 fixtured checks correctly caught their deliberately-broken input"
+  else
+    echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
+  fi
+  return "$st_fail"
+}
+
+if [ "${1:-}" = "--self-test" ]; then
+  self_test
+  exit $?
+fi
+
+cd "$(dirname "$0")/.."
+
+check_skill_badge
 
 # 2. Size ceilings (SKILL-SPEC section 8)
 for f in ds-*/SKILL.md; do
@@ -56,12 +185,7 @@ for f in ds-*/SKILL.md; do
   [ "$header" -ge "1" ] || err "$f missing an INVOKE / DON'T INVOKE table header row"
 done
 
-# 8. Canonical gitignore: repo's own .gitignore has the ds/audit/ directory form,
-#    and no SKILL.md documents a non-canonical variant (ds/audit/*.json, .ds-audit/, ds-audit/)
-grep -qxF 'ds/audit/' .gitignore || err ".gitignore missing canonical 'ds/audit/' line"
-wrong=$(grep -rnE 'ds/audit/\*\.json|\.ds-audit/|(^|[^/-])ds-audit/' ds-*/SKILL.md || true)
-[ -z "$wrong" ] || err "non-canonical .gitignore pattern documented:
-$wrong"
+check_gitignore_canonical
 
 # 9. v4 — Dimension Declaration presence (SKILL-SPEC §11)
 for f in ds-*/SKILL.md; do
@@ -186,8 +310,11 @@ for s in ds-compliance ds-freeze ds-init ds-backend ds-frontend ds-mobile ds-rev
     || err "$s/SKILL.md missing Mechanical Done Gate (SKILL-SPEC section 4 — code-modifying skill)"
 done
 
+check_claude_md_counts
+check_delegates_receives_graph
+
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity all consistent"
 else
   exit 1
 fi
