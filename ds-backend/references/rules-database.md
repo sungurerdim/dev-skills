@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Database** | DB-01 to DB-11 (2 CRITICAL, 4 HIGH, 4 MEDIUM, 1 LOW) | ~12 |
+| **Database** | DB-01 to DB-19 (3 CRITICAL, 6 HIGH, 9 MEDIUM, 1 LOW) | ~12 |
 
 ---
 
@@ -274,3 +274,91 @@ Never trust a client-supplied `tenant_id`; derive it from the authenticated sess
 **Why:** Without a registry-backed gate, a newly added entity type can ship with zero duplicate protection and nothing fails — the record just silently duplicates in production, a regression class invisible to code review because there's no shared place reviewers check.
 
 **Source:** Declarative-registry-plus-gate pattern generalized from schema-completeness/exhaustiveness checking (same shape as an SSOT-registry for any per-entity axis — data-classification, migration-safety, or duplicate-prevention)
+
+### DB-12 Retained Identifiers Stored as Salted Hashes and Physically Purged [HIGH]
+Device/user identifiers kept for abuse prevention are stored only as salted hashes, expire on schedule, and legacy raw values are physically removed.
+
+**Detect:** Raw device IDs, IP addresses, or user identifiers persisted for fraud/abuse purposes; retention with no purge date; a schema migration that dropped a raw-identifier column without compacting the underlying store.
+
+**Fix:** Store salted SHA-256 hashes (salt server-side, not per-row-guessable), attach a retention deadline with automated purge, and after removing legacy raw columns run the store's physical cleanup (VACUUM/compaction) so dropped data is actually gone.
+
+**Impact:** Raw retained identifiers turn an abuse-prevention table into a PII breach surface; "dropped" columns that survive in storage pages fail deletion-right audits.
+
+**Source:** XR-023 — cross-project experience registry (2026).
+
+### DB-13 Single-Writer Embedded DB Tuned: WAL Plus a Matching Partial Index [MEDIUM]
+A single-writer, read-heavy embedded database (SQLite-class) runs WAL mode with deliberate pragmas, and the hottest recurring query gets an exactly-matching partial index.
+
+**Detect:** Embedded DB on defaults (journal_mode=DELETE, tiny page cache); the most frequent background query scanning without an index whose predicate matches its WHERE clause.
+
+**Fix:** Set `journal_mode=WAL`, `synchronous=NORMAL`, a sized page cache, `temp_store=MEMORY`, and tuned mmap; add a partial index exactly matching the hottest query's WHERE clause. Relax these only against a concrete measured failure, never speculatively.
+
+**Impact:** Default journal mode serializes readers behind the writer — the app freezes during every background write; the partial index turns the hottest scan into a point lookup.
+
+**Source:** XR-026 — cross-project experience registry (2026).
+
+### DB-14 Workspace/Tenant Identity Is a Permanent Opaque UUID [MEDIUM]
+Workspace/tenant identity is a permanent ASCII UUID, immune to renames.
+
+**Detect:** Workspace identified by its display name, folder name, or email; rename flows that touch identity references; identity strings containing user-controlled or locale-sensitive characters.
+
+**Fix:** Mint a permanent ASCII UUID at workspace creation and use it in every reference (storage paths, ACLs, sync state, audit); treat display names as mutable presentation only.
+
+**Impact:** Name-based identity means a rename orphans storage paths, ACLs, and sync state simultaneously — an unrecoverable-looking outage triggered by a cosmetic action.
+
+**Source:** XR-141 — cross-project experience registry (2026).
+
+### DB-15 Taxonomies and Labels Live in One Admin-Managed Canonical Registry [HIGH]
+Role, category, and label taxonomies come from one canonical registry (id/label/icon/storeKey); user-visible domain labels are admin-editable data, never hardcoded, while the system runs on fixed semantic roles underneath.
+
+**Detect:** User-facing domain labels ("expert", "client", "room") hardcoded in components or scattered enums; the same taxonomy manually duplicated in a second surface; generated/derived surfaces (exports, reports, satellite sites) inventing their own field/category names; label changes that propagate to some screens but not all.
+
+**Fix:** Keep every taxonomy in one canonical registry (id, label, icon, storeKey) backed by the DB with i18n fallback; make labels admin-editable and propagate changes system-wide; keep internal logic on fixed semantic role IDs (service-provider, service-recipient, intermediary, staff) so the label layer is pure presentation; derived surfaces read the registry and never define their own vocabulary.
+
+**Impact:** Hardcoded labels lock the product to one industry's jargon and make every terminology change a code deploy; duplicated taxonomies drift into contradictory vocabularies across screens.
+
+**Source:** XR-143 + XR-008 — cross-project experience registry (2026).
+
+### DB-16 No Path Deletes User Data Without an Explicit User Request [CRITICAL]
+No background job, sync routine, or maintenance task implicitly deletes user data; deletion happens only on explicit user request.
+
+**Detect:** Cleanup/compaction/sync-reconciliation code paths that remove user records as a side effect; "orphan removal" heuristics acting on user content; TTL expiry applied to user-created data without user-facing contract.
+
+**Fix:** Restrict hard deletion of user data to explicitly user-initiated flows (plus regulatory erasure); make background routines archive, flag, or quarantine instead of delete; require any automated removal to be contractually visible to the user (stated retention rule) — never an implementation side effect.
+
+**Impact:** Implicit deletion is indistinguishable from data loss; a single overzealous reconciliation pass can destroy months of user work with no recovery path and no explanation.
+
+**Source:** XR-145 — cross-project experience registry (2026).
+
+### DB-17 Down-Migrations Document Their Loss Boundary [MEDIUM]
+Every up-migration has a down counterpart, and each down-migration states in code what it can and cannot restore.
+
+**Detect:** Migrations without down steps; a down-migration that silently restores schema shape while the data (hashed, scrubbed, aggregated) is unrecoverable; operators assuming rollback returns original values.
+
+**Fix:** Ship a down for every up. Where a step is data-destructive (one-way hash, privacy scrub, column drop), write the boundary into the migration itself: "down restores schema only; recovering data beyond this point requires restore from full backup." Keep the note beside the code, not in a wiki.
+
+**Impact:** An operator who trusts a schema-only rollback to restore scrubbed data makes recovery decisions on false premises — during an incident, when it hurts most.
+
+**Source:** XR-021 — cross-project experience registry (2026).
+
+### DB-18 Bulk Mutations Carry Single-Edit Audit and Undo Guarantees [MEDIUM]
+Bulk operations over selected records are grouped under a batch ID, fully audited, and reversible in one step.
+
+**Detect:** Bulk-edit paths that skip the audit trail individual edits write; bulk changes with no grouping identifier; no way to revert a bulk operation except record-by-record.
+
+**Fix:** Record every bulk mutation with a shared batch ID in the same audit trail as single edits (per-record old→new), and implement one-step revert of the whole batch. Any field editable singly should be bulk-editable under these same guarantees.
+
+**Impact:** An unaudited bulk edit is the fastest way to corrupt a dataset beyond reconstruction — one mis-scoped filter, hundreds of silent changes, no undo.
+
+**Source:** XR-103 — cross-project experience registry (2026).
+
+### DB-19 Storage Access Flows Through One Abstraction Layer [MEDIUM]
+All persistence goes through a single storage abstraction; raw low-level store calls outside it are forbidden.
+
+**Detect:** Direct `localStorage`/file/DB-driver calls scattered outside the designated storage layer; serialization or key-naming logic duplicated at call sites.
+
+**Fix:** Route every read/write through one storage abstraction owning keys, serialization, versioning, and error handling; lint or grep-gate raw store calls outside it.
+
+**Impact:** Scattered raw access makes migrations, encryption, and quota handling impossible to retrofit — every storage policy change becomes a full-codebase hunt.
+
+**Source:** XR-010 — cross-project experience registry (2026).

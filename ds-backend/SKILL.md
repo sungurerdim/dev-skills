@@ -295,7 +295,7 @@ ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth,data-pipeline[,llm]} | Findings
 
 FRC+DSC accounting.
 
-**Value Delivered:** 1-5 concrete bullets, real design outputs only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real design outputs only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `OpenAPI spec for {n} endpoints with RFC 9457 error format — frontend / mobile clients can generate type-safe SDKs from one source of truth`
 - `DB schema reviewed: {n} missing indexes added, {n} N+1 query risks flagged — query latency expected to drop on hot paths`

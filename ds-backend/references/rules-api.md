@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **API Design** | API-01 to API-13 (1 CRITICAL, 6 HIGH, 3 MEDIUM, 3 LOW) | ~12 |
+| **API Design** | API-01 to API-14 (1 CRITICAL, 7 HIGH, 3 MEDIUM, 3 LOW) | ~12 |
 
 ---
 
@@ -173,7 +173,7 @@ Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at 
 
 **Detect:** `POST` endpoints that create resources or trigger side effects without idempotency protection. Duplicate submissions create duplicate records.
 
-**Fix:** Accept `Idempotency-Key: <uuid>` header on non-idempotent mutation endpoints. Store key with response; return stored response on replay.
+**Fix:** Accept `Idempotency-Key: <uuid>` header on non-idempotent mutation endpoints. Store key with response; return stored response on replay. Layering: hash the client-supplied key and namespace it per user before storage; treat the Idempotency-Key layer as an optional shield IN FRONT OF endpoint-specific server-side protections (unique constraints, state checks) — never as their replacement. (XR-194)
 
 - `PUT` and `DELETE` are naturally idempotent by spec
 - `POST` requires explicit idempotency keys for safety (payments, order creation)
@@ -303,3 +303,14 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 **Impact:** Matching style to demonstrated client needs avoids GraphQL operational complexity where REST suffices, and avoids over-/under-fetching where client shapes genuinely diverge.
 
 **Source:** [Fern API design guide (2026)](https://buildwithfern.com/post/api-design-best-practices-guide), [Complete guide to API design in 2026](https://dev.to/zny10289/the-complete-guide-to-api-design-in-2026-rest-graphql-and-trpc-in-production-4ib2), [API design trends 2026](https://calmops.com/backend/api-design-trends-2026/)
+
+### API-14 Long-Lived Connections Ship With a Stateless Fallback Transport [HIGH]
+Critical realtime updates delivered over a persistent connection (WebSocket/SSE) automatically fall back to stateless polling with exponential backoff.
+
+**Detect:** WS/SSE as the only delivery path for critical state; no automatic downgrade when the persistent connection dies; auth/permanent errors funneled into the same silent-retry loop as transient drops.
+
+**Fix:** Layer a stateless HTTP-polling fallback with exponential backoff under the persistent transport — mobile-network proxies and captive portals silently kill long-lived connections routinely, so this is resilience, not duplication. Exclude authentication and other permanent errors from the fallback path: rethrow them immediately instead of retrying forever.
+
+**Impact:** Without fallback, users behind common mobile/corporate middleboxes see a permanently frozen app; with auth errors swallowed by retry, a revoked session spins silently instead of re-prompting login.
+
+**Source:** XR-077 — cross-project experience registry (2026).
