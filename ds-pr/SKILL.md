@@ -101,7 +101,7 @@ If >3 unpushed commits, offer to tidy: squash into logical commits based on net 
 
 Run format, lint, and test scoped to the PR's changed files (`git diff {base}...HEAD --name-only`) — a full-project pass is `/ds-fix`'s job, not this skill's. Auto-fix all fixable issues on that file set. Detect toolchain from config files. Skip silently if tool unavailable.
 
-Run in order (stop on failure): Format -> Lint -> Secret scan -> Test.
+Run in order (stop on failure): Format → Lint → Secret scan → Test.
 Format/lint changed files → commit as `chore: format and lint fixes`.
 Tests fail → stop. Only create PR when tests covering the changed files pass.
 
@@ -122,10 +122,10 @@ Tests fail → stop. Only create PR when tests covering the changed files pass.
 **Type classification:**
 1. Scan commit titles for initial signal
 2. Validate against net diff — net diff overrides:
-   - New user-facing capability? -> `feat`
-   - Broken behavior fixed? -> `fix`
-   - Neither? -> dominant non-bumping type
-3. `!` in any commit type or `BREAKING CHANGE:` -> append `!`
+   - New user-facing capability? → `feat`
+   - Broken behavior fixed? → `fix`
+   - Neither? → dominant non-bumping type
+3. `!` in any commit type or `BREAKING CHANGE:` → append `!`
 
 **Title:** `{type}({scope}): {summary}` — max 70 chars.
 
