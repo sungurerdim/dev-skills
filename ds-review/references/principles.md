@@ -109,6 +109,7 @@ Adopted from OWASP Secure Coding Practices and reinforces standard injection-mit
 | **Code review before merge** | Automated review precedes human review, not replaces it. |
 | **Refactor mercilessly** | Treat dead code, single-caller helpers, and premature abstractions as findings every run. |
 | **Profile before optimizing** | Require a measurable metric and baseline before any performance experiment. |
+| **Breaking-first (XR-199)** | Default to the root-clean change: unpublished product, zero external consumers, or provably harmless → break directly; compat layers (shims, re-exports, dual models, redirect residue) are forbidden. Backward compatibility only on proven need (real consumer, live migration window, contract). Risk plausible but unproven → ask the owner, never assume. |
 
 **Sources:** *The Pragmatic Programmer* by Andy Hunt & Dave Thomas (https://www.pragprog.com/tips/); Martin Fowler — YAGNI (https://martinfowler.com/bliki/Yagni.html), Refactoring (https://martinfowler.com/articles/refactoring-2nd-ed.html); Conventional Commits (https://www.conventionalcommits.org/).
 
