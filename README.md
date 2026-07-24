@@ -213,7 +213,7 @@ rm -rf /tmp/dev-skills
 
 > **Why "reference", not "paste":** a SKILL.md is ~4–9K tokens. Pasting it into an always-on rules file loads it on every request and measurably degrades instruction-following as rules accumulate ([IFScale](https://arxiv.org/abs/2507.11538)); skills are designed to load only when invoked. See [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research and the per-host plan.
 
-Install one skill, several, or all 28 — they are independent.
+Install one skill, several, or all 30 — they are independent.
 
 ## Host support
 

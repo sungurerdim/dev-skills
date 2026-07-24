@@ -8,7 +8,9 @@ Universal reference docs for the full software development lifecycle. All docume
 docs/
 ├── methodology/
 │   ├── ai-assisted-development.md    — AI coding workflow, vibe coding evolution, security risks
-│   └── solo-dev-workflow.md          — PM, prioritization, shipping cadence for one-person teams
+│   ├── solo-dev-workflow.md          — PM, prioritization, shipping cadence for one-person teams
+│   ├── cross-host-program.md         — Research-backed cross-host assessment & roadmap (spec-gen v5)
+│   └── ai-harness-context-files-research.json — Raw research data: what belongs in root instruction files (cited by cross-host-program.md)
 ├── mobile/
 │   └── flutter-architecture-patterns.md — Patterns from 10+ production Flutter apps
 ├── frontend/
