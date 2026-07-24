@@ -72,8 +72,8 @@ File handles, database connections, and network sockets must be explicitly close
 
 ### PRF-09 [HIGH] Streaming for Large Data
 Large file/data processing must use streaming, not load-all-into-memory.
-- **Detect:** `readFileSync` / `read()` for files > 10MB. `response.json()` for large API responses. Loading entire database table into memory. Image/video processing without streaming
-- **Fix:** Use streams: Node `createReadStream`. Python: iterate file object or `response.iter_content()`. Go: `io.Copy` or `bufio.Scanner`. For databases: cursor-based iteration, not `.fetchall()`. For APIs: paginate or use streaming responses
+- **Detect:** `readFileSync` / `read()` for files > 10MB. `response.json()` for large API responses. Loading entire database table into memory. Image/video processing without streaming; hash/parse/transcode of user files running on the main/UI thread
+- **Fix:** Use streams: Node `createReadStream`. Python: iterate file object or `response.iter_content()`. Go: `io.Copy` or `bufio.Scanner`. For databases: cursor-based iteration, not `.fetchall()`. For APIs: paginate or use streaming responses. Run unbounded-size file operations off the main thread (worker/isolate) as well as streamed — the failure mode is a crash or frozen UI (OOM/ANR), not slowness, so this is a hard requirement, not an optimization. (XR-025)
 - **Source:** Memory safety best practices
 
 ### PRF-10 [HIGH] Graceful Shutdown
