@@ -122,7 +122,7 @@ Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15)
 
 ## Delegation
 
-**Owns:** deployment, infra, container, tls, monitoring, incident-runbook, cost | **Delegates:** ds-devops → CI pipeline structure (CI deploy step verified via ds-devops) | **Receives:** ds-devops → infra / container / TLS / monitoring; ds-ship → Phase 5 infra chain
+**Owns:** deployment, infra, container, tls, monitoring, incident-runbook, cost | **Delegates:** ds-devops → CI pipeline structure (CI deploy step verified via ds-devops) | **Receives:** ds-devops → infra / container / TLS / monitoring; ds-ship → Phase 5 infra chain; ds-productize → analytics (ops telemetry)
 
 ## Execution Flow
 
