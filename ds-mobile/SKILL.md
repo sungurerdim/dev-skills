@@ -1,13 +1,13 @@
 ---
 name: ds-mobile
-description: Mobile app quality audit — 174 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native). Use when auditing a mobile app for quality or release readiness.
+description: Mobile app quality audit — 179 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native). Use when auditing a mobile app for quality or release readiness.
 ---
 
 # /ds-mobile
 
-Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 174 rules before you submit.
+Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 179 rules before you submit.
 
-**Mobile App Quality Audit** — 174 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native.
+**Mobile App Quality Audit** — 179 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native.
 
 > **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
 
@@ -230,7 +230,7 @@ FRC+DSC accounting.
 
 **Gate:** `fixed + failed + skipped + needs_approval + not_applicable = total`; every modified file re-read; mobile-scoped findings removed from `ds/audit/findings.md`. If fails → counts unreconciled → identify undisposed finding, assign `failed` reason "disposition not recorded", re-run count; cleanup fails → warn, leave file intact rather than partial-modify.
 
-**Value Delivered:** 1-5 concrete mobile-quality outcomes. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete mobile-quality outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} store-rejection risks intercepted (permission abuse, missing privacy declarations, undocumented background tasks) — submission round-trip saved`
 - `{n} CRITICAL findings: hardcoded API keys / unencrypted PII in shared preferences — exposure window before next release closed`

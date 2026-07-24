@@ -29,6 +29,7 @@ Billing provider webhook handler processes events unverified.
 - **Fix:** Verify signature before any state change; reject on mismatch. Audit the two idempotency layers separately — they are distinct, commonly conflated checks:
   1. **API-request idempotency** (client → provider): `Idempotency-Key` header with a V4 UUID / high-entropy string (≤255 chars); the provider replays the first result for ≥24h and errors on parameter mismatch.
   2. **Webhook event idempotency** (provider → handler): delivery is at-least-once, never exactly-once — store each processed event ID under a UNIQUE constraint and short-circuit before mutating state; respond 2xx within 10 seconds (failed deliveries retry with exponential backoff over ~3 days).
+  Refunds are idempotent too: mark processed transactions with a `refunded_at`-style field and make refund/cancellation check it — a redelivered refund event is a no-op, never an error and never a double refund. Providers redeliver webhooks aggressively; treat the second arrival as normal traffic. (XR-104)
 - **Impact:** Forged webhook grants subscriptions or refunds without payment; missing event dedup double-applies retried deliveries (double credits, double emails).
 - **Source:** Provider security docs (Stripe/Paddle webhook signing); Stripe idempotent-requests API reference; at-least-once webhook delivery guidance 2026.
 
@@ -95,6 +96,27 @@ Pricing-model change (e.g., per-seat → usage/hybrid) planned as a hard cutover
 - **Impact:** Hard cutovers turn pricing changes into churn events; shadow billing surfaces bill-shock cases before they invoice.
 - **Source:** Usage-based-pricing migration patterns 2026 (grandfathering + shadow billing, cited consistently across pricing-transition guides).
 
+## MON-14 [CRITICAL] Undelivered paid work auto-refunds from the durable SSOT
+Paid-but-never-delivered work (charged, `fetched=0 AND ack=0`) is auto-refunded at every service start, judged solely from the durable store.
+- **Detect:** Refund eligibility decided from ephemeral state (cache/Redis); refund and ack written in separate transactions (restart between them double-refunds); refund DB failures logged at info and skipped.
+- **Fix:** On startup, scan the durable store (SQLite/Postgres — never a cache) for charged-undelivered work and refund it; write refund + ack-stamp in ONE atomic transaction so a restart cannot double-refund; on refund failure: log CRITICAL, notify the critical-alert channel, leave the record un-acked for retry next start. A monetary correction is never silently skipped.
+- **Impact:** Charging users for work they never received — and losing track of it in a cache restart — is the single fastest route from billing bug to chargebacks, store complaints, and regulator attention.
+- **Source:** XR-105 — cross-project experience registry (2026).
+
+## MON-15 [CRITICAL] IAP receipts verified server-side against a product allowlist
+In-app purchase receipts are verified on the server before any balance/entitlement credit; the client only forwards platform verification data; product IDs check against a known allowlist first.
+- **Detect:** Client code computing or adding balance after purchase; server crediting on client-asserted receipts without platform verification; no product-ID allowlist check before the (costly) verification call.
+- **Fix:** Client forwards only the platform's verification payload; server verifies with the platform and computes the credit itself; before verification, reject unknown product IDs against the allowlist — fake requests die cheaply. (Complements the restore-purchases entitlement rule; this governs the credit path.)
+- **Impact:** Client-computed balances are free money for anyone with a patched client; forged product IDs without an allowlist also burn quota/cost on pointless verification calls.
+- **Source:** XR-150 — cross-project experience registry (2026).
+
+## MON-16 [MEDIUM] Usage-billing copy states fault responsibility clearly in every locale
+Billing copy never leaves "whose fault gets charged" ambiguous — the policy is stated in fault terms in every locale.
+- **Detect:** Copy like "failed operations are not charged" with no fault attribution (users fear being charged for their own mistakes); billing terms translated with the ambiguity intact or worsened.
+- **Fix:** Write the policy in explicit fault terms — e.g. "you are charged only when the operation completes successfully on your side; technical failures caused by our servers are never charged" — and hold every locale's translation to the same explicitness.
+- **Impact:** Ambiguous billing language suppresses usage even when the actual policy is generous — users who fear surprise charges use less, churn silently, and never say why.
+- **Source:** XR-110 — cross-project experience registry (2026).
+
 ## PRC-01 [MEDIUM] No target tier / decoy logic in packaging
 Tier list where every option competes equally.
 - **Detect:** 2+ tiers, none visually recommended; or 4+ tiers (decision paralysis).
@@ -129,3 +151,10 @@ Packaging copy enumerates capabilities without user outcomes.
 - **Fix:** Benefit-first bullets; social-proof slot; trial CTA phrased "Start free trial" (outperforms "Subscribe" by 15-20%).
 - **Impact:** Outcome framing is the highest-leverage copy change on the conversion path after price itself.
 - **Source:** Paywall conversion checklists, A/B benchmark data (paywall tests lift ~25%).
+
+## PRC-06 [MEDIUM] Pricing finalized only after a real paid pilot
+Price/package/segment hypotheses are validated in a paid pilot with real businesses (~10) before the monetization/positioning decision is finalized.
+- **Detect:** Pricing declared final from spreadsheet math or competitor tables alone; zero customers who have actually paid the tested price; technical billing-readiness mistaken for pricing validation.
+- **Fix:** Run a paid pilot with on the order of 10 real businesses from the target segment at the hypothesized price/packaging; treat willingness-to-pay observed in real transactions as the gate for finalizing. Flag as human-only: this requires sales conversations and cannot be automated — surface it to the owner, never auto-pass.
+- **Impact:** Unvalidated pricing fails in the expensive direction: months of GTM built on a price point real customers reject — or one they'd have paid 3x for.
+- **Source:** XR-129 — cross-project experience registry (2026).
