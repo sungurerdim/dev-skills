@@ -15,10 +15,13 @@ Applies to all UI platforms: web, mobile, desktop.
 | **Perceived Performance & Optimism** | UX-PP-01 to UX-PP-02 (2 rules) | ~220 |
 | **Forms: Validation Strategy** | UX-FM-01 (1 rule) | ~240 |
 | **Deceptive Patterns** | UX-DP-01 to UX-DP-03 (3 rules) | ~255 |
-| **UX Writing** | UX-WR-01 to UX-WR-03 (3 rules) | ~285 |
-| **Information Architecture** | UX-IA-01 (1 rule) | ~305 |
-| **Filtering & Bulk Selection** | UX-11 (1 rule) | ~325 |
+| **UX Writing** | UX-WR-01 to UX-WR-04 (4 rules) | ~285 |
+| **Information Architecture** | UX-IA-01, UX-16 (2 rules) | ~308 |
+| **Filtering & Bulk Selection** | UX-11 (1 rule) | ~326 |
 | **Status & Health Communication** | UX-12 (1 rule) | ~335 |
+| **Tooltip Discipline** | UX-13 (1 rule) | ~346 |
+| **Validation Severity** | UX-14 (1 rule) | ~357 |
+| **Audit & History Surfaces** | UX-15 (1 rule) | ~368 |
 
 ---
 
@@ -296,16 +299,30 @@ A subtitle/description directly under a heading renders only if it adds informat
 - **Impact:** A paraphrasing subtitle adds visual clutter and scan cost with zero new information — pruning it is a pure, risk-free legibility win.
 - **Source:** Nielsen Norman Group — content redundancy / scannability practice
 
+### UX-WR-04 [LOW] Separator Convention and Platform-Safe Copy
+User-visible text uses one consistent separator convention, and copyable/shareable text is platform-safe by default.
+- **Detect:** Mixed separators across surfaces (em-dash here, colon there); em-dashes in UI copy; copy-to-clipboard or share output that embeds emoji/styled characters by default.
+- **Fix:** Pick one separator set (middle dot `·`, slash `/`, or colon) and apply it everywhere; avoid em-dashes in UI copy. Default copyable/shareable text to plain text; make emoji and decoration opt-in.
+- **Impact:** Inconsistent separators read as sloppiness at scale; emoji-laden clipboard text breaks when pasted into CRMs, terminals, and legacy systems.
+- **Source:** XR-167 + XR-062 — cross-project experience registry (2026).
+
 ---
 
 ## Information Architecture
 
 ### UX-IA-01 [MEDIUM] Navigation Depth Budget & Breadcrumbs
 Visible navigation supports 2-3 tiers; deeper hierarchies switch to breadcrumbs + landing pages instead of deeper menus.
-- **Detect:** Nav menus nesting beyond 3 levels (flyout-in-flyout-in-flyout); content ≥3 levels deep with no breadcrumb trail; breadcrumb showing only the current page (no ancestor links) or breaking on direct/deep-linked entry.
-- **Fix:** Cap visible nav at 2-3 tiers; add breadcrumbs on every page below tier 2 (ancestors linked, current page unlinked); deep sections get section landing pages instead of deeper flyouts.
+- **Detect:** Nav menus nesting beyond 3 levels (flyout-in-flyout-in-flyout); content ≥3 levels deep with no breadcrumb trail; breadcrumb showing only the current page (no ancestor links) or breaking on direct/deep-linked entry; multi-user workspace product mixes personal-context surfaces (my settings, my day) and shared-workspace surfaces (team schedule, shared records) in one undifferentiated navigation tier
+- **Fix:** Cap visible nav at 2-3 tiers; add breadcrumbs on every page below tier 2 (ancestors linked, current page unlinked); deep sections get section landing pages instead of deeper flyouts. In multi-user workspace products, separate the IA into two consistent tiers — personal context (e.g. `#/me/…`) and shared workspace (e.g. `#/workspace/…`) — and keep every surface clearly in one tier. (XR-137)
 - **Impact:** Over-deep menus hide content from discovery; missing breadcrumbs strand deep-linked visitors (search/social arrivals) with no sense of place.
 - **Source:** [NN/g — Local navigation](https://www.nngroup.com/articles/local-navigation/); [NN/g — Breadcrumbs](https://www.nngroup.com/articles/breadcrumb-navigation-useful/) (2×-confirmed)
+
+### UX-16 [MEDIUM] Rarely-Used Aggregate Stats Leave the Primary Work Screen
+Aggregate statistics consulted occasionally (KPI tiles, heatmaps, trend widgets) move to a dedicated report/stats screen instead of occupying the daily working view.
+- **Detect:** The primary work screen dedicates permanent space to summary widgets users consult weekly or less; the working canvas is compressed to make room for them.
+- **Fix:** Relocate occasional aggregates to a dedicated stats/report surface; keep them drillable (click → filtered detail view, per CMP-12) and make filtered work surfaces route-addressable so drill targets are linkable.
+- **Impact:** Every pixel spent on rarely-read stats is taken from the screen users work in for hours — the core task gets the leftover space.
+- **Source:** XR-050 — cross-project experience registry (2026).
 
 ---
 
@@ -326,6 +343,39 @@ When multiple health/status checks have a dependency relationship (a root check 
 - **Fix:** Order checks by dependency; when an upstream check fails, demote dependent checks' displayed severity (e.g. to informational/"blocked by X") rather than each reporting independently.
 - **Impact:** An inflated list of unrelated-looking criticals for one root cause obscures the actual starting point for diagnosis and erodes trust in the status panel.
 - **Source:** Cascading-failure / root-cause-first alerting practice (SRE incident-communication conventions)
+
+---
+
+## Tooltip Discipline
+
+### UX-13 [HIGH] Tooltip Discipline: None on Self-Explanatory Elements; Standard Behavior Everywhere Else
+Tooltips exist only where they add real information, and every tooltip derives from one SSOT component with industry-standard behavior.
+- **Detect:** Tooltips on elements whose visible label is already complete (noise tooltips); essential information available only inside a tooltip; multiple tooltip implementations; a tooltip that covers its own trigger, appears on hover but not keyboard focus, cannot be dismissed with Esc, disappears when the pointer moves onto it, flashes open with zero delay, or contains interactive content.
+- **Fix:** Remove tooltips from self-explanatory elements; never put must-know information only in a tooltip. Route every remaining tooltip through one shared component that: positions adjacent to the trigger (smart top/bottom/side placement, never covering it), opens on hover AND keyboard focus, is dismissable (Esc), hoverable, and persistent per WCAG 1.4.13, opens after a ~300–500ms delay, contains no interactive content (use popover/toggletip for that), and has a touch-accessible equivalent.
+- **Impact:** Noise tooltips degrade every interaction; non-standard ones violate WCAG 1.4.13 and randomly hide the very content they exist to show.
+- **Source:** XR-131 — cross-project experience registry (2026); WCAG 1.4.13.
+
+---
+
+## Validation Severity
+
+### UX-14 [MEDIUM] Soft-Warn Is the Default for Reversible, Non-Destructive Limit Violations
+Limit violations that cause no data loss warn but do not block; hard blocks are reserved for irreversible or physically impossible states.
+- **Detect:** A soft limit (roster size, recommended maximum, quota advisory) hard-blocks the action; or the block/warn choice is hardcoded with no owner-level escalation option.
+- **Fix:** Default every no-data-loss limit violation to a soft warning that lets the action proceed; hard-block only genuine impossibilities (e.g. physical capacity conflicts) — and let the workspace owner deliberately escalate a soft warning to a hard block as a reversible, recorded setting.
+- **Impact:** Overzealous hard blocks force users into workarounds (fake data, split records) that corrupt the dataset more than the exceeded limit ever would.
+- **Source:** XR-185 — cross-project experience registry (2026).
+
+---
+
+## Audit & History Surfaces
+
+### UX-15 [HIGH] Audit Screens Show Resolved, Human-Readable Facts — Filterable on Every Axis
+Audit/history views resolve raw identifiers into human-readable facts and support filtering, search, and grouping on every recorded dimension.
+- **Detect:** Audit rows show raw IDs (user id, entity id), machine timestamps, or field-diff JSON; filtering is limited to free-text; no facet/dropdown filters or collapsible grouping.
+- **Fix:** Render WHO (display name), WHEN (readable local date-time), ON WHAT (the record's human-readable name), and EXACTLY WHAT changed (field-by-field old→new in plain words); add facet filters (date, actor, location, action type, affected entity) and grouped views. An admin must understand any row without a second query or cross-referencing.
+- **Impact:** An audit trail nobody can read is compliance theater — investigations stall and accountability silently disappears.
+- **Source:** XR-101 — cross-project experience registry (2026).
 
 ---
 

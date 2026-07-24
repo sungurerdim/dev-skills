@@ -6,8 +6,8 @@ Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Component Quality** | CMP-01 to CMP-22 (10 HIGH, 11 MEDIUM, 1 LOW) | ~12 |
-| **Interactions** | INT-01 to INT-05 (3 MEDIUM, 2 LOW) | ~176 |
+| **Component Quality** | CMP-01 to CMP-27 (12 HIGH, 14 MEDIUM, 1 LOW) | ~12 |
+| **Interactions** | INT-01 to INT-05 (3 MEDIUM, 2 LOW) | ~246 |
 
 ---
 
@@ -117,15 +117,15 @@ Every anchored/floating overlay (search-result dropdown, "more actions" menu, st
 
 ### CMP-10 [MEDIUM] Anchored Overlay Sizing Contract
 Every anchored overlay (see CMP-09) shares one min-width / max-width / max-height(+internal scroll) / word-wrap contract instead of each instance hand-rolling its own bounds.
-- **Detect:** Multiple overlay/dropdown/menu components each defining their own `min-width`/`max-width`/`max-height` values, or omitting one — e.g. no `max-height`, so a long result list grows unbounded past the viewport bottom with no scroll. Also check for missing `overflow-wrap`/`word-break` on long unbroken strings inside the panel — without it, the panel's own `max-width` gets silently violated by the content forcing it wider.
-- **Fix:** Define the four values once (as tokens/theme constants) and apply them uniformly at the shared overlay primitive level (see CMP-09): a floor width, a ceiling width paired with `overflow-wrap: anywhere`, and a ceiling height with `overflow-y: auto`.
+- **Detect:** Multiple overlay/dropdown/menu components each defining their own `min-width`/`max-width`/`max-height` values, or omitting one — e.g. no `max-height`, so a long result list grows unbounded past the viewport bottom with no scroll. Also check for missing `overflow-wrap`/`word-break` on long unbroken strings inside the panel — without it, the panel's own `max-width` gets silently violated by the content forcing it wider; a modal whose outer size shifts as content changes, nested/double scrollbars inside an overlay, or header/action bars that scroll away with content
+- **Fix:** Define the four values once (as tokens/theme constants) and apply them uniformly at the shared overlay primitive level (see CMP-09): a floor width, a ceiling width paired with `overflow-wrap: anywhere`, and a ceiling height with `overflow-y: auto`. Size stability: the overlay's outer dimensions never change with content; overflow resolves in exactly ONE defined internal scroll region while header and action areas stay fixed; nested scrollbars are forbidden; post-open layout shift stays near zero. (XR-170)
 - **Impact:** Without a shared contract, some overlays cap height and others don't, some wrap long content and others let it overflow the panel's own box — visibly inconsistent polish across the same interaction pattern.
 - **Source:** Live audit pattern; CSS Overflow Module Level 4
 
 ### CMP-11 [MEDIUM] Structural Field-Type Registry
 Every structural data type that needs input masking, validation, parsing, and display formatting (phone numbers, national ID/tax numbers, money + currency, percentages, integers with a "no limit" sentinel, dates, URLs, …) is defined **once** in a central registry (mask/validate/parse/format/inputAttrs per type) — never re-implemented ad hoc at each input field or display site.
 - **Detect:** Grep for inline regex patterns, inline `parseFloat`/`parseInt`/custom parsing, or inline formatting logic duplicated across multiple form fields or display components for what is recognizably the same underlying data type. Also check whether validation failures block saving (HARD) vs. only warn — inconsistency across fields of the *same type* is itself a signal of missing centralization.
-- **Fix:** Introduce one registry keyed by type id, each entry exposing `{ mask, validate, format, parse, inputAttrs, placeholder }`; every input field and every display site consumes it instead of writing its own logic. Keep the *stored* canonical value format stable and separate from the *display* mask.
+- **Fix:** Introduce one registry keyed by type id, each entry exposing `{ mask, validate, format, parse, inputAttrs, placeholder }`; every input field and every display site consumes it instead of writing its own logic. Keep the *stored* canonical value format stable and separate from the *display* mask. Phone numbers specifically: format per-country and render every display with a country indicator (flag or dial code) from the registry's phone type. (XR-168)
 - **Impact:** Duplicated per-field validation/formatting logic drifts silently — one call site's phone regex accepts a format another rejects, one money field loses precision on round-trip that another preserves.
 - **Source:** Live audit pattern (production field-type registry)
 
@@ -205,6 +205,41 @@ A forced-reload path that can interrupt an open form/modal (new-version-deploy p
 - **Fix:** Snapshot the open form/modal's field values on the page's unload/hide event to short-lived storage; restore them once the app re-opens the same route/modal after reload; exclude fields explicitly marked sensitive, even transiently.
 - **Impact:** Losing in-progress form input to a forced reload the user didn't initiate is a silent-data-loss UX risk that measurably makes users defer or avoid updates/edits.
 - **Source:** Page Lifecycle API (`pagehide`/`visibilitychange`) — MDN
+
+### CMP-23 [MEDIUM] Filter Panel Primitive: Shared Behavior Core, Per-Surface Labels
+All filter panels derive from one shared primitive: common controls (select-all, clear) share text, behavior, and position; labels stay configurable per surface.
+- **Detect:** Multiple filter panels implement their own select-all/clear with different wording, placement, or semantics; filter field layouts differ arbitrarily between surfaces.
+- **Fix:** Extract one filter-panel primitive (checkbox list + chip toggles) owning the behavioral contract — idempotent select-all/clear, consistent placement, one base layout. Keep the functional core single-sourced, but let button/group labels be configured per usage site rather than hardcoded from one dictionary.
+- **Impact:** Divergent filter behavior forces users to relearn the same control per screen; a shared primitive makes every future filter free.
+- **Source:** XR-048 — cross-project experience registry (2026).
+
+### CMP-24 [MEDIUM] Entity Row and Picker Primitives Are Shared and Context-Filterable
+Recurring entity displays (person rows, record rows) render from one aligned-column primitive, and entity pickers accept contextual filters.
+- **Detect:** The same entity type renders with different field order/alignment across surfaces; entity pickers show the full unfiltered population where the context implies a subset (e.g. only staff, only customers).
+- **Fix:** Extract one entity-row primitive with aligned columns (name, phone, other fields column-aligned by data type); give picker primitives a context-filter parameter (e.g. by role/category) so each usage site scopes its candidate list declaratively.
+- **Impact:** Unaligned ad-hoc rows slow scanning on every list; unfiltered pickers make users search through irrelevant records on every selection.
+- **Source:** XR-063 + XR-064 — cross-project experience registry (2026).
+
+### CMP-25 [HIGH] Search Behavior Derives From One SSOT
+Every search field (global rail, board, pickers, settings search) shares the same debounce, minimum-character threshold, result limit, and combobox a11y behavior from one source.
+- **Detect:** Search inputs hardcode their own debounce/threshold/limit values; keyboard behavior (arrow navigation, Enter, Esc) differs between search fields.
+- **Fix:** Centralize search constants and a shared search helper (debounce ms, min chars, result cap, combobox keyboard model) and require every search field to consume it; forbid per-field hardcoded values.
+- **Impact:** Each divergent search field is a separate bug surface and a separate muscle-memory reset for users.
+- **Source:** XR-166 — cross-project experience registry (2026).
+
+### CMP-26 [MEDIUM] Form Ergonomics: Dependency Order, Derived-but-Editable, Status Color
+Form fields follow dependency order; derived values stay visible and overridable; validation state is color-coded; popovers portal correctly above modals.
+- **Detect:** A field's options depend on another field placed below it; derived values are hidden or locked; override state is indistinguishable from default; validation state is text-only; popovers clip or render under modal overlays.
+- **Fix:** Order fields so dependencies flow downward; show derived values as editable with a visible override-vs-default distinction (per CMP-19); color-code validation state (with a non-color companion per AXE rules); render popovers through a portal layered above the modal.
+- **Impact:** Dependency-inverted forms force backtracking; hidden derivations produce "where did this value come from" support tickets.
+- **Source:** XR-056 — cross-project experience registry (2026).
+
+### CMP-27 [HIGH] Routes Derive From One Manifest; Every Surface Is Addressable
+All routes derive from a single route-manifest SSOT, and every user surface — including modals and panels — has its own route, is bookmarkable, and reopens refresh-safe.
+- **Detect:** Routes registered by scattered imperative calls with no single manifest; modals/detail panels that vanish on refresh; surfaces unreachable by direct URL; state reachable only through a click sequence.
+- **Fix:** Define one route manifest (path, surface, params, tier) as the SSOT and derive registration, navigation, and liveness checks from it; give every surface a route that restores the same state on refresh or direct entry.
+- **Impact:** Scattered route registration drifts (dead routes, orphan surfaces); non-addressable surfaces break refresh, sharing, bookmarks, and support ("send me the link" fails).
+- **Source:** XR-003 + XR-136 — cross-project experience registry (2026).
 
 ---
 

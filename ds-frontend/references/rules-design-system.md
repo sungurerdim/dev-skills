@@ -6,8 +6,8 @@ Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Design Tokens** | TOK-01 to TOK-12 (3 HIGH, 7 MEDIUM, 2 LOW) | ~14 |
-| **Theming** | THM-01 to THM-05 (2 HIGH, 2 MEDIUM, 1 LOW) | ~124 |
+| **Design Tokens** | TOK-01 to TOK-13 (4 HIGH, 7 MEDIUM, 2 LOW) | ~14 |
+| **Theming** | THM-01 to THM-06 (2 HIGH, 3 MEDIUM, 1 LOW) | ~138 |
 
 ---
 
@@ -126,6 +126,13 @@ When a variant axis (density, theme, RTL-mirroring) is layered on top of an exis
 - **Impact:** A partially-implemented variant axis passes a naive "does the default render" gate while being functionally decorative — the preference toggles a data attribute that most of the UI ignores.
 - **Source:** W3C Design Tokens Community Group format spec (variant/mode tokens)
 
+### TOK-13 [HIGH] Monotonic Spacing Scale, Mechanically Enforced
+All spacing and alignment values come from one monotonic spacing scale; off-scale raw values and ad-hoc layout hacks are forbidden and caught by a mechanical audit.
+- **Detect:** Raw px/margin values that bypass the `--space-*` (or equivalent) scale; negative-margin or manual-centering hacks compensating for misaligned primitives; rows/columns with unbalanced start/end edges or dead corner gaps unowned by the layout contract.
+- **Fix:** Define one monotonic spacing scale plus a primitive header/section component and a proportion contract; require every spacing/alignment value to come from the scale; group functionally related controls adjacently; give structurally unused corners a deliberate owner (useful mini-widget or reclaimed space). Enforce with a mechanical audit (spacing/layout lint script) so deviations fail the check, not the reviewer's eye.
+- **Impact:** Off-scale values compound into crooked layouts no one can fix locally; mechanical enforcement is the only thing that keeps a spacing system true over time.
+- **Source:** XR-046 — cross-project experience registry (2026).
+
 ---
 
 ## Theming
@@ -172,3 +179,10 @@ Images adjusted for dark backgrounds to prevent harsh contrast.
 - **Fix:** Apply filter (brightness 0.8-0.9, or invert for icons) in dark mode. Provide alternate dark-mode image assets for key visuals. SVG icons: use currentColor for automatic theme adaptation.
 - **Impact:** Bright images on dark backgrounds → visual shock and discomfort, especially in low-light environments.
 - **Source:** Apple HIG Images in Dark Mode
+
+### THM-06 [MEDIUM] Deterministic Data-First Boot; Theme Applied Exactly Once
+App bootstrap follows a deterministic data-first order, and the theme/visual layer is applied exactly once.
+- **Detect:** Render starts before required initial data resolves (flash of empty/placeholder state, then reflow); theme application called from multiple code paths (double `Theme.apply`, re-theming on navigation); FOUC or theme flicker on load.
+- **Fix:** Sequence boot as data-first (resolve required initial state, then render), and route theme application through one call site executed exactly once per session; guard against repeat application.
+- **Impact:** Pre-data render and repeated theming produce visible flicker and inconsistent state on every single load — the first impression of the product.
+- **Source:** XR-004 — cross-project experience registry (2026).
