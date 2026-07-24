@@ -215,7 +215,7 @@ ds-test: {OK|WARN|FAIL} | Generated: {n} | Updated: {n} | Fixed: {n} | Skipped: 
 | Critical-flow wiring | {n}/{n} | flows verified mock-free (see ds/audit/findings.md for gaps) |
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real test outcomes only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real test outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} tests generated covering {n} previously-untested branches — coverage rose from {before}% to {after}% on {scope}`
 - `{n} flaky tests fixed (sleep-based → event-based, time-dependent → fixed-clock) — CI failure rate from non-determinism eliminated`

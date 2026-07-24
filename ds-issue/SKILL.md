@@ -132,7 +132,7 @@ Setup + Load → [mode menu if ambiguous] → dispatch by mode → [intake | swe
 - **Do (`--do #N`):** impact map `| Axis | Affected set | How found |` + hazard table; plan `| # | Unit | Gap | Signal | Files |`; then `ds-issue --do #N: {OK|WARN|FAIL} | Units: n/N | Aggregate: {green|red} | Issue #N {closed|open}`.
 - **Do (`--do --all`):** the queue, then per-issue outcomes `| # | Title | Priority | Outcome | Evidence |` (outcome ∈ `closed · skipped-stale · skipped-blocked · red · needs-human`); then `ds-issue --do --all: {OK|WARN|FAIL} | Issues: closed n / skipped m / red k of N`.
 
-Every run ends with the summary line + a **Value Delivered** block (1-5 concrete bullets — e.g. "candidate matched #142, avoided a duplicate"; "race in sync write closed, 12 callers re-checked, regression test added"). Zero-change → `No issue created — duplicates #N` / `Status audit only — nothing mutated` / `Plan only — N units, M hazards; no files changed`.
+Every run ends with the summary line + a **Value Delivered** block (1-5 concrete bullets — e.g. "candidate matched #142, avoided a duplicate"; "race in sync write closed, 12 callers re-checked, regression test added"; effect clauses in plain everyday language — concrete quantified benefit, never mechanical activity; SKILL-SPEC §5 rule 8). Zero-change → `No issue created — duplicates #N` / `Status audit only — nothing mutated` / `Plan only — N units, M hazards; no files changed`.
 
 ## Quality Gates
 

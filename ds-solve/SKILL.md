@@ -231,7 +231,7 @@ Status: `OK` (objective achieved), `WARN` (partial — some steps succeeded), `F
 3. External action → {manual step} required first
 ```
 
-**Value Delivered:** 1-5 concrete problem-resolution outcomes. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete problem-resolution outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `Objective achieved on plan {n} of {budget-P}, round {r} of {budget-R} — multi-pass backtracking succeeded where single-shot would have stalled`
 - `{n} alternatives researched via /ds-research — solution chosen with evidence, not first-idea bias`

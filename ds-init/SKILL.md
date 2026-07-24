@@ -196,7 +196,7 @@ Next steps:
 4. Start development: {dev-command}
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real generations only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real generations only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} config files generated — lint/format/typecheck run on every commit, no manual setup`
 - `CI pipeline (lint → test → build) wired with SHA-pinned actions — supply chain hardening from day one`

@@ -202,7 +202,7 @@ ds-tune: {OK|WARN|FAIL} | Experiments: {n} | Best: {metric_value} | Improvement:
 
 Then show git log of kept improvements: `git log --oneline autotune/{tag} | head -10`.
 
-**Value Delivered:** 1-5 concrete optimization outcomes. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete optimization outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `Metric improved from {baseline-value} to {best-value} ({direction} {delta}) across {n} accepted experiments — gain is git-ratcheted, only improvements survived`
 - `{n} experiments rejected as no-improvement / regression — failed paths discarded, no manual cleanup needed`
