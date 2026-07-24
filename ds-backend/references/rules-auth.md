@@ -6,7 +6,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Authentication** | AUTH-01 to AUTH-11 (3 CRITICAL, 3 HIGH, 2 MEDIUM, 3 LOW) | ~12 |
+| **Authentication** | AUTH-01 to AUTH-16 (3 CRITICAL, 6 HIGH, 4 MEDIUM, 3 LOW) | ~12 |
 
 ---
 
@@ -299,3 +299,58 @@ Implementation rules:
 **Fix:** Enforce ownership (or RBAC/ABAC) on every object access, server-side. Add the cross-user regression test: as user A, create resource `R`; as user B, request `R` by its ID; assert `403`/`404`, never `200`. Apply equally to indirect references (filenames, storage keys, sequential IDs).
 
 **Source:** [OWASP API1: BOLA](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/), [CVE-2025-48757](https://nvd.nist.gov/vuln/detail/CVE-2025-48757)
+
+### AUTH-12 All Provider Binding Converges on One Post-Login Connect Hook [MEDIUM]
+Every post-authentication provider-binding step (token storage, workspace discovery, initial sync kick-off) runs through one canonical connect hook.
+
+**Detect:** Provider-binding side effects scattered across login callbacks, route guards, and ad-hoc init code; a second login path (re-auth, added provider) that skips steps the first path performs.
+
+**Fix:** Define one canonical `onConnect`-style hook that every successful auth flow — first login, re-login, re-consent, added scope — funnels through; keep binding side effects only there.
+
+**Impact:** Scattered binding logic makes re-auth paths silently skip initialization steps, producing "works on first login only" bugs.
+
+**Source:** XR-027 — cross-project experience registry (2026); complements AUTH-03 (PKCE).
+
+### AUTH-13 OAuth Robustness Envelope Is Pinned by Tests [HIGH]
+The OAuth client's operational envelope — provider-directed rate limiting, retry policy, scope minimization, token refresh — is enforced and protected by tests.
+
+**Detect:** Token-refresh logic with no test exercising expiry/refresh/failure paths; retry against the provider without backoff or budget; requested scopes exceeding what code actually uses.
+
+**Fix:** Implement rate limiting and bounded retry toward the provider, request the minimal scope set, and cover token refresh and rate-limit behavior with regression tests so the envelope cannot silently regress.
+
+**Impact:** An untested refresh path fails exactly when tokens expire in production — locking every user out at once; over-broad scopes inflate breach blast radius and store-review friction.
+
+**Source:** XR-148 — cross-project experience registry (2026).
+
+### AUTH-14 Routine Key Rotation Uses a Dual-Key Overlap Window [HIGH]
+Routine admin/API key rotation is zero-downtime via dual-key overlap; confirmed leaks skip the overlap.
+
+**Detect:** Key rotation implemented as replace-in-place (old key dies the moment the new one lands); no secondary-key slot; or a leaked key rotated with an overlap window left open.
+
+**Fix:** For routine rotation: add the new key as a secondary (both valid), migrate all callers, then remove the old. For a CONFIRMED leak: replace immediately with no overlap — never leave a compromised key valid.
+
+**Impact:** Replace-in-place rotation causes an outage on every routine rotation, which teaches teams to never rotate; overlap on a leaked key extends the attacker's window.
+
+**Source:** XR-033 — cross-project experience registry (2026).
+
+### AUTH-15 Fine-Grained Roles Persist in an SSOT, Never Re-Derived at Login [HIGH]
+Role assignments live in one persistent store; login never recomputes roles from a coarser signal.
+
+**Detect:** Roles derived at login from storage-provider permissions or group membership; fine-grained roles (manager, receptionist) that silently collapse to a coarse default after re-login.
+
+**Fix:** Persist role assignments in a single SSOT (e.g. a members registry); on login, read roles from it — provider permissions may gate access but never define the role.
+
+**Impact:** Re-derived roles silently demote users on every session start; the bug looks like "settings randomly reset" and erodes trust in the permission system.
+
+**Source:** XR-142 — cross-project experience registry (2026).
+
+### AUTH-16 Role Taxonomies Stay Separate: Access Roles ≠ Domain Roles ≠ Per-Record Roles [MEDIUM]
+System RBAC roles, domain/service roles, and per-record contact roles are distinct taxonomies and are never conflated.
+
+**Detect:** A settings surface spawns a second taxonomy overlapping an existing one; one enum mixing access control (admin/member) with domain function (provider/client) or per-record tags; users unable to tell whether two role screens describe the same thing.
+
+**Fix:** Keep the three taxonomies in separate data structures with distinct naming in both model and UI; where they interact, map explicitly. Every taxonomy screen states its own scope and how it differs from its siblings.
+
+**Impact:** Conflated role taxonomies produce both privilege bugs (domain role accidentally grants access) and duplicate-taxonomy drift (two lists of "roles" no one dares edit).
+
+**Source:** XR-144 — cross-project experience registry (2026).
