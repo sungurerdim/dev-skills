@@ -12,7 +12,7 @@ Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix a
 | **Symmetry & Print** | RSP-12 to RSP-14 (1 HIGH, 2 MEDIUM) | ~193 |
 | **Alignment & Visual Geometry** | RSP-15 to RSP-18 (2 HIGH, 1 MEDIUM, 1 LOW) | ~230 |
 | **Cascade & Delivery** | RSP-19 to RSP-20 (2 MEDIUM) | ~275 |
-| **Alignment & Visual Geometry** | RSP-15 to RSP-18 (2 HIGH, 1 MEDIUM, 1 LOW) | ~218 |
+| **Layout Stability** | RSP-21 (1 HIGH) | ~266 |
 
 ---
 
@@ -122,13 +122,14 @@ Images serve appropriate size for viewport and pixel density.
   - Large images served to mobile viewports
   - Missing modern format (WebP/AVIF) with fallback
   - Flutter: Image.network without cacheWidth/cacheHeight
+  - Images stretched or distorted by their frame (missing `object-fit`), or frames whose aspect ratio fights the source media
 - **Fix:** Add responsive image markup:
   ```html
   <img srcset="img-400.webp 400w, img-800.webp 800w, img-1200.webp 1200w"
        sizes="(max-width: 600px) 100vw, 50vw"
        src="img-800.webp" alt="..." width="800" height="600" loading="lazy">
   ```
-  Always include width/height to prevent CLS. Use `loading="lazy"` for below-fold images.
+  Always include width/height to prevent CLS. Use `loading="lazy"` for below-fold images. Present images undistorted in deliberately sized frames: `object-fit: cover|contain` per context, frame dimensions chosen for the content, and wide-viewport layouts that use available space without stretching the source. (XR-191)
 - **Impact:** Oversized images are largest contributor to page weight. Serving 1200px images to 375px viewports wastes bandwidth and slows load.
 - **Source:** MDN Responsive Images, Web.dev Image Optimization
 
@@ -261,3 +262,12 @@ A build-free/vanilla-module frontend can still achieve route-based code-splittin
 - **Fix:** Replace the eager registry with a `name → () => import(path)` loader map behind a Proxy (returns `undefined` before load, preserving synchronous property-access call sites once loaded); when a view synchronously embeds another view in its render, declare that dependency explicitly (an `embeds` list) so the loader pre-loads it before rendering.
 - **Impact:** Route-based code-splitting is achievable without adopting a bundler, cutting initial payload; the explicit `embeds` declaration prevents a silent blank-render regression when a transitive view dependency hasn't loaded yet.
 - **Source:** MDN dynamic `import()`; JavaScript Proxy (MDN)
+
+## Layout Stability
+
+### RSP-21 [HIGH] Scrollbars and Hover Never Shift Layout
+Scrollbar appearance/disappearance and hover effects never change layout metrics.
+- **Detect:** Content jumps sideways when a scrollbar appears; hover changes width/height/wrap (text un-wrapping, borders growing into layout); scroll/wrap behavior styled ad hoc per surface.
+- **Fix:** Reserve the scrollbar gutter permanently (`scrollbar-gutter: stable` or equivalent) or use overlay scrollbars that never affect layout width. Restrict hover to non-layout-affecting changes (color, shadow, cursor, transform); forbid hover effects that alter width, height, or line count. Define this scroll/wrap policy once in the central style layer and derive all scroll areas from it.
+- **Impact:** Layout jitter from scrollbars and hover reads as instability and causes misclicks precisely at the moment of interaction.
+- **Source:** XR-132 — cross-project experience registry (2026); complements RSP-10 (CLS).

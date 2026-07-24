@@ -63,6 +63,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | theming | Dark mode, `light-dark()`, color-scheme, semantic tokens, theme switching | rules-design-system.md |
 | config | Env-consumed values externalized; `.env.example` updated; no secrets in source ([references/principles.md §8](references/principles.md)) | rules-design-system.md |
 | admin-ui | D10 (advisory, SKILL-SPEC §15) — back-office/admin surfaces follow the same design-system tokens, states, and a11y rules as user-facing UI; no unstyled/raw-HTML admin screens | rules-components.md |
+| scheduling | Conditional (D3) — scheduling/calendar/booking surfaces: hover preview, create=edit, drag thresholds, capacity conflicts, off-hours, entity color SSOT | rules-scheduling.md |
 
 Default: all scopes.
 
@@ -156,6 +157,7 @@ Load matching reference file per in-scope domain:
 | responsive | [rules-responsive.md](references/rules-responsive.md) |
 | (style-mode) | [controlled-vs-innovative.md](references/controlled-vs-innovative.md) |
 | (aesthetic) | [aesthetics-presets.md](references/aesthetics-presets.md) |
+| (scheduling — conditional) | [rules-scheduling.md](references/rules-scheduling.md) |
 
 **Large scope (3+ scopes):** progress checklist + persistent findings artifact; max 2 parallel scans. **Per scope:** search relevant files → search violation patterns → read context → classify CAT-1 (auto-fixable) or CAT-2 (needs approval). **Confidence:** HIGH = match + context verified; MEDIUM = pattern match, ambiguous; LOW = heuristic.
 
@@ -207,7 +209,7 @@ FRC+DSC accounting. `fixed + failed + skipped + needs_approval + not_applicable 
 
 **Gate:** Summary rendered; equation balances. If fails → unaccounted finding → `skipped (accounting gap)`; still imbalanced → `WARN`, report the items needing reconciliation.
 
-**Value Delivered:** 1-5 concrete UI outcomes, real changes only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete UI outcomes, real changes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `{n} hardcoded colors / spacings replaced with design tokens — theme + dark mode now consistent across the codebase`
 - `{n} WCAG 2.2 AA contrast violations fixed — keyboard + screen-reader users no longer locked out of key flows`
