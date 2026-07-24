@@ -2,7 +2,7 @@
 
 | Section | Rules |
 |---------|-------|
-| **Observability** | MON-01 to MON-06 (3 HIGH, 2 MEDIUM, 1 LOW) |
+| **Observability** | MON-01 to MON-07 (4 HIGH, 2 MEDIUM, 1 LOW) |
 
 ## Observability
 
@@ -152,3 +152,17 @@ Alert on downtime sustained longer than 1 minute. Configure a status page for tr
 **Why:** Cloud services with usage-based pricing can generate unexpected bills. Free tier limits change without notice (SendGrid removed its free tier in May 2025, PlanetScale in April 2024). Proactive monitoring prevents surprise costs.
 
 **Source:** Cloud provider cost management docs, cost-optimization.md (Cost Scaling Thresholds)
+
+---
+
+### MON-07 | HIGH | Health Signals Measure Queue-Head Staleness, Not Just Liveness
+
+A queue-consuming service's health endpoint checks the age of the oldest queued item against a threshold and returns 503 when exceeded — catching "process up, work stuck".
+
+**Detect:** Health checks asserting only process liveness/port response on queue-driven services; stuck-worker incidents discovered by users while health stayed green; no documented first-look signal for operations.
+
+**Fix:** Extend the health endpoint to compare queue-head wait time against a threshold (e.g. 180s) and return 503 on breach; document it as operations' first-look signal. Liveness says the process exists; queue-head staleness is the only cheap signal that work is actually flowing.
+
+**Why:** A wedged worker behind a green liveness check is an invisible outage — jobs pile up for hours while every dashboard says healthy.
+
+**Source:** XR-079 — cross-project experience registry (2026).

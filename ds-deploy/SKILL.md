@@ -199,7 +199,7 @@ ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | 
 
 `--auto` → append `⚠ Generated without interactive review`.
 
-**Value Delivered:** 1-5 concrete bullets, real configuration outputs only. Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real configuration outputs only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 
 - `Dockerfile hardened: multi-stage build, non-root USER, HEALTHCHECK — image size reduced from {old-size} to {new-size}, attack surface narrowed`
 - `SSL automation wired ({tool} handling cert renewal) — TLS expiry incidents eliminated`
