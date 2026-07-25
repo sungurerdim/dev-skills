@@ -180,6 +180,18 @@ Look up lint tool from `references/toolchains.md`. **Fix mode:** run fix command
 | elixir | `IO.inspect` / `IO.puts` | in `lib/` | Use `Logger` module |
 | scala | `println` | in `src/main/` | Use structured logger (e.g., `slf4j`) |
 
+**Complexity thresholds (linter-owned, not hand-audited):** enable these in the stack's linter config (tool per `references/toolchains.md`) so the check is mechanical and runs on every pass. Linter offers no complexity rule → report the gap once under Tool Install Policy and move on; never substitute a manual read-through.
+
+| Metric | Threshold |
+|--------|-----------|
+| Cyclomatic complexity | ≤ 15 |
+| Function / method length | ≤ 50 lines |
+| File length | ≤ 500 lines |
+| Nesting depth | ≤ 3 |
+| Parameters | ≤ 4 |
+
+Existing config already sets a different threshold → keep the project's value, report the delta; the project's own convention wins.
+
 **Spell check (advisory, all stacks):** `typos` binary present → run `typos` (fix mode: `typos -w`), report correction count — its known-misspellings design keeps false positives low even on large repos; absent → skip silently (optional sub-check, exempt from Tool Install Policy prompting).
 
 **Gate:** Lint re-check passes after auto-fix, or check-mode issues reported. If fails → tool unavailable: apply Tool Install Policy; unfixable errors after auto-fix → report residual count + file:line each, mark scope `WARN`, proceed to typecheck (don't re-run lint).
