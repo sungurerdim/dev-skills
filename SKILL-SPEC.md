@@ -1401,6 +1401,8 @@ Skills MUST replace generic rows with domain-specific recovery actions. A skill 
 
 ### Externalization Rules
 
+**Standalone constraint.** A reference file ships inside the skill that uses it. A skill never links another skill's files by path, and never links outside its own directory — a lone install has no siblings to resolve against. Cross-skill *prose* handoffs stay advisory (target present → delegate; absent → inline-check or gap-note). Enforced by `scripts/check-consistency.sh` checks 21 and 22, both self-tested.
+
 Move to `references/` when:
 - 10+ rules in a single domain
 - Weight matrices or scoring formulas

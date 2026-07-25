@@ -19,7 +19,7 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 - Sequence gaps: {n} ({0 if none — a pre-launch/launched run with n > 0 cannot report Ship-ready: yes})
 - Doc token reduction: {before} → {after} ({%})
 - Score delta (`--uplift` runs only): overall {prev} → {now} (model {prev-model} → {curr-model})
-- Security baseline ([references/principles.md §5](references/principles.md)): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
+- Security baseline ([principles.md §5](principles.md)): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
 - PR: {url} | declined-this-run | not-applicable ({reason}) | muted
 - Tracking: {n} filed ({refs}) | declined-this-run | not-applicable (0 unresolved) | muted
 
