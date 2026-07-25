@@ -7,7 +7,7 @@ set -u
 fail=0
 err() { echo "FAIL: $*"; fail=1; }
 
-# --- Checks 1, 8, 19, 20 are wrapped in functions purely so --self-test can run
+# --- Checks 1, 8, 19, 20, 21, 22 are wrapped in functions purely so --self-test can run
 #     them in isolation against a fixture directory; execution order/logic/
 #     messages are otherwise identical to a plain top-to-bottom script. Each
 #     function operates on $PWD, same as every other check in this file. The
@@ -64,12 +64,61 @@ check_delegates_receives_graph() {
   done
 }
 
+# 21. v6 — Standalone paths: a skill may never reference another skill's files by
+#     path. Prose handoffs are fine (check 10 guards hard-fail wording); a file
+#     path is not, because a lone install has no sibling directory to resolve it
+#     against. `../agents/` is exempt — install.sh ships agents separately.
+check_standalone_paths() {
+  hits=$(grep -rnoE '\]\((\.\./)?ds-[a-z-]+/[^)]*\)' ds-*/SKILL.md ds-*/references/*.md 2>/dev/null || true)
+  [ -z "$hits" ] || err "cross-skill file path — a lone install cannot resolve it (SKILL-SPEC Standalone Invariant):
+$hits"
+}
+
+# 22. v6 — Intra-skill link resolution: every relative .md link inside a skill
+#     must resolve AND stay inside that skill's own directory — a lone install
+#     ships one directory, so a link escaping it is dead even when the repo
+#     layout makes it look fine. Fenced code blocks are skipped: they hold
+#     illustrative links, not real ones. Escapes that land back inside the same
+#     skill (references/../SKILL.md) are legitimate and pass.
+norm_path() {
+  local seg out=() IFS=/
+  for seg in $1; do
+    case "$seg" in
+      ''|.) ;;
+      ..) [ "${#out[@]}" -gt 0 ] && unset 'out[${#out[@]}-1]' ;;
+      *) out+=("$seg") ;;
+    esac
+  done
+  printf '%s' "${out[*]}"
+}
+check_intra_skill_links() {
+  bad=""
+  for f in ds-*/SKILL.md ds-*/references/*.md; do
+    [ -f "$f" ] || continue
+    skill="${f%%/*}"; dir=$(dirname "$f")
+    for l in $(awk '/^```/{fence=!fence; next} !fence' "$f" \
+                 | grep -oE '\]\([^)]+\.md[^)]*\)' \
+                 | sed -E 's/^\]\(//; s/\)$//; s/#.*$//' || true); do
+      case "$l" in http*|'') continue;; esac
+      target=$(norm_path "$dir/$l")
+      case "$target" in
+        "$skill"/*) [ -e "$target" ] || bad="$bad
+  $f -> $l (no such file)" ;;
+        *) bad="$bad
+  $f -> $l (escapes $skill/ — not present in a lone install)" ;;
+      esac
+    done
+  done
+  [ -z "$bad" ] || err "link a lone install cannot follow:$bad"
+}
+
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
 #     input, runs the real check function against it, asserts a FAIL: line
 #     appears. Covers check_skill_badge (1), check_gitignore_canonical (8),
-#     check_claude_md_counts (19) and check_delegates_receives_graph (20) —
-#     the 4 checks factored into standalone functions. The remaining checks
+#     check_claude_md_counts (19), check_delegates_receives_graph (20),
+#     check_standalone_paths (21) and check_intra_skill_links (22) —
+#     the 6 checks factored into standalone functions. The remaining checks
 #     (2-7, 9-18) stay inline and entangled with full-repo state (SKILL-SPEC.md
 #     dimension table, agents/*.md, references/*.md globs, hardcoded skill
 #     lists) — fixturing them cheaply would mean re-deriving large slices of
@@ -123,8 +172,30 @@ EOF
   printf '**Owns:** b | **Delegates:** none | **Receives:** ds-gamma -> unrelated\n' > "$tmp/f4/ds-beta/SKILL.md"
   assert_catches "check_delegates_receives_graph" "$tmp/f4" check_delegates_receives_graph
 
+  # Fixture: check_standalone_paths — ds-alpha reads ds-beta's reference file
+  mkdir -p "$tmp/f5/ds-alpha/references" "$tmp/f5/ds-beta/references"
+  printf 'See [beta rules](../ds-beta/references/rules.md) for detail.\n' > "$tmp/f5/ds-alpha/SKILL.md"
+  printf '# rules\n' > "$tmp/f5/ds-beta/references/rules.md"
+  assert_catches "check_standalone_paths" "$tmp/f5" check_standalone_paths
+
+  # Fixture: check_intra_skill_links — a missing reference file and a link that
+  # escapes the skill directory; the illustrative link inside a fence and the
+  # legitimate references/../SKILL.md escape-and-return must NOT be flagged
+  mkdir -p "$tmp/f6/ds-alpha/references" "$tmp/f6/agents"
+  cat > "$tmp/f6/ds-alpha/SKILL.md" <<'EOF'
+Real link: [gone](references/missing.md)
+Escaping link: [agent](../agents/worker.md)
+
+```markdown
+Illustrative only: [Configuration](./docs/config.md)
+```
+EOF
+  printf 'Back to [/ds-alpha](../SKILL.md).\n' > "$tmp/f6/ds-alpha/references/ok.md"
+  printf '# worker\n' > "$tmp/f6/agents/worker.md"
+  assert_catches "check_intra_skill_links" "$tmp/f6" check_intra_skill_links
+
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 4 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 6 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -312,9 +383,11 @@ done
 
 check_claude_md_counts
 check_delegates_receives_graph
+check_standalone_paths
+check_intra_skill_links
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links all consistent"
 else
   exit 1
 fi

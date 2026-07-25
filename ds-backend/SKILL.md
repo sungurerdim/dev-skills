@@ -158,7 +158,7 @@ Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15)
 
 ### Transactional Messaging (conditional)
 
-**Activate when:** messaging SDK/provider dependency, a consent field in the schema, or reminder-scheduling code is detected (see [ds-blueprint references/detection.md § Step 5](../ds-blueprint/references/detection.md)). Zero checks when absent.
+**Activate when:** messaging SDK/provider dependency, a consent field in the schema, or reminder-scheduling code is detected — those three signals are the whole activation contract, evaluated here. Zero checks when absent. ds-blueprint installed alongside → its `references/detection.md` § Step 5 carries the fuller provider-signal catalog; absent → the three signals above stand alone, no capability lost.
 
 | Check | Rule |
 |-------|------|

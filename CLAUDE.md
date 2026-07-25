@@ -98,6 +98,7 @@ Driven by [The new rules of context engineering for Claude 5 generation models](
 - **Reference Forms (SKILL-SPEC § Reference Forms):** a reference takes the highest-fidelity form its content allows — rule list, template, rubric, working artifact (HTML mockup, fixture), or test-suite-as-spec. Every reference declares its consumer; one with no named consumer is deleted.
 - **Rubrics for taste, rules for patterns:** a judgment with no greppable pattern (is this the right abstraction?) goes in a `rubric-*.md` handed whole to a verifier pass, with each level claimed only against a `file:line` example. Never a bare score range.
 - **Cross-repo single home:** guidance owned by a skill here (commit semantics → ds-commit, review severity/skip patterns/fix quality → ds-review, complexity thresholds → ds-fix) is not repeated in dev-rules' always-on `rules.md`; that file carries a pointer only.
+- **Standalone Invariant is now mechanically enforced**, not prose-asserted. `check-consistency.sh` gained check 21 (no skill references another skill's files by path) and check 22 (every relative `.md` link resolves *and* stays inside its own skill directory — a lone install ships one directory, so an escaping link is dead even when the repo layout makes it look fine). Both carry self-test fixtures. Prose handoffs across skills remain correct and expected; only file paths are barred. Rationale: check 10 caught hard-fail *wording* but nothing caught a dangling or escaping *path*, which is the way a lone install actually breaks.
 
 ## Philosophy
 
