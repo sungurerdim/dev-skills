@@ -64,7 +64,6 @@ Without flags: present mode selection.
 
 Profile embedded in project's AI instruction file between `## Blueprint Profile` and `## End Blueprint Profile` heading markers — markdown headings are universally preserved by every tool.
 
-**Legacy marker migration** (non-standard markers: HTML comments like `<!-- *-start -->` / `<!-- *-end -->`, or variant headings like `## X Blueprint Profile`): read content between legacy markers, replace with standard headings, preserve all existing content (scores, config, project map, run history), remove old markers.
 
 **Instruction file detection** — search for known AI instruction files (see [references/detection.md](references/detection.md) § Instruction Files). Use first match. None found: ask which tool user uses, create appropriate file. **Under `--auto`:** no prompt — default to `CLAUDE.md` (the most common AI instruction file) and create it.
 
@@ -94,23 +93,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 ## End Blueprint Profile
 ```
 
-**Format rules:** key-value pairs only, one value per line — no prose, headers, tables, or bullets inside the block; AI parses by `{key}: {value}` line-shape, every consumer reads its line in O(1). `Mission:` and `Red lines:` are the foundation's normative core: `Red lines` are hard NOs binding on every consumer — a downstream skill never proposes an action crossing one without explicit user override; `Constraints` remain soft preferences. Profiles predating the Foundation pass may lack both lines — valid; the next `--init`/`--foundation` run adds them. `Integrations:` feeds the A9 conditional rule blocks in ds-backend/ds-compliance/ds-frontend/ds-mobile/ds-launch — `none` when no signal matches, comma-separated when both providers are detected. `Modules:` and `External:` use `;` separator so the block stays one line per concern. `Scores:` is a single line with short keys — dashboard renders in chat output, not in the profile; `model=` records the AI model that performed the assessment (e.g. `model=claude-fable-5`; `model=unknown` when not determinable), enabling model-uplift attribution — score deltas across model generations traceable via `git log` of this line. The profile is calibration data, not a dashboard (run-history/deltas exclusion stated once under **Profile format** above).
-
-**Read/write rules:**
-- Only modify content between `## Blueprint Profile` and `## End Blueprint Profile` headings — never touch anything outside.
-- **Profile detection order** (check before any write):
-  1. Search for standard markers: `## Blueprint Profile` ... `## End Blueprint Profile`
-  2. Search for legacy markers: HTML comment pairs (`<!-- *-start -->` ... `<!-- *-end -->`) or variant headings containing "Blueprint Profile"
-  3. Standard found → update in place (preserve all calibration lines, rewrite only the `Scores:` line)
-  4. Legacy found → **do not touch legacy block**. Write new standard profile separately (below legacy or at end of file). Compare both line by line (Type/Stack/Target, Priorities, Constraints, Data, Audience, Deploy, Entry, Modules, Data Flow, External, Toolchain, Ideal, Scores); identify legacy content NOT covered by new (custom config notes, historical run entries, project map details). New covers everything → report "New profile covers all content from legacy block. You can safely remove the legacy block." Legacy has unique items → report "These items exist in legacy profile but not in new one: {list}. Preserve them before removing the legacy block." Leave the legacy block intact — the user decides when to remove it.
-  5. NO markers found → append new profile at end of instruction file
-  6. **Never write second standard profile into a file that already has one** — always detect and update.
-- Instruction file does not exist: create with profile section only.
-- Other skills read profile by searching for `## Blueprint Profile` heading first, then legacy markers as fallback, in known instruction file locations.
-- Updating existing standard profile: preserve all `Type/Stack/Target/Mission/Priorities/Constraints/Red lines/Data/Audience/Deploy/Entry/Modules/Data Flow/External/Toolchain/Ideal` lines; update only the `Scores:` line; re-detect Project Map only with `--refresh`; rewrite foundation lines (`Mission`, `Target`, `Priorities`, `Constraints`, `Red lines`) only through the Foundation pass with per-line user confirmation.
-- Legacy migration: profiles containing `### Last Run`, `### Run History`, `### Current Scores` (table), or any prose block → rewrite to minimal key-value format; report `{n} legacy lines rotated to git log` in summary. Information preserved in `git log -- <instruction-file>` — never re-injected.
-
-**Deduplication on inject:** dedupe findings by file:line — same issue within 10 lines → merge, keep highest severity.
+**Format rules, read/write rules, and legacy-marker migration:** [references/profile-format.md](references/profile-format.md). Key-value pairs only, one value per line; only the `Scores:` line is rewritten on a normal run — foundation lines change only through the Foundation pass with per-line user confirmation.
 
 ## Delegation
 
@@ -200,54 +183,7 @@ Plan batches up front (`state.data.batches`) and announce before starting. AI ho
 
 Scan **entire codebase**, record every finding with file:line to `ds/audit/findings.md`, score dimensions from these findings — do NOT fix. Fix skills read `ds/audit/findings.md` and skip own detection (eliminates duplicate analysis) → blueprint must detect ALL issues within each dimension; missing finding = won't be fixed.
 
-**Dimension → Scope mapping:**
-
-| Dimension | Findings Scope(s) |
-|-----------|------------------|
-| Security & Privacy | `security`, `privacy` |
-| Code Quality | `hygiene`, `types`, `simplify`, `ai-hygiene`, `doc-sync` |
-| Architecture | `architecture`, `patterns`, `cross-cutting`, `maintainability`, `ai-architecture`, `contract-consistency` |
-| Performance | `performance` |
-| Resilience | `robustness`, `production-readiness` |
-| Testing | `testing`, `functional-completeness` |
-| Stack Health | `stack`, `stack-fitness` |
-| DX | `dx`, `external-tooling` |
-| Documentation | `docs`, `spec-alignment` |
-
-**Assessment method per dimension:**
-
-| Dimension | Scan | Patterns |
-|-----------|------|----------|
-| Security & Privacy | All source | Hardcoded secrets ({api-key-shape}, {token-shape}, password literals), `eval()`/`Function()` with dynamic input, SQL string concat, missing parameterized queries, missing auth middleware on protected routes, PII in log statements, weak crypto (MD5, SHA1, DES, ECB), missing HTTPS, CORS wildcard, missing CSRF, missing input validation, missing rate limiting |
-| Code Quality | All source | Unused imports/vars/functions, missing type annotations on public APIs, nesting >3, duplicated blocks >10 lines, dead code, magic numbers, functions >50 lines, files >500 lines, empty catch, stale TODO/FIXME/HACK >30 days. **ai-hygiene:** AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers, hallucinated APIs (calls to nonexistent methods/imports), dead feature flags, stale mocks left in production paths. **doc-sync:** inline doc contradicts signature, stale param descriptions, wrong return type. |
-| Architecture | Import graph + structure | **SOLID violations ([references/principles.md §2](references/principles.md)):** SRP (module changes for >1 reason), OCP (new behavior added by editing stable code), LSP (subtype narrows postcondition or throws unhandled), ISP (consumer forced to depend on unused members), DIP (high-level imports concrete low-level). **GRASP:** Information Expert (logic away from data), Low Coupling (>7 unrelated peer imports), High Cohesion (unrelated exports same module). Plus: circular deps, god classes (>10 public methods or >300 lines), feature envy, layer violations, missing DI, inconsistent error handling, inconsistent naming. **maintainability:** change coupling, shotgun surgery (single change requires 5+ file edits), missing abstraction boundaries, churn×complexity hotspots (behavioral pass below). **ai-architecture:** prompt templates scattered (should be centralized), missing retry/fallback for AI API, hardcoded model names, missing token budget; product-facing LLM features: untrusted input concatenated into prompts (injection surface), model output consumed without schema/shape validation, no eval or regression set for prompt changes, no per-call cost/usage tracking. **contract-consistency:** same concept → same name (one verb per operation class: not fetch/get/load mixed for the same action; domain terms uniform across layers — not user/account/member for one entity), same word → same meaning everywhere, analogous functions share parameter order + options shape, consistent units/formats (time units, ID types, date/serialization casing at boundaries), one return/error shape per layer (throw vs Result vs null never mixed within a layer), same operation exposed with divergent signatures across modules. 3+ examples before flagging a lexicon pattern as systemic. |
-| Performance | All source | N+1 queries (DB call in loop), blocking calls in async, missing pagination on lists, missing DB indexes, large file reads without streaming, missing caching, unbounded collection growth, synchronous I/O in hot paths |
-| Resilience | Source + config | Missing error handling on external calls, missing timeout config, missing retry-with-backoff, no graceful shutdown, no health check, unbounded queue/buffer, missing circuit breaker, no fallback for failed deps, missing input size limits. **production-readiness:** missing structured logging, debug endpoints exposed, missing rate limiting, no graceful degradation under load, missing deployment health checks. |
-| Testing | Tests + config | **Test discipline ([references/principles.md §7](references/principles.md)):** Test Pyramid signal (unit-heavy / integration-medium / E2E-light — inverted pyramid = HIGH); AAA structure absent; non-behavior test names (`test_1` vs `should_reject_negative_quantity`); unrealistic data (`a@b.c`, `$1`, length-1 collections); coverage configured as goal (target %) rather than diagnostic. Plus: test count vs source ratio, missing runner config, missing coverage config, untested modules, missing negative/boundary cases (empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day), test isolation (shared mutable state), flaky indicators (sleep/delay, time-dependent assertions). **functional-completeness:** missing error paths, missing input validation edge cases, TODO/FIXME markers for unfinished, stub/placeholder implementations. |
-| Stack Health | Manifests + lockfiles | Missing lockfile, outdated deps (major versions behind), deprecated packages, known CVEs in deps (run audit), missing `.nvmrc`/`.tool-versions`, inconsistent dep versions across workspace. **stack-fitness:** every major dep evaluated vs stated goal — obsolete (unmaintained, archived, last release >24 months), oversized-for-purpose (enterprise framework for 2-module project), duplicate (two libraries serving same purpose, e.g. {alt-1} + {alt-2}), misaligned (server-side library pulled into browser-only project). Cite goal from `Config.priorities`. |
-| DX | Root files + config | Missing/incomplete README, missing CONTRIBUTING.md, missing CI config, missing env.example, missing setup/dev scripts, missing Makefile/Taskfile, missing .editorconfig, inconsistent config formats. **external-tooling:** GitHub Actions workflows, PR automations (auto-merge bots, reviewer assignment), CI scripts, pre-commit hooks, release automation — each evaluated for goal-fitness. Unused workflows, workflows referencing deleted actions, duplicate workflows (two paths to same target), automations added by templates but never triggered, goal-misaligned (e.g. iOS signing workflow on non-iOS project). |
-| Documentation | Doc files + source | Missing doc files vs ideal for type, README sections missing (install, usage, API, contributing), API doc gaps (undocumented public endpoints/functions), doc↔code drift (stale paths, renamed functions, changed defaults, removed features still documented), broken internal links, outdated version refs, stale dep version claims, architectural claims that don't match code. **spec-alignment:** promise census — extract every concrete capability promised in README / SPEC.md / docs/ / AI instruction file (per host — see [references/detection.md](references/detection.md) § Instruction Files) / blueprint profile. For each promise, search source for implementation. Classify: **promised-not-implemented** (doc mentions feature X; grep shows no module/function/endpoint), **implemented-not-documented** (code has X but no doc mentions), **drift** (both exist but behavior diverges — default changed, signature changed, flag removed). |
-
-**Churn × complexity hotspot pass (Architecture · `maintainability`)** — behavioral signal from plain git history (git is already required; zero new dependencies):
-
-| Step | Action |
-|------|--------|
-| 1 Churn | Rank files by change frequency: `git log --format=format: --name-only --since=12.month \| egrep -v '^$' \| sort \| uniq -c \| sort -nr \| head -50` |
-| 2 Complexity | Rank the same files by the complexity signals already collected (nesting, function/file length); a deterministic cross-language counter available in-session (e.g. `scc --by-file -s complexity`) → use its per-file ranking instead |
-| 3 Hotspot | File in the upper half of BOTH rankings → `maintainability` finding (hotspot) — prioritize above equally-complex but rarely-changed files |
-| 4 Fallback | No usable history (fresh repo, shallow clone, empty log) → skip pass, note `churn signal unavailable — static-only maintainability scan`, static signals stand alone |
-
-**External hygiene cross-check (advisory):** project is a public OSS repo AND a repo-scorecard tool (e.g. OpenSSF Scorecard) is available in-session → run once; fold per-check results into Security & Privacy and Stack Health as MEDIUM-confidence signals (heuristic cross-check, not ground truth). Tool absent → skip; no gate depends on it.
-
-**False-positive prevention (mandatory for every signal)** — count a pattern match only if it passes ALL applicable:
-- **Exclude tests:** skip matches in `test/`, `tests/`, `__tests__/`, `*_test.*`, `*.spec.*`, `*.test.*`
-- **Exclude comments:** pattern inside comment (`//`, `#`, `/* */`, `<!-- -->`), skip
-- **Exclude string literals in tests:** secret patterns in test fixtures or example data, skip
-- **Exclude generated:** skip files in `generated/`, `*.g.dart`, `*.gen.go`, `*.pb.go`, auto-generated headers
-- **Skip patterns:** `# noqa`, `# intentional`, `# safe:`, `_` prefix, `TYPE_CHECKING` blocks, test fixtures, generated files
-- **Verify context:** for security signals, read 3 lines around match — value from env/config/vault → skip
-
-**Confidence:** HIGH = match + context confirmed (full signal). MEDIUM = pattern, ambiguous context (0.5 signal). LOW = heuristic (skip). Only HIGH + MEDIUM written to `ds/audit/findings.md`.
+**Dimension → Scope mapping**, **assessment patterns per dimension**, the **churn × complexity hotspot pass**, the **external hygiene cross-check**, and the **false-positive guard** every signal must clear: [references/assessment-patterns.md](references/assessment-patterns.md). Only HIGH and MEDIUM confidence signals are written to `ds/audit/findings.md`.
 
 Scoring formula from [references/scopes.md](references/scopes.md), dimension weights from [references/weights.md](references/weights.md).
 
@@ -301,33 +237,7 @@ Build from Discovery + Assess:
 
 **Mandatory.** Always display, even in `--auto`.
 
-```
-Project: {name} | Type: {type} | Stack: {stack} | Target: {quality}
-
-| Dimension          | Score | Prev | Delta | Target | Gap  | Status |
-|--------------------|-------|------|-------|--------|------|--------|
-| {dimension}        | {n}   | {n}  | {+/-n}| {n}    | {n}  | {status}|
-| Overall            | {n}   | {n}  | {+/-n}| {n}    | {n}  | {status}|
-
-Findings written to ds/audit/findings.md ({n} signals across {n} dimensions)
-```
-
-Previous scores exist: show Prev + Delta. First run: omit those columns. When previous `model=` differs from current, label each delta column as model-attributed (e.g. `Δ vs previous (model {prev-model} → {curr-model})`) so score movement is attributable to the model change, not code change alone.
-
-For dimensions below target, list top findings with IDs:
-```
-Dimensions below target:
-{n}. {dimension} (score: {n}, target: {n}, gap: {n}) — {n} signals
-   {finding-ID} {severity}: {short description}
-```
-
-Any dimension dropped (negative delta), explain: `Score changes: {dimension} {delta}: {brief cause}`
-
-Findings requiring human-only access exist → list them (omit block when none):
-```
-Human actions (AI cannot perform these):
-- {finding-ID}: {action} — where: {settings-page/console/account} | why: {risk if skipped}
-```
+Render templates — score table, below-target findings list, score-drop explanation, human-actions block: [references/dashboard-format.md](references/dashboard-format.md). First run omits the Prev and Delta columns; the human-actions block is omitted when empty.
 
 **Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), gap analysis; `ds/audit/findings.md` write confirmed. If fails → write unconfirmed (filesystem error after Phase 4) → retry once; still failing → print dashboard with `[WARN: findings.md not written]` header so user sees scores but knows downstream consumers cannot use them until resolved.
 

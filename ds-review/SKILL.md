@@ -86,64 +86,32 @@ Without flags: present mode selection.
 | Production Readiness | production-readiness |
 | Completeness | functional-completeness, ai-architecture |
 
-**Per-scope mandatory checks ([references/principles.md](references/principles.md)):**
+**Per-scope mandatory checks** — each scope is evaluated against a named principle set, and the finding title cites the principle it violates:
 
-- **architecture, patterns:** evaluate by name — SOLID (SRP, OCP, LSP, ISP, DIP) and GRASP (Information Expert, Low Coupling >7 unrelated imports, High Cohesion). Cite violated principle in finding title ([references/principles.md §2](references/principles.md)).
-- **contract-consistency:** same concept → same name across the whole codebase (one verb per operation class, uniform domain terms across layers), same word → same meaning, analogous functions share parameter order/options shape, consistent units/formats at boundaries, one return/error shape per layer. Flag only after 3+ concrete examples of the same lexicon drift.
-- **production-readiness:** enumerate reliability patterns — flag missing timeout on every external call, retry-with-backoff on transient failures (idempotent ops only), circuit breaker on high-volume services, health checks (liveness + readiness), idempotency keys on externally-exposed write endpoints, graceful shutdown handler, structured logging (no raw `print`/`console.log` in production paths), fail-fast input validation at every system boundary ([references/principles.md §4](references/principles.md)).
-- **testing:** verify Test Pyramid (unit-heavy, E2E-light — inverted = HIGH), AAA presence, realistic test data, regression-test-before-fix discipline, coverage as diagnostic not goal ([references/principles.md §7](references/principles.md)).
+| Scope | Principle set |
+|-------|---------------|
+| architecture, patterns | SOLID + GRASP — [principles.md §2](references/principles.md) |
+| production-readiness | Reliability patterns — [principles.md §4](references/principles.md) |
+| testing | Testing discipline — [principles.md §7](references/principles.md) |
+| contract-consistency | One concept → one name across the codebase; flag only after 3+ concrete examples of the same lexicon drift |
+
+**Taste-dependent judgment → rubric, not rules.** Where a scope turns on "is this the right abstraction" there is no pattern to grep, so the strategic pass is closed by a verifier run against [references/rubric-architecture.md](references/rubric-architecture.md): five dimensions, a level per dimension, each level claimed only with a `file:line` example of the named signal. Delegate it as its own pass with the rubric as the whole contract; the returned levels are untrusted until the cited lines are re-read. Rule-shaped findings stay in `rules-quality.md` — the rubric covers only what a rule cannot express.
 
 **Scope boundary:** architecture-level assessment. Questions design decisions, evaluates pattern consistency. Does NOT fix individual code issues (unused imports, type errors, formatting).
 
 ### Performance Scopes (--perf)
 
-Deep performance analysis beyond tactical `performance` scope.
+Deep performance analysis beyond the tactical `performance` scope: 11 check groups spanning bundle, startup, runtime, caching, network, Web Vitals, mobile, database, cost, resource economy, and scale envelope. Group definitions in [references/scopes-performance.md](references/scopes-performance.md).
 
-| Group | Checks |
-|-------|--------|
-| Bundle | Bundle size, tree-shaking, unused deps, dynamic imports |
-| Startup | Cold start, critical rendering path, lazy init, deferred loading |
-| Runtime | Memory leaks, event listener cleanup, layout thrashing, jank |
-| Caching | HTTP cache headers, service worker, API response cache, memoization |
-| Network | Request waterfall, redundant requests, payload size, compression, prefetching |
-| Web Vitals | LCP, INP, CLS for web projects |
-| Mobile | Widget rebuild optimization, const constructors, image sizing, list virtualization |
-| Database | Query performance, N+1 detection, connection pooling, index usage |
-| Cost | Paid API/LLM call efficiency, cloud egress/cross-region transfer, oversized infra defaults, storage/log lifecycle policies, polling-vs-webhook waste |
-| Resource Economy | Payload size (API response, assets, HTML), compression ratio (gzip/brotli enabled), cache-hit rate (CDN, service worker, API cache), storage growth trend, data-saving patterns (lazy loading, image optimization, bundle splitting) |
-| Scale Envelope (D1, advisory) | Does the project document a measured scale limit for its critical flows — "works up to N users / M records on X architecture" — backed by a cited synthetic-fixture method (see ds-test scale-envelope fixture pattern)? No documented envelope -> advisory finding "no declared scale envelope — measure critical flows against a synthetic max-size fixture and document the limit" (never a blocker, SKILL-SPEC §15) |
-
-**Scope boundary:** performance-specific deep dive. Produces optimization recs with estimated impact. Fixes only low-risk (const constructors, unused imports, memoization). High-impact changes (architecture, caching strategy) → `needs_approval`.
+**Scope boundary:** performance-specific deep dive. Produces optimization recs with estimated impact, each backed by a before/after measurement. Fixes only low-risk (const constructors, unused imports, memoization). High-impact changes (architecture, caching strategy) → `needs_approval`.
 
 ### Meta-Quality Scopes (--meta-quality)
 
-7 detector scopes + 3 derived aliases. Definitions + detector rules in [references/meta-quality-scopes.md](references/meta-quality-scopes.md).
-
-| Scope | Detector summary |
-|-------|------------------|
-| `ssot` | Same fact/constant/business-rule in 2+ authoritative locations |
-| `dry` | Same code pattern in ≥3 places with AST/token similarity ≥85% |
-| `kiss` | Solution complexity exceeds problem size — cyclomatic >12 for single use-case |
-| `yagni` | Defined but 0 callers / 0 references — feature, param, or flag never used |
-| `soc` | One responsibility scattered across 3+ modules (non-cross-cutting) |
-| `api-surface` | Shallow module — export surface large relative to functionality / external usage |
-| `overengineering` | Alias for combined `ssot + kiss + yagni` |
-| `redundancy` | Alias for `dry` + duplicate constants |
-| `obsolete` | Unreachable code, legacy paths, deprecated APIs with zero modern callers |
-| `duplicate` | Alias for `dry` at function/module granularity |
-| `all` | Every scope above |
+7 detector scopes — `ssot`, `dry`, `kiss`, `yagni`, `soc`, `api-surface`, `obsolete` — plus 3 derived aliases (`overengineering` = ssot+kiss+yagni, `redundancy` = dry+duplicate constants, `duplicate` = dry at function/module granularity) and `all`. Detector thresholds and per-scope rules: [references/meta-quality-scopes.md](references/meta-quality-scopes.md).
 
 **Scope boundary:** principle-level audit. Flags violations of SSOT / DRY / KISS / YAGNI / SoC, evaluates project criteria fit, proposes consolidation paths. Does NOT fix without explicit user selection — every finding produces 3 path proposals (effort / impact / risk).
 
-**Anti-overengineering 3-gate** (screens every potential finding before it is reported — see [references/principles.md §10](references/principles.md)):
-
-Report a finding only when AT LEAST ONE harm signal is present:
-
-1. **Breaks:** it breaks something — now, or on a predictable path (e.g. drift between duplicated sources).
-2. **Misleads:** it misleads a future reader (human or AI) about what is live, canonical, or intended.
-3. **Not worth its keep:** the complexity costs more to keep than the value it adds.
-
-No signal present → silently discard (false-positive guard). In doubt on signal 3 → treat the complexity as worth its keep; a noisy report wastes more attention than a missed nice-to-have.
+**Anti-overengineering 3-gate:** report a finding only when at least one harm signal is present — it breaks something, it misleads a future reader about what is canonical, or it is not worth its keep. No signal → silently discard. Full gate with the tie-breaking rule: [references/principles.md §10](references/principles.md).
 
 ## Delegation
 
@@ -339,13 +307,7 @@ Status: OK (failed=0), WARN (failed>0 no CRITICAL), FAIL (CRITICAL unfixed or er
 
 ## Score Calculation
 
-```
-base_score = 100
-CRITICAL: -25, HIGH: -10, MEDIUM: -3, LOW: -1
-scope_score = max(0, base_score + sum(penalties))
-```
-
-Cap: any CRITICAL → max 40; 3+ HIGH → max 60.
+Formula, cap rules, and the judgment ranges for scopes without countable findings: [references/scopes-strategic.md § Score Calculation](references/scopes-strategic.md).
 
 **Value Delivered:** 1-5 concrete fix outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
 

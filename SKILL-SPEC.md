@@ -35,9 +35,18 @@ Every SKILL.md follows this section sequence:
 | 12 | Severity | Only if domain-specific | Standard 4 levels are baseline — omit if no additions |
 | 13 | Edge Cases | Yes | Boundary conditions and fallbacks |
 
-### Completion Evidence Band (mandatory, duplicated)
+### Completion Evidence Band (mandatory; duplicated on the portable profile)
 
-Every SKILL.md carries the canonical Completion Evidence band **twice**: once immediately before the first `##` section (after the title + tagline), and once as the last block of the file. Duplication is deliberate: rule-position bias is model-family-dependent — primacy for DeepSeek/Qwen/Llama, recency for Claude/Gemini ([MOSAIC, arXiv:2601.18554](https://arxiv.org/abs/2601.18554)) — so no single position is safe across models. External machine-checkable evidence is required because verification failure is the dominant agent failure mode (47–60% of failures, [CLI-Universe](https://arxiv.org/abs/2606.22883)) and self-verification is measurably weaker than external checks (Reflexion ablations). See `docs/methodology/cross-host-program.md` F1/F4/F6.
+The band itself is unconditional — external machine-checkable evidence is required because verification failure is the dominant agent failure mode (47–60% of failures, [CLI-Universe](https://arxiv.org/abs/2606.22883)) and self-verification is measurably weaker than external checks (Reflexion ablations). What is conditional is how many copies a SKILL.md carries.
+
+| Profile | Copies | When |
+|---------|--------|------|
+| **Portable** (repo default) | Two — one immediately before the first `##` section, one as the last block of the file | Any distribution readable by DeepSeek/Qwen/Llama-family hosts, or by Cursor/Copilot/Aider/Windsurf. Rule-position bias is model-family-dependent — primacy for DeepSeek/Qwen/Llama, recency for Claude/Gemini ([MOSAIC, arXiv:2601.18554](https://arxiv.org/abs/2601.18554)) — so no single position is safe across models |
+| **Lean** | One — the opening copy only | A Claude-5-generation-only distribution. Anthropic removed >80% of Claude Code's system prompt for these models with no measurable eval loss, and identifies repeated instruction as a pattern those models no longer need ([context engineering for Claude 5](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models), 2026-07-24) |
+
+**This repo ships the portable profile**, because its stated tool support spans six hosts including weaker models. The duplication is therefore a deliberate portability cost, not an unconditional law — and unlike an always-on rules file, a skill's second band is paid only when that skill is invoked, so the cost is bounded. A Claude-5-only fork drops the closing copy and relaxes the `evidence-band` check in `scripts/check-consistency.sh` accordingly; do not drop it while the six-host claim stands.
+
+See `docs/methodology/cross-host-program.md` F1/F4/F6.
 
 Verbatim text — opening copy:
 
@@ -51,7 +60,7 @@ Verbatim text — closing copy:
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
 ```
 
-`scripts/check-consistency.sh` enforces both copies and their positions.
+`scripts/check-consistency.sh` enforces the portable profile — both copies and their positions.
 
 ### Phase Template
 
@@ -1397,6 +1406,21 @@ Move to `references/` when:
 - Weight matrices or scoring formulas
 - Scope definitions exceeding 40 lines
 - Platform-specific detection patterns
+- Output templates and report shapes (they are read once, at the phase that renders them)
+
+### Reference Forms
+
+A reference need not be prose. Prefer the highest-fidelity form the content allows — an artifact in a language the model already knows carries intent more precisely than a description of that artifact ([context engineering for Claude 5](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models), 2026-07-24).
+
+| Form | Use for | Named consumer |
+|------|---------|----------------|
+| **Rule list** (`rules-*.md`) | Detect/fix patterns with ID, severity, title | The scope that owns the rules |
+| **Template** (`*-template.md`, `*-format.md`) | Report shapes, output blocks, storage contracts | The phase that renders or writes it |
+| **Rubric** (`rubric-*.md`) | Taste-dependent judgments where a rule list would be arbitrary — what good API design, good docs, or good UX looks like | A verifier pass or delegated agent, handed the rubric as its whole contract |
+| **Working artifact** (HTML mockup, runnable snippet, fixture) | Design and behavior intent | The implementing phase, read directly rather than paraphrased |
+| **Test suite as spec** | Behavior a change must preserve or achieve | The implementing phase; green suite is the acceptance signal |
+
+A rubric states the dimension, what each quality level looks like concretely, and the observable signal that distinguishes them — never a bare score range. Every reference form declares its consumer; a reference with no named consumer is dead weight and gets deleted.
 
 ### Progressive Disclosure
 
@@ -1541,7 +1565,7 @@ Before releasing any skill, verify:
 - [ ] SKILL.md contains a `**Dimensions:**` declaration line, and every declared ID exists in the Appendix: Dimension Coverage Map (see §11 Dimension Ownership Design Rule).
 - [ ] Every cross-skill reference follows the advisory-handoff pattern — target present → delegate; target absent → inline-check or gap-note; never a hard-fail (see §12 Standalone Invariant).
 - [ ] No ambiguous-condition phrasing (`"if appropriate"`, `"consider"`, `"may want to"`, `"as needed"`, `"might"`, `"possibly"`, `"could"`, `"should consider"`, `"it is recommended"`) — see §13 AI-Legibility Writing Standard rule (f).
-- [ ] Completion Evidence band present **twice** — canonical opening copy before the first `##` section, canonical closing copy as the last block of the file (see §1 Completion Evidence Band). Verbatim text, no paraphrase.
+- [ ] Completion Evidence band present per the active profile — portable (repo default): opening copy before the first `##` section **and** closing copy as the last block of the file; lean (Claude-5-only fork): opening copy alone (see §1 Completion Evidence Band). Verbatim text, no paraphrase.
 
 ---
 

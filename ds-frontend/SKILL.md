@@ -189,6 +189,8 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 ### Phase 7: Design [SKIP if mode ≠ design]
 
+**Design input — prefer the highest-fidelity form available (SKILL-SPEC § Reference Forms).** A runnable HTML/CSS mockup carries the intended design more precisely than a prose description or a screenshot of it, because it is expressed in the same language as the output. Ask for or produce a mockup before working from a description; a screenshot is a weaker signal than markup and a description is weaker still. Only a description available → generate a mockup artifact first, confirm it with the user, then build against the confirmed artifact rather than re-interpreting the prose at each step.
+
 1. **`tokens.json`** — W3C DTCG 2025.10: color (primary/secondary/error/warning/success/info/surface/background + 3 shades), spacing (4/8/12/16/24/32/48/64), typography (display/heading/title/body/label/caption), shadow (sm/md/lg/xl), border (radius sm/md/lg/full, width thin/medium/thick).
 2. **Component catalog** — state coverage matrix, missing state recs, a11y compliance per component.
 3. **A11y checklist** — WCAG 2.2 AA list specific to detected framework + components.
