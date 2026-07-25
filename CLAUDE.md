@@ -90,6 +90,15 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 
 - **Mechanical Done Gate (SKILL-SPEC §4):** every code-modifying skill resolves a `{check-cmd}` (ds-quality arm when installed, else stack-native format/lint/type/test), captures a baseline, re-runs after each change batch and once in aggregate before "done" — new red → fix ≤3 attempts, then revert + record; baseline red reported red-at-baseline, never inherited; no tooling → Verification-Infrastructure Gap surfaced, never silently skipped. Rationale: prose gates degrade first on low-capability executors — enforcement must be a machine signal, not model recall. Enforced by `check-consistency.sh` check #18 (15-skill list). ds-ship adds enforcement-arm-first sequencing + capability-tier routing for delegations.
 
+## v6 Invariants (2026-07-25)
+
+Driven by [The new rules of context engineering for Claude 5 generation models](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models) (Anthropic, 2026-07-24) — >80% of Claude Code's system prompt removed for Claude 5 generation models with no measurable eval loss.
+
+- **Completion Evidence band is profile-conditional (SKILL-SPEC §1):** portable profile (repo default, six-host support) carries both copies, justified by model-family position bias (MOSAIC arXiv:2601.18554); a Claude-5-only fork carries the opening copy alone. The band itself is never optional — only the copy count is. Do not drop the closing copy while the six-host claim stands.
+- **Reference Forms (SKILL-SPEC § Reference Forms):** a reference takes the highest-fidelity form its content allows — rule list, template, rubric, working artifact (HTML mockup, fixture), or test-suite-as-spec. Every reference declares its consumer; one with no named consumer is deleted.
+- **Rubrics for taste, rules for patterns:** a judgment with no greppable pattern (is this the right abstraction?) goes in a `rubric-*.md` handed whole to a verifier pass, with each level claimed only against a `file:line` example. Never a bare score range.
+- **Cross-repo single home:** guidance owned by a skill here (commit semantics → ds-commit, review severity/skip patterns/fix quality → ds-review, complexity thresholds → ds-fix) is not repeated in dev-rules' always-on `rules.md`; that file carries a pointer only.
+
 ## Philosophy
 
 - Every dependency is a future breaking change
