@@ -37,6 +37,8 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 
 Every fact is source-backed · every datum 2×-confirmed or flagged · every reference a live link · no guessing · unclear → researched deeper, then declared unknown · known vs unknown explicit · contradictions shown, not smoothed · every inference shows its premises · normative text read in context and in its current consolidated version · HIGH confidence is the target, never an assertion. See [references/verification.md](references/verification.md).
 
+The checks a parser can settle run as code (`python3 assets/verify-brief.py --artifact findings.json --report report.html --bundle sources/`), not as recall. Exit 0 is the run's completion evidence. It catches what reads as fine — a dropped action item, a citation id pointing nowhere, a coverage figure asserted rather than recomputed, an archived file whose hash no longer matches. Judgment-shaped checks (does the quote support the claim, does the PDF look right) stay manual by design.
+
 ## Tool-optionality
 
 context-mode and rtk are **optional** — they cut context footprint only, never quality, source count, double-confirmation, or output. No gate depends on a tool being present.
@@ -52,6 +54,7 @@ references/
   research-pipeline.md         collect→store→read; context-mode + completeness
 assets/
   brief-template.html          canonical offline print/PDF-safe skeleton (clone + fill)
+  verify-brief.py              mechanical verifier (stdlib python3): artifact, report, cross, bundle
 ~/.claude/agents/
   ds-research-agent.md   deep sourced web-research worker
 ```
