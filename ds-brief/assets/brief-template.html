@@ -7,7 +7,8 @@
      SSOT = the CONFIG object near the bottom. Fill {placeholder} slots; never load anything over the network.
      Security: text goes in via textContent / DOM nodes only. No innerHTML with data. No inline on* handlers.
      Color inputs (theme + CONFIG colors) pass safeColor() regex before being applied (CSS-injection defense).
-     Optional blocks are tagged ds-opt:NAME (calc, pills, strip, lawtext, search, theme, chart, branch, oblg, cites, matrix, xref, icons): paired
+     Optional blocks are tagged ds-opt:NAME (calc, pills, strip, lawtext, search, theme, chart, branch, oblg, cites,
+     matrix, xref, icons, todo, coverage, gate, deadlines, sanctions, escalate): paired
      ds-opt:NAME … /ds-opt:NAME for multi-line, or a trailing /* ds-opt:NAME */ on a single line.
      Build phase (Phase 4 prune) deletes the CSS+HTML of any ds-opt block the brief does not use, so
      each report ships only the CSS it needs. Untagged = core (always kept). JS handlers are null-guarded:
@@ -38,7 +39,17 @@
   /* ---- fluid spacing scale (single clamp scale; no per-breakpoint padding overrides) ---- */
   --space-2xs:clamp(4px,.6vw,6px); --space-xs:clamp(8px,1.2vw,12px); --space-s:clamp(12px,1.8vw,16px);
   --space-m:clamp(18px,2.6vw,28px); --space-l:clamp(28px,4vw,48px); --space-xl:clamp(40px,6vw,80px);
-  --measure:68ch;
+  /* width: the CONTAINER follows the screen, the TEXT LINE follows the eye — two different constraints.
+     A fixed px container cap makes a 27" screen read like a phone with margins; an unconstrained text
+     line is unreadable at that width. So: wide wrap for tables/grids/matrices, 72ch measure for prose. */
+  --wrap:min(1560px,96vw);
+  --measure:72ch;
+  /* one modular type scale (~1.2 ratio) instead of ad-hoc clamps per element: sizes stay in proportion
+     at every viewport, and a heading can never accidentally match its body text */
+  --fs-0:clamp(.76rem,.74rem + .1vw,.83rem);   --fs-1:1rem;
+  --fs-2:clamp(1.02rem,.98rem + .25vw,1.14rem);
+  --fs-3:clamp(1.2rem,1.05rem + .7vw,1.55rem);
+  --fs-4:clamp(1.35rem,1.15rem + 1.1vw,1.9rem);
 }
 *{box-sizing:border-box}
 html[data-theme="dark"]{color-scheme:dark}
@@ -50,7 +61,9 @@ body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",
 [hidden]{display:none!important}
 h1,h2,h3{text-wrap:balance}
 p{text-wrap:pretty}
-.wrap{max-width:1080px;margin:0 auto;padding:0 var(--page-pad,clamp(16px,3vw,32px))}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--page-pad,clamp(14px,2.2vw,28px))}
+main p,main li{max-width:var(--measure)}          /* prose measure; tables/grids/matrix keep the full wrap width */
+main .full,main .full p,main .full li{max-width:none}   /* opt-out for full-bleed content */
 a{color:var(--primary);text-underline-offset:2px}   /* text contrast: every theme primary clears 4.5:1 on surface; accents don't (slate #0ea5e9 = 2.7:1) */
 mark{background:color-mix(in srgb,var(--warn) 35%,var(--surface));color:inherit;padding:0 1px;border-radius:3px}     /* ds-opt:search */
 svg.ico{width:1em;height:1em;vertical-align:-.12em;flex:0 0 auto}
@@ -59,19 +72,37 @@ svg.ico{width:1em;height:1em;vertical-align:-.12em;flex:0 0 auto}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}   /* focus ring ≥3:1 on every theme (accent fails on slate/teal/amber) */
 .tool:focus-within{border-color:var(--primary)}
 
-header.top{background:linear-gradient(135deg,var(--primary),color-mix(in srgb,var(--primary) 70%,var(--accent)));color:var(--onprim,#fff);padding:var(--space-m) 0 var(--space-s);position:relative;overflow:hidden}
-/* decorative glow orbs — pure CSS, no images; hidden in print */
-header.top::before,header.top::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
-header.top::before{width:340px;height:340px;right:-80px;top:-170px;background:radial-gradient(circle,color-mix(in srgb,#fff 16%,transparent),transparent 65%)}
-header.top::after{width:280px;height:280px;left:-100px;bottom:-170px;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 32%,transparent),transparent 70%)}
+/* Header = chrome, and chrome competes with the answer for the first screen. ONE compact band:
+   title + one-line subtitle + a single inline meta row that carries the "informational only" notice.
+   Budget: ≤150px at desktop widths, so the first finding is visible at 1280x800 without scrolling. */
+/* No glow, no orbs: every visual element either encodes information or competes with it. */
+header.top{background:linear-gradient(135deg,var(--primary),color-mix(in srgb,var(--primary) 70%,var(--accent)));color:var(--onprim,#fff);padding:var(--space-s) 0;position:relative}
 header.top .wrap{position:relative;z-index:1}
-header.top h1{margin:0 0 6px;font-size:clamp(20px,2.6vw,28px);letter-spacing:.2px}
-header.top p{margin:0;opacity:.93;font-size:.93rem;max-width:var(--measure)}
+header.top h1{margin:0;font-size:var(--fs-4);letter-spacing:.2px;line-height:1.25}
+header.top p.sub{margin:3px 0 0;opacity:.93;font-size:.88rem;max-width:var(--measure);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}   /* two lines max on screen; print unclamps */
+.hmeta{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin-top:7px;font-size:var(--fs-0);opacity:.92}
+.hmeta .m b{font-weight:700}
+.hmeta .disc{display:inline-flex;gap:5px;align-items:center;border:1px solid color-mix(in srgb,#fff 45%,transparent);border-radius:999px;padding:2px 9px}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}   /* visually hidden (screen-reader live region) */
-/* scroll-reveal: JS adds .reveal then .in on intersection — JS-off / reduced-motion / print = fully visible */
-.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
-.reveal.in{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}
+
+/* ---- Print-only cover + contents: the PDF is the artifact people forward, and on screen the header and
+   nav already do this job. No page numbers — Chrome lacks @page counters and a pagination library would
+   break the single-file rule, so sections/exhibits are listed without them rather than faked. ---- */
+.cover,.toc{display:none}
+@media print{
+  .cover,.toc{display:block;break-after:page}
+  .cover .ctitle{font-size:30pt;line-height:1.15;font-weight:800;margin:22mm 0 0;max-width:none}
+  .cover .csub{font-size:12pt;color:#333;margin:6mm 0 0;max-width:none}
+  .cover .crule{height:3pt;background:#000;margin:8mm 0;width:38mm}
+  .cover .cmeta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4mm 10mm;font-size:9.5pt;margin-top:10mm}
+  .cover .cmeta .k{display:block;text-transform:uppercase;letter-spacing:.06em;font-size:7.5pt;color:#555}
+  .cover .cscope{margin-top:10mm;font-size:10pt;border-top:1px solid #999;padding-top:4mm;max-width:none}
+  .toc h2{font-size:16pt;margin:0 0 4mm}
+  .toc ol{padding-left:6mm;font-size:10.5pt}
+  .toc li{margin:1.6mm 0}
+  .toc .exn{font-weight:700}
+}
 /* Trust strip — ONE quiet line of verification signals (confidence · 2x-confirmed % · sources · access
    date). Signals only, never method prose: the first screen belongs to the topic (BLUF), the method
    explanation lives in the #method details next to Sources. Mini meter fill carries severity. */
@@ -79,6 +110,15 @@ header.top p{margin:0;opacity:.93;font-size:.93rem;max-width:var(--measure)}
 .trust .t{display:inline-flex;align-items:center;gap:6px;min-width:0}
 .trust b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
 .trust a{color:var(--primary)}
+/* No band name ever ships bare: "MEDIUM" alone tells the reader nothing. Every signal carries its
+   plain-language reading right beside it (verification.md § Confidence). */
+.trust .say{flex:1 1 100%;color:var(--mut);font-size:.79rem;max-width:var(--measure)}
+/* ds-opt:gate — "What would make this HIGH": one plain line per remaining blocker. Ships whenever the
+   confidence gate did not fully pass; pruned entirely on a HIGH run. */
+.gate{margin-top:10px}
+.gate li{margin:5px 0}
+.gate .what{font-weight:700}
+/* /ds-opt:gate */
 .meter.mini{width:64px;display:inline-block;vertical-align:middle;margin:0}
 .dotb{width:10px;height:10px;border-radius:50%;flex:0 0 auto;margin-right:8px}
 .dotb.ok{background:var(--ok)}.dotb.warn{background:var(--warn)}.dotb.bad{background:var(--bad)}
@@ -89,27 +129,37 @@ header.top p{margin:0;opacity:.93;font-size:.93rem;max-width:var(--measure)}
 .meter>i{display:block;height:100%;border-radius:999px;width:0;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .meter.ok>i{background:var(--ok)}.meter.warn>i{background:var(--warn)}.meter.bad>i{background:var(--bad)}
 
-.disclaimer{background:var(--warnbg);border-top:1px solid var(--line);border-bottom:1px solid var(--line);color:var(--warn);font-size:.86rem;padding:9px 0}
-.disclaimer .wrap{display:flex;gap:8px;align-items:flex-start}
-
+/* Nav = EXACTLY ONE ROW at every width: links scroll horizontally, tools pinned right. A nav that grows
+   to two rows eats the first screen and moves the anchor offset on every resize. */
 nav.bar{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);box-shadow:var(--sh)}
-nav.bar .wrap{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px clamp(16px,3vw,32px);min-height:52px}
-.navbtn{border:1px solid var(--ctl);background:var(--surface);color:var(--text);padding:7px 12px;border-radius:999px;cursor:pointer;font-size:.86rem;font-weight:600;text-decoration:none}
+nav.bar .wrap{display:flex;flex-wrap:nowrap;gap:8px;align-items:center;padding:6px clamp(14px,2.2vw,28px);min-height:48px}
+.navlinks{display:flex;gap:6px;align-items:center;flex:1 1 auto;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-ms-overflow-style:none;padding:2px 0}
+.navlinks::-webkit-scrollbar{display:none}
+.navbtn{border:1px solid var(--ctl);background:var(--surface);color:var(--text);padding:6px 12px;border-radius:999px;cursor:pointer;font-size:.85rem;font-weight:600;text-decoration:none;white-space:nowrap;flex:0 0 auto}
 .navbtn:hover{border-color:color-mix(in srgb,var(--primary) 30%,var(--line))}
 .navbtn[aria-current="true"]{background:color-mix(in srgb,var(--primary) 10%,var(--surface));border-color:color-mix(in srgb,var(--primary) 45%,var(--line));color:var(--primary)}
-#navTitle{font-weight:700;font-size:.9rem;flex:0 1 auto;min-width:0;max-width:16ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s;pointer-events:none}
+#navTitle{font-weight:700;font-size:.88rem;flex:0 0 auto;min-width:0;max-width:18ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s;pointer-events:none}
 nav.bar.scrolled #navTitle{opacity:1;transform:none}
 #progress{position:absolute;left:0;bottom:-1px;height:2px;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,var(--primary),var(--accent))}
-.spacer{flex:1 1 auto;min-width:8px}
+.tools{display:flex;gap:6px;align-items:center;flex:0 0 auto}
 .tool{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--ctl);background:var(--surface);border-radius:999px;padding:6px 10px;min-height:34px}
-.tool input{border:0;outline:0;font-size:.9rem;background:transparent;color:var(--text);width:clamp(80px,12vw,160px);min-width:0}     /* ds-opt:search */
+/* ds-opt:search — visible but narrow on desktop (discoverability), icon-only below 900px where the row
+   would otherwise squeeze; expands on :focus-within with NO JS (the <label> wrapper makes the icon a
+   focus target, so tap and Tab both work). */
+.tool.search input{border:0;outline:0;font-size:.9rem;background:transparent;color:var(--text);width:clamp(90px,10vw,150px);min-width:0;transition:width .18s ease,opacity .18s ease}
+.tool.search:focus-within input{width:clamp(150px,20vw,260px)}
+@media(max-width:900px){
+  .tool.search input{width:0;padding:0;opacity:0}
+  .tool.search:focus-within input,.tool.search input:not(:placeholder-shown){width:clamp(120px,40vw,240px);opacity:1}
+}
 .tool select{border:0;outline:0;background:transparent;color:var(--text);font-size:.85rem;font-weight:600;cursor:pointer}     /* ds-opt:theme */
-.printbtn{border:1px solid var(--primary);background:var(--primary);color:var(--onprim,#fff);padding:7px 13px;border-radius:999px;cursor:pointer;font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;min-height:34px}
+.printbtn{border:1px solid var(--primary);background:var(--primary);color:var(--onprim,#fff);padding:6px 12px;border-radius:999px;cursor:pointer;font-size:.85rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;min-height:34px;white-space:nowrap}
+@media(max-width:900px){.printbtn .lbl{display:none}}   /* icon-only where the row would otherwise squeeze */
 
 main{padding:var(--space-s) 0 var(--space-xl)}
 .sec{margin:var(--space-l) 0 0}   /* anchor offset handled globally by html scroll-padding-top (live --navH) */
 .sec+.sec{border-top:1px solid var(--line);padding-top:var(--space-l)}     /* 1px section rhythm, not big gaps */
-.sec>h2{font-size:clamp(19px,2.4vw,26px);margin:0 0 8px;position:relative;padding-bottom:7px}
+.sec>h2{font-size:var(--fs-3);margin:0 0 8px;position:relative;padding-bottom:7px}
 .sec>h2::after{content:"";position:absolute;left:0;bottom:0;width:36px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--primary),var(--accent))}  /* accent bar */
 .sec>p.lead{color:var(--mut);margin:4px 0 var(--space-s);max-width:var(--measure);font-size:.95rem}
 
@@ -117,10 +167,18 @@ main{padding:var(--space-s) 0 var(--space-xl)}
 .grid{display:grid;gap:var(--space-s)}
 .auto{grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))}
 .grid>*{min-width:0}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--space-s);box-shadow:var(--sh);transition:transform .18s ease,box-shadow .18s ease}
-@media(hover:hover){.card:hover{transform:translateY(-2px);box-shadow:var(--shh)}}   /* hover lift; killed by reduced-motion global */
-.meter>i{transition:width .8s ease}
-.card h3{font-size:1.04rem;margin:0 0 8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--space-s);box-shadow:var(--sh)}
+.card h3{font-size:var(--fs-2);margin:0 0 8px}
+
+/* Exhibits: every table/chart/diagram is a NUMBERED exhibit with an assertion caption + source line
+   ("Exhibit 3 — Penalty ceilings differ by a factor of 20", never "Table: penalties"). Numbers and
+   cross-reference labels are assigned by JS in document order, so they cannot drift. */
+figure.exh{margin:16px 0 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--space-s);box-shadow:var(--sh)}
+figure.exh>figcaption{margin-bottom:9px}
+.exnum{display:inline-block;font-size:.71rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--primary)}
+.extitle{display:block;font-size:var(--fs-2);font-weight:700;line-height:1.3;margin-top:2px;max-width:var(--measure)}
+.exsrc{display:block;margin-top:9px;font-size:.76rem;color:var(--mut)}
+a.exref{font-variant-numeric:tabular-nums}
 .card.ok{background:var(--okbg);border-color:color-mix(in srgb,var(--ok) 30%,var(--line))}
 .card.bad{background:var(--badbg);border-color:color-mix(in srgb,var(--bad) 30%,var(--line))}
 .card.warn{background:var(--warnbg);border-color:color-mix(in srgb,var(--warn) 30%,var(--line))}
@@ -144,7 +202,7 @@ ul.dot li::before{content:"•";position:absolute;left:0;color:var(--accent);fon
 .src-chip{font-size:.78rem;border-radius:999px;padding:4px 10px;border:1px solid;text-decoration:none;display:inline-flex;gap:5px;align-items:center}
 .src-chip.official{color:var(--official);border-color:color-mix(in srgb,var(--ok) 35%,var(--line));background:var(--okbg)}
 .src-chip.secondary{color:var(--secondary);border-color:color-mix(in srgb,var(--warn) 35%,var(--line));background:var(--warnbg)}
-.src{font-size:.78rem;color:var(--mut)} .src a{color:var(--mut)}
+.src{font-size:var(--fs-0);color:var(--mut)} .src a{color:var(--mut)}
 
 /* datum badges */
 .badge{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border-radius:999px;padding:2px 8px;margin-left:4px;vertical-align:middle}
@@ -152,6 +210,15 @@ ul.dot li::before{content:"•";position:absolute;left:0;color:var(--accent);fon
 .badge.unverified{background:var(--badbg);color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line))}
 .badge.disputed{background:var(--badbg);color:var(--bad);border:1px dashed color-mix(in srgb,var(--bad) 45%,var(--line));text-decoration:none}
 a.badge.disputed:hover{border-style:solid}   /* disputed = credible sources conflict; the badge links to the contradiction note showing BOTH readings */
+/* derived = the brief's OWN inference, not a sentence any source wrote (verification.md Rule 9). Its
+   popover shows the premise quotes + the reasoning step. Never styled like a confirmed datum, and never
+   green/amber/red — it is a different KIND of signal, not a different strength of the same one. */
+.badge.derived{background:color-mix(in srgb,var(--primary) 8%,var(--surface));color:var(--primary);border:1px solid color-mix(in srgb,var(--primary) 40%,var(--line));cursor:pointer}
+.badge.derived:hover{border-color:var(--primary)}
+/* secondary-only = no source from the authority that ISSUED the rule. Distinct from `single`: five
+   agreeing sources can still be ungrounded. Load-bearing + this badge = capped at "partial" (Rule 13). */
+.badge.nonprimary{background:var(--warnbg);color:var(--warn);border:1px dashed color-mix(in srgb,var(--warn) 45%,var(--line))}
+.qpop .qwhy{display:block;margin-top:7px;padding-top:7px;border-top:1px dashed var(--line);color:var(--text);font-size:.82rem}   /* ds-opt:cites — the derivation sentence inside the popover */
 /* (confirmed datums use normal styling — no "confirmed" badge, per verification.md) */
 
 /* ds-opt:cites — claim→verbatim-quote popover. Click a [data-cite] chip: the EXTRACTED source sentence
@@ -192,7 +259,6 @@ a.badge.disputed:hover{border-style:solid}   /* disputed = credible sources conf
    4px rounded data-end + square baseline, 2px surface gaps, hairline baseline, value at the tip in
    text tokens (never the series color). Emphasis form: hl:true keeps the primary hue and every other
    row is auto-dimmed to gray (validated — primary vs accent pairs FAIL ΔE on indigo/rose themes). */
-figure.chartfig{margin:12px 0 0}
 .chart{display:flex;flex-direction:column;gap:2px;margin-top:10px}
 .chart .row{display:grid;grid-template-columns:minmax(90px,15ch) 1fr;gap:0 10px;align-items:center;border-radius:6px}
 .chart .row:hover{background:color-mix(in srgb,var(--primary) 6%,transparent)}
@@ -205,8 +271,11 @@ figure.chartfig{margin:12px 0 0}
 @media(max-width:380px){.chart .row{grid-template-columns:1fr}.chart .cl{white-space:normal}}   /* label stacks above its bar instead of squeezing */
 /* /ds-opt:chart */
 
-#toTop{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:40;width:40px;height:40px;border:1px solid var(--ctl);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--sh);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+/* Back to top is CORE chrome, never an optional block: on a long brief it is the only way back to the
+   nav without a scroll marathon. Visible from 400px of scroll, primary-tinted so it reads as a control. */
+#toTop{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:40;width:44px;height:44px;border:1px solid color-mix(in srgb,var(--primary) 40%,var(--line));border-radius:999px;background:var(--surface);color:var(--primary);box-shadow:var(--shh);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 #toTop.show{opacity:1;pointer-events:auto}
+#toTop:hover{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,var(--surface))}
 @media(pointer:coarse){.navbtn,.printbtn,.tool,.lawbtn{min-height:44px}#toTop{width:48px;height:48px}}   /* touch target ≥44px on coarse pointers */
 
 /* ds-opt:pills — pill-chip dense listing (instead of half-empty cards) */
@@ -248,7 +317,7 @@ details.acc>.body{padding:0 15px 15px;border-top:1px solid var(--line)}
 /* tables */
 .tblwrap{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:12px}
 table{border-collapse:collapse;width:100%;font-size:.88rem}
-th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;font-variant-numeric:tabular-nums}   /* digits align down every column */
 thead th{background:color-mix(in srgb,var(--primary) 8%,var(--surface));color:var(--mut);font-weight:700;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em}
 caption{caption-side:bottom;color:var(--mut);font-size:.76rem;text-align:left;padding:8px 4px}
 
@@ -262,7 +331,60 @@ caption{caption-side:bottom;color:var(--mut);font-size:.76rem;text-align:left;pa
 .cellcite:hover{border-color:var(--primary)}
 .cmp{display:inline-block;font-size:.72rem;font-weight:800;border-radius:999px;padding:2px 8px;background:var(--surface);border:1px solid var(--ctl);color:var(--mut);font-variant-numeric:tabular-nums}
 .cmp.part{background:var(--warnbg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 35%,var(--line))}
+/* 2-entity comparison: per-row same/differs verdict + a "differences only" filter, so one table answers
+   both halves of "where are these two the same, and where not". Verdict derives from the cells; a `same`
+   verdict on two differently-worded rules is itself a DERIVED claim and carries that badge. */
+.vd{display:inline-block;font-size:.71rem;font-weight:800;letter-spacing:.3px;text-transform:uppercase;border-radius:7px;padding:2px 8px;border:1px solid}
+.vd.same{color:var(--ok);background:var(--okbg);border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
+.vd.differs{color:var(--warn);background:var(--warnbg);border-color:color-mix(in srgb,var(--warn) 38%,var(--line))}
+.vd.only{color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,var(--surface));border-color:color-mix(in srgb,var(--primary) 35%,var(--line))}
+.mtools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;font-size:.84rem;color:var(--mut)}
+.mtools label{display:inline-flex;gap:7px;align-items:center;cursor:pointer}
 /* /ds-opt:matrix */
+
+/* ds-opt:todo — THE ACTION LIST. Items are rule-tagged (data-when: same grammar and evaluator as the
+   branch layer), so selections assemble a personal checklist and content scales with the rule count, not
+   the product of the dimensions. No selection / JS off / print = every item, condition-labeled.
+   Keep ds-opt:oblg with this block — items reuse its badge styles. */
+#todoList{counter-reset:td}
+.todo-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:12px 0 2px}
+.profileline{font-size:.86rem;color:var(--mut);flex:1 1 260px;min-width:0;max-width:none}
+.profileline b{color:var(--text)}
+.todocount{font-weight:800;font-size:.95rem;color:var(--primary);font-variant-numeric:tabular-nums}
+.todo-controls{display:flex;gap:8px;flex-wrap:wrap;flex:0 0 auto}
+.tdbtn{border:1px solid var(--ctl);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 12px;font-size:.82rem;font-weight:600;cursor:pointer;min-height:34px;display:inline-flex;align-items:center;gap:6px}
+.tdbtn:hover{border-color:var(--primary)}
+.tdbtn[aria-pressed="true"]{background:color-mix(in srgb,var(--primary) 12%,var(--surface));color:var(--primary);border-color:color-mix(in srgb,var(--primary) 45%,var(--line))}
+h3.tdgroup{font-size:.9rem;margin:16px 0 6px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+ol.todo{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+ol.todo>li{counter-increment:td;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px 11px 44px;position:relative;box-shadow:var(--sh);max-width:none}
+ol.todo>li::before{content:counter(td);position:absolute;left:11px;top:11px;width:23px;height:23px;border-radius:50%;background:color-mix(in srgb,var(--primary) 12%,var(--surface));color:var(--primary);font-size:.74rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.tdi .act{font-weight:600}
+.tdmeta{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:7px;font-size:.79rem;color:var(--mut);align-items:center}
+.deadchip{display:inline-flex;align-items:center;gap:5px;border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line));background:var(--badbg);color:var(--bad);border-radius:999px;padding:2px 9px;font-weight:700;font-size:.75rem;text-decoration:none}
+.condchip{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;border-radius:999px;padding:2px 9px;background:color-mix(in srgb,var(--text) 5%,var(--surface));color:var(--mut);border:1px solid var(--line)}
+.copyfall{display:none;width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px solid var(--ctl);border-radius:10px;font:inherit;font-size:.85rem;background:var(--surface);color:var(--text)}
+.copyfall.show{display:block}
+/* /ds-opt:todo */
+
+/* ds-opt:timeline — deadline sequence. A table gives the values; only a timeline shows the order and the
+   gaps between them, which is what the reader actually plans against. Single hue + red for hard limits. */
+ol.tl{list-style:none;margin:12px 0 0;padding:0 0 0 22px;border-left:2px solid var(--line);display:grid;gap:12px}
+ol.tl>li{position:relative;max-width:none}
+ol.tl>li::before{content:"";position:absolute;left:-28px;top:6px;width:11px;height:11px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 3px var(--surface);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ol.tl>li.hard::before{background:var(--bad)}
+ol.tl .tlwhen{font-weight:800;font-variant-numeric:tabular-nums}
+ol.tl .tlwhat{display:block;margin-top:2px;font-size:.92rem}
+/* /ds-opt:timeline */
+
+/* ds-opt:coverage — corpus coverage ledger: every unit of the authoritative corpus (statute articles,
+   standard clauses, endpoints) accounted for as covered / out-of-scope / gap. Search-completeness says
+   how hard we looked; only this table can say whether an article was missed. Collapsed by default. */
+.cov .st{display:inline-block;font-size:.71rem;font-weight:800;border-radius:999px;padding:2px 8px;border:1px solid}
+.cov .st.covered{color:var(--ok);background:var(--okbg);border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
+.cov .st.oos{color:var(--mut);background:var(--surface);border-color:var(--ctl)}
+.cov .st.gap{color:var(--bad);background:var(--badbg);border-color:color-mix(in srgb,var(--bad) 38%,var(--line))}
+/* /ds-opt:coverage */
 
 /* ds-opt:calc — optional calculator (include only if topic genuinely computes something) */
 .calc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:var(--space-s);margin:14px 0}
@@ -273,6 +395,39 @@ caption{caption-side:bottom;color:var(--mut);font-size:.76rem;text-align:left;pa
 .calcout{margin-top:10px;background:#0e1b25;color:#e6eef5;border-radius:10px;padding:12px 14px;font-size:.95rem}.calcout b{color:#7fe3b0}
 /* /ds-opt:calc */
 
+/* ---- Narrative spine: a governing thought + 3-5 key messages, each an ASSERTION with its evidence one
+   click away — a reader who reads only this block must be able to act. Scope box states the boundary;
+   the per-section "so what" line turns a finding into a consequence. ---- */
+.scopebox{margin:12px 0 0;padding:10px 13px;border:1px solid var(--line);border-left:3px solid var(--ctl);border-radius:0 10px 10px 0;background:color-mix(in srgb,var(--text) 3%,var(--surface));font-size:.88rem;color:var(--mut);max-width:var(--measure)}
+.scopebox b{color:var(--text)}
+ol.keymsg{list-style:none;counter-reset:km;padding:0;margin:14px 0 0;display:grid;gap:10px}
+ol.keymsg>li{counter-increment:km;position:relative;padding:12px 14px 12px 46px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--primary);border-radius:0 var(--r) var(--r) 0;box-shadow:var(--sh);max-width:none}
+ol.keymsg>li::before{content:counter(km);position:absolute;left:15px;top:11px;font-size:1.05rem;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums}
+.km-claim{display:block;font-weight:700;font-size:var(--fs-2);line-height:1.35;max-width:var(--measure)}
+.km-sup{display:block;margin-top:5px;color:var(--mut);font-size:.88rem;max-width:var(--measure)}
+p.sowhat{margin:12px 0 0;padding-left:12px;border-left:3px solid var(--primary);font-size:.92rem}
+p.sowhat b{color:var(--primary)}
+/* ds-opt:glossary — defined terms, linked from first use. A brief that explains a term once, in place,
+   still fails the reader who arrives at section 6 from a search. */
+dl.gloss{margin:0}
+dl.gloss dt{font-weight:700;margin-top:10px}
+dl.gloss dt:first-child{margin-top:0}
+dl.gloss dd{margin:3px 0 0;color:var(--mut);font-size:.92rem;max-width:var(--measure)}
+/* /ds-opt:glossary */
+/* ds-opt:vignette — one concrete worked example. Every step carries its own source: a walkthrough is an
+   argument, not an illustration, and an unsourced step is the easiest place for an error to hide. */
+.vignette{background:color-mix(in srgb,var(--primary) 4%,var(--surface));border:1px solid color-mix(in srgb,var(--primary) 22%,var(--line));border-radius:var(--r);padding:var(--space-s);margin-top:14px}
+.vignette .who{font-weight:700;margin:0 0 6px}
+.vignette ol{margin:0;padding-left:20px}
+.vignette li{margin:6px 0}
+/* /ds-opt:vignette */
+/* ds-opt:todo — exposure chip: how much is at stake if this item is missed, so the reader can triage a
+   long list. The value is a datum like any other and carries its own source. */
+.expchip{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:800;border-radius:7px;padding:2px 8px;border:1px solid}
+.expchip.high{color:var(--bad);background:var(--badbg);border-color:color-mix(in srgb,var(--bad) 38%,var(--line))}
+.expchip.med{color:var(--warn);background:var(--warnbg);border-color:color-mix(in srgb,var(--warn) 38%,var(--line))}
+.expchip.low{color:var(--mut);background:var(--surface);border-color:var(--ctl)}
+/* /ds-opt:todo */
 .unknown li{margin:8px 0}.unknown .q{font-weight:700}.unknown .why{color:var(--mut);font-size:.9rem}
 footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area-inset-bottom));color:var(--mut);font-size:.82rem;text-align:center;background:var(--surface)}
 
@@ -281,12 +436,16 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 
 @page{margin:14mm 12mm}   /* absolute units only — viewport units do not map to the printed page */
 @media print{
-  nav.bar,.tool,.printbtn,.navbtn,.lawbtn,.spacer,.skip,#toTop,#progress,.choices,.qpop{display:none!important}
+  nav.bar,.tool,.printbtn,.navbtn,.lawbtn,.skip,#toTop,#progress,.choices,.qpop,.todo-controls,.mtools,.copyfall{display:none!important}
   [data-when][hidden]{display:revert!important}   /* every branch prints, labeled by its .whochip */
-  .reveal{opacity:1!important;transform:none!important}
+  tr[data-vd][hidden]{display:table-row!important}   /* "differences only" is a screen filter; paper keeps every row */
+  ol.todo>li[hidden]{display:list-item!important}    /* default: the printout carries every action item with its condition */
+  body.print-profile ol.todo>li[hidden]{display:none!important}   /* opt-in personal checklist: narrows the ACTION LIST only, and the profile line prints with it so the page is never ambiguous */
+  header.top p.sub{-webkit-line-clamp:none;display:block;overflow:visible}
+  ol.todo>li{break-inside:avoid;box-shadow:none}
   header.top::before,header.top::after{display:none}
   .trust{box-shadow:none;break-inside:avoid}
-  figure.chartfig,.chart .row{break-inside:avoid}
+  figure.exh,.chart .row{break-inside:avoid}
   details.acc>.body,.lawtext{display:block!important}
   details.acc>summary::before{display:none}
   body{background:#fff;color:#000}
@@ -304,60 +463,89 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 <body>
 <a class="skip" href="#content">Skip to content</a>
 
+<!-- Print-only cover. Everything on it already exists in CONFIG — no new facts, no new maintenance. -->
+<section class="cover">
+  <p class="ctitle" data-cfg="title">{REPORT_TITLE}</p>
+  <p class="csub" data-cfg="subtitle">{ONE_LINE_DESCRIPTION}</p>
+  <div class="crule"></div>
+  <div class="cmeta">
+    <span><span class="k">{As of}</span><b data-cfg="accessDate">{YYYY-MM-DD}</b></span>
+    <span><span class="k">{Confidence}</span><b data-cfg="confidence">{HIGH|MEDIUM|LOW}</b></span>
+    <span><span class="k">{Sources}</span><b data-cfg="sourceCount">{N}</b> (<span data-cfg="officialCount">{n}</span> {official})</span>
+    <span><span class="k">{Double-confirmed}</span><b data-cfg="coveragePct">{NN}</b>%</span>
+    <span><span class="k">{Version}</span><b data-cfg="version">{v1 · YYYY-MM-DD}</b></span>
+    <span><span class="k">{Generated}</span><b data-cfg="generatedAtShort">{YYYY-MM-DD}</b></span>
+  </div>
+  <p class="cscope"><b>{Scope}</b> <span data-cfg="scope">{What question this answers, for whom, and what it deliberately excludes.}</span></p>
+  <p class="cscope"><span data-cfg="confidenceNote">{plain-language reading of the confidence label}</span></p>
+  <p class="cscope"><span data-cfg="disclaimer">Informational only; not binding or professional advice.</span></p>
+</section>
+
+<!-- Print-only contents + exhibit index, both built by JS from the document itself (so they cannot drift
+     from it). No page numbers: Chrome does not support @page counters and faking them would be worse
+     than omitting them. -->
+<nav class="toc" aria-label="Contents">
+  <h2 data-cfg="tocTitle">Contents</h2>
+  <ol id="tocList"></ol>
+  <h2 data-cfg="exIndexTitle">Exhibits</h2>
+  <ol id="exList"></ol>
+</nav>
+
 <!-- ds-opt:icons — inline SVG sprite (currentColor strokes). Use: <svg class="ico"><use href="#i-name"/></svg>
      Decorative uses carry aria-hidden="true" on the <svg>. Prune the block when no <use> remains. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <symbol id="i-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 11v5"/></g></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></g></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g></symbol>
-  <symbol id="i-doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></g></symbol>
-  <symbol id="i-scale" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M4 7h16"/><path d="m7 7-3 6a3 3 0 0 0 6 0L7 7zM17 7l-3 6a3 3 0 0 0 6 0l-3-6z"/></g></symbol>
-  <symbol id="i-calc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01"/></g></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></g></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></g></symbol>
-  <symbol id="i-q" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7M12 17h.01"/></g></symbol>
-  <symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></g></symbol>
 </defs></svg>
 <!-- /ds-opt:icons -->
 
+<!-- Compact header: title + one-line subtitle + ONE meta row that also carries the "informational only"
+     notice. No full-width disclaimer banner, no stacked meta bars — chrome must not own the first screen. -->
 <header class="top"><div class="wrap">
   <h1 data-cfg="title">{REPORT_TITLE}</h1>
-  <p data-cfg="subtitle">{ONE_LINE_DESCRIPTION}</p>
+  <p class="sub" data-cfg="subtitle">{ONE_LINE_DESCRIPTION}</p>
+  <div class="hmeta">
+    <!-- The source count lives in the trust strip; repeating it here would be the same number three times. -->
+    <span class="m">{As of} <b data-cfg="accessDate">{YYYY-MM-DD}</b></span>
+    <!-- ds-opt:oblg --><span class="m">{Current consolidated text as of} <b data-cfg="lawAsOf">{YYYY-MM-DD}</b></span><!-- /ds-opt:oblg -->
+    <span class="m disc"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span data-cfg="disclaimer">Informational only; not binding or professional advice.</span></span>
+  </div>
 </div></header>
 
-<div class="disclaimer"><div class="wrap">
-  <span aria-hidden="true">[!]</span>
-  <span data-cfg="disclaimer"><b>For informational purposes only; not binding or professional advice.</b> Data may change; confirm decisions with the official source.</span>
-</div></div>
-
-<nav class="bar"><div class="wrap" id="navLinks">
+<!-- Nav: one row at every width. Links scroll horizontally in .navlinks; tools stay pinned right in
+     frequency order (search → theme → print). Search is icon-only until focused (CSS :focus-within). -->
+<nav class="bar"><div class="wrap">
   <span id="navTitle" data-cfg="title" aria-hidden="true">{REPORT_TITLE}</span>
-  <a class="navbtn" href="#ozet">Summary</a>
-  <!-- ds-opt:branch --><a class="navbtn" href="#senaryo">{Your situation}</a><!-- /ds-opt:branch -->
-  <a class="navbtn" href="#bulgular">Findings</a>
-  <a class="navbtn" href="#unknowns">Unknowns</a>
-  <a class="navbtn" href="#sources">Sources</a>
-  <span class="spacer"></span>
-  <!-- ds-opt:theme -->
-  <label class="tool" title="Theme">
-    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9z"/></svg>
-    <select id="theme" aria-label="Select theme">
-      <option value="slate">Slate</option><option value="teal">Teal</option><option value="emerald">Emerald</option>
-      <option value="indigo">Indigo</option><option value="rose">Rose</option><option value="amber">Amber</option>
-      <option value="dark">Dark</option>
-    </select>
-  </label>
-  <!-- /ds-opt:theme -->
-  <!-- ds-opt:search -->
-  <label class="tool" title="Search">
-    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-    <input id="q" type="search" placeholder="Search..." autocomplete="off" aria-label="Search report">
-  </label>
-  <!-- /ds-opt:search -->
-  <button class="printbtn" id="printBtn" type="button">
-    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
-    Print / PDF
-  </button>
+  <div class="navlinks" id="navLinks">
+    <a class="navbtn" href="#ozet">Summary</a>
+    <!-- ds-opt:branch --><a class="navbtn" href="#senaryo">{Your situation}</a><!-- /ds-opt:branch -->
+    <!-- ds-opt:todo --><a class="navbtn" href="#yapilacaklar">{What you must do}</a><!-- /ds-opt:todo -->
+    <a class="navbtn" href="#bulgular">Findings</a>
+    <a class="navbtn" href="#unknowns">Unknowns</a>
+    <a class="navbtn" href="#sources">Sources</a>
+  </div>
+  <div class="tools">
+    <!-- ds-opt:search -->
+    <label class="tool search" title="Search">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="Search..." autocomplete="off" aria-label="Search report">
+    </label>
+    <!-- /ds-opt:search -->
+    <!-- ds-opt:theme — light/dark ONLY. Reading comfort is the reader's call; the brand palette is the
+         report's, chosen once at build in CONFIG.palette. A six-way colour menu in a research report is
+         a feature the reader never needed and one more control competing with the content. -->
+    <button class="tool" id="themeBtn" type="button" aria-pressed="false" title="Dark mode" aria-label="Toggle dark mode">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9z"/></svg>
+    </button>
+    <!-- /ds-opt:theme -->
+    <button class="printbtn" id="printBtn" type="button" title="Print / PDF" aria-label="Print or save as PDF">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+      <span class="lbl">Print / PDF</span>
+    </button>
+  </div>
 </div><div id="progress" aria-hidden="true"></div></nav>
 
 <main class="wrap" id="content">
@@ -367,14 +555,52 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   <div class="trust" role="note" aria-label="Verification status">
     <span class="t"><span class="dotb" id="confDot" aria-hidden="true"></span><b data-cfg="confidence">{HIGH|MEDIUM|LOW}</b> {confidence}</span>
     <span class="t"><b><span data-cfg="coveragePct">{NN}</span>%</b> {2x-confirmed} <span class="meter mini" id="covMeter" role="img"><i id="covFill"></i></span></span>
+    <!-- Primary coverage sits NEXT to double-confirmation, never instead of it: the two answer different
+         questions, and a brief can be 96% double-confirmed while half its rules rest on secondary write-ups. -->
+    <span class="t"><b><span data-cfg="primaryPct">{NN}</span>%</b> {from the issuing authority} <span class="meter mini" id="primMeter" role="img"><i id="primFill"></i></span></span>
     <span class="t"><b data-cfg="sourceCount">{N}</b> {sources} (<span data-cfg="officialCount">{n}</span> {official})</span>
-    <span class="t">{accessed} <b data-cfg="accessDate">{YYYY-MM-DD}</b></span>
+    <!-- ds-opt:coverage --><span class="t"><b data-cfg="corpusCovered">{n}</b>/<span data-cfg="corpusTotal">{m}</span> {articles covered}</span><!-- /ds-opt:coverage -->
     <a class="t" href="#method">{Method}</a>
+    <!-- No band name ships bare: this sentence says in plain words what the label above means. -->
+    <span class="say" data-cfg="confidenceNote">{Every fact here is confirmed by at least two independent sources, and the official texts were checked in their current versions.}</span>
   </div>
 
+  <!-- ds-opt:gate — ships ONLY when the confidence gate did not fully pass. One plain line per remaining
+       blocker: what is missing, and what was already tried. Prune the whole block on a HIGH run. -->
+  <div class="note warn gate" id="gate">
+    <b data-cfg="gateTitle">{What would make this HIGH}</b>
+    <ul class="dot">
+      <li><span class="what">{the blocking item}</span> — {what was tried, in plain words}</li>
+    </ul>
+  </div>
+  <!-- /ds-opt:gate -->
+
   <section class="sec" id="ozet">
-    <h2>Summary</h2>
-    <p class="lead" data-cfg="summary">{EXECUTIVE_SUMMARY}</p>
+    <!-- The h2 states the governing thought — the one sentence the whole brief argues for. Not "Summary". -->
+    <h2>{THE GOVERNING THOUGHT — the single assertion this brief establishes}</h2>
+    <p class="lead" data-cfg="summary">{EXECUTIVE_SUMMARY — conclusion first, then its support}</p>
+
+    <!-- Scope: what this answers, for whom, and what it deliberately excludes. A brief that never states
+         its boundary invites the reader to assume it covers their case. -->
+    <p class="scopebox"><b>{Scope}</b> <span data-cfg="scope">{what this answers · for whom · what it excludes}</span></p>
+
+    <!-- 3-5 KEY MESSAGES. Each is an assertion with its support and a link to the evidence. A reader who
+         reads only this list must be able to act; everything below is the argument for these lines. -->
+    <ol class="keymsg">
+      <li>
+        <span class="km-claim">{key message 1 — an assertion, with the number in it}</span>
+        <span class="km-sup">{one line of support} <a class="exref" href="#ex-chart1"></a> <a class="xref" href="#detay-1">{read the full rule}</a></span>
+      </li>
+      <li>
+        <span class="km-claim">{key message 2}</span>
+        <span class="km-sup">{support} <a class="src-chip official" href="{URL}" data-cite="1" target="_blank" rel="noopener">{source}</a></span>
+      </li>
+      <li>
+        <span class="km-claim">{key message 3 — including the uncomfortable one, if there is one}</span>
+        <span class="km-sup">{support} <span class="badge nonprimary">{secondary only}</span></span>
+      </li>
+    </ol>
+
     <div class="grid auto">
       <div class="card ok"><h3>{KEY_POINT_GROUP}</h3>
         <ul class="tick"><li>{claim} <a class="src-chip official" href="{URL}" data-cite="1" target="_blank" rel="noopener">{source}</a></li></ul>
@@ -436,6 +662,60 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     </div>
   </section>
   <!-- /ds-opt:branch -->
+
+  <!-- ds-opt:todo — THE ACTION LIST. ACTIVATE whenever the brief tells the reader to DO things (legal,
+       regulatory, procedural topics). Items live in CONFIG.todo as RULE-TAGGED entries: each carries its
+       own applicability condition in the same data-when grammar the branch layer uses, so one evaluator
+       drives both and the two can never disagree. Above 2 decision dimensions this is the ONLY sane
+       representation — per-combination blocks explode (6 dimensions x 4 values = 4096 readings).
+       Every item must answer: what · who · by when · how/where · on what authority.
+       No selection / JS off / print = every item, each labeled with the condition under which it applies. -->
+  <section class="sec" id="yapilacaklar">
+    <h2><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg> {WHAT_YOU_MUST_DO_TITLE}</h2>
+    <p class="lead">{one line: this list is assembled from your selections above — every item states who it falls on, by when, and where it is done}</p>
+    <div class="todo-head">
+      <span class="profileline" id="todoProfile">{your profile renders here}</span>
+      <span class="todocount" id="todoCount">{n}</span>
+      <div class="todo-controls">
+        <button class="tdbtn" id="todoCopy" type="button">{Copy list}</button>
+        <button class="tdbtn" id="todoPrintMine" type="button" aria-pressed="false">{Print only my items}</button>
+      </div>
+    </div>
+    <div class="note warn" id="todoUnanswered" hidden></div>
+    <!-- Items are AUTHORED here, once, each tagged with the condition under which it applies. JS only
+         counts/labels them — with JS off, or before any selection, the reader still sees every item.
+         Order: mandatory → prohibited → recommended → optional; within a group, earliest deadline first. -->
+    <div id="todoList">
+      <h3 class="tdgroup">{Mandatory}</h3>
+      <ol class="todo">
+        <li class="tdi" data-when="entity:ltd|jsc data:special">
+          <span class="oblg must">{Mandatory}</span><span class="act">{plain imperative action}</span>
+          <div class="tdmeta">
+            <span>{Who} {the person or body it falls on}</span>
+            <a class="deadchip" href="#sureler">{By} {period}</a>
+            <span>{How} {portal / form / filing}</span>
+            <span class="expchip high">{If missed} {consequence + amount}</span>
+            <span class="condchip">{Applies to} {legal form}: {Limited} / {Joint-stock} · {data}: {special category}</span>
+            <a class="src-chip official" href="{URL}" data-cite="12" target="_blank" rel="noopener">{source}</a>
+            <!-- applicability is an inference, not a source sentence → premises one click away -->
+            <button class="badge derived" type="button" data-cite="d1">{derived}</button>
+          </div>
+        </li>
+      </ol>
+      <h3 class="tdgroup">{Recommended}</h3>
+      <ol class="todo">
+        <li class="tdi">
+          <span class="oblg should">{Recommended}</span><span class="act">{action that applies to everyone — no data-when}</span>
+          <div class="tdmeta">
+            <span>{Who} {actor}</span><span>{How} {where it is done}</span>
+            <a class="src-chip secondary" href="{URL}" data-cite="13" target="_blank" rel="noopener">{source}</a>
+          </div>
+        </li>
+      </ol>
+    </div>
+    <textarea class="copyfall" id="todoFallback" readonly aria-label="{list text to copy}"></textarea>
+  </section>
+  <!-- /ds-opt:todo -->
 
   <!-- BULGULAR: one .sec per finding section. Each claim gets a source chip; each datum a badge if not 2x-confirmed. -->
   <section class="sec" id="bulgular">
@@ -501,21 +781,51 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
          Every filled cell carries its .cellcite (same popover as chips); a value NOT found in sources is
          an explicit "—" .miss cell; the last column scores attribute completeness N/M per entity (amber
          .part when incomplete). >: the matrix IS the data — no chart substitutes it. -->
-    <div class="tblwrap"><table class="matrix">
+    <div class="tblwrap full"><table class="matrix">
       <thead><tr><th>{Entity}</th><th>{Attribute A}</th><th>{Attribute B}</th><th>{Found}</th></tr></thead>
       <tbody>
         <tr><td>{entity 1}</td><td>{value}<button class="cellcite" type="button" data-cite="4" aria-label="{show source quote}">4</button></td><td>{value}<button class="cellcite" type="button" data-cite="5" aria-label="{show source quote}">5</button></td><td><span class="cmp">2/2</span></td></tr>
         <tr><td>{entity 2}</td><td>{value}<button class="cellcite" type="button" data-cite="6" aria-label="{show source quote}">6</button></td><td class="miss" title="{not found in sources}">—</td><td><span class="cmp part">1/2</span></td></tr>
       </tbody>
     </table></div>
+
+    <!-- Two-regime comparison variant: attribute rows + a same/differs verdict, so ONE table answers both
+         "where are these identical" and "where do they diverge". data-vd drives the "differences only"
+         filter (screen-side; print keeps every row). A `same` verdict over differently-worded rules is a
+         DERIVED claim — badge it and name the equivalence reasoning. -->
+    <figure class="exh" id="ex-cmp">
+    <figcaption>
+      <span class="exnum">{Exhibit}</span>
+      <span class="extitle">{the assertion this comparison proves — e.g. "The two regimes align on rights, diverge on transfers"}</span>
+      <span class="exsrc">{scope / as-of date} · {sources per cell, in the cell citations}</span>
+    </figcaption>
+    <div class="mtools">
+      <label><input type="checkbox" id="diffOnly"> {Show differences only}</label>
+      <span id="diffCount">{n of m rows differ}</span>
+    </div>
+    <div class="tblwrap full"><table class="matrix" id="cmpMatrix">
+      <thead><tr><th>{Topic}</th><th>{Regime A}</th><th>{Regime B}</th><th>{Verdict}</th></tr></thead>
+      <tbody>
+        <tr data-vd="same"><td>{attribute}</td><td>{value}<button class="cellcite" type="button" data-cite="7" aria-label="{show source quote}">7</button></td><td>{value}<button class="cellcite" type="button" data-cite="8" aria-label="{show source quote}">8</button></td><td><span class="vd same">{Same}</span> <button class="badge derived" type="button" data-cite="d1">{derived}</button></td></tr>
+        <tr data-vd="differs"><td>{attribute}</td><td>{value}<button class="cellcite" type="button" data-cite="9" aria-label="{show source quote}">9</button></td><td>{other value}<button class="cellcite" type="button" data-cite="10" aria-label="{show source quote}">10</button></td><td><span class="vd differs">{Differs}</span></td></tr>
+        <tr data-vd="only-a"><td>{attribute}</td><td>{value}<button class="cellcite" type="button" data-cite="11" aria-label="{show source quote}">11</button></td><td class="miss" title="{no equivalent in this regime}">—</td><td><span class="vd only">{Only A}</span></td></tr>
+      </tbody>
+    </table></div>
+    </figure>
     <!-- /ds-opt:matrix -->
 
     <!-- ds-opt:chart — comparison bars when the topic has 2-7 comparable magnitudes (rates, prices,
          limits). Rows built by renderCharts() from CONFIG.charts (safe DOM). Every value is direct-
          labeled at the bar tip AND repeated in the data table, so no tooltip layer is needed.
          >7 items → table only, never more bars. hl:true = the story's item (accent); others stay primary. -->
-    <figure class="card chartfig">
-      <figcaption><h3>{CHART_TITLE}</h3><p class="src">{unit / period} · <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></p></figcaption>
+    <figure class="exh" id="ex-chart1">
+      <figcaption>
+        <span class="exnum">{Exhibit}</span>
+        <!-- The caption states the FINDING, never the category: "Penalty ceilings differ by a factor of
+             20", not "Penalties by regime". A caption a reader can skim instead of the chart. -->
+        <span class="extitle">{the assertion this exhibit proves}</span>
+        <span class="exsrc">{unit / period} · <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></span>
+      </figcaption>
       <div class="chart" id="chart1" role="img" aria-label="{CHART_TITLE} — values listed in the data table below"></div>
       <details class="acc"><summary>Data table</summary><div class="body tblwrap">
         <table><thead><tr><th>{Item}</th><th>{Value}</th></tr></thead><tbody id="chart1-table"></tbody></table>
@@ -530,10 +840,77 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     </div>
     <!-- /ds-opt:strip -->
 
+    <!-- ds-opt:vignette — one concrete worked example; every step sourced. -->
+    <div class="vignette">
+      <p class="who">{concrete actor: "A 12-person limited company processing health data"}</p>
+      <ol>
+        <li>{step — what they check first} <a class="src-chip official" href="{URL}" data-cite="1" target="_blank" rel="noopener">{source}</a></li>
+        <li>{step — the conclusion it leads to} <button class="badge derived" type="button" data-cite="d1">{derived}</button></li>
+      </ol>
+    </div>
+    <!-- /ds-opt:vignette -->
+
     <details class="acc" id="detay-1"><summary>{detail heading}</summary>
       <div class="body"><p>{detail body}</p></div>
     </details>
+
+    <!-- Every section closes with the consequence, not the finding. -->
+    <p class="sowhat"><b>{So what}</b> {what the reader must now do or decide differently}</p>
   </section>
+
+  <!-- ds-opt:deadlines — every period in the brief in ONE table. Scattered deadlines are missed
+       deadlines; the action list's deadline chips link here. "Counted from" is part of the datum:
+       calendar vs business days, from the event vs from awareness of it. -->
+  <section class="sec" id="sureler">
+    <h2>{DEADLINES_TITLE}</h2>
+    <p class="lead">{one line: every period that applies, what starts the clock, and what happens if it is missed}</p>
+
+    <!-- ds-opt:timeline — periods are the one thing a table alone communicates badly: the reader needs to
+         see the ORDER and the gaps. Ordered soonest-first; hard deadlines carry the red marker. -->
+    <figure class="exh" id="ex-timeline">
+      <figcaption><span class="exnum">{Exhibit}</span><span class="extitle">{the assertion — e.g. "Three obligations land within the first month"}</span></figcaption>
+      <ol class="tl">
+        <li class="hard"><span class="tlwhen">{72 hours}</span><span class="tlwhat">{what must happen, counted from what} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></span></li>
+        <li><span class="tlwhen">{30 days}</span><span class="tlwhat">{next obligation} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></span></li>
+      </ol>
+    </figure>
+    <!-- /ds-opt:timeline -->
+
+    <div class="tblwrap full"><table>
+      <thead><tr><th>{Trigger}</th><th>{Period}</th><th>{Counted from}</th><th>{If missed}</th><th>{Source}</th></tr></thead>
+      <tbody>
+        <tr><td>{event that starts the clock}</td><td><b>{period}</b></td><td>{calendar/business days · from event/from awareness}</td><td>{consequence}</td><td><a class="src-chip official" href="{URL}" data-cite="12" target="_blank" rel="noopener">{source}</a></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <!-- /ds-opt:deadlines -->
+
+  <!-- ds-opt:sanctions — consequences table. Amounts ALWAYS carry their index year + revaluation rule:
+       an amount without its year is a stale number waiting to happen (verification.md skill-side gate). -->
+  <section class="sec" id="yaptirimlar">
+    <h2>{SANCTIONS_TITLE}</h2>
+    <div class="tblwrap full"><table>
+      <thead><tr><th>{Breach}</th><th>{Imposed by}</th><th>{Range}</th><th>{Year of amounts}</th><th>{Appeal}</th><th>{Source}</th></tr></thead>
+      <tbody>
+        <tr><td>{what went wrong}</td><td>{authority}</td><td><b>{range}</b></td><td>{YYYY} <span class="src">({revaluation rule})</span></td><td>{route + period}</td><td><a class="src-chip official" href="{URL}" data-cite="13" target="_blank" rel="noopener">{source}</a></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+  <!-- /ds-opt:sanctions -->
+
+  <!-- ds-opt:escalate — the honest counterpart to the "informational only" notice. A brief cannot make a
+       professional unnecessary; it CAN cover everything else completely and name the exact situations
+       where the reader must stop and get expert or regulator input. Each trigger names its concrete signal. -->
+  <section class="sec" id="uzman">
+    <h2>{WHEN_TO_GET_HELP_TITLE}</h2>
+    <p class="lead">{one line: everything above is actionable on your own — these are the situations where it stops being safe to act on a document}</p>
+    <div class="card warn">
+      <ul class="dot">
+        <li><b>{trigger}</b> — {the concrete signal that you are in this situation} → {who to go to, with what}</li>
+      </ul>
+    </div>
+  </section>
+  <!-- /ds-opt:escalate -->
 
   <!-- ds-opt:calc — optional calculator; include only when the topic genuinely computes something.
        Build adds the topic-specific compute JS that writes #calcOut; otherwise prune this whole block. -->
@@ -547,28 +924,74 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   </section>
   <!-- /ds-opt:calc -->
 
+  <!-- Apparatus from here down: present, countable at a glance, collapsed by default. The summary line
+       always carries the count, so "collapsed" never reads as "hidden". Search and print force them open. -->
+  <!-- ds-opt:changed — only on a re-run: what moved since the previous version, and why. Sourced like any
+       other claim; a flip with no named source change is an extraction error, not an update. -->
+  <section class="sec" id="degisenler">
+    <h2>{What changed since} <span data-cfg="prevVersionDate">{YYYY-MM-DD}</span></h2>
+    <ul class="dot">
+      <li>{what changed} — {the instrument/decision that changed it} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li>
+    </ul>
+  </section>
+  <!-- /ds-opt:changed -->
+
+  <!-- ds-opt:glossary — collapsed; terms linked from first use in the text. -->
+  <section class="sec" id="sozluk">
+    <h2>{Terms}</h2>
+    <details class="acc"><summary>{Defined terms} (<span data-cfg="glossaryCount">{n}</span>)</summary><div class="body">
+      <dl class="gloss">
+        <dt id="t-term">{term}</dt><dd>{plain-language definition} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{defining article}</a></dd>
+      </dl>
+    </div></details>
+  </section>
+  <!-- /ds-opt:glossary -->
+
   <section class="sec" id="unknowns">
     <h2>Unknowns / Uncertainties</h2>
-    <p class="lead">Points that were searched but not conclusively answered - what was searched and why it remains open.</p>
-    <ul class="unknown" id="unknownList">
-      <li><span class="q">{open question}</span><br>
-        <span class="why">Why open: {why}. Tried sources: {triedSources}. Tried queries: {triedQueries}.</span></li>
-    </ul>
+    <details class="acc"><summary>{Open questions} (<span data-cfg="unknownCount">{k}</span>)</summary><div class="body">
+      <p class="src">Points that were searched but not conclusively answered - what was searched and why it remains open.</p>
+      <ul class="unknown" id="unknownList">
+        <li><span class="q">{open question}</span><br>
+          <span class="why">Why open: {why}. Tried sources: {triedSources}. Tried queries: {triedQueries}.</span></li>
+      </ul>
+    </div></details>
   </section>
 
   <section class="sec" id="sources">
-    <h2>Sources</h2>
+    <h2>Sources &amp; method</h2>
     <!-- Method lives HERE (collapsed), not at the top of the report: the trust strip shows signals,
          this explains them once, for the reader who asks. Keep it to one short paragraph. -->
     <details class="acc" id="method"><summary>{Verification method}</summary><div class="body">
-      <p class="src">{One short paragraph: every claim cites a resolvable source; a datum backed by two independent sources reads normally, one source = "single source" badge, conflicting credible sources = "disputed" badge linking to both readings; open questions are listed under Unknowns. Search coverage: <span data-cfg="searchCompleteness">{saturation reached · n queries/question}</span>. Generated: <span data-cfg="generatedAtShort">{YYYY-MM-DD}</span>.}</p>
+      <p class="src">{One short paragraph: every claim cites a resolvable source; a datum backed by two independent sources reads normally, one source = "single source" badge, conflicting credible sources = "disputed" badge linking to both readings, and a conclusion the brief itself derived = "derived" badge showing its premises; open questions are listed under Unknowns. Search coverage: <span data-cfg="searchCompleteness">{saturation reached · n queries/question}</span>. Generated: <span data-cfg="generatedAtShort">{YYYY-MM-DD}</span>.}</p>
     </div></details>
-    <div class="tblwrap"><table id="srcTable">
-      <thead><tr><th>#</th><th>Source</th><th>Type</th><th>Tier</th><th>Accessed</th></tr></thead>
-      <tbody id="srcBody">
-        <tr><td>1</td><td><a href="{URL}" target="_blank" rel="noopener">{title}</a></td><td>official</td><td>T1</td><td>{YYYY-MM-DD}</td></tr>
-      </tbody>
-    </table></div>
+
+    <!-- ds-opt:coverage — corpus coverage ledger. ACTIVATE when the topic has a finite authoritative
+         corpus the brief claims to cover (statute articles, standard clauses, endpoints). Units come from
+         the official text's OWN contents listing, never from recollection. Counts are recomputed from the
+         rows at build. A `gap` row blocks the HIGH confidence label. -->
+    <details class="acc" id="coverage"><summary>{Article-by-article coverage} (<span data-cfg="corpusCovered">{n}</span> {covered} · <span data-cfg="corpusOos">{o}</span> {out of scope} · <span data-cfg="corpusGap">{g}</span> {gaps} / <span data-cfg="corpusTotal">{m}</span>)</summary>
+      <div class="body tblwrap cov"><table>
+        <thead><tr><th>{Instrument}</th><th>{Unit}</th><th>{Title}</th><th>{Status}</th><th>{Where / why}</th></tr></thead>
+        <tbody>
+          <tr><td>{instrument}</td><td>{art. N}</td><td>{unit title}</td><td><span class="st covered">{covered}</span></td><td><a href="#detay-1">{section it is treated in}</a></td></tr>
+          <tr><td>{instrument}</td><td>{art. N}</td><td>{unit title}</td><td><span class="st oos">{out of scope}</span></td><td>{one-line reason the reader can disagree with}</td></tr>
+          <tr><td>{instrument}</td><td>{art. N}</td><td>{unit title}</td><td><span class="st gap">{gap}</span></td><td>{searched, unresolved — also listed under Unknowns}</td></tr>
+        </tbody>
+      </table></div>
+    </details>
+    <!-- /ds-opt:coverage -->
+
+    <details class="acc"><summary>{Source list} (<span data-cfg="sourceCount">{N}</span>)</summary>
+      <!-- "Local copy" cites the archived snapshot in the bundle's sources/ dir (path + short hash), so a
+           page that later changes or disappears stays checkable. Drop this column under --no-archive. -->
+      <div class="body tblwrap full"><table id="srcTable">
+        <thead><tr><th>#</th><th>Source</th><th>Type</th><th>Tier</th><th>Published</th><th>Accessed</th><th>Local copy</th></tr></thead>
+        <tbody id="srcBody">
+          <tr><td>1</td><td><a href="{URL}" target="_blank" rel="noopener">{title}</a></td><td>official</td><td>T1</td><td>{YYYY-MM-DD|unknown}</td><td>{YYYY-MM-DD}</td><td class="src">sources/{NN-domain-slug.ext} · {sha256[0:8]}</td></tr>
+        </tbody>
+      </table></div>
+    </details>
   </section>
 
 </main>
@@ -586,18 +1009,55 @@ const CONFIG = {
   title:"{REPORT_TITLE}", subtitle:"{ONE_LINE_DESCRIPTION}",
   summary:"{EXECUTIVE_SUMMARY}",
   confidence:"{HIGH|MEDIUM|LOW}", coveragePct:"{NN}",
-  sourceCount:"{N}", officialCount:"{n}", secondaryCount:"{m}",
+  // share of RULE-DRIVING datums backed by the authority that issued the rule (verification.md Rule 13).
+  // Below 100 the report is telling the reader which parts rest on secondary write-ups — that is the point.
+  primaryPct:"{NN}",
+  coverageAria:"{of datums confirmed by 2+ independent sources}",
+  primaryAria:"{of rule-driving datums backed by the authority that issued the rule}",
+  sourceCount:"{N}", officialCount:"{n}",
   accessDate:"{YYYY-MM-DD}", generatedAt:"{ISO}", generatedAtShort:"{YYYY-MM-DD}",
   searchCompleteness:"{saturation reached | budget-stopped} · {n} queries/question",   // coverage-confidence: how completely the space was SEARCHED (distinct from claim confidence)
+  // Plain-language reading of the confidence label — MANDATORY, never empty: a bare band name
+  // ("MEDIUM") is not a signal the reader can act on. Wording per verification.md § Confidence.
+  confidenceNote:"{Every fact here is confirmed by at least two independent sources, and the official texts were checked in their current versions.}",
+  unknownCount:"{k}",
+  // Scope statement: what question this answers, for whom, and what it deliberately excludes. Printed on
+  // the cover and shown in the summary — a report that never states its boundary invites misreading.
+  scope:"{What this answers, for whom, and what it deliberately excludes.}",
+  version:"{v1 · YYYY-MM-DD}",
+  exhibitLabel:"{Exhibit}", tocTitle:"{Contents}", exIndexTitle:"{Exhibits}",
+  themeDarkLabel:"{Dark mode}", themeLightLabel:"{Light mode}",
+  gateTitle:"{What would make this HIGH}",   /* ds-opt:gate — prune with the block on a HIGH run */
+  lawAsOf:"{YYYY-MM-DD}",                    /* ds-opt:oblg — the consolidated-text version the brief reflects */
+  corpusCovered:"{n}", corpusOos:"{o}", corpusGap:"{g}", corpusTotal:"{m}",   /* ds-opt:coverage — recomputed from the ledger rows, never asserted */
+  diffCountLabel:"{n}/{m} {rows differ}",    /* ds-opt:matrix */
   palette:"slate",   // default theme; one of THEMES keys ("dark" auto-selected for OS dark mode unless the user chose one)
-  disclaimer:"For informational purposes only; not binding or professional advice. Data may change; confirm decisions with the official source.",
+  disclaimer:"Informational only; not binding or professional advice.",
   footer:"Sources as of access date | Single file, fully offline",
   someValue:"{N}",   // topic scalars referenced by [data-cfg]
+  /* ds-opt:todo — the action items themselves are AUTHORED in the HTML (one place, JS-off safe); these
+     are only the decision dimensions (keys match the .choices[data-key] groups) and the UI strings the
+     summary line needs. Value sets are exhaustive over the topic's real cases + a catch-all: a value
+     that silently matches nothing would give the reader a false all-clear. */
+  dimensions:[
+    // {key:"entity", label:"{Legal form}", values:[{val:"person", label:"{Natural person}"}, {val:"sole", label:"{Sole trader / self-employed}"}, {val:"ltd", label:"{Limited company}"}, {val:"jsc", label:"{Joint-stock company}"}, {val:"other", label:"{Other / not listed}"}]}
+  ],
+  todoLabels:{         /* ds-opt:todo — localized at build */
+    count:"{n} {items apply to you}", profile:"{Your situation}:",
+    none:"{No selection yet — showing every item, each labeled with the situation it applies to}",
+    unanswered:"{n} {questions unanswered — this list may be incomplete}:",
+    copied:"{Copied}", copyFail:"{Select the text below and copy it}"
+  },
   citesOpenLabel:"{Open source}",   /* ds-opt:cites */
+  citesPremiseLabel:"{Premises}",   /* ds-opt:cites */
   cites:{            /* ds-opt:cites — citationId -> verbatim quote (EXTRACTED byte-for-byte, never paraphrased).
                         Chips/.cellcite carry data-cite="id"; click shows the quote before leaving the page.
+                        A DERIVED claim's badge points at an entry with `premises` + `why`: the quotes the
+                        inference rests on, plus the reasoning step in one sentence (verification.md Rule 9).
                         Prune the keys with the block only when no quotes ship. */
-    // "1": {q:"{verbatim sentence from the source}", title:"{source title}", tier:"T1", pub:"{YYYY-MM-DD|unknown}", url:"{URL}"}
+    // "1":  {q:"{verbatim sentence from the source}", title:"{source title}", tier:"T1", pub:"{YYYY-MM-DD|unknown}", url:"{URL}"}
+    // "d1": {premises:[{q:"{verbatim premise 1}", title:"{source}", url:"{URL}"}, {q:"{verbatim premise 2}", title:"{source}", url:"{URL}"}],
+    //        why:"{one sentence naming the reasoning step, not restating the conclusion}"}
   },
   charts:[           /* ds-opt:chart — comparison bars; prune the key with the block when unused */
     // {id:"chart1", unit:"{unit}", items:[{label:"{item}", value:12.5, display:"{optional formatted}", hl:false, dim:false}]}
@@ -649,13 +1109,17 @@ function wireKpis(){
   const dot = document.getElementById("confDot");
   const cls = {HIGH:"ok", MEDIUM:"warn", LOW:"bad"}[String(CONFIG.confidence).toUpperCase()];
   if (dot && cls) dot.classList.add(cls);
-  const m = document.getElementById("covMeter"), f = document.getElementById("covFill");
-  if (m && f){
-    const pct = Math.max(0, Math.min(100, parseFloat(CONFIG.coveragePct) || 0));
-    m.classList.add(pct >= 80 ? "ok" : pct >= 50 ? "warn" : "bad");
+  function meter(mid, fid, val, label, strict){
+    const m = document.getElementById(mid), f = document.getElementById(fid);
+    if (!m || !f) return;
+    const pct = Math.max(0, Math.min(100, parseFloat(val) || 0));
+    // primary coverage is graded strictly: anything under 100% means some rule rests on secondary material
+    m.classList.add(strict ? (pct >= 100 ? "ok" : pct >= 80 ? "warn" : "bad") : (pct >= 80 ? "ok" : pct >= 50 ? "warn" : "bad"));
     f.style.width = pct + "%";
-    m.setAttribute("aria-label", pct + "% of datums confirmed by 2+ independent sources");
+    m.setAttribute("aria-label", pct + "% " + label);
   }
+  meter("covMeter", "covFill", CONFIG.coveragePct, CONFIG.coverageAria || "of datums confirmed by 2+ independent sources", false);
+  meter("primMeter", "primFill", CONFIG.primaryPct, CONFIG.primaryAria || "of rule-driving datums backed by the authority that issued the rule", true);
 }
 // sticky nav: condensed title after the header scrolls out, scrollspy aria-current, progress bar, back-to-top
 function wireSticky(){
@@ -689,7 +1153,7 @@ function wireSticky(){
       ticking = false;
       const h = document.documentElement, max = h.scrollHeight - h.clientHeight;
       if (prog) prog.style.transform = "scaleX(" + (max > 0 ? Math.min(1, h.scrollTop / max) : 0) + ")";
-      if (toTop) toTop.classList.toggle("show", h.scrollTop > 600);
+      if (toTop) toTop.classList.toggle("show", h.scrollTop > 400);
     });
   }
   window.addEventListener("scroll", onScroll, {passive:true}); onScroll();
@@ -725,13 +1189,66 @@ function renderCharts(){
     });
   });
 }
+// Light/dark only: reading comfort is the reader's, brand palette is the report's (CONFIG.palette).
 function wireTheme(){
-  let initial = CONFIG.palette;
+  const base = THEMES[CONFIG.palette] ? CONFIG.palette : "slate";
+  let initial = base;
   if (THEMES.dark && window.matchMedia && matchMedia("(prefers-color-scheme:dark)").matches) initial = "dark";   // OS preference beats the default…
   try { const s = localStorage.getItem("ds-brief-theme"); if (s && THEMES[s]) initial = s; } catch(e){}          // …but an explicit user choice beats both
   applyTheme(initial);
-  const sel = document.getElementById("theme");
-  if (sel){ sel.value = initial; sel.addEventListener("change", function(){ applyTheme(sel.value); }); }
+  const btn = document.getElementById("themeBtn");
+  if (!btn) return;
+  function sync(){
+    const dark = document.documentElement.getAttribute("data-theme") === "dark";
+    btn.setAttribute("aria-pressed", String(dark));
+    const lbl = dark ? (CONFIG.themeLightLabel || "Light mode") : (CONFIG.themeDarkLabel || "Dark mode");
+    btn.title = lbl; btn.setAttribute("aria-label", lbl);
+  }
+  sync();
+  btn.addEventListener("click", function(){
+    applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? base : "dark");
+    sync();
+  });
+}
+// Exhibits are numbered in document order at load, and every cross-reference label is written from its
+// target — so a reordered or pruned exhibit can never leave a stale "see Exhibit 4" behind.
+function renderExhibits(){
+  const label = CONFIG.exhibitLabel || "Exhibit";
+  const figs = [].slice.call(document.querySelectorAll("figure.exh"));
+  figs.forEach(function(f, i){
+    const n = i + 1;
+    if (!f.id) f.id = "ex-" + n;
+    f.setAttribute("data-exn", String(n));
+    const el = f.querySelector(".exnum");
+    if (el) el.textContent = label + " " + n;
+  });
+  document.querySelectorAll("a.exref[href^='#']").forEach(function(a){
+    const t = document.getElementById(a.getAttribute("href").slice(1));
+    if (t && t.getAttribute("data-exn")) a.textContent = label + " " + t.getAttribute("data-exn");
+  });
+}
+// Print-only contents + exhibit index, built from the document so they cannot drift from it.
+function buildToc(){
+  const list = document.getElementById("tocList"), exList = document.getElementById("exList");
+  if (list){
+    document.querySelectorAll("main .sec[id] > h2").forEach(function(h){
+      const li = document.createElement("li"); li.textContent = h.textContent.trim(); list.appendChild(li);
+    });
+  }
+  if (exList){
+    document.querySelectorAll("figure.exh").forEach(function(f){
+      const num = f.querySelector(".exnum"), title = f.querySelector(".extitle");
+      const li = document.createElement("li");
+      const n = document.createElement("span"); n.className = "exn"; n.textContent = (num ? num.textContent : "") + " — ";
+      li.appendChild(n); li.appendChild(document.createTextNode(title ? title.textContent.trim() : ""));
+      exList.appendChild(li);
+    });
+    if (!exList.children.length){          // no exhibits in this brief -> no empty index heading on paper
+      const heading = exList.previousElementSibling;
+      if (heading) heading.parentNode.removeChild(heading);
+      exList.parentNode.removeChild(exList);
+    }
+  }
 }
 // ds-opt:cites — claim→quote popover. Click a [data-cite] element: its verbatim source sentence opens
 // inline (safe DOM, textContent only); the real link moves INTO the popover ("open source"), so the
@@ -749,15 +1266,30 @@ function wireCites(){
     const el = ev.target.closest("[data-cite]");
     if (!el){ if (pop && !ev.target.closest(".qpop")) close(); return; }
     const c = cites[el.getAttribute("data-cite")];
-    if (!c || !c.q) return;   // no quote shipped -> plain link/button behavior
+    const prem = (c && c.premises) || [];
+    if (!c || (!c.q && !prem.length)) return;   // no quote shipped -> plain link/button behavior
     ev.preventDefault();
     if (cur === el){ close(); return; }
     close();
     pop = document.createElement("span"); pop.className = "qpop";
-    const q = document.createElement("span"); q.className = "qq"; q.textContent = "“" + c.q + "”";
-    const meta = document.createElement("span"); meta.className = "qm";
-    meta.textContent = [c.title, c.tier, c.pub].filter(Boolean).join(" · ");
-    pop.appendChild(q); pop.appendChild(meta);
+    if (c.q){
+      const q = document.createElement("span"); q.className = "qq"; q.textContent = "“" + c.q + "”";
+      const meta = document.createElement("span"); meta.className = "qm";
+      meta.textContent = [c.title, c.tier, c.pub].filter(Boolean).join(" · ");
+      pop.appendChild(q); pop.appendChild(meta);
+    }
+    // derived claim: show every premise quote, then the reasoning step — the reader audits the inference
+    if (prem.length){
+      const lbl = document.createElement("span"); lbl.className = "qm"; lbl.textContent = CONFIG.citesPremiseLabel || "Premises";
+      pop.appendChild(lbl);
+      prem.forEach(function(p){
+        const pq = document.createElement("span"); pq.className = "qq"; pq.textContent = "“" + p.q + "”";
+        const pm = document.createElement("span"); pm.className = "qm";
+        pm.textContent = [p.title, p.tier, p.pub].filter(Boolean).join(" · ");
+        pop.appendChild(pq); pop.appendChild(pm);
+      });
+    }
+    if (c.why){ const w = document.createElement("span"); w.className = "qwhy"; w.textContent = c.why; pop.appendChild(w); }
     const url = el.getAttribute("href") || c.url;
     if (url){
       const a = document.createElement("a"); a.className = "ql";
@@ -852,6 +1384,8 @@ function wireBranches(){
         b.setAttribute("aria-pressed", String((b.getAttribute("data-val") || "") === cur));
       });
     });
+    // the action list is filtered by the SAME pass (its items carry data-when too) — refresh its counts
+    if (typeof updateTodoSummary === "function") updateTodoSummary(sel);   /* ds-opt:todo */
   }
   groups.forEach(function(g){
     const k = g.getAttribute("data-key");
@@ -867,22 +1401,89 @@ function wireBranches(){
     });
   });
   apply();
-  window.addEventListener("beforeprint", function(){ document.querySelectorAll("[data-when]").forEach(function(el){ el.hidden = false; }); });
+  window.addEventListener("beforeprint", function(){
+    if (document.body.classList.contains("print-profile")) return;   /* ds-opt:todo — opt-in personal checklist keeps the filter */
+    document.querySelectorAll("[data-when]").forEach(function(el){ el.hidden = false; });
+  });
   window.addEventListener("afterprint", apply);
 }
-// scroll-reveal: progressive enhancement — without JS (or with reduced motion) nothing is ever hidden
-function wireReveal(){
-  if (!("IntersectionObserver" in window)) return;
-  if (window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches) return;
-  const io = new IntersectionObserver(function(entries){
-    entries.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
-  }, {rootMargin:"0px 0px -8% 0px", threshold:.05});
-  document.querySelectorAll("main .card, main .note, main details.acc, main figure.chartfig").forEach(function(el){
-    el.classList.add("reveal"); io.observe(el);
+// ds-opt:todo — action list. Items are AUTHORED in the HTML and rule-tagged (data-when), so wireBranches()
+// already filters them: one evaluator for prose and checklist, which is why the two can never disagree.
+// JS is enhancement only — it counts, labels the profile, and flags unanswered decisions. With JS off the
+// full list is still there, every item carrying its own condition chip.
+function updateTodoSummary(sel){
+  const host = document.getElementById("todoList"); if (!host) return;
+  const L = CONFIG.todoLabels || {}, dims = CONFIG.dimensions || [];
+  const items = [].slice.call(host.querySelectorAll("li.tdi"));
+  const shown = items.filter(function(li){ return !li.hidden; }).length;
+  const cnt = document.getElementById("todoCount");
+  if (cnt) cnt.textContent = (L.count || "{n}").replace("{n}", shown);
+  const chosen = [], missing = [];
+  dims.forEach(function(d){
+    const v = sel && sel[d.key];
+    if (v){ const hit = (d.values || []).filter(function(o){ return o.val === v; })[0]; chosen.push(hit ? hit.label : v); }
+    else missing.push(d.label);
+  });
+  const pl = document.getElementById("todoProfile");
+  if (pl) pl.textContent = chosen.length ? ((L.profile || "") + " " + chosen.join(" · ")).trim() : (L.none || "");
+  // a partly-answered profile must never look like a complete answer
+  const un = document.getElementById("todoUnanswered");
+  if (un){
+    if (missing.length){ un.textContent = (L.unanswered || "{n}").replace("{n}", missing.length) + " " + missing.join(", "); un.hidden = false; }
+    else un.hidden = true;
+  }
+}
+function wireTodoTools(){
+  const L = CONFIG.todoLabels || {};
+  const host = document.getElementById("todoList"); if (!host) return;
+  const copyBtn = document.getElementById("todoCopy"), fall = document.getElementById("todoFallback"), mine = document.getElementById("todoPrintMine");
+  function listText(){
+    const lines = [], p = document.getElementById("todoProfile");
+    if (p && p.textContent.trim()) lines.push(p.textContent.trim(), "");
+    let n = 0;
+    [].slice.call(host.querySelectorAll("li.tdi")).forEach(function(li){
+      if (li.hidden) return;
+      n += 1; lines.push(n + ". " + li.textContent.replace(/\s+/g, " ").trim());
+    });
+    return lines.join("\n");
+  }
+  if (copyBtn) copyBtn.addEventListener("click", function(){
+    const txt = listText();
+    function fallback(){ if (!fall) return; fall.value = txt; fall.classList.add("show"); fall.select(); copyBtn.textContent = L.copyFail || "Select the text below and copy it"; }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ copyBtn.textContent = L.copied || "Copied"; }, fallback);
+    } else fallback();
+  });
+  // Opt-in personal printout: narrows the ACTION LIST only; the profile line prints with it, so the
+  // page is never ambiguous. Default print still carries every item with its condition label.
+  if (mine) mine.addEventListener("click", function(){
+    const on = mine.getAttribute("aria-pressed") !== "true";
+    mine.setAttribute("aria-pressed", String(on));
+    document.body.classList.toggle("print-profile", on);
   });
 }
+// ds-opt:matrix — "differences only" filter for a 2-entity comparison table (screen-side; paper keeps
+// every row, per the accuracy rule that a printout is never a filtered view).
+function wireMatrixFilter(){
+  const cb = document.getElementById("diffOnly"), tbl = document.getElementById("cmpMatrix");
+  if (!cb || !tbl) return;
+  const rows = [].slice.call(tbl.querySelectorAll("tbody tr[data-vd]"));
+  const diff = rows.filter(function(r){ return r.getAttribute("data-vd") !== "same"; }).length;
+  const out = document.getElementById("diffCount");
+  if (out) out.textContent = String(CONFIG.diffCountLabel || "{n}/{m}").replace("{n}", diff).replace("{m}", rows.length);
+  function apply(){ rows.forEach(function(r){ r.hidden = cb.checked && r.getAttribute("data-vd") === "same"; }); }
+  cb.addEventListener("change", apply);
+  window.addEventListener("beforeprint", function(){ rows.forEach(function(r){ r.hidden = false; }); });
+  window.addEventListener("afterprint", apply);
+}
 document.addEventListener("DOMContentLoaded", function(){
-  fillConfig(); wireKpis(); wireSticky(); renderCharts(); wireTheme(); wireCites(); wireLawToggles(); wireSearch(); wirePrint(); wireBranches(); wireReveal(); openHashDetails();
+  // renderExhibits() before buildToc(): the index reads the numbers the former assigns.
+  fillConfig(); renderExhibits(); buildToc(); wireKpis(); wireSticky(); renderCharts(); wireTheme(); wireCites();
+  wireLawToggles(); wireSearch(); wirePrint(); wireBranches(); wireTodoTools(); wireMatrixFilter();
+  openHashDetails();
+  /* ds-opt:todo — with branch groups present, wireBranches() already labelled the list from the real
+     selection; without them, label it once here so the count/profile are never left as placeholders. */
+  if (!document.querySelector(".choices[data-key]")) updateTodoSummary({});
   window.addEventListener("hashchange", openHashDetails);
 });
 </script>

@@ -27,8 +27,19 @@ Fallback (no context-mode): WebFetch the page → produce `{summary, key_excerpt
 ## The loop
 
 ```
-discover (start-wide) → index/fetch → think-step → query/extract → cross-verify → synthesize
+discover (start-wide) → index/fetch → think-step → query/extract → cross-verify
+  → register sweep → record integrity → red team → synthesize
 ```
+
+**Three passes that web search cannot substitute for** (they exist because their absence produced wrong reports):
+
+| Pass | What it does |
+|------|--------------|
+| **Register sweep** | For each authority whose rules the brief states, walk *its own* decision/announcement index and disposition every item. Search ranks by popularity; a decisive decision that no one blogged about is invisible to it. Also: one primary probe per reader-situation value, asking whether an instrument creates a carve-out for that case. |
+| **Record integrity** | Before labelling anything: URL host equals the recorded domain, the verbatim quote occurs in the fetched text, ids are unique, redirects are resolved. Failures are rejected, not flagged. Then collapse copy chains — near-identical sentences across "independent" sites are one origin. |
+| **Red team** | Attack every load-bearing claim (supersession · carve-out · contrary reading · provenance · transcription) and record what was tried. "Can I support this?" has confirmation bias built in; "can I break this?" does not. |
+
+**Primary-source mandate:** a rule-driving datum needs a source from the authority that *issued* the rule. Secondary sources corroborate and explain; they never establish. Track `primaryCoverage` separately from `validationCoverage` — the pair is what distinguishes a grounded brief from a well-cross-referenced echo of the same blog post ([verification.md](verification.md) Rules 13-17).
 
 - **Start-wide-then-narrow:** short broad query first → see the gaps → narrow. Agents default to over-narrow queries; resist it.
 - **think-step (pure reflection):** before each fetch round, reflect "what do I know / what's missing" — exposes the known/unknown gap, cuts useless search loops. No tool call; just reasoning.
