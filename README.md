@@ -1,6 +1,5 @@
 # dev-skills
 
-[![CI](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/sungurerdim/dev-skills/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Skills](https://img.shields.io/badge/skills-30-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_OpenCode_·_Cursor_·_Copilot_·_Windsurf_(Devin_Desktop)_·_Aider-green)]()
@@ -247,6 +246,15 @@ Releases use semantic versioning starting at **v1.0.0** (2026-07-15) — the poi
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Community standards: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Report a vulnerability: [SECURITY.md](SECURITY.md).
+
+The gate is local, not CI — run it before you push:
+
+```bash
+bash scripts/quality.sh                 # consistency + both self-tests, fail-fast
+bash scripts/quality.sh --install-hook  # run it automatically on every commit
+```
+
+It checks the repo's own invariants and proves the checkers still catch broken input — both the consistency gate and the ds-brief verifier ship fixtures that must fail. Needs `bash` and `python3`; nothing to install.
 
 ## License
 
