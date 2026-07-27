@@ -148,6 +148,7 @@ A citation is a promise that a sentence exists somewhere. Pages change, register
 | What is stored | Every **cited** source (not everything fetched): the page text as fetched, or the original file when the source is a PDF/document. One file per `citationId`, named `NN-domain-slug.ext`, under `sources/` beside the report. |
 | Manifest | `sources/MANIFEST.json`: `citationId → {localFile, url, finalUrl, sha256, bytes, retrievedAt, primary, tier}`. It is the index the next run reads. |
 | Re-run comparison | On a re-run, fetch and hash again: **same hash → the source did not change**, so a flipped fact is an extraction error (verification.md Rule 8) and both readings are re-verified. Different hash → diff the stored copy against the new one, name the change in "What changed", and update. This is what makes regeneration stability mechanical instead of a judgment call. |
+| Read-back before it counts | After the manifest is written it is **read back from disk** and checked: it parses, it holds every `citationId`, and every named file exists. Only then do the snapshot fields enter the artifact. A write whose effect was never observed is not a write — "hashes are recorded" reported over an absent field is the exact silent failure this step exists to catch (W6). |
 | Not archivable | Paywalled, login-gated, or over the size cap → record `snapshot:null` with the reason in the manifest. An un-archivable **load-bearing** primary source is named in Unknowns; it does not silently pass. |
 | Size discipline | Cap per file (default 20 MB) and deduplicate by hash — two citations to the same document store one copy. The bundle is evidence, not a mirror of the web. |
 | The report stays self-sufficient | The HTML remains a single, fully working offline file with or without the bundle; the archive is *additional*. Moving the HTML alone loses the local copies, never the report. |
@@ -196,7 +197,7 @@ Same rule for every other signal in the report: a number or band shown without i
 
 ## Skill-side Verify gate (Phase 3)
 
-Read the findings artifact (field names = the agent's **Artifact schema**, its SSOT). Run the mechanical rejections **first** — they invalidate claims, so every later count must be computed after them:
+Read the findings artifact (field names = the agent's **Artifact schema**, its SSOT; a sharded artifact is read index-first, then each named shard). **Run `assets/verify-brief.py --artifact <index>` before reasoning over the content** — the checks below that a parser can settle (record integrity, id resolution, recomputed coverage, gate honesty, ledger arithmetic) are settled there in one command, and the ones it cannot judge are left to the pass that follows. Then run the mechanical rejections — they invalidate claims, so every later count must be computed after them:
 
 1. **Record integrity** — for every source: registrable domain of `url` == `domain`? `verbatimQuote` present in the recorded fetched text? `citationId` unique? redirect recorded as `finalUrl`? Any failure → reject the record, drop it from every claim's source list, and recompute that claim's label.
 2. **Copy-chain collapse** — near-identical quotes/details across "independent" sources → collapse to one source, recompute labels.

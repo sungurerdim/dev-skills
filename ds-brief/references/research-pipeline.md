@@ -54,11 +54,17 @@ discover (start-wide) → index/fetch → think-step → query/extract → cross
 ## Model routing & re-grounding
 
 - Worker = `sonnet` (synthesis quality beats doubling token budget). Fast single-look scope = `haiku`.
-- Re-ground every ~20 tool calls on long runs: refresh plan + artifact (W14). Persist the plan to state at the start of each round (W4 — if 200k is exceeded, context truncates; plan must survive).
+- Re-ground every ~20 tool calls on long runs: refresh plan + artifact (W14).
+- **Checkpoint every phase, not just the plan** (W4): each phase ends by overwriting the artifact with everything gathered so far, `partial:true`, before the next begins. Persisting only the plan means a truncation at the final write loses every finding the run paid for — and the final write is exactly where a deep artifact is most likely to fail.
+- **Write it as index + shards, never one call** (agent § Artifact write contract): no single write payload near the host's output ceiling, the small index written last as the commit, and both read back. A deep normative artifact does not fit one write, and a truncated write looks like a completed one.
 
-## Manual end-to-end test is mandatory
+## Two verification layers, and neither substitutes for the other
 
-Automated checks miss hallucinations on unusual queries (Anthropic finding). The skill's E2E verification step is run by hand: offline open, sourcing spot-check, 2× confirmation, SSOT propagation, print/PDF, context hygiene, security.
+**Mechanical (`assets/verify-brief.py`).** Everything a parser can settle: record integrity, id resolution, recomputed coverage and ledger counts, gate honesty, artifact-vs-report agreement, bundle hashes. It runs identically every time and it does not get tired at hour three — which is precisely when the prose checks start being remembered instead of performed. Its exit code is the phase's evidence.
+
+**By hand.** Everything judgment-shaped, because automated checks miss hallucinations on unusual queries (Anthropic finding): offline open, sourcing spot-check, does the quote actually support the claim, print/PDF appearance, prose register, security review.
+
+A check that a parser could settle belongs in the script, not in a list someone re-reads. A check that needs judgment belongs to the reader, not to a regex that will approve it.
 
 ## Patterns adopted (source-traced)
 
