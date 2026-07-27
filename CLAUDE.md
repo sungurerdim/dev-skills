@@ -51,6 +51,7 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 ## Development
 
 - Skills are pure Markdown; **zero runtime dependencies**
+- **Quality gate — `bash scripts/quality.sh`.** The single entry point, run locally; there is no CI. It runs the consistency gate, that gate's fixture self-test, and the ds-brief verifier's self-test, fail-fast. `--install-hook` wires it to `git commit` (bypass a single commit with `--no-verify`). `python3` absent → the run fails and names what went unverified; an unrun check must never read as a passing one
 - Each skill has `SKILL.md` + supporting files
 - Test: install into `~/.claude/skills/` and invoke via `/ds-<name>`
 - Spec compliance: every skill must satisfy `SKILL-SPEC.md` (audited 2026-05-18 for v2: W10/W11, Trigger Discipline, All-Affordance Rule; updated 2026-07-11 for v4: Standalone Invariant, AI-Legibility, Dimension Ownership)
@@ -116,10 +117,10 @@ Data: none | Regulations: none
 Audience: public, other-developers | Deploy: git-clone-plus-install-sh
 
 Entry: README.md (docs) ; install.sh (tooling)
-Modules: ds-*/=skill(30); agents/=shared-agent(1); docs/=reference-docs(9-dirs); references/=source-material(2); scripts/=ci-tooling(1)
+Modules: ds-*/=skill(30); agents/=shared-agent(1); docs/=reference-docs(9-dirs); references/=source-material(2); scripts/=gate-tooling(2)
 Data Flow: repo-clone→install.sh→~/.claude/skills→AI-host-invocation
 External: rsync(sync-tool, system-only)
-Toolchain: bash scripts/check-consistency.sh | CI: github-actions (consistency-only) | Container: none
+Toolchain: bash scripts/quality.sh | CI: none — local gate only (git pre-commit) | Container: none
 
 Ideal: coupling=low cohesion=high complexity=low coverage=n/a
 

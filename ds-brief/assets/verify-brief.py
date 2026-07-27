@@ -564,17 +564,266 @@ def check_bundle(art, bundle_dir):
 
 
 # --------------------------------------------------------------------------
+# self-test — proves the checks above actually fire on broken input
+#
+# A verifier nobody verifies is the failure mode it was built to prevent: it
+# keeps exiting 0 while quietly checking nothing. So the fixtures below are
+# deliberately broken in named ways, and the test asserts the EXACT set of
+# check ids that must fail. A check that silently stops working turns this red.
+# --------------------------------------------------------------------------
+
+SELFTEST_HTML = """<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Kira brifingi</title>
+<style>@media print{.tool{display:none}ol.todo>li{break-inside:avoid}}</style></head>
+<body><main class="wrap">
+<section id="sureler"><h2 data-cfg="title">Tahliye sureleri</h2>
+<p>Sure iki aydir. <a class="src-chip official" href="https://www.mevzuat.gov.tr/tbk" data-cite="1">kaynak</a></p>
+<figure class="exh" id="exh1"><table><tr><td>2 ay</td></tr></table><figcaption>Sure iki ayla sinirli</figcaption></figure>
+<p>Bkz. <a class="exref" href="#exh1">Sekil 1</a>.</p></section>
+<section id="yapilacaklar"><ol class="todo">
+__ITEMS__
+</ol></section>
+</main>
+<script>
+const CONFIG = { title:"Kira brifingi", cites:{ "1":{q:"iki ay icinde dava acilir"} } };
+document.querySelectorAll("[data-cfg]").forEach(function(n){ n.textContent = CONFIG.title; });
+</script></body></html>"""
+
+SELFTEST_ITEM_MUST = ('<li class="tdi" data-when="taraf:kiraya"><span class="oblg must">Zorunlu</span>'
+                      '<span class="act">Iki ay icinde dava ac.</span></li>')
+SELFTEST_ITEM_FREE = ('<li class="tdi" data-when="taraf:kiraci"><span class="oblg free">Yukumluluk yok</span>'
+                      '<span class="act">Bu surede size dusen bir yukumluluk yok.</span></li>')
+
+
+def _selftest_artifact():
+    """A realistic, fully clean artifact: Turkish tenancy law, two primary sources."""
+    return {
+        "topic": "Konut kirasi - tahliye sureleri", "subAspect": None, "confidence": "HIGH",
+        "generatedAt": "2026-07-28T09:00:00Z", "accessDate": "2026-07-28",
+        "citationIdBase": 0, "shards": [], "plan": ["Tahliye davasi sureleri nedir?"],
+        "sections": [{"id": "sureler", "title": "Tahliye sureleri", "summary": "...", "claims": [{
+            "text": "Tahliye davasi iki ay icinde acilir.", "value": "2 ay",
+            "verification": "verified", "confidence": "HIGH", "verificationNote": None,
+            "loadBearing": True, "primarySourced": True, "derivation": None,
+            "obligation": "must", "obligationRank": "N1",
+            "provision": {"instrument": "TBK", "unit": "m. 353",
+                          "consolidatedSource": "https://www.mevzuat.gov.tr/tbk",
+                          "versionAsOf": "2026-07-28", "lastAmended": "none-found",
+                          "inForce": True, "annulled": "none-found", "supersededNote": None},
+            "contextEnvelope": {"precedingText": "...", "followingText": "...",
+                                "definitions": [], "exceptions": [], "crossRefs": []},
+            "sources": [
+                {"citationId": 1, "url": "https://www.mevzuat.gov.tr/tbk", "title": "TBK",
+                 "domain": "mevzuat.gov.tr", "tier": "T1", "chip": "official", "craap": 95,
+                 "snapshot": {"localFile": "01-mevzuat-tbk.txt"}, "primary": True,
+                 "finalUrl": None, "quoteFound": True,
+                 "verbatimQuote": "iki ay icinde dava acilir", "pubDate": "2011-02-04",
+                 "accessedAt": "2026-07-28", "originatingQuery": "TBK 353 tahliye"},
+                {"citationId": 2, "url": "https://karararama.yargitay.gov.tr/karar/123",
+                 "title": "Yargitay 3. HD", "domain": "yargitay.gov.tr", "tier": "T2",
+                 "chip": "official", "craap": 90,
+                 "snapshot": {"localFile": "02-yargitay-karar.txt"}, "primary": True,
+                 "finalUrl": None, "quoteFound": True,
+                 "verbatimQuote": "iki aylik sure hak duskurucudur", "pubDate": "2024-03-11",
+                 "accessedAt": "2026-07-28", "originatingQuery": "tahliye iki ay sure"}]}]}],
+        "ssot": {"tahliyeSuresi": {"value": "2 ay", "citationId": 1}},
+        "dimensions": [{"key": "taraf", "label": "Taraf",
+                        "values": [{"val": "kiraci", "label": "Kiraci"},
+                                   {"val": "kiraya", "label": "Kiraya veren"}]}],
+        "todo": [
+            {"id": "t1", "when": "taraf:kiraya", "obligation": "must",
+             "text": "Iki ay icinde dava ac.", "actor": "Kiraya veren", "deadline": "2 ay",
+             "how": "Sulh hukuk mahkemesi", "citationIds": [1], "derivationId": None},
+            {"id": "t2", "when": "taraf:kiraci", "obligation": "free",
+             "text": "Bu surede size dusen bir yukumluluk yok.", "actor": "Kiraci",
+             "deadline": None, "how": "-", "citationIds": [1], "derivationId": None}],
+        "deadlines": [{"trigger": "Teslim", "period": "2 ay", "countedFrom": "Teslim tarihi",
+                       "consequence": "Hak duser", "citationIds": [1]}],
+        "sanctions": [],
+        "corpus": [{"instrument": "TBK", "unit": "m. 353", "title": "Dava suresi",
+                    "status": "covered", "where": "#sureler", "reason": None}],
+        "corpusCoverage": {"covered": 1, "outOfScope": 0, "gap": 0, "total": 1},
+        "registerSweep": [{"authority": "Yargitay", "indexUrl": "https://karararama.yargitay.gov.tr",
+                           "asOf": "2026-07-28", "itemsListed": 12, "itemsRelevant": 1,
+                           "dispositions": [{"item": "2024/123", "status": "incorporated",
+                                             "note": "m.353"}]}],
+        "dimensionProbes": [
+            {"key": "taraf", "val": "kiraci", "queries": ["kiraci yukumluluk"],
+             "primarySourcesChecked": ["https://www.mevzuat.gov.tr/tbk"], "finding": "no-carve-out"},
+            {"key": "taraf", "val": "kiraya", "queries": ["kiraya veren dava"],
+             "primarySourcesChecked": ["https://www.mevzuat.gov.tr/tbk"], "finding": "no-carve-out"}],
+        "ssotVerify": [{"key": "tahliyeSuresi", "firstRead": "2 ay", "secondRead": "2 ay",
+                        "match": True}],
+        "redTeam": [{"claimId": "sureler/Tahliye davasi iki ay icinde acilir.",
+                     "attack": "Sonraki bir degisiklik sureyi uzatti mi?", "outcome": "held",
+                     "evidence": "https://www.mevzuat.gov.tr/tbk"}],
+        "contradictions": [], "knownUnknowns": [], "sources": [],
+        "validationCoverage": 1.0, "primaryCoverage": 1.0, "citationDensity": 2.0,
+        "confidenceGate": {"coverageOk": True, "loadBearing2xOk": True, "primaryCoverageOk": True,
+                           "recordsClean": True, "noDeadLinks": True,
+                           "noUnresolvedContradictions": True, "derivedPremised": True,
+                           "provisionsCurrent": True, "registerSwept": True,
+                           "situationsProbed": True, "thresholdsDoubleRead": True,
+                           "redTeamClean": True, "corpusNoGaps": True, "saturationStop": True,
+                           "escalationRounds": 0, "blockers": []},
+        "runMetadata": {"toolMode": "fetch", "toolCallCount": 22,
+                        "startedAt": "2026-07-28T08:40:00Z", "finishedAt": "2026-07-28T09:00:00Z",
+                        "workers": 1, "regenFlips": 0, "lastPhase": "11", "uncitedSwept": 3,
+                        "searchCompleteness": {"queriesPerQuestion": 2.5, "stop": "saturation"}},
+        "partial": False, "error": None}
+
+
+# Each defect names the real failure it reproduces and the check that must catch it.
+SELFTEST_DEFECTS = {
+    "A03": "action item cites id 77, which no source defines (merged-worker id collision)",
+    "A04": "source domain says yargitay.com.tr while its URL is karararama.yargitay.gov.tr",
+    "A06": "claim labelled partial while carrying two independent sources",
+    "A13": "validationCoverage asserted at 0.99 while the claims support 0.00",
+    "A14": "HIGH shipped with an unmet gate line and a live blocker",
+    "X01": "todo[] holds 2 items, the report renders 1",
+    "X02": "the whole `free` obligation level vanished between artifact and report",
+    "B03": "manifest sha256 does not match the archived file",
+}
+
+
+def _break(art):
+    """Inject each defect in SELFTEST_DEFECTS. Kept beside it so the two cannot drift."""
+    art["todo"][0]["citationIds"] = [1, 77]                              # A03
+    art["sections"][0]["claims"][0]["sources"][1]["domain"] = "yargitay.com.tr"   # A04
+    art["sections"][0]["claims"][0]["verification"] = "partial"          # A06 (and A13)
+    art["validationCoverage"] = 0.99                                     # A13
+    art["confidenceGate"]["primaryCoverageOk"] = False                   # A14
+    art["confidenceGate"]["blockers"] = [{"line": "primaryCoverageOk", "item": "tahliyeSuresi",
+                                          "tried": "mevzuat.gov.tr"}]
+    return art
+
+
+def _write_case(root, name, broken=False, sharded=False):
+    d = os.path.join(root, name)
+    os.makedirs(os.path.join(d, "sources"), exist_ok=True)
+    art = _selftest_artifact()
+    if broken:
+        _break(art)
+    body = b"Kiralanan yerin teslim edilmesinden itibaren iki ay icinde dava acilir."
+    man = {}
+    for cid, fn in ((1, "01-mevzuat-tbk.txt"), (2, "02-yargitay-karar.txt")):
+        with open(os.path.join(d, "sources", fn), "wb") as fh:
+            fh.write(body)
+        man[str(cid)] = {"localFile": fn, "url": "https://www.mevzuat.gov.tr/tbk",
+                         "finalUrl": None, "sha256": hashlib.sha256(body).hexdigest(),
+                         "bytes": len(body), "retrievedAt": "2026-07-28T08:45:00Z",
+                         "primary": True, "tier": "T1"}
+    if broken:
+        man["1"]["sha256"] = "0" * 64                                    # B03
+    with open(os.path.join(d, "sources", "MANIFEST.json"), "w", encoding="utf-8") as fh:
+        json.dump(man, fh, indent=1)
+
+    items = SELFTEST_ITEM_MUST if broken else SELFTEST_ITEM_MUST + "\n" + SELFTEST_ITEM_FREE
+    with open(os.path.join(d, "report.html"), "w", encoding="utf-8") as fh:
+        fh.write(SELFTEST_HTML.replace("__ITEMS__", items))             # X01/X02 when broken
+
+    index = os.path.join(d, "findings.json")
+    if sharded:
+        secs, srcs = art.pop("sections"), art.pop("sources")
+        for field, payload in (("sections", secs), ("sources", srcs)):
+            p = os.path.join(d, f"findings.{field}.01.json")
+            with open(p, "w", encoding="utf-8") as fh:
+                json.dump({field: payload}, fh, ensure_ascii=False)
+            art.setdefault("shards", []).append(
+                {"field": field, "part": 1, "path": p, "count": len(payload)})
+    with open(index, "w", encoding="utf-8") as fh:
+        json.dump(art, fh, ensure_ascii=False, indent=1)
+    return d
+
+
+def _run_case(d, bundle=True):
+    """Run the full check set over one fixture; return (exit_code, failed_ids)."""
+    CHECKS.clear()
+    try:
+        art, _notes = load_artifact(os.path.join(d, "findings.json"))
+    except (OSError, ValueError):
+        return 2, set()
+    check_artifact(art)
+    p = check_report(os.path.join(d, "report.html"))
+    check_cross(art, p)
+    if bundle:
+        check_bundle(art, os.path.join(d, "sources"))
+    failed = {c[0] for c in CHECKS if not c[2]}
+    return (1 if failed else 0), failed
+
+
+def self_test():
+    import shutil
+    import tempfile
+    root = tempfile.mkdtemp(prefix="ds-brief-selftest-")
+    results = []
+    try:
+        # 1. a clean brief passes, and passes completely
+        d = _write_case(root, "clean")
+        code, failed = _run_case(d)
+        results.append(("clean run exits 0", code == 0 and not failed,
+                        f"exit={code} failed={sorted(failed) or 'none'}"))
+        results.append(("clean run leaves no check unrun", len(CHECKS) >= 30,
+                        f"{len(CHECKS)} checks executed"))
+
+        # 2. each injected defect is caught by its own check — the exact set, no more, no less
+        d = _write_case(root, "broken", broken=True)
+        code, failed = _run_case(d)
+        want = set(SELFTEST_DEFECTS)
+        missed = want - failed
+        results.append(("broken run exits 1", code == 1, f"exit={code}"))
+        results.append(("every injected defect is caught", not missed,
+                        "all caught" if not missed
+                        else "MISSED: " + "; ".join(f"{k} ({SELFTEST_DEFECTS[k]})"
+                                                    for k in sorted(missed))))
+        extra = failed - want
+        results.append(("no check fires on sound input", not extra,
+                        "none" if not extra else f"spurious: {sorted(extra)}"))
+
+        # 3. a sharded artifact is read and merged, not mistaken for an empty one
+        d = _write_case(root, "sharded", sharded=True)
+        code, failed = _run_case(d)
+        results.append(("sharded artifact passes identically", code == 0 and not failed,
+                        f"exit={code} failed={sorted(failed) or 'none'}"))
+
+        # 4. a shard the index names but that never landed is a blocker, not a pass
+        os.remove(os.path.join(d, "findings.sections.01.json"))
+        code, _failed = _run_case(d)
+        results.append(("missing shard exits 2, never 0", code == 2, f"exit={code}"))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    bad = [r for r in results if not r[1]]
+    for name, passed, detail in results:
+        print(f"{'PASS' if passed else 'FAIL'} {name}" + (f" — {detail}" if detail else ""))
+    print("-" * 60)
+    if bad:
+        print(f"SELF-TEST FAIL: {len(bad)}/{len(results)} assertion(s) failed — "
+              "the verifier is not checking what it claims to check")
+        return 1
+    print(f"SELF-TEST PASS: {len(results)}/{len(results)} assertions, "
+          f"{len(SELFTEST_DEFECTS)} injected defects all caught")
+    return 0
+
+
+# --------------------------------------------------------------------------
 
 def main():
     global VERBOSE
     ap = argparse.ArgumentParser(description="ds-brief mechanical verifier")
-    ap.add_argument("--artifact", required=True, help="findings artifact index JSON")
+    ap.add_argument("--self-test", action="store_true",
+                    help="prove the checks fail on deliberately broken input")
+    ap.add_argument("--artifact", help="findings artifact index JSON")
     ap.add_argument("--report", help="built single-file HTML report")
     ap.add_argument("--bundle", help="evidence bundle sources/ directory")
     ap.add_argument("--no-bundle", action="store_true", help="run was --no-archive")
     ap.add_argument("-v", "--verbose", action="store_true", help="show passing checks too")
     args = ap.parse_args()
     VERBOSE = args.verbose
+
+    if args.self_test:
+        return self_test()
+    if not args.artifact:
+        ap.error("--artifact is required (or use --self-test)")
 
     try:
         art, notes = load_artifact(args.artifact)

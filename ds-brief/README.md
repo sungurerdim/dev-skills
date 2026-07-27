@@ -37,7 +37,7 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 
 Every fact is source-backed · every datum 2×-confirmed or flagged · every reference a live link · no guessing · unclear → researched deeper, then declared unknown · known vs unknown explicit · contradictions shown, not smoothed · every inference shows its premises · normative text read in context and in its current consolidated version · HIGH confidence is the target, never an assertion. See [references/verification.md](references/verification.md).
 
-The checks a parser can settle run as code (`python3 assets/verify-brief.py --artifact findings.json --report report.html --bundle sources/`), not as recall. Exit 0 is the run's completion evidence. It catches what reads as fine — a dropped action item, a citation id pointing nowhere, a coverage figure asserted rather than recomputed, an archived file whose hash no longer matches. Judgment-shaped checks (does the quote support the claim, does the PDF look right) stay manual by design.
+The checks a parser can settle run as code (`python3 assets/verify-brief.py --artifact findings.json --report report.html --bundle sources/`), not as recall. Exit 0 is the run's completion evidence. It catches what reads as fine — a dropped action item, a citation id pointing nowhere, a coverage figure asserted rather than recomputed, an archived file whose hash no longer matches. `--self-test` proves the checks still fire, by running them against fixtures broken in eight named ways. Judgment-shaped checks (does the quote support the claim, does the PDF look right) stay manual by design.
 
 ## Tool-optionality
 
