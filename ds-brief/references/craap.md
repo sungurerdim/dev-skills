@@ -15,6 +15,8 @@ Standalone copy adapted for report sourcing. Every claim in a brief carries ≥1
 
 In the HTML report, tiers collapse to two visible chips: **official | secondary** (secondary = T3-T6 → amber chip). The numeric tier/score stays in the findings artifact for ordering.
 
+**Tier is not the same as primary.** T1 measures *how authoritative a document is*; `primary` asks a narrower question: was it published by the authority that **issued this specific rule**, on that authority's own domain? A standards aggregator, a national gazette mirror, or a respected institute can be T1 and still not be the issuer. Load-bearing datums require a `primary` source, not merely a T1 one ([verification.md](verification.md) Rule 13) — this is the distinction that stops a brief from resting its central thresholds on well-written secondary material.
+
 ## Modifiers
 
 | Condition | Effect |
@@ -34,7 +36,7 @@ In the HTML report, tiers collapse to two visible chips: **official | secondary*
 
 | Dimension | Weight | Scoring |
 |-----------|--------|---------|
-| Currency | 20% | <3mo: 100, 3-12mo: 70, 1-2y: 40, >2y: 10 |
+| Currency | 20% | <3mo: 100, 3-12mo: 70, 1-2y: 40, >2y: 10 — **normative text scores on consolidation, not age**: current consolidated version = 100 regardless of enactment year; an un-versioned reprint = 10 however recently it was published |
 | Relevance | 25% | Direct: 100, Related: 70, Tangential: 30 |
 | Authority | 25% | T1: 100, T2: 85, T3: 70, T4: 50, T5: 30 |
 | Accuracy | 20% | Cross-verified: 100, Single: 60, Unverified: 30 |
@@ -60,15 +62,40 @@ Score < 50 → discard (or include only with explicit `[unverified]` caveat and 
 5. **Bias:** Flag commercial interest in the conclusion; apply vendor self-promotion modifier.
 6. **Dating:** Every source record carries a publication date and an access date. Undated source → `pubDate: unknown`, stated visibly — a date is never inferred from context or memory.
 
+## Normative source ladder (legal / regulatory / standards topics)
+
+Tier measures *how reliable a source is*. Binding force measures *whether it obliges the reader* — a different axis. A regulator's FAQ is a highly reliable T1 document that binds nobody; a rarely-read statute binds absolutely. Conflating the two produces the worst error a normative brief can make: a "Mandatory" badge on something that is merely advice.
+
+| Rank | Instrument class | Binding force | Highest obligation badge it can justify |
+|------|------------------|---------------|------------------------------------------|
+| N1 | Constitution / primary legislation (law, code, statute) | Binds directly | `must` / `mustnot` |
+| N2 | Regulation, decree, statutory instrument made under N1 | Binds within its enabling law | `must` / `mustnot` |
+| N3 | Communiqué, by-law, binding regulator decision (board decision with sanction power) | Binds its addressees | `must` / `mustnot` |
+| N4 | Binding case law (precedent-setting / unification-of-jurisprudence rulings) | Binds lower courts; predicts outcomes | `must` / `mustnot`, stated as settled interpretation |
+| N5 | Non-precedential rulings, regulator guidance, FAQ, handbook | Persuasive, not binding | `should` at most |
+| N6 | Recitals / preambles / explanatory memoranda | Interpretive aid, **not operative** | `should` at most — never `must` |
+| N7 | Commentary, law-firm articles, trade press | No force | `should` / context only; never the sole basis for an obligation |
+
+Rules that follow from the ladder:
+
+- **An obligation badge cites its own rank.** `must` requires an N1-N4 citation. A `must` whose only support is N5-N7 is a failed validation — downgrade the badge or find the operative provision.
+- **Recital ≠ article.** GDPR-style recitals, preambles, and explanatory notes are quoted as interpretation, never rendered as the rule itself. When a brief compares two regimes, an obligation present only in a recital on one side is a *difference*, not a match.
+- **Guidance that restates law** carries the underlying provision as its citation; the guidance is the secondary chip beside it.
+- **Two instruments conflict** → the higher rank wins, and the conflict is shown (the reader is often being told the wrong thing by a lower-ranked but more readable source).
+- **Every normative claim also passes the currency gate** ([verification.md](verification.md) Rule 11): current consolidated text, amendments and annulments explicitly checked, in-force status stated.
+- **Year-indexed amounts** (fines, thresholds, caps subject to annual revaluation) carry their index year and the revaluation mechanism. An amount without its year is a stale number waiting to happen.
+
 ## Confidence Levels
+
+Bands are computed from the HIGH gate in [verification.md](verification.md) § Confidence, not judged. Summary of what each band means for the reader:
 
 | Condition | Level |
 |-----------|-------|
-| ≥2 T1 agree, triangulated, no contradictions | HIGH |
-| T1-T2 majority, minor contradictions resolved | MEDIUM |
-| Mixed sources, unresolved conflicts, thin coverage | LOW |
+| Every HIGH-gate line passes — ≥95% double-confirmed, **every load-bearing datum on a primary source from the issuing authority**, clean source records, no dead links, no unresolved contradictions, derived claims premised, provisions register-checked, authority registers swept, every reader situation probed, thresholds double-read, red team clean, corpus fully accounted, saturation stop | HIGH |
+| Gate passes on most lines; the named blockers are non-load-bearing single-source datums | MEDIUM — **a work state, not a shipping state**: run the escalation rounds first |
+| Mixed sources, unresolved conflicts on load-bearing datums, thin coverage | LOW |
 
-Never report HIGH without cross-verification.
+Never report HIGH without cross-verification, and never present a band without its plain-language sentence (verification.md § Confidence).
 
 ## Contradiction Resolution
 
@@ -82,4 +109,4 @@ For queries about CVEs, secure coding, threat models, cryptography, **or binding
 
 ## Quality Gate (before report build)
 
-Verify: ≥2 source categories present, ≥1 band-A source, no unsupported claim in the SSOT, every datum either ≥2-independent-confirmed or flagged. Gate fails → report LOW confidence with explicit gaps in the "Unknowns / Uncertainties" section rather than presenting thin evidence as reliable.
+Verify: ≥2 source categories present, ≥1 band-A source, no unsupported claim in the SSOT, every datum either ≥2-independent-confirmed or flagged, every obligation badge backed by a citation of sufficient rank (N1-N4 for `must`/`mustnot`), every cited provision version-checked, every derived claim premised. Gate fails → run the escalation rounds; still failing → report the honest band with explicit blockers and gaps in "Unknowns / Uncertainties" rather than presenting thin evidence as reliable.
