@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # dev-skills installer/syncer — copies ONLY runtime files (ds-*/ skills, agents/).
 # Spec, docs, and references stay in the repo; they are never loaded at runtime.
 #

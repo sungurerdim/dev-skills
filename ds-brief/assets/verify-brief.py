@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """ds-brief mechanical verifier — the Phase 3 and Phase 6 checks as executable code.
 
 Consumer: ds-brief SKILL.md Phase 6 (Output). Run it, quote its output as the
@@ -12,6 +13,13 @@ Stdlib only (no pip, no npm) — matches the repo's zero-runtime-dependency rule
 
 Exit 0 = every check passed. Exit 1 = at least one FAIL. Exit 2 = could not run
 (missing/unparseable input) — that is a Verification-Infrastructure Gap, not a pass.
+
+File length: this file exceeds ds-fix's default 500-line ceiling and does so
+deliberately. It is one self-contained verifier that ships with `--self-test`
+(7 assertions, 8 injected defects), and a lone ds-brief install must be able to
+copy exactly one file to get the whole gate. Splitting it would buy a smaller
+number at the cost of the property that makes it trustworthy — it proves itself
+in one place. Revisit if the self-test stops covering a section.
 """
 
 import argparse
