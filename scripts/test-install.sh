@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# install.sh round-trip test — the only proof that the installer's `rsync --delete`
+# and `rm -rf` stay scoped to dev-skills content.
+#
+# install.sh is the one script here that writes into and deletes from a user's home
+# directory. Its guards (`${skills_dir:?}`, per-skill --delete, ds-* names only from
+# skill_list) all look right by reading; this asserts they behave right. Everything
+# runs against a temp dir via --target, so $HOME is never touched.
+#
+#   bash scripts/test-install.sh
+#
+# Each assertion names the concrete failure it guards against.
+set -uo pipefail
+cd "$(dirname "$0")/.." || { echo "FAIL: cannot reach the repo root from $0"; exit 2; }
+
+pass=0
+fail=0
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+skills="$tmp/skills"
+ok()   { pass=$((pass+1)); printf 'PASS %s\n' "$1"; }
+bad()  { fail=$((fail+1)); printf 'FAIL %s — %s\n' "$1" "$2"; }
+check() { # check "<what it guards>" "<expected>" "<actual>"
+  if [ "$2" = "$3" ]; then ok "$1"; else bad "$1" "expected '$2', got '$3'"; fi
+}
+
+repo_count=$(find . -maxdepth 1 -type d -name 'ds-*' | wc -l | tr -d ' ')
+
+# --- decoys: content the installer must never touch ---------------------------
+mkdir -p "$skills/ds-not-from-this-repo" "$skills/unrelated-tool"
+printf 'keep me\n' > "$skills/ds-not-from-this-repo/keep.txt"
+printf 'keep me too\n' > "$skills/unrelated-tool/notes.md"
+printf 'someone elses file\n' > "$skills/loose-file.md"
+
+# --- 1. install ---------------------------------------------------------------
+./install.sh --target "$skills" >/dev/null 2>&1
+installed=$(find "$skills" -maxdepth 1 -type d -name 'ds-*' -not -name 'ds-not-from-this-repo' | wc -l | tr -d ' ')
+check "install copies every ds-* skill (guards: a silently skipped skill)" "$repo_count" "$installed"
+
+if [ -f "$skills/.dev-skills-version" ]; then
+  ok "install writes the version stamp (guards: --check having nothing to compare)"
+else
+  bad "install writes the version stamp" "no .dev-skills-version at $skills"
+fi
+
+if [ -f "$skills/ds-commit/SKILL.md" ]; then
+  ok "installed skill carries its SKILL.md (guards: an empty skill dir passing as installed)"
+else
+  bad "installed skill carries its SKILL.md" "ds-commit/SKILL.md missing"
+fi
+
+if [ -e "$skills/ds-commit/README.md" ] && [ ! -e "$skills/SKILL-SPEC.md" ]; then
+  ok "runtime files only — spec/docs stay out of the install (guards: context-path bloat)"
+else
+  bad "runtime files only" "SKILL-SPEC.md leaked into $skills, or README.md missing"
+fi
+
+# --- 2. --check on a clean install --------------------------------------------
+./install.sh --target "$skills" --check >/dev/null 2>&1
+check "--check reports clean right after install (guards: false drift on every run)" "0" "$?"
+
+# --- 3. --check detects a mutated file ----------------------------------------
+printf '\nlocal edit that is not in the repo\n' >> "$skills/ds-commit/SKILL.md"
+out=$(./install.sh --target "$skills" --check 2>&1)
+code=$?
+check "--check exits non-zero on drift (guards: drift reported but not failed)" "1" "$code"
+case "$out" in
+  *DRIFT*ds-commit*) ok "--check names the drifted skill (guards: an unactionable failure)" ;;
+  *) bad "--check names the drifted skill" "no DRIFT line for ds-commit in output" ;;
+esac
+
+# --- 4. --check detects a deleted file ----------------------------------------
+rm -f "$skills/ds-pr/SKILL.md"
+./install.sh --target "$skills" --check >/dev/null 2>&1
+check "--check catches a deleted installed file (guards: silent partial install)" "1" "$?"
+
+# --- 5. re-install repairs both -----------------------------------------------
+./install.sh --target "$skills" >/dev/null 2>&1
+./install.sh --target "$skills" --check >/dev/null 2>&1
+check "re-install restores drifted + deleted files (guards: --delete not resyncing)" "0" "$?"
+
+# --- 6. uninstall is scoped ---------------------------------------------------
+./install.sh --target "$skills" --uninstall >/dev/null 2>&1
+left=$(find "$skills" -maxdepth 1 -type d -name 'ds-*' -not -name 'ds-not-from-this-repo' | wc -l | tr -d ' ')
+check "uninstall removes every installed skill (guards: orphaned skill dirs)" "0" "$left"
+
+if [ -f "$skills/.dev-skills-version" ]; then
+  bad "uninstall removes the version stamp" "stamp survived at $skills/.dev-skills-version"
+else
+  ok "uninstall removes the version stamp (guards: --check claiming an install that is gone)"
+fi
+
+if [ -f "$skills/ds-not-from-this-repo/keep.txt" ] &&
+   [ -f "$skills/unrelated-tool/notes.md" ] &&
+   [ -f "$skills/loose-file.md" ]; then
+  ok "uninstall touches nothing it did not install (guards: rm -rf eating a user's other skills)"
+else
+  bad "uninstall touches nothing it did not install" "a decoy file was deleted from $skills"
+fi
+
+printf -- '------------------------------------------------------------\n'
+if [ "$fail" = "0" ]; then
+  printf 'INSTALL ROUND-TRIP PASS: %s/%s assertions\n' "$pass" "$pass"
+else
+  printf 'INSTALL ROUND-TRIP FAIL: %s of %s assertions failed\n' "$fail" "$((pass+fail))"
+  exit 1
+fi
