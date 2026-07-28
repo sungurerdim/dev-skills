@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-28
+
+### Added — release-cycle hardening: installer test, shell lint, path-citation check (2026-07-28)
+
+- **`scripts/test-install.sh`** — 12-assertion round-trip test for `install.sh`, the only code here that writes into and deletes from a user's home directory. Runs entirely in a temp dir via `--target`: install → version stamp → `--check` clean → drift detection on a mutated file → drift detection on a deleted file → re-install repair → scoped `--uninstall` that leaves non-dev-skills content untouched. Proven by defect injection, not by passing on the first run.
+- **`scripts/quality.sh`** — two new gate arms on the same fail-loud pattern as the python3 arm: `shellcheck -S warning` over `install.sh` + `scripts/*.sh`, and the installer round-trip test. A missing tool now names what went unverified instead of passing quietly.
+- **`check-consistency.sh` check 23 (`check_bare_repo_paths`)** — closes a hole in the Standalone Invariant's mechanical enforcement: checks 21/22 catch cross-skill and link-shaped path references, but a skill could still cite an in-repo file in plain prose, which a lone install cannot follow either. Scoped to `docs/`/`specs/` files that exist in this repo, exempting URL-carrying lines and user-project directory layouts. Ships with its own fixture; the self-test now covers 7 checks.
+- **Byte ceiling on `SKILL.md`** — check 2 gained a 48000-byte ceiling beside the 500-line one. A 45KB file sitting on 285 long lines previously passed a line-only check.
+- **`AGENTS.md`** — root cross-host contributor instructions (commands, non-guessable conventions, gotchas) for the ~45 Agent-Skills-reading tools whose contributors never see `CLAUDE.md`.
+- **`.claude-plugin/marketplace.json`** — installable via `/plugin marketplace add sungurerdim/dev-skills`, written against the schema in the official Claude Code plugin-marketplace docs.
+- **`_typos.toml`** — allowlist for the repo's domain vocabulary (ASO, BRIN, Hashi, Wonderous, …); `typos` went from ~90 false hits to 0, making spell-check a usable signal for the first time.
+- **SPDX headers** — `SPDX-License-Identifier: MIT` added to all five executable files.
+
+### Fixed — documentation claims that did not match the repo (2026-07-28)
+
+- **`README.md`** — the token budget was restated from measurement (median SKILL.md ≈ 5K tokens, largest ≈ 11K, gate ceiling ≈ 12K); the previous "~4–9K, total within 10K" was exceeded by `ds-brief`. The host-support section was rewritten into two verified tiers — tools that load skills natively (checked 2026-07-28 against the Agent Skills client showcase: Claude Code, OpenCode, Cursor, GitHub Copilot, VS Code, OpenAI Codex, Gemini CLI, Amp, Goose, Roo Code, Kiro, Factory, Junie, ~45 in total) versus Aider and Windsurf/Devin, which have no skills loader and reference `SKILL.md` on demand. The differentiator is now stated as depth per skill rather than host count.
+- **`docs/methodology/cross-host-program.md`** — P0.2 claimed a README `AGENTS.md` pointer had shipped on 2026-07-15; it never did. Stale present-tense counts re-measured: 28 → 30 skills, SKILL.md bodies ~129K → ~180K tokens (the ~2K frontmatter figure verified as still accurate).
+- **`CLAUDE.md`** — Project Structure table gained the five tracked path groups it omitted (`scripts/`, `AGENTS.md`, `.github/`, `specs/`, `.specify`+`.opencode`); the tool-support line now carries the Windsurf → Devin Desktop rebrand that README already documented.
+- **Five unresolvable in-repo citations repointed to GitHub URLs** — `ds-frontend/references/rules-ux.md` (×3) and `ds-rig/references/{permissions,privacy}.md` cited repo paths absent from a lone install.
+- **`specs/001-v4-coverage-standalone/`** — Phase 6 marked superseded with verified evidence. Its 18 open tasks target a six-batch rewrite of "all 28 SKILL.md"; the repo has 30, and `git show --stat ced87a7` shows #29 touched 5 skills, not 30. Checkboxes left unchecked rather than falsely flipped.
+- **`scripts/*.sh`** — `cd` guards added (shellcheck SC2164) and an unquoted expansion fixed (SC2086); `shellcheck -S warning` is now clean.
+
+
 ### Changed — SKILL-SPEC: plain-language Value Delivered mandate (2026-07)
 
 - **SKILL-SPEC.md §5** — new rule 8: every Value Delivered bullet's benefit clause must be plain, everyday language a non-technical reader understands — the concrete effect, quantified when measurable, never the mechanical activity performed. Applied to all 30 skills' Value Delivered sections.
@@ -37,6 +60,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - **`ds-rig` / `ds-repo`** — each documents an explicit, spec-cited extension to the irreversible-exception list (unpinned installs, credential-passthrough servers, unmerged-branch deletion, visibility/permission changes) so their existing "never silent" floors compose correctly with `--auto` instead of contradicting it.
 - `scripts/check-consistency.sh` — flag-integrity check updated to reject the retired flags and to require every skill's Arguments table to define `--auto`.
 
+## [1.1.0] - 2026-07-17
+
 ### Added — harness-context-file audit scope (2026-07)
 
 - **`ds-docs` `harness` scope** — audits/trims AI-harness context files (CLAUDE.md, AGENTS.md, `.cursor/rules/`, Windsurf/Devin rules, Copilot instructions, GEMINI.md, Aider conventions) against 8 sourced rules (DOC-10..17: secrets, code-derivable content, generic advice, pasted reference material, length budget, missing recommended content, negative framing, monorepo nesting); gated behind user approval since a harness file shapes every future session. Research basis: ETH Zurich AgentBench, an independent 1,188-test benchmark, and official Anthropic/Cursor/Windsurf/Aider guidance — static hand-written context files usually add little or measurably hurt task success.
@@ -60,6 +85,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Added — cross-host research program (2026-07)
 
 - Three verified research passes (competitor tools, harness system prompts, model failure modes) produced findings F1-F11, gaps G1-G6, and a P0-P2 roadmap. **OpenCode** added as a 6th supported host (reads `~/.claude/skills` directly, no install step). Stale install-path guidance corrected (`.cursorrules` ignored in Cursor Agent mode; `.windsurfrules` superseded); paste-vs-reference warning added with evidence. Completion Evidence anti-false-completion band added to every skill (P0.1); `install.sh --target` for installing into any Agent Skills host (P0.2); ds-quality gained Copilot/Gemini CLI/Codex CLI arms (P0.3).
+
+## [1.0.0] - 2026-07-15
 
 ### Added — contract-consistency scope + principle hardening (2026-07)
 
