@@ -1,6 +1,6 @@
 # Rules: Privacy Opt-Out Seed Map (verified 2026-07-15)
 
-Seed data for Phase 5 — every entry traced to official docs/changelogs/issues on the date above. **Mechanisms drift between versions: the live official source wins on conflict; this map only seeds the lookup.** Full provenance: `docs/methodology/cross-host-program.md` research artifacts.
+Seed data for Phase 5 — every entry traced to official docs/changelogs/issues on the date above. **Mechanisms drift between versions: the live official source wins on conflict; this map only seeds the lookup.** Full provenance: [dev-skills cross-host research](https://github.com/sungurerdim/dev-skills/blob/main/docs/methodology/cross-host-program.md) artifacts.
 
 **Effectiveness discipline:** a documented opt-out is a claim, not a result. Prove by (1) config/env read-back, (2) status command where one exists, and (3) for items with documented-broken opt-outs (marked ⚠ below), network observation where feasible — otherwise record `setting-applied-effect-unverified`, never `proven`.
 

@@ -199,6 +199,7 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 
 | Tool | Install |
 |------|---------|
+| **Claude Code — plugin marketplace** | `/plugin marketplace add sungurerdim/dev-skills` then `/plugin install dev-skills@dev-skills` — no clone, updates via `/plugin marketplace update` |
 | **Claude Code / OpenCode** | `./install.sh` (both read `~/.claude/skills/`) |
 | **Any Agent Skills host** | `./install.sh --target <that host's skills dir>` — same sync/check/uninstall flow, skills only |
 | **Cursor** | `./install.sh --target` your build's Agent Skills dir if it reads them; otherwise reference `SKILL.md` on demand. Do **not** use legacy `.cursorrules` — it is silently ignored in Agent mode |
@@ -210,24 +211,31 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 rm -rf /tmp/dev-skills
 ```
 
-> **Why "reference", not "paste":** a SKILL.md is ~4–9K tokens. Pasting it into an always-on rules file loads it on every request and measurably degrades instruction-following as rules accumulate ([IFScale](https://arxiv.org/abs/2507.11538)); skills are designed to load only when invoked. See [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research and the per-host plan.
+> **Why "reference", not "paste":** a SKILL.md runs ~4–11K tokens (measured 2026-07-28: median 21KB ≈ 5K tokens, largest `ds-brief` 45KB ≈ 11K; the gate caps any SKILL.md at 48KB ≈ 12K). Pasting it into an always-on rules file loads it on every request and measurably degrades instruction-following as rules accumulate ([IFScale](https://arxiv.org/abs/2507.11538)); skills are designed to load only when invoked. See [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research and the per-host plan.
 
 Install one skill, several, or all 30 — they are independent.
 
 ## Host support
 
-All 30 skills are capability-abstracted markdown following the open [Agent Skills spec](https://agentskills.io) — same instructions, any of the 6 hosts (and any other host that reads the spec). The one exception is `ds-quality`, whose enforcement mechanism differs by host because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for the host matrix, and [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research-backed cross-host roadmap (v5).
+All 30 skills are capability-abstracted markdown following the open [Agent Skills spec](https://agentskills.io), so they are not tied to one vendor. Two tiers, and the difference matters when you install:
+
+- **Loads skills natively** — point `./install.sh --target` at the host's skills directory and it works. Verified 2026-07-28 against the spec's own [client showcase](https://agentskills.io/clients), where each of these publishes its own skills documentation: Claude Code, OpenCode, Cursor, GitHub Copilot, VS Code, OpenAI Codex, Gemini CLI, Amp, Goose, Roo Code, Kiro, Factory, Junie — roughly 45 products in total and growing.
+- **No skills loader — reference on demand** — Aider (`--read`) and Windsurf/Devin Desktop (a `.windsurf/rules/` pointer). Neither appears in the showcase as of that date; use the per-host rows in the install table above and never paste a full SKILL.md into an always-on rules file.
+
+`ds-quality` is the one skill whose *mechanism* is host-specific, because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for that matrix, and [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research-backed cross-host roadmap (v5).
+
+**What actually makes this different** is not host count — catalogs claiming 10–13 platforms exist, and the spec itself is read by ~45 clients. It is depth per skill: 30 multi-phase systems with executable gates, error recovery, and systematic mitigation of 17 named AI failure modes (W1–W17), shipped as pure markdown with zero runtime dependencies. Most catalogs ship many single-purpose prompts; this one ships fewer, gated, and self-verifying.
 
 ## How skills work
 
 ```
 skill-name/
-  SKILL.md        ← Instructions and execution flow (≤500 lines)
+  SKILL.md        ← Instructions and execution flow (≤500 lines and ≤48KB, both gated)
   README.md       ← What it does, how to use it (≤80 lines)
   references/     ← Detailed rules, loaded on demand
 ```
 
-Each skill is a multi-phase execution system. Phases have explicit entry conditions, quality gates, and error recovery. References are loaded on demand — total active skill overhead stays within 10K tokens.
+Each skill is a multi-phase execution system. Phases have explicit entry conditions, quality gates, and error recovery. References are loaded on demand — an invoked skill costs its SKILL.md (≤12K tokens, gated) and nothing more until it asks for a reference.
 
 ## Build your own
 
@@ -254,7 +262,7 @@ bash scripts/quality.sh                 # consistency + both self-tests, fail-fa
 bash scripts/quality.sh --install-hook  # run it automatically on every commit
 ```
 
-It checks the repo's own invariants and proves the checkers still catch broken input — both the consistency gate and the ds-brief verifier ship fixtures that must fail. Needs `bash` and `python3`; nothing to install.
+It checks the repo's own invariants and proves the checkers still catch broken input — the consistency gate, the ds-brief verifier, and the installer round-trip all ship fixtures that must fail. Needs `bash`, `python3`, and `shellcheck`; a missing tool fails the run loudly and names what went unverified, rather than passing quietly.
 
 ## License
 

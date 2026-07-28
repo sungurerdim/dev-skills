@@ -28,7 +28,7 @@
 
 ## 2. What the findings validate in the current design
 
-- **Modular skills over monolithic rules** (F3, F5) — 28 separate on-demand skills is the right shape; measured always-on cost in Claude Code is only the frontmatter descriptions (~2K tokens for all 28), while full SKILL.md bodies total ~129K.
+- **Modular skills over monolithic rules** (F3, F5) — separate on-demand skills are the right shape; measured always-on cost in Claude Code is only the frontmatter descriptions. *Re-measured 2026-07-28 at 30 skills: frontmatter totals 7,081 B ≈ 1.8K tokens (the original "~2K for all 28" still holds), while full SKILL.md bodies total 726,469 B ≈ 180K tokens — up from the ~129K measured at 28 skills.*
 - **Mechanism over prose** (F2, F6, F7) — ds-quality's deterministic arms (Stop hook / Aider auto-test / pre-commit) are the industry-converged pattern; "done is an external signal" is now documented best practice, not an idiosyncrasy.
 - **W-taxonomy relevance** (F1) — W6 Skip Tendency / false completion is the dominant frontier failure mode; the taxonomy is the project's clearest differentiator (F10).
 
@@ -36,8 +36,8 @@
 
 | ID | Gap | Evidence | Cost of leaving it |
 |----|-----|----------|--------------------|
-| G1 | **Distribution is automated for one host only.** install.sh targets `~/.claude` alone; README tells Cursor/Copilot/Windsurf users to paste SKILL.md into always-on rules files — stale paths (`.cursorrules` is ignored in Cursor Agent mode; `.windsurfrules` superseded by `.windsurf/rules/`) and a token anti-pattern (~4–9K permanent tokens per skill; all 28 ≈ 129K, impossible) | F2, F5, F8 + local measurement | The stated goal (same quality on every host) fails exactly where it matters most |
-| G2 | **Only 1 of 28 skills enforces by mechanism.** The other 27 rely on prose gates a weak model can skip — the exact DeepSeek-style false-completion incident the project exists to prevent | F1, F6, F7 | Quality on thin harnesses/open-weight models stays instruction-dependent |
+| G1 | **Distribution is automated for one host only.** install.sh targets `~/.claude` alone; README tells Cursor/Copilot/Windsurf users to paste SKILL.md into always-on rules files — stale paths (`.cursorrules` is ignored in Cursor Agent mode; `.windsurfrules` superseded by `.windsurf/rules/`) and a token anti-pattern (~4–11K permanent tokens per skill; all 30 ≈ 180K as re-measured 2026-07-28, impossible) | F2, F5, F8 + local measurement | The stated goal (same quality on every host) fails exactly where it matters most |
+| G2 | **Only 1 skill enforces by mechanism** (1 of 28 when measured 2026-07-15; 30 skills now). The others rely on prose gates a weak model can skip — the exact DeepSeek-style false-completion incident the project exists to prevent | F1, F6, F7 | Quality on thin harnesses/open-weight models stays instruction-dependent |
 | G3 | **Critical gates sit in one position** (Quality Gates near the end of SKILL.md) — unsafe for primacy-biased families (DeepSeek, Qwen, Llama) | F4 | Silent gate-skipping on the models the project targets |
 | G4 | **No compliance eval.** "Works with any model/host" is asserted, never measured | F1 (benchmarks exist as templates) | Claims can't be defended; regressions invisible |
 | G5 | **Structural model quirks undocumented** — no adaptation notes for failures no ruleset can fix (F9) | F9 | Users burn time on unfixable prompt debugging |
@@ -52,7 +52,7 @@
 | # | Item | What it does | Acceptance |
 |---|------|--------------|------------|
 | P0.1 | **Completion-Evidence band** (spec amendment + all-skill batch) | Standard 3-line rule at BOTH top and bottom of every SKILL.md: a skill may not report done/OK without pasting the machine-checkable evidence (command + output) its gates name; self-assessment is never evidence | Duplicated placement per F4; wording per F1/F6; check-consistency.sh rule added |
-| P0.2 | **Multi-host install + corrected docs** | install.sh: OpenCode covered via existing `~/.claude/skills` (zero new code — document it); add Codex/Copilot/Gemini skill-dir targets where the Agent Skills spec is read natively; README install table rewritten with current paths (`.cursor/rules/`, `.windsurf/rules/`, `.github/instructions/`, AGENTS.md pointer) and an explicit warning against pasting full SKILL.md into always-on rules files | `--check` passes per host target; no stale path remains in README |
+| P0.2 | **Multi-host install + corrected docs** | install.sh: OpenCode covered via existing `~/.claude/skills` (zero new code — document it); add Codex/Copilot/Gemini skill-dir targets where the Agent Skills spec is read natively; README install table rewritten with current paths (`.cursor/rules/`, `.windsurf/rules/`, `.github/instructions/`) and an explicit warning against pasting full SKILL.md into always-on rules files | `--check` passes per host target; no stale path remains in README. **Correction 2026-07-28:** this line also claimed an "AGENTS.md pointer" as shipped; `grep -c AGENTS.md README.md` returned 0 until a root `AGENTS.md` was added on 2026-07-28 (finding G7/G8) |
 | P0.3 | **ds-quality arm expansion** | New arms: Copilot hooks (`.github/hooks/*.json`), Gemini CLI hooks, Codex CLI hooks (`PreToolUse`/`Stop`) — all gained blocking hooks in 2025–26 (F7); OpenCode plugin-hook arm marked investigate-first (block semantics unconfirmed) | Each new arm has the Phase-5 green→red→green proof |
 
 ### P1

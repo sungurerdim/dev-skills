@@ -120,7 +120,7 @@ A first-time user reaches a working state without reading external documentation
 - **Detect:** No distinguishable first-run experience (empty state, welcome screen, guided setup) for a new account/workspace/project; first-run path requires more than 5 user actions (clicks/taps/keystrokes) before the user reaches a usable state.
 - **Fix:** Add a first-run experience distinct from the steady-state UI; bound it to ≤5 actions to first usable state, or break it into resumable steps with visible progress.
 - **Impact:** Products without a bounded first-run path lose new users to abandonment before they experience any value.
-- **Source:** Nielsen Norman Group — Onboarding UX; RT2 (specs/001-v4-coverage-standalone/research.md)
+- **Source:** Nielsen Norman Group — Onboarding UX; RT2 ([dev-skills research trace](https://github.com/sungurerdim/dev-skills/blob/main/specs/001-v4-coverage-standalone/research.md))
 
 ### UX-ON-02 [MEDIUM] Empty States Teach, Not Just Announce
 Every empty state (no data yet) explains what belongs there and how to add it, not just "No items."
@@ -152,14 +152,14 @@ The number of steps from first-run to the user's first successful outcome (the p
 - **Detect:** No instrumented or documented step count from account/session start to first core-value event (first message sent, first file processed, first report generated — product-specific); step count exceeds 7 discrete user actions with no justification tied to the domain (e.g., regulated onboarding).
 - **Fix:** Instrument or manually trace the first-run → first-success path; if it exceeds 7 actions, cut, merge, or defer steps until it doesn't, or record an explicit justification in the blueprint profile Priorities/Constraints.
 - **Impact:** Time-to-value is the strongest predictor of activation-to-retention conversion; unmeasured time-to-value means regressions ship undetected.
-- **Source:** RT2 (specs/001-v4-coverage-standalone/research.md); product-led-growth activation literature
+- **Source:** RT2 ([dev-skills research trace](https://github.com/sungurerdim/dev-skills/blob/main/specs/001-v4-coverage-standalone/research.md)); product-led-growth activation literature
 
 ### UX-AC-02 [MEDIUM] Core Value Moment Is Explicit and Celebrated
 The product marks the moment the user reaches first value (visually, not just functionally).
 - **Detect:** First-success event (first save, first successful integration, first completed task) produces no distinguishable feedback beyond the generic loading/success pattern used elsewhere in the app.
 - **Fix:** Add a distinguishable first-success moment (confirmation, next-step suggestion, or lightweight celebration) tied specifically to the first occurrence of the core-value event.
 - **Impact:** An unmarked value moment leaves the user unsure whether they succeeded, undermining the activation the product just achieved.
-- **Source:** RT2 (specs/001-v4-coverage-standalone/research.md)
+- **Source:** RT2 ([dev-skills research trace](https://github.com/sungurerdim/dev-skills/blob/main/specs/001-v4-coverage-standalone/research.md))
 
 ---
 
