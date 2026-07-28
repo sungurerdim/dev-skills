@@ -153,7 +153,7 @@ Every potential finding (whether from tactical, strategic, perf, or meta-quality
 2. **Misleads:** it misleads a future reader (human or AI) about what is live, canonical, or intended.
 3. **Not worth its keep:** the complexity costs more to keep than the value it adds.
 
-A finding with no harm signal on any axis is noise — this filter suppresses what would otherwise dominate output on mature codebases. This wording is canonical — identical in SKILL.md and meta-quality-scopes.md.
+A finding with no harm signal on any axis is noise — this filter suppresses what would otherwise dominate output on mature codebases. This section is the canonical statement of the gate. SKILL.md carries a one-line summary and meta-quality-scopes.md a detector-side restatement; both point here rather than claiming to reproduce it.
 
 **Calibration:** When in doubt about signal 3 (is the complexity worth it?), treat it as worth its keep — the signal does not fire. The user can always lower the bar by widening scope; a noisy report wastes more attention than a missed nice-to-have.
 
