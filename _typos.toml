@@ -1,0 +1,30 @@
+# typos allowlist — every entry was checked against its call site before landing
+# here; nothing is suppressed blind. Without this file typos reports ~90 hits on
+# this repo, all of them domain vocabulary, which makes the tool unusable as a
+# signal. See ds/audit findings FIX-002.
+
+[files]
+# Turkish-language register — typos ships no Turkish dictionary, so every word in
+# this file reads as a misspelling (tema, sistem, paralel, parametre, ...).
+extend-exclude = ["references/experience-rules.md"]
+
+[default.extend-words]
+# Domain acronyms and rule prefixes
+ASO = "ASO"                 # App Store Optimization (ds-launch, ds-productize)
+aso = "aso"                 # lowercase occurrences of the same acronym
+THM = "THM"                 # Theming rule prefix, ds-frontend THM-01..THM-06
+PN = "PN"                   # inside "PNGs" (ds-frontend/references/rules-accessibility.md)
+
+# Technology and product names
+BRIN = "BRIN"               # Postgres Block Range INdex
+brin = "brin"               # as written in SQL: USING brin(created_at)
+Hashi = "Hashi"             # from "HashiCorp Vault"
+Frase = "Frase"             # Frase.io, cited AEO source
+Wonderous = "Wonderous"     # the Google Flutter showcase app's actual name
+Canva = "Canva"             # the design tool
+
+# English usages typos mis-reads
+mis = "mis"                 # hyphenated prefix: mis-copied, mis-priced, mis-scoped
+criticals = "criticals"     # noun usage in ds-frontend/references/rules-ux.md
+ontext = "ontext"           # from the bolded-initial pattern **C**ontext
+equirements = "equirements" # from **R**equirements, same pattern
