@@ -155,6 +155,31 @@ check_bare_repo_paths() {
   done
   [ -z "$bad" ] || err "bare in-repo path a lone install cannot follow:$bad"
 }
+# 24. v6 — CRITICAL carve-out in severity-graded approval menus. The All-Affordance
+#     Rule lets a menu offer "approve all", but CRITICAL items must still be
+#     confirmed one by one. A skill that abbreviates its approval block to a
+#     reference ("apply the approval-menu convention") loses that rule entirely,
+#     and a lone install has nowhere else to read it — which is how ds-devops
+#     dropped it. Scoped to blocks that actually grade by severity: ds-benchmark
+#     decides gaps, ds-solve decides steps, ds-brief decides claims — none of them
+#     has a CRITICAL severity to carve out, so none is required to mention it.
+check_approval_critical_carveout() {
+  bad=""
+  for f in ds-*/SKILL.md; do
+    [ -f "$f" ] || continue
+    while IFS= read -r line; do
+      case "$line" in
+        *'**Interactive:**'*'per-severity bulk'*)
+          case "$line" in
+            *'excludes CRITICAL'*|*'CRITICAL bulk still confirms'*) ;;
+            *) bad="$bad
+  $f (severity-graded approval menu without the CRITICAL carve-out)" ;;
+          esac ;;
+      esac
+    done < "$f"
+  done
+  [ -z "$bad" ] || err "approval menu drops the CRITICAL carve-out (All-Affordance Rule):$bad"
+}
 
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
@@ -254,8 +279,16 @@ Illustrative: see docs/methodology/program.md
 EOF
   assert_catches "check_bare_repo_paths" "$tmp/f7" check_bare_repo_paths
 
+  # Fixture: check_approval_critical_carveout — ds-alpha grades by severity but
+  # omits the carve-out; ds-beta decides gaps (no severity) and must NOT be flagged.
+  mkdir -p "$tmp/f8/ds-alpha" "$tmp/f8/ds-beta"
+  printf '**Interactive:** ask Apply all / per-severity bulk / Review Each / Skip All.\n' > "$tmp/f8/ds-alpha/SKILL.md"
+  printf '**Interactive:** per row, plus per-dimension bulk (`Close all <dimension>`).\n' > "$tmp/f8/ds-beta/SKILL.md"
+  assert_catches "check_approval_critical_carveout" "$tmp/f8" check_approval_critical_carveout
+check_approval_critical_carveout
+
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 7 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 8 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -454,7 +487,7 @@ check_intra_skill_links
 check_bare_repo_paths
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout all consistent"
 else
   exit 1
 fi

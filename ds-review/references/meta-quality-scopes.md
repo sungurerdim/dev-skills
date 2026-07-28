@@ -130,7 +130,7 @@ Report a finding only when AT LEAST ONE harm signal is present; no signal → si
 2. **Misleads:** it misleads a future reader (human or AI) about what is live, canonical, or intended.
 3. **Not worth its keep:** the complexity costs more to keep than the value it adds.
 
-In doubt on signal 3 → treat the complexity as worth its keep (that signal does not fire). This wording is canonical — identical in SKILL.md and principles.md §10.
+In doubt on signal 3 → treat the complexity as worth its keep (that signal does not fire). Canonical statement of this gate: principles.md §10 — the text here is the detector-side restatement, not a second source of truth.
 
 ## Confidence-driven reporting
 
