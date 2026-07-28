@@ -126,6 +126,15 @@ description: "Task list for v4 — Dimension Coverage Taxonomy + Standalone + AI
 
 ## Phase 6: User Story 2 (Standalone) + User Story 3 (AI-Legibility) — 28 Skill Rewrites (Priority: P3)
 
+> **SUPERSEDED — reconciled 2026-07-28 (`/ds-ship` cycle, finding SIMP-001).** The 18 tasks still open below (T023, T044–T058, T062, T065) were never completed and are not being resumed as written. Checkboxes are left unchecked on purpose: flipping them would assert work no evidence supports.
+>
+> What was verified this cycle, not assumed:
+> - The six-batch rewrite did **not** ship under the v5/v6 work. `git show --stat ced87a7` (#29, "progressive disclosure + rich reference forms") touches 5 skills — ds-blueprint, ds-frontend, ds-pipeline, ds-review, ds-ship — plus CLAUDE.md and SKILL-SPEC.md, not the 30 named across T044–T054.
+> - The scope itself is stale: every task here is written against "all 28 SKILL.md"; `ls -d ds-*/ | wc -l` reports **30**. T057/T058's baselines cannot be compared without re-deriving them.
+> - The outcome those tasks aimed at is partly reached by another route: 28 of 30 skills now carry a `references/` directory (step 5 of the methodology below), and the Standalone Invariant is enforced mechanically by consistency checks 21, 22 and 23 rather than by a prose rewrite pass (#30 `207ec6e`, plus check 23 added 2026-07-28).
+>
+> Resuming this phase requires re-scoping it to 30 skills and re-deriving the Phase 1 token/rule baselines first. Until then this file is a historical record, not a work queue.
+
 **Goal**: Every SKILL.md rewritten to satisfy the AI-Legibility Writing Standard and Standalone Invariant. Before/after token reports for each batch.
 
 **Independent Test**: Grep across all 28 SKILL.md for ambiguous phrases returns zero matches. Every gate has an `If fails →` arm. Every cross-skill reference uses advisory-handoff.

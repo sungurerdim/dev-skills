@@ -1,6 +1,6 @@
 # Rules: Harness Permission Surfaces & Safe-Default Profile
 
-Per-harness allow/ask/deny surfaces verified 2026-07-15 against official docs (sources in `docs/methodology/cross-host-program.md`). **Surfaces drift — re-verify against the harness's live docs at apply time; this file is the starting map, not the authority.** All writes: backup first, additive merge only, parse-validate after, diff must show only additions.
+Per-harness allow/ask/deny surfaces verified 2026-07-15 against official docs (sources in [dev-skills cross-host research](https://github.com/sungurerdim/dev-skills/blob/main/docs/methodology/cross-host-program.md)). **Surfaces drift — re-verify against the harness's live docs at apply time; this file is the starting map, not the authority.** All writes: backup first, additive merge only, parse-validate after, diff must show only additions.
 
 ## Risk-command taxonomy (safe-default profile)
 

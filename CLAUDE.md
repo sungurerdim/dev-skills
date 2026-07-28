@@ -11,7 +11,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 - **License:** MIT
 - **Stack:** Markdown only — zero runtime dependencies
 - **Skill count:** 30
-- **Tool support:** Claude Code, OpenCode, Cursor, Copilot, Windsurf, Aider (Agent Skills spec readers; OpenCode consumes `~/.claude/skills/` directly)
+- **Tool support:** Claude Code, OpenCode, Cursor, Copilot, Windsurf/Devin Desktop (June 2026 rebrand — newer builds prefer `.devin/rules/`), Aider (Agent Skills spec readers; OpenCode consumes `~/.claude/skills/` directly)
 - **Releases:** semver from v1.0.0 (2026-07-15); v2–v5 labels in docs/commits are spec-generation names, not release versions (see README § Versioning)
 - **Active program:** cross-host (spec-gen v5) — see `docs/methodology/cross-host-program.md` (2026-07-15 research: verified findings F1–F11, gaps G1–G6, program P0–P2, ds-rig)
 
@@ -23,7 +23,12 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | `SKILL-SPEC.md` | Authoritative skill format spec — every `ds-*` must conform |
 | `agents/` | Shared agent definitions (`ds-research-agent` — worker for ds-research + ds-brief); install to the host agent dir, e.g. `~/.claude/agents/` |
 | `docs/` | Topic-organized references (backend, frontend, devops, compliance, business, launch, methodology, infrastructure) |
-| `references/` | Source material (`software-best-practices.md`, `launch-research.md`) |
+| `references/` | Source material (`software-best-practices.md`, `launch-research.md`, `experience-rules.md`) |
+| `scripts/` | The gate: `quality.sh` (entry point), `check-consistency.sh` (23 checks + `--self-test`), `test-install.sh` |
+| `AGENTS.md` | Cross-host contributor instructions — the file Codex/Cursor/Copilot/Aider read; this file is the Claude-Code counterpart |
+| `.github/` | Issue + PR templates only — no workflows, the gate is local by design |
+| `specs/` | Spec Kit artifacts per feature; `001-v4-coverage-standalone/` is a superseded historical record, not a work queue |
+| `.specify/`, `.opencode/` | Spec Kit runtime + its OpenCode command files — tool-owned, edited by Spec Kit not by hand |
 
 ## Skills (30)
 
@@ -111,7 +116,9 @@ Driven by [The new rules of context engineering for Claude 5 generation models](
 ## Blueprint Profile
 
 Type: library | Stack: markdown | Target: production
-Priorities: code-quality, dx, docs | Constraints: zero-new-dependencies, keep-markdown-only
+Mission: a solo developer + AI ships production-grade software in any project, because each domain's best practices are enforced as executable gates instead of depending on the developer's knowledge, attention, or available time
+Priorities: code-quality, cross-host-portability, dx, docs | Constraints: local-gate-only (no CI), single-maintainer direct-push
+Red lines: zero runtime dependencies, markdown-only (no scripting language as a skill requirement), no telemetry or data collection
 Integrations: none
 Data: none | Regulations: none
 Audience: public, other-developers | Deploy: git-clone-plus-install-sh
@@ -124,6 +131,6 @@ Toolchain: bash scripts/quality.sh | CI: none — local gate only (git pre-commi
 
 Ideal: coupling=low cohesion=high complexity=low coverage=n/a
 
-Scores: sec=95 quality=84 arch=88 perf=90 resil=88 test=80 stack=96 dx=90 docs=78 overall=60 model=claude-sonnet-5
+Scores: sec=96 quality=89 arch=90 perf=90 resil=96 test=82 stack=96 dx=91 docs=88 overall=90 model=claude-opus-5
 
 ## End Blueprint Profile
