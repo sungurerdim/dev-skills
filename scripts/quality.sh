@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Single quality entry point for dev-skills — the local gate, no CI.
 # Fail-fast, in order. Exits non-zero on the first failure.
 #
@@ -14,7 +15,7 @@
 # a check you routinely bypass is a check to fix or delete, not to work around.
 
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || { echo "Cannot reach the repo root from $0 — refusing to run checks against the wrong tree." >&2; exit 2; }
 
 HOOK=".git/hooks/pre-commit"
 MARK="# dev-skills quality gate"
@@ -84,5 +85,22 @@ else
   printf '[quality] and its self-test. Install python3, or run this gate on a host that has it.\n' >&2
   exit 127
 fi
+
+# The repo's own executable code gets the same treatment as its markdown: checked,
+# or loudly unchecked. shellcheck is the only linter that applies here.
+if command -v shellcheck >/dev/null 2>&1; then
+  step "shellcheck" "shellcheck -S warning install.sh scripts/*.sh"
+else
+  printf '\n=== [quality] shellcheck ===\n' >&2
+  printf '[quality] FAILED: shellcheck not found.\n' >&2
+  printf '[quality] Unverified as a result: install.sh and scripts/*.sh — the only code in\n' >&2
+  printf '[quality] this repo that writes to and deletes from your home directory.\n' >&2
+  printf '[quality] Install it (brew install shellcheck / apt install shellcheck) and re-run.\n' >&2
+  exit 127
+fi
+
+# install.sh moves files into and out of the user's home; the round-trip test is
+# the only proof that its --delete and rm -rf stay scoped to dev-skills content.
+step "install.sh round-trip" "bash scripts/test-install.sh"
 
 printf '\n[quality] all checks passed\n'
