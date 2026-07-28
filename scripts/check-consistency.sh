@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Consistency gate for dev-skills — zero dependencies (bash + grep + awk).
 # Run locally: ./scripts/check-consistency.sh    CI runs the same file.
 # Self-test (proves the checks below actually fail on broken input):
@@ -111,6 +112,49 @@ check_intra_skill_links() {
   done
   [ -z "$bad" ] || err "link a lone install cannot follow:$bad"
 }
+# 23. v6 — Bare in-repo path citations. Check 22 covers markdown links; a skill can
+#     still tell the reader to open a repo file in plain prose ("sources in
+#     `docs/methodology/cross-host-program.md`"), which a lone install cannot follow
+#     either. Only paths that actually EXIST in this repo and sit outside the citing
+#     skill are flagged — `docs/adr/`, `docs/user/FAQ.md` and friends are paths in the
+#     *user's* project and must stay clean. A line carrying an http(s) URL is exempt:
+#     that is the repo's convention for pointing at its own files resolvably.
+#     Scoped to docs/ and specs/ deliberately: those hold provenance a skill cites and
+#     expects the reader to open. scripts/ and agents/ paths in skill text are almost
+#     always instruction targets in the *user's* project (ds-quality's "create
+#     scripts/quality.sh"), and flagging them by name collision with this repo would
+#     be a false positive. Known limitation: a provenance citation of scripts/ or
+#     agents/ would slip past — check 21/22 still cover the link-shaped case.
+check_bare_repo_paths() {
+  bad=""
+  for f in ds-*/SKILL.md ds-*/README.md ds-*/references/*.md; do
+    [ -f "$f" ] || continue
+    skill="${f%%/*}"
+    # One awk pass per file — fence-strip, drop URL-carrying lines, and emit every
+    # candidate path. Doing this with a grep per line made the gate ~40x slower.
+    for p in $(awk '
+      /^```/ { fence = !fence; next }
+      fence { next }
+      /https?:\/\// { next }
+      {
+        s = $0
+        while (match(s, /(^|[^A-Za-z0-9_\/.-])(specs|docs)\/[A-Za-z0-9._\/-]+/)) {
+          p = substr(s, RSTART, RLENGTH)
+          sub(/^[^A-Za-z]/, "", p)
+          print p
+          s = substr(s, RSTART + RLENGTH)
+        }
+      }' "$f"); do
+      p="${p%.}"; p="${p%,}"; p="${p%\`}"
+      [ -f "$p" ] || continue                 # not a FILE of this repo — user-project path, or a
+                                              #   directory layout the skill proposes (docs/adr/, docs/api/)
+      case "$p" in "$skill"/*) continue;; esac # the skill's own directory is fine
+      bad="$bad
+  $f -> $p (exists in this repo, absent from a lone $skill install — link it by URL or drop the path)"
+    done
+  done
+  [ -z "$bad" ] || err "bare in-repo path a lone install cannot follow:$bad"
+}
 
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
@@ -194,8 +238,24 @@ EOF
   printf '# worker\n' > "$tmp/f6/agents/worker.md"
   assert_catches "check_intra_skill_links" "$tmp/f6" check_intra_skill_links
 
+  # Fixture: check_bare_repo_paths — a prose citation of a repo file that exists
+  # outside the skill. The user-project path (docs/adr/), the URL-carrying line and
+  # the fenced example must NOT be flagged, or the check is unusable in real docs.
+  mkdir -p "$tmp/f7/ds-alpha/references" "$tmp/f7/docs/methodology"
+  printf '# research\n' > "$tmp/f7/docs/methodology/program.md"
+  cat > "$tmp/f7/ds-alpha/SKILL.md" <<'EOF'
+Sources verified against `docs/methodology/program.md` on 2026-07-15.
+Write the decision to docs/adr/NNNN-title.md in your project.
+Full provenance: [program](https://example.com/docs/methodology/program.md).
+
+```markdown
+Illustrative: see docs/methodology/program.md
+```
+EOF
+  assert_catches "check_bare_repo_paths" "$tmp/f7" check_bare_repo_paths
+
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 6 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 7 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -207,14 +267,20 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || { echo "FAIL: cannot reach the repo root from $0 — refusing to check the wrong tree." >&2; exit 2; }
 
 check_skill_badge
 
-# 2. Size ceilings (SKILL-SPEC section 8)
+# 2. Size ceilings (SKILL-SPEC section 8). Two units on purpose: lines bound the
+#    structure, bytes bound the context cost the README promises. A line ceiling
+#    alone cannot see a 45KB file that happens to sit on 285 long lines, which is
+#    exactly the case that reached main (ds-brief). 48000 B ~= 12K tokens at the
+#    ~4 B/token rule of thumb — the measured ceiling README.md states.
 for f in ds-*/SKILL.md; do
   n=$(wc -l < "$f")
   [ "$n" -le 500 ] || err "$f is $n lines (ceiling 500)"
+  b=$(wc -c < "$f")
+  [ "$b" -le 48000 ] || err "$f is $b bytes (ceiling 48000 ~= 12K tokens)"
 done
 for f in ds-*/README.md; do
   n=$(wc -l < "$f")
@@ -309,7 +375,7 @@ for id in $(echo "$pairs" | cut -f1 | sort -u); do
   for s in $skills; do
     echo "$owner_text" | grep -qF -- "$s" || unauthorized="$unauthorized $s"
   done
-  [ -n "$unauthorized" ] && err "dimension $id declared by multiple skills ($(echo $skills | tr '\n' ' ')) not all listed in appendix owner column '$owner_text' — unauthorized:$unauthorized"
+  [ -n "$unauthorized" ] && err "dimension $id declared by multiple skills ($(echo "$skills" | tr '\n' ' ')) not all listed in appendix owner column '$owner_text' — unauthorized:$unauthorized"
 done
 
 # 13. v5 — Completion Evidence band: exactly 2 verbatim copies per SKILL.md,
@@ -385,9 +451,10 @@ check_claude_md_counts
 check_delegates_receives_graph
 check_standalone_paths
 check_intra_skill_links
+check_bare_repo_paths
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths all consistent"
 else
   exit 1
 fi
