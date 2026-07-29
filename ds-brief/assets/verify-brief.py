@@ -10,13 +10,22 @@ Stdlib only (no pip, no npm) — matches the repo's zero-runtime-dependency rule
 
   python3 verify-brief.py --artifact findings.json [--report report.html]
                           [--bundle sources/] [--no-bundle] [-v]
+  python3 verify-brief.py --emit-schema        # print the artifact field contract as JSON
 
 Exit 0 = every check passed. Exit 1 = at least one FAIL. Exit 2 = could not run
 (missing/unparseable input) — that is a Verification-Infrastructure Gap, not a pass.
 
+Schema SSOT: the SCHEMA dict below is the authoritative, machine-readable field
+contract for the findings artifact. The agent definition (ds-research-agent.md)
+carries an annotated jsonc description of the same shape for the agent to follow;
+when the two disagree, SCHEMA wins — check A00 enforces it on every artifact and
+the self-test holds the fixtures to it. External consumers (an orchestrating app
+mapping its fields onto ds-brief's) read `--emit-schema`, never a hand-copied list.
+
 File length: this file exceeds ds-fix's default 500-line ceiling and does so
 deliberately. It is one self-contained verifier that ships with `--self-test`
-(7 assertions, 8 injected defects), and a lone ds-brief install must be able to
+(assertion suite over named injected defects — the run prints its own counts,
+so no number here can drift), and a lone ds-brief install must be able to
 copy exactly one file to get the whole gate. Splitting it would buy a smaller
 number at the cost of the property that makes it trustworthy — it proves itself
 in one place. Revisit if the self-test stops covering a section.
@@ -32,6 +41,55 @@ from html.parser import HTMLParser
 
 CHECKS = []          # (id, group, ok, detail)
 VERBOSE = False
+
+# The artifact field contract (see "Schema SSOT" in the module docstring).
+# `required` keys must exist in every finished artifact / claim / source record
+# (null is a legal value; an absent key is not). `conditional` keys exist when
+# their topic feature applies; A-checks enforce their internal rules.
+SCHEMA = {
+    "topLevel": {
+        "required": ["topic", "confidence", "generatedAt", "accessDate", "citationIdBase",
+                     "shards", "plan", "ssot", "contradictions", "knownUnknowns",
+                     "validationCoverage", "primaryCoverage", "citationDensity",
+                     "confidenceGate", "runMetadata", "partial"],
+        "conditional": ["subAspect", "sections", "sources", "dimensions", "todo", "deadlines",
+                        "sanctions", "corpus", "corpusCoverage", "registerSweep",
+                        "dimensionProbes", "ssotVerify", "redTeam", "error"],
+    },
+    "claim": {
+        "required": ["text", "value", "verification", "confidence", "verificationNote",
+                     "loadBearing", "primarySourced", "derivation", "obligation",
+                     "obligationRank", "provision", "contextEnvelope", "sources"],
+        # claimType absent -> "fact". opinion/forecast REQUIRE attribution (who says it,
+        # where/when) — an unattributed expectation rendered as prose is the report
+        # speaking in its own voice, the exact failure claim typing exists to prevent.
+        # A forecast can never bind: obligation stays null, loadBearing stays false —
+        # two sources sharing a prediction make it common, not true.
+        "optional": ["claimType", "attribution"],
+    },
+    "claimSource": {
+        "required": ["citationId", "url", "title", "domain", "tier", "chip", "craap",
+                     "snapshot", "primary", "finalUrl", "quoteFound", "verbatimQuote",
+                     "pubDate", "accessedAt", "originatingQuery"],
+    },
+    "sourceRow": {   # abbreviated shape of the top-level sources[] list
+        "required": ["citationId", "url", "title", "domain", "tier", "chip", "craap",
+                     "pubDate", "accessedAt"],
+    },
+    "enums": {
+        "claimType": ["fact", "opinion", "forecast"],
+        "confidence": ["HIGH", "MEDIUM", "LOW"],
+        "verification": ["verified", "partial", "unknown"],
+        "obligation": [None, "must", "mustnot", "should", "may", "free"],
+        "obligationRank": [None, "N1", "N2", "N3", "N4", "N5", "N6", "N7"],
+        "chip": ["official", "secondary"],
+        "tier": ["T1", "T2", "T3", "T4", "T5", "T6"],
+        "corpusStatus": ["covered", "out-of-scope", "gap"],
+        "redTeamOutcome": ["held", "weakened", "overturned"],
+        "probeFinding": ["no-carve-out", "carve-out:<claimId>", "unresolved"],
+        "searchStop": ["saturation", "budget"],
+    },
+}
 
 
 def record(cid, group, ok, detail=""):
@@ -127,6 +185,26 @@ def host_of(url):
 
 def check_artifact(art):
     G = "artifact"
+
+    # A00 — schema shape: every required key present (null legal, absent not).
+    # This is SCHEMA's runtime consumer: a contract nothing reads is a contract
+    # that rots. Claim/source internals are sampled per record, not per key-path,
+    # so the offender list stays readable.
+    miss_top = [k for k in SCHEMA["topLevel"]["required"] if k not in art]
+    bad = [f"top-level missing: {cap(miss_top, 6)}"] if miss_top else []
+    for sec, cl in iter_claims(art):
+        miss = [k for k in SCHEMA["claim"]["required"] if k not in cl]
+        if miss:
+            bad.append(f"{claim_key(sec, cl)}: claim missing {cap(miss, 3)}")
+        for src in cl.get("sources") or []:
+            miss = [k for k in SCHEMA["claimSource"]["required"] if k not in src]
+            if miss:
+                bad.append(f"cid {src.get('citationId')}: source missing {cap(miss, 3)}")
+    for src in art.get("sources") or []:
+        miss = [k for k in SCHEMA["sourceRow"]["required"] if k not in src]
+        if miss:
+            bad.append(f"sources[] cid {src.get('citationId')}: missing {cap(miss, 3)}")
+    (ok if not bad else fail)("A00", G, "schema shape holds" if not bad else cap(bad))
 
     # A01 — sections/sources present exactly once
     shards = art.get("shards") or []
@@ -355,6 +433,25 @@ def check_artifact(art):
            if len(c.get("candidates") or []) < 2 or "winner" not in c]
     (ok if not bad else fail)("A18", G, "" if not bad else cap(bad))
 
+    # A19 — typed claims: opinion/forecast carry attribution; a forecast binds nobody.
+    # "X is expected" with no actor is the report speaking in its own voice; and no
+    # obligation or load-bearing rule may rest on a prediction, however widely shared.
+    bad = []
+    unknown_types = []
+    for sec, cl in iter_claims(art):
+        ct = cl.get("claimType") or "fact"
+        if ct not in SCHEMA["enums"]["claimType"]:
+            unknown_types.append(f"{claim_key(sec, cl)}: claimType={ct!r}")
+            continue
+        if ct in ("opinion", "forecast") and not (cl.get("attribution") or "").strip():
+            bad.append(f"{claim_key(sec, cl)}: {ct} without attribution")
+        if ct == "forecast" and (cl.get("obligation") or cl.get("loadBearing")):
+            bad.append(f"{claim_key(sec, cl)}: forecast cannot bind (obligation/loadBearing set)")
+    if unknown_types:
+        fail("A19", G, f"unknown claimType: {cap(unknown_types)}")
+    else:
+        (ok if not bad else fail)("A19", G, "" if not bad else cap(bad))
+
 
 # --------------------------------------------------------------------------
 # R: report (HTML) checks
@@ -374,6 +471,8 @@ class Report(HTMLParser):
         self.data_cfg = []
         self.data_cite = []
         self.oblg_levels = []
+        self.headings = []       # h2 + h3.tdgroup text — R10 checks these carry findings, not labels
+        self._head_cap = None
         self.in_script = False
         self.script_text = []
 
@@ -407,12 +506,19 @@ class Report(HTMLParser):
                 self.todo_items += 1
         if "oblg" in classes:
             self.oblg_levels.extend(c for c in classes if c != "oblg")
+        if tag == "h2" or (tag == "h3" and "tdgroup" in classes):
+            self._head_cap = []
         if tag == "script":
             self.in_script = True
         if tag not in ("br", "hr", "img", "meta", "link", "input", "source"):
             self.stack.append((tag, classes))
 
     def handle_endtag(self, tag):
+        if tag in ("h2", "h3") and self._head_cap is not None:
+            text = " ".join("".join(self._head_cap).split())
+            if text:
+                self.headings.append(text)
+            self._head_cap = None
         if tag == "script":
             self.in_script = False
         for i in range(len(self.stack) - 1, -1, -1):
@@ -421,6 +527,8 @@ class Report(HTMLParser):
                 break
 
     def handle_data(self, data):
+        if self._head_cap is not None:
+            self._head_cap.append(data)
         if self.in_script:
             self.script_text.append(data)
 
@@ -484,6 +592,16 @@ def check_report(path):
     miss = [n for n in need if n not in html]
     (ok if not miss else fail)("R09", G, "" if not miss else f"missing print discipline: {cap(miss)}")
 
+    # R10 — headings carry findings, not labels. Exact-match blacklist only (a heading that merely
+    # CONTAINS a generic word may still assert something); judgment-shaped cases stay in Phase 6.
+    generic = {"introduction", "overview", "general information", "general", "findings",
+               "conclusion", "conclusions", "assessment", "summary", "details",
+               "giriş", "genel bakış", "genel bilgiler", "genel", "bulgular",
+               "sonuç", "sonuçlar", "değerlendirme", "özet", "detaylar", "ayrıntılar"}
+    bad = [h for h in p.headings if h.casefold() in generic]
+    (ok if not bad else fail)("R10", G, "" if not bad
+                              else f"generic heading states no finding: {cap(bad)}")
+
     return p
 
 
@@ -521,7 +639,8 @@ def check_cross(art, p):
         ok("X01", G, "no action list")
         ok("X02", G, "no action list")
 
-    # X03 — source count in the report matches the artifact
+    # X03 — distinct cited source count (informational: recorded in the output so a run's
+    # source volume is visible; no report-side comparison is performed here)
     n_src = len({s.get("citationId") for s in all_sources(art) if s.get("citationId") is not None})
     ok("X03", G, f"{n_src} distinct cited source(s) in artifact")
 
@@ -590,6 +709,7 @@ SELFTEST_HTML = """<!doctype html><html lang="tr"><head><meta charset="utf-8"><t
 <section id="yapilacaklar"><ol class="todo">
 __ITEMS__
 </ol></section>
+__EXTRA__
 </main>
 <script>
 const CONFIG = { title:"Kira brifingi", cites:{ "1":{q:"iki ay icinde dava acilir"} } };
@@ -682,6 +802,9 @@ def _selftest_artifact():
 
 # Each defect names the real failure it reproduces and the check that must catch it.
 SELFTEST_DEFECTS = {
+    "A00": "runMetadata key deleted — an artifact missing a required field parses fine and looks complete",
+    "A19": "a forecast claim ('threshold expected to rise in 2027') shipped with no attribution",
+    "R10": "a section headed 'Genel Bilgiler' — a label that states no finding",
     "A03": "action item cites id 77, which no source defines (merged-worker id collision)",
     "A04": "source domain says yargitay.com.tr while its URL is karararama.yargitay.gov.tr",
     "A06": "claim labelled partial while carrying two independent sources",
@@ -695,6 +818,13 @@ SELFTEST_DEFECTS = {
 
 def _break(art):
     """Inject each defect in SELFTEST_DEFECTS. Kept beside it so the two cannot drift."""
+    del art["runMetadata"]                                               # A00
+    art["sections"][0]["claims"].append({                                # A19
+        "text": "Esigin 2027'de yukseltilmesi bekleniyor.", "value": None,
+        "claimType": "forecast", "verification": "unknown", "confidence": "LOW",
+        "verificationNote": None, "loadBearing": False, "primarySourced": False,
+        "derivation": None, "obligation": None, "obligationRank": None,
+        "provision": None, "contextEnvelope": None, "sources": []})
     art["todo"][0]["citationIds"] = [1, 77]                              # A03
     art["sections"][0]["claims"][0]["sources"][1]["domain"] = "yargitay.com.tr"   # A04
     art["sections"][0]["claims"][0]["verification"] = "partial"          # A06 (and A13)
@@ -726,8 +856,9 @@ def _write_case(root, name, broken=False, sharded=False):
         json.dump(man, fh, indent=1)
 
     items = SELFTEST_ITEM_MUST if broken else SELFTEST_ITEM_MUST + "\n" + SELFTEST_ITEM_FREE
+    extra = '<section id="genel"><h2>Genel Bilgiler</h2></section>' if broken else ""   # R10 when broken
     with open(os.path.join(d, "report.html"), "w", encoding="utf-8") as fh:
-        fh.write(SELFTEST_HTML.replace("__ITEMS__", items))             # X01/X02 when broken
+        fh.write(SELFTEST_HTML.replace("__ITEMS__", items).replace("__EXTRA__", extra))
 
     index = os.path.join(d, "findings.json")
     if sharded:
@@ -820,6 +951,8 @@ def main():
     ap = argparse.ArgumentParser(description="ds-brief mechanical verifier")
     ap.add_argument("--self-test", action="store_true",
                     help="prove the checks fail on deliberately broken input")
+    ap.add_argument("--emit-schema", action="store_true",
+                    help="print the artifact field contract (SCHEMA) as JSON and exit")
     ap.add_argument("--artifact", help="findings artifact index JSON")
     ap.add_argument("--report", help="built single-file HTML report")
     ap.add_argument("--bundle", help="evidence bundle sources/ directory")
@@ -828,10 +961,13 @@ def main():
     args = ap.parse_args()
     VERBOSE = args.verbose
 
+    if args.emit_schema:
+        print(json.dumps(SCHEMA, indent=2))
+        return 0
     if args.self_test:
         return self_test()
     if not args.artifact:
-        ap.error("--artifact is required (or use --self-test)")
+        ap.error("--artifact is required (or use --self-test / --emit-schema)")
 
     try:
         art, notes = load_artifact(args.artifact)

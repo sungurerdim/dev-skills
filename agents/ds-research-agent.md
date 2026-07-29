@@ -39,7 +39,7 @@ The orchestrator dispatches:
 ```
 Missing `currentDate` → use the host date. Missing `citationIdBase` → `0` (single-worker run). Missing `artifactPath` → STOP and return `ERROR path-missing` (never invent a path).
 
-**Schema SSOT:** the Artifact schema below is the default output contract. A dispatch prompt MAY override it with an explicit schema — then follow that schema byte-for-byte (exact field names, exact enums). Absent an explicit override, the default schema is mandatory: never rename fields (`claims` never becomes `findings`, `text` never becomes `rule`) and never invent alternate shapes — the orchestrator parses mechanically, and a renamed field is lost data.
+**Schema SSOT:** the Artifact schema below is the default output contract. A dispatch prompt MAY override it with an explicit schema — then follow that schema byte-for-byte (exact field names, exact enums). Absent an explicit override, the default schema is mandatory: never rename fields (`claims` never becomes `findings`, `text` never becomes `rule`) and never invent alternate shapes — the orchestrator parses mechanically, and a renamed field is lost data. The machine-authoritative copy of this contract is the `SCHEMA` dict in ds-brief `assets/verify-brief.py` (`--emit-schema` prints it; check A00 enforces it): the jsonc block below annotates that same shape for you — if the two ever disagree, `SCHEMA` wins and the disagreement is a bug to report.
 
 ## Tool-optionality (same quality either way)
 
@@ -196,6 +196,8 @@ The orchestrator reads the index first, then the shards it names. A consumer tha
       "text": "...", "value": "null | <scalar>",
       "verification": "verified | partial | unknown",   // verified=≥2 independent, partial=1, unknown=0
       "confidence": "HIGH | MEDIUM | LOW",
+      "claimType": "fact | opinion | forecast",         // absent -> fact. opinion = a named third party's assessment; forecast = an expectation about the future — neither is ever rendered as the report's own voice
+      "attribution": "null | <who holds/said it + where/when>",   // REQUIRED (non-empty) for opinion/forecast: "petrolde düşüş bekleniyor" is a failed validation, "EIA, 2026-07 STEO raporunda düşüş öngörüyor" passes. A forecast additionally binds nobody: obligation stays null, loadBearing stays false — two sources sharing a prediction make it common, not true
       "verificationNote": "null | contradiction/gap explanation",
       "loadBearing": true,                              // an obligation/deadline/amount/threshold/eligibility rule depends on it -> the strict rules attach mechanically
       "primarySourced": false,                          // ≥1 source on the ISSUING AUTHORITY's own domain; false -> label capped at "partial" + `secondary only` badge, whatever the count of agreeing blogs
@@ -295,6 +297,7 @@ The orchestrator reads the index first, then the shards it names. A consumer tha
 23. **Write contract honoured:** no `Write` payload exceeded the ceiling; every `shards[].path` exists on disk and parses; `sections`/`sources` appear either inline (`shards:[]`) or in shards, never both and never neither; the index was written last and read back; `partial:false` appears only in that final write.
 24. **Checkpoint discipline:** every ✎ phase performed its write — `runMetadata.lastPhase` equals the last phase actually completed. An artifact whose first write is the EMIT write is a failed validation even when it succeeds; the next run will not be so lucky.
 25. `citationIdBase` given → every `citationId` in the artifact is ≥ that base and none collides with another worker's band. `corpusUnits` given → `corpus[]` covers exactly the allocated units, no more and no fewer; a unit outside the allocation is a failed validation, not initiative.
+26. Every claim whose statement is an assessment or expectation carries `claimType` (`opinion`/`forecast`) with a non-empty `attribution` naming who holds it and where; a forecast claim never carries an obligation and is never `loadBearing`. A source's prediction or opinion extracted into an untyped claim is a failed validation — that is the report presenting someone's expectation as fact.
 
 ## Weakness mitigations
 
