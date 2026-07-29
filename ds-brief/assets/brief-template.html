@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="slate">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- ds-brief canonical skeleton. Single-file, offline, print/PDF-safe.
      SSOT = the CONFIG object near the bottom. Fill {placeholder} slots; never load anything over the network.
      Security: text goes in via textContent / DOM nodes only. No innerHTML with data. No inline on* handlers.
-     Color inputs (theme + CONFIG colors) pass safeColor() regex before being applied (CSS-injection defense).
+     All colors are static CSS baked at build (palette-validated then); JS only toggles the data-theme
+     attribute and never applies a color value, so no runtime color input exists to guard.
      Optional blocks are tagged ds-opt:NAME (calc, pills, strip, lawtext, search, theme, chart, branch, oblg, cites,
-     matrix, xref, icons, todo, coverage, gate, deadlines, sanctions, escalate): paired
+     matrix, xref, icons, todo, coverage, gate, deadlines, sanctions, escalate, vignette, glossary, changed, timeline): paired
      ds-opt:NAME … /ds-opt:NAME for multi-line, or a trailing /* ds-opt:NAME */ on a single line.
      Build phase (Phase 4 prune) deletes the CSS+HTML of any ds-opt block the brief does not use, so
      each report ships only the CSS it needs. Untagged = core (always kept). JS handlers are null-guarded:
@@ -23,7 +24,8 @@
   --official:var(--ok); --secondary:var(--warn);              /* source chips: official / secondary */
   --r:14px;
 
-  /* ---- brand set: overridden per theme by THEMES[] via JS; defaults = slate (JS-off safe) ---- */
+  /* ---- brand set: BAKED AT BUILD (defaults = slate preset; preset table + project brand input in
+         report-template.md § Theming). No runtime brand switching — the palette is the report's choice. ---- */
   --primary:#334155; --accent:#0ea5e9; --bg:#f8fafc; --surface:#fff; --text:#0f172a;
 
   /* ---- derived (theme-reactive via color-mix; no hardcoded greys) ---- */
@@ -52,7 +54,17 @@
   --fs-4:clamp(1.35rem,1.15rem + 1.1vw,1.9rem);
 }
 *{box-sizing:border-box}
-html[data-theme="dark"]{color-scheme:dark}
+/* Dark lives in CSS so it works with JS off and never flashes: explicit data-theme wins; no attribute →
+   OS preference via the media block (same values — CSS offers no block reuse, the duplication is the
+   platform cost of JS-off dark). Brand hues desaturated for dark surfaces (near-black, never #000 —
+   halation); semantic hues keep their family, LIGHTNESS re-tuned so text on fills keeps WCAG contrast. */
+html[data-theme="dark"]{color-scheme:dark;
+  --primary:#8fb7f3; --accent:#38bdf8; --bg:#0f1115; --surface:#171a21; --text:#e7eaf0;
+  --ok:#45c98c; --bad:#f47c7c; --warn:#f0b429; --onprim:#0c1017; --onbad:#14181f; --onwarn:#14181f}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]){color-scheme:dark;
+    --primary:#8fb7f3; --accent:#38bdf8; --bg:#0f1115; --surface:#171a21; --text:#e7eaf0;
+    --ok:#45c98c; --bad:#f47c7c; --warn:#f0b429; --onprim:#0c1017; --onbad:#14181f; --onwarn:#14181f}}
 html{scroll-behavior:smooth;scroll-padding-top:calc(var(--navH,56px) + 10px)}   /* sticky chrome never hides an anchor/focus target; --navH measured live */
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans",sans-serif;
@@ -152,7 +164,6 @@ nav.bar.scrolled #navTitle{opacity:1;transform:none}
   .tool.search input{width:0;padding:0;opacity:0}
   .tool.search:focus-within input,.tool.search input:not(:placeholder-shown){width:clamp(120px,40vw,240px);opacity:1}
 }
-.tool select{border:0;outline:0;background:transparent;color:var(--text);font-size:.85rem;font-weight:600;cursor:pointer}     /* ds-opt:theme */
 .printbtn{border:1px solid var(--primary);background:var(--primary);color:var(--onprim,#fff);padding:6px 12px;border-radius:999px;cursor:pointer;font-size:.85rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;min-height:34px;white-space:nowrap}
 @media(max-width:900px){.printbtn .lbl{display:none}}   /* icon-only where the row would otherwise squeeze */
 
@@ -296,6 +307,7 @@ a.badge.disputed:hover{border-style:solid}   /* disputed = credible sources conf
 .choices.big .choice{flex-direction:column;align-items:flex-start;gap:4px;padding:13px 16px;border-radius:var(--r);text-align:left}
 .choices.big .choice .d{display:block;font-weight:400;font-size:.82rem;color:var(--mut)}
 .choices.big .choice[aria-pressed="true"] .d{color:color-mix(in srgb,var(--primary) 70%,var(--mut))}
+.hiddennote{font-size:.82rem;color:var(--mut);margin:4px 0 0}   /* honest-hiding count — quiet, not a warning */
 .whochip{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border-radius:999px;padding:2px 9px;background:color-mix(in srgb,var(--primary) 9%,var(--surface));color:var(--primary);border:1px solid color-mix(in srgb,var(--primary) 30%,var(--line));vertical-align:middle}
 /* /ds-opt:branch */
 
@@ -432,11 +444,10 @@ dl.gloss dd{margin:3px 0 0;color:var(--mut);font-size:.92rem;max-width:var(--mea
 footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area-inset-bottom));color:var(--mut);font-size:.82rem;text-align:center;background:var(--surface)}
 
 @media(max-width:900px){#navTitle{display:none}}   /* condensed title only where a single nav row fits */
-@media(max-width:640px){nav.bar .wrap{min-height:0;row-gap:4px}}
 
 @page{margin:14mm 12mm}   /* absolute units only — viewport units do not map to the printed page */
 @media print{
-  nav.bar,.tool,.printbtn,.navbtn,.lawbtn,.skip,#toTop,#progress,.choices,.qpop,.todo-controls,.mtools,.copyfall{display:none!important}
+  nav.bar,.tool,.printbtn,.navbtn,.lawbtn,.skip,#toTop,#progress,.choices,.qpop,.todo-controls,.mtools,.copyfall,.hiddennote{display:none!important}   /* .hiddennote: print force-shows every branch, so "n blocks hidden" would be a printed lie */
   [data-when][hidden]{display:revert!important}   /* every branch prints, labeled by its .whochip */
   tr[data-vd][hidden]{display:table-row!important}   /* "differences only" is a screen filter; paper keeps every row */
   ol.todo>li[hidden]{display:list-item!important}    /* default: the printout carries every action item with its condition */
@@ -495,7 +506,6 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
      Decorative uses carry aria-hidden="true" on the <svg>. Prune the block when no <use> remains. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <symbol id="i-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 11v5"/></g></symbol>
-  <symbol id="i-alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></g></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></g></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></g></symbol>
@@ -535,7 +545,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     </label>
     <!-- /ds-opt:search -->
     <!-- ds-opt:theme — light/dark ONLY. Reading comfort is the reader's call; the brand palette is the
-         report's, chosen once at build in CONFIG.palette. A six-way colour menu in a research report is
+         report's, baked into the CSS at build. A six-way colour menu in a research report is
          a feature the reader never needed and one more control competing with the content. -->
     <button class="tool" id="themeBtn" type="button" aria-pressed="false" title="Dark mode" aria-label="Toggle dark mode">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9z"/></svg>
@@ -617,8 +627,12 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     </div>
   </section>
 
-  <!-- ds-opt:branch — scenario/persona layer. ACTIVATE when the topic splits by reader role or situation
-       (tenant/landlord, employee/employer, buyer/seller, fixed/indefinite contract, company size bands...).
+  <!-- ds-opt:branch — scenario/persona layer. On a multi-branch topic this is the DEFAULT ENTRY, not an
+       optional extra: it is the first interactive block after the summary, and a selection filters
+       EVERYTHING below it — cards, prose blocks, whole sections (a section.sec may itself carry
+       data-when) and the nav (syncBranchChrome hides a nav button whose target section is hidden).
+       A tenant who has chosen "tenant" never scrolls past landlord-only tax rules; they see a single
+       honest line saying how much is hidden and how to get it back.
        Rules:
        - One .choices[data-key] group per decision; nested groups (a group inside a data-when block) give
          tree-depth for free — a child decision only appears once its parent branch is selected.
@@ -627,6 +641,8 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
        - Branching filters PRESENTATION only: all branches ship in the file; no selection = all visible
          (labeled); print shows every branch with its .whochip. Never move a claim's sources, badges, or
          Unknowns entries out of a branch — accuracy discipline is branch-independent.
+       - HONEST HIDING: whenever a selection hides anything, #hiddenNote states the count and points at
+         "Show all" — content is filtered in the open, never silently withheld.
        - Each branch block carries a .whochip naming its branch, so the reader always knows whose rule
          they are reading (and print stays unambiguous).
        - The last option of every group is the localized "Show all" reset (data-val=""). -->
@@ -634,6 +650,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     <h2><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> {YOUR_SITUATION_TITLE}</h2>
     <p class="lead">{one line: pick your situation — the report shows only what applies to you; "Show all" restores both perspectives}</p>
     <span class="vh" id="branchLive" aria-live="polite"></span>
+    <p class="hiddennote" id="hiddenNote" hidden></p>
     <div class="choices big" data-key="persona" role="group" aria-label="{choose your situation}">
       <button class="choice" type="button" data-val="tenant"><span><svg class="ico" aria-hidden="true"><use href="#i-user"/></svg> {Tenant}</span><span class="d">{one line: what this view covers}</span></button>
       <button class="choice" type="button" data-val="landlord"><span><svg class="ico" aria-hidden="true"><use href="#i-home"/></svg> {Landlord}</span><span class="d">{one line}</span></button>
@@ -663,12 +680,20 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   </section>
   <!-- /ds-opt:branch -->
 
-  <!-- ds-opt:todo — THE ACTION LIST. ACTIVATE whenever the brief tells the reader to DO things (legal,
-       regulatory, procedural topics). Items live in CONFIG.todo as RULE-TAGGED entries: each carries its
-       own applicability condition in the same data-when grammar the branch layer uses, so one evaluator
-       drives both and the two can never disagree. Above 2 decision dimensions this is the ONLY sane
-       representation — per-combination blocks explode (6 dimensions x 4 values = 4096 readings).
+  <!-- ds-opt:todo — THE RULE-CARD SPINE. On a normative or action-shaped topic this is the report's BODY,
+       not an appendix: topic groups (h3.tdgroup states the topic's finding) each hold their rule cards,
+       and the reader's selections above filter them. A rule lives in exactly ONE card — never restated in
+       surrounding prose (a card said twice is a scalar rendered twice). The card carries the verdict; the
+       evidence depth (explanatory prose, verbatim law text, exceptions) collapses into the card's own
+       <details class="acc"> — demoted, not deleted. Analytical/comparison topics keep prose sections and
+       skip this spine (their natural unit is criterion→finding, not situation→action).
+       Items are RULE-TAGGED: each carries its applicability in the same data-when grammar the branch
+       layer uses, so one evaluator drives both and the two can never disagree. Above 2 decision
+       dimensions this is the ONLY sane representation — per-combination blocks explode.
        Every item must answer: what · who · by when · how/where · on what authority.
+       Group order: by topic, in reading order; within a group: mandatory → prohibited → recommended →
+       optional, earliest deadline first. One imperative sentence per card (~140 chars) — everything
+       longer belongs in the card's depth details.
        No selection / JS off / print = every item, each labeled with the condition under which it applies. -->
   <section class="sec" id="yapilacaklar">
     <h2><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg> {WHAT_YOU_MUST_DO_TITLE}</h2>
@@ -686,10 +711,12 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
          counts/labels them — with JS off, or before any selection, the reader still sees every item.
          Order: mandatory → prohibited → recommended → optional; within a group, earliest deadline first. -->
     <div id="todoList">
-      <h3 class="tdgroup">{Mandatory}</h3>
+      <!-- Group heading = the topic's finding stated as an assertion (like exhibit captions),
+           never a level name or a generic label. -->
+      <h3 class="tdgroup">{topic group heading — an assertion, e.g. "Deposit is capped at 3 months' rent"}</h3>
       <ol class="todo">
         <li class="tdi" data-when="entity:ltd|jsc data:special">
-          <span class="oblg must">{Mandatory}</span><span class="act">{plain imperative action}</span>
+          <span class="oblg must">{Mandatory}</span><span class="act">{ONE plain imperative sentence, ~140 chars max}</span>
           <div class="tdmeta">
             <span>{Who} {the person or body it falls on}</span>
             <a class="deadchip" href="#sureler">{By} {period}</a>
@@ -700,9 +727,20 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
             <!-- applicability is an inference, not a source sentence → premises one click away -->
             <button class="badge derived" type="button" data-cite="d1">{derived}</button>
           </div>
+          <!-- EVIDENCE DEPTH: the card states the verdict; the argument lives one click down.
+               Explanatory prose, the verbatim provision, its exceptions and cross-references are
+               DEMOTED here, never repeated beside the card. Print force-opens this like every acc. -->
+          <details class="acc">
+            <summary>{Why · full rule and exceptions}</summary>
+            <div class="body">
+              <p>{2-4 sentences: the rule's reasoning, edge cases, what the qualifier means for the reader}</p>
+              <!-- ds-opt:lawtext --><button class="lawbtn" type="button" aria-expanded="false" data-law="law-1">{Show provision text}</button>
+              <blockquote class="lawtext" id="law-1" hidden>{verbatim provision — byte-for-byte}</blockquote><!-- /ds-opt:lawtext -->
+            </div>
+          </details>
         </li>
       </ol>
-      <h3 class="tdgroup">{Recommended}</h3>
+      <h3 class="tdgroup">{second topic group heading — an assertion}</h3>
       <ol class="todo">
         <li class="tdi">
           <span class="oblg should">{Recommended}</span><span class="act">{action that applies to everyone — no data-when}</span>
@@ -719,8 +757,12 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
 
   <!-- BULGULAR: one .sec per finding section. Each claim gets a source chip; each datum a badge if not 2x-confirmed. -->
   <section class="sec" id="bulgular">
-    <h2>{SECTION_TITLE}</h2>
-    <p class="lead">{section lead}</p>
+    <!-- h2 = the section's FINDING as an assertion ("Deposit is capped at 3 months' rent"), never a
+         category label; generic headings (Introduction/Overview/Findings/Conclusion + localizations)
+         fail verify-brief R10. The section OPENS with its consequence (p.sowhat as the lead) —
+         conclusion first, argument after; the lead is ≤2 sentences. -->
+    <h2>{SECTION_TITLE — an assertion}</h2>
+    <p class="sowhat"><b>{So what}</b> {what the reader must now do or decide differently — ≤2 sentences}</p>
 
     <!-- ds-opt:oblg — legend once, above the first rules content; then every normative statement opens
          with exactly one obligation badge. The reader always knows: must do / must not / recommended /
@@ -853,9 +895,6 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     <details class="acc" id="detay-1"><summary>{detail heading}</summary>
       <div class="body"><p>{detail body}</p></div>
     </details>
-
-    <!-- Every section closes with the consequence, not the finding. -->
-    <p class="sowhat"><b>{So what}</b> {what the reader must now do or decide differently}</p>
   </section>
 
   <!-- ds-opt:deadlines — every period in the brief in ONE table. Scattered deadlines are missed
@@ -1000,7 +1039,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19V5m-7 7 7-7 7 7"/></svg>
 </button>
 
-<footer><div class="wrap" data-cfg="footer">Sources as of access date | Single file, fully offline | Generated: <span data-cfg="generatedAt">{ISO}</span></div></footer>
+<footer><div class="wrap"><span data-cfg="footer">Sources as of access date | Single file, fully offline</span> | Generated: <span data-cfg="generatedAt">{ISO}</span></div></footer>
 
 <script>
 "use strict";
@@ -1031,7 +1070,9 @@ const CONFIG = {
   lawAsOf:"{YYYY-MM-DD}",                    /* ds-opt:oblg — the consolidated-text version the brief reflects */
   corpusCovered:"{n}", corpusOos:"{o}", corpusGap:"{g}", corpusTotal:"{m}",   /* ds-opt:coverage — recomputed from the ledger rows, never asserted */
   diffCountLabel:"{n}/{m} {rows differ}",    /* ds-opt:matrix */
-  palette:"slate",   // default theme; one of THEMES keys ("dark" auto-selected for OS dark mode unless the user chose one)
+  prevVersionDate:"{YYYY-MM-DD}",            /* ds-opt:changed — the version this diff is against */
+  glossaryCount:"{n}",                       /* ds-opt:glossary */
+  themeStorageKey:"ds-brief-theme",   // localStorage key for the light/dark choice; a report collection sets its shared key here so every report and its dashboard remember one preference
   disclaimer:"Informational only; not binding or professional advice.",
   footer:"Sources as of access date | Single file, fully offline",
   someValue:"{N}",   // topic scalars referenced by [data-cfg]
@@ -1042,6 +1083,7 @@ const CONFIG = {
   dimensions:[
     // {key:"entity", label:"{Legal form}", values:[{val:"person", label:"{Natural person}"}, {val:"sole", label:"{Sole trader / self-employed}"}, {val:"ltd", label:"{Limited company}"}, {val:"jsc", label:"{Joint-stock company}"}, {val:"other", label:"{Other / not listed}"}]}
   ],
+  branchHiddenLabel:"{n} {blocks outside your situation are hidden — “Show all” restores them}",   /* ds-opt:branch — honest hiding */
   todoLabels:{         /* ds-opt:todo — localized at build */
     count:"{n} {items apply to you}", profile:"{Your situation}:",
     none:"{No selection yet — showing every item, each labeled with the situation it applies to}",
@@ -1064,38 +1106,15 @@ const CONFIG = {
   ]
 };
 
-// ---- embedded palettes (akis palettes.js). Light themes set the brand 5; semantic colors stay constant.
-//      "dark" may additionally re-tune semantic LIGHTNESS (same hues) + the on-color trio so text on
-//      primary/bad/warn fills keeps WCAG contrast; keys a theme omits reset to the :root defaults. ----
-const THEMES = {
-  slate:  {primary:"#334155", accent:"#0ea5e9", bg:"#f8fafc", surface:"#ffffff", text:"#0f172a"},
-  teal:   {primary:"#0f766e", accent:"#14b8a6", bg:"#f6fbfa", surface:"#ffffff", text:"#0f1a19"},
-  emerald:{primary:"#047857", accent:"#10b981", bg:"#f5fbf8", surface:"#ffffff", text:"#0f1a15"},
-  indigo: {primary:"#4f46e5", accent:"#6366f1", bg:"#fafafa", surface:"#ffffff", text:"#18181b"},
-  rose:   {primary:"#be185d", accent:"#ec4899", bg:"#fff7fa", surface:"#ffffff", text:"#1f1117"},
-  amber:  {primary:"#b45309", accent:"#f59e0b", bg:"#fffbf5", surface:"#ffffff", text:"#1f1505"},
-  dark:   {primary:"#8fb7f3", accent:"#38bdf8", bg:"#0f1115", surface:"#171a21", text:"#e7eaf0",   // near-black (never #000) + desaturated accents: halation-safe
-           ok:"#45c98c", bad:"#f47c7c", warn:"#f0b429", onprim:"#0c1017", onbad:"#14181f", onwarn:"#14181f"}
-};
-const THEME_KEYS = ["primary","accent","bg","surface","text","ok","bad","warn","onprim","onbad","onwarn"];
-
-// color-injection guard: only #hex / rgb()/rgba() / hsl()/hsla() pass (akis BP-030)
-function safeColor(v){
-  if (typeof v !== "string") return null;
-  v = v.trim();
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) return v;
-  if (/^(rgb|hsl)a?\(\s*[\d.,\s%/]+\)$/i.test(v)) return v;
-  return null;
-}
+// ---- theme: light/dark only, attribute-driven. Every color lives in the CSS baked at build; JS never
+//      applies a color value, so no runtime color input exists to guard. Dark also works with JS off via
+//      the prefers-color-scheme block; this wiring exists only to persist an explicit reader choice. ----
+const THEME_KEY = CONFIG.themeStorageKey || "ds-brief-theme";
 function applyTheme(name){
-  const t = THEMES[name]; if (!t) return;
   const root = document.documentElement;
-  THEME_KEYS.forEach(function(k){
-    const c = t[k] != null ? safeColor(t[k]) : null;
-    if (c) root.style.setProperty("--" + k, c); else root.style.removeProperty("--" + k);
-  });
-  root.setAttribute("data-theme", name);
-  try { localStorage.setItem("ds-brief-theme", name); } catch(e){}
+  if (name === "dark" || name === "light") root.setAttribute("data-theme", name);
+  else root.removeAttribute("data-theme");
+  try { localStorage.setItem(THEME_KEY, name); } catch(e){}
 }
 
 function fillConfig(){
@@ -1124,8 +1143,8 @@ function wireKpis(){
 // sticky nav: condensed title after the header scrolls out, scrollspy aria-current, progress bar, back-to-top
 function wireSticky(){
   const bar = document.querySelector("nav.bar"), hdr = document.querySelector("header.top");
-  if (bar){   // live nav height -> --navH drives html scroll-padding-top (nav wraps to 2 rows on narrow screens)
-    const setH = function(){ document.documentElement.style.setProperty("--navH", bar.offsetHeight + "px"); };
+  if (bar){   // live nav height -> --navH drives html scroll-padding-top (tool cluster height varies by width)
+    const setH = function(){ document.documentElement.style.setProperty("--navH", bar.offsetHeight + "px"); };   // nav is one row at every width; --navH still tracks tool-cluster height changes
     if ("ResizeObserver" in window) new ResizeObserver(setH).observe(bar);
     setH();
   }
@@ -1189,26 +1208,28 @@ function renderCharts(){
     });
   });
 }
-// Light/dark only: reading comfort is the reader's, brand palette is the report's (CONFIG.palette).
+// Light/dark only: reading comfort is the reader's, the brand palette is the report's (baked in CSS).
+// No stored choice → no attribute → the CSS prefers-color-scheme block decides; explicit choice wins.
 function wireTheme(){
-  const base = THEMES[CONFIG.palette] ? CONFIG.palette : "slate";
-  let initial = base;
-  if (THEMES.dark && window.matchMedia && matchMedia("(prefers-color-scheme:dark)").matches) initial = "dark";   // OS preference beats the default…
-  try { const s = localStorage.getItem("ds-brief-theme"); if (s && THEMES[s]) initial = s; } catch(e){}          // …but an explicit user choice beats both
-  applyTheme(initial);
+  const root = document.documentElement;
+  try {
+    const s = localStorage.getItem(THEME_KEY);
+    if (s === "dark" || s === "light") root.setAttribute("data-theme", s);
+  } catch(e){}
   const btn = document.getElementById("themeBtn");
   if (!btn) return;
+  function isDark(){
+    const a = root.getAttribute("data-theme");
+    return a === "dark" || (!a && window.matchMedia && matchMedia("(prefers-color-scheme:dark)").matches);
+  }
   function sync(){
-    const dark = document.documentElement.getAttribute("data-theme") === "dark";
+    const dark = isDark();
     btn.setAttribute("aria-pressed", String(dark));
     const lbl = dark ? (CONFIG.themeLightLabel || "Light mode") : (CONFIG.themeDarkLabel || "Dark mode");
     btn.title = lbl; btn.setAttribute("aria-label", lbl);
   }
   sync();
-  btn.addEventListener("click", function(){
-    applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? base : "dark");
-    sync();
-  });
+  btn.addEventListener("click", function(){ applyTheme(isDark() ? "light" : "dark"); sync(); });
 }
 // Exhibits are numbered in document order at load, and every cross-reference label is written from its
 // target — so a reordered or pruned exhibit can never leave a stale "see Exhibit 4" behind.
@@ -1368,6 +1389,23 @@ function wireBranches(){
   const groups = [].slice.call(document.querySelectorAll(".choices[data-key]"));
   if (!groups.length) return;
   const sel = {};
+  // Chrome follows the filter: a nav button whose whole target section is hidden disappears with it,
+  // and #hiddenNote states how much a selection hid — filtering happens in the open, never silently.
+  function syncBranchChrome(){
+    document.querySelectorAll(".navbtn[href^='#']").forEach(function(a){
+      const t = document.getElementById(a.getAttribute("href").slice(1));
+      a.hidden = !!(t && t.hidden);
+    });
+    const note = document.getElementById("hiddenNote");
+    if (note){
+      const n = document.querySelectorAll("[data-when][hidden]").length;
+      const active = Object.keys(sel).some(function(k){ return sel[k]; });
+      if (n && active){
+        note.textContent = (CONFIG.branchHiddenLabel || "{n} blocks outside your situation are hidden — “Show all” restores them").replace("{n}", n);
+        note.hidden = false;
+      } else note.hidden = true;
+    }
+  }
   function apply(){
     document.querySelectorAll("[data-when]").forEach(function(el){
       let show = true;
@@ -1384,6 +1422,7 @@ function wireBranches(){
         b.setAttribute("aria-pressed", String((b.getAttribute("data-val") || "") === cur));
       });
     });
+    syncBranchChrome();
     // the action list is filtered by the SAME pass (its items carry data-when too) — refresh its counts
     if (typeof updateTodoSummary === "function") updateTodoSummary(sel);   /* ds-opt:todo */
   }

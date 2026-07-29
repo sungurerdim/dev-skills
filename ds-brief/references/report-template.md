@@ -27,7 +27,9 @@ Sourced from Minto Pyramid Principle / BLUF and UK Government Analysis Function 
 | Rule | Detail |
 |------|--------|
 | Answer first (BLUF) | The executive summary opens with the conclusion/recommendation, then support — never background-first. Each section lead does the same at section scale. |
-| Descriptive headings | Section titles state the finding, not the category: "Deposit is capped at 3 months' rent", not "Findings". (Nav labels may stay short; `h2` carries the message.) |
+| Descriptive headings | Section titles state the finding, not the category: "Deposit is capped at 3 months' rent", not "Findings". (Nav labels may stay short; `h2` carries the message.) Generic headings are **banned and machine-checked** (verify-brief R10): Introduction, Overview, General information, Findings, Conclusion, Assessment and their localizations never ship as `h2`/`h3.tdgroup`. |
+| Summary states the change, not the topic | `subtitle`/`summary`/BLUF slots answer "what changes for whom": "Rent increases are CPI-capped; deposits max 3 months' rent" — never "A guide to tenancy law". A summary the reader cannot act on is a table of contents in disguise. |
+| Length budgets | Summary ≤2 sentences. Section lead ≤2 sentences, and it is the section's `p.sowhat` moved to the front — conclusion first, argument after. One imperative sentence (~140 chars) per rule card. Everything that exceeds a budget collapses into `<details>` depth rather than being cut — the reader chooses the depth, the budget protects the surface. |
 | Sentence budget | Target ~25 words per sentence; split anything that needs two breaths. Assume a smart reader with zero domain background (audience setting may raise this). |
 | No spatial references | Never "as shown above/below" — collapsed/branched/reflowed content breaks spatial order. Use an `.xref` or a named link ("see *Penalties*"). |
 | Descriptive links | Link text names the destination ("TBK art. 344 full text"), never "click here" / bare URL. |
@@ -44,16 +46,26 @@ Sourced from Minto Pyramid Principle / BLUF and UK Government Analysis Function 
 - Expose link targets: `a[href]:after{content:" (" attr(href) ")"}` so URLs survive on paper — but suppress it for in-file anchors (`a[href^="#"]:after{content:""}`): nav/xref/disputed targets are noise on paper.
 - Typography at the break: `p,li{orphans:3;widows:3}` (browser default 2 leaves lone lines); `@page` margins in absolute units (mm — viewport units don't map to paper); long tables keep semantic `<thead>` so the browser repeats the header on every page.
 
-A visible **"🖨 Print / PDF"** button calls `window.print()` → the browser's "Save as PDF" yields a clean document. JS must force-open all collapsible sections on `beforeprint` (in case CSS alone misses a JS-driven toggle).
+A visible **"Print / PDF"** button (inline SVG icon + label, no emoji) calls `window.print()` → the browser's "Save as PDF" yields a clean document. JS must force-open all collapsible sections on `beforeprint` (in case CSS alone misses a JS-driven toggle).
 
-## Theming (selectable, akis palettes + validated dark)
+## Theming (brand baked at build, validated dark, light/dark toggle)
 
-- **6 embedded light palettes** in a `THEMES` JS object (from `akis/src/constants/palettes.js`): `slate, teal, emerald, indigo, rose, amber`. Each sets only the brand 5 — `primary, accent, bg, surface, text`. **Default = `slate`** (neutral, corporate — best for report/legal content).
-- **`dark` palette** (7th): near-black bg (never `#000` — halation), desaturated accents. Dark may additionally re-tune **semantic lightness only** (same hue family: `ok/bad/warn` brightened for dark surfaces) plus the on-color trio `onprim/onbad/onwarn` (text on primary/bad/warn fills — CSS falls back to `#fff` when unset). Keys a theme omits reset to `:root` defaults on switch. A dark toggle does **not** satisfy WCAG by itself — every changed pair re-passes 4.5:1 text / 3:1 UI before shipping (see validation note below).
-- **OS preference:** no stored choice → `prefers-color-scheme: dark` selects `dark`; an explicit user selection always wins. `color-scheme` is declared (`light` at `:root`, `dark` under `[data-theme="dark"]`) so form controls/scrollbars follow.
-- A theme `<select>` in the nav switches live; choice persists via `localStorage` (try/catch — `file://` may block it). `data-theme` on `<html>` + `CONFIG.palette` give a JS-off default.
-- **Derived tokens via `color-mix()`** (theme-reactive, no hardcoded greys): `--mut`, `--line`, all `*bg` tints, shadows are mixed from brand+semantic colors, so they stay coherent on every theme.
-- **Color-injection guard (`safeColor()`)** — every color value applied at runtime (theme set, any `CONFIG` color) must pass a `#hex | rgb()/rgba() | hsl()/hsla()` regex before `setProperty`; rejected values are ignored (akis BP-030). Never inject an unvalidated color.
+- **The brand palette is chosen once, at build, and baked into the CSS** — the `:root` brand 5 (`primary, accent, bg, surface, text`). There is no runtime brand switching and no JS color application; the reader's only control is the light/dark toggle. This also removes the runtime color-injection surface entirely: with no `setProperty` color path, no `safeColor()`-style guard is needed — the defense is structural. Colors are validated at build instead (see the validation note below).
+- **Brand presets** (validated pairs, from `akis/src/constants/palettes.js`; **default = `slate`** — neutral, corporate, best for report/legal content):
+
+  | Preset | `--primary` | `--accent` | `--bg` | `--surface` | `--text` |
+  |---|---|---|---|---|---|
+  | slate | `#334155` | `#0ea5e9` | `#f8fafc` | `#ffffff` | `#0f172a` |
+  | teal | `#0f766e` | `#14b8a6` | `#f6fbfa` | `#ffffff` | `#0f1a19` |
+  | emerald | `#047857` | `#10b981` | `#f5fbf8` | `#ffffff` | `#0f1a15` |
+  | indigo | `#4f46e5` | `#6366f1` | `#fafafa` | `#ffffff` | `#18181b` |
+  | rose | `#be185d` | `#ec4899` | `#fff7fa` | `#ffffff` | `#1f1117` |
+  | amber | `#b45309` | `#f59e0b` | `#fffbf5` | `#ffffff` | `#1f1505` |
+
+- **Project brand input:** a host project with a house style (e.g. a report collection with per-category colors and its own canonical token block) supplies it at build — bake the project's token values into `:root`, keep its category `--primary/--accent` pair, and set `CONFIG.themeStorageKey` to the collection's shared localStorage key so every report and its dashboard remember one preference. The project's own template/auditor remains the authority for those values; ds-brief never overrides a supplied brand with a preset. This replaces any post-hoc "canonicalization" patch step — the output must match the house contract as built.
+- **Dark theme is a CSS block, not JS**: `html[data-theme="dark"]{…}` plus an identical `@media (prefers-color-scheme:dark){ html:not([data-theme="light"]){…} }` mirror, so dark works with JS off and never flashes. Dark keeps brand hues desaturated on a near-black bg (never `#000` — halation) and re-tunes **semantic lightness only** (same hue family: `ok/bad/warn` brightened) plus the on-color trio `onprim/onbad/onwarn` (text on primary/bad/warn fills — CSS falls back to `#fff` when unset). A dark block does **not** satisfy WCAG by itself — every changed pair re-passes 4.5:1 text / 3:1 UI before shipping.
+- **OS preference / choice precedence:** explicit `data-theme` (persisted via `localStorage[CONFIG.themeStorageKey]`, try/catch — `file://` may block it) wins; no attribute → the `prefers-color-scheme` block decides. `color-scheme` is declared (`light` at `:root`, `dark` in both dark blocks) so form controls/scrollbars follow.
+- **Derived tokens via `color-mix()`** (theme-reactive, no hardcoded greys): `--mut`, `--line`, all `*bg` tints, shadows are mixed from brand+semantic colors, so they stay coherent in both themes.
 
 ## Chrome, width & the first-screen budget
 
@@ -63,7 +75,7 @@ Chrome is everything that is not the report: header, nav, tools, trust strip, di
 |------|--------|
 | Header is one compact band | Title + one-line subtitle + a single inline meta row (as-of date · source count · the one-line "informational only" notice). No full-width disclaimer banner, no stacked meta bars, no stat tiles. Budget: the header occupies **≤ 150px at desktop widths**; at 1280×800 the reader's first screen already shows the first finding, not just branding. |
 | Nav is exactly one row, at every width | Section links live in a horizontally scrollable strip (`overflow-x:auto`, hidden scrollbar, momentum scroll); the tool cluster is pinned right and never wraps. A nav that wraps to two or three rows on a long report is a bug, not a responsive behavior. `--navH` stays measured live (ResizeObserver) for scroll-padding. |
-| Tools are icon-first, right-pinned, ordered by frequency | Search → theme → print, right-aligned in that order. Search is an icon that expands to an input on `:focus-within` (CSS only — no JS dependency, keyboard-reachable); theme is an icon-labelled `<select>`; print shows its label ≥900px and goes icon-only below. Every icon-only control carries an `aria-label` and a `title`. Coarse pointers still get ≥44px targets. |
+| Tools are icon-first, right-pinned, ordered by frequency | Search → theme → print, right-aligned in that order. Search is an icon that expands to an input on `:focus-within` (CSS only — no JS dependency, keyboard-reachable); theme is an icon toggle button (`#themeBtn`, `aria-pressed`); print shows its label ≥900px and goes icon-only below. Every icon-only control carries an `aria-label` and a `title`. Coarse pointers still get ≥44px targets. |
 | Width adapts to the screen, text to the eye | `.wrap` is `min(1560px, 96vw)` — never a fixed 1080px cap: a 27" screen must not read like a phone with margins. **Prose** is constrained separately by `--measure: 72ch` so lines stay readable; tables, matrices, grids, charts, and the action list take the full wrap width. Two different constraints, two different jobs. |
 | Collapsed by default | Sources table, `#method`, corpus ledger, contradiction notes, long verbatim text, appendix detail. Each `<details>` summary carries a count or a one-line gist, so collapsed never means hidden ("Sources (202)", "Unknowns (3)"). Search and print force them open (existing behavior). |
 | Back to top is always present | Fixed bottom-right, appears after 400px of scroll, ≥44px on coarse pointers, above the iOS safe area, hidden in print. It is core chrome — never pruned with an optional block. |
@@ -82,7 +94,7 @@ Chrome is everything that is not the report: header, nav, tools, trust strip, di
 ## Dataviz layer (validated 2026-07-18, dataviz-skill six-checks)
 
 - **Trust strip + meter:** report-meta numbers live in the one-line `.trust` strip (see Hard requirements), never in large stat tiles — self-referential metrics must not outrank content. **Topic** headline numbers (the subject's own KPIs) may still use stat-tile treatment inside sections. The coverage meter's fill carries severity (`ok ≥80 / warn ≥50 / bad <50`), its unfilled track is a **lighter step of the same hue** (`color-mix` 15%), and it carries an `aria-label` with the plain-language reading.
-- **Comparison bars (`ds-opt:chart`):** only for 2–7 comparable magnitudes (rates, costs, limits); >7 items → table only. Single hue: fill = **theme `--primary`** (all 6 themes ≥3:1 on surface — validator PASS). **Emphasis form:** `hl:true` keeps the primary hue and every other row is auto-dimmed to gray — never primary-vs-accent (validator: indigo ΔE 7.9, rose 13.6 = normal-vision FAIL; 4 accents < 3:1 contrast). The dim gray's contrast WARN is relieved as the validator requires: every bar carries a direct value label and a `<details>` data table is built from the same items.
+- **Comparison bars (`ds-opt:chart`):** only for 2–7 comparable magnitudes (rates, costs, limits); >7 items → table only. Single hue: fill = **theme `--primary`** (every preset ≥3:1 on surface — validator PASS; re-check when a project brand supplies its own primary). **Emphasis form:** `hl:true` keeps the primary hue and every other row is auto-dimmed to gray — never primary-vs-accent (validator: indigo ΔE 7.9, rose 13.6 = normal-vision FAIL; 4 accents < 3:1 contrast). The dim gray's contrast WARN is relieved as the validator requires: every bar carries a direct value label and a `<details>` data table is built from the same items.
 - **Mark specs:** bar 18px (≤24 cap), 4px rounded data-end + square baseline, 2px surface gaps between rows, 1px hairline baseline, labels/values in text tokens (never the series color).
 - **Value placement (deliberate deviation):** values sit in a fixed right-aligned column (an implicit value axis), not at each bar tip — guarantees zero label/mark overlap at every viewport width; the data table carries exact values. Tooltips are omitted: every mark is already direct-labeled + tabled.
 - Before changing any theme, semantic, or chart color: run the `dataviz` skill's `scripts/validate_palette.js` when installed; absent → run an equivalent WCAG pair check (script the contrast ratios of every changed text/bg and UI/bg pair; `color-mix` = linear sRGB interpolation) and record the observed PASS list. Never ship an unvalidated color change.
@@ -104,9 +116,13 @@ Chrome is everything that is not the report: header, nav, tools, trust strip, di
 
 **Activate when** the topic splits by reader role or situation — tenant/landlord, employee/employer, buyer/seller, fixed/indefinite contract, company-size bands. One clear signal: the same question has different answers depending on who is asking. No such split → prune the block entirely (a selector with one meaningful option is clutter).
 
+**On a multi-branch topic this layer is the report's default entry, not an accessory.** The situation selector is the first interactive block after the summary, and a selection filters everything below it — cards, prose blocks, whole sections (`section.sec[data-when]` is legal and encouraged for audience-exclusive material) and the chrome: `syncBranchChrome()` hides any nav button whose target section is hidden. The reader who selected "tenant" never scrolls past landlord-only tax rules; they see one quiet line (`#hiddenNote`) saying "{n} blocks outside your situation are hidden — Show all restores them". Filtering happens in the open — content is never silently withheld, and never absent from the file.
+
 | Rule | Detail |
 |------|--------|
 | One decision = one `.choices[data-key]` group | `.choice` buttons carry `data-val`; the last option is always the localized "Show all" reset (`data-val=""`). Level-1 (persona) uses `.choices.big` cards with icon + one-line description; nested levels use compact pills. |
+| Chrome follows the filter | A whole section hidden by the selection also hides its nav button (`syncBranchChrome`); clearing the selection restores both. The nav never advertises content the current selection cannot see. |
+| Honest hiding | Any active selection that hides ≥1 block sets `#hiddenNote` with the count (`CONFIG.branchHiddenLabel`); no active selection → the note is hidden. The reader always knows filtering is happening and how to undo it. |
 | Tree depth is free | Nest a `.choices` group inside a `data-when` block — the child decision appears only when its parent branch is selected. Grammar: `data-when="key:val"`, OR via `\|` (`persona:tenant\|landlord`), AND via space (`persona:tenant contract:fixed`). |
 | Presentation-only filtering | ALL branches ship in the file; selection toggles `hidden` only. No selection (or JS off) = everything visible. Print force-shows every branch. Accuracy discipline is branch-independent: every branch block keeps its own source chips/badges; Unknowns and Sources are never branch-filtered. |
 | `.whochip` on every branch block | Names the block's branch at all times — the reader (and the printout) always knows whose rule a block states. |
@@ -132,17 +148,18 @@ Per-combination blocks explode: 6 dimensions × 4 values is 4096 possible readin
 
 Each value's row in the report states the two things that actually differ: **who is the responsible person** (the individual vs the legal entity vs its representative) and **who is personally exposed** when the obligation is missed. A brief that merges "sole trader" into "company" hides exactly the difference the reader came for.
 
-## Action list layer (`ds-opt:todo` — "exactly what you must do")
+## Action list layer (`ds-opt:todo` — the rule-card spine)
 
-**Activate when** the brief tells the reader to *do* things — legal, regulatory, procedural, or process topics. This is the payload block: the reader's selections in the branch layer assemble into a concrete, ordered, personalized checklist.
+**Activate when** the brief tells the reader to *do* things — legal, regulatory, procedural, or process topics. On these topics this is **the report's body, not an appendix**: topic groups hold rule cards, the reader's selections filter them, and everything else in the file exists to back the cards up. The reader's unit of consumption is the card — *"[if this is you] [MANDATORY] do X · by when · how · source · depth"* — not the paragraph. Analytical/comparison topics keep prose sections (their natural unit is criterion→finding) and skip the spine.
 
 | Rule | Detail |
 |------|--------|
 | Authored once, filtered by the same evaluator | Each item is authored as a rule-tagged `<li data-when="…">` — the same grammar and the same pass that filters branch content. One rule, one place; the checklist and the prose can never disagree (SSOT). Authored markup, not JS-rendered: with scripting off the reader still gets the whole list, each item carrying its condition chip. JS only counts, labels the profile, and flags unanswered decisions. |
-| Ordered at authoring time | Mandatory → prohibited → recommended → optional, each group a separate `<ol class="todo">` under its heading; within a group, earliest deadline first. The order is part of the content, not a runtime sort. |
+| A rule lives in exactly one card | Never restate a card's rule in surrounding prose — a rule said twice is a scalar rendered twice, and the two copies will drift. Prose that explains the rule is the card's **evidence depth**: a `<details class="acc">` inside the card holding the reasoning, the verbatim provision (`.lawtext`), exceptions and cross-references. Demoted, never deleted; print force-opens it like every collapsible. |
+| One imperative sentence per card | The `.act` line is a single plain-language imperative, ~140 characters. Anything longer is argument, and argument lives in the card's depth details. |
+| Grouped by topic, ordered by force | Groups follow the topic's reading order; each `h3.tdgroup` heading is an **assertion** (like exhibit captions — "Deposit is capped at 3 months' rent", never "Deposits" or a level name). Within a group: mandatory → prohibited → recommended → optional, earliest deadline first. The order is part of the content, not a runtime sort. |
 | Every item is complete on its own | An item carries: obligation badge (`must`/`mustnot`/`should`/`may`), the action in plain imperative language, **who** it falls on, **by when** (deadline chip, linked to the deadline table), **where/how** it is done (portal, form, filing), and ≥1 source chip. An item missing the "by when" or the "how" is half an instruction. |
 | Applicability is a datum | The `when` condition is itself sourced. Where applicability is the brief's own inference rather than a source's statement, the item carries the `derived` badge with its premises (verification.md Rule 9). |
-| Grouped by force, ordered by deadline | Mandatory first, then prohibited, then recommended, then optional; within a group, earliest deadline first. Never alphabetical — the reader's risk is chronological. |
 | Profile line + count | The list opens with the reader's resolved profile in words ("Limited company · processes special-category data · transfers abroad") and the count ("14 obligations apply to you"), plus the unanswered-questions note when any decision is unset. |
 | No selection = everything, labeled | JS-off, print, or no selection → every item is present with its condition label. Nothing is ever *only* reachable through the selector, and `--static` needs no special case: the list is already static markup, only the controls drop. |
 | Personal print is opt-in and labeled | An explicit "print only my items" toggle narrows **the action list section only**; the printout carries the profile line so the page is never ambiguous. Default print = every item with its conditions, per the branch-layer accuracy rule. |
@@ -194,7 +211,7 @@ A research report earns trust by looking like it has nothing to hide. Every visu
 | Scroll-reveal animation | Hid content until scrolled, cost an observer, encoded nothing. A report is read, not experienced. |
 | Header glow orbs / gradient blobs | Pure ornament; the first screen belongs to the answer. |
 | Card hover-lift and meter fill animation | Micro-interactions that carry no data. |
-| Six-palette theme menu | Palette is the *report's* choice (`CONFIG.palette`, set at build); the reader's legitimate need is reading comfort → one **light/dark toggle**, one control fewer in the nav. |
+| Six-palette theme menu | Palette is the *report's* choice (baked into the CSS at build); the reader's legitimate need is reading comfort → one **light/dark toggle**, one control fewer in the nav. |
 | Unused icon symbols | The sprite ships only symbols the report actually `<use>`s. |
 | Repeated scalars | A number appears in exactly one place (the source count lives in the trust strip, not also in the header). Dead `CONFIG` keys are deleted, not left "for later". |
 
@@ -209,7 +226,7 @@ Kept, because each is a signal: reading-progress bar (position), scrollspy (posi
 | Governing thought | The summary's `h2` is the single assertion the whole brief establishes — not "Summary". |
 | 3-5 key messages | `ol.keymsg`: each an assertion carrying its number, one line of support, and a link to the evidence (`a.exref` / `.xref` / source chip). A reader who reads only this list must be able to act. Fewer than 3 means the brief has no argument; more than 5 means it has no priorities. |
 | Scope box | One line: what this answers · for whom · what it excludes. A brief that never states its boundary invites the reader to assume it covers their case. |
-| "So what" per section | Each section closes with `p.sowhat`: the consequence, not a restatement of the finding. |
+| "So what" per section | Each section **opens** with `p.sowhat` as its lead: the consequence for the reader, not a restatement of the finding — conclusion first, argument after (section-scale BLUF). |
 | Worked example (`ds-opt:vignette`) | One concrete actor walked through the rules end to end, **every step sourced** — a walkthrough is an argument, not an illustration. |
 | Glossary (`ds-opt:glossary`) | Defined terms, collapsed, linked from first use. Explaining a term in place still fails the reader who lands in section 6 from a search. |
 | What changed (`ds-opt:changed`) | On a re-run only: what moved since the previous version and the instrument that moved it. A flip with no named source change is an extraction error, not an update. |
@@ -241,7 +258,7 @@ The most visible line between a professional report and a long web page. Non-neg
 | Cover page | Print-only `section.cover`, `break-after:page`: title, subtitle, as-of date, confidence + its plain-language sentence, source/coverage counts, version, scope statement, disclaimer. Every value comes from `CONFIG` — no facts that exist only on the cover. |
 | Contents + exhibit index | Print-only `nav.toc`, `break-after:page`, built by JS from the document's own `h2`s and exhibits. |
 | No fake page numbers | Chrome does not support `@page` margin-box counters, and a pagination library would break the single-file rule. The contents lists sections and exhibits **without** page numbers rather than inventing them. State this limitation rather than papering over it. |
-| Everything else | Per § Print / PDF discipline below: chrome hidden, collapsibles force-open, `break-inside:avoid` on cards/exhibits/tables, absolute `@page` margins, orphans/widows 3. |
+| Everything else | Per § Print / PDF discipline: chrome hidden, collapsibles force-open, `break-inside:avoid` on cards/exhibits/tables, absolute `@page` margins, orphans/widows 3. |
 
 ## Interaction (adaptive)
 
@@ -252,9 +269,9 @@ The most visible line between a professional report and a long web page. Non-neg
 
 ## Layout & a11y
 
-- Responsive via intrinsic grids + fluid spacing; canonical breakpoints only when truly needed (`900` condensed nav title, `640` nav wrap, `380` chart label stacking).
+- Responsive via intrinsic grids + fluid spacing; canonical breakpoints only when truly needed (`900` condensed nav title, `380` chart label stacking).
 - **Wrap/overlap discipline:** `overflow-wrap:break-word` inherited from `body` (long words/URLs never force horizontal overflow — test 320px); `text-wrap:balance` on headings, `pretty` on paragraphs; every grid/flex child that can shrink carries `min-width:0`; chart bars grow inside a dedicated `.plot` box so the value column can never be overlapped.
-- **Sticky-chrome offset is measured, not hardcoded:** JS keeps `--navH` = live nav height (ResizeObserver); `html{scroll-padding-top:calc(var(--navH) + 10px)}` so anchors and tabbed-to elements never land under the bar, even when the nav wraps to two rows.
+- **Sticky-chrome offset is measured, not hardcoded:** JS keeps `--navH` = live nav height (ResizeObserver); `html{scroll-padding-top:calc(var(--navH) + 10px)}` so anchors and tabbed-to elements never land under the bar (the nav stays one row, but its tool-cluster height varies by width).
 - **Contrast rules:** links + focus ring + law-button text use `--primary`, never `--accent` (accents fail 4.5:1 text / 3:1 focus contrast on several themes — slate `#0ea5e9` = 2.7:1). Interactive-control borders use `--ctl` (30% text mix), stronger than the decorative `--line` (13%).
 - **Touch targets:** `@media(pointer:coarse)` bumps nav buttons / tools / print / law buttons to ≥44px and back-to-top to 48px.
 - Semantic HTML5 (`header`, `nav`, `main`, `section`, `footer`, `h1-h3`, `ul/li`, `details/summary`).
@@ -268,7 +285,7 @@ The most visible line between a professional report and a long web page. Non-neg
 - Fill text via `textContent` / DOM node creation — **never `innerHTML`** with data values (XSS defense).
 - No inline event handlers (`onclick=`); wire everything with `addEventListener`.
 - Search highlight wraps matches by splitting text nodes and inserting `createElement('mark')` — not by `innerHTML`.
-- Every runtime color value passes `safeColor()` before being applied (CSS-injection defense).
+- No color value is ever applied at runtime — every color is static CSS baked and validated at build; theme JS toggles only the `data-theme` attribute (the CSS-injection surface does not exist).
 - Zero external dependencies; nothing loads over the network.
 
 ## Two authoring patterns (pick per topic)

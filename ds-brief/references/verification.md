@@ -4,7 +4,7 @@ The non-negotiable contract: every fact in the brief is source-backed, every dat
 
 All label strings in this file are canonical English; at build they are localized to the request language (SKILL.md Contract). The rules themselves are language-independent.
 
-## The Eighteen Rules
+## The Nineteen Rules
 
 | Rule | Application |
 |------|-------------|
@@ -26,6 +26,7 @@ All label strings in this file are canonical English; at build they are localize
 | 16. Search the register, not only the web | For every authority whose rules the brief states, its **own index** of decisions/announcements/guidance is swept and dispositioned item by item. Web search finds what is popular; only the register contains what exists. And every declared reader-situation value gets its own primary probe for carve-outs — an unprobed value is a gap, never an all-clear. Full rules below. |
 | 17. Every load-bearing claim survives an attack | Before shipping, each load-bearing claim is actively attacked: a newer version, a contrary reading, an exception, a superseding decision. Outcome recorded `held` / `weakened` / `overturned`. A claim nobody tried to break has not been verified, only repeated. Full rules below. |
 | 18. Evidence is archived, not just cited | Every **cited** source is saved as fetched (page text, or the original PDF) beside the report, with its SHA-256 and retrieval timestamp. A citation to a page that has since changed or vanished is unverifiable; a stored copy stays checkable, and on a re-run the hash decides mechanically whether the source changed or the reading did. Full rules below. |
+| 19. Assessments and expectations are typed and attributed | A claim stating a third party's assessment or a future expectation carries `claimType` (`opinion` / `forecast`) with a non-empty `attribution` naming who holds it and where, and always renders as "who says/expects what" — never in the report's own voice. A forecast can never be "confirmed" (two sources sharing a prediction make it common, not true — only the attribution is verifiable), never carries an obligation, and never bears load. Mechanical gate: verify-brief A19. |
 
 ## Independence test (for the 2× rule)
 
@@ -197,7 +198,7 @@ Same rule for every other signal in the report: a number or band shown without i
 
 ## Skill-side Verify gate (Phase 3)
 
-Read the findings artifact (field names = the agent's **Artifact schema**, its SSOT; a sharded artifact is read index-first, then each named shard). **Run `assets/verify-brief.py --artifact <index>` before reasoning over the content** — the checks below that a parser can settle (record integrity, id resolution, recomputed coverage, gate honesty, ledger arithmetic) are settled there in one command, and the ones it cannot judge are left to the pass that follows. Then run the mechanical rejections — they invalidate claims, so every later count must be computed after them:
+Read the findings artifact (field names = the **`SCHEMA` dict in `assets/verify-brief.py`**, printable via `--emit-schema`; the agent's jsonc block annotates the same shape. A sharded artifact is read index-first, then each named shard). **Run `assets/verify-brief.py --artifact <index>` before reasoning over the content** — the checks below that a parser can settle (record integrity, id resolution, recomputed coverage, gate honesty, ledger arithmetic) are settled there in one command, and the ones it cannot judge are left to the pass that follows. Then run the mechanical rejections — they invalidate claims, so every later count must be computed after them:
 
 1. **Record integrity** — for every source: registrable domain of `url` == `domain`? `verbatimQuote` present in the recorded fetched text? `citationId` unique? redirect recorded as `finalUrl`? Any failure → reject the record, drop it from every claim's source list, and recompute that claim's label.
 2. **Copy-chain collapse** — near-identical quotes/details across "independent" sources → collapse to one source, recompute labels.
@@ -209,6 +210,7 @@ Then, per claim:
 - `verified` claims actually list ≥2 sources passing the independence test?
 - `partial` claims rendered with "single source" badge?
 - claims whose datum appears in `contradictions[]` rendered with the `disputed` badge linking to the contradiction note?
+- every `opinion`/`forecast` claim carries a non-empty `attribution` and renders as "who says/expects what" — and no forecast carries an obligation or `loadBearing:true` (Rule 19, verify-brief A19)?
 - every claim carrying `derivation` rendered with the `derived` badge, ≥2 `verified` premises, a non-empty `rule` string, and no premise that is itself derived?
 - key datums' chips backed by `CONFIG.cites` entries whose quote byte-matches the artifact's `verbatimQuote` (extracted, never paraphrased — a rewritten popover quote is a data error)?
 - normative claim → `provision.versionAsOf`, `lastAmended`, `annulled`, `inForce` all present (`"none-found"` counts as checked; a missing field does not), and any exception marker in the quoted text reproduced in the report?

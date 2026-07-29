@@ -24,11 +24,13 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 /ds-brief --summarize <urls…>     # summarize given URLs/text (no discovery)
 /ds-brief --static {topic}        # static, print-pure output
 /ds-brief --auto {topic}          # zero-interaction — depth + scope resolved by best judgment
+/ds-brief --no-archive {topic}    # skip the evidence bundle (HTML + findings only)
+/ds-brief --from-artifact <findings.json>   # re-render from an existing artifact — zero research, works offline
 ```
 
 ## Output
 
-- One `.html` file (single-file, offline). Open in any browser; click **🖨 Print / PDF** for a clean PDF. Labels render in the language of the request.
+- A directory by default: `report.html` (single-file, offline) + `findings.json` (research SSOT) + `sources/` (every cited source as fetched, SHA-256'd in `MANIFEST.json`) — `--no-archive` emits the HTML + findings only, and the HTML works with or without the bundle. Open in any browser; click **Print / PDF** for a clean PDF. Labels render in the language of the request. The bundle is what makes a later re-render (`--from-artifact`) and incremental refreshes possible without repeating the research.
 - Sections: Summary → your situation → **what you must do** → findings → deadlines / sanctions / when to get help → Unknowns → Sources & method (with the coverage ledger). Apparatus is collapsed with counts in the summary line, so the first screen belongs to the answer.
 - Compact chrome: one-band header, single-row nav at every width, container `min(1560px,96vw)` with prose at a 72ch measure — wide screens are used, text lines stay readable.
 - Source chips: green = official (T1-T2), amber = secondary (T3-T6). Badges: `single source`, `[unverified]`, `disputed`, `derived`.
@@ -37,7 +39,7 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 
 Every fact is source-backed · every datum 2×-confirmed or flagged · every reference a live link · no guessing · unclear → researched deeper, then declared unknown · known vs unknown explicit · contradictions shown, not smoothed · every inference shows its premises · normative text read in context and in its current consolidated version · HIGH confidence is the target, never an assertion. See [references/verification.md](references/verification.md).
 
-The checks a parser can settle run as code (`python3 assets/verify-brief.py --artifact findings.json --report report.html --bundle sources/`), not as recall. Exit 0 is the run's completion evidence. It catches what reads as fine — a dropped action item, a citation id pointing nowhere, a coverage figure asserted rather than recomputed, an archived file whose hash no longer matches. `--self-test` proves the checks still fire, by running them against fixtures broken in eight named ways. Judgment-shaped checks (does the quote support the claim, does the PDF look right) stay manual by design.
+The checks a parser can settle run as code (`python3 assets/verify-brief.py --artifact findings.json --report report.html --bundle sources/`), not as recall. Exit 0 is the run's completion evidence. It catches what reads as fine — a dropped action item, a citation id pointing nowhere, a coverage figure asserted rather than recomputed, an archived file whose hash no longer matches. `--self-test` proves the checks still fire, by running them against fixtures broken in named ways (the run prints its own defect count). Judgment-shaped checks (does the quote support the claim, does the PDF look right) stay manual by design.
 
 ## Tool-optionality
 
