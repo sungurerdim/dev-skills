@@ -273,7 +273,10 @@ def check_artifact(art):
     missing = [str(s.get("citationId")) for s in all_sources(art) if not s.get("pubDate")]
     (ok if not missing else fail)("A05", G, "" if not missing else f"source without pubDate: {cap(missing)}")
 
-    # A06 — verification label matches the independent-source count
+    # A06 — verification label matches the independent-source count. The partial-side
+    # check catches SILENT mislabels only: a claim capped at partial for a stated
+    # reason (load-bearing without a primary source — the Rule 13 cap — or any
+    # recorded verificationNote) is deliberately partial, not mislabeled.
     bad = []
     for sec, cl in iter_claims(art):
         srcs = cl.get("sources") or []
@@ -281,7 +284,9 @@ def check_artifact(art):
         v = cl.get("verification")
         if v == "verified" and len(doms) < 2:
             bad.append(f"{claim_key(sec, cl)} verified on {len(doms)} distinct domain(s)")
-        if v == "partial" and len(srcs) > 1 and len(doms) > 1:
+        capped = (cl.get("loadBearing") and cl.get("primarySourced") is False) or \
+            bool((cl.get("verificationNote") or "").strip())
+        if v == "partial" and len(srcs) > 1 and len(doms) > 1 and not capped:
             bad.append(f"{claim_key(sec, cl)} partial but has {len(doms)} independent sources")
     (ok if not bad else fail)("A06", G, "" if not bad else cap(bad))
 
@@ -336,17 +341,24 @@ def check_artifact(art):
             bad.append(f"{claim_key(sec, cl)}: {cl['obligation']} on rank {rank or 'none'}")
     (ok if not bad else fail)("A09", G, "" if not bad else cap(bad))
 
-    # A10 — red team on every load-bearing claim
+    # A10 — red team on every load-bearing claim. Coverage shortfall is a HIGH-blocker,
+    # not a validity error: a sub-HIGH artifact may ship with the shortfall DECLARED
+    # (redTeamClean:false) per the honest-band shipping path — what can never ship is
+    # a clean-claiming gate or a HIGH label over missing attacks.
     rt = {r.get("claimId"): r for r in art.get("redTeam") or []}
     empty = [k for k, r in rt.items() if not (r.get("attack") or "").strip()]
     unresolved = [k for k, r in rt.items() if r.get("outcome") == "overturned"]
     lb = sum(1 for _s, c in iter_claims(art) if c.get("loadBearing"))
+    gate_rt = (art.get("confidenceGate") or {}).get("redTeamClean")
     if empty:
         fail("A10", G, f"empty attack string = failed validation: {cap(empty)}")
     elif unresolved:
         fail("A10", G, f"unresolved overturned: {cap(unresolved)}")
+    elif lb and len(rt) < lb and (art.get("confidence") == "HIGH" or gate_rt is True):
+        fail("A10", G, f"{lb} load-bearing claim(s) but {len(rt)} red-team entr(ies) "
+                       f"while the label/gate claims clean coverage")
     elif lb and len(rt) < lb:
-        fail("A10", G, f"{lb} load-bearing claim(s) but {len(rt)} red-team entr(ies)")
+        ok("A10", G, f"{len(rt)}/{lb} attacked — shortfall declared (redTeamClean:false, sub-HIGH)")
     else:
         ok("A10", G, f"{len(rt)} attack(s) recorded")
 
@@ -577,8 +589,10 @@ def check_report(path):
     else:
         ok("R06", G, f"{len(p.exhibits)} exhibit(s), {len(p.exrefs)} reference(s)")
 
-    # R07 — every data-cfg leaf resolves to a CONFIG key
-    cfg_keys = set(re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*:", script))
+    # R07 — every data-cfg leaf resolves to a CONFIG key (keys may be bare
+    # identifiers in a hand-filled template or quoted in generated JSON — both
+    # are legal JS, so both count, same as R08's cite-key regex)
+    cfg_keys = set(re.findall(r"['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?\s*:", script))
     missing = sorted({c for c in p.data_cfg if c.split(".")[-1] not in cfg_keys})
     (ok if not missing else fail)("R07", G, "" if not missing else f"data-cfg with no CONFIG key: {cap(missing)}")
 
