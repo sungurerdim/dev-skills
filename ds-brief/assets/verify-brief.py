@@ -616,6 +616,23 @@ def check_report(path):
     (ok if not bad else fail)("R10", G, "" if not bad
                               else f"generic heading states no finding: {cap(bad)}")
 
+    # R11 — every "what could change this" entry names its source. The block exists to make the
+    # report's own staleness visible; an entry with no instrument to watch ("rules may change")
+    # tells the reader nothing they didn't already suspect and cannot be followed up, so it is
+    # worse than an empty section. Absent block = nothing to check.
+    watch = re.search(r'<section[^>]*id="izlenecekler"[^>]*>(.*?)</section>', html, re.S)
+    if not watch:
+        ok("R11", G, "no watch section")
+    else:
+        items = re.findall(r"<li\b.*?</li>", watch.group(1), re.S)
+        unsourced = [re.sub(r"<[^>]+>", " ", it)[:60].strip() for it in items if "<a " not in it]
+        if not items:
+            fail("R11", G, "watch section present but renders no entries")
+        elif unsourced:
+            fail("R11", G, f"watch entry without a source: {cap(unsourced)}")
+        else:
+            ok("R11", G, f"{len(items)} watch entr(ies), each sourced")
+
     return p
 
 
@@ -723,6 +740,9 @@ SELFTEST_HTML = """<!doctype html><html lang="tr"><head><meta charset="utf-8"><t
 <section id="yapilacaklar"><ol class="todo">
 __ITEMS__
 </ol></section>
+<section id="izlenecekler"><h2>Bu cevabi degistirebilecekler</h2><ul class="dot">
+__WATCH__
+</ul></section>
 __EXTRA__
 </main>
 <script>
@@ -734,6 +754,10 @@ SELFTEST_ITEM_MUST = ('<li class="tdi" data-when="taraf:kiraya"><span class="obl
                       '<span class="act">Iki ay icinde dava ac.</span></li>')
 SELFTEST_ITEM_FREE = ('<li class="tdi" data-when="taraf:kiraci"><span class="oblg free">Yukumluluk yok</span>'
                       '<span class="act">Bu surede size dusen bir yukumluluk yok.</span></li>')
+SELFTEST_WATCH_OK = ('<li>Yargitay HGK onundeki sure hesabi dosyasi — karar cikarsa iki aylik sure '
+                     'yeniden yorumlanir <a class="src-chip official" '
+                     'href="https://karararama.yargitay.gov.tr/">kaynak</a></li>')
+SELFTEST_WATCH_VAGUE = '<li>Kurallar degisebilir.</li>'   # kaynaksiz: takip edilemez
 
 
 def _selftest_artifact():
@@ -819,6 +843,7 @@ SELFTEST_DEFECTS = {
     "A00": "runMetadata key deleted — an artifact missing a required field parses fine and looks complete",
     "A19": "a forecast claim ('threshold expected to rise in 2027') shipped with no attribution",
     "R10": "a section headed 'Genel Bilgiler' — a label that states no finding",
+    "R11": "a watch entry reading 'rules may change' with no instrument and no source",
     "A03": "action item cites id 77, which no source defines (merged-worker id collision)",
     "A04": "source domain says yargitay.com.tr while its URL is karararama.yargitay.gov.tr",
     "A06": "claim labelled partial while carrying two independent sources",
@@ -871,8 +896,10 @@ def _write_case(root, name, broken=False, sharded=False):
 
     items = SELFTEST_ITEM_MUST if broken else SELFTEST_ITEM_MUST + "\n" + SELFTEST_ITEM_FREE
     extra = '<section id="genel"><h2>Genel Bilgiler</h2></section>' if broken else ""   # R10 when broken
+    watch = SELFTEST_WATCH_VAGUE if broken else SELFTEST_WATCH_OK                       # R11 when broken
     with open(os.path.join(d, "report.html"), "w", encoding="utf-8") as fh:
-        fh.write(SELFTEST_HTML.replace("__ITEMS__", items).replace("__EXTRA__", extra))
+        fh.write(SELFTEST_HTML.replace("__ITEMS__", items).replace("__WATCH__", watch)
+                              .replace("__EXTRA__", extra))
 
     index = os.path.join(d, "findings.json")
     if sharded:

@@ -9,7 +9,7 @@
      All colors are static CSS baked at build (palette-validated then); JS only toggles the data-theme
      attribute and never applies a color value, so no runtime color input exists to guard.
      Optional blocks are tagged ds-opt:NAME (calc, pills, strip, lawtext, search, theme, chart, branch, oblg, cites,
-     matrix, xref, icons, todo, coverage, gate, deadlines, sanctions, escalate, vignette, glossary, changed, timeline): paired
+     matrix, xref, icons, todo, coverage, gate, deadlines, sanctions, escalate, vignette, glossary, changed, watch, timeline): paired
      ds-opt:NAME … /ds-opt:NAME for multi-line, or a trailing /* ds-opt:NAME */ on a single line.
      Build phase (Phase 4 prune) deletes the CSS+HTML of any ds-opt block the brief does not use, so
      each report ships only the CSS it needs. Untagged = core (always kept). JS handlers are null-guarded:
@@ -332,6 +332,19 @@ details.acc>.body{padding:0 15px 15px;border-top:1px solid var(--line)}
 /* tables */
 .tblwrap{overflow-x:auto;margin-top:12px;border:1px solid var(--line);border-radius:12px}
 table{border-collapse:collapse;width:100%;font-size:.88rem}
+/* Row→card on phones. A comparison table is the single most common mobile break: sideways scrolling
+   hides the header row, so a cell loses the label that gave it meaning. Opt in per table with
+   <table class="cards"> and give every <td> a data-label="{its column header}" — the label is then
+   printed beside the value and no scrolling is needed. Tables that are genuinely matrix-shaped (many
+   columns compared across many rows) keep the scroll instead; cards would be longer than the scroll. */
+@media(max-width:600px){
+  table.cards thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  table.cards tr{display:block;border:1px solid var(--line);border-radius:10px;margin:0 0 10px;padding:4px 2px;background:var(--surface)}
+  table.cards td{display:flex;gap:10px;justify-content:space-between;align-items:baseline;border:0;padding:7px 11px}
+  table.cards td+td{border-top:1px dashed var(--line)}
+  table.cards td::before{content:attr(data-label);flex:0 0 42%;color:var(--mut);font-weight:600;font-size:.82rem}
+  table.cards td:not([data-label])::before{content:none}
+}
 th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;font-variant-numeric:tabular-nums}   /* digits align down every column */
 thead th{background:color-mix(in srgb,var(--primary) 8%,var(--surface));color:var(--mut);font-weight:700;font-size:.76rem;text-transform:uppercase;letter-spacing:.04em}
 caption{caption-side:bottom;color:var(--mut);font-size:.76rem;text-align:left;padding:8px 4px}
@@ -406,8 +419,14 @@ ol.tl .tlwhat{display:block;margin-top:2px;font-size:.92rem}
 .frow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:8px 0}
 .field{display:flex;flex-direction:column;gap:4px;min-width:150px;flex:1 1 150px}
 .field label{font-size:.82rem;color:var(--mut);font-weight:600}
-.field input,.field select{padding:8px 10px;border:1px solid var(--ctl);border-radius:9px;font-size:.92rem;background:var(--surface);color:var(--text)}
+/* 16px is not cosmetic: iOS Safari auto-zooms any focused input below it, which reflows the whole
+   report mid-entry. min-height 44px meets the coarse-pointer target floor. */
+.field input,.field select{padding:10px;min-height:44px;border:1px solid var(--ctl);border-radius:9px;font-size:1rem;background:var(--surface);color:var(--text)}
 .calcout{margin-top:10px;background:#0e1b25;color:#e6eef5;border-radius:10px;padding:12px 14px;font-size:.95rem}.calcout b{color:#7fe3b0}
+/* On a phone the keyboard covers the lower half of the viewport, so the result a reader is typing
+   toward scrolls out of sight — the one place a calculator reliably fails on mobile. Sticking the
+   output to the bottom of the card keeps cause and effect on screen together. */
+@media(max-width:600px){.calc{position:relative}.calcout{position:sticky;bottom:8px;margin-bottom:2px;box-shadow:0 -6px 14px color-mix(in srgb,var(--text) 12%,transparent)}}
 /* /ds-opt:calc */
 
 /* ---- Narrative spine: a governing thought + 3-5 key messages, each an ASSERTION with its evidence one
@@ -554,6 +573,12 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9z"/></svg>
     </button>
     <!-- /ds-opt:theme -->
+    <!-- Share is hidden until JS confirms navigator.share exists (phones, mostly); on a desktop the
+         reader keeps Print as the primary action. Never both competing for the same first glance. -->
+    <button class="printbtn" id="shareBtn" type="button" hidden title="Share" aria-label="Share this report">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 16V3M8 7l4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+      <span class="lbl">Share</span>
+    </button>
     <button class="printbtn" id="printBtn" type="button" title="Print / PDF" aria-label="Print or save as PDF">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
       <span class="lbl">Print / PDF</span>
@@ -959,7 +984,7 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
   <section class="sec" id="hesap"><h2>Calculator</h2>
     <div class="calc">
       <div class="frow">
-        <div class="field"><label for="in1">{input label}</label><input type="number" id="in1"></div>
+        <div class="field"><label for="in1">{input label}</label><input type="number" id="in1" inputmode="decimal" enterkeyhint="done"></div>
       </div>
       <div class="calcout" id="calcOut">{result}</div>
     </div>
@@ -977,6 +1002,20 @@ footer{border-top:1px solid var(--line);padding:18px 0 calc(18px + env(safe-area
     </ul>
   </section>
   <!-- /ds-opt:changed -->
+
+  <!-- ds-opt:watch — what could change this answer, and where it would come from. The mirror image of
+       ds-opt:changed: that block says why the answer moved, this one says where the next move will come
+       from. It is what a reader cannot work out alone, and it makes the report's own staleness visible
+       instead of letting a confident sentence quietly rot. Each entry names the pending instrument or
+       decision AND its source; a vague "this may change" line is worse than no entry, so it fails the
+       gate. Reuses .dot — no styling of its own. -->
+  <section class="sec" id="izlenecekler">
+    <h2>{What could change this}</h2>
+    <ul class="dot">
+      <li>{the pending development} — {which answer above it would move, and how} <a class="src-chip official" href="{URL}" target="_blank" rel="noopener">{source}</a></li>
+    </ul>
+  </section>
+  <!-- /ds-opt:watch -->
 
   <!-- ds-opt:glossary — collapsed; terms linked from first use in the text. -->
   <section class="sec" id="sozluk">
@@ -1377,6 +1416,18 @@ function wireSearch(){
     t = setTimeout(function(){ clearMarks(content); const term = input.value.trim(); if (term.length >= 2) highlight(content, term); }, 120);
   });
 }
+function wireShare(){
+  const btn = document.getElementById("shareBtn");
+  if (!btn || !navigator.share) return;   // no Web Share API (desktop): Print stays the only action
+  btn.hidden = false;
+  btn.addEventListener("click", function(){
+    // BLUF as the shared blurb: what the reader would tell someone in one line.
+    const bluf = document.querySelector(".bluf, .keymsg li, h1");
+    navigator.share({ title: document.title,
+                      text: bluf ? bluf.textContent.trim().slice(0, 180) : document.title,
+                      url: location.href }).catch(function(){});   // user cancel is not an error
+  });
+}
 function wirePrint(){
   const btn = document.getElementById("printBtn");
   if (btn) btn.addEventListener("click", function(){ window.print(); });
@@ -1521,7 +1572,7 @@ function wireMatrixFilter(){
 document.addEventListener("DOMContentLoaded", function(){
   // renderExhibits() before buildToc(): the index reads the numbers the former assigns.
   fillConfig(); renderExhibits(); buildToc(); wireKpis(); wireSticky(); renderCharts(); wireTheme(); wireCites();
-  wireLawToggles(); wireSearch(); wirePrint(); wireBranches(); wireTodoTools(); wireMatrixFilter();
+  wireLawToggles(); wireSearch(); wireShare(); wirePrint(); wireBranches(); wireTodoTools(); wireMatrixFilter();
   openHashDetails();
   /* ds-opt:todo — with branch groups present, wireBranches() already labelled the list from the real
      selection; without them, label it once here so the count/profile are never left as placeholders. */

@@ -202,6 +202,15 @@ Any brief whose content is law, regulation, or official procedure ships these, i
 | Shape ≠ source chips | `.oblg` is square-ish and leading; source chips are pills and trailing — the two signal classes never blur. Never color alone: the label text always carries the meaning (must and mustnot share the hard-rule red deliberately). |
 | Descriptive content exempt | Purely descriptive claims (history, statistics, definitions) carry no badge — badging everything would bury the normative signal. |
 
+## What-could-change-it (`ds-opt:watch`)
+
+The mirror image of `ds-opt:changed`: that block says why the answer moved, this one says where the next move will come from. It is the one thing a reader cannot work out alone, and it makes the report's own staleness visible instead of letting a confident sentence quietly rot.
+
+- One `<li>` per pending development. Each names **the instrument or decision to watch**, **which answer above it would move and how**, and **its source** — the same chip discipline as any claim.
+- `verify-brief` **R11** fails the block if any entry ships without a source, and fails an empty block that still renders. A vague "rules may change" line is worse than no section: it cannot be followed up and tells the reader nothing they did not already suspect.
+- Nothing pending → prune the block. Absence is honest; a placeholder entry is not.
+- Reuses `.dot` list styling — no CSS of its own.
+
 ## Ornament budget (what is NOT in the report)
 
 A research report earns trust by looking like it has nothing to hide. Every visual element either encodes information or competes with it — there is no neutral decoration. Removed deliberately, and not to be reintroduced:
@@ -266,6 +275,18 @@ The most visible line between a professional report and a long web page. Non-neg
 **Collapsibles = native `<details>/<summary>`** (work with zero JS; `id` + hash deep-link opens the target on load/`hashchange`). **Disclosure depth ≤ 2 levels** (NN/g: beyond two, readers get lost) — deeper structure becomes sections + xrefs, not nested accordions.
 **Topic-dependent (only if it genuinely helps, e.g. tax / labor / pricing):** interactive calculator, scenario wizard. Don't add a calculator to a topic that has nothing to compute.
 **`--static`:** minimal JS, document-pure output (everything expanded, no toggles) — safest for archival/printing.
+
+## Mobile discipline (the report is read on a phone first)
+
+Overflow-freedom is the floor, not the goal. Five rules, each closing a failure that only shows up on a handset:
+
+| Rule | Mechanism | The failure it closes |
+|---|---|---|
+| Inputs ≥16px, controls ≥44px | `.field input{min-height:44px;font-size:1rem}` + `@media(pointer:coarse)` bumps | iOS Safari auto-zooms any focused input under 16px, reflowing the report mid-entry; a 34px chip is a miss-tap |
+| Comparison tables become cards ≤600px | opt in per table: `<table class="cards">` and every `<td data-label="{its column header}">` — the label prints beside the value, no sideways scroll | Sideways scrolling moves the header row off screen, so a cell loses the label that gave it meaning. **Genuinely matrix-shaped tables keep the scroll** — cards would be longer than the scroll they replace |
+| Calculator output sticks | `@media(max-width:600px){.calcout{position:sticky;bottom:8px}}` | The keyboard covers the lower viewport, so the result the reader is typing toward scrolls out of sight — the one place a calculator reliably fails on mobile |
+| Share is the phone's primary action | `#shareBtn` ships `hidden`; `wireShare()` reveals it only when `navigator.share` exists, sharing title + BLUF + URL | On a phone the reader wants to send the answer, not print it. On a desktop the API is absent and Print stays the single action — the two never compete for the same glance |
+| Tap, never hover | source chips open `.qpop` **on click** (JS-off = plain link); `@media(hover:hover)` guards every hover affordance | A hover-only popover is invisible to a touch reader — the evidence is simply unreachable |
 
 ## Layout & a11y
 
