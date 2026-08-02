@@ -22,7 +22,6 @@ ds-ship activates at **explicit milestone gates**, not as a generic "audit every
 - User preparing an OSS release
 - User resuming a long-untouched project and doesn't remember the next step
 - User asks for "promise vs reality", a stack-fitness review, or a visual status report
-- **Model-uplift gate** — a significantly more capable model is now in use; re-audit with score deltas attributed to the model change (`--uplift`)
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -32,9 +31,9 @@ ds-ship activates at **explicit milestone gates**, not as a generic "audit every
 | "post-incident full audit" | "fix lint errors" (→ ds-fix) |
 | "bring this dormant project back" + dormant signals (>90 days) | "improve performance" (→ ds-review --perf) |
 | "promise vs reality across the whole project" | "what dependencies are outdated" (→ ds-deps) |
-| "a new model is out — re-optimize the whole project" (`--uplift`) | "optimize one metric with the new model" (→ ds-tune) |
+| "a new model is out — re-optimize the whole project" | "optimize one metric with the new model" (→ ds-tune) |
 | "orchestrate the full ship cascade for this milestone" | "turn this feature idea into a plan" (→ ds-pipeline) |
-| "simplify the release, then run the full cascade on the narrowed scope" (`--scope-freeze`) | "just decide what ships now vs later, nothing else" (→ ds-freeze standalone) |
+| "simplify the release, then run the full cascade on the narrowed scope" | "just decide what ships now vs later, nothing else" (→ ds-freeze standalone) |
 
 ### Cascade activation — two-confirmation gate
 
@@ -74,17 +73,14 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 |------|--------|
 | `--preview` | Phase 0–1 only: classification, doc census, gap table, proposed sequence. No mutations. |
 | `--stage={x}` | Override auto-classified stage: idea, spec-only, scaffold, implementation, review-pending, pre-launch, launched, frozen |
-| `--uplift` | Model-uplift run: force `/ds-blueprint --refresh` as first delegation regardless of findings freshness; Phase 6 report adds model-attributed Score Delta line — previous vs current `Scores:` line via `git log` of the instruction file |
 | `--html` | Additionally produce `ds/audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |
 | `--skip={list}` | Comma-separated skills to skip (e.g. `--skip=ds-mobile,ds-launch`) |
 | `--only={list}` | Comma-separated skills to include (override classification defaults) |
 | `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. Forwarded to every delegated skill (Orchestration Contract §10.3 rule 4). |
 | `--resume` | Resume from `ds/audit/ship.json` without prompt |
-| `--clean` | Delete existing state, start fresh |
-| `--clean-all` | Delete `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
-| `--scope-freeze` | Force the Scope-Freeze branch: run `/ds-freeze` first, narrow every later phase to its `ship` set |
+| `--clean[=all]` | `--clean` deletes ds-ship's own state and starts fresh; `--clean=all` deletes `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
 
-**Unattended full run:** `/ds-ship --auto` runs the entire cascade — classification, all delegations (each receiving `--auto`), Category A+B resolution, PR opening, launch gates — with zero prompts, suitable for a remote/no-interaction caller. Only items matching SKILL-SPEC's Unattended Mode rule-4 exception list (force-push, branch/history deletion, secret rotation, human-only values) are skipped and recorded `needs-human` in the final report.
+**Unattended full run:** `/ds-ship --auto` runs the entire cascade — classification, all delegations (each receiving `--auto`), Category A+B resolution, launch gates — with zero prompts, suitable for a remote/no-interaction caller. It may commit, but never pushes and never opens a PR: opening a PR is a human decision and is always recorded `needs-human`. Other items matching SKILL-SPEC's Unattended Mode rule-4 exception list (force-push, branch/history deletion, secret rotation, human-only values) are likewise skipped and recorded `needs-human` in the final report.
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Full (recommended) — full ship cascade across phases / Preview — plan only, no delegated changes / Resume — continue from saved state / (Cancel). A disambiguating flag skips the menu.
 
@@ -102,7 +98,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 ### Phase 0: Assess
 
-1. **Recovery check:** DETECT `ds/audit/ship.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present + `--clean-all` → delete `ds/audit/` entirely, fresh. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; under `--auto`, resume automatically — no prompt). Resume → skip `done` phases + delegation steps, announce `[SHP] Resuming from Phase {N}, step {K}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`.
+1. **Recovery check:** DETECT `ds/audit/ship.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete state. Present + `--clean=all` → delete `ds/audit/` entirely, fresh. Present → READ, verify `git_hash`. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; under `--auto`, resume automatically — no prompt). Resume → skip `done` phases + delegation steps, announce `[SHP] Resuming from Phase {N}, step {K}`. On successful Summary, delete state; remove `ds/audit/` if empty. Verify `ds/audit/` in `.gitignore`.
 
 2. **State shape:**
    ```json
@@ -230,7 +226,7 @@ Orchestrator never pushes or opens a PR on its own; user is always free to keep 
 
 **When triggered — interactive:** `Branch {name} is ahead of upstream by {N} commits with applied fixes from this run. Open a PR via /ds-pr? (y/n/always-skip)` — `y` → invoke `/ds-pr`, record result hash in state, include PR URL in Phase 6 report; `n` → record `pr_suggested: declined (this run)`, next run asks again; `always-skip` → record `pr_suggestion: muted` in `ds/audit/ship.json`, subsequent runs skip until `--clean` or manual edit.
 
-**When triggered — `--auto`:** no prompt — opening a PR is reversible (closable) and not on the Unattended Mode rule-4 exception list, so it resolves like any other Category B item: invoke `/ds-pr`, record `pr_suggested: auto-approved`, include PR URL in Phase 6 report.
+**When triggered — `--auto`:** never opens a PR. Opening a PR is a human decision, so it is treated as an Unattended Mode rule-4 exception: skip the invocation, record `pr_suggested: needs-human`, and surface one line in the Phase 6 report naming the branch and the command the user can run (`/ds-pr`). An unattended run may commit, but never pushes and never opens a PR on the user's behalf.
 
 **Report note:** Phase 6 report includes one line: `PR: {url} | declined-this-run | not-applicable ({reason}) | muted`.
 
@@ -256,14 +252,14 @@ Remaining unresolved B items (rare — most resolved inline per phase). Interact
 
 ### Phase 7b: Durable Tracking Handoff [optional — suggestion only, never forces]
 
-Every unresolved item at run's end (deferred Category B, open blockers, Sequence Gaps) lives only in `ds/audit/` — gitignored, single-run, gone on `--clean-all`. This phase offers it a durable home via `/ds-issue` (GitHub Issues, or its own last-resort local `tasks.md` when no GitHub remote exists — same delegation either way, ds-issue resolves which).
+Every unresolved item at run's end (deferred Category B, open blockers, Sequence Gaps) lives only in `ds/audit/` — gitignored, single-run, gone on `--clean=all`. This phase offers it a durable home via `/ds-issue` (GitHub Issues, or its own last-resort local `tasks.md` when no GitHub remote exists — same delegation either way, ds-issue resolves which).
 
 **Trigger conditions (all must hold — any unmet → silent skip, no prompt, no noise):**
 1. At least one unresolved Category B item, blocker, or Sequence Gap remains after Phase 7.
 2. `/ds-issue` is available (any repo shape — it handles both GitHub and local-fallback mode itself).
 3. State does not show `tracking_handoff: muted` (a persisted prior decision, honored even under `--auto`).
 
-**When triggered — interactive:** `{n} unresolved items would otherwise only survive in ds/audit/report.md (gitignored, cleared by --clean-all). File them via /ds-issue? (y/n/always-skip)` — `y` → delegate to `/ds-issue` (default intake) once per item, labeled with severity + owning skill; record filed issue URLs (or `tasks.md` line refs in local mode) in the report; `n` → record `tracking_handoff: declined (this run)`, next run asks again; `always-skip` → record `tracking_handoff: muted` in `ds/audit/ship.json`, subsequent runs skip until `--clean` or manual edit.
+**When triggered — interactive:** `{n} unresolved items would otherwise only survive in ds/audit/report.md (gitignored, cleared by --clean=all). File them via /ds-issue? (y/n/always-skip)` — `y` → delegate to `/ds-issue` (default intake) once per item, labeled with severity + owning skill; record filed issue URLs (or `tasks.md` line refs in local mode) in the report; `n` → record `tracking_handoff: declined (this run)`, next run asks again; `always-skip` → record `tracking_handoff: muted` in `ds/audit/ship.json`, subsequent runs skip until `--clean` or manual edit.
 
 **When triggered — `--auto`:** no prompt — filing an issue is reversible (closable) and not on the Unattended Mode rule-4 exception list, so it resolves like any other Category B item: delegate to `/ds-issue` for each, record `tracking_handoff: auto-approved`, include the filed references in the report.
 
@@ -279,7 +275,7 @@ FRC+DSC accounting. Output:
 ds-ship: {OK|WARN|FAIL} | Stage: {stage} | A-fixed: {n} | B-applied: {n} | B-skipped: {n} | Deferred: {n} | Blockers: {n} | Ship-ready: {yes|no}
 ```
 
-On success: delete `ds/audit/ship.json`. Keep `ds/audit/findings.md` + `ds/audit/report.md` — they remain for follow-up runs. `--clean-all` wipes `ds/audit/` entirely.
+On success: delete `ds/audit/ship.json`. Keep `ds/audit/findings.md` + `ds/audit/report.md` — they remain for follow-up runs. `--clean=all` wipes `ds/audit/` entirely.
 
 **Gate:** Every A/B item has disposition; accounting balances. If fails → assign `failed (disposition missing)` to items without disposition, reprint summary with corrected counts, status WARN.
 

@@ -18,7 +18,6 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 - Ship-ready: yes | no ({K} mandated blockers remain — cited sources in Awaiting User Decision; advisory items never counted)
 - Sequence gaps: {n} ({0 if none — a pre-launch/launched run with n > 0 cannot report Ship-ready: yes})
 - Doc token reduction: {before} → {after} ({%})
-- Score delta (`--uplift` runs only): overall {prev} → {now} (model {prev-model} → {curr-model})
 - Security baseline ([principles.md §5](principles.md)): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
 - PR: {url} | declined-this-run | not-applicable ({reason}) | muted
 - Tracking: {n} filed ({refs}) | declined-this-run | not-applicable (0 unresolved) | muted
@@ -53,7 +52,7 @@ Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §
 - [P{N}.{K}] invoke {skill} — completed — findings: {n} (A: {x}, B: {y})
 
 ## Next Trigger
-{When should ds-ship next run — e.g. "after feature X lands", "quarterly hygiene", "next frontier-model upgrade (--uplift)"}
+{When should ds-ship next run — e.g. "after feature X lands", "quarterly hygiene", "next frontier-model upgrade"}
 
 ## Dimension Coverage
 | Dimension | Status | Owning Skill | Notes |

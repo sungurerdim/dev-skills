@@ -33,7 +33,7 @@ rm -rf /tmp/dev-skills
 /ds-ship --skip=ds-mobile
 /ds-ship --auto           # zero-interaction full cascade — every decision resolved by best judgment;
                           # forwarded to every delegated skill; suited to a remote/unattended caller
-/ds-ship --clean-all      # wipe ds/audit/ entirely after a completed pass
+/ds-ship --clean=all      # wipe ds/audit/ entirely after a completed pass
 ```
 
 ## Phases

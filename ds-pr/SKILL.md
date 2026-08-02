@@ -46,12 +46,12 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 
 | Flag | Effect |
 |------|--------|
-| `--no-auto-merge` | Skip auto-merge setup |
+| `--auto-merge` | Opt in to auto-merge setup after the PR is created (off by default — merging is a human decision) |
 | `--preview` | Show PR plan without creating |
-| `--draft` | Create as draft PR (implies --no-auto-merge) |
+| `--draft` | Create as draft PR (auto-merge never applies) |
 | `--no-tidy` | Skip history tidy, push commits as-is |
 | `--request-review` | After creation, request an automated Copilot review (`gh pr edit --add-reviewer "@copilot"`) |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--auto` | Zero-interaction run for Phases 1–3 only (validate, tidy, quality gates, net-diff analysis). **Never creates a PR and never merges** — opening a PR is a human decision, always recorded `needs-human`. Prints the prepared title + body and the exact command to run. |
 
 ## Delegation
 
@@ -135,7 +135,7 @@ Tests fail → stop. Only create PR when tests covering the changed files pass.
 
 **Gate:** Net diff analyzed; PR title generated in conventional commit format. If fails → empty `git diff {base}...HEAD` (commits exist but net = 0) → stop with "Net diff is empty — all changes reverted in later commits. Nothing to describe."; ambiguous classification after net-diff override → default to most conservative non-bumping type, append WARN in PR body.
 
-### Phase 4: Review (skip if --auto)
+### Phase 4: Review (under `--auto`: stop here, see below)
 
 Display: branch, title, body preview, version annotation.
 
@@ -159,7 +159,7 @@ Ask user:
 - **Create as draft** — draft PR for further work
 - **Cancel**
 
-Under `--auto`: skip this phase entirely — merge strategy resolves to Create + Auto-merge (the recommended default) unless `--no-auto-merge` or `--draft` is also passed.
+Under `--auto`: do NOT skip and do NOT proceed. Print the prepared title, body, and version annotation, record `pr: needs-human`, and stop before Phase 5 — creating a PR is on the irreversible-exception list because it is a human decision, not because it is unrecoverable. The summary names the branch and the command the user can run (`/ds-pr`).
 
 **Gate:** User confirmed PR creation option. Title, body, and merge strategy decided. If fails → if the user selects Cancel, exit cleanly without creating a PR and without modifying the branch; if the user provides no response after one re-prompt, exit with "PR creation cancelled — re-run /ds-pr when ready."
 
@@ -176,7 +176,7 @@ Under `--auto`: skip this phase entirely — merge strategy resolves to Create +
 
 **Gate:** PR created successfully. `gh pr create` returned PR URL. If fails → stop with explicit error from `gh pr create` output; do not proceed to Merge Setup; suggest: check `gh auth status`, verify the branch was pushed, and re-run /ds-pr --no-tidy to skip the tidy step if the branch state changed.
 
-### Phase 6: Merge Setup (default, skip if --no-auto-merge, --draft, or manual)
+### Phase 6: Merge Setup [opt-in — only when `--auto-merge` is passed; never under `--draft` or `--auto`]
 
 **Branch protection detection (first step):**
 
