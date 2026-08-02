@@ -36,6 +36,10 @@ PR descriptions that list every commit instead of net change create noise, confu
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
 - Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
+- **Unattended carve-out (SKILL-SPEC Unattended Mode rule 4, clause (b) — publishing):** under `--auto` this skill
+  runs Phases 1–3 only (validate, tidy, quality gates, net-diff analysis) and then stops. It never pushes,
+  never creates or updates a PR, and never merges — every one of those publishes. It prints the prepared
+  title and body, records `pr: needs-human`, and names the command the user can run.
 - FRC+DSC enforced.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
 - **Exempt from state protocol:** git history is the natural state — `git diff {base}...HEAD` always provides full context. No `ds/audit/pr.json` written.
@@ -51,7 +55,7 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 | `--draft` | Create as draft PR (auto-merge never applies) |
 | `--no-tidy` | Skip history tidy, push commits as-is |
 | `--request-review` | After creation, request an automated Copilot review (`gh pr edit --add-reviewer "@copilot"`) |
-| `--auto` | Zero-interaction run for Phases 1–3 only (validate, tidy, quality gates, net-diff analysis). **Never creates a PR and never merges** — opening a PR is a human decision, always recorded `needs-human`. Prints the prepared title + body and the exact command to run. |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 ## Delegation
 
