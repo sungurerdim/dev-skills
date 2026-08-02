@@ -8,7 +8,8 @@ set -u
 fail=0
 err() { echo "FAIL: $*"; fail=1; }
 
-# --- Checks 1, 8, 19, 20, 21, 22 are wrapped in functions purely so --self-test can run
+# --- Checks 1, 8, 19, 20, 21, 22, 23, 24 and the canonical --auto row are wrapped in
+#     functions so --self-test can fixture them; the inline checks are proven by --mutation-test
 #     them in isolation against a fixture directory; execution order/logic/
 #     messages are otherwise identical to a plain top-to-bottom script. Each
 #     function operates on $PWD, same as every other check in this file. The
@@ -315,15 +316,122 @@ EOF
 check_approval_critical_carveout
 
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 8 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 9 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
   return "$st_fail"
 }
 
+# 25. v6 — Rule-entry heading convention (DOC-26): every rule in every
+#     ds-*/references/rules-*.md is a level-3 heading. A file that drops to '##'
+#     silently vanishes from every '###'-keyed extraction while looking complete.
+check_rule_heading_level() {
+  local bad
+  bad=$(grep -rnE '^## [A-Z]{2,6}(-[A-Z]{2})?-[0-9]+' ds-*/references/rules-*.md 2>/dev/null || true)
+  [ -z "$bad" ] || err "rule entries must be '### ID', not '## ID' (DOC-26 — breaks corpus extraction):
+$bad"
+}
+
+# 26. v6 — Rule-ID namespace: IDs are scoped to their owning skill (ARC-01 means
+#     three different rules in ds-compliance / ds-mobile / ds-review). Any
+#     reference to a rule this skill does not own must name the owner on the same
+#     line, either qualified (ds-review:ARC-13) or in prose (ds-deploy DEP-17).
+check_rule_id_namespace() {
+  local map hits f skill id owners owner_ok line
+  map=$(mktemp); hits=$(mktemp)
+  for f in ds-*/references/rules-*.md; do
+    skill=${f%%/*}
+    while read -r id; do printf '%s %s\n' "$id" "$skill"; done < <(
+      grep -oE '^### [A-Z]{2,6}(-[A-Z]{2})?-[0-9]+' "$f" 2>/dev/null | sed 's/^### //'
+    )
+  done | sort -u > "$map"
+  for f in ds-*/SKILL.md ds-*/references/*.md; do
+    [ -f "$f" ] || continue
+    skill=${f%%/*}
+    while read -r id; do
+      owners=$(awk -v i="$id" '$1==i{printf "%s ", $2}' "$map")
+      [ -n "$owners" ] || continue
+      case " $owners " in *" $skill "*) continue;; esac
+      while IFS= read -r line; do
+        owner_ok=0
+        for o in $owners; do case "$line" in *"$o"*) owner_ok=1;; esac; done
+        [ "$owner_ok" = "1" ] || printf '%s references foreign rule id %s (owned by: %s) without naming the owner on that line\n' "$f" "$id" "$owners" >> "$hits"
+      done < <(grep -nE "(^|[^:[:alnum:]_-])$id([^[:alnum:]_-]|$)" "$f" 2>/dev/null)
+    done < <(
+      grep -oE '(^|[^:[:alnum:]_-])[A-Z]{2,6}(-[A-Z]{2})?-[0-9]+([^[:alnum:]_-]|$)' "$f" 2>/dev/null \
+        | grep -oE '[A-Z]{2,6}(-[A-Z]{2})?-[0-9]+' | sort -u
+    )
+  done
+  [ ! -s "$hits" ] || err "foreign rule-id references without an owner on the line (SKILL-SPEC Rule-ID Namespace):
+$(sort -u "$hits")"
+  rm -f "$map" "$hits"
+}
+
+# --- Mutation test (TST-11): the 9 checks above are wrapped in functions and
+#     fixture-proven by --self-test. Checks 2-7 and 9-18 stay inline and
+#     entangled with full-repo state, so they are proven a different way:
+#     copy the tracked tree to a temp dir, apply ONE known-bad mutation, run
+#     this whole script there, and assert it goes red. A check that stays green
+#     against its own mutation is a no-op and is reported. ---
+mutation_test() {
+  local pristine tmp mt_fail=0 name snippet work out rc
+  tmp=$(mktemp -d); pristine="$tmp/pristine"
+  trap 'rm -rf "$tmp"' RETURN
+  mkdir -p "$pristine"
+  git ls-files -z | while IFS= read -r -d '' f; do
+    mkdir -p "$pristine/$(dirname "$f")"; cp "$f" "$pristine/$f"
+  done
+
+  _mut() {
+    name="$1"; snippet="$2"
+    work="$tmp/w"; rm -rf "$work"; cp -R "$pristine" "$work"
+    ( cd "$work" && eval "$snippet" ) >/dev/null 2>&1
+    out=$(cd "$work" && bash scripts/check-consistency.sh 2>&1 </dev/null); rc=$?
+    if [ "$rc" != "0" ] && printf '%s' "$out" | grep -q '^FAIL:'; then
+      echo "MUTATION OK:     $name"
+    elif printf '%s' "$out" | grep -q '^FAIL:'; then
+      echo "MUTATION SURVIVED: $name — printed FAIL but exited 0 (fail flag lost in a subshell)"
+      mt_fail=1
+    else
+      echo "MUTATION SURVIVED: $name — the check did not go red (possible no-op)"
+      mt_fail=1
+    fi
+  }
+
+  _mut "2 size ceiling"          "for i in \$(seq 1 20000); do echo 'padding line to blow the size ceiling'; done >> ds-fix/SKILL.md"
+  _mut "3 delegation line"       "grep -v '^\*\*Owns:\*\*' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
+  _mut "4 producer uniqueness"   "sed -n 's/^\*\*Owns:\*\* \(.*\)\$/\1/p' ds-fix/SKILL.md | head -1 | awk '{print \"**Owns:** \" \$0 \" | **Delegates:** none | **Receives:** none\"}' >> ds-test/SKILL.md"
+  _mut "5 resumable state"       "echo 'DETECT \`ds/audit/docs.json\` on entry.' >> ds-docs/SKILL.md"
+  _mut "6 W-registry ceiling"    "echo 'See W42 for the rationale.' >> ds-fix/SKILL.md"
+  _mut "7 trigger discipline"    "grep -v \"DON'T INVOKE\" ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
+  _mut "9 dimension declaration" "grep -v '^\*\*Dimensions:\*\*' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
+  _mut "11 taxonomy membership"  "sed 's/^\*\*Dimensions:\*\*.*/**Dimensions:** ZZ99/' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
+  _mut "13 evidence band"        "grep -v '^> \*\*Completion Evidence — final gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
+  _mut "14 flag integrity"       "echo 'Run with \`--status\` to skip.' >> ds-repo/SKILL.md"
+  _mut "15 severity vocabulary"  "echo '### ZZZ-01 [URGENT] bogus severity' >> ds-review/references/rules-quality.md"
+  _mut "17 rule-count claim"     "sed 's/[0-9][0-9]* rules across/9999 rules across/' ds-frontend/README.md > t && mv t ds-frontend/README.md"
+  _mut "18 mechanical done gate" "grep -v 'Mechanical Done Gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
+  _mut "25 rule heading level"   "sed 's/^### DP-01/## DP-01/' ds-backend/references/rules-data-pipeline.md > t && mv t ds-backend/references/rules-data-pipeline.md"
+  _mut "26 rule-id namespace"    "echo 'See ARC-13 for the rationale.' >> ds-backend/references/rules-api.md"
+  _mut "23 canonical --auto row" "sed 's/^| \`--auto\` |.*/| \`--auto\` | Reworded locally. |/' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
+
+  if [ "$mt_fail" = "0" ]; then
+    echo "MUTATION PASS: every mutated check went red"
+  else
+    echo "MUTATION FAIL: at least one check survived its mutation (see SURVIVED lines)"
+  fi
+  return "$mt_fail"
+}
+
 if [ "${1:-}" = "--self-test" ]; then
   self_test
+  exit $?
+fi
+
+if [ "${1:-}" = "--mutation-test" ]; then
+  cd "$(dirname "$0")/.." || exit 2
+  mutation_test
   exit $?
 fi
 
@@ -372,7 +480,7 @@ for s in $allowed; do
 done
 
 # 6. W-registry: no weakness numbers beyond W17 in runtime files
-bogus=$(grep -rno 'W1[89]\|W2[0-9]' ds-*/SKILL.md ds-*/references ds-*/README.md agents/*.md 2>/dev/null || true)
+bogus=$(grep -rnoE 'W(1[89]|[2-9][0-9]|[0-9]{3,})\b' ds-*/SKILL.md ds-*/references ds-*/README.md agents/*.md 2>/dev/null || true)
 [ -z "$bogus" ] || err "bogus W-numbers (registry is W1-W17):
 $bogus"
 
@@ -475,7 +583,10 @@ done
 
 # 15. v5 — Severity vocabulary: rule files use only the canonical set
 #     (BLOCKER/CRITICAL/HIGH/MEDIUM/LOW/ADVISORY/INFO); MAJOR/MINOR are banned.
-bad_sev=$(grep -rno '\[MAJOR\]\|\[MINOR\]' ds-*/references/*.md 2>/dev/null; grep -rnoE '[0-9]+ (MAJOR|MINOR)\b' ds-*/references/*.md 2>/dev/null; true)
+bad_sev=$(grep -rhoE '^#{2,3} [A-Z]{2,6}(-[A-Z]{2})? ?-?[0-9]+ *\[[A-Z]+\]' ds-*/references/rules-*.md 2>/dev/null \
+          | grep -oE '\[[A-Z]+\]' | sort -u \
+          | grep -vE '^\[(BLOCKER|CRITICAL|HIGH|MEDIUM|LOW|ADVISORY|INFO)\]$' || true
+          grep -rno '\[MAJOR\]\|\[MINOR\]' ds-*/references/*.md 2>/dev/null; grep -rnoE '[0-9]+ (MAJOR|MINOR)\b' ds-*/references/*.md 2>/dev/null; true)
 [ -z "$bad_sev" ] || err "non-canonical severity vocabulary (MAJOR/MINOR banned — map to HIGH/MEDIUM):
 $bad_sev"
 
@@ -513,9 +624,11 @@ check_standalone_paths
 check_intra_skill_links
 check_bare_repo_paths
 check_auto_row_canonical
+check_rule_heading_level
+check_rule_id_namespace
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace all consistent"
 else
   exit 1
 fi

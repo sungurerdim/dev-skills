@@ -708,6 +708,17 @@ Run `{check-cmd}` once at setup to capture the baseline. Baseline red → record
 
 Never report `done`/`OK` while `{check-cmd}` shows a new red. Skills that already own a stricter domain loop (e.g. ds-test's regression check, ds-tune's metric gate) keep it; this gate is the floor, not a replacement.
 
+### Rule-ID Namespace
+
+**Rule IDs are scoped to the skill that owns them, never globally unique.** This falls out of the Standalone Invariant: each skill must be complete on its own, so the same prefix legitimately appears in several skills with different content — `ARC-01` is *Audit Logging for Sensitive Operations* in ds-compliance, *Clean Architecture Layers* in ds-mobile, and *Layered Architecture* in ds-review. Renumbering to force global uniqueness is explicitly rejected: it would break every existing cross-reference and buy nothing the namespace rule does not already give.
+
+Two obligations follow:
+
+1. **Every rule entry is a level-3 heading** (`### ID [SEVERITY] Title`) in `ds-*/references/rules-*.md`. A file that drops to `##` disappears from every `###`-keyed extraction while still looking complete to a reader — enforced by `check_rule_heading_level`.
+2. **Any reference to a rule the referring skill does not own names the owner on the same line** — qualified (`ds-review:ARC-13`) or in prose (`ds-deploy DEP-17`). A bare foreign ID is ambiguous by construction. Enforced by `check_rule_id_namespace`.
+
+Within its own files a skill refers to its own rules bare; the rule only binds foreign references.
+
 ### Severity Standard
 
 Four levels, used consistently across all skills:

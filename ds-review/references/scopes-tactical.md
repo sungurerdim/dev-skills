@@ -8,14 +8,14 @@ Tactical, file-level analysis scopes. 9 scopes, 97 checks.
 
 | Scope | ID Range | Focus |
 |-------|----------|-------|
-| security | SEC-01 to SEC-12 | Secrets, injection, unsafe deserialization, eval, debug endpoints, weak crypto, CORS misconfiguration, path traversal, SSRF, auth bypass |
+| security | ds-compliance:SEC-01 to SEC-12 | Secrets, injection, unsafe deserialization, eval, debug endpoints, weak crypto, CORS misconfiguration, path traversal, SSRF, auth bypass |
 | hygiene | HYG-01 to HYG-20 | Unused imports/vars/functions, dead code, orphan files, duplicates, stale TODOs, comment quality |
 | types | TYP-01 to TYP-10 | Type errors, missing annotations, untyped args, type:ignore without reason, Any in API |
 | performance | PRF-01 to PRF-10 | Response-time/startup targets, bundle size, lazy loading, N+1/pagination, memory leaks, bounded concurrency/pooling, UI rebuild + animation efficiency, cold start (details: rules-performance.md) |
 | ai-hygiene | AIH-01 to AIH-08 | Hallucinated APIs, orphan abstractions, over-documented trivial code, dead feature flags, stale mocks |
 | robustness | ROB-01 to ROB-10 | Missing timeout/retry, unbounded collections, implicit coercion, missing null checks, resource cleanup |
-| privacy | PRV-01 to PRV-08 | PII exposure/logging, missing masking/consent/retention/audit, insecure PII storage |
-| doc-sync | DOC-01 to DOC-08 | README drift, API signature mismatch, deprecated refs in docs, broken links, changelog gaps |
+| privacy | ds-compliance:PRV-01 to PRV-08 | PII exposure/logging, missing masking/consent/retention/audit, insecure PII storage |
+| doc-sync | ds-docs:DOC-01 to DOC-08 | README drift, API signature mismatch, deprecated refs in docs, broken links, changelog gaps |
 | simplify | SIM-01 to SIM-11 | Deep nesting (>3), duplicate similar code, unnecessary abstractions, single-use wrappers, complex booleans, test bloat |
 
 ## Score Calculation

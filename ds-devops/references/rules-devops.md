@@ -302,8 +302,8 @@ Release workflows publishing to package registries must use short-lived OIDC tru
 Images the pipeline builds or runs (builder images, job containers, published artifacts) meet the hardening baseline; production-image hardening is canonical in ds-deploy DEP-17.
 - **Detect:**
   - CI job/builder containers or pipeline-published images FROM a full OS base, running as root, or referenced by mutable tag instead of digest
-  - Pipeline builds a production image with no hardening check step (no lint/policy against the DEP-17 baseline: distroless/minimal, non-root, read-only fs, cap-drop, digest pin)
-- **Fix:** Apply the DEP-17 baseline to every image the pipeline touches; add a CI policy/lint step (hadolint + policy rules) so a non-conforming image fails the build instead of shipping. Production-image specifics (K8s securityContext, runtime mounts) → ds-deploy DEP-17 (canonical, advisory-handoff: ds-deploy absent → apply the baseline inline from this rule)
+  - Pipeline builds a production image with no hardening check step (no lint/policy against the ds-deploy DEP-17 baseline: distroless/minimal, non-root, read-only fs, cap-drop, digest pin)
+- **Fix:** Apply the ds-deploy DEP-17 baseline to every image the pipeline touches; add a CI policy/lint step (hadolint + policy rules) so a non-conforming image fails the build instead of shipping. Production-image specifics (K8s securityContext, runtime mounts) → ds-deploy DEP-17 (canonical, advisory-handoff: ds-deploy absent → apply the baseline inline from this rule)
 - **Impact:** A root, full-OS builder container is the highest-value target in the supply chain — it holds source, credentials, and publish rights simultaneously
 - **Source:** ds-deploy DEP-17 (canonical baseline); Google distroless docs; Kubernetes Pod Security Standards
 
