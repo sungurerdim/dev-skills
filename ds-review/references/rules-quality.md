@@ -7,7 +7,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | Section | Rules | Line |
 |---------|-------|------|
 | **Architecture & Code Quality** | ARC-01–15 (12 HIGH, 3 MEDIUM) | ~12 |
-| **Testing** | TST-01–10 (1 CRITICAL, 5 HIGH, 4 MEDIUM) | ~145 |
+| **Testing** | TST-01–12 (1 CRITICAL, 6 HIGH, 5 MEDIUM) | ~145 |
 
 ---
 
@@ -221,3 +221,17 @@ Suites touching process-global memoized singletons (settings, connections, compi
 - **Fix:** Enumerate every process-global cache and clear them in one autouse fixture that runs before each test; new caches join the fixture in the same change that introduces them.
 - **Impact:** Cache leakage is the classic order-dependent flake generator — the suite's trustworthiness dies one "re-run it, it's fine" at a time.
 - **Source:** XR-183 — cross-project experience registry (2026).
+
+### TST-11 [HIGH] Every Gate Proves Itself Against a Known-Bad Fixture
+A check is only enforcing something if a fixture exists that makes it fail.
+- **Detect:** A lint/audit/gate with no test that turns it red; a gate documented as enforcing a requirement while the corpus visibly violates that requirement and the gate stays green; a suite where removing the rule under test changes no result.
+- **Fix:** Pair every gate with a fixture that violates exactly what it claims to catch, run in the same suite, asserted to fail. A gate that cannot be made to fail enforces nothing — reclassify it doc-only until it can, rather than leaving it as false assurance.
+- **Impact:** A silently non-enforcing gate is worse than no gate: it converts an unchecked rule into a rule everyone believes is checked, so nobody looks again.
+- **Source:** XR-206 — cross-project experience registry (2026).
+
+### TST-12 [MEDIUM] Unresolved Placeholders Never Survive Into a Committed Artifact
+Intent tokens left for a later step never reach a committed data field.
+- **Detect:** Committed structured artifacts (registries, pointer maps, manifests, config) carrying unresolved tokens — `TBD`, `TODO`, `assign at apply`, `next free ID`, `<fill>`, `XXX` — in fields consumers read as data rather than prose.
+- **Fix:** Scan committed artifacts for the placeholder vocabulary and fail the gate on a hit inside a data field. Resolve at apply time; when resolution genuinely must wait, model it as an explicit null/pending state the consumer handles, never as free text that reads like a value.
+- **Impact:** A placeholder in a data field passes every structural check and propagates into reports and counts as if it were real — it surfaces only when someone hand-traces a broken reference, long after the trail is cold.
+- **Source:** XR-207 — cross-project experience registry (2026).

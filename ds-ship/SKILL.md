@@ -76,7 +76,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 | `--html` | Additionally produce `ds/audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |
 | `--skip={list}` | Comma-separated skills to skip (e.g. `--skip=ds-mobile,ds-launch`) |
 | `--only={list}` | Comma-separated skills to include (override classification defaults) |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. Forwarded to every delegated skill (Orchestration Contract §10.3 rule 4). |
+| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 | `--resume` | Resume from `ds/audit/ship.json` without prompt |
 | `--clean[=all]` | `--clean` deletes ds-ship's own state and starts fresh; `--clean=all` deletes `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
 

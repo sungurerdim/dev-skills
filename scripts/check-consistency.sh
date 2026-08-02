@@ -181,6 +181,27 @@ check_approval_critical_carveout() {
   [ -z "$bad" ] || err "approval menu drops the CRITICAL carve-out (All-Affordance Rule):$bad"
 }
 
+# 23. v5 — Canonical --auto row (SKILL-SPEC Unattended Mode: "every skill pastes
+#     this verbatim"). Compares the EFFECT cell (last cell) of each skill's
+#     `--auto` Arguments row against the canonical text in SKILL-SPEC.md, so a
+#     table with an extra Default column still passes while reworded, narrowed
+#     or locally re-derived text fails. Per-skill carve-outs belong in the
+#     skill's Contract citing rule 4, never in this row.
+check_auto_row_canonical() {
+  local canon skill row effect
+  canon=$(grep -m1 '^| `--auto` | Zero-interaction run' SKILL-SPEC.md \
+          | sed 's/.*| \(Zero-interaction run.*\) |$/\1/')
+  [ -n "$canon" ] || { err "SKILL-SPEC.md: canonical --auto row not found"; return; }
+  for skill in ds-*/; do
+    [ -f "$skill/SKILL.md" ] || continue
+    row=$(awk '/^\| `--auto` \|/{print; exit}' "$skill/SKILL.md")
+    [ -n "$row" ] || { err "$skill/SKILL.md missing the mandatory --auto Arguments row"; continue; }
+    effect=$(printf '%s' "$row" | sed 's/.*| \(Zero-interaction run.*\) |$/\1/')
+    [ "$effect" = "$canon" ] \
+      || err "$skill/SKILL.md --auto row deviates from the SKILL-SPEC canonical text (carve-outs go in Contract, citing Unattended Mode rule 4)"
+  done
+}
+
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
 #     input, runs the real check function against it, asserts a FAIL: line
@@ -211,6 +232,12 @@ self_test() {
   st_fail=0
   tmp=$(mktemp -d)
   trap 'rm -rf "$tmp"' RETURN
+
+  # Fixture: check_auto_row_canonical — skill reworded the canonical --auto row
+  mkdir -p "$tmp/autorow/ds-x"
+  printf '| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |\n' > "$tmp/autorow/SKILL-SPEC.md"
+  printf '| `--auto` | Zero-interaction run but it also opens a PR. |\n' > "$tmp/autorow/ds-x/SKILL.md"
+  assert_catches "check_auto_row_canonical" "$tmp/autorow" check_auto_row_canonical
 
   # Fixture: check_skill_badge — 2 skill dirs, README badge claims 99
   mkdir -p "$tmp/f1/ds-alpha" "$tmp/f1/ds-beta"
@@ -485,9 +512,10 @@ check_delegates_receives_graph
 check_standalone_paths
 check_intra_skill_links
 check_bare_repo_paths
+check_auto_row_canonical
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical all consistent"
 else
   exit 1
 fi

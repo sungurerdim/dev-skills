@@ -7,7 +7,7 @@ Rules for repo settings, branch protection, and metadata. Each rule: ID, severit
 | Section | Rules | Line |
 |---------|-------|------|
 | **Settings** | RPO-01–04, RPO-09 (2 HIGH, 3 MEDIUM) | ~12 |
-| **Hygiene** | RPO-05–08, RPO-10 (1 HIGH, 2 MEDIUM, 2 LOW) | ~58 |
+| **Hygiene** | RPO-05–08, RPO-10, RPO-11 (2 HIGH, 2 MEDIUM, 2 LOW) | ~58 |
 
 ---
 
@@ -108,3 +108,10 @@ Public repos where roadmap visibility is unwanted (marketing site) may skip thei
 - **Fix:** Decide tracker placement per repo by visibility: public-safe repos keep their own tracker; visibility-sensitive public repos disable theirs and register backlog items in a designated private sibling's tracker (one entry per item, labeled by source repo).
 - **Impact:** Public backlogs leak competitive roadmap for zero benefit; untracked backlogs silently drop work — the private-sibling pattern avoids both.
 - **Source:** XR-084 — cross-project experience registry (2026).
+
+### RPO-11 [HIGH] Governing Artifacts Live Under Version Control, Never in a Scratch Directory
+The artifacts that govern a project — rule registry, decision log, spec, generator source — live inside a repository; a working/scratch directory never becomes their home.
+- **Detect:** A governing artifact resolving to a path outside any repo (a scratch or working directory, a home-relative path, an untracked folder); a pointer in a tracked file whose target is unversioned; a canonical artifact with exactly one copy and no history.
+- **Fix:** Move the artifact into a repo, commit it, and repoint every reference in the same change. Derivation inputs, dumps, and backups may be archived or dropped; the canonical copy is versioned and pushed. Working directories stay working — nothing that governs the project is allowed to become a resident.
+- **Impact:** A governing artifact with one unversioned copy has no history, no backup, and no second machine. Losing it loses the reasoning behind every decision derived from it, and nothing signals the loss until someone looks.
+- **Source:** XR-205 — cross-project experience registry (2026).
