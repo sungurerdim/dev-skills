@@ -308,11 +308,21 @@ Skills that present choices to the user (scope selection, fix application, appro
 1. **Zero prompts.** Under `--auto`, no menu, no approval gate, no `Approve? [Y/n]`, no free-text question is ever shown. Every point in this spec that says "ask the user" instead resolves via the skill's own best judgment against the evidence it has gathered (findings, code, project profile, prior art in the codebase).
 2. **`--auto` disambiguates every menu.** It satisfies Up-Front Mode Menu rule 4 and Interaction Discipline in full — mode, scope, and approval selection all resolve to the skill's best-judgment default without ever being displayed.
 3. **Category A and Category B both resolve automatically.** Unlike a plain interactive run, `--auto` does not merely list Category B / `needs-approval` items and stop — it applies them, using the same impact/effort/risk reasoning the interactive approval block would show a human, and records that reasoning in the summary. CRITICAL findings are included (All-Affordance Rule 4 is an interactive-mode floor only — see there).
-4. **Small irreversible-exception list — the only things `--auto` does not decide.** A short, fixed set of actions that are (a) genuinely irreversible and (b) unrecoverable via git or any rollback path are auto-skipped and recorded as `needs-human` rather than executed blind:
+4. **Small exception list — the only things `--auto` does not decide.** Two kinds of action are auto-skipped and recorded as `needs-human` rather than executed blind: those that are (a) genuinely irreversible and unrecoverable via git or any rollback path, and those that (b) **publish** — that move work out of the local repository onto a remote, shared, or public surface. Publishing is excluded even when it is technically undoable, because undoing it does not un-share it.
+
+   *(a) Irreversible:*
    - Force-push or history rewrite on a shared/remote branch
    - Permanent deletion of a branch, tag, or remote resource with no local backup
    - Rotating, deleting, or transmitting a real secret/credential
    - Any action requiring a value only a human can supply (a live credential, a business/legal/financial decision not inferable from the repo)
+
+   *(b) Publishing — outward-facing, never automatic:*
+   - `git push` of any kind, to any remote
+   - Opening, updating, or merging a pull/merge request
+   - Deploying to a shared, staging, or production environment
+   - Submitting to an app store, or publishing to a package registry
+
+   **Committing is NOT publishing.** Under `--auto` a skill still commits its work locally — leaving changes uncommitted would strand them and violate FRC. The boundary is the remote: commit freely, publish never.
 
    This list does not grow ad hoc — a skill that needs to add to it does so explicitly in its own Contract section, citing which clause above it matches. Everything not on this list is resolved per rules 1-3, never asked, never silently dropped (ties to FRC and W11 Error Ownership).
 5. **Summary is the only output.** Under `--auto`, intermediate phase narration collapses to the minimum needed for the Outcome Report; the run still ends with the standard Task/Done/Gain summary, listing every `needs-human` item from rule 4 explicitly so nothing silently vanishes.
