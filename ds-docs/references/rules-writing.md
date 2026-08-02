@@ -5,6 +5,7 @@
 | **Structure & Content** | DOC-01 to DOC-04 (2 HIGH, 2 MEDIUM) |
 | **Maintenance & Tools** | DOC-05 to DOC-09 (3 MEDIUM, 2 LOW) |
 | **Harness Context Files** | DOC-10 to DOC-24 (1 CRITICAL, 4 HIGH, 7 MEDIUM, 3 LOW) |
+| **Claim & Structure Discipline** | DOC-25 to DOC-26 (1 HIGH, 1 MEDIUM) |
 
 ## Structure & Content
 
@@ -432,3 +433,27 @@ Customer-facing text describes third-party models/libraries in vendor-neutral, f
 **Why:** Vendor-named copy goes false the day the pipeline swaps suppliers — turning an implementation detail into a public misstatement.
 
 **Source:** XR-184 — cross-project experience registry (2026).
+
+### DOC-25 | HIGH | Absence Claims Require a Proven-Positive Control Query
+
+A claim that something does not exist is only valid when the search that found nothing is itself proven to work.
+
+**Detect:** An assertion of absence ("no such function", "unused anywhere", "not implemented", "no rule covers this") resting on a search that returned zero results, with no evidence the query, flags, or path scope were correct. Zero-result searches reported as findings without a companion query that returned hits.
+
+**Fix:** Before asserting absence, run a control query against the same corpus with the same tool and flags that is guaranteed to return hits. Control returns nothing → the search is broken, not the subject; fix the query and re-run. Record both queries alongside the claim so a reader can re-verify.
+
+**Why:** An empty result is ambiguous — the thing is absent, or the query is malformed (a wrong escape, a bad path filter, a case-sensitivity default). Acting on the wrong branch deletes live code or invents missing features that already ship.
+
+**Source:** XR-203 — cross-project experience registry (2026).
+
+### DOC-26 | MEDIUM | Machine-Read Corpora Keep One Structural Convention Across Sibling Files
+
+Every file in a corpus that tooling parses uses the same heading level and entry shape for the same kind of entry.
+
+**Detect:** Sibling files under one corpus using different heading depths (`##` vs `###`) or different entry formats for equivalent entries; a parser that needs per-file special-casing to read the set; extraction counts that disagree with a manual count for one file only.
+
+**Fix:** Pin one structural convention per corpus and state it in the corpus README; add a structural lint that fails when a sibling deviates. Parsers key on the pinned convention and never guess per file.
+
+**Why:** A single deviating file silently drops all of its entries from every extraction, and nothing errors — the corpus looks complete while every downstream count, audit, and report reads a subset.
+
+**Source:** XR-204 — cross-project experience registry (2026).
