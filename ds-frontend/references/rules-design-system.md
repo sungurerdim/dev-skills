@@ -6,7 +6,7 @@ Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Design Tokens** | TOK-01 to TOK-13 (4 HIGH, 7 MEDIUM, 2 LOW) | ~14 |
+| **Design Tokens** | TOK-01 to TOK-12 (3 HIGH, 7 MEDIUM, 2 LOW) | ~14 |
 | **Theming** | THM-01 to THM-06 (2 HIGH, 3 MEDIUM, 1 LOW) | ~138 |
 
 ---
@@ -25,16 +25,17 @@ All colors referenced via semantic tokens, not hardcoded hex/rgb/hsl values.
 - **Impact:** Hardcoded colors break theming (dark mode, brand changes), create visual inconsistency, and multiply maintenance cost.
 - **Source:** W3C Design Tokens Community Group 2025.10, Material Design 3 Color System
 
-### TOK-02 [HIGH] Spacing Scale
-Consistent spacing scale (4/8/12/16/24/32/48/64), no arbitrary pixel values for padding/margin/gap.
+### TOK-02 [HIGH] Monotonic Spacing Scale, Mechanically Enforced
+All spacing and alignment values come from one monotonic spacing scale (4/8/12/16/24/32/48/64); arbitrary pixel values, off-scale raw values, and ad-hoc layout hacks are forbidden and caught by a mechanical audit, not by the reviewer's eye.
 - **Detect:** Search for padding/margin/gap values not in project's spacing scale. Common scales: 4px-based (4/8/12/16/20/24/32/48/64) or 8px-based (8/16/24/32/48/64).
-  - CSS: padding/margin/gap with px values not in scale
+  - CSS: padding/margin/gap with px values not in scale, or raw values bypassing the `--space-*` (or equivalent) scale
   - Flutter: EdgeInsets/SizedBox with non-scale values
   - SwiftUI: .padding() with non-scale values
   - Compose: Modifier.padding() with non-scale dp values
-- **Fix:** Round to nearest scale value. No defined scale → recommend 4px-based scale as starting point.
-- **Impact:** Inconsistent spacing → visual noise, slows design iteration, and makes responsive behavior unpredictable.
-- **Source:** Material Design Spacing, Apple HIG Layout Margins
+  - Any platform: negative-margin or manual-centering hacks compensating for misaligned primitives; rows/columns with unbalanced start/end edges or dead corner gaps unowned by the layout contract
+- **Fix:** Define one monotonic spacing scale (no defined scale → recommend 4px-based as starting point) plus a primitive header/section component and a proportion contract; round existing values to the nearest scale value and require every spacing/alignment value to come from the scale. Group functionally related controls adjacently; give structurally unused corners a deliberate owner (useful mini-widget or reclaimed space). Enforce with a spacing/layout lint script so deviations fail the check.
+- **Impact:** Inconsistent spacing → visual noise, slows design iteration, and makes responsive behavior unpredictable. Off-scale values compound into crooked layouts no one can fix locally; mechanical enforcement is the only thing that keeps a spacing system true over time.
+- **Source:** Material Design Spacing, Apple HIG Layout Margins; XR-046 — cross-project experience registry (2026).
 
 ### TOK-03 [HIGH] Typography Scale
 Defined type scale with consistent ratio (1.2-1.5), no ad-hoc font sizes outside scale.
@@ -125,13 +126,6 @@ When a variant axis (density, theme, RTL-mirroring) is layered on top of an exis
 - **Fix:** Extend the base scale to define every variant value per token (e.g. 3 density values per spacing token); extend the token-completeness audit to verify all variants are defined for every token, not just the default.
 - **Impact:** A partially-implemented variant axis passes a naive "does the default render" gate while being functionally decorative — the preference toggles a data attribute that most of the UI ignores.
 - **Source:** W3C Design Tokens Community Group format spec (variant/mode tokens)
-
-### TOK-13 [HIGH] Monotonic Spacing Scale, Mechanically Enforced
-All spacing and alignment values come from one monotonic spacing scale; off-scale raw values and ad-hoc layout hacks are forbidden and caught by a mechanical audit.
-- **Detect:** Raw px/margin values that bypass the `--space-*` (or equivalent) scale; negative-margin or manual-centering hacks compensating for misaligned primitives; rows/columns with unbalanced start/end edges or dead corner gaps unowned by the layout contract.
-- **Fix:** Define one monotonic spacing scale plus a primitive header/section component and a proportion contract; require every spacing/alignment value to come from the scale; group functionally related controls adjacently; give structurally unused corners a deliberate owner (useful mini-widget or reclaimed space). Enforce with a mechanical audit (spacing/layout lint script) so deviations fail the check, not the reviewer's eye.
-- **Impact:** Off-scale values compound into crooked layouts no one can fix locally; mechanical enforcement is the only thing that keeps a spacing system true over time.
-- **Source:** XR-046 — cross-project experience registry (2026).
 
 ---
 

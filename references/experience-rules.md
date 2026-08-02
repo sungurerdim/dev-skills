@@ -51,7 +51,7 @@ Registry size: 198 rules. Statuses: `integrated` (added by the 2026-07-24 transf
 | XR-043 | Yasal/mevzuat değerleri birincil metne karşı doğrulanır | integrated | ds-compliance:PRV-41 |  |
 | XR-044 | Üçüncü-taraf lisans yükümlülükleri tek belgede mekanizmaya eşlenir | integrated | ds-compliance:PRV-43 |  |
 | XR-045 | Katı CSP: satır-içi script/style/handler tamamen dışarı taşınır | covered (pre-existing) | ds-compliance:rules-web.md:18-27 |  |
-| XR-046 | Yerleşim & hizalama tek SSOT'tan; boş/dengesiz kenar yok | integrated | ds-frontend:TOK-13 |  |
+| XR-046 | Yerleşim & hizalama tek SSOT'tan; boş/dengesiz kenar yok | integrated (merged) | ds-frontend:TOK-02 |  |
 | XR-047 | Üç görsel yoğunluk varyantı tek SSOT'tan yansır | covered (pre-existing) | ds-frontend:references/rules-design-system.md:16-19 |  |
 | XR-048 | Filtre işlevleri (hepsini-seç/temizle) tek SSOT bileşenden türer | integrated | ds-frontend:CMP-23 |  |
 | XR-049 | Detay/düzenleme aynı sayfada gömülü panelde yapılır | integrated | ds-frontend:SCH-10 |  |
