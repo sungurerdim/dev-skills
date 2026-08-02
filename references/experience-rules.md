@@ -1,6 +1,6 @@
 # Experience-Rule Registry (XR) — Pointer Map
 
-Cross-project experience rules (Akış + SafeScribe programs, 2026) mapped to their dev-skills home. This is a POINTER index — rule content lives in the target skill rule files (English) and in the canonical registry (`~/projects/.rules-audit/canonical-xr.json`, Turkish). Never duplicate rule text here.
+Cross-project experience rules (Akış + SafeScribe programs, 2026) mapped to their dev-skills home. This is a POINTER index — rule content lives in the target skill rule files (English) and in the canonical registry (`kumanda:kurallar/canonical-xr.json` — dondurulmus ice-aktarma kaynagi; canli SSOT `kumanda:kurallar/anayasa.json`, Turkish). Never duplicate rule text here.
 
 Registry size: 198 rules. Statuses: `integrated` (added by the 2026-07-24 transfer), `covered (pre-existing)` (already present before the transfer), `skipped` (deliberately not transferred — product-specific or duplicate; reason in the table).
 
@@ -122,8 +122,8 @@ Registry size: 198 rules. Statuses: `integrated` (added by the 2026-07-24 transf
 | XR-115 | Genel SSOT değişmezi: tüm ayar/nitelik/kriter tek tanımdan türer | covered (pre-existing) | ds-review:references/meta-quality-scopes.md:5-15 |  |
 | XR-116 | Yayın-öncesi: geriye-dönük-uyumluluk kalıntısı istenmez | integrated | ds-simplify:dead-code category (backward-compat branches, ~lines 56,105) |  |
 | XR-117 | Kanonikleştir-önce-uygula: muafiyet/gate-bypass yok | integrated | ds-pipeline:blocking-gates section |  |
-| XR-118 | Yeni entegrasyon inşa etmeden önce native yetenek belgelenir | integrated | ds-review:(next free ID in the file's strategic/architecture series; assign at apply) |  |
-| XR-119 | Tek desteklenen model tercih edilir; paralel modlar reddedilir | integrated | ds-review:(next free ID after XR-118's rule; assign at apply) |  |
+| XR-118 | Yeni entegrasyon inşa etmeden önce native yetenek belgelenir | integrated | ds-review:ARC-13 |  |
+| XR-119 | Tek desteklenen model tercih edilir; paralel modlar reddedilir | integrated | ds-review:ARC-14 |  |
 | XR-120 | Demo/örnek veri gerçek buluta asla ulaşamaz | integrated | ds-compliance:PRV-36 |  |
 | XR-121 | Tanılama/geri-bildirim kanalı kullanıcı-tetiklemeli, PII'siz, previ… | integrated | ds-compliance:PRV-38 |  |
 | XR-122 | Locale-duyarlı case-fold (TR İ/I) kullanılır, ASCII-only değil | integrated | ds-compliance:I18N-12 |  |
