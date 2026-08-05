@@ -267,7 +267,12 @@ The orchestrator reads the index first, then the shards it names. A consumer tha
 ## Output delivery
 
 1. **Write** the shards, then the index, per the Artifact write contract, and read the index back. The orchestrator reads the files — it does NOT parse your final text as JSON.
-2. **Return exactly one line:**
+2. **Run the verifier on what you just wrote — before returning, every time:**
+   ```
+   python3 {ds-brief}/assets/verify-brief.py --artifact <artifactPath>
+   ```
+   Exit 0 → return. Exit non-zero → fix every `FAIL` and re-run until it is 0, then return. A `FAIL` is never annotated and shipped; the orchestrator's first act is to run this same command, so an unverified artifact only moves the failure later, when it costs more. Two observed runs each returned 7 failing checks that were caught only after merge and render — the round trip cost more than the fix. Verifier unavailable (no `python3`, path not given) → say so explicitly in the return line rather than implying it passed.
+3. **Return exactly one line:**
    ```
    EMITTED sections=<N> sources=<M> shards=<S> unknowns=<K> coverage=<0.NN> conf=<HIGH|MEDIUM|LOW> blockers=<B> path=<absolute artifactPath>
    ```
