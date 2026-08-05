@@ -89,6 +89,34 @@ SCHEMA = {
         "probeFinding": ["no-carve-out", "carve-out:<claimId>", "unresolved"],
         "searchStop": ["saturation", "budget"],
     },
+    # The evidence bundle's manifest contract. It lives HERE, next to the
+    # artifact contract, because a bundler built by reading check_bundle()'s
+    # source gets it wrong: an observed run wrote {"entries": [...]} while the
+    # checker keys by citationId, so all 55 archived sources passed B03's hash
+    # check and every one of them failed B02 as "absent from manifest".
+    # A contract that can only be learned by reading the checker is not a
+    # contract; it is a trap.
+    "bundleManifest": {
+        "shape": "object keyed by citationId (string)",
+        "entry": {
+            "required": ["localFile", "sha256"],
+            "conditional": ["reason", "url", "domain", "bytes", "retrievedAt"],
+            "rules": [
+                "localFile is the file name INSIDE the bundle directory, not a path",
+                "localFile null => reason REQUIRED (B03): an unarchivable source "
+                "is recorded with why, never dropped",
+                "sha256 is of the archived bytes exactly as fetched",
+                "every citationId cited by the artifact must appear as a key (B02)",
+            ],
+        },
+        "example": {
+            "1000": {"localFile": "1000-example-gov.html",
+                     "sha256": "<64 hex>", "url": "https://example.gov/x",
+                     "domain": "example.gov", "retrievedAt": "2026-08-05T10:00:00Z"},
+            "1001": {"localFile": None, "sha256": None,
+                     "reason": "HTTPError: 403 (paywall)"},
+        },
+    },
 }
 
 
@@ -676,6 +704,22 @@ def check_cross(art, p):
     ok("X03", G, f"{n_src} distinct cited source(s) in artifact")
 
 
+#: Bundle group check ids — used to report how many checks a skip cost.
+BUNDLE_CHECK_IDS = ("B01", "B02", "B03")
+
+
+def _bundle_beside(report_path):
+    """-> path of an evidence bundle sitting next to the report, or None.
+
+    A bundle on disk that the run did not check is the case worth naming:
+    the evidence exists, and the gate simply did not look at it.
+    """
+    if not report_path:
+        return None
+    cand = os.path.join(os.path.dirname(os.path.abspath(report_path)), "sources")
+    return cand if os.path.exists(os.path.join(cand, "MANIFEST.json")) else None
+
+
 def check_bundle(art, bundle_dir):
     G = "bundle"
     man_path = os.path.join(bundle_dir, "MANIFEST.json")
@@ -969,6 +1013,31 @@ def self_test():
         os.remove(os.path.join(d, "findings.sections.01.json"))
         code, _failed = _run_case(d)
         results.append(("missing shard exits 2, never 0", code == 2, f"exit={code}"))
+
+        # 5. a skipped group is DISCLOSED — a weak run must not read as a full one.
+        # Observed failure: a report shipped on "33/33 checks passed" produced by a
+        # --no-bundle run; the same artifact went red on B02 the moment the bundle
+        # was checked. The count was true and the impression was false.
+        d = _write_case(root, "disclose")
+        code_full, _f = _run_case(d, bundle=True)
+        n_full = len(CHECKS)
+        code_weak, _w = _run_case(d, bundle=False)
+        n_weak = len(CHECKS)
+        results.append(("skipping the bundle costs visible checks",
+                        code_full == 0 and code_weak == 0 and n_weak < n_full,
+                        f"full={n_full} weak={n_weak}"))
+        results.append(("bundle group ids are declared for the skip note",
+                        len(BUNDLE_CHECK_IDS) == n_full - n_weak,
+                        f"declared={len(BUNDLE_CHECK_IDS)} actual={n_full - n_weak}"))
+
+        # 6. the bundle manifest contract is EMITTED, not only enforced. A bundler
+        # built by reading check_bundle()'s source wrote {"entries": [...]} and every
+        # archived source failed B02. A contract learnable only from the checker is a trap.
+        bm = SCHEMA.get("bundleManifest") or {}
+        results.append(("bundle manifest contract is machine-readable",
+                        bool(bm.get("shape")) and "localFile" in (
+                            bm.get("entry", {}).get("required") or []),
+                        f"keys={sorted(bm)}"))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -1025,8 +1094,20 @@ def main():
             print(f"CANNOT RUN: {exc}", file=sys.stderr)
             return 2
         check_cross(art, p)
+    skipped = []
     if args.bundle and not args.no_bundle:
         check_bundle(art, args.bundle)
+    else:
+        # A skipped group is DISCLOSED, never silently absent. A caller that
+        # reads "34/34 checks passed" cannot otherwise tell a weak run from a
+        # full one — and will report the weak run as a clean pass. Observed:
+        # a report shipped on "33/33 checks passed" whose bundle manifest was
+        # in the wrong shape; --bundle turned it red on B02 immediately.
+        why = "--no-bundle" if args.no_bundle else "no --bundle given"
+        near = _bundle_beside(args.report) if args.report else None
+        if near:
+            why += f"; an evidence bundle EXISTS at {near}"
+        skipped.append(("bundle", len(BUNDLE_CHECK_IDS), why))
 
     failures = [c for c in CHECKS if not c[2]]
     width = max(len(c[0]) for c in CHECKS)
@@ -1040,8 +1121,12 @@ def main():
     print("-" * 60)
     for n in notes:
         print(f"note: {n}")
-    print(f"ds-brief verify: {len(CHECKS) - len(failures)}/{len(CHECKS)} checks passed"
-          + (f" — {len(failures)} FAILED" if failures else ""))
+    for group, n, why in skipped:
+        print(f"note: {group} group SKIPPED — {n} check(s) did not run ({why})")
+    tail = f" — {len(failures)} FAILED" if failures else ""
+    if skipped and not failures:
+        tail = " — " + ", ".join(f"{g} SKIPPED ({n})" for g, n, _w in skipped)
+    print(f"ds-brief verify: {len(CHECKS) - len(failures)}/{len(CHECKS)} checks passed" + tail)
     return 1 if failures else 0
 
 
