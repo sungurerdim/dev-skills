@@ -1,5 +1,7 @@
 # Rules: Security & Privacy
 
+> **Currency rule:** the dated facts in this file (policy names, thresholds, fines, dates, review guidelines) are a verified seed map, never the authority. At run time, re-verify any fact that affects a finding against the live official source (store guideline page, regulator text, platform changelog); the live source wins on conflict. Web access unavailable → apply the seed and mark the finding `unverified-currency`.
+
 Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action.
 
 ## Table of Contents
