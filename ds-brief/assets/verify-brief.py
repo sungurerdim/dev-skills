@@ -507,20 +507,48 @@ class Report(HTMLParser):
         self.todo_items = 0
         self.exhibits = []
         self.exrefs = []
+        self.exref_pairs = []    # (target id, label text) — R14 checks label vs exhibit number
         self.anchors = []
         self.data_cfg = []
         self.data_cite = []
         self.oblg_levels = []
         self.headings = []       # h2 + h3.tdgroup text — R10 checks these carry findings, not labels
+        self.symbols = set()     # <symbol id> — R13 flags any never <use>d
+        self.uses = set()
+        self.reveal_class = False
+        self.has_cover = False   # section.cover / nav.toc — R12 print artifact
+        self.has_toc = False
+        self.main_first_classes = None   # first element inside <main> — R12 trust-first
+        self._main_pending = False
+        self._exref_cap = None
+        self._exref_target = None
         self._head_cap = None
         self.in_script = False
         self.script_text = []
+        self.raw_html = ""       # stashed by check_report for the X-group containment checks
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         classes = (a.get("class") or "").split()
+        if tag == "main":
+            self._main_pending = True
+        elif self._main_pending:
+            self.main_first_classes = classes
+            self._main_pending = False
         if a.get("id"):
             self.ids.add(a["id"])
+        if "reveal" in classes:
+            self.reveal_class = True
+        if tag == "symbol" and a.get("id"):
+            self.symbols.add(a["id"])
+        if tag == "use":
+            ref = a.get("href") or a.get("xlink:href") or ""
+            if ref.startswith("#"):
+                self.uses.add(ref[1:])
+        if tag == "section" and "cover" in classes:
+            self.has_cover = True
+        if tag == "nav" and "toc" in classes:
+            self.has_toc = True
         for k, v in attrs:
             if k.startswith("on"):
                 self.handlers.append(f"<{tag} {k}>")
@@ -538,7 +566,10 @@ class Report(HTMLParser):
             if href.startswith("#"):
                 self.anchors.append(href[1:])
             if "exref" in classes:
-                self.exrefs.append(href[1:] if href.startswith("#") else href)
+                target = href[1:] if href.startswith("#") else href
+                self.exrefs.append(target)
+                self._exref_target = target
+                self._exref_cap = []
         if tag == "figure" and "exh" in classes:
             self.exhibits.append(a.get("id") or "")
         if tag == "li" and "tdi" in classes:
@@ -554,6 +585,10 @@ class Report(HTMLParser):
             self.stack.append((tag, classes))
 
     def handle_endtag(self, tag):
+        if tag == "a" and self._exref_cap is not None:
+            self.exref_pairs.append((self._exref_target, "".join(self._exref_cap)))
+            self._exref_cap = None
+            self._exref_target = None
         if tag in ("h2", "h3") and self._head_cap is not None:
             text = " ".join("".join(self._head_cap).split())
             if text:
@@ -569,8 +604,76 @@ class Report(HTMLParser):
     def handle_data(self, data):
         if self._head_cap is not None:
             self._head_cap.append(data)
+        if self._exref_cap is not None:
+            self._exref_cap.append(data)
         if self.in_script:
             self.script_text.append(data)
+
+
+def _norm_text(s):
+    """Collapse whitespace + unescape JS quote escapes, for containment checks."""
+    return " ".join(s.replace('\\"', '"').replace("\\'", "'").split())
+
+
+def _config_keys(script):
+    """Top-level keys of the CONFIG object literal, or None when no CONFIG exists.
+
+    A small state machine (strings, template literals, comments, brace/bracket/
+    paren depth) — CONFIG is generated JS, not JSON, so json.loads cannot read it.
+    """
+    m = re.search(r"\bCONFIG\s*=\s*\{", script)
+    if not m:
+        return None
+    i, n = m.end(), len(script)
+    depth, brackets, parens = 1, 0, 0
+    expect_key = True
+    keys = []
+    while i < n and depth > 0:
+        ch = script[i]
+        two = script[i:i + 2]
+        if ch in "'\"`":
+            start = i + 1
+            i += 1
+            while i < n and script[i] != ch:
+                i += 2 if script[i] == "\\" else 1
+            if (expect_key and depth == 1 and brackets == 0 and parens == 0
+                    and re.match(r"\s*:", script[i + 1:])):
+                keys.append(script[start:i])
+                expect_key = False
+            i += 1
+            continue
+        if two == "//":
+            i = script.find("\n", i)
+            if i == -1:
+                break
+            continue
+        if two == "/*":
+            j = script.find("*/", i + 2)
+            i = n if j == -1 else j + 2
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+        elif ch == "[":
+            brackets += 1
+        elif ch == "]":
+            brackets -= 1
+        elif ch == "(":
+            parens += 1
+        elif ch == ")":
+            parens -= 1
+        elif ch == "," and depth == 1 and brackets == 0 and parens == 0:
+            expect_key = True
+        elif expect_key and depth == 1 and brackets == 0 and parens == 0:
+            mm = re.match(r"[A-Za-z_$][\w$]*", script[i:])
+            if mm and re.match(r"\s*:", script[i + mm.end():]):
+                keys.append(mm.group(0))
+                expect_key = False
+                i += mm.end()
+                continue
+        i += 1
+    return keys
 
 
 def check_report(path):
@@ -661,6 +764,73 @@ def check_report(path):
         else:
             ok("R11", G, f"{len(items)} watch entr(ies), each sourced")
 
+    # R12 — report skeleton: the print cover and contents/exhibit index ship on
+    # every brief, and the trust strip is the first block of main (BLUF — the
+    # signals open the report, method prose never does).
+    bad = []
+    if not p.has_cover:
+        bad.append("no section.cover (print cover)")
+    if not p.has_toc:
+        bad.append("no nav.toc (print contents/exhibit index)")
+    if not (p.main_first_classes and "trust" in p.main_first_classes):
+        bad.append("trust strip is not the first block of main")
+    (ok if not bad else fail)("R12", G, "" if not bad else cap(bad))
+
+    # R13 — ornament budget: no scroll-reveal, no unused icon symbols. An unused
+    # <symbol> or a .reveal rule is weight the reader pays for and never sees.
+    bad = []
+    if p.reveal_class or re.search(r"\.reveal\b", html):
+        bad.append(".reveal ships (scroll-reveal is off-budget)")
+    unused = sorted(p.symbols - p.uses)
+    if unused:
+        bad.append(f"unused <symbol>: {cap(unused, 3)}")
+    (ok if not bad else fail)("R13", G, "" if not bad else cap(bad))
+
+    # R14 — exhibit reference labels agree with exhibit numbers: a numbered
+    # a.exref label must equal its target's document-order number; an empty
+    # label is legal only when the label-writer script ships (the template
+    # writes labels from the target at runtime).
+    order = {eid: i + 1 for i, eid in enumerate(p.exhibits) if eid}
+    writer = "exref" in script
+    bad = []
+    for target, label in p.exref_pairs:
+        digits = re.findall(r"\d+", label)
+        if digits and target in order and int(digits[0]) != order[target]:
+            bad.append(f"'{' '.join(label.split())}' -> #{target}, which is exhibit {order[target]}")
+        elif not label.strip() and not writer:
+            bad.append(f"empty exref label for #{target} with no label-writer script")
+    (ok if not bad else fail)("R14", G, f"{len(p.exref_pairs)} exref label(s) agree"
+                              if not bad else cap(bad))
+
+    # R15 — every top-level CONFIG key has a consumer (data-cfg binding or a
+    # literal CONFIG.<key> / CONFIG["<key>"] script reference). A key nothing
+    # reads is dead weight or a renamed consumer — either way the SSOT promise
+    # ("edit one place, whole document updates") is broken.
+    keys = _config_keys(script)
+    if keys is None:
+        fail("R15", G, "no CONFIG object literal found in the report script")
+    else:
+        consumed = set()
+        for c in p.data_cfg:
+            consumed.add(c.split(".")[0])
+            consumed.add(c.split(".")[-1])
+        consumed |= set(re.findall(r"CONFIG\s*(?:\.\s*|\[\s*['\"])([A-Za-z_$][\w$]*)", script))
+        orphans = sorted(k for k in set(keys) if k not in consumed)
+        (ok if not orphans else fail)("R15", G,
+                                      f"{len(set(keys))} top-level key(s), all consumed"
+                                      if not orphans
+                                      else f"CONFIG key without a consumer: {cap(orphans)}")
+
+    # R16 — sticky chrome ships its anchor clearance: position:sticky without a
+    # scroll-padding/scroll-margin rule lands every in-page anchor under the bar.
+    if re.search(r"position\s*:\s*sticky", html):
+        has_pad = bool(re.search(r"scroll-(?:padding|margin)", html))
+        (ok if has_pad else fail)("R16", G, "" if has_pad
+                                  else "position:sticky present but no scroll-padding/scroll-margin rule")
+    else:
+        ok("R16", G, "no sticky chrome")
+
+    p.raw_html = html
     return p
 
 
@@ -702,6 +872,37 @@ def check_cross(art, p):
     # source volume is visible; no report-side comparison is performed here)
     n_src = len({s.get("citationId") for s in all_sources(art) if s.get("citationId") is not None})
     ok("X03", G, f"{n_src} distinct cited source(s) in artifact")
+
+    # X04 — blocker-block parity: the "What would make this HIGH" block (#gate)
+    # ships exactly when blockers remain — never missing over a sub-HIGH
+    # artifact, never lingering on a clean HIGH run (Phase 4: pruned entirely).
+    blockers = (art.get("confidenceGate") or {}).get("blockers") or []
+    has_gate = "gate" in p.ids
+    if blockers and not has_gate:
+        fail("X04", G, f"{len(blockers)} blocker(s) recorded but the report ships no #gate block")
+    elif not blockers and has_gate:
+        fail("X04", G, "#gate block shipped on a run with no blockers — prune it")
+    else:
+        ok("X04", G, f"{len(blockers)} blocker(s), gate block {'present' if has_gate else 'pruned'}")
+
+    # X05 — cite-quote integrity: every data-cite chip resolves to an artifact
+    # source, and that source's verbatimQuote occurs verbatim in the report.
+    # The claim→quote click-through must show the extracted sentence, not a
+    # paraphrase that drifted at build time.
+    by_id = {str(s.get("citationId")): s for s in all_sources(art)
+             if s.get("citationId") is not None}
+    nh = _norm_text(p.raw_html or "")
+    bad = []
+    for cid in sorted(set(p.data_cite)):
+        src = by_id.get(str(cid))
+        if src is None:
+            bad.append(f"data-cite={cid} resolves to no artifact source")
+            continue
+        q = _norm_text(src.get("verbatimQuote") or "")
+        if q and q not in nh:
+            bad.append(f"cid {cid}: verbatimQuote not found verbatim in the report")
+    (ok if not bad else fail)("X05", G, f"{len(set(p.data_cite))} cite chip(s) grounded"
+                              if not bad else cap(bad))
 
 
 #: Bundle group check ids — used to report how many checks a skip cost.
@@ -775,8 +976,15 @@ def check_bundle(art, bundle_dir):
 # --------------------------------------------------------------------------
 
 SELFTEST_HTML = """<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Kira brifingi</title>
-<style>@media print{.tool{display:none}ol.todo>li{break-inside:avoid}}</style></head>
-<body><main class="wrap">
+<style>@media print{.tool{display:none}ol.todo>li{break-inside:avoid}}
+html{scroll-padding-top:64px}nav.bar{position:sticky;top:0}</style></head>
+<body>
+<section class="cover"><h1>Kira brifingi</h1></section>
+<nav class="toc" aria-label="Contents"><ol><li><a href="#sureler">Tahliye sureleri</a></li></ol></nav>
+<nav class="bar"><a href="#sureler">Sureler</a></nav>
+__SPRITE__
+<main class="wrap">
+<div class="trust" role="note"><b data-cfg="confidence">HIGH</b> <span class="say" data-cfg="confidenceNote">Her veri iki bagimsiz kaynakla dogrulandi.</span></div>
 <section id="sureler"><h2 data-cfg="title">Tahliye sureleri</h2>
 <p>Sure iki aydir. <a class="src-chip official" href="https://www.mevzuat.gov.tr/tbk" data-cite="1">kaynak</a></p>
 <figure class="exh" id="exh1"><table><tr><td>2 ay</td></tr></table><figcaption>Sure iki ayla sinirli</figcaption></figure>
@@ -790,8 +998,12 @@ __WATCH__
 __EXTRA__
 </main>
 <script>
-const CONFIG = { title:"Kira brifingi", cites:{ "1":{q:"iki ay icinde dava acilir"} } };
+const CONFIG = { title:"Kira brifingi",__ORPHAN__ confidence:"HIGH",
+  confidenceNote:"Her veri iki bagimsiz kaynakla dogrulandi.",
+  cites:{ "1":{q:"__QUOTE__"} } };
 document.querySelectorAll("[data-cfg]").forEach(function(n){ n.textContent = CONFIG.title; });
+document.querySelectorAll("[data-cite]").forEach(function(n){ n.title = (CONFIG.cites[n.dataset.cite]||{}).q || ""; });
+document.querySelectorAll("a.exref[href^='#']").forEach(function(a){ /* label-writer */ });
 </script></body></html>"""
 
 SELFTEST_ITEM_MUST = ('<li class="tdi" data-when="taraf:kiraya"><span class="oblg must">Zorunlu</span>'
@@ -896,6 +1108,13 @@ SELFTEST_DEFECTS = {
     "X01": "todo[] holds 2 items, the report renders 1",
     "X02": "the whole `free` obligation level vanished between artifact and report",
     "B03": "manifest sha256 does not match the archived file",
+    "R12": "the print cover section was dropped from the build",
+    "R13": "an unused <symbol> shipped in the icon sprite (ornament budget)",
+    "R14": "an exref labeled 'Sekil 2' points at exhibit 1 — reference and number disagree",
+    "R15": "a CONFIG key no data-cfg binding or script line ever reads",
+    "R16": "sticky nav shipped without scroll-padding — anchors land under the bar",
+    "X04": "the artifact records blockers but the report ships no 'What would make this HIGH' block",
+    "X05": "a data-cite popover quote drifted from the artifact's verbatimQuote",
 }
 
 
@@ -941,9 +1160,23 @@ def _write_case(root, name, broken=False, sharded=False):
     items = SELFTEST_ITEM_MUST if broken else SELFTEST_ITEM_MUST + "\n" + SELFTEST_ITEM_FREE
     extra = '<section id="genel"><h2>Genel Bilgiler</h2></section>' if broken else ""   # R10 when broken
     watch = SELFTEST_WATCH_VAGUE if broken else SELFTEST_WATCH_OK                       # R11 when broken
+    html = (SELFTEST_HTML.replace("__ITEMS__", items).replace("__WATCH__", watch)
+                         .replace("__EXTRA__", extra))
+    if broken:
+        html = (html
+                .replace('<section class="cover"><h1>Kira brifingi</h1></section>', "")     # R12
+                .replace("__SPRITE__", '<svg style="display:none" aria-hidden="true">'
+                                       '<symbol id="i-x" viewBox="0 0 24 24"></symbol></svg>')  # R13
+                .replace(">Sekil 1<", ">Sekil 2<")                                          # R14
+                .replace("__ORPHAN__", ' orphanKey:"kimse okumuyor",')                      # R15
+                .replace("html{scroll-padding-top:64px}", "")                               # R16
+                .replace("__QUOTE__", "uc ay sonra dava acilir"))                           # X05
+    else:
+        html = (html.replace("__SPRITE__", "")
+                    .replace("__ORPHAN__", "")
+                    .replace("__QUOTE__", "iki ay icinde dava acilir"))
     with open(os.path.join(d, "report.html"), "w", encoding="utf-8") as fh:
-        fh.write(SELFTEST_HTML.replace("__ITEMS__", items).replace("__WATCH__", watch)
-                              .replace("__EXTRA__", extra))
+        fh.write(html)
 
     index = os.path.join(d, "findings.json")
     if sharded:

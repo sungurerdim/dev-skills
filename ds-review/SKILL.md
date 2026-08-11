@@ -73,7 +73,7 @@ Without flags: present mode selection.
 | Performance | performance |
 | AI Cleanup | ai-hygiene, doc-sync |
 
-**Scope boundary:** file-level fixes within current architecture. Finds repeated code, unnecessary abstractions, missing types — does NOT question architectural decisions. Issue requiring architectural change → `needs_approval`.
+**Scope boundary:** file-level fixes within current architecture. Finds repeated code, unnecessary abstractions, missing types; architectural decisions stay out of scope — issue requiring architectural change → `needs_approval`.
 
 ### Strategic Scopes (--strategic)
 
@@ -97,7 +97,7 @@ Without flags: present mode selection.
 
 **Taste-dependent judgment → rubric, not rules.** Where a scope turns on "is this the right abstraction" there is no pattern to grep, so the strategic pass is closed by a verifier run against [references/rubric-architecture.md](references/rubric-architecture.md): five dimensions, a level per dimension, each level claimed only with a `file:line` example of the named signal. Delegate it as its own pass with the rubric as the whole contract; the returned levels are untrusted until the cited lines are re-read. Rule-shaped findings stay in `rules-quality.md` — the rubric covers only what a rule cannot express.
 
-**Scope boundary:** architecture-level assessment. Questions design decisions, evaluates pattern consistency. Does NOT fix individual code issues (unused imports, type errors, formatting).
+**Scope boundary:** architecture-level assessment. Questions design decisions, evaluates pattern consistency. Individual code issues (unused imports, type errors, formatting) stay out of scope — they belong to `--tactical`.
 
 ### Performance Scopes (--perf)
 
@@ -109,7 +109,7 @@ Deep performance analysis beyond the tactical `performance` scope: 11 check grou
 
 7 detector scopes — `ssot`, `dry`, `kiss`, `yagni`, `soc`, `api-surface`, `obsolete` — plus 3 derived aliases (`overengineering` = ssot+kiss+yagni, `redundancy` = dry+duplicate constants, `duplicate` = dry at function/module granularity) and `all`. Detector thresholds and per-scope rules: [references/meta-quality-scopes.md](references/meta-quality-scopes.md).
 
-**Scope boundary:** principle-level audit. Flags violations of SSOT / DRY / KISS / YAGNI / SoC, evaluates project criteria fit, proposes consolidation paths. Does NOT fix without explicit user selection — every finding produces 3 path proposals (effort / impact / risk).
+**Scope boundary:** principle-level audit. Flags violations of SSOT / DRY / KISS / YAGNI / SoC, evaluates project criteria fit, proposes consolidation paths. Fixes only on explicit user selection — every finding produces 3 path proposals (effort / impact / risk).
 
 **Anti-overengineering 3-gate:** report a finding only when at least one harm signal is present — it breaks something, it misleads a future reader about what is canonical, or it is not worth its keep. No signal → silently discard. Full gate with the tie-breaking rule: [references/principles.md §10](references/principles.md).
 
@@ -146,7 +146,7 @@ Under `--auto`: this phase is skipped entirely — mode resolves to All (tactica
 
 Auto-invoke MAY be skipped via `--no-bootstrap` for testing — then review runs own scope analysis.
 
-**Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → filter findings by active scopes. Per matching finding: read file:line + surrounding context (±10 lines); verify finding still valid (code may have changed); confirmed → add to fix list; false positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved`, record the reason on the finding; both count as Skipped in the disposition accounting. Then fix confirmed findings. Skip own analysis for scopes covered by findings file; scopes NOT covered → run own analysis below. Stale/absent findings → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: run own analysis below, appending with own `source` + current `git_hash`.
+**Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → filter findings by active scopes. Per matching finding: read file:line + surrounding context (±10 lines); verify finding still valid (code may have changed); confirmed → add to fix list; false positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved`, record the reason on the finding; both count as Skipped in the disposition accounting. Then fix confirmed findings. Skip own analysis for scopes covered by findings file; scopes not covered → run own analysis below. Stale/absent findings → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: run own analysis below, appending with own `source` + current `git_hash`.
 
 **If no findings file after bootstrap or `--no-bootstrap`:** analyze in parallel-planned batches grouped by cost. Announce plan before starting.
 
@@ -166,7 +166,7 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity. **Sk
 
 **Confidence gate:** every finding records a confidence score 0-10 beside severity. Non-CRITICAL findings scoring below 8 → move to a `low-confidence` rollup (count + one-line list in the summary), excluded from the default fix list; user promotes individual items via Review Each. CRITICAL findings below 8 → route through CRITICAL escalation below rather than dropping.
 
-**Negation-shaped checks (production-readiness, security scopes):** "missing X" findings (missing timeout, absent retry, no input validation) are the weakest class for probabilistic review — confirm each by enumerating the relevant call sites and showing X absent at each, never by pattern-absence alone. Deterministic rule scanner configured in the project (semgrep/opengrep class) → run its matching rules as cross-check; absent → the call-site enumeration stands as the evidence.
+**Negation-shaped checks (production-readiness, security scopes):** "missing X" findings (missing timeout, absent retry, no input validation) are the weakest class for probabilistic review — confirm each by enumerating the relevant call sites and showing X absent at each; pattern-absence alone is insufficient evidence. Deterministic rule scanner configured in the project (semgrep/opengrep class) → run its matching rules as cross-check; absent → the call-site enumeration stands as the evidence.
 
 **Gate:** Findings = 0 → print `"All {N} checks evaluated across {scopes}: 0 findings"`, skip to summary. Distinguishes clean from skipped. If fails (analysis incomplete or bootstrap `/ds-blueprint` didn't return) → mark affected scopes `inconclusive`, log "bootstrap incomplete — scopes {names} unanalyzed", proceed to summary with partial results + WARN status.
 
@@ -174,16 +174,7 @@ Cross-scope dedup: merge findings at same file:line, keep highest severity. **Sk
 
 ### Phase 3: Gap Analysis (strategic only)
 
-Calculate gaps: current vs ideal for coupling, cohesion, complexity, coverage. Project-type defaults:
-
-| Type | Coupling | Cohesion | Complexity | Coverage |
-|------|----------|----------|------------|----------|
-| cli | <40% | >75% | <10 | 70%+ |
-| library | <30% | >80% | <8 | 85%+ |
-| api | <50% | >70% | <12 | 80%+ |
-| web | <60% | >65% | <15 | 70%+ |
-| mobile | <55% | >65% | <12 | 65%+ |
-| devtool | <35% | >75% | <10 | 80%+ |
+Calculate gaps: current vs ideal for coupling, cohesion, complexity, coverage — load the per-project-type ideal thresholds from [references/scopes-strategic.md § Gap Thresholds](references/scopes-strategic.md).
 
 Display Current vs Ideal table. Technology assessment: evaluate key decisions OK / Questionable / Problematic (with evidence) — include only Questionable/Problematic. Categorize recs by effort/impact: Quick Win → Moderate → Complex → Major.
 
@@ -207,7 +198,7 @@ Skip patterns: test fixtures, generated files, framework-required boilerplate, p
 Compare project's implied/stated criteria to baselines for detected type. Baselines in [references/criteria-fit.md](references/criteria-fit.md).
 
 1. Detect type from blueprint profile (or own detection if absent).
-2. Load baseline thresholds for that type (e.g. `small-cli`: SSOT 0-2, DRY 0-3; `web-app`: SSOT 0-1, DRY 0-5; `library`: SSOT 0, SoC 0-1).
+2. Load the baseline thresholds for that type from the criteria-fit reference — the per-type table there is the single canonical home.
 3. Compare findings vs baseline. Above baseline → flag as `criteria-mismatch`.
 4. Mismatch → ask user: "{scope} count ({n}) exceeds {type} baseline ({max}). Loosen criteria for this project or tighten the codebase?"
 
@@ -309,7 +300,7 @@ Status: OK (failed=0), WARN (failed>0 no CRITICAL), FAIL (CRITICAL unfixed or er
 
 Formula, cap rules, and the judgment ranges for scopes without countable findings: [references/scopes-strategic.md § Score Calculation](references/scopes-strategic.md).
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), rather than the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} CRITICAL/HIGH security findings closed ({n} hardcoded secrets, {n} injection vectors) — exposure window before next deploy eliminated`
 - `{n} N+1 query patterns fixed in {module} — p95 latency expected to drop on hot paths`
