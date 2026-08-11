@@ -73,12 +73,12 @@ Validate → History Tidy → Quality Gates → Analyze → Build → [Review] �
 
 **Steps 1-4 are independent — run in parallel:**
 
-1. Verify `git` and `gh` CLI available and authenticated
-2. Verify git repo, detect base branch (via GitHub API, fallback: main, then master)
-3. Verify not on base branch, not detached HEAD
+1. `git --version` and `gh auth status` → both exit 0, the latter showing `Logged in`
+2. Git repo confirmed (`git rev-parse --is-inside-work-tree` → `true`); detect base branch (via GitHub API, fallback: main, then master)
+3. `git branch --show-current` → non-empty (not detached) and ≠ `{base}`
 4. `git fetch origin {base}`
-5. No commits ahead → stop. Behind base → ask rebase (--auto: rebase automatically)
-6. Check existing PR → show URL, ask: Update / Skip (`--auto`: Update automatically)
+5. `git rev-list --count origin/{base}..HEAD` → `0` → stop. `git rev-list --count HEAD..origin/{base}` → >0 (behind base) → ask rebase (--auto: rebase automatically)
+6. `gh pr view --json url` → URL printed (existing PR) → show URL, ask: Update / Skip (`--auto`: Update automatically); non-zero exit → no existing PR, continue
 
 **Gate:** All pre-checks passed; branch has commits ahead of base. If fails → stop with the specific check that failed:
 
@@ -92,7 +92,7 @@ Validate → History Tidy → Quality Gates → Analyze → Build → [Review] �
 
 ### Phase 1.5: History Tidy (skip if --no-tidy or --preview)
 
-If >3 unpushed commits, offer to tidy: squash into logical commits based on net diff.
+If `git rev-list --count origin/{base}..HEAD` → >3 unpushed commits, offer to tidy: squash into logical commits based on net diff.
 
 - Ask user: Tidy (recommended) or Keep as-is (--auto: tidy silently)
 - Execute: `git reset --mixed origin/{base}`, stage and commit per plan
@@ -131,11 +131,11 @@ Tests fail → stop. Only create PR when tests covering the changed files pass.
    - Neither? → dominant non-bumping type
 3. `!` in any commit type or `BREAKING CHANGE:` → append `!`
 
-**Title:** `{type}({scope}): {summary}` — max 70 chars.
+**Title:** `{type}({scope}): {summary}` — max 70 chars (`printf '%s' "{title}" | wc -c` → ≤ 70).
 
-**Body:** Summary (1-3 bullets), Changes (grouped, max 5), Breaking Changes (if any). Max 20 lines.
+**Body:** Summary (1-3 bullets), Changes (grouped, max 5), Breaking Changes (if any). Max 20 lines (`wc -l` on the body → ≤ 20).
 
-**Size note:** net diff exceeds PR-01 thresholds ([references/rules-pr.md](references/rules-pr.md): 400 changed lines or 10 files) → append body note "Large PR — consider splitting for reviewability" (MEDIUM, informational — never blocks creation).
+**Size note:** net diff exceeds PR-01 thresholds ([references/rules-pr.md](references/rules-pr.md): `git diff {base}...HEAD --shortstat` → >400 changed lines, or `git diff {base}...HEAD --name-only | wc -l` → >10 files) → append body note "Large PR — consider splitting for reviewability" (MEDIUM, informational — never blocks creation).
 
 **Gate:** Net diff analyzed; PR title generated in conventional commit format. If fails → empty `git diff {base}...HEAD` (commits exist but net = 0) → stop with "Net diff is empty — all changes reverted in later commits. Nothing to describe."; ambiguous classification after net-diff override → default to most conservative non-bumping type, append WARN in PR body.
 

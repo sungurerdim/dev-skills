@@ -104,6 +104,7 @@ Setup → [Generate / Update / Run+Fix / Baseline] → Verify → [Needs-Approva
 4. **Detect test conventions:** test directory (`test/`, `tests/`, `__tests__/`, `spec/`, `src/**/*.test.*`); naming pattern (`*_test.go`, `*.test.ts`, `*.spec.rb`, `test_*.py`); helper/fixture locations (`fixtures/`, `factories/`, `support/`, `conftest.py`); mock patterns (mocking library + structure).
 5. **Read 2-3 existing test files** to learn project style: imports, assertion style (`expect` vs `assert`), `describe`/`it` vs `test()`, mock + fixture usage, setup/teardown patterns.
 6. No framework + `--setup` → proceed to Framework Setup (Phase 2d). No framework + no `--setup` → suggest running with `--setup`.
+7. **Checkpoint pre-gate (before the first file write):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (state the risk: regression and gate failures are reverted via `git checkout -- {test-file}`, which also discards uncommitted edits in that file); `--auto`: proceed only when the pre-existing dirty files are untouched by this skill's writes — a write targets a dirty file → skip that file, record `needs-human: uncommitted changes in {file}`. Never run a bulk test rewrite over uncommitted unrelated changes in the same files.
 
 **Gate:** Test framework detected or `--setup` mode. If fails → no framework + no `--setup` → "No test framework detected. Re-run with --setup to install one, or specify your framework." Exit with WARN; do not attempt generation without a framework.
 
@@ -140,7 +141,7 @@ Per uncovered source file (or scoped path):
 
 ### Phase 2b: Update [--update]
 
-1. Identify changed source files (from `git diff` or user-specified scope); per changed file, find its corresponding test file.
+1. Identify changed source files (`git diff --name-only HEAD` plus staged, or user-specified scope); per changed file, find its corresponding test file.
 2. Compare source changes: new params, renamed methods, changed return types, removed functions.
 3. Update test file: new params → update calls, add tests for new param edge cases; renamed method → update references; changed return type → update assertions; removed function → remove tests (with confirmation) or mark `skipped` with TODO; new function → generate new tests (per Phase 2a). Under `--auto`: skip the confirmation — removed-function tests are removed automatically (reversible via git), recorded in the summary.
 4. Run updated tests to verify passing.
@@ -183,7 +184,7 @@ Capture current actual behavior of a legacy module as a characterization baselin
 1. **Identify surface:** collect the target module's public interface (exported functions, class/struct methods, CLI commands, API endpoints). `=path` provided → narrow to that path only; otherwise use the directory or module containing the changed code.
 2. **Generate characterization tests:** drive each surface member with realistic inputs including boundary cases (empty, null, max-size, unicode, boundary numerics). Record the ACTUAL outputs — whatever the code returns today — as expected values. When current behavior appears incorrect (e.g., off-by-one, wrong default, silent swallow of an error), STILL assert it; tag the test with the comment `// characterization: documents current behavior, not intent` and raise a Category B finding (`needs-approval`) so the user decides fix-vs-keep before refactoring.
 3. **Run to green:** a failing characterization test means the captured expectation is wrong — fix the TEST to match actual output, never modify the source. Repeat until all pass.
-4. **Report:** surface-coverage % (ratio of public surface members with at least one characterization test) + list of oddities raised as Category B findings.
+4. **Report:** surface-coverage % (ratio of public surface members with at least one characterization test — compute from the two counted lists via `wc -l`, never by estimate) + list of oddities raised as Category B findings.
 
 **Note — not assertion-weakening:** asserting observed behavior (even when it looks incorrect) with a `characterization: documents current behavior, not intent` tag and a Category B finding is the correct pattern — documented capture + user decision gate, never silent acceptance of a relaxed assertion.
 

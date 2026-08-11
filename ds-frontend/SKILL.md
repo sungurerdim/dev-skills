@@ -176,6 +176,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 ### Phase 5: Fix [SKIP if audit-only or --check]
 
+0. **Checkpoint.** `git status --porcelain` → non-empty → interactive: ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: fix edits interleave with uncommitted work, single-command rollback is lost); `--auto`: proceed only when the pre-existing dirty state stays untouched by this skill's writes — otherwise stop and record `needs-human`. Never run a bulk fix over uncommitted unrelated changes silently. Empty output → clean tree, proceed.
 1. **Plan.** Group by file, order CRITICAL → HIGH → MEDIUM → LOW.
 2. **Execute.** CAT-1: hardcoded color → token; missing `alt` → add; contrast → adjust to 4.5:1; missing `:focus-visible` → add outline; missing `aria-label` → add from context.
 3. **Verify + record.** Re-read each modified file; record applied/failed/skipped.
@@ -196,7 +197,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 2. **Component catalog** — state coverage matrix, missing state recs, a11y compliance per component.
 3. **A11y checklist** — WCAG 2.2 AA list specific to detected framework + components.
 
-**Gate:** Artifacts generated and written; user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue. **Under `--auto`:** no ask — retries once with a sanitized fallback path; still unwritable → `failed (write error)`, recorded in the generated-artifacts list, run continues.
+**Gate:** Artifacts generated and written — each declared path exists on disk (`ls {path}` → listed); user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue. **Under `--auto`:** no ask — retries once with a sanitized fallback path; still unwritable → `failed (write error)`, recorded in the generated-artifacts list, run continues.
 
 ### Mechanical Done Gate [any fix applied]
 

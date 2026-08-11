@@ -727,6 +727,10 @@ Run `{check-cmd}` once at setup to capture the baseline. Baseline red → record
 
 Never report `done`/`OK` while `{check-cmd}` shows a new red. Skills that already own a stricter domain loop (e.g. ds-test's regression check, ds-tune's metric gate) keep it; this gate is the floor, not a replacement.
 
+### Checkpoint Gate (bulk-modifying skills)
+
+Every skill whose flow writes, deletes, or resets project files in bulk carries a mechanical clean-tree pre-step before its first write: `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (risk stated); under `--auto`: proceed only where the pre-existing dirty state is disjoint from the planned writes — otherwise `needs-human`. A skill whose failure path reverts or resets tracked files (hard reset, `git checkout --`, `git restore`) treats the pre-gate as stop-hard: the destructive loop never starts on a dirty tree, interactive or `--auto`. Rationale: running a revert-capable flow over uncommitted user work is a data-loss path (dev-rules Checkpoint transfer, 2026-08-11). `check-consistency.sh` (check `checkpoint-gate`) enforces presence for the named bulk-modifying skills.
+
 ### Rule-ID Namespace
 
 **Rule IDs are scoped to the skill that owns them, never globally unique.** This falls out of the Standalone Invariant: each skill must be complete on its own, so the same prefix legitimately appears in several skills with different content — `ARC-01` is *Audit Logging for Sensitive Operations* in ds-compliance, *Clean Architecture Layers* in ds-mobile, and *Layered Architecture* in ds-review. Renumbering to force global uniqueness is explicitly rejected: it would break every existing cross-reference and buy nothing the namespace rule does not already give.

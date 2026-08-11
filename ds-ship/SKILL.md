@@ -126,7 +126,7 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 
 4. **Document census** (table): `| Document | Status | Size | Last commit |` — one row per README.md, SPEC.md, docs/*, AI instruction file, `ds/audit/findings.md`; status ∈ fresh / stale / draft / absent.
 
-5. **Git posture.** Active branch, uncommitted changes, unpushed commits, last-activity date, frozen vs active signal.
+5. **Git posture.** `git branch --show-current` (active branch) · `git status --porcelain` (non-empty = uncommitted changes) · `git rev-list --count @{u}..HEAD` (unpushed commits; no upstream → note it) · `git log -1 --format=%cs` (last-activity date; older than 180 days = frozen signal).
 
 6. **Value proposition extraction.** Extract the project's one-paragraph concrete promise from docs. Interactive: surface "I read this as: {paragraph}. Confirm before I measure everything against it? [Y/n]". `--auto`: accept the extracted paragraph as-is, no prompt.
 
@@ -195,7 +195,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 
 ### Phase 4: Documentation Audit & Optimization
 
-**4a — Compact existing context-loaded docs.** Targets: AI instruction files (per host — see ds-blueprint `references/detection.md` § Instruction Files), `README.md`, skill/prompt/agent definition files, large `docs/` files on context-loading paths. Per-file pass: (1) preserve every concrete fact, instruction, pointer; (2) remove filler prose, redundant restatements, obsolete sections; (3) relocate misplaced information; (4) compress — tables over prose, bullets over paragraphs, references over duplication; (5) report before/after token estimate per rewritten doc. Category: **A** for pure compaction that provably preserves content; **B** when a deletion risks removing useful signal.
+**4a — Compact existing context-loaded docs.** Targets: AI instruction files (per host — see ds-blueprint `references/detection.md` § Instruction Files), `README.md`, skill/prompt/agent definition files, large `docs/` files on context-loading paths. Per-file pass: (1) preserve every concrete fact, instruction, pointer; (2) remove filler prose, redundant restatements, obsolete sections; (3) relocate misplaced information; (4) compress — tables over prose, bullets over paragraphs, references over duplication; (5) report before/after size per rewritten doc via `wc -c` (bytes ÷ 4 ≈ tokens) — measured, never guessed. Category: **A** for pure compaction that provably preserves content; **B** when a deletion risks removing useful signal.
 
 **4b — Fill documentation gaps.** Delegate to `/ds-docs`: verify every claim against source (drift detection); confirm every promised feature is documented (complement of Phase 0 promise census); generate only missing docs that deliver concrete value — never because "it's usually there". Optionally `/ds-docs --adr` for architectural decisions surfaced in Phase 1–2.
 
@@ -220,9 +220,9 @@ Triggered when `stage ∈ {pre-launch, launched}` or user explicitly requested s
 Orchestrator never pushes or opens a PR on its own; user is always free to keep working main-only.
 
 **Trigger conditions (all must hold — any unmet → silent skip, no prompt, no noise):**
-1. Current branch is not `main` / `master`.
-2. Branch ahead of upstream by ≥1 commit (no upstream or up-to-date → skip).
-3. `gh` CLI available + authenticated.
+1. `git branch --show-current` → not `main` / `master`.
+2. `git rev-list --count @{u}..HEAD` → ≥1 (no upstream or 0 → skip).
+3. `gh auth status` → exit 0.
 4. State does not show `pr_suggestion: muted` (a persisted prior decision, honored even under `--auto`).
 
 **When triggered — interactive:** `Branch {name} is ahead of upstream by {N} commits with applied fixes from this run. Open a PR via /ds-pr? (y/n/always-skip)` — `y` → invoke `/ds-pr`, record result hash in state, include PR URL in Phase 6 report; `n` → record `pr_suggested: declined (this run)`, next run asks again; `always-skip` → record `pr_suggestion: muted` in `ds/audit/ship.json`, subsequent runs skip until `--clean` or manual edit.

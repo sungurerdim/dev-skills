@@ -120,7 +120,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 4. Cross-check value proposition against blueprint `spec-alignment` findings when fresh — a promised-not-implemented paid feature is CRITICAL here (selling what doesn't exist).
 5. Write findings to `ds/audit/findings.md` (scoped overwrite: monetization, pricing, gtm).
 
-**Gate:** Every checklist item has an outcome; findings written. If fails → un-evaluable check (e.g., store metadata unreadable) → record `N/A (unreadable: {reason})`, never silently skip.
+**Gate:** Every checklist item has an outcome; findings written (per audited scope: `grep -c '{scope}' ds/audit/findings.md` → >0). If fails → un-evaluable check (e.g., store metadata unreadable) → record `N/A (unreadable: {reason})`, never silently skip.
 
 ### Phase 4: Plan [--plan or All]
 
@@ -128,7 +128,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 2. Every recommendation cites a rule ID from references or an inventory fact — no unsourced business advice. KISS/YAGNI ([references/principles.md §6](references/principles.md)): recommend the simplest stack that fits the stated revenue stage — no enterprise billing machinery, custom receipt servers, or multi-tier entitlement services pre-revenue.
 3. Present the plan's decision table to the user; record chosen options in the plan file.
 
-**Gate:** Plan written, decision table present. If fails → write unresolved decisions as `OPEN — needs owner decision` rows; plan ships with open rows rather than invented answers.
+**Gate:** Plan written (`test -s ds/productize/plan.md` → exit 0), decision table present. If fails → write unresolved decisions as `OPEN — needs owner decision` rows; plan ships with open rows rather than invented answers.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 

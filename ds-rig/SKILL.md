@@ -85,7 +85,7 @@ Detect → Select & Budget → Trust Gate → Install/Update → Privacy Hardeni
 1. OS + architecture + available package managers (brew, apt/dnf, winget/scoop, npm, pip/uv, cargo) — from command probes, not assumption.
 2. Installed harnesses: probe config dirs (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.copilot/`/`.github/hooks/`, `.aider.conf.yml`, OpenCode/Cursor/Windsurf dirs per [references/permissions.md](references/permissions.md)) — and read each harness's current telemetry-relevant settings for the privacy posture baseline.
 3. Catalog tools already installed + their versions (`{tool} --version` probes).
-4. Registered MCP servers per harness config + estimated tool-definition count.
+4. Registered MCP servers per harness config + estimated tool-definition count — count with `jq` over each harness's MCP config (e.g. `jq '.mcpServers | length'`), never by eyeballing the file.
 5. Existing manifest `~/.config/ds-rig/manifest.json` → this is a re-run: load it; missing → first run.
 6. Report the detected rig before changing anything.
 
@@ -144,7 +144,7 @@ Under `--auto`: skip the category menu — select every `(recommended)` category
 
 1. Per-tool observed-effect check from the catalog's verify column (e.g. `rtk gain` produces output; `ctx_doctor` green; `pre-commit run --all-files` executes; LSP hover returns a symbol).
 2. Re-count registered MCP tools; compare against Phase 2 projection and the budget threshold.
-3. Write/update `~/.config/ds-rig/manifest.json`: per tool — name, version, install method, privacy configs applied (with proof pointers), permission entries written, date.
+3. Write/update `~/.config/ds-rig/manifest.json`: per tool — name, version, install method, privacy configs applied (with proof pointers), permission entries written, date. Read-back: `jq -e . ~/.config/ds-rig/manifest.json` → exit 0.
 4. Report per Report Format.
 
 **Gate:** Every installed/updated tool has a passing observed-effect check, the budget re-count is at or under projection, and the manifest write is read back valid. If a tool fails its effect check → status `installed-unverified` with the failing output; overall run reports WARN.

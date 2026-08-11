@@ -102,7 +102,7 @@ Load [references/rules-devops.md](references/rules-devops.md). Rules are project
 
 ### Phase 3: Scan
 
-1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching scopes (ci, signing, deps, release-pipeline). Per match: verify still valid (re-read `{file}:{line}`); uncovered scopes → run full analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
+1. **Findings file check:** `ds/audit/findings.md` fresh (its meta `git_hash` equals `git rev-parse HEAD` output AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching scopes (ci, signing, deps, release-pipeline). Per match: verify still valid (re-read `{file}:{line}`); uncovered scopes → run full analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 
 For each scope:
 
@@ -164,6 +164,7 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 
 ### Phase 6: Fix [SKIP if audit-only or --preview]
 
+0. **Checkpoint pre-step (before the first file write):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (explain risk). **Under `--auto`:** proceed only when the pre-existing dirty files are disjoint from the planned fix targets; a fix targeting a dirty file resolves `needs-human`. If the tree cannot be checkpointed → apply no fix over uncommitted unrelated changes; report the blocker.
 1. Present fix plan per the approval-menu convention — one line per fix (rule, `[severity]`, file:line, action); question `Apply these N fixes?`.
 2. Confirmation: quick-fix proceeds; audit+fix asks Apply all / per-severity bulk / proceed / cancel. **Under `--auto`:** no confirmation shown — resolves per Unattended Mode rule 3.
 3. Apply fixes grouped by file.

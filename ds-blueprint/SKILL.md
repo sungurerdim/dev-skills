@@ -107,7 +107,7 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 
 ### Phase 1: Discovery [PARALLEL]
 
-**Recovery check:** DETECT `ds/audit/blueprint.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently). Resume → RE-VERIFY `in_progress` phase (re-scan modified scopes, keep completed scopes), skip `done` phases, announce `[BP] Resuming from Phase {N}: {name}.` On successful Summary, delete state. Verify `ds/audit/` in `.gitignore` on fresh start.
+**Recovery check:** DETECT `ds/audit/blueprint.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently). Resume → RE-VERIFY `in_progress` phase (re-scan modified scopes, keep completed scopes), skip `done` phases, announce `[BP] Resuming from Phase {N}: {name}.` On successful Summary, delete state. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
 
 **State `data`:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line}]}, profile_written: bool, scores: {dimension: score}, instruction_file }`.
 
@@ -229,7 +229,7 @@ Build from Discovery + Assess:
    | {id} | {severity} | {A|B} | {file} | {line} | {scope} | {title} |
    ```
    Every finding includes file:line so fix skills can act directly. Category A when fix conforms to current architecture/plan; B when it changes architecture/scope/capability/user-promise/dependency.
-4. **Verify completeness:** count distinct scopes in `ds/audit/findings.md`. Expected: the 24 blueprint-owned scopes above, minus any recorded in `filters_applied.skipped_scope` (quality-level or `--scope` exclusions — see references/detection.md § Audit Fields). `ideal-gap` is produced externally by `/ds-benchmark` — count it when present, never re-run for its absence. Blueprint-owned count below expectation → identify missing scopes and re-run assessment for those before proceeding. Missing scope = fix skills skip detection → missed issues.
+4. **Verify completeness:** count distinct scopes mechanically — `awk -F'|' '/^\|/{gsub(/ /,"",$7); print $7}' ds/audit/findings.md | sort -u` → the distinct Scope-column values (drop the header row's literal `Scope`). Expected: the 24 blueprint-owned scopes above, minus any recorded in `filters_applied.skipped_scope` (quality-level or `--scope` exclusions — see references/detection.md § Audit Fields). `ideal-gap` is produced externally by `/ds-benchmark` — count it when present, never re-run for its absence. Blueprint-owned count below expectation → identify missing scopes and re-run assessment for those before proceeding. Missing scope = fix skills skip detection → missed issues.
 
 **Gate:** All 9 scores calculated; calibration passed; `ds/audit/findings.md` written with all 25 scopes verified. If fails → calibration suspicious score (dimension at 100, CRITICAL with overall ≥80) → re-read flagged signals + adjust; missing scopes → re-run assessment for each before writing; write fails → surface OS error, ask user to resolve.
 
@@ -239,7 +239,7 @@ Build from Discovery + Assess:
 
 Render templates — score table, below-target findings list, score-drop explanation, human-actions block: [references/dashboard-format.md](references/dashboard-format.md). First run omits the Prev and Delta columns; the human-actions block is omitted when empty.
 
-**Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), gap analysis; `ds/audit/findings.md` write confirmed. If fails → write unconfirmed (filesystem error after Phase 4) → retry once; still failing → print dashboard with `[WARN: findings.md not written]` header so user sees scores but knows downstream consumers cannot use them until resolved.
+**Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), gap analysis; `ds/audit/findings.md` write confirmed (`test -s ds/audit/findings.md` → exit 0; scope completeness already proven by Phase 4's count command — its observed output is the evidence, no re-scan here). If fails → write unconfirmed (filesystem error after Phase 4) → retry once; still failing → print dashboard with `[WARN: findings.md not written]` header so user sees scores but knows downstream consumers cannot use them until resolved.
 
 ### Phase 6: Suggest [SKIP if --preview]
 
@@ -264,7 +264,7 @@ In `--auto`: print as part of summary, no interaction.
 2. Legacy `### Last Run`, `### Run History`, `### Current Scores` (table) block exists from previous version → rewrite entire profile to current minimal key-value format. Report `{n} legacy lines rotated to git log` in summary. Never re-inject historical run data.
 3. Previous scores existed: display delta table in chat (Prev / Curr / Δ). Trend over >1 run → read from `git log -- <instruction-file>`, never from accumulated block.
 4. **Dev-Value Gate:** every existing profile line must answer "would an AI assistant, reading this on every turn for 6 months, do meaningfully better engineering because of it?" with yes. Check each line against forbidden patterns (timestamps, score deltas, run dates, owner info, descriptions, onboarding, philosophy, vendor notes, file-by-file change notes). Forbidden found → strip before write. Report `{n} dev-value-gate lines stripped`.
-5. **Context-budget guard:** after write, count lines between markers. > 25 → compress: merge multi-key lines (e.g. Type + Stack + Target into one), drop External entries with no purpose, drop Modules entries with role `(0)` or zero files. Re-count. Still > 25 → surface WARN with offending line indices.
+5. **Context-budget guard:** after write, measure: `sed -n '/^## Blueprint Profile/,/^## End Blueprint Profile/p' {instruction-file} | wc -l` → ≤ 27 (25 content lines + the 2 marker lines). Over → compress: merge multi-key lines (e.g. Type + Stack + Target into one), drop External entries with no purpose, drop Modules entries with role `(0)` or zero files. Re-run the same count. Still over → surface WARN with offending line indices.
 
 **Gate:** Profile rewritten in minimal key-value format; legacy blocks rotated; no run-history in instruction file; Dev-Value Gate applied (forbidden lines stripped); profile ≤ 25 lines. If fails → write failed or file read-only → print updated `Scores:` line in chat for manual paste, note target file + marker positions, set state.data.profile_written false so subsequent runs know profile is stale; > 25 after compression → surface overshoot as WARN with offending line indices.
 
@@ -278,7 +278,7 @@ In `--auto`: print as part of summary, no interaction.
 
 Optional phase. Scans AI agent memory index (`MEMORY.md` under host's project-memory directory — Claude Code: `~/.claude/projects/<hash>/memory/MEMORY.md`; equivalent for other hosts) and surfaces stale entries.
 
-1. Open `MEMORY.md`. Absent or under 200 lines → skip with note "Memory index under threshold — no cleanup needed".
+1. Open `MEMORY.md`. Absent, or `wc -l < MEMORY.md` → under 200 → skip with note "Memory index under threshold — no cleanup needed".
 2. Parse `[[link]]` references; check each for a matching file in the memory directory.
 3. Group findings: **Broken links** (`[[name]]` with no matching file — likely deleted memory); **Stale entries** (files referenced by zero `[[link]]`s — orphans); **Truncated** (index over 200 lines — Claude Code truncation threshold).
 4. Present consolidation menu: `Delete broken links / Remove orphan files / Trim index / All / Skip`. Apply only what user approves. Every change reversible (memory dir is under user's home, not the repo). **Under `--auto`:** no menu — apply the full cleanup (delete broken links, remove orphans, trim index) since every change is reversible, and record it in the summary.

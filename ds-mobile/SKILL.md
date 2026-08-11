@@ -203,6 +203,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 
+0. **Checkpoint.** `git status --porcelain` → non-empty → interactive: ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: fix edits interleave with uncommitted work, single-command rollback is lost); `--auto`: proceed only when the pre-existing dirty state stays untouched by this skill's writes — otherwise stop and record `needs-human`. Never run a bulk fix over uncommitted unrelated changes silently. Empty output → clean tree, proceed.
 1. **Plan.** Read findings, apply severity filter, group by file, identify dependencies. Present CAT-1 + CAT-2 (pre-approved) — one line per fix (`[severity] title — file:line`) grouped by severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
 2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask (Apply all / per-severity bulk `Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item); `release-ready` → show auto-fixable vs guidance split. **Under `--auto`:** skip the confirmation for every mode — apply all CAT-1 + pre-approved CAT-2 fixes automatically, including CRITICAL, per Unattended Mode rule 3.
 3. **Execute.** Apply grouped by file. Re-read before + after each edit. Record applied/failed/skipped.
@@ -242,7 +243,7 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 
 ## Quality Gates
 
-1. **No cascading breakage** — verify no broken imports/references after fixes; fix breaks another file → revert, mark failed, continue
+1. **No cascading breakage** — the Mechanical Done Gate's `{check-cmd}` run over the touched scope is the evidence that no imports/references broke; no separate prose re-verification. Fix breaks another file → revert, mark failed, continue
 2. **Format preservation** — match existing indentation + code style
 3. **Scope boundary** — only touch lines task requires
 4. **Platform consistency** — fixes use correct platform API

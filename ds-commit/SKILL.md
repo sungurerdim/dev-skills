@@ -60,9 +60,9 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 **Prerequisites (1, then 2-4 parallel):**
 
-1. Verify `git` available
-2. Verify git repo: `git rev-parse --git-dir`
-3. Verify not detached HEAD: `git branch --show-current` — detached → stop, suggest creating a branch first
+1. `git --version` → version string printed (git available)
+2. `git rev-parse --git-dir` → exit 0 (inside a git repo)
+3. `git branch --show-current` → non-empty branch name; empty output = detached HEAD → stop, suggest creating a branch first
 4. `git fetch origin` (best-effort); on main/master behind upstream → announce, then `git pull --ff-only origin {branch}`; fast-forward impossible (diverged) or working tree state blocks it → skip the pull, note "behind upstream by {n} — pull after committing", never merge/rebase silently
 
 **Branch management:**
@@ -70,7 +70,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 - **On main/master:** suggest feature branch (`{type}/{short-description}`); offer commit-on-main. If `release-please-config.json`, `.release-please-manifest.json`, `.releaserc*`, or a `semantic-release` config in `package.json` is present, mark commit-on-main as "Not recommended — bypasses changelog pipeline". **Under `--auto`:** no prompt — commit on main only when the repo's own convention already does so (prior history commits directly to main, no branch-protection signal); otherwise create the feature branch.
 - **On feature branch:** changes outside branch scope → ask: continue here (recommended) / create new branch. **Under `--auto`:** continue here (the recommended default), no prompt.
 
-**Conflict check:** `UU`/`AA`/`DD` in status → stop.
+**Conflict check:** `git status --porcelain` shows `UU`/`AA`/`DD` entries → stop.
 
 **Quality Gates (changed files only):**
 
@@ -199,9 +199,9 @@ Stage files → build message → commit.
 
 ### Phase 4: Verify
 
-`git log` to confirm. Verify working tree clean (unless `--staged-only`).
+`git log --oneline -n {planned-count}` → every planned commit listed. `git status --porcelain` → empty output (unless `--staged-only`).
 
-**Gate:** `git log` shows expected commits; working tree clean. If fails → re-read `git status`, identify remaining untracked/modified, ask "Stage remaining and commit / Leave as-is". **Under `--auto`:** no prompt — leave as-is (the safer default, avoids committing unplanned drift) and note the remaining files in the summary.
+**Gate:** `git log --oneline` shows the planned commits; `git status --porcelain` → empty. If fails → re-read `git status --porcelain` output, identify remaining untracked/modified, ask "Stage remaining and commit / Leave as-is". **Under `--auto`:** no prompt — leave as-is (the safer default, avoids committing unplanned drift) and note the remaining files in the summary.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 

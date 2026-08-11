@@ -95,7 +95,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
    No mechanical criterion inferrable → use the most conservative proxy and state the assumption; ask the user only when zero proxy is possible. Under `--auto`: never ask — always use the conservative proxy.
 4. **Quick check.** Run verification immediately. Already passes → report OK, skip to Summary.
-5. **Initialize.** Create `ds/audit/solve.json` with canonical envelope (`skill: ds-solve`, `prefix: SOL`, `version: 1`, `git_hash: {HEAD}`, `timestamp`, `phases`, `current_phase`, `data: {...}`). Schema in [references/backtrack-logic.md](references/backtrack-logic.md). Verify `.gitignore` contains `ds/audit/` — add it to root `.gitignore` if absent, report addition.
+5. **Initialize.** Create `ds/audit/solve.json` with canonical envelope (`skill: ds-solve`, `prefix: SOL`, `version: 1`, `git_hash: {HEAD}`, `timestamp`, `phases`, `current_phase`, `data: {...}`). Schema in [references/backtrack-logic.md](references/backtrack-logic.md). `grep -qx 'ds/audit/' .gitignore` → exit 0; non-zero → append `ds/audit/` to root `.gitignore`, report addition.
 
 **Output:** Objective + red lines table + verification criterion (statements, not questions).
 
@@ -133,6 +133,8 @@ Per step in plan:
 
 ### Phase 4: Execute
 
+**Checkpoint pre-gate (once, before the first attempt):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (state the risk: failed attempts are reverted via `git checkout -- {modified_files}`, which also discards uncommitted edits in those files); `--auto`: proceed only when the pre-existing dirty files stay untouched by this skill's edits — an attempt must modify a dirty file → stop that step, record `needs-human: uncommitted changes in {file} — commit or stash before ds-solve edits it`. Never revert over uncommitted unrelated work.
+
 Per step in order:
 
 1. **Red line pre-check.** Verify all red lines hold before touching anything. Violated → STOP, enter Re-plan (something external broke them).
@@ -150,7 +152,7 @@ Result: FAIL — {failure_reason} | Learned: {package}@{version} requires {depen
 Red lines: {n}/{n} held | Next: Trying alternative {a+1}...
 ```
 
-**Gate:** Step verification passes AND all red lines hold. If fails → revert all file changes from this attempt (`git checkout -- {modified_files}`), record failure reason + learned constraint in episodic memory in state.data, increment `plans_attempted` if all alternatives exhausted, enter Backtrack.
+**Gate:** Step verification passes AND all red lines hold. If fails → revert all file changes from this attempt (`git checkout -- {modified_files}`; `git status --porcelain -- {modified_files}` → empty output confirms the revert), record failure reason + learned constraint in episodic memory in state.data, increment `plans_attempted` if all alternatives exhausted, enter Backtrack.
 
 ### Phase 5: Backtrack [all alternatives for a step exhausted]
 

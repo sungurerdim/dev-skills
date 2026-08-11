@@ -72,7 +72,7 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 ### Phase 1: Setup
 
-1. **Blueprint profile check.** Search `## Blueprint Profile`. Found → read type, stack, audience, priorities. Absent → own detection + prompt for problem definition.
+1. **Blueprint profile check.** `grep -n '^## Blueprint Profile' {instruction-file(s)}` → ≥1 match. Match → read type, stack, audience, priorities. No match → own detection + prompt for problem definition.
 
 **Gate:** Profile located or problem definition ready. If fails → no profile + own detection insufficient (empty repo, no manifest) → prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition." **Under `--auto`:** no prompt — infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `needs-human: no problem definition inferable`.
 
@@ -159,7 +159,7 @@ Category A gaps recorded as findings but not executed here — consumers (ds-shi
 3. `defer` decision → finding remains, `disposition=deferred`.
 4. `intentional-deviation` → finding `disposition=skipped (intentional)`; ADR written to `docs/adr/NNNN-{slug}.md` if user agreed — via `/ds-docs --adr` when present; absent → write a minimal ADR inline (Context / Decision / Consequences, same path + numbering).
 
-**Gate:** Every B gap persisted with its decision. If fails → `ds/audit/findings.md` write failed (file locked, disk error) → print the gap decisions inline as a fallback, surface write error with target path + OS error, ask user to resolve before re-running Phase 7.
+**Gate:** Every B gap persisted with its decision — `grep -c 'ideal-gap' ds/audit/findings.md` → ≥ the gap-row count written in Phase 5. If fails → `ds/audit/findings.md` write failed (file locked, disk error) → print the gap decisions inline as a fallback, surface write error with target path + OS error, ask user to resolve before re-running Phase 7.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
