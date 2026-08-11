@@ -35,4 +35,6 @@ module.exports = { formatUsd };
 JS
 printf 'const { formatUsd } = require("./format");\n' >> src/cart.js
 printf 'DB_PASSWORD=hunter2-not-a-real-secret\n' > .env
+# genuinely unrelated change (build-hygiene chore, no link to the cart feature):
+printf '\n# build output\ndist/\n' >> .gitignore
 echo "fixture ready: $d"
