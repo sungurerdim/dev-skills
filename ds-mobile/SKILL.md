@@ -34,7 +34,8 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Audits mobile app quality; every finding cites file:line — never fabricates. Only touches mobile code; platform rules only on detected platforms.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
-- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -214,7 +215,7 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → record `pending-user-decision` as the finding's disposition, proceed to Summary with status WARN, list unresolved items prominently.
 
-### Mechanical Done Gate (SKILL-SPEC §4) [any fix applied]
+### Mechanical Done Gate [any fix applied]
 
 Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else platform-native analyze/lint/type/test commands (`flutter analyze` + `flutter test`, `dart analyze`, eslint/tsc + jest for RN, `swiftlint`/xcodebuild test, gradle lint/test); none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Capture the baseline before Phase 7; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each Phase 7/8 fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 9: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Re-reading modified files (Quality Gate 5) is necessary but is not this gate — only the check command's green is. Never report `OK` with a new red. Audit-only/report-only runs → gate N/A, state it.
 
@@ -226,11 +227,11 @@ ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fi
 
 **Cleanup:** remove mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `ds/audit/findings.md`. Empty after removal → delete file.
 
-FRC+DSC accounting.
+Disposition accounting — totals balance.
 
 **Gate:** `fixed + failed + skipped + needs_approval + not_applicable = total`; every modified file re-read; mobile-scoped findings removed from `ds/audit/findings.md`. If fails → counts unreconciled → identify undisposed finding, assign `failed` reason "disposition not recorded", re-run count; cleanup fails → warn, leave file intact rather than partial-modify.
 
-**Value Delivered:** 1-5 concrete mobile-quality outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} store-rejection risks intercepted (permission abuse, missing privacy declarations, undocumented background tasks) — submission round-trip saved`
 - `{n} CRITICAL findings: hardcoded API keys / unencrypted PII in shared preferences — exposure window before next release closed`
@@ -246,8 +247,9 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 3. **Scope boundary** — only touch lines task requires
 4. **Platform consistency** — fixes use correct platform API
 5. **Artifact-first recovery** — re-read files before + after editing
-6. **FRC** — every finding gets a disposition in summary
-7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+6. **Full accounting** — every finding gets a disposition in summary
+7. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes.
+8. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Edge Cases
 
@@ -266,4 +268,4 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 | Release-ready: first run | No previous `ds/mobile/release.json` → no diff, note "First audit" |
 | Release-ready: corrupt JSON report | Warn, treat as first audit (skip diff), overwrite |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

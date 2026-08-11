@@ -182,6 +182,8 @@ Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orches
 git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
 ./install.sh                                # all 30 skills + shared agent -> ~/.claude
 ./install.sh --skills ds-review,ds-commit  # or only the ones you want
+./install.sh --profile lean                 # Claude-5 host + always-on rules layer (e.g. dev-rules):
+                                            #   strips the portable-only blocks at install time
 ./install.sh --project /path/to/other-repo  # install into that repo's .claude instead of ~/.claude
 ./install.sh --check                        # later: installed copy in sync with the repo?
 ./install.sh --uninstall                    # remove installed dev-skills content

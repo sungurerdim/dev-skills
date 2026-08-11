@@ -33,12 +33,13 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 ## Contract
 
 **Dimensions:** C1 (canonical), C2 (canonical, conditional messaging), C3 (regulatory), A7 (regulatory), A8 (rules), A9 (conditional ecosystem rules), A11 (portability crosscheck)
-**Framework alignment (advisory):** OWASP ASVS 5.0.0 (C1), OWASP SAMM (C2) — sourced references in SKILL-SPEC Dimension Coverage Map. Tool-derived security findings carry the tool's own ASVS version tag (OSS DAST tools still emit 4.0.3-tagged results — never present them as ASVS 5.0 coverage).
+**Framework alignment (advisory):** OWASP ASVS 5.0.0 (C1), OWASP SAMM (C2). Tool-derived security findings carry the tool's own ASVS version tag (OSS DAST tools still emit 4.0.3-tagged results — never present them as ASVS 5.0 coverage).
 
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).
 - Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
 - State-exempt: single regenerable report/audit.
-- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Mobile-project overlap-skip (OVERLAP-4 runtime enforce):** When project signals mobile (`pubspec.yaml` with `flutter:`, `package.json` with `react-native`, `*.xcodeproj`, or `build.gradle` with `android {}`), default-skip security/privacy/regulatory — owned by `/ds-mobile`. Announce: "Mobile project detected — security/privacy/regulatory delegated to /ds-mobile". Override with `--scope=security,privacy,regulatory`.
 
 ## Arguments
@@ -200,7 +201,7 @@ Architecture: {detected-summary}
 | Category | BLOCKER | CRITICAL | HIGH | MEDIUM | LOW | Total |
 ```
 
-**Severity:** BLOCKER > CRITICAL > HIGH > MEDIUM > LOW. BLOCKER = legally mandated gap with a citable source (regulation article / store policy) — feeds ds-ship's mandated-blocker test (SKILL-SPEC §15); ADVISORY findings never block and never count toward blockers. Uncertain → choose lower.
+**Severity:** BLOCKER > CRITICAL > HIGH > MEDIUM > LOW. BLOCKER = legally mandated gap with a citable source (regulation article / store policy) — feeds ds-ship's mandated-blocker test; ADVISORY findings never block and never count toward blockers. Uncertain → choose lower.
 
 **Gate:** Report with findings + severities + summary. If fails → findings list empty because all domains `inconclusive` or `N/A` → print report with single section `"No verifiable findings — all domains inconclusive or reference files missing"`, list domains + skip reason, exit with status `WARN`.
 
@@ -220,7 +221,7 @@ Architecture: {detected-summary}
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → re-present each with forced binary prompt (Apply / Skip); user declines → mark `skipped (no response)`, proceed.
 
-### Mechanical Done Gate (SKILL-SPEC §4) [any fix applied]
+### Mechanical Done Gate [any fix applied]
 
 Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else detect stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision, never silently skip. Run `{check-cmd}` once at baseline; baseline red → record red-at-baseline — done condition becomes "no *new* red", baseline reds reported as findings, never inherited as green.
 
@@ -240,11 +241,11 @@ Never report `OK` while `{check-cmd}` shows a new red.
 ds-compliance: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-FRC+DSC accounting. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+Disposition accounting — totals balance. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
 **Gate:** Summary balances; every modified file re-read. If fails → identify findings without disposition, assign `disposition: skipped (accounting-fix)`, recompute summary, add WARN: `"{n} finding(s) auto-skipped to balance accounting"`.
 
-**Value Delivered:** 1-5 concrete compliance outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} CRITICAL secrets in source intercepted — credentials no longer leak into git history (rotation guidance attached)`
 - `{regulation} compliance: {n} consent gaps, {n} retention policy gaps closed — exposure window before {audit-date} eliminated`
@@ -258,7 +259,8 @@ Zero-finding run: `Compliance scope clean — no regulatory or security findings
 2. Format preservation (indentation, code style)
 3. Scope boundary (only touch required lines)
 4. Stack consistency (use correct framework APIs)
-5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — state-exempt (single regenerable report). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+5. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes.
+6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -277,4 +279,4 @@ Zero-finding run: `Compliance scope clean — no regulatory or security findings
 | Mixed project types | Detect all types, apply union of applicable rules |
 | Generated code only | Skip generated files, warn if no scannable code remains |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

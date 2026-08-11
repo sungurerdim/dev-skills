@@ -36,8 +36,8 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 - Only includes verified, accessible sources and URLs. Presents T5/T6 with confidence caveats. Resolves contradictions when sources disagree. Cites specific source tiers in every synthesis.
 - Standalone: uses blueprint when available, own analysis when absent. Web tracks dispatch `ds-research-agent` when available (same handoff contract as ds-brief Phase 2), inline search when absent — identical methodology either way. Local-codebase track always runs skill-side.
 - State-exempt: single regenerable artifact — each run reproduces its result from scratch; no `ds/audit/` state persisted (only ds-tune/ds-solve/ds-ship/ds-blueprint keep state).
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -147,7 +147,7 @@ Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
 ds-research: {OK|WARN|FAIL} | Sources: {n} | CRAAP+ avg: {score} | Claims: {n} verified | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real research outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} sources gathered across T1-T6 tiers ({tier-breakdown}) with CRAAP+ scoring — synthesis is evidence-weighted, not first-result-wins`
 - `Contradictions across sources surfaced ({n} disagreements) — decision-maker sees the disagreement, not a fabricated consensus`
@@ -162,7 +162,8 @@ Zero-result run: `No credible sources found in budget — query refined and re-r
 - Every claim cites at least one source with CRAAP+ ≥50
 - Contradictory sources noted explicitly with confidence assessment
 - Only cite actually retrieved and verified sources / URLs
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: N/A — state-exempt, single regenerable artifact. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W13: weight sources by verified reliability (CRAAP+), not by authority or confident phrasing; on user pushback, re-check the source before revising a conclusion. W15: agent-returned artifact re-verified before use — never cited as-is; missing/garbled artifact → stop and escalate, never fabricate.
+- W9: N/A — state-exempt, single regenerable artifact. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W13: weight sources by verified reliability (CRAAP+), not by authority or confident phrasing; on user pushback, re-check the source before revising a conclusion. W15: agent-returned artifact re-verified before use — never cited as-is; missing/garbled artifact → stop and escalate, never fabricate.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -181,4 +182,4 @@ Zero-result run: `No credible sources found in budget — query refined and re-r
 | All sources score <50 | Report low-confidence findings, recommend manual verification |
 | Query too broad | Ask user to narrow scope with specific sub-questions |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

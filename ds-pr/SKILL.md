@@ -36,12 +36,12 @@ PR descriptions that list every commit instead of net change create noise, confu
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
 - Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
-- **Unattended carve-out (SKILL-SPEC Unattended Mode rule 4, clause (b) — publishing):** under `--auto` this skill
+- **Unattended carve-out (Unattended Mode rule 4, clause (b) — publishing):** under `--auto` this skill
   runs Phases 1–3 only (validate, tidy, quality gates, net-diff analysis) and then stops. It never pushes,
   never creates or updates a PR, and never merges — every one of those publishes. It prints the prepared
   title and body, records `pr: needs-human`, and names the command the user can run.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Exempt from state protocol:** git history is the natural state — `git diff {base}...HEAD` always provides full context. No `ds/audit/pr.json` written.
 
 **Pipeline:** `PR title → squash merge on main → release-please reads title → changelog + version bump`. PR title IS changelog entry. PR body becomes squash commit body. Everything must be accurate and minimal.
@@ -218,9 +218,9 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 
 `pr: {OK|FAIL} | {pr-url} | {type} → {bump-effect} | auto-merge: {on|off}`
 
-`FRC: Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
+`Dispositions: Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-**Value Delivered:** 1-5 concrete bullets, real PR-creation outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `PR opened from net-diff analysis ({type} → {bump-effect}) — release-please will produce a clean changelog entry without journey noise`
 - `{n} unpushed commits tidied into {m} logical groups — bisect can isolate any regression`
@@ -232,9 +232,10 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 ## Quality Gates
 
 - PR description describes net diff — not journey of individual commits
-- Every quality gate check (format, lint, test) gets a disposition in summary (FRC)
+- Every quality gate check (format, lint, test) gets a disposition in summary
 - Conventional commit type on PR title matches net diff classification
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W13: the PR description reflects the verified net diff, not the author's claims about it; don't soften or inflate findings to match the PR narrative or reviewer authority.
+- W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W13: the PR description reflects the verified net diff, not the author's claims about it; don't soften or inflate findings to match the PR narrative or reviewer authority.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -253,4 +254,4 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 | PR already exists for branch | Show existing PR URL, ask if update needed |
 | CI checks failing | Warn user, create PR but skip auto-merge setup |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

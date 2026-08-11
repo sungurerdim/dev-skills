@@ -33,7 +33,8 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 - Audits UI/UX design quality across web ({web-frameworks}), mobile ({mobile-frameworks}), desktop ({desktop-frameworks}) — only touches UI-layer code (styles, components, tokens, ARIA); business + backend untouched.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
-- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -62,7 +63,7 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 | responsive | Layout overflow, breakpoints, container queries, fluid typography, multi-column symmetry, alignment & visual geometry (in-item, row/column data, shared edges/gutters, vertical rhythm), print styles, RTL-readiness, Core Web Vitals | rules-responsive.md |
 | theming | Dark mode, `light-dark()`, color-scheme, semantic tokens, theme switching | rules-design-system.md |
 | config | Env-consumed values externalized; `.env.example` updated; no secrets in source ([references/principles.md §8](references/principles.md)) | rules-design-system.md |
-| admin-ui | D10 (advisory, SKILL-SPEC §15) — back-office/admin surfaces follow the same design-system tokens, states, and a11y rules as user-facing UI; no unstyled/raw-HTML admin screens | rules-components.md |
+| admin-ui | D10 (advisory) — back-office/admin surfaces follow the same design-system tokens, states, and a11y rules as user-facing UI; no unstyled/raw-HTML admin screens | rules-components.md |
 | scheduling | Conditional (D3) — scheduling/calendar/booking surfaces: hover preview, create=edit, drag thresholds, capacity conflicts, off-hours, entity color SSOT | rules-scheduling.md |
 
 Default: all scopes.
@@ -189,7 +190,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 ### Phase 7: Design [SKIP if mode ≠ design]
 
-**Design input — prefer the highest-fidelity form available (SKILL-SPEC § Reference Forms).** A runnable HTML/CSS mockup carries the intended design more precisely than a prose description or a screenshot of it, because it is expressed in the same language as the output. Ask for or produce a mockup before working from a description; a screenshot is a weaker signal than markup and a description is weaker still. Only a description available → generate a mockup artifact first, confirm it with the user, then build against the confirmed artifact rather than re-interpreting the prose at each step.
+**Design input — prefer the highest-fidelity form available.** A runnable HTML/CSS mockup carries the intended design more precisely than a prose description or a screenshot of it, because it is expressed in the same language as the output. Ask for or produce a mockup before working from a description; a screenshot is a weaker signal than markup and a description is weaker still. Only a description available → generate a mockup artifact first, confirm it with the user, then build against the confirmed artifact rather than re-interpreting the prose at each step.
 
 1. **`tokens.json`** — W3C DTCG 2025.10: color (primary/secondary/error/warning/success/info/surface/background + 3 shades), spacing (4/8/12/16/24/32/48/64), typography (display/heading/title/body/label/caption), shadow (sm/md/lg/xl), border (radius sm/md/lg/full, width thin/medium/thick).
 2. **Component catalog** — state coverage matrix, missing state recs, a11y compliance per component.
@@ -197,7 +198,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 **Gate:** Artifacts generated and written; user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue. **Under `--auto`:** no ask — retries once with a sanitized fallback path; still unwritable → `failed (write error)`, recorded in the generated-artifacts list, run continues.
 
-### Mechanical Done Gate (SKILL-SPEC §4) [any fix applied]
+### Mechanical Done Gate [any fix applied]
 
 Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands (include the a11y lint layer from Phase 2 when wired); none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Capture the baseline before Phase 5; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each Phase 5/6 fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 8: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Re-reading the modified file (Phase 5 step 3) is necessary but is not this gate — only the check command's green is. Never report `OK` with a new red. Audit-only/`--check`/design-only runs → gate N/A, state it.
 
@@ -207,11 +208,11 @@ Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hoo
 ds-frontend: {OK|WARN|FAIL} | Mode: {audit|audit+fix|design} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-FRC+DSC accounting. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+Disposition accounting — totals balance. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
 **Gate:** Summary rendered; equation balances. If fails → unaccounted finding → `skipped (accounting gap)`; still imbalanced → `WARN`, report the items needing reconciliation.
 
-**Value Delivered:** 1-5 concrete UI outcomes, real changes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} hardcoded colors / spacings replaced with design tokens — theme + dark mode now consistent across the codebase`
 - `{n} WCAG 2.2 AA contrast violations fixed — keyboard + screen-reader users no longer locked out of key flows`
@@ -224,9 +225,10 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 
 1. Every finding cites file:line — verified by reading actual code
 2. Only modify UI-layer code (styles, components, tokens, ARIA) — business logic untouched
-3. Every finding gets a disposition — zero silent drops (FRC); every scope check evaluated and accounted for — zero silent omissions (DSC)
+3. Every finding gets a disposition — zero silent drops; every scope check evaluated and accounted for — zero silent omissions
 4. After fix, re-read modified file to verify
-5. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+5. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes.
+6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -259,4 +261,4 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 | Server-rendered (Next.js SSR, Nuxt SSR) | Audit rendered HTML output alongside component source |
 | Component library (no app) | Audit library components, skip app-level layout checks |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

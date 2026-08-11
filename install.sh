@@ -10,7 +10,15 @@
 #                                host dir (e.g. .agents/skills, .opencode/skill).
 #                                Skills only; shared agents/ are Claude-Code-specific
 #   ./install.sh --skills a,b    only the named skills (e.g. ds-review,ds-commit)
+#   ./install.sh --profile P     portable (default) ships files verbatim — full
+#                                self-contained density for any host. lean strips
+#                                the blocks marked `<!-- portable-only -->` at
+#                                install time — for Claude-5-generation hosts with
+#                                an always-on rules layer (e.g. dev-rules) that
+#                                already supplies those universal gates. Repo files
+#                                always keep the full portable text.
 #   ./install.sh --check         report drift between repo and installed copy
+#                                (profile-aware; reads profile from version stamp)
 #   ./install.sh --uninstall     remove installed dev-skills content
 #
 # Idempotent: safe to run twice. Sync uses --delete per skill dir, so files
@@ -25,17 +33,20 @@ mode="install"
 only=""
 skills_dir=""
 with_agents=1
+profile=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --project) target="$2/.claude"; shift 2 ;;
     --target)  skills_dir="$2"; with_agents=0; shift 2 ;;
     --skills)  only="$2"; shift 2 ;;
+    --profile) profile="$2"; shift 2 ;;
     --check)   mode="check"; shift ;;
     --uninstall) mode="uninstall"; shift ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown flag: $1 (see --help)"; exit 2 ;;
   esac
 done
+case "$profile" in ""|lean|portable) ;; *) echo "Unknown profile: $profile (use lean or portable)"; exit 2 ;; esac
 
 [ -n "$skills_dir" ] || skills_dir="$target/skills"
 agents_dir="$target/agents"
@@ -55,13 +66,37 @@ stamp() {
   git rev-parse --short HEAD 2>/dev/null || echo "unknown"
 }
 
+# Lean-profile transform, applied to an installed SKILL.md (never a repo file):
+# drops lines suffixed `<!-- portable-only -->`, drops
+# `<!-- portable-only:start -->`..`<!-- portable-only:end -->` blocks, and removes
+# the opening band's "repeats at file end" note (true only on portable installs).
+lean_strip() {
+  awk '
+    /<!-- portable-only:start -->/ { blk=1; next }
+    /<!-- portable-only:end -->/   { blk=0; next }
+    blk { next }
+    /<!-- portable-only -->[[:space:]]*$/ { next }
+    { gsub(/ \*\(This band repeats at file end by design — both copies are normative\.\)\*/, ""); print }
+  ' "$1" > "$1.lean.tmp" && mv "$1.lean.tmp" "$1"
+}
+
+# Resolve effective profile: explicit flag wins; else the installed stamp; else portable.
+effective_profile() {
+  if [ -n "$profile" ]; then echo "$profile"
+  elif [ -f "$version_file" ] && grep -q 'profile=lean' "$version_file"; then echo "lean"
+  else echo "portable"
+  fi
+}
+
 case "$mode" in
   install)
+    eff=$(effective_profile)
     mkdir -p "$skills_dir"
     n=0
     for s in $(skill_list); do
       [ -d "$s" ] || { echo "Skip: $s not found in repo"; continue; }
       rsync -a --delete "$s/" "$skills_dir/$s/"
+      [ "$eff" = "lean" ] && [ -f "$skills_dir/$s/SKILL.md" ] && lean_strip "$skills_dir/$s/SKILL.md"
       n=$((n+1))
     done
     if [ "$with_agents" = "1" ]; then
@@ -71,24 +106,36 @@ case "$mode" in
         rsync -a "$a" "$agents_dir/$(basename "$a")"
       done
     fi
-    echo "dev-skills@$(stamp)" > "$version_file"
+    echo "dev-skills@$(stamp) profile=$eff" > "$version_file"
     if [ "$with_agents" = "1" ]; then
-      echo "Installed/synced $n skill(s) -> $skills_dir (agents -> $agents_dir)"
+      echo "Installed/synced $n skill(s) [$eff profile] -> $skills_dir (agents -> $agents_dir)"
     else
-      echo "Installed/synced $n skill(s) -> $skills_dir (skills only — shared agents are Claude-Code-specific)"
+      echo "Installed/synced $n skill(s) [$eff profile] -> $skills_dir (skills only — shared agents are Claude-Code-specific)"
     fi
     echo "Version: $(cat "$version_file")"
     ;;
   check)
+    eff=$(effective_profile)
     drift=0
-    [ -f "$version_file" ] && echo "Installed: $(cat "$version_file") | Repo: dev-skills@$(stamp)" \
+    [ -f "$version_file" ] && echo "Installed: $(cat "$version_file") | Repo: dev-skills@$(stamp) profile=$eff" \
       || { echo "No version stamp found — install not done via install.sh yet."; drift=1; }
+    expected=""
+    if [ "$eff" = "lean" ]; then
+      expected=$(mktemp -d)
+      trap 'rm -rf "$expected"' EXIT
+    fi
     for s in $(skill_list); do
       [ -d "$s" ] || continue
       if [ ! -d "$skills_dir/$s" ]; then
         echo "MISSING: $s not installed"; drift=1; continue
       fi
-      d=$(rsync -rcn --delete --out-format='%n' "$s/" "$skills_dir/$s/" | grep -v '/$' || true)
+      src="$s"
+      if [ "$eff" = "lean" ]; then
+        rsync -a "$s/" "$expected/$s/"
+        [ -f "$expected/$s/SKILL.md" ] && lean_strip "$expected/$s/SKILL.md"
+        src="$expected/$s"
+      fi
+      d=$(rsync -rcn --delete --out-format='%n' "$src/" "$skills_dir/$s/" | grep -v '/$' || true)
       [ -z "$d" ] || { echo "DRIFT in $s:"; echo "$d" | sed 's/^/  /'; drift=1; }
     done
     if [ "$with_agents" = "1" ]; then

@@ -57,9 +57,10 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 
 **Dimensions:** none (carrier)
 
-- Orchestrator — zero own analysis, consumes `ds/audit/findings.md` as SSOT. FRC+DSC enforced. State: `ds/audit/ship.json`.
+- Orchestrator — zero own analysis, consumes `ds/audit/findings.md` as SSOT. State: `ds/audit/ship.json`.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - **Sequential delegation is deliberate:** one skill at a time, writes single-threaded, each delegate returning a compressed findings diff — the shape that holds for coupled, source-mutating work; keep it — parallel fan-out of write-owning delegates is a rejected design, not a pending optimization. Cost scales linearly with delegation count, not combinatorially.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - `/ds-blueprint` full run is always the first delegation — never skipped, never conditioned on findings freshness: a new ds-ship invocation is a new run-cycle, so prior-cycle findings are stale by definition (W10) and serve only as diff baseline. Foundation Review runs inside it every cycle.
 - **Re-run policy (every invocation = a new cycle):** each `/ds-ship` run re-executes every scan in its sequence from scratch — a previous run minutes or days ago is never a reason to skip a phase, delegate, or scope ("already ran recently" is a W11-class rejected reason). Prior-cycle `ds/audit/` artifacts and reports are consumed only as diff context: previously-flagged → resolved or still present? previously-clean → regressed? A re-run also picks up improved skill versions — repeating the full sweep is the point, not waste. **Anti-anchoring:** scan coverage derives from the codebase inventory + each skill's current rule tables, never from the prior findings list; prior artifacts are consulted only AFTER the fresh scan, for diffing. Prior findings-meta carries a different `skillset` stamp → state `rule-set delta: {old} → {new}` in the report header; previously-clean areas flagging under the new rules is expected new detection, not regression.
 - Artifacts: `ds/audit/findings.md` (via delegated skills) + own `ds/audit/report.md` (+ `ds/audit/report.html` under `--html`). No logs, traces, history, dumps.
@@ -80,7 +81,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 | `--resume` | Resume from `ds/audit/ship.json` without prompt |
 | `--clean[=all]` | `--clean` deletes ds-ship's own state and starts fresh; `--clean=all` deletes `ds/audit/` entirely (every skill's state) — use after a completed ship pass |
 
-**Unattended full run:** `/ds-ship --auto` runs the entire cascade — classification, all delegations (each receiving `--auto`), Category A+B resolution, launch gates — with zero prompts, suitable for a remote/no-interaction caller. It may commit, but never pushes and never opens a PR: opening a PR is a human decision and is always recorded `needs-human`. Other items matching SKILL-SPEC's Unattended Mode rule-4 exception list (force-push, branch/history deletion, secret rotation, human-only values) are likewise skipped and recorded `needs-human` in the final report.
+**Unattended full run:** `/ds-ship --auto` runs the entire cascade — classification, all delegations (each receiving `--auto`), Category A+B resolution, launch gates — with zero prompts, suitable for a remote/no-interaction caller. It may commit, but never pushes and never opens a PR: opening a PR is a human decision and is always recorded `needs-human`. Other items matching the Unattended Mode rule-4 exception list (force-push, branch/history deletion, secret rotation, human-only values) are likewise skipped and recorded `needs-human` in the final report.
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Full (recommended) — full ship cascade across phases / Preview — plan only, no delegated changes / Resume — continue from saved state / (Cancel). A disambiguating flag skips the menu.
 
@@ -164,7 +165,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 7. **Mark done** — queue entry → `done`; append `[P{N}.{K}] {skill} completed — A: {x}, B: {y}, deferred: {z}`.
 8. **Advance** — next delegation → repeat from step 1. Queue empty → next phase.
 
-**Enforcement-arm-first rule (before any code-modifying delegation):** check whether a ds-quality enforcement arm is installed (stop-hook / pre-commit hook / auto-lint). Installed → note it in the orchestration log as the mechanical backstop every delegate's Mechanical Done Gate (SKILL-SPEC §4) resolves against. Missing → offer `/ds-quality` bootstrap once as an early delegation (Category B; under `--auto` → installed per Unattended Mode rule 3); declined → record the gap in the report (`enforcement arm absent — delegate gates run instruction-only`) and continue. Rationale: prose gates inside delegated skills depend on the executing model obeying them; the arm makes red-blocks mechanical regardless of executor capability.
+**Enforcement-arm-first rule (before any code-modifying delegation):** check whether a ds-quality enforcement arm is installed (stop-hook / pre-commit hook / auto-lint). Installed → note it in the orchestration log as the mechanical backstop every delegate's Mechanical Done Gate resolves against. Missing → offer `/ds-quality` bootstrap once as an early delegation (Category B; under `--auto` → installed per Unattended Mode rule 3); declined → record the gap in the report (`enforcement arm absent — delegate gates run instruction-only`) and continue. Rationale: prose gates inside delegated skills depend on the executing model obeying them; the arm makes red-blocks mechanical regardless of executor capability.
 
 **Capability-tier routing (when the host supports per-delegation model selection):** set the tier explicitly, never rely on defaults — read-only search/enumeration legs → fast tier; code-modifying delegations (ds-review, ds-fix, ds-test, ds-simplify, ds-deps, …) → mid tier or better; architecture verdicts, CRITICAL confirmations, and the final ship-readiness call → top tier. A below-mid-tier executor on a code-modifying delegation requires the enforcement arm installed first (rule above) — instruction-following degrades first on low-capability models, so the mechanical arm is the non-negotiable backstop, not the skill text.
 
@@ -179,7 +180,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 7. `/ds-test`
 8. `/ds-fix`
 
-**Category B batch at end of Phase 2.** Present all B items — one line each (`[severity] title — file:line · impact/effort/risk · owner`) grouped by owning skill with counts; state the question (`Decide these N items?`). Interactive: Apply all / per-owner bulk (`Apply all ds-review` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL; "all" = exactly the displayed set). `--auto`: no prompt — every B item resolved per SKILL-SPEC Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning), except items matching the rule-4 exception list, which become `skipped (needs-human)`. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
+**Category B batch at end of Phase 2.** Present all B items — one line each (`[severity] title — file:line · impact/effort/risk · owner`) grouped by owning skill with counts; state the question (`Decide these N items?`). Interactive: Apply all / per-owner bulk (`Apply all ds-review` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL; "all" = exactly the displayed set). `--auto`: no prompt — every B item resolved per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning), except items matching the rule-4 exception list, which become `skipped (needs-human)`. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
 
 **Gate:** Every queued delegation `done`; every B item has a decision; `ds/audit/findings.md` reflects current state. If fails → log each incomplete delegation as `failed (did not signal completion)`, mark undecided B as `deferred`, continue to Phase 3 with collected findings; never block on a single failed delegation.
 
@@ -236,7 +237,7 @@ Orchestrator never pushes or opens a PR on its own; user is always free to keep 
 
 **Sequence-completeness check (run before writing the report):** compute the full mandated skill set for this run — the stage/type matrix row (Project Type ↔ Skill Sequence table) plus every applicable conditional branch (Feature-planning, Monetization, Scope-Freeze, project-type-exclusivity, and the per-type "Additional rules" row). Diff it against `delegation_queue` (skills that actually ran) unioned with the exclusion-reason list from Phase 0 step 10. Any mandated skill in neither set is a **Sequence Gap** — this is a defect in the run itself, not a finding about the target project; list it in the `## Sequence Gaps` report section with the missing skill + which rule/branch mandated it. A pre-launch or launched-stage run with an unresolved Sequence Gap MUST NOT report `Ship-ready: yes` — go back and either run the missing skill or attach a concrete exclusion reason first.
 
-Write `ds/audit/report.md` overwriting prior content. **Blocker classification (SKILL-SPEC §15):** a human-required finding counts toward `{K} blockers` only if it passes the mandated-blocker test (external mandate + citable source + rejection/legal/production risk if skipped) — every other human-required finding goes to "Recommended Human Actions" and never blocks the verdict.
+Write `ds/audit/report.md` overwriting prior content. **Blocker classification:** a human-required finding counts toward `{K} blockers` only if it passes the mandated-blocker test (external mandate + citable source + rejection/legal/production risk if skipped) — every other human-required finding goes to "Recommended Human Actions" and never blocks the verdict.
 
 Report shape — every section, including the Dimension Coverage matrix and its status vocabulary: [references/report-template.md](references/report-template.md). Emit every section; a section with no content says so rather than disappearing.
 
@@ -246,7 +247,7 @@ Report shape — every section, including the Dimension Coverage matrix and its 
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Remaining unresolved B items (rare — most resolved inline per phase). Interactive: state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. `--auto`: no prompt — resolved per SKILL-SPEC Unattended Mode rule 3, except rule-4 exception-list items, which become `skipped (needs-human)`.
+Remaining unresolved B items (rare — most resolved inline per phase). Interactive: state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. `--auto`: no prompt — resolved per Unattended Mode rule 3, except rule-4 exception-list items, which become `skipped (needs-human)`.
 
 **Gate:** All needs-approval resolved. If fails (user declines) → mark unresolved `skipped (user declined)`, include in report's "Awaiting User Decision" section, proceed.
 
@@ -269,7 +270,7 @@ Every unresolved item at run's end (deferred Category B, open blockers, Sequence
 
 ### Phase 8: Summary
 
-FRC+DSC accounting. Output:
+Disposition accounting — totals balance. Output:
 
 ```
 ds-ship: {OK|WARN|FAIL} | Stage: {stage} | A-fixed: {n} | B-applied: {n} | B-skipped: {n} | Deferred: {n} | Blockers: {n} | Ship-ready: {yes|no}
@@ -283,7 +284,7 @@ On success: delete `ds/audit/ship.json`. Keep `ds/audit/findings.md` + `ds/audit
 
 See Phase 6 above.
 
-**Value Delivered:** 1-5 concrete ship-readiness outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} delegated skills run in milestone-correct order; {n} A items applied autonomously, {n} B items batched — sequencing tax eliminated`
 - `Promise census: {n} doc claims verified against source; {n} promised-not-implemented, {n} implemented-not-documented surfaced — "ship-ready" is now evidence, not optimism`
@@ -306,7 +307,6 @@ Zero-change run: `Project already ship-ready for {stage} — no delegations trig
 | W8 | Quote every path in shell; orchestrator interpolates no user strings into commands |
 | W9 | State in `ds/audit/ship.json`, `ds/audit/` gitignored, state deleted on Summary |
 | W10 | Orchestrator consumes `ds/audit/findings.md` as SSOT — re-detects nothing delegated skills already covered |
-| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
 | W14 | Re-ground from `ds/audit/findings.md` + report + diff at each phase boundary — carry no stale in-context state across delegations |
 | W15 | A delegated skill's return is untrusted until verified against files; pass least scope; on a missing/garbled return, stop and surface, never fabricate (see references/phases.md) |
 
@@ -337,4 +337,4 @@ Zero-change run: `Project already ship-ready for {stage} — no delegations trig
 | Multiple value propositions in docs | Ask user to confirm primary vp; note secondary as intentional scope |
 | Ship-ready already | Phase 0 detects zero B gaps, report becomes maintenance snapshot — Phase 5 still runs launch checks to confirm |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

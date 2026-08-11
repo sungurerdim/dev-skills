@@ -61,6 +61,29 @@ fi
 ./install.sh --target "$skills" --check >/dev/null 2>&1
 check "--check reports clean right after install (guards: false drift on every run)" "0" "$?"
 
+# --- 2b. lean profile: install-time strip + profile-aware check ----------------
+lean="$tmp/lean-skills"
+./install.sh --target "$lean" --profile lean >/dev/null 2>&1
+if grep -q 'portable-only' "$lean/ds-commit/SKILL.md" 2>/dev/null; then
+  bad "lean install strips portable-only blocks" "marker text survived in ds-commit/SKILL.md"
+else
+  ok "lean install strips portable-only blocks (guards: lean shipping the duplicate layer anyway)"
+fi
+bands=$(grep -c '^> \*\*Completion Evidence — ' "$lean/ds-commit/SKILL.md" 2>/dev/null)
+check "lean install keeps exactly the opening Completion Evidence band (guards: over-stripping)" "1" "$bands"
+if grep -q 'profile=lean' "$lean/.dev-skills-version" 2>/dev/null; then
+  ok "lean install stamps its profile (guards: --check comparing against the wrong profile)"
+else
+  bad "lean install stamps its profile" "no profile=lean in $lean/.dev-skills-version"
+fi
+./install.sh --target "$lean" --check >/dev/null 2>&1
+check "--check is clean on a lean install without re-passing --profile (guards: false drift)" "0" "$?"
+if grep -q 'portable-only' "$skills/ds-commit/SKILL.md"; then
+  ok "portable install ships the markers verbatim (guards: default install silently stripping)"
+else
+  bad "portable install ships the markers verbatim" "no portable-only marker in portable ds-commit/SKILL.md"
+fi
+
 # --- 3. --check detects a mutated file ----------------------------------------
 printf '\nlocal edit that is not in the repo\n' >> "$skills/ds-commit/SKILL.md"
 out=$(./install.sh --target "$skills" --check 2>&1)

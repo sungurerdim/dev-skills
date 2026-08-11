@@ -31,8 +31,8 @@ description: Store and release management — store submission, listing optimiza
 - Covers store account setup, listing metadata, review preparation, release management; generates checklists + metadata — does NOT submit to stores directly.
 - Minimal liability + maximum privacy + maximum automation: store-compliant metadata + common rejection flags; privacy labels with minimal data-collection focus; version management + release notes generation + staged rollout.
 - Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 
 ## Arguments
@@ -161,12 +161,12 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 |---------|---------------|
 | Versioning | Semantic versioning, build number management |
 | Release notes | User-facing changelog, localization |
-| User-facing changelog (D6, advisory) | Distinct from dev/store release notes — a plain-language "what changed" surface exists, especially when an OTA/silent auto-update channel is detected (CodePush, Expo Updates, Electron auto-updater, or equivalent). OTA channel detected + no user-facing changelog surface -> advisory finding "silent OTA channel with no user-facing changelog" (never a blocker, SKILL-SPEC §15) |
+| User-facing changelog (D6, advisory) | Distinct from dev/store release notes — a plain-language "what changed" surface exists, especially when an OTA/silent auto-update channel is detected (CodePush, Expo Updates, Electron auto-updater, or equivalent). OTA channel detected + no user-facing changelog surface -> advisory finding "silent OTA channel with no user-facing changelog" (never a blocker) |
 | Staged rollout | Google Play: 1% → 5% → 20% → 50% → 100% (manual). Apple: 7-day phased 1% → 2% → 5% → 10% → 20% → 50% → 100% (can pause). |
 | Rollout automation (advisory) | Mobile project (`pubspec.yaml` / `*.xcodeproj` / `build.gradle` with `android {}`) with no `Fastfile` → MEDIUM finding "no fastlane automation — staged rollout percentages require manual store-console execution". `Fastfile` present → verify release lanes cover the staged-rollout steps above. |
 | Force update | Minimum version enforcement, update UX |
 | Rollback | Emergency rollback procedure |
-| Rollback narrative (D6, advisory) | Beyond the technical rollback procedure above — is there a documented plan for how users are informed when a bad release is rolled back (in-app notice, status page, email)? No documented rollback communication plan -> advisory finding "no rollback communication plan" (never a blocker, SKILL-SPEC §15) |
+| Rollback narrative (D6, advisory) | Beyond the technical rollback procedure above — is there a documented plan for how users are informed when a bad release is rolled back (in-app notice, status page, email)? No documented rollback communication plan -> advisory finding "no rollback communication plan" (never a blocker) |
 
 ### SEO (`--seo` — web platform; auto-included for web-only projects; audit-rule counterpart: ds-compliance WEB-08 — generation/execution is canonical here)
 
@@ -205,7 +205,7 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 
 | Provider | Rule | Scope |
 |----------|------|-------|
-| Google | OAuth consent screen — verify production approval status, homepage/privacy URLs, authorized domains (Google OAuth verification requirement — mandated blocker, SKILL-SPEC §15) | review |
+| Google | OAuth consent screen — verify production approval status, homepage/privacy URLs, authorized domains (Google OAuth verification requirement — a citable external platform mandate, so a blocker, not advisory) | review |
 | Apple | Sign in with Apple — verify entitlement + `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | review |
 | Google | Data safety section — ensure declarations match actual API scopes used | privacy |
 | Apple | Apple Privacy Labels — verify nutrition label declares sign-in and contact info if applicable | privacy |
@@ -270,9 +270,9 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|Desktop|All} | Ready: {n}/{n} checks | Missing: {n} items | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-Include checklist of remaining items before submission. FRC+DSC accounting.
+Include checklist of remaining items before submission. Disposition accounting — totals balance.
 
-**Value Delivered:** 1-5 concrete bullets, real submission outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `Store listing + privacy labels generated — submission no longer rejected for missing required fields`
 - `App Review Notes pre-filled — reviewer round-trip eliminated (saves 24-48h per round)`
@@ -287,8 +287,9 @@ Zero-change run: `Submission package already complete — no missing fields`.
 
 - Every store listing element meets platform character limits; privacy labels match actual code behavior (verified by codebase scan)
 - Pre-review checklist has zero CRITICAL items; version numbers are valid semver with incrementing build numbers
-- Release notes are user-friendly (not developer jargon); every finding gets a disposition (FRC)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- Release notes are user-friendly (not developer jargon); every finding gets a disposition
+- W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -318,4 +319,4 @@ Zero-change run: `Submission package already complete — no missing fields`.
 | Multi-platform | Generate per-platform checklists, note shared vs platform-specific |
 | Enterprise / internal distribution | Skip public store, focus on MDM / enterprise distribution |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

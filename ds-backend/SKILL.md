@@ -31,7 +31,7 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 ## Contract
 
 **Dimensions:** B5 (API ergonomics), D3, D4, D5, A10 (OpenAPI spec), A9 (conditional ecosystem rules), C1 (secure-by-design, conditional messaging), D10 (admin API + stats), A11 (webhook/export/embed)
-**Framework alignment (advisory):** Google SRE PRR (D3, D4), OpenAPI Specification 3.1+ (A10), OWASP ASVS 5.0 (C1, released May 2025) — sourced references in SKILL-SPEC Dimension Coverage Map.
+**Framework alignment (advisory):** Google SRE PRR (D3, D4), OpenAPI Specification 3.1+ (A10), OWASP ASVS 5.0 (C1, released May 2025).
 
 - Covers five scopes: API design, database design, authentication, data pipelines (ingest → clean → merge → store → serve), and LLM/AI features (conditional — only when the project integrates an LLM/AI provider).
 - Generates specifications, not implementation — produces OpenAPI specs, migration files, auth flow diagrams.
@@ -39,8 +39,8 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 - Minimal liability + maximum privacy + minimum dependencies: auth recommendations prioritize managed services over DIY; data minimization in every schema (API responses expose only required fields); prefer platform-native auth over third-party SDKs where feasible.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -71,8 +71,8 @@ Without flags: present an up-front mode menu — Audit (recommended) / Design / 
 | Caching | HTTP caching headers, ETag, Cache-Control |
 | Idempotency | `Idempotency-Key` header for non-idempotent POST |
 | Logging | Structured request logging (request ID, duration, status) |
-| Error-channel decision (D4, advisory) | Production crash/error reporting has an explicit decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only — see ds-compliance crosscheck), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding, never a blocker (SKILL-SPEC §15) |
-| Ecosystem openness (A11, advisory) | Webhook emission surface (versioned payload, HMAC signature verified constant-time, timestamp replay-tolerance check — industry convention ~5 min — `webhook-id` as consumer idempotency key, retry/backoff — aligned to the [Standard Webhooks](https://www.standardwebhooks.com/) spec where feasible) for state-change events; standard-format export endpoints (ICS/CSV/JSON, not just proprietary JSON) for user data; embeddable-surface posture (widget/iframe API) where the product has a natural embed use case. Product holds user data with no standard export path -> advisory portability finding (see ds-compliance crosscheck); never a blocker (SKILL-SPEC §15) |
+| Error-channel decision (D4, advisory) | Production crash/error reporting has an explicit decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only — see ds-compliance crosscheck), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding, never a blocker |
+| Ecosystem openness (A11, advisory) | Webhook emission surface (versioned payload, HMAC signature verified constant-time, timestamp replay-tolerance check — industry convention ~5 min — `webhook-id` as consumer idempotency key, retry/backoff — aligned to the [Standard Webhooks](https://www.standardwebhooks.com/) spec where feasible) for state-change events; standard-format export endpoints (ICS/CSV/JSON, not just proprietary JSON) for user data; embeddable-surface posture (widget/iframe API) where the product has a natural embed use case. Product holds user data with no standard export path -> advisory portability finding (see ds-compliance crosscheck); never a blocker |
 | Security | OWASP API Security Top 10 (2023 edition — current as of 2026) checks |
 | SLO baseline (advisory) | Critical user journeys have RED metrics (rate/errors/duration) exposed and an SLO defined; error-budget policy + burn-rate alerting delegated to ds-devops (advisory-handoff: absent → gap-note, never a blocker) |
 | Destructive-operation response integrity | Multi-scope destructive endpoints (reset/delete/purge) are split into clearly-named, narrowly-scoped, idempotent operations behind escalating confirmation — never one ambiguous "clear all". Every destructive response compares expected-vs-actual outcome (e.g. `{deleted: 0}` when records were expected) and returns a warning/conflict status, never a bare 200/success, on divergence — silent false-success on a no-op delete is CRITICAL |
@@ -86,7 +86,7 @@ Without flags: present an up-front mode menu — Audit (recommended) / Design / 
 | Migrations | Expand-contract pattern, safe vs dangerous ops, rollback tested, CI migration lint (Squawk) |
 | Query patterns | N+1 detection, EXPLAIN ANALYZE review, `pg_stat_statements`, connection pooling |
 | Backup | 3-2-1 rule, WAL archiving, restore testing |
-| Restore-drill proof (D3, advisory) | Backup existing is not resilience — require a documented restore runbook + evidence of ≥1 executed end-to-end drill (worst case: total account/environment loss, restored to a clean target). Missing evidence -> advisory finding "backup exists, restore unproven — run a drill and record the runbook" (never a blocker, SKILL-SPEC §15) |
+| Restore-drill proof (D3, advisory) | Backup existing is not resilience — require a documented restore runbook + evidence of ≥1 executed end-to-end drill (worst case: total account/environment loss, restored to a clean target). Missing evidence -> advisory finding "backup exists, restore unproven — run a drill and record the runbook" (never a blocker) |
 | Data privacy | PII classification, encryption at rest, GDPR right-to-erasure, retention |
 | Local cache reconstructibility (conditional — offline-first/cached-client architecture) | Every client-side cache/store classified as server-native (recoverable via re-fetch), derived (recoverable by re-parsing another artifact), or justified-transient (device-only, documented reason) — an unclassified local-only store that can't be reconstructed after a device wipe is a data-loss risk, flag HIGH. Cross-device write conflicts resolve via server-side ordering (ETag/If-Match/revision), never device wall-clock last-write-wins |
 | Bulk restore/import safety | Bulk write/restore/import/migration operations enqueue in bounded batches (drain-before-next-batch) through the normal write pipeline, never exceeding its hard queue-depth cap; default mode is dry-run (diff of new-vs-existing, no writes) with an explicit force/second-confirm flag required for the destructive path |
@@ -137,7 +137,7 @@ Without flags: present an up-front mode menu — Audit (recommended) / Design / 
 
 ### Admin & Support Operability (D10, advisory)
 
-Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15).
+Advisory only — findings here are Category B, never blockers.
 
 | Check Area | What It Covers |
 |------------|---------------|
@@ -279,7 +279,7 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 **Gate:** All items resolved. If fails → forced binary re-prompt; no response → `skipped (no response)` and proceed.
 
-### Mechanical Done Gate (SKILL-SPEC §4) [any project file modified — applied fixes, flag-gate tasks from ds-freeze]
+### Mechanical Done Gate [any project file modified — applied fixes, flag-gate tasks from ds-freeze]
 
 Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Capture the baseline before the first modification; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each applied fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 7: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Never report `OK` with a new red. Spec-only/design-only runs (no working-tree modification) → gate not applicable, state `no files modified — mechanical gate N/A`.
 
@@ -293,9 +293,9 @@ ds-backend: {OK|WARN|FAIL} | Scope: {api,db,auth,data-pipeline[,llm]} | Findings
 - **Design output:** generated artifacts list with locations.
 - **Spec output:** generated specification files with locations.
 
-FRC+DSC accounting.
+Disposition accounting — totals balance.
 
-**Value Delivered:** 1-5 concrete bullets, real design outputs only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `OpenAPI spec for {n} endpoints with RFC 9457 error format — frontend / mobile clients can generate type-safe SDKs from one source of truth`
 - `DB schema reviewed: {n} missing indexes added, {n} N+1 query risks flagged — query latency expected to drop on hot paths`
@@ -313,20 +313,8 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 - OpenAPI spec validates against OpenAPI 3.1+ schema
 - Migration files include both `up` + `down` operations
 - Auth flows use current best practices (PKCE for all client types, not implicit flow)
-
-| Guard | Rule |
-|-------|------|
-| W1 | Cite file:line; never assume |
-| W2 | Check consumers after modify |
-| W3 | Touch only task-required lines |
-| W4 | Re-read after gap |
-| W5 | Uncertain → lower severity |
-| W6 | Verify all phases output |
-| W7 | Dedup file:line |
-| W8 | No raw shell interpolation |
-| W9 | State-exempt — audit is regenerable from source; applied fixes land in the working tree; git is the durable record |
-| W10 | Defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered |
-| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
+- W10: Defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered
+- W1: Cite file:line; never assume. W2: Check consumers after modify. W3: Touch only task-required lines. W4: Re-read after gap. W5: Uncertain → lower severity. W6: Verify all phases output. W7: Dedup file:line. W8: No raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -357,4 +345,4 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 | No ORM (raw SQL) | Check for SQL injection, parameterized queries |
 | Microservices | Ask which service to analyze, check inter-service auth |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

@@ -38,8 +38,8 @@ New projects start with no CI, no test setup, no linting, and inconsistent struc
 - Respects existing files — overwrites only with explicit user confirmation
 - Standalone. Uses blueprint when available to select scaffold template; asks user when absent.
 - Minimal liability + minimum dependencies + maximum automation: standard well-known config patterns, no custom security code, scaffolded projects start with minimal deps (rationale documented), CI/lint/format/test configured from day one. Prefer stdlib and well-established minimal libraries.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Exempt from state protocol:** idempotent scaffolding — re-running on the same project naturally resumes because existing files are skipped. No `ds/audit/init.json`.
 
 ## Arguments
@@ -160,7 +160,7 @@ Per [references/rules-scaffold.md](references/rules-scaffold.md). Generate indep
 4. CI workflow references correct paths and commands.
 5. **Twelve-Factor checks** on generated artifacts ([references/principles.md §3](references/principles.md)): `Dockerfile` logs to stdout (no `--logfile=` paths), binds via `$PORT` env var (no hardcoded ports), runs as non-root `USER`, has `HEALTHCHECK`. `docker-compose.yml` uses `restart: unless-stopped`, externalizes config via `environment:` from `.env`. Every CI action is SHA-pinned.
 
-6. **Mechanical Done Gate (SKILL-SPEC §4):** the scaffold's own toolchain is `{check-cmd}` — the exact format/lint/type/test commands the generated configs define. Dependencies installed (or installable with one standard command the user approved) → run `{check-cmd}` once; the example test + lint pass green is the proof the scaffold actually works. Red → fix the generated file, re-run the same command (≤3 attempts); still red → record `failed (mechanical gate)` with the captured error for that file, surface HIGH. Toolchain not runnable in this environment (no install approval, offline) → mark every generated config `unverified — {check-cmd} not run`, list the exact commands under Next steps, and never claim the scaffold verified.
+6. **Mechanical Done Gate:** the scaffold's own toolchain is `{check-cmd}` — the exact format/lint/type/test commands the generated configs define. Dependencies installed (or installable with one standard command the user approved) → run `{check-cmd}` once; the example test + lint pass green is the proof the scaffold actually works. Red → fix the generated file, re-run the same command (≤3 attempts); still red → record `failed (mechanical gate)` with the captured error for that file, surface HIGH. Toolchain not runnable in this environment (no install approval, offline) → mark every generated config `unverified — {check-cmd} not run`, list the exact commands under Next steps, and never claim the scaffold verified.
 
 **Gate:** All verifications pass, and `{check-cmd}` ran green or every skipped check is explicitly marked `unverified`. If fails → fix inline (correct YAML, add missing `.gitignore` entry, remove hardcoded port), re-verify once; if not auto-fixable (e.g., SHA-pin needs network lookup), insert `# TODO: SHA-pin this action` comment, mark `partial`, surface HIGH finding — do not block summary.
 
@@ -196,7 +196,7 @@ Next steps:
 4. Start development: {dev-command}
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real generations only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} config files generated — lint/format/typecheck run on every commit, no manual setup`
 - `CI pipeline (lint → test → build) wired with SHA-pinned actions — supply chain hardening from day one`
@@ -212,7 +212,8 @@ Next steps:
 - `.env.example` contains only placeholder values, never real secrets
 - CI workflow is a complete lint → test → build pipeline
 - Generated `README.md` includes setup + run instructions
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (idempotent scaffolding). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W16: every scaffolded dependency exists in its registry (non-trivial age + downloads) and is pinned in the lockfile; hallucinated or typosquat names rejected.
+- W9: not applicable — exempt from state protocol (idempotent scaffolding). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W16: every scaffolded dependency exists in its registry (non-trivial age + downloads) and is pinned in the lockfile; hallucinated or typosquat names rejected.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -232,4 +233,4 @@ Next steps:
 | Multiple stacks | Ask user to choose primary, note secondary. **Under `--auto`:** no ask — the stack with the most source files becomes primary, others noted as secondary in the summary |
 | Custom stack not listed | Generate generic structure with user-specified conventions |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

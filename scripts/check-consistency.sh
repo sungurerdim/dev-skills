@@ -203,6 +203,54 @@ check_auto_row_canonical() {
   done
 }
 
+# 27. v6.1 — Portable-only marker hygiene (SKILL-SPEC §1 Portable-only markers):
+#     `install.sh --profile lean` strips marked lines at install time, so the
+#     spec-named blocks must carry the marker, block markers must balance, and no
+#     table row may be marked (stripping a row corrupts `|$`-anchored checks).
+check_portable_only_markers() {
+  local f m s e bad
+  m='<!-- portable-only -->'
+  for f in ds-*/SKILL.md; do
+    [ -f "$f" ] || continue
+    grep -E '^> \*\*Completion Evidence — final gate' "$f" | grep -qF "$m" \
+      || err "$f closing Completion Evidence band lacks the portable-only marker (lean install cannot strip it)"
+    if grep -qE '^- Pre-existing' "$f"; then
+      grep -E '^- Pre-existing' "$f" | grep -qF "$m" \
+        || err "$f pre-existing-errors contract bullet lacks the portable-only marker"
+    fi
+    if grep -qE '^- W1: cite file:line' "$f"; then
+      grep -E '^- W1: cite file:line' "$f" | grep -qF "$m" \
+        || err "$f generic W-recap line lacks the portable-only marker"
+    fi
+    s=$(grep -c 'portable-only:start' "$f"); e=$(grep -c 'portable-only:end' "$f")
+    [ "$s" = "$e" ] || err "$f has $s portable-only:start vs $e portable-only:end markers (unbalanced block)"
+    bad=$(grep -nE '^\|.*portable-only' "$f" || true)
+    [ -z "$bad" ] || err "$f marks a table row portable-only (lean strip would corrupt the table):
+$bad"
+  done
+}
+
+# 28. v6.1 — Shared principles.md sync: many skills carry a same-named copy on
+#     purpose (Standalone Invariant), synced only by hand. A copy that diverges
+#     from the majority hash must declare it with `<!-- variant: ... -->` in its
+#     first 5 lines — three copies had silently diverged before this check existed.
+check_principles_sync() {
+  local hashes major h f
+  hashes=$(for f in ds-*/references/principles.md; do
+    [ -f "$f" ] || continue
+    printf '%s %s\n' "$(cksum < "$f" | awk '{print $1"-"$2}')" "$f"
+  done)
+  [ -n "$hashes" ] || return 0
+  major=$(printf '%s\n' "$hashes" | awk '{print $1}' | sort | uniq -c | sort -rn | head -1 | awk '{print $2}')
+  while read -r h f; do
+    [ "$h" = "$major" ] && continue
+    head -5 "$f" | grep -q '<!-- variant:' \
+      || err "$f diverges from the majority principles.md without a '<!-- variant: ... -->' declaration in its first 5 lines (silent drift)"
+  done <<PRINEOF
+$hashes
+PRINEOF
+}
+
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
 #     input, runs the real check function against it, asserts a FAIL: line
@@ -313,10 +361,21 @@ EOF
   printf '**Interactive:** ask Apply all / per-severity bulk / Review Each / Skip All.\n' > "$tmp/f8/ds-alpha/SKILL.md"
   printf '**Interactive:** per row, plus per-dimension bulk (`Close all <dimension>`).\n' > "$tmp/f8/ds-beta/SKILL.md"
   assert_catches "check_approval_critical_carveout" "$tmp/f8" check_approval_critical_carveout
-check_approval_critical_carveout
+
+  # Fixture: check_portable_only_markers — closing band without the marker
+  mkdir -p "$tmp/f9/ds-alpha"
+  printf -- '- Pre-existing / out-of-scope errors are NOT skipped. <!-- portable-only -->\n> **Completion Evidence — final gate:** evidence required.\n' > "$tmp/f9/ds-alpha/SKILL.md"
+  assert_catches "check_portable_only_markers" "$tmp/f9" check_portable_only_markers
+
+  # Fixture: check_principles_sync — two majority copies, one silent divergence
+  mkdir -p "$tmp/f10/ds-alpha/references" "$tmp/f10/ds-beta/references" "$tmp/f10/ds-gamma/references"
+  printf '# Principles\nshared text\n' > "$tmp/f10/ds-alpha/references/principles.md"
+  printf '# Principles\nshared text\n' > "$tmp/f10/ds-beta/references/principles.md"
+  printf '# Principles\nshared text\nplus a silent local addition\n' > "$tmp/f10/ds-gamma/references/principles.md"
+  assert_catches "check_principles_sync" "$tmp/f10" check_principles_sync
 
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 9 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 11 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -626,9 +685,11 @@ check_bare_repo_paths
 check_auto_row_canonical
 check_rule_heading_level
 check_rule_id_namespace
+check_portable_only_markers
+check_principles_sync
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync all consistent"
 else
   exit 1
 fi

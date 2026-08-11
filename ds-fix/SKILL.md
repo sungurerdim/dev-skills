@@ -34,8 +34,8 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 - Re-validates after fix to confirm fix worked. Reports counts, not verbose output.
 - Does NOT perform manual code review, architecture analysis, or refactoring.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Exempt from state protocol:** tool-driven, fast, independent passes — re-running repeats idempotent fixes. No `ds/audit/fix.json` written.
 
 ## Arguments
@@ -234,7 +234,7 @@ Look up typecheck tool from `references/toolchains.md`; detect if type checking 
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt per item; no response → mark `skipped (no response)` and proceed.
 
-### Mechanical Done Gate (SKILL-SPEC §4)
+### Mechanical Done Gate
 
 This skill's five passes ARE the project's `{check-cmd}` — the gate here is self-referential but still explicit: after all mutating scopes, re-run every mutated scope's check command once (aggregate re-verify — per-scope greens can compose into a red, e.g. a lint auto-fix that breaks the type graph). The aggregate run's exact commands + observed outputs are the Completion Evidence. Residual red in any scope → status is `WARN`/`FAIL` with the counts, never `OK` — and the summary names the follow-up owner (code-level fixes → `/ds-review`; permanent enforcement so red blocks "done" host-wide → `/ds-quality`, offered once when no enforcement arm is installed). Baseline red that predates this run is reported as red-at-baseline, never silently inherited.
 
@@ -242,9 +242,11 @@ This skill's five passes ARE the project's `{check-cmd}` — the gate here is se
 
 Per-scope status table `| Scope | Status | Details |` — one row each in run order: L10n ({count or message}), Format ({files-fixed} fixed), Lint ({issues-found} issues), Typecheck ({errors-found} errors), Security ({findings} findings). Status legend: ✓ = pass, ✗ = issues found, ⊘ = not applicable, ⚠ = tool unavailable (skipped).
 
-`ds-fix: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}` — FRC+DSC accounting.
+`ds-fix: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-**Value Delivered:** 1-5 concrete bullets, real changes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+Disposition accounting — totals balance.
+
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} hardcoded secrets intercepted in {scope-paths} — credentials no longer leak into git history on next commit`
 - `{n} type errors surfaced in `{module-path}` — runtime crashes prevented before users hit them`
@@ -264,7 +266,8 @@ Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scope
 - **CRITICAL escalation (second-pass verification):** any CRITICAL secret finding re-verified before reporting — re-read file ±20 lines, check skip patterns (`# noqa`, test fixtures, generated files, env-loader patterns). Insufficient evidence → downgrade to HIGH. CRITICAL reserved for confirmed exposures.
 - **Educational output triple:** every applied fix includes three lines beside "what changed": `why:` (impact if unfixed), `avoid:` (anti-pattern), `prefer:` (correct pattern). Single-line counts/messages exempt — applies to per-finding fix records.
 - **needs_approval reason validator:** parse every `skipped` / `needs-approval` reason against the reject list in [references/principles.md §12](references/principles.md). Match → reason rejected, item re-routed (fix inline or escalate). Status `OK` forbidden while any rejected-reason item remains.
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, tool-driven). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Severity
 
@@ -290,4 +293,4 @@ Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scope
 | Pre-existing config (`.eslintrc`, `ruff.toml`, etc.) | Respect project config — never override with defaults |
 | Lock file conflict | Warn, skip dependency operations |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

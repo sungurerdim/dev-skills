@@ -32,12 +32,12 @@ Four modes: `--tactical` for file-level quality fixes, `--strategic` for archite
 ## Contract
 
 **Dimensions:** B1 (code quality), D1 (performance), D2 (resource economy), D9 (API contract breakage)
-**Framework alignment (advisory):** ISO/IEC 25010 (B1), Google SRE PRR + Well-Architected Performance Efficiency (D1), Semantic Versioning (D9) — sourced references in SKILL-SPEC Dimension Coverage Map.
+**Framework alignment (advisory):** ISO/IEC 25010 (B1), Google SRE PRR + Well-Architected Performance Efficiency (D1), Semantic Versioning (D9).
 
 - Every fix cites file:line with before/after — no blind modifications. Only modifies lines required by the finding; no scope creep.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: fixes land in the working tree / commits as they are applied — git is the durable record; re-run re-verifies remaining findings.
 
 ## Arguments
@@ -146,7 +146,7 @@ Under `--auto`: this phase is skipped entirely — mode resolves to All (tactica
 
 Auto-invoke MAY be skipped via `--no-bootstrap` for testing — then review runs own scope analysis.
 
-**Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → filter findings by active scopes. Per matching finding: read file:line + surrounding context (±10 lines); verify finding still valid (code may have changed); confirmed → add to fix list; false positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved`, record the reason on the finding; both count as Skipped in FRC accounting. Then fix confirmed findings. Skip own analysis for scopes covered by findings file; scopes NOT covered → run own analysis below. Stale/absent findings → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: run own analysis below, appending with own `source` + current `git_hash`.
+**Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → filter findings by active scopes. Per matching finding: read file:line + surrounding context (±10 lines); verify finding still valid (code may have changed); confirmed → add to fix list; false positive or already resolved → classify as `not-applicable` (false positive) or `already-resolved`, record the reason on the finding; both count as Skipped in the disposition accounting. Then fix confirmed findings. Skip own analysis for scopes covered by findings file; scopes NOT covered → run own analysis below. Stale/absent findings → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: run own analysis below, appending with own `source` + current `git_hash`.
 
 **If no findings file after bootstrap or `--no-bootstrap`:** analyze in parallel-planned batches grouped by cost. Announce plan before starting.
 
@@ -158,7 +158,7 @@ Auto-invoke MAY be skipped via `--no-bootstrap` for testing — then review runs
 
 **Tactical analysis:** grep for patterns, read context (50 lines), score findings by severity. For repository hygiene (committed binaries, secrets): verify via `git ls-files`.
 
-**`--diff` scoping:** resolve the changed-file set (`git diff --name-only HEAD` + staged; with `{ref}`: `git diff --name-only $(git merge-base {ref} HEAD)`), run every selected scope on only those files plus their direct consumers (importers/callers — W2). Findings-file entries outside the set → out of scope for this run, not skipped: exclude from FRC totals, note count once in summary.
+**`--diff` scoping:** resolve the changed-file set (`git diff --name-only HEAD` + staged; with `{ref}`: `git diff --name-only $(git merge-base {ref} HEAD)`), run every selected scope on only those files plus their direct consumers (importers/callers — W2). Findings-file entries outside the set → out of scope for this run, not skipped: exclude from disposition totals, note count once in summary.
 
 **Strategic analysis:** evaluate patterns across codebase, flag structural issues even if not auto-fixable, question consistency not just correctness.
 
@@ -241,7 +241,7 @@ Under `--auto`: skip the menu — resolves to Fix All (respecting the confidence
 
 Apply fixes grouped by file: different files parallel; same file sequential (re-read after each edit); minimal diff, preserve surrounding style; before adding any import/API, verify it exists in codebase or deps; cross-module change → `needs_approval`.
 
-**Mechanical Done Gate (SKILL-SPEC §4):** resolve `{check-cmd}` at setup — ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision, never silently skip. Capture the baseline before the first fix; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each fix batch: run `{check-cmd}` — new errors introduced → repeat fix-verify with the same command (max 3 iterations). Before Phase 7: run the full `{check-cmd}` once — per-batch greens can compose into a red; the aggregate run's exact command + observed output is the Completion Evidence, and a new red blocks `OK`.
+**Mechanical Done Gate:** resolve `{check-cmd}` at setup — ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision, never silently skip. Capture the baseline before the first fix; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each fix batch: run `{check-cmd}` — new errors introduced → repeat fix-verify with the same command (max 3 iterations). Before Phase 7: run the full `{check-cmd}` once — per-batch greens can compose into a red; the aggregate run's exact command + observed output is the Completion Evidence, and a new red blocks `OK`.
 
 **Loop mode (`--loop`):** after applying: (1) re-read modified files + direct dependents (importers, callers); (2) re-analyze for new findings caused by fixes (cascade breakage); (3) new findings → apply fixes; (4) max 3 iterations — still issues after 3 → report remaining and stop.
 
@@ -281,7 +281,7 @@ refactor complete (tactical)
 Fixed: {n} | Skipped: {n} | Failed: {n} | Needs Approval: {n} | Total: {n}
 ```
 
-FRC+DSC accounting.
+Disposition accounting — totals balance.
 
 **Strategic output:**
 ```
@@ -309,7 +309,7 @@ Status: OK (failed=0), WARN (failed>0 no CRITICAL), FAIL (CRITICAL unfixed or er
 
 Formula, cap rules, and the judgment ranges for scopes without countable findings: [references/scopes-strategic.md § Score Calculation](references/scopes-strategic.md).
 
-**Value Delivered:** 1-5 concrete fix outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} CRITICAL/HIGH security findings closed ({n} hardcoded secrets, {n} injection vectors) — exposure window before next deploy eliminated`
 - `{n} N+1 query patterns fixed in {module} — p95 latency expected to drop on hot paths`
@@ -320,23 +320,8 @@ Zero-finding run: `All checks evaluated across {scopes} — 0 findings`.
 
 ## Quality Gates
 
-| Guard | Rule |
-|-------|------|
-| W1 | Cite file:line; never assume |
-| W2 | Check consumers after modify |
-| W3 | Touch only task-required lines |
-| W4 | Re-read after gap |
-| W5 | Uncertain → lower severity |
-| W6 | Verify all phases output |
-| W7 | Dedup file:line |
-| W8 | No raw shell interpolation |
-| W9 | State-exempt — fixes land in the working tree/commits as applied; git is the durable record |
-| W10 | Defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered |
-| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
-| W13 | Judge code by behavior (read/run it), not by PR text, comments, or authority claims; on user pushback, re-verify from source before conceding |
-| W17 | Flag near-duplicate clones (ARC-11) instead of greenlighting regenerated code |
-
-FRC+DSC enforced.
+- W9: state-exempt — fixes land in the working tree/commits as applied; git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W17: flag near-duplicate clones (ARC-11) instead of greenlighting regenerated code.
+- W1: cite file:line; never assume. W2: check consumers after modify. W3: touch only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W13: judge code by behavior (read/run it), not by PR text, comments, or authority claims; on user pushback, re-verify from source before conceding. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -355,4 +340,4 @@ FRC+DSC enforced.
 | All findings are LOW | Report only, skip fix prompt |
 | Single file project | Run all applicable scopes on that file |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

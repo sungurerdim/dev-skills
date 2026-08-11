@@ -42,9 +42,17 @@ The band itself is unconditional — external machine-checkable evidence is requ
 | Profile | Copies | When |
 |---------|--------|------|
 | **Portable** (repo default) | Two — one immediately before the first `##` section, one as the last block of the file | Any distribution readable by DeepSeek/Qwen/Llama-family hosts, or by Cursor/Copilot/Aider/Windsurf. Rule-position bias is model-family-dependent — primacy for DeepSeek/Qwen/Llama, recency for Claude/Gemini ([MOSAIC, arXiv:2601.18554](https://arxiv.org/abs/2601.18554)) — so no single position is safe across models |
-| **Lean** | One — the opening copy only | A Claude-5-generation-only distribution. Anthropic removed >80% of Claude Code's system prompt for these models with no measurable eval loss, and identifies repeated instruction as a pattern those models no longer need ([context engineering for Claude 5](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models), 2026-07-24) |
+| **Lean** | One — the opening copy only | A Claude-5-generation host with an always-on rules layer (e.g. dev-rules) installed. Anthropic removed >80% of Claude Code's system prompt for these models with no measurable eval loss, and identifies repeated instruction as a pattern those models no longer need ([context engineering for Claude 5](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models), 2026-07-24) |
 
-**This repo ships the portable profile**, because its stated tool support spans six hosts including weaker models. The duplication is therefore a deliberate portability cost, not an unconditional law — and unlike an always-on rules file, a skill's second band is paid only when that skill is invoked, so the cost is bounded. A Claude-5-only fork drops the closing copy and relaxes the `evidence-band` check in `scripts/check-consistency.sh` accordingly; do not drop it while the six-host claim stands.
+**Repo files always carry the full portable text**, because the stated tool support spans six hosts including weaker models. The duplication is therefore a deliberate portability cost, not an unconditional law — and unlike an always-on rules file, a skill's second band is paid only when that skill is invoked, so the cost is bounded. The lean profile is produced at install time — `./install.sh --profile lean` — never by editing repo files; `scripts/check-consistency.sh` always enforces the portable form in the repo.
+
+**Portable-only markers.** The installer's lean transform is driven by explicit markers, invisible in rendered Markdown:
+
+- A line ending in ` <!-- portable-only -->` ships only on portable installs; lean strips the whole line.
+- A `<!-- portable-only:start -->` … `<!-- portable-only:end -->` pair marks a multi-line block with the same semantics.
+- The opening band's *"(This band repeats at file end by design …)"* note is removed by the installer on lean (its claim is only true on portable installs); no marker needed.
+
+Exactly three things are marked portable-only in every SKILL.md — each restates a gate the lean host's rules layer already supplies: the closing Completion Evidence band, the generic Quality-Gates W-recap line, and the Contract's pre-existing-errors bullet. Skill-specific W clauses (state exemptions, findings-SSOT dispositions, anything naming this skill's own artifacts) are never marked — they must survive on every profile. Never mark a table row (markers would break `|$`-anchored checks) and never mark content that exists nowhere else on the lean host.
 
 See `docs/methodology/cross-host-program.md` F1/F4/F6.
 
@@ -156,6 +164,17 @@ One-sentence description framed as outcome.
 
 ## 2. Universal AI Instruction Principles
 
+### Model-Class Calibration (2026-08)
+
+This spec's explicitness doctrine calibrates to the **portable floor**, because skills ship cross-host. Density is regulated by the install profile (§1), never by diluting the text:
+
+| Model class | What the evidence says | Consequence for skill text |
+|---|---|---|
+| Claude-5-generation frontier hosts (Fable/Opus 5 on Claude Code) | Prior-generation prescriptive styles "can degrade output quality" (Anthropic, Prompting Claude Fable 5); >80% of Claude Code's system prompt removed with no measurable eval loss (2026-07-24); prompt-engineering returns shrink as models mature (PMC12488032) | Keep WHAT explicit (intent, gates, output contract); leave HOW to judgment; universal-gate restatements strip via `install.sh --profile lean` |
+| Near-frontier open models / thin harnesses (DeepSeek-V4-class, Qwen; Aider/OpenCode/Pi-style hosts) | Raw capability near-frontier but agentic floor weak: answers instead of abstaining 94–96% when uncertain, weak multi-turn tool orchestration (V4-0731 independent measurements); 7/30 agentic tasks flip on harness choice alone (Composio, directional); position bias is family-dependent (MOSAIC) | Full portable density earns its cost: duplicated evidence band, generic W-recap, explicit fallbacks — the skill supplies the floor the host does not |
+
+Technique efficacy is model-contingent — the same prompting strategy helps one tier and hurts another (arXiv:2511.21591) — so neither profile's density is "correct" in the abstract; each is correct for its target class.
+
 ### Capability Abstraction
 
 Describe intent, not mechanism. Skills must work across any AI coding tool.
@@ -173,7 +192,7 @@ Describe intent, not mechanism. Skills must work across any AI coding tool.
 ### Specificity Calibration
 
 Every instruction specifies:
-- **WHAT** to do — the action and its inputs (explicit, not vague — Claude 4.x takes instructions literally)
+- **WHAT** to do — the action and its inputs (explicit, not vague — the portable floor's models take instructions literally, and explicit *intent* costs nothing on stronger hosts; see Model-Class Calibration)
 - **WHAT** to verify — the expected outcome or gate condition
 - **WHAT** to output — format, structure, and scope of the result
 
@@ -192,10 +211,10 @@ Example — bad:
 - Numbered steps within phases — predictable execution order
 - Tables over prose — scannable, compact, unambiguous
 - Rule + example pairs — every behavioral rule includes at least one concrete example
-- **Positive framing** — "Only modify required lines" instead of "Don't touch unrelated code". Hard negatives fail ~5%, soft negatives ~10-15%. Positive framing is 2-5× more reliable. Reserve hard negatives for safety-critical rules only (max 5 per skill).
+- **Positive framing** — "Only modify required lines" instead of "Don't touch unrelated code". Published measurements show framing-direction effects are real but task-dependent (arXiv:2605.05391, 2602.04306); no study quantifies per-framing failure rates, so state the action positively as the default and reserve hard negatives for safety-critical rules only (max 5 per skill).
 - **Gates over prose** — every phase ends with an explicit pass/fail condition + recovery action. Process-level verification outperforms outcome-only checks.
 - **3-5 examples per rule** — more is diminishing returns. Well-selected 3.5% of examples outperforms 100% random (RDS+ arXiv 2025). Place the most relevant example last (recency bias). Prioritize diversity over quantity.
-- **Hyper-explicit intent** — Claude 4.x takes instructions literally — omitted details are omitted from output. Specify desired output format, scope, and criteria precisely. Vague intent produces vague results.
+- **Explicit intent, judged method** — on literal-following models (the portable floor) omitted details are omitted from output: specify output format, scope, and criteria precisely. On Claude-5-generation hosts explicit *intent* stays valuable while micro-instruction of *method* degrades output (Anthropic, Prompting Claude Fable 5) — keep WHAT explicit, leave HOW to the model.
 - **Placeholder examples** — All examples in SKILL.md use `{placeholder}` tokens, never hardcoded project names, file paths, library names, or version numbers. Examples must be reusable across any project context.
 
 | Write This | Not This |
@@ -247,7 +266,7 @@ Every rule that constrains behavior must include at least one example showing co
 
 ### Adaptive Thinking (replaces forced CoT)
 
-Reasoning-capable models (Claude 4.x, o3-mini) reason adaptively by default. Forced chain-of-thought ("think step-by-step") adds only 2.9–3.1% accuracy while costing 20-80% more tokens (Wharton GenAI Labs 2025).
+Current reasoning models (Claude 5 generation, GPT-5.x thinking tiers, DeepSeek-V4 reasoning mode) reason adaptively by default. Forced chain-of-thought ("think step-by-step") adds only 2.9–3.1% accuracy while costing 20-80% more tokens (Wharton GenAI Labs 2025), and prompting-technique efficacy is model-contingent — the same technique helps one tier and hurts another (arXiv:2511.21591).
 
 | Instead of | Write |
 |-----------|-------|
@@ -256,7 +275,7 @@ Reasoning-capable models (Claude 4.x, o3-mini) reason adaptively by default. For
 | "Let me analyze this..." | (Omit — model calibrates reasoning depth) |
 
 **Prompt reasoning explicitly only when:**
-- Using non-reasoning models (Haiku) on complex tasks (+11-13% accuracy gain)
+- Using small non-reasoning tiers (Haiku-class) on complex tasks (+11-13% accuracy gain)
 - Multi-criteria decisions with >3 trade-offs
 - Novel problems outside common patterns
 
@@ -265,7 +284,7 @@ Reasoning-capable models (Claude 4.x, o3-mini) reason adaptively by default. For
 - Pattern-matching tasks (code review, linting)
 - Simple lookups or transformations
 
-**Effort-parameter models (Claude 4.x).** Where the host exposes an `effort` parameter (Anthropic Managed Agents 2026 API), reasoning depth is controlled at the API level, not in the prompt. Skill text MUST NOT contain "think harder" / "reason more" hints. At `low`/`medium` effort the model deliberately scopes to exactly what was asked — vague intent at low effort produces vague output. Use the spec's Specificity Calibration rules (every intent explicit, output format named, boundaries stated) as the substitute for prompt-level reasoning hints.
+**Effort-parameter models (Claude 4.x and later).** Where the host exposes an `effort` parameter (Anthropic Managed Agents 2026 API), reasoning depth is controlled at the API level, not in the prompt. Skill text MUST NOT contain "think harder" / "reason more" hints. At `low`/`medium` effort the model deliberately scopes to exactly what was asked — vague intent at low effort produces vague output. Use the spec's Specificity Calibration rules (every intent explicit, output format named, boundaries stated) as the substitute for prompt-level reasoning hints.
 
 See [references/ai-instruction-patterns.md](references/ai-instruction-patterns.md) for full research.
 
@@ -918,6 +937,8 @@ Skills may add domain-specific modes (e.g., `release-ready`, `design`). Mode sel
 
 Every finding produced by an audit phase MUST appear in the summary with exactly one disposition. No finding may be silently dropped.
 
+> **Naming in installed files:** "FRC" and "DSC" are contributor shorthand for this spec only. Installed SKILL.md files never use the acronyms — a lone install has no spec to resolve them against. The canonical installed forms are the Contract bullet `Full accounting enforced: …` and the Summary line `Disposition accounting — totals balance.` (§8 Token Efficiency table).
+
 **Standard dispositions:**
 
 | Disposition | Meaning | When to use |
@@ -1483,8 +1504,8 @@ Same meaning, fewer tokens. Apply these compression patterns without losing prec
 | Quality Gates (W1-W11) | 6-10 line itemized list | Compact one-liner per weakness (see template) | ~55% |
 | Error Recovery (standard-only) | 6-8 line table with generic rows | Omit section — standard recovery is baseline | 100% |
 | Severity (standard-only) | 8-10 line table repeating 4 levels | Omit section — standard severity is baseline | 100% |
-| FRC+DSC in contract | 2 separate bullet items | Single: `FRC+DSC enforced.` | ~50% |
-| Summary phase body | 5-8 lines with FRC/DSC/format explanation | 2 lines: `FRC+DSC accounting.` + output format | ~65% |
+| Accounting contract | 2 separate bullet items | Single: `Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.` — self-describing; a lone install has no spec to resolve an acronym against | ~40% |
+| Summary phase body | 5-8 lines with accounting/format explanation | 2 lines: `Disposition accounting — totals balance.` + output format | ~65% |
 | Redundant prose removal | "The goal of this phase is to..." | Direct imperative: "Decompose into steps." | ~30% |
 | Single-row tables | `\| Col \|\n\|---\|\n\| Val \|` | Inline: `**Col:** Val` | ~60% |
 
@@ -1494,7 +1515,7 @@ Same meaning, fewer tokens. Apply these compression patterns without losing prec
 
 ### Optimization Patterns (behavior-preserving, model-agnostic)
 
-Drawn from 2026 prompting research across Anthropic Skills, OpenAI GPT-5 prompting guide, Google Gemini 3 prompting guide, and Chroma Context Rot study. Apply these patterns when editing any SKILL.md. **Behavior MUST NOT change** — flags, scopes, gates (pass + fail arms), phase numbers, reference links, Quality Gates W1-W11, FRC+DSC, Trigger Discipline tables, Contract clauses (Standalone, FRC+DSC, Pre-existing W11, Exempt notes) all stay intact.
+Drawn from 2026 prompting research across Anthropic Skills, OpenAI GPT-5 prompting guide, Google Gemini 3 prompting guide, and Chroma Context Rot study. Apply these patterns when editing any SKILL.md. **Behavior MUST NOT change** — flags, scopes, gates (pass + fail arms), phase numbers, reference links, Quality Gates W-recaps, the full-accounting contract line, Trigger Discipline tables, Contract clauses (Standalone, full accounting, Pre-existing W11, Exempt notes), and `portable-only` markers all stay intact.
 
 | # | Pattern | Before → After |
 |---|---------|----------------|
@@ -1588,7 +1609,7 @@ Before releasing any skill, verify:
 - [ ] SKILL.md contains a `**Dimensions:**` declaration line, and every declared ID exists in the Appendix: Dimension Coverage Map (see §11 Dimension Ownership Design Rule).
 - [ ] Every cross-skill reference follows the advisory-handoff pattern — target present → delegate; target absent → inline-check or gap-note; never a hard-fail (see §12 Standalone Invariant).
 - [ ] No ambiguous-condition phrasing (`"if appropriate"`, `"consider"`, `"may want to"`, `"as needed"`, `"might"`, `"possibly"`, `"could"`, `"should consider"`, `"it is recommended"`) — see §13 AI-Legibility Writing Standard rule (f).
-- [ ] Completion Evidence band present per the active profile — portable (repo default): opening copy before the first `##` section **and** closing copy as the last block of the file; lean (Claude-5-only fork): opening copy alone (see §1 Completion Evidence Band). Verbatim text, no paraphrase.
+- [ ] Completion Evidence band present per the active profile — portable (repo default): opening copy before the first `##` section **and** closing copy as the last block of the file; lean (`install.sh --profile lean`, install-time strip): opening copy alone (see §1 Completion Evidence Band). Verbatim text, no paraphrase; the three portable-only markers present (closing band, generic W-recap line, pre-existing-errors bullet).
 
 ---
 
@@ -1921,7 +1942,8 @@ Adopted across all artifact-producing skills (`ds-init`, `ds-fix`, `ds-deploy`, 
 - [Positive guarantee]: "Always [behavior]"
 - [Boundary]: "Only [scope] — [other skill] handles [excluded scope]"
 - [Independence]: "Fully functional standalone — zero dependency on other skills. When blueprint profile or ds/audit/findings.md exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality."
-- FRC+DSC enforced.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -1971,12 +1993,12 @@ Present needs_approval items with risk context. Interactive: Apply All / Review 
 
 ### Phase N: Summary
 
-FRC+DSC accounting. Output: `{skill}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N`
+Disposition accounting — totals balance. Output: `{skill}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Total: N`
 
 ## Quality Gates
 
-W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase under `ds/audit/`, `ds/audit/` gitignored, state deleted on success.
-- FRC+DSC enforced.
+- {Skill-specific W clauses stay unmarked — e.g.} W9: state written per phase under `ds/audit/`, `ds/audit/` gitignored, state deleted on success.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 {Add skill-specific gates here, if any.}
 
 ## Error Recovery

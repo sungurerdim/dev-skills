@@ -36,11 +36,11 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 
 - Scores project health across 9 dimensions — signal counting, not file:line finding lists. Only modifies the profile section of the instruction file; suggests next steps but never invokes other skills or fixes code.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Completeness requirement (SSOT):** `ds/audit/findings.md` is the single source of truth for every fix skill. Other skills skip their own detection when blueprint findings exist. Blueprint MUST detect ALL issues in each in-scope dimension — a missing finding will not be fixed downstream.
 - **SSOT runtime enforcement (W10):** Every downstream consumer (ds-review, ds-fix, ds-simplify, ds-compliance, ds-mobile, etc.) MUST defer to a fresh `ds/audit/findings.md` — **fresh = `git_hash == HEAD` AND produced in the current run-cycle** (this invocation or the orchestration run it executes under). Fresh → consumers verify + apply only; they do NOT re-detect within blueprint's owned scopes. From a previous cycle (however recent), stale, or missing → **orchestrated** consumer invokes `/ds-blueprint --refresh` or `--preview --scope=all` and waits before continuing; **standalone** consumer announces `findings stale — running own {scopes} analysis` and runs its own scoped analysis, appending results with its own `source` + current `git_hash` (next blueprint full run dedups) — prior-cycle findings serve only as diff baseline (previously-flagged → resolved?). Re-detection within a covered scope in the same cycle is a W10 violation; skipping a re-scan because a previous cycle ran recently is a W11-class violation.
-- **Overwrite-only persistence (SKILL-SPEC §10.1):** state, findings, profile rewritten every run — never appended. Run history lives in `git log -- <instruction-file>`, not in profile or any `ds/audit/` file. Append-only artifacts forbidden anywhere.
+- **Overwrite-only persistence:** state, findings, profile rewritten every run — never appended. Run history lives in `git log -- <instruction-file>`, not in profile or any `ds/audit/` file. Append-only artifacts forbidden anywhere.
 - **Human-action items:** findings whose remediation requires human-only access (branch protection, CI/repo secrets, store or account setup, key rotation, purchases) are surfaced as a distinct `Human actions` block in Dashboard and repeated in Summary — never silently dropped, never marked fixed by the AI.
 - **Dev-Value Gate on every profile line:** the instruction file is re-read on every AI turn — every byte costs every future model read. A profile line is written only if it makes AI engineering measurably better on every turn for the next 6 months. Anything else (timestamps, score deltas, owner info, descriptions, philosophy) goes to README / CHANGELOG / git log / terminal summary instead.
 
@@ -263,7 +263,7 @@ In `--auto`: print as part of summary, no interaction.
 1. Rewrite the `Scores:` line — single line, key-value form. Include `model={model-id}` (model performing this assessment, from host/session context; `model=unknown` if not determinable).
 2. Legacy `### Last Run`, `### Run History`, `### Current Scores` (table) block exists from previous version → rewrite entire profile to current minimal key-value format. Report `{n} legacy lines rotated to git log` in summary. Never re-inject historical run data.
 3. Previous scores existed: display delta table in chat (Prev / Curr / Δ). Trend over >1 run → read from `git log -- <instruction-file>`, never from accumulated block.
-4. **Dev-Value Gate (SKILL-SPEC §10.1):** every existing profile line must answer "would an AI assistant, reading this on every turn for 6 months, do meaningfully better engineering because of it?" with yes. Check each line against forbidden patterns (timestamps, score deltas, run dates, owner info, descriptions, onboarding, philosophy, vendor notes, file-by-file change notes). Forbidden found → strip before write. Report `{n} dev-value-gate lines stripped`.
+4. **Dev-Value Gate:** every existing profile line must answer "would an AI assistant, reading this on every turn for 6 months, do meaningfully better engineering because of it?" with yes. Check each line against forbidden patterns (timestamps, score deltas, run dates, owner info, descriptions, onboarding, philosophy, vendor notes, file-by-file change notes). Forbidden found → strip before write. Report `{n} dev-value-gate lines stripped`.
 5. **Context-budget guard:** after write, count lines between markers. > 25 → compress: merge multi-key lines (e.g. Type + Stack + Target into one), drop External entries with no purpose, drop Modules entries with role `(0)` or zero files. Re-count. Still > 25 → surface WARN with offending line indices.
 
 **Gate:** Profile rewritten in minimal key-value format; legacy blocks rotated; no run-history in instruction file; Dev-Value Gate applied (forbidden lines stripped); profile ≤ 25 lines. If fails → write failed or file read-only → print updated `Scores:` line in chat for manual paste, note target file + marker positions, set state.data.profile_written false so subsequent runs know profile is stale; > 25 after compression → surface overshoot as WARN with offending line indices.
@@ -293,7 +293,7 @@ Optional phase. Scans AI agent memory index (`MEMORY.md` under host's project-me
 blueprint: {OK|WARN|FAIL} | Health: {before}→{after}/{target} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n} | Score: {n}/100
 ```
 
-FRC+DSC accounting.
+Disposition accounting — totals balance.
 
 Status: OK (overall ≥ target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression).
 
@@ -301,7 +301,7 @@ Open human-action items exist → repeat them after the summary line (`Human act
 
 **Gate:** Summary printed with before/after + next steps. If fails → scores uncomputable (Phase 4 produced no scores, or previous scores absent from profile) → print with available scores, substitute `N/A` for missing, status `WARN`, note which phases need re-running.
 
-**Value Delivered:** 1-5 concrete scoring outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `Project scored across 9 dimensions ({weakest-dim} {score}, target {target}) — focus is no longer guesswork; lowest-scoring dimension is the next investment`
 - `Foundation perfected: mission sharpened from evidence, {n} constraints challenged ({m} removed as unfounded), {k} red lines made explicit — every downstream skill now calibrates against a confirmed foundation instead of a form-fill`
@@ -315,20 +315,9 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 - Every signal cites file:line — skip signals without evidence
 - Only count signals from source code — exclude test, generated, vendored files
 - Score reflects verified signals only — uncertain signals reduce to 0.5 weight
-
-| Guard | Rule |
-|-------|------|
-| W1 | Cite file:line; never assume |
-| W2 | Check consumers after modify |
-| W3 | Touch only task-required lines |
-| W4 | Re-read after gap |
-| W5 | Uncertain → lower severity |
-| W6 | Verify all phases output |
-| W7 | Dedup file:line |
-| W8 | No raw shell interpolation |
-| W9 | `ds/audit/blueprint.json` updated per scope, gitignored, deleted on successful Summary |
-| W10 | SSOT producer — writes `ds/audit/findings.md` fresh every run; consumers MUST defer to it |
-| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
+- W9: `ds/audit/blueprint.json` updated per scope, gitignored, deleted on successful Summary
+- W10: SSOT producer — writes `ds/audit/findings.md` fresh every run; consumers MUST defer to it
+- W1: Cite file:line; never assume. W2: Check consumers after modify. W3: Touch only task-required lines. W4: Re-read after gap. W5: Uncertain → lower severity. W6: Verify all phases output. W7: Dedup file:line. W8: No raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -347,4 +336,4 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 | Monorepo | Score each workspace independently, aggregate in summary |
 | No instruction file found | Create new profile, ask user for target file location. Under `--auto`: default to `CLAUDE.md`, no prompt. |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->
