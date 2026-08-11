@@ -122,6 +122,8 @@ Per stack: load toolchain from [references/toolchains.md](references/toolchains.
 
 **Gate:** ≥1 stack detected or security-only mode. If fails → no manifests; run security scope only (universal secret scan + dep audit where available), announce "No stack detected — running security scope only", skip other scopes.
 
+**Checkpoint [fix mode — N/A under `--check`]:** before the first mutating scope, run `git status --porcelain` → non-empty → interactive: ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: fixer edits interleave with uncommitted work, single-command rollback is lost); `--auto`: proceed only when the pre-existing dirty state stays untouched by this skill's writes — otherwise stop and record `needs-human`. Never run a bulk fix over uncommitted unrelated changes silently. Empty output → clean tree, proceed.
+
 ### Phase 2: L10n [scope: l10n]
 
 Run these steps in order:
@@ -259,7 +261,7 @@ Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scope
 ## Quality Gates
 
 - Format runs before lint — never reverse this order
-- After fix, re-run check to verify; re-check fails → report as unresolved. `--check` mode: only report; verify diff is empty after check run.
+- Post-fix re-verification is owned by each scope's in-phase re-check plus the Mechanical Done Gate's aggregate run — that command's observed output is the evidence; no separate prose re-check. `--check` mode: only report; zero modifications proven by `git status --porcelain` output identical before and after the run.
 - Scope boundary: only run scopes user requested (or all if none specified).
 - **Secrets always CRITICAL** — never auto-fix, always report. Surface rotation guidance: "rotate this credential immediately, then add the variable name (placeholder value) to `.env.example`" ([references/principles.md §8](references/principles.md)).
 - **Regression-test gate:** fix modifies security-critical or business-logic code → check if a regression test exists for the affected path; if absent, add MEDIUM finding `regression test missing for {file}:{line} fix path` before completing ([references/principles.md §7](references/principles.md)).

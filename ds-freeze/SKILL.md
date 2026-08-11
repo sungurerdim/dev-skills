@@ -99,7 +99,7 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 2. For every item without an existing GitHub issue (regardless of disposition) → delegate to `/ds-issue` (default intake) to file it, labeled `release:{milestone}` plus its disposition (`ship`/`defer-hidden`/`defer-backlog`); trivial already-complete `ship` items need no issue.
 3. Link every item's resolved issue number (or "no issue needed") into the tracking artifact.
 
-**Gate:** tracking artifact written; every item has an issue reference or an explicit no-issue-needed reason. If fails (issue creation fails for an item) → record `filing-failed` for that item, continue, surface it in the Phase 7 report.
+**Gate:** tracking artifact written — GitHub: `gh issue view {N} --json body` → body contains both `## Ship` and `## Deferred`; docs fallback: `docs/release/{milestone}-scope.md` exists non-empty on disk — and every item has an issue reference or an explicit no-issue-needed reason. If fails (issue creation fails for an item) → record `filing-failed` for that item, continue, surface it in the Phase 7 report.
 
 ### Phase 5: Implement Kept Set [SKIP if --skip-implement]
 

@@ -79,7 +79,7 @@ Detect toolchain → Establish quality signals → Single entry point → Enforc
 **Gate:** Stack, existing tooling, and host are all identified from real manifests/lockfiles/configs — never assumed. If fails → no manifest/lockfile detected (unknown stack) → ask the user which language/toolchain to target before proceeding; do not guess. **Under `--auto`:** this blocker matches the Unattended Mode rule-4 exception list (no value inferable from the repo) — skip the ask, stop this phase, and record `needs-human: unknown stack — specify language/toolchain`.
 
 ### Phase 2 — Establish the quality signals
-For the detected stack (see [references/toolchains.md](references/toolchains.md) for exact commands + bootstrap), ensure each EXISTS and RUNS; create minimal **standard** config only where missing, preferring tools already in the lockfile:
+For the detected stack (see [references/toolchains.md](references/toolchains.md) for exact commands + bootstrap), ensure each EXISTS and RUNS — run each tool's check command once and observe the exit code, never infer from config presence; create minimal **standard** config only where missing, preferring tools already in the lockfile:
 1. **Formatter** in check-mode.
 2. **Linter** with the ecosystem's standard ruleset.
 3. **Type-checker** if the language supports it.
@@ -98,9 +98,9 @@ Exactly one command, fail-fast, in order **format-check → lint → type-check 
 | `package.json` (no Makefile) | add `"quality"` npm script | `npm run quality` |
 | neither | create `scripts/quality.sh` (from [assets/quality.sh.tmpl](assets/quality.sh.tmpl)) | `bash scripts/quality.sh` |
 
-The entry point runs only checks that actually exist for the detected stack. Never invent a check that has no tool. Verify a human can run it and it exits non-zero on failure.
+The entry point runs only checks that actually exist for the detected stack. Never invent a check that has no tool. Its runnability and non-zero-on-failure behavior are proven by Phase 5's green→red→green run — that run's observed output is the evidence; no separate verification here.
 
-**Gate:** Single entry point exists, runs fail-fast in the required order, and exits non-zero on failure. If fails → no supported build system present and the template is unusable in this shell → surface the blocker and ask the user to specify an entry-point mechanism; do not fabricate a passing command. **Under `--auto`:** same exception-list case as Phase 1 — record `needs-human: no entry-point mechanism available` instead of asking, and stop this phase without fabricating a command.
+**Gate:** Single entry point exists and encodes the fail-fast order format-check → lint → type-check → tests (non-zero-on-failure is proven by Phase 5, not re-tested here). If fails → no supported build system present and the template is unusable in this shell → surface the blocker and ask the user to specify an entry-point mechanism; do not fabricate a passing command. **Under `--auto`:** same exception-list case as Phase 1 — record `needs-human: no entry-point mechanism available` instead of asking, and stop this phase without fabricating a command.
 
 ### Phase 4 — Enforcement (select the arm, then wire it)
 Every arm enforces the **same** entry point from Phase 3 — they differ only in *when* they run it.

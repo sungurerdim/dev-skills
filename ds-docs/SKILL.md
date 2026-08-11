@@ -109,7 +109,7 @@ These files are re-injected into every session as low-trust background context, 
    | Secrets, credentials, API keys, tokens | Cut immediately | DOC-10 (CRITICAL) |
    | Negative-framed rule with a positive equivalent | Rewrite positive | DOC-16 |
 3. **Verify before flagging DOC-11:** read the actual file/directory the content claims to describe — confirm it is genuinely derivable before reporting. Unconfirmed → do not flag.
-4. **Length check (DOC-14):** compare against the target harness's own budget (Claude Code `CLAUDE.md` <200 lines; Cursor rule file <500 lines; Windsurf/Devin `global_rules.md` 6,000 chars / workspace rule file 12,000 chars; cross-harness community consensus <300 lines). Still over budget after cutting DOC-10–13 → propose a split: nested per-directory files (monorepo pattern) or path-scoped/glob-conditional rules where the harness supports them — never `@path`/`@file.md` imports alone, which load in full at launch and do not reduce context.
+4. **Length check (DOC-14):** measure with `wc -l` (line budgets) / `wc -c` (char budgets), compare against the target harness's own budget (Claude Code `CLAUDE.md` <200 lines; Cursor rule file <500 lines; Windsurf/Devin `global_rules.md` 6,000 chars / workspace rule file 12,000 chars; cross-harness community consensus <300 lines). Still over budget after cutting DOC-10–13 → propose a split: nested per-directory files (monorepo pattern) or path-scoped/glob-conditional rules where the harness supports them — never `@path`/`@file.md` imports alone, which load in full at launch and do not reduce context.
 5. **Monorepo check (DOC-17):** one root file covering unrelated packages → propose nested per-package files.
 
 **Gate:** Every present file inventoried and classified; every DOC-11 flag verified against source. If fails → source unreadable → mark item `inconclusive`, do not cut it.
@@ -126,7 +126,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 ### Phase 0: Pre-flight [ALWAYS — never skip]
 
-**IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis. Findings file fresh → target specific gaps (skip own analysis for covered areas); stale or absent → run own full analysis.
+**IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis. Findings file fresh (meta `git_hash` equals `git rev-parse HEAD` output, current run-cycle) → target specific gaps (skip own analysis for covered areas); stale or absent → run own full analysis.
 
 **Gate:** IDU complete, findings loaded or own analysis planned. If fails → findings unreadable or stale `git_hash` → discard, proceed with own full analysis; profile absent → continue + note "no blueprint profile — using own analysis" in run header.
 
@@ -234,6 +234,8 @@ Display plan (target files, sections, sources). Ask: Generate All / High Priorit
 
 ### Phase 5: Generate Documentation (skip if --preview)
 
+**Checkpoint pre-step (before the first doc file is written):** `git status --porcelain` → empty → proceed. Non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (generation may overwrite uncommitted doc edits); `--auto`: proceed only when the pre-existing dirty files stay untouched by this skill's writes — a planned target already dirty → mark it `skipped (needs-human)`. Never overwrite uncommitted doc changes silently.
+
 Principles: extract from code, don't invent — read source for actual signatures/endpoints/configs; brevity over verbosity — every sentence earns its place; scannable format — headers, bullets, tables, copy-pasteable commands; action-oriented — focus on what the reader needs to do. Source mandate: every documented flag, endpoint, or config value MUST be verified by searching source before inclusion.
 
 **Compliance scope (when scope = compliance):**
@@ -297,7 +299,7 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 |-----------|--------|
 | Source code contradicts existing documentation | Flag as drift, update doc to match code |
 | Referenced file or function no longer exists | Flag as stale, suggest removal |
-| Generated doc exceeds 500 lines (or 5,000 words) | Split into multiple files at next H2 boundary; ask user for structure preference. **Under `--auto`:** no ask — splits at the next H2 boundary using the stated default, recorded in the summary |
+| Generated doc exceeds 500 lines (`wc -l`) or 5,000 words (`wc -w`) | Split into multiple files at next H2 boundary; ask user for structure preference. **Under `--auto`:** no ask — splits at the next H2 boundary using the stated default, recorded in the summary |
 | Verify scope finds broken internal links | List all broken links with suggested fixes |
 | Harness context file exceeds its vendor length budget (DOC-14) | Trim DOC-10–13 findings first; still over → propose split (nested per-directory files or path-scoped rules) |
 

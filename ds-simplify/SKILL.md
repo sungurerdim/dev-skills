@@ -147,7 +147,7 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 **2.10 orphan:**
 
 1. Collect: source files, images, JSON, CSS/SCSS, `.md` files under `docs/` or repo root.
-2. Per file, grep all tracked files for filename (with + without extension) and relative path patterns.
+2. Per file, `git grep -n` across tracked files for the filename (with + without extension) and relative path patterns.
 3. Zero inbound references → finding.
 4. Skip: entry points, config files named by convention (`.eslintrc*`, `tsconfig.json`, etc.), `README.md`, `LICENSE`, `CHANGELOG.md`.
 
@@ -186,6 +186,8 @@ Record every decision. Batch pending deletions by scope.
 **Gate:** Every finding has a decision; accounting matches total. If fails → user declines approval prompt → mark all undecided as `skipped (user declined)`, skip Phase 5 Execute, proceed to Phase 7 Summary.
 
 ### Phase 5: Execute [skip if --preview or zero approvals]
+
+**Checkpoint pre-gate (once, before the first batch):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (state the risk: a failed batch rolls back via `git restore -- {files}`, which also discards uncommitted user edits in those files); `--auto`: proceed only when the pre-existing dirty files are untouched by this skill's deletions — a batch targets a dirty file → stop that batch, record `needs-human: uncommitted changes in {file} overlap the deletion batch`. Never run a bulk deletion over uncommitted unrelated changes in the same files.
 
 Per approved batch:
 
@@ -231,7 +233,7 @@ Zero-finding run: `No simplification opportunities detected — codebase is lean
 
 - Deletion is reversible: every batch ends in a git commit — rollback = `git revert {hash}`.
 - Framework contracts honored: do not delete exports required by framework (Next.js `generateMetadata`, React Server Component signatures, Dart widget `build`, etc.).
-- W2: verify no new broken import after deletion. W4: re-read file after context gap before deletion. W5: uncertain coupling → defer, not delete. W7: dedup file:line — single finding for multi-scope hits, keep tightest proposal. W9: not applicable — state-exempt (one reversible commit per approved batch is the durable record). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
+- W2: no new broken import after deletion — the Phase 5 `{check-cmd}` run's observed output is the evidence, no separate prose re-check. W4: re-read file after context gap before deletion. W5: uncertain coupling → defer, not delete. W7: dedup file:line — single finding for multi-scope hits, keep tightest proposal. W9: not applicable — state-exempt (one reversible commit per approved batch is the durable record). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
 - W1: cite file:line + reference count, never assume. W3: only task-required lines — do not reformat adjacent code. W6: verify all scopes produced output. W8: no raw shell interpolation. W17: before proposing a new helper, grep for an existing one; consolidate near-duplicate clones to a single source of truth rather than leaving regenerated copies in place. <!-- portable-only -->
 
 ## Error Recovery

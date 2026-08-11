@@ -104,6 +104,7 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 
 1. Scan for existing config files (`.eslintrc`, `tsconfig`, `Dockerfile`, `.github/workflows`, etc.) → mark as SKIP.
 2. Report: "Found {n} existing config files — these will be preserved."
+3. **Checkpoint:** directory is a git repo (`git rev-parse --is-inside-work-tree` → `true`) → `git status --porcelain` → non-empty → interactive: ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: scaffold writes interleave with uncommitted work, single-command rollback is lost); `--auto`: proceed only when the pre-existing dirty state stays untouched by this skill's writes — otherwise stop and record `needs-human`. Never scaffold over uncommitted unrelated changes silently. Not a repo, or clean tree → proceed.
 
 **Gate:** Conflict list confirmed. If fails → no response to overwrite confirmation → default SKIP for that file, announce, continue scanning; re-run after resolving conflicts. **Under `--auto`:** same default — every conflicting file resolves to SKIP (preserve existing) without asking; this is the safe, non-destructive default rather than a `needs-human` case.
 
@@ -154,11 +155,11 @@ Per [references/rules-scaffold.md](references/rules-scaffold.md). Generate indep
 
 ### Phase 4: Post-Generate Verification
 
-1. All generated files syntactically valid (JSON, YAML).
-2. `.gitignore` covers `.env*`, `node_modules`/build artifacts, `coverage/`, OS/IDE files.
-3. `.env.example` has no real secrets.
-4. CI workflow references correct paths and commands.
-5. **Twelve-Factor checks** on generated artifacts ([references/principles.md §3](references/principles.md)): `Dockerfile` logs to stdout (no `--logfile=` paths), binds via `$PORT` env var (no hardcoded ports), runs as non-root `USER`, has `HEALTHCHECK`. `docker-compose.yml` uses `restart: unless-stopped`, externalizes config via `environment:` from `.env`. Every CI action is SHA-pinned.
+1. Generated files syntactically valid: each `.json` parses (`python3 -m json.tool < {file}` → exit 0), each `.yml`/`.yaml` parses (`python3 -c 'import yaml,sys;yaml.safe_load(sys.stdin)' < {file}` → exit 0); parser unavailable → mark that file `unverified (no parser)`.
+2. `.gitignore` coverage: `grep -F '{pattern}' .gitignore` → match, once per required pattern (`.env`, `node_modules`/build artifacts, `coverage/`, OS/IDE files).
+3. `.env.example` has no real secrets: `grep -E 'AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|ghp_[a-zA-Z0-9]{36}|-----BEGIN.*PRIVATE KEY-----' .env.example` → no output.
+4. CI workflow references correct paths and commands (judgment review against the generated structure).
+5. **Twelve-Factor checks** on generated artifacts ([references/principles.md §3](references/principles.md)): `Dockerfile` logs to stdout (`grep -n 'logfile' Dockerfile` → no output), binds via `$PORT` env var (no hardcoded ports), runs as non-root `USER` and has `HEALTHCHECK` (`grep -cE '^(USER|HEALTHCHECK)' Dockerfile` → `2`). `docker-compose.yml` uses `restart: unless-stopped`, externalizes config via `environment:` from `.env`. Every CI action is SHA-pinned (`grep -nE '@(v[0-9]+|main|master)' .github/workflows/*.yml` → no output).
 
 6. **Mechanical Done Gate:** the scaffold's own toolchain is `{check-cmd}` — the exact format/lint/type/test commands the generated configs define. Dependencies installed (or installable with one standard command the user approved) → run `{check-cmd}` once; the example test + lint pass green is the proof the scaffold actually works. Red → fix the generated file, re-run the same command (≤3 attempts); still red → record `failed (mechanical gate)` with the captured error for that file, surface HIGH. Toolchain not runnable in this environment (no install approval, offline) → mark every generated config `unverified — {check-cmd} not run`, list the exact commands under Next steps, and never claim the scaffold verified.
 

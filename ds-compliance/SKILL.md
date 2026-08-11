@@ -177,7 +177,7 @@ Per in-scope domain:
 
 **False-positive prevention:** check surrounding context. Never flag `// noqa`, `// intentional`, `// safe:`, `_` prefix, `TYPE_CHECKING`, test fixtures.
 
-**Large scope (3+ domains):** numbered progress checklist + append findings to `ds/audit/findings.md` (add to `.gitignore`) — file exists with fresh `git_hash` → preserve findings from other scopes, append only your own. After each domain scan, append. Enables recovery on context loss.
+**Large scope (3+ domains):** numbered progress checklist + append findings to `ds/audit/findings.md` (add to `.gitignore`) — file exists with `git_hash` equal to `git rev-parse HEAD` output → preserve findings from other scopes, append only your own. After each domain scan, append. Enables recovery on context loss.
 
 **Gate:** Every in-scope domain scanned; findings recorded with severity + confidence. If fails → domain(s) un-scan-able (no scannable source, access denied, reference N/A) → mark `inconclusive`, continue with successful ones, list skipped domains in Phase 5 report.
 
@@ -206,6 +206,8 @@ Architecture: {detected-summary}
 **Gate:** Report with findings + severities + summary. If fails → findings list empty because all domains `inconclusive` or `N/A` → print report with single section `"No verifiable findings — all domains inconclusive or reference files missing"`, list domains + skip reason, exit with status `WARN`.
 
 ### Phase 6: Fix [SKIP if audit-only]
+
+**Checkpoint pre-step (before the first fix is written):** `git status --porcelain` → empty → proceed. Non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (the mechanical-gate revert path `git checkout -- {file}` also discards pre-existing edits in that file); `--auto`: proceed only when the pre-existing dirty files stay untouched by this skill's writes — overlap → mark those fixes `skipped (needs-human)`. Never run a bulk fix over uncommitted unrelated changes silently.
 
 **Overwrite prevention:** before generating/modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if target exists. Exists → do NOT overwrite — show diff between existing + proposed, ask: "Update existing / Keep existing / Show diff". **Under `--auto`:** no prompt — Keep existing when it already has non-trivial content, otherwise update; the decision and diff are recorded in the summary.
 

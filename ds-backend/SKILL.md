@@ -199,7 +199,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 ### Phase 2: Discover
 
-1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → use relevant findings. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
+1. **Findings file check:** `ds/audit/findings.md` fresh (its meta `git_hash` equals `git rev-parse HEAD` output AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → use relevant findings. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 2. Search for route/endpoint definitions, controller files, middleware.
 3. Search for DB schema files (migrations, models, entity definitions).
 4. Search for auth configuration (JWT secret usage, session config, OAuth setup).
@@ -271,7 +271,7 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 2. **DB:** Migration files in project's ORM format, or raw SQL.
 3. **Auth:** Authentication flow documentation, middleware configuration.
 
-**Gate:** Spec files generated + syntactically valid. If fails → identify invalid spec + error location; attempt auto-correction once; still invalid → write file with inline `# SYNTAX ERROR: {description}` comment at offending line, mark artifact `partial`, surface error.
+**Gate:** Spec files generated + syntactically valid — per YAML/JSON spec artifact: `python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" {file}` → exit 0 (no `python3` in-session → record the parse check as unrun, validate by re-reading the file). If fails → identify invalid spec + error location; attempt auto-correction once; still invalid → write file with inline `# SYNTAX ERROR: {description}` comment at offending line, mark artifact `partial`, surface error.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
@@ -281,7 +281,7 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 ### Mechanical Done Gate [any project file modified — applied fixes, flag-gate tasks from ds-freeze]
 
-Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Capture the baseline before the first modification; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each applied fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 7: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Never report `OK` with a new red. Spec-only/design-only runs (no working-tree modification) → gate not applicable, state `no files modified — mechanical gate N/A`.
+Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Checkpoint pre-step, before this skill's first write to a project file: `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (the revert path `git checkout -- {file}` also discards pre-existing edits in that file); `--auto`: proceed only when the pre-existing dirty files stay untouched by this skill's writes — overlap → resolve those items `skipped (needs-human)`. Never run a fix batch over uncommitted unrelated changes silently. Capture the baseline before the first modification; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each applied fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 7: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Never report `OK` with a new red. Spec-only/design-only runs (no working-tree modification) → gate not applicable, state `no files modified — mechanical gate N/A`.
 
 ### Phase 7: Summary
 
@@ -303,7 +303,7 @@ Disposition accounting — totals balance.
 
 Zero-change run: `No design changes — existing API/DB/auth meets reviewed scope`.
 
-**Gate:** Summary + Value Delivered printed; artifact paths confirmed. If fails → unconfirmable artifact (file not written / spec invalid) → list missing artifacts with intended paths + status (`partial`/`failed`), status `WARN`, instruct user which phases to re-run.
+**Gate:** Summary + Value Delivered printed; every generated artifact confirmed on disk (`test -f {path}` → exit 0, per artifact). If fails → unconfirmable artifact (file not written / spec invalid) → list missing artifacts with intended paths + status (`partial`/`failed`), status `WARN`, instruct user which phases to re-run.
 
 ## Quality Gates
 

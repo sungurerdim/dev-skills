@@ -128,7 +128,7 @@ Per dep, determine `bump_type` + `classification`:
 
 **Supply-chain override ([references/principles.md §5](references/principles.md)):** any package introducing/expanding `postinstall` / `preinstall` / `prepare` lifecycle scripts (or non-npm equivalents) auto-promotes to `review-major` regardless of semver delta. New executable install hooks = known supply-chain attack surface.
 
-**Release-age cooldown (advisory, default 7 days):** target version published less than 7 days ago (registry publish timestamp) → hold it out of the safe groups this run — classification stands, execution deferred with note `held (release-age {n}d < 7d cooldown)`; the previous in-cooldown-window version applies instead when it satisfies the same bump class. Security-advisory fixes override the cooldown (patching a known CVE beats worm-window caution). Rationale: recent registry worm/compromise events were detected within days of publication (xz-utils ~3 days; Shai-Hulud npm worm — CISA alert within the week) — a short quarantine window converts "first victim" into "warned bystander".
+**Release-age cooldown (advisory, default 7 days):** target version published less than 7 days ago (npm: `npm view {name} time --json` → the version's publish timestamp; other stacks: registry publish timestamp) → hold it out of the safe groups this run — classification stands, execution deferred with note `held (release-age {n}d < 7d cooldown)`; the previous in-cooldown-window version applies instead when it satisfies the same bump class. Security-advisory fixes override the cooldown (patching a known CVE beats worm-window caution). Rationale: recent registry worm/compromise events were detected within days of publication (xz-utils ~3 days; Shai-Hulud npm worm — CISA alert within the week) — a short quarantine window converts "first victim" into "warned bystander".
 
 **Provenance signal (advisory):** npm — run `npm audit signatures` (verifies registry signatures + provenance attestations; trusted-publishing/OIDC publishes carry provenance automatically since Jul 2025); PyPI — check attestation presence (PEP 740). A newly-added package with no provenance, or an upgrade where the publisher/repository identity changed vs the previous version → note as supply-chain signal, promote to `review-major`.
 
@@ -168,6 +168,8 @@ Write findings to `ds/audit/findings.md` with `scope=deps` and `category` column
 
 ### Phase 5: Execute [skip if --preview]
 
+**Checkpoint pre-step (before the first bump):** `git status --porcelain` → record the output as the baseline; empty → proceed. Non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (the revert path `git restore -- {manifest} {lockfile}` also discards pre-existing edits to those files); `--auto`: proceed only when the pre-existing dirty files stay untouched by this skill's writes — manifest or lockfile dirty at baseline → stop, record `needs-human`. Never run a bulk upgrade over uncommitted unrelated changes silently.
+
 Per group, in order: **security** → **safe-patch** → **safe-minor** → (approval) → **review-major** → **removal**.
 
 **Safe group execution:**
@@ -201,7 +203,7 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 
 **Mechanical Done Gate:** the per-group test run above is the test arm — add lint/type: resolve `{check-cmd}` in Phase 1 (ds-quality enforcement arm installed — stop-hook / pre-commit hook / auto-lint → its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision) and capture the baseline before the first group — baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. A bump can break the type graph with tests still green (e.g. a types-package minor) — run `{check-cmd}` after each group before its commit; new red → same revert path as a test failure. After the last group: run the full `{check-cmd}` once — the aggregate run's exact command + observed output is the Completion Evidence; never report `OK` with a new red.
 
-**Gate:** Every group has a commit or `failed`/`skipped` record. Working tree clean of THIS skill's changes. If fails → dirty tree (partial apply, no commit) → revert exactly the touched files via `git restore -- {manifest} {lockfile}` — never a tree-wide `git checkout -- .`, which would destroy the user's unrelated uncommitted work — mark `failed (dirty working tree)` for the summary, continue; revert itself fails → halt + surface conflict with modified-file list.
+**Gate:** Every group has a commit or `failed`/`skipped` record. `git status --porcelain` output matches the checkpoint baseline (this skill's changes all committed or reverted). If fails → dirty tree (partial apply, no commit) → revert exactly the touched files via `git restore -- {manifest} {lockfile}` — never a tree-wide `git checkout -- .`, which would destroy the user's unrelated uncommitted work — mark `failed (dirty working tree)` for the summary, continue; revert itself fails → halt + surface conflict with modified-file list.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
@@ -237,7 +239,7 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 ## Quality Gates
 
 - Lockfile always updated alongside manifest — no orphaned version mismatch.
-- **Lockfile-diff integrity:** after each group, review the lockfile diff — only the expected packages change; any resolved-URL host change (registry → unexpected host / git+http), integrity-hash removal, or surprise transitive addition with install scripts → revert the group, CRITICAL finding (motivated by 2025-2026 registry-worm incidents where tampered lockfiles carried the payload).
+- **Lockfile-diff integrity:** after each group, review `git diff -- {lockfile}` — only the expected packages change; any resolved-URL host change (registry → unexpected host / git+http), integrity-hash removal, or surprise transitive addition with install scripts → revert the group, CRITICAL finding (motivated by 2025-2026 registry-worm incidents where tampered lockfiles carried the payload).
 - Peer-dep conflicts: detect via stack-native tool output; conflict → elevate to `review-major`.
 - Workspace-wide consistency: dep across multiple workspace manifests → bump to a single version across all.
 - **Slopsquatting guard:** before adding or accepting any new dependency, confirm it exists in the official registry, was registered before this project began, and has real download history; a near-miss or cross-ecosystem name is a typosquat until proven (~19.7% of LLM-suggested packages are hallucinated — [CSA 2026](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/)).

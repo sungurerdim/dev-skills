@@ -74,8 +74,8 @@ Each scope defines an explicit checklist. Every check evaluated on every run —
 
 ### hygiene (4 checks)
 
-1. **Stale branches** — no open PR + last commit > 30 days ago. UNMERGED work — deletion loses commits: always `needs-approval`, confirmed per item even under `--auto` — matches the Unattended Mode rule-4 exception list (permanent deletion with no backup); recorded `needs-human` rather than executed blind; never bulk-deleted
-2. **Merged branches** — already merged into default but not deleted (commits preserved in base — safe to bulk-delete after one confirmation)
+1. **Stale branches** — no open PR (`gh pr list --head {branch}` → empty output) + last commit > 30 days ago (`git log -1 --format=%cs {branch}`). UNMERGED work — deletion loses commits: always `needs-approval`, confirmed per item even under `--auto` — matches the Unattended Mode rule-4 exception list (permanent deletion with no backup); recorded `needs-human` rather than executed blind; never bulk-deleted
+2. **Merged branches** — already merged into default but not deleted (`git branch -r --merged {default-branch}` lists them; commits preserved in base — safe to bulk-delete after one confirmation)
 3. **Orphan remotes** — remote-tracking refs whose upstream no longer exists (`git remote prune` — safe)
 4. **History bloat** — blobs > 10 MB in history inflating every clone (`git rev-list --objects --all` + `git cat-file --batch-check` size sort). Finding proposes `git filter-repo --strip-blobs-bigger-than <size>` (the recommended tool — not `git filter-branch` or BFG) + post-rewrite `git gc`, with LFS migration as the keep-the-file alternative. History rewrite is destructive and breaks every existing clone: always `needs-approval` with an explicit team-coordination + backup warning, never autonomous — same rule as the git-secret-history surgery (oss-readiness check 15). Matches the Unattended Mode rule-4 exception list (history rewrite on a shared branch) — under `--auto`, recorded `needs-human`, never executed blind
 
@@ -135,7 +135,7 @@ Setup → Audit → Gap Analysis → Plan Review → Apply → [Needs-Approval] 
 
 ### Phase 1: Setup
 
-1. Verify `git` + `gh` CLI available and authenticated — `git` required; `gh` required for settings/protection scopes.
+1. `git --version` → exit 0 and `gh auth status` → exit 0 — `git` required; `gh` required for settings/protection scopes.
 2. Detect repo info via GitHub API: name, default branch, visibility, description, topics, license, homepage, plan.
 3. **IDU:** Profile → {Type + Stack, Config.constraints}. Findings({repo}) → verify + use. Absent → own analysis.
 4. **Mode selection.** No flags → present a menu of every mode: Full Audit (recommended — scan every scope, report only), Audit & Fix (`--auto`), Scoped (`--scope`), OSS-ready (`--oss-ready`), (Cancel). A disambiguating flag skips the menu.
@@ -186,7 +186,7 @@ Apply fixes via GitHub API (settings, protection), git commands (hygiene), file 
 
 Per finding, assign disposition:
 
-- `fixed` — applied and verified via API read-back or file check
+- `fixed` — applied and verified: re-run the same `gh api` read → response shows the new value, or `test -f`/`grep` on the touched file → expected content present
 - `failed` — attempted but API/command returned error
 - `skipped` — user declined, platform limitation, or N/A (with reason)
 - `needs-approval` — protection changes affecting other contributors, CODEOWNERS modifications, visibility changes

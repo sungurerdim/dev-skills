@@ -138,7 +138,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 2: Discover
 
-1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → use relevant findings. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
+1. **Findings file check:** `ds/audit/findings.md` fresh (its meta `git_hash` equals `git rev-parse HEAD` output AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → use relevant findings. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 2. Search for deployment configs (Dockerfile, compose, CI deploy steps), monitoring configs (Sentry DSN, logging config, health endpoints), env vars + secrets management.
 3. Build inventory: services, ports, volumes, external dependencies.
 
@@ -163,6 +163,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 
 ### Phase 4: Generate [--generate]
 
+0. **Checkpoint pre-step (before the first file write):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (explain risk). **Under `--auto`:** write only paths untouched by the pre-existing dirty state; a planned write targeting a dirty path resolves `needs-human`. If the tree cannot be checkpointed → generate nothing over uncommitted unrelated changes; report the blocker.
 1. **Dockerfile:** multi-stage, non-root, optimized layers, health check.
 2. **docker-compose.yml:** services, networking, volumes, health checks, restart policies.
 3. **Reverse proxy config:** SSL termination, security headers, rate limiting.
@@ -171,13 +172,13 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 
 Present generated files for review before writing. **Under `--auto`:** no review pause — write directly and list every generated file in the summary.
 
-**Gate:** Generated files syntactically valid. If fails → identify invalid files, show syntax error, fix inline + re-validate; un-fixable after retry → skip writing, record `status: "failed (syntax error)"`, surface raw error for manual correction.
+**Gate:** Generated files syntactically valid — compose files: `docker compose -f {file} config -q` → exit 0 (docker absent → in-session YAML parse → no error); Dockerfiles: hadolint when present (Phase 3 tool rule) → exit 0. If fails → identify invalid files, show syntax error, fix inline + re-run the same validation; un-fixable after retry → skip writing, record `status: "failed (syntax error)"`, surface raw error for manual correction.
 
 ### Phase 5: Monitor Setup [--monitor]
 
 Structured logging configuration (JSON format, log levels); crash reporting setup with PII redaction rules; health check endpoint implementation; uptime monitoring configuration; alert rules (error rate > 5%, response time > 2s, disk > 80%).
 
-**Gate:** Monitoring configs valid + PII redaction configured. If fails → PII redaction missing → block writing crash-reporting config, prompt user to confirm redaction rules before proceeding; invalid config → fix inline + re-validate once; still invalid → skip, record `status: "failed (invalid config)"`, continue. **Under `--auto`:** no prompt — apply a conservative default redaction ruleset (mask email, phone, tokens, and any field named `password`/`secret`/`ssn`) and record the applied ruleset in the summary.
+**Gate:** Monitoring configs valid + PII redaction configured (`grep -niE 'redact|scrub|beforeSend' {crash-config}` → ≥1 match). If fails → PII redaction missing → block writing crash-reporting config, prompt user to confirm redaction rules before proceeding; invalid config → fix inline + re-validate once; still invalid → skip, record `status: "failed (invalid config)"`, continue. **Under `--auto`:** no prompt — apply a conservative default redaction ruleset (mask email, phone, tokens, and any field named `password`/`secret`/`ssn`) and record the applied ruleset in the summary.
 
 ### Phase 6: Incident Response [--incident]
 

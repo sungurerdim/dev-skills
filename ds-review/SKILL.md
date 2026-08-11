@@ -127,13 +127,13 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 
 ### Phase 1: Setup [SKIP if --auto]
 
-1. Pre-flight: check if git repo (optional, warn if not).
+1. Pre-flight: `git rev-parse --is-inside-work-tree` → `true` (non-zero exit → warn, continue — git optional).
 2. **IDU:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
 3. **Mode selection.** No mode flag → present a menu covering every mode, each with a one-line what-it-does: All (recommended) — tactical → strategic → meta-quality sequentially (skip --perf unless explicit) / Tactical — file-level quality fixes / Strategic — architecture-level assessment / Performance — deep perf profiling / Meta-Quality — principle-based whole-project audit / (Cancel). A disambiguating mode flag skips the menu.
 4. **Scope selection.** No `--scope` → ask which scopes (default: all for selected mode).
-5. Uncommitted changes detected → ask: continue / stash first / cancel.
+5. **Checkpoint pre-gate:** `git status --porcelain` → non-empty → ask: Commit first (recommended) / Stash / Proceed anyway (state the risk: failed fixes are reverted via `git checkout -- {file}`, which also discards uncommitted edits in that file) / Cancel.
 
-Under `--auto`: this phase is skipped entirely — mode resolves to All (tactical → strategic → meta-quality sequentially, `--perf` excluded unless explicit), scope resolves to every scope for each selected mode, and uncommitted changes are proceeded through (no stash) as the best-judgment default.
+Under `--auto`: this phase is skipped entirely — mode resolves to All (tactical → strategic → meta-quality sequentially, `--perf` excluded unless explicit), scope resolves to every scope for each selected mode, and the checkpoint pre-gate runs mechanically: `git status --porcelain` → non-empty → fixes proceed only in files untouched by the pre-existing dirty state; a fix targets a dirty file → that finding resolves `needs-human` (a revert would discard the user's uncommitted edits).
 
 **Gate:** Mode + scope confirmed (explicitly or via flags). If fails → re-present menu; user declines / no response after 2 prompts → exit with WARN "No mode selected — run /ds-review with --tactical, --strategic, --perf, or --meta-quality to proceed."
 

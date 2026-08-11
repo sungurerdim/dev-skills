@@ -62,7 +62,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 
 ### Phase 1: Setup
 
-1. Verify prerequisites: git working tree present; Spec Kit initialized (`.specify/` directory or `/speckit.*` commands available).
+1. Verify prerequisites: git working tree present (`git rev-parse --is-inside-work-tree` → `true`); Spec Kit initialized (`.specify/` directory exists on disk, or `/speckit.*` commands available).
 2. Derive `{feature}` slug from `{idea}` (kebab-case, ≤4 words) unless `--feature` given.
 3. Inspect `specs/{feature}/`: list which artifacts exist (`spec.md`, `plan.md`, `tasks.md`) and announce the resume point. [SKIP if directory absent]
 4. Print the run header: `[PIPE Phase 1/6] {feature} — resume point: {first_missing_artifact | fresh}`.
@@ -74,7 +74,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 1. Run `/speckit.constitution`, seeding it with the project's engineering rules (the user's global development rules plus repo conventions read this run).
 2. Confirm the file contains testability and scope-discipline principles.
 
-**Gate:** Pass = `.specify/memory/constitution.md` exists and is non-empty. If it fails → re-run once with the missing principles named; still failing → stop and surface the Spec Kit error verbatim.
+**Gate:** Pass = `.specify/memory/constitution.md` exists and is non-empty (`test -s .specify/memory/constitution.md` → exit 0). If it fails → re-run once with the missing principles named; still failing → stop and surface the Spec Kit error verbatim.
 
 ### Phase 3: Specify + Clarify
 
@@ -93,6 +93,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
    - every phase block ends with `Gate: {condition}`
    - every task asserting runtime behavior states it as an EARS sentence (`WHEN / WHILE / IF … THEN / WHERE … THE SYSTEM SHALL …`)
    - every task traces to a named `spec.md` requirement or acceptance criterion (YAGNI at planning time): a task with no traceable requirement is speculative → remove it, or return it to Phase 3 as a clarification if it reveals a real unstated need
+   - mechanical pre-pass on `specs/{feature}/tasks.md`: task count `grep -c '^- \[ \] T'` equals verify-line count `grep -c ' — verify: '`; gate-line count `grep -cE '^Gate: '` equals the phase-block count. Counts diverge → locate the offending lines with `grep -n` and route them to step 4. EARS phrasing and requirement traceability remain judgment reviews.
 4. Non-conforming lines → regenerate once via `/speckit.tasks` with the violations listed; still non-conforming → rewrite the offending lines directly, preserving task content.
 5. **Executable acceptance form (preferred where the behavior is testable).** A task's verify criterion is stronger as a failing test than as a prose assertion — the test is the spec, in a language the executor already reads. Where a task asserts runtime behavior and the project has a test runner, express the criterion as a named test that currently fails and must pass, and point `— verify:` at the command that runs it. Delegate authoring to ds-test when present; absent → write the failing test inline. Behavior not expressible as a test (a design choice, a doc change) keeps its prose criterion — never invent a hollow test to satisfy the form.
 
@@ -113,7 +114,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
    `Plan ready → in this directory, instruct your executor: "Implement specs/{feature}/tasks.md in order. Run each task's verify command; at most 3 repair rounds per task, then escalate. Independent review before marking [x]."`
 4. Print the summary (Report Format below).
 
-**Gate:** Pass = commit exists containing every generated artifact and nothing else. If the tree is dirty with unrelated changes → commit only the pipeline paths; unrelated changes stay unstaged and are listed in the summary.
+**Gate:** Pass = commit exists containing every generated artifact and nothing else (`git diff-tree --no-commit-id --name-only -r HEAD` → only `specs/{feature}/` and `.specify/` paths). If the tree is dirty with unrelated changes (`git status --porcelain` shows entries outside those paths) → commit only the pipeline paths; unrelated changes stay unstaged and are listed in the summary.
 
 ## Report Format
 

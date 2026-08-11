@@ -58,7 +58,7 @@ Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] �
 
 ### Phase 1: Discovery
 
-**Recovery check:** DETECT `ds/audit/tune.json`. Absent + no `--resume`/`--run` → fresh setup. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY: re-read `ds/tune/.autotune.json` + tail of `ds/tune/results.tsv`, skip `done` phases, enter Loop at next experiment. Announce `[TUN] Resuming from Phase {N}: {name}. Baseline {metric}={value}, {N} experiments recorded.` On user-triggered stop or context exhaustion, state persists; on graceful completion, delete state. Verify `ds/audit/` in `.gitignore` on fresh start.
+**Recovery check:** DETECT `ds/audit/tune.json`. Absent + no `--resume`/`--run` → fresh setup. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY: re-read `ds/tune/.autotune.json` + tail of `ds/tune/results.tsv`, skip `done` phases, enter Loop at next experiment. Announce `[TUN] Resuming from Phase {N}: {name}. Baseline {metric}={value}, {N} experiments recorded.` On user-triggered stop or context exhaustion, state persists; on graceful completion, delete state. Fresh start: `grep -qx 'ds/audit/' .gitignore` → exit 0; non-zero → append `ds/audit/` and report the addition.
 
 **State `data`:** `{ target_file, metric, direction, secondary, bench_cmd, budget_sec, tag, tune_dir: "ds/tune/", baseline: {value, commit}, branch, experiment_count, last_experiment_idx }`.
 
@@ -142,12 +142,13 @@ Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, outp
 
 **`ds/tune/program.md`** — Agent instructions generated from [references/program-template.md](references/program-template.md) with all project-specific values filled in.
 
-**Gate:** All files created and executable. If fails (file uncreatable or `bench.sh`/`eval` not executable) → surface specific file + error (e.g. "ds/tune/bench.sh: permission denied"), attempt `chmod +x` on shell scripts, retry once; still failing → exit with WARN listing unresolved files — do not proceed to Phase 5 over a broken eval setup.
+**Gate:** All files created and executable — `test -x ds/tune/bench.sh && test -x ds/tune/eval && test -f ds/tune/.autotune.json && test -f ds/tune/results.tsv && test -f ds/tune/program.md` → exit 0. If fails (file uncreatable or `bench.sh`/`eval` not executable) → surface specific file + error (e.g. "ds/tune/bench.sh: permission denied"), attempt `chmod +x` on shell scripts, retry once; still failing → exit with WARN listing unresolved files — do not proceed to Phase 5 over a broken eval setup.
 
 ### Phase 5: Baseline
 
+0. **Checkpoint pre-gate (stop-hard):** `git status --porcelain` → exclude `ds/tune/` and `ds/audit/` lines → remaining output non-empty → the loop does not start, interactive or `--auto`: Phase 7's DISCARD (`git reset HEAD~1 --hard`) resets tracked files and would destroy uncommitted work. Interactive → show the dirty files, ask Commit first (recommended) / Stash / Abort — Proceed-anyway is not offered for this skill. `--auto` → stop, record `needs-human: dirty working tree — commit or stash before the experiment loop`. Empty output → proceed.
 1. Run `bash ds/tune/bench.sh` — `noisy: true` → `runs_n` times (OPT-05, same condition as the Loop) and record mean ± stddev; `noisy: false` → once. Extract metrics by searching for `{metric}:` in `ds/tune/run.log`; record baseline in `results.tsv`.
-2. Create branch first, then commit setup on it (the user's current branch stays untouched): `git checkout -b autotune/{tag} && git add ds/tune/ && git commit -m "autotune: setup with baseline"`.
+2. Create branch first, then commit setup on it (the user's current branch stays untouched): `git checkout -b autotune/{tag} && git add ds/tune/ && git commit -m "autotune: setup with baseline"` — then `git branch --show-current` → `autotune/{tag}`.
 3. Write `ds/audit/tune.json` with canonical envelope + baseline snapshot in `data`.
 4. Report: `Baseline: {metric} = {value} | Branch: autotune/{tag}`
 
@@ -163,8 +164,8 @@ Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, outp
 
 Execute the experiment loop defined in `ds/tune/program.md` (steps 1-9 of [references/program-template.md](references/program-template.md)). Follow it exactly, with three skill-side rules layered on top:
 
-- **Significance check (OPT-05, template steps 5-6):** `noisy: true` → run `bash ds/tune/bench.sh` `runs_n` times (min 3) under identical conditions instead of once; extract the metric from each run, compute mean ± standard deviation. When the `runs_n` runs disagree wildly (stddev > baseline mean), still decide by the 2×stddev rule below — keep all runs, drop no outliers. `noisy: false` → single run, exactly as the template states.
-- **Decision (template step 8, strengthened):** `noisy: false` → metric improved AND no test regressions (run full test suite, not just bench) → KEEP, branch advances; metric same or worse OR any previously passing test now fails → DISCARD. `noisy: true` → KEEP only if (mean improved in `direction`) AND (improvement exceeds 2× the combined standard deviation of baseline and experiment) AND no test regressions; otherwise DISCARD as statistically insignificant (log the row with mean±stddev in the `description` column so it reads as noise, not a bug). DISCARD in either case: `git reset HEAD~1 --hard`. (Per [references/principles.md §7](references/principles.md): a metric win that breaks tests is still a regression; per OPT-05, a metric win within noise is not a win.)
+- **Significance check (OPT-05, template steps 5-6):** `noisy: true` → run `bash ds/tune/bench.sh` `runs_n` times (min 3) under identical conditions instead of once; extract the metric from each run, compute mean ± standard deviation in one `awk` pass over the collected values. When the `runs_n` runs disagree wildly (stddev > baseline mean), still decide by the 2×stddev rule below — keep all runs, drop no outliers. `noisy: false` → single run, exactly as the template states.
+- **Decision (template step 8, strengthened):** `noisy: false` → metric improved AND no test regressions (run full test suite, not just bench) → KEEP, branch advances; metric same or worse OR any previously passing test now fails → DISCARD. `noisy: true` → KEEP only if (mean improved in `direction`) AND (improvement exceeds 2× the combined standard deviation of baseline and experiment) AND no test regressions; otherwise DISCARD as statistically insignificant (log the row with mean±stddev in the `description` column so it reads as noise, not a bug). DISCARD in either case: `git reset HEAD~1 --hard`, then `git status --porcelain` → empty output confirms zero residue. (Per [references/principles.md §7](references/principles.md): a metric win that breaks tests is still a regression; per OPT-05, a metric win within noise is not a win.)
 - **Reward-hacking red flags (W12/OPT-07, checked on the experiment diff before the decision):** the diff edits `ds/tune/eval`, `ds/tune/bench.sh`, or test files while the declared target is a different file; hard-codes target metric values; or branches on eval-specific inputs → auto-DISCARD with the red flag named in the `description` column, regardless of the measured number — a metric win produced by editing the measurement is a hack, not an improvement.
 - **Mechanical Done Gate:** "no test regressions" in the Decision rule includes the lint/type arm — resolve `{check-cmd}` during Phase 2 (ds-quality enforcement arm installed — stop-hook / pre-commit hook / auto-lint → its gate command; else stack-native lint/type + full test; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision) and capture its baseline at Phase 5 alongside the metric baseline. A KEEP requires no *new* `{check-cmd}` red in addition to the metric win — a metric win that breaks lint/type is a regression → DISCARD. On loop exit: run the full `{check-cmd}` once against the final kept state; its exact command + observed output is the Completion Evidence, and baseline reds are reported red-at-baseline, never inherited as green.
 - **After each experiment:** update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`. On DISCARD, append a one-line failure hypothesis (why the variant lost) to the row's `description` — subsequent experiments avoid recorded failure patterns instead of blindly retrying.
@@ -180,12 +181,12 @@ Generated in Phase 4 with all placeholders filled — full template in [referenc
 
 1. Read `ds/audit/tune.json` — verify `skill: ds-tune`, `version: 1`, `git_hash` vs HEAD (prompt on mismatch).
 2. Verify `ds/tune/` folder exists; read `ds/tune/.autotune.json`, `ds/tune/program.md`, and `ds/tune/results.tsv` (current baseline = last `keep` entry).
-3. Check current git branch — not on `autotune/*` → checkout the branch.
+3. `git branch --show-current` → not `autotune/*` → checkout the branch. Then apply the Phase 5 Checkpoint pre-gate (stop-hard) — the loop never resumes over a dirty tree either.
 4. Resume loop from `ds/tune/program.md`, announce `[TUN] Resuming from experiment {N+1}, current best = {metric}={value}`.
 
 ## `/ds-tune --status` — Results
 
-Read `ds/tune/results.tsv`, display summary:
+Read `ds/tune/results.tsv`, display summary. Compute every count, rate, and duration below with a single `awk` pass over `results.tsv` — never by manual tallying of rows:
 
 ```
 Total experiments: {count} | Kept: {kept_count} | Discarded: {discarded_count} | Crashed: {crashed_count} | Hit rate: {kept/total}%

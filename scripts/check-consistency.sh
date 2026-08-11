@@ -336,6 +336,20 @@ check_delegation_targets() {
   done
 }
 
+# 35. v6.2 — Checkpoint gate: every bulk-modifying skill carries a mechanical
+#     clean-tree pre-step before its first project-file write (SKILL-SPEC §4
+#     Checkpoint Gate; ds-tune's reset loop made this a data-loss guard). List =
+#     skills that write/delete/reset project files in bulk; read-only, planning,
+#     and infra-only skills are exempt by design.
+check_checkpoint_gate() {
+  local s
+  for s in ds-backend ds-compliance ds-deploy ds-deps ds-devops ds-docs ds-fix ds-frontend ds-init ds-issue ds-mobile ds-review ds-simplify ds-solve ds-test ds-tune; do
+    [ -f "$s/SKILL.md" ] || continue
+    { grep -qi 'checkpoint' "$s/SKILL.md" && grep -q 'git status --porcelain' "$s/SKILL.md"; } \
+      || err "$s/SKILL.md missing the Checkpoint pre-step (clean-tree gate via git status --porcelain before first write — SKILL-SPEC §4)"
+  done
+}
+
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
 #     input, runs the real check function against it, asserts a FAIL: line
@@ -499,8 +513,13 @@ EOF
   printf '**Owns:** a | **Delegates:** ds-ghost -> cleanup | **Receives:** none\n' > "$tmp/f16/ds-alpha/SKILL.md"
   assert_catches "check_delegation_targets" "$tmp/f16" check_delegation_targets
 
+  # Fixture: check_checkpoint_gate — bulk-modifying skill with no clean-tree pre-step
+  mkdir -p "$tmp/f17/ds-fix"
+  printf '### Phase 2: Apply\n1. Write fixes to project files.\n' > "$tmp/f17/ds-fix/SKILL.md"
+  assert_catches "check_checkpoint_gate" "$tmp/f17" check_checkpoint_gate
+
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 17 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 18 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -822,9 +841,10 @@ check_marketing_words
 check_canonical_strings
 check_frontmatter_fields
 check_delegation_targets
+check_checkpoint_gate
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets, checkpoint-gate all consistent"
 else
   exit 1
 fi
