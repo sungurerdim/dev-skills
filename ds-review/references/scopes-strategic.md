@@ -18,6 +18,19 @@ Strategic, architecture-level analysis scopes. 9 scopes, 103 checks.
 | cross-cutting | XCT-01 to XCT-05 | Decision impact tracing: how one architectural choice affects other areas. Only report concrete cross-area impacts with evidence at file:line |
 | contract-consistency | CON-01 to CON-10 | System-wide lexicon + contract uniformity: same concept same name (one verb per operation class; domain terms uniform across layers), same word same meaning, analogous functions share parameter order + options shape, consistent units/formats (time, IDs, dates, boundary casing), one return/error shape per layer, same operation with divergent signatures across modules (contract-drift twin of W17) |
 
+## Gap Thresholds
+
+Per-project-type ideal values for Phase 3 gap analysis (current vs ideal). Consumer: SKILL.md Phase 3 (strategic mode) — loaded when computing the Current vs Ideal table.
+
+| Type | Coupling | Cohesion | Complexity | Coverage |
+|------|----------|----------|------------|----------|
+| cli | <40% | >75% | <10 | 70%+ |
+| library | <30% | >80% | <8 | 85%+ |
+| api | <50% | >70% | <12 | 80%+ |
+| web | <60% | >65% | <15 | 70%+ |
+| mobile | <55% | >65% | <12 | 65%+ |
+| devtool | <35% | >75% | <10 | 80%+ |
+
 ## Score Calculation
 
 For review scopes without fixable findings (architecture, patterns), score reflects structural health:

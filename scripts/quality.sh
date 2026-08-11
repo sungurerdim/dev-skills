@@ -81,7 +81,7 @@ if command -v python3 >/dev/null 2>&1; then
 else
   printf '\n=== [quality] ds-brief verifier ===\n' >&2
   printf '[quality] FAILED: python3 not found.\n' >&2
-  printf '[quality] Unverified as a result: the ds-brief mechanical verifier (33 checks)\n' >&2
+  printf '[quality] Unverified as a result: the ds-brief mechanical verifier (44 checks)\n' >&2
   printf '[quality] and its self-test. Install python3, or run this gate on a host that has it.\n' >&2
   exit 127
 fi
