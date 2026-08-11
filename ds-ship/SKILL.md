@@ -131,8 +131,8 @@ P0 Assess → P1 Ideal-vs-Current → P2 Rule Audit → P3 Simplify → P4 Docs 
 6. **Value proposition extraction.** Extract the project's one-paragraph concrete promise from docs. Interactive: surface "I read this as: {paragraph}. Confirm before I measure everything against it? [Y/n]". `--auto`: accept the extracted paragraph as-is, no prompt.
 
 7. **Promise census.** Extract every concrete capability claim from README / SPEC / docs/ / AI instruction file (per host — see ds-blueprint `references/detection.md` § Instruction Files) / blueprint profile. For each, query source (grep + LSP if available) for implementation. Classify:
-   - `promised-not-implemented` — doc claims X; no matching module/function/endpoint
-   - `implemented-not-documented` — code has X; no doc mentions it
+   - `promised-not-implemented` — doc claims X; no matching module/function/endpoint (ds-docs verify scope calls this class `Drift`/`Stale`)
+   - `implemented-not-documented` — code has X; no doc mentions it (ds-docs verify scope calls this class `Gap`)
    - `drift` — both exist; behavior diverges (default changed, signature changed, removed flag still listed)
 
 8. **Ambiguity question block.** One block, every unclear aspect: target audience, public-vs-private intent, monetization intent (free / paid product / internal), performance targets, compliance scope, deprecated features, renamed modules, **ecosystem integrations (Google Workspace / Apple ecosystem / none)**, **release scope reduction intent (full backlog vs frozen MVP set — triggers the Scope-Freeze branch)**. Interactive: ask, wait. `--auto`: resolve every item from repo signals (package.json/manifest audience hints, existing license/visibility, detected billing surfaces, blueprint profile) with the most conservative reading when signal is absent (private, free/internal, no compliance scope beyond what's detected) — record each inferred answer in the report so it stays auditable.

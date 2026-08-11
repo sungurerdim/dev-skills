@@ -108,7 +108,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 
 ### Phase 6: Handoff
 
-1. Stage exactly the pipeline's artifacts: `specs/{feature}/` and `.specify/`. Secret-pattern files (`.env`, `*.pem`, `credentials.*`, `secrets.*`) are never staged.
+1. Stage exactly the pipeline's artifacts: `specs/{feature}/` and `.specify/`. Secret-pattern files (`.env`, `.env.*`, `*.pem`, `*.key`, `credentials.*`, `secrets.*`) are never staged.
 2. Commit: `spec({feature}): plan + tasks with verify criteria`.
 3. Print the executor handoff line:
    `Plan ready → in this directory, instruct your executor: "Implement specs/{feature}/tasks.md in order. Run each task's verify command; at most 3 repair rounds per task, then escalate. Independent review before marking [x]."`

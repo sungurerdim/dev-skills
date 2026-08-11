@@ -350,6 +350,22 @@ check_checkpoint_gate() {
   done
 }
 
+# 36. v6.3 — Canonical secret filename patterns (SKILL-SPEC §4): a skill carrying
+#     a filename-based secret exclusion must carry the FULL canonical set — a
+#     partial copy is drift, and the missed pattern is the one that leaks.
+check_secret_pattern_set() {
+  local f t missing
+  for f in ds-*/SKILL.md; do
+    [ -f "$f" ] || continue
+    grep -qE 'credentials\.\*|secrets\.\*|\*\.pem' "$f" || continue
+    missing=""
+    for t in '`.env`' '`.env.*`' '`*.pem`' '`*.key`' '`credentials.*`' '`secrets.*`'; do
+      grep -qF "$t" "$f" || missing="$missing $t"
+    done
+    [ -z "$missing" ] || err "$f carries a filename secret-exclusion list but misses:$missing (SKILL-SPEC canonical set — partial copies drift)"
+  done
+}
+
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
 #     input, runs the real check function against it, asserts a FAIL: line
@@ -518,8 +534,13 @@ EOF
   printf '### Phase 2: Apply\n1. Write fixes to project files.\n' > "$tmp/f17/ds-fix/SKILL.md"
   assert_catches "check_checkpoint_gate" "$tmp/f17" check_checkpoint_gate
 
+  # Fixture: check_secret_pattern_set — partial filename-exclusion copy (drops *.key, secrets.*)
+  mkdir -p "$tmp/f18/ds-alpha"
+  printf 'Auto-exclude files matching `.env`, `.env.*`, `*.pem`, `credentials.*` before staging.\n' > "$tmp/f18/ds-alpha/SKILL.md"
+  assert_catches "check_secret_pattern_set" "$tmp/f18" check_secret_pattern_set
+
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 18 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 19 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -842,9 +863,10 @@ check_canonical_strings
 check_frontmatter_fields
 check_delegation_targets
 check_checkpoint_gate
+check_secret_pattern_set
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets, checkpoint-gate all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets, checkpoint-gate, secret-pattern-set all consistent"
 else
   exit 1
 fi

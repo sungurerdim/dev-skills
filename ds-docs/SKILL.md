@@ -205,6 +205,7 @@ Missing docs = HIGH; incomplete (<70%) = MEDIUM.
 | Link returns 404 or target heading missing | **Broken link** | HIGH |
 
 Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy) | Doc File:Line | Claim | Actual | Severity |`
+Label map for orchestrated runs: ds-ship's promise census uses `promised-not-implemented` (= `Drift`/`Stale` here) and `implemented-not-documented` (= `Gap` here) — same classes, census-side names.
 
 **Product-DX onboarding-curve check (when scope includes getting-started or API docs):**
 1. Does a "Quickstart" / "Getting Started" guide exist with copy-pasteable first command?

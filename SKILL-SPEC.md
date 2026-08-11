@@ -727,6 +727,10 @@ Run `{check-cmd}` once at setup to capture the baseline. Baseline red → record
 
 Never report `done`/`OK` while `{check-cmd}` shows a new red. Skills that already own a stricter domain loop (e.g. ds-test's regression check, ds-tune's metric gate) keep it; this gate is the floor, not a replacement.
 
+### Canonical Secret Filename Patterns
+
+The staging-exclusion filename set is spec-canonical; any skill that carries a filename-based secret exclusion carries the full set, verbatim tokens: `.env`, `.env.*`, `*.pem`, `*.key`, `credentials.*`, `secrets.*`. A partial copy is drift — the file a partial list misses is the one that leaks (`check-consistency.sh` check `secret-pattern-set`). Content-regex scanning (ds-fix's pattern table) is a separate, richer family and is not governed by this list.
+
 ### Checkpoint Gate (bulk-modifying skills)
 
 Every skill whose flow writes, deletes, or resets project files in bulk carries a mechanical clean-tree pre-step before its first write: `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (risk stated); under `--auto`: proceed only where the pre-existing dirty state is disjoint from the planned writes — otherwise `needs-human`. A skill whose failure path reverts or resets tracked files (hard reset, `git checkout --`, `git restore`) treats the pre-gate as stop-hard: the destructive loop never starts on a dirty tree, interactive or `--auto`. Rationale: running a revert-capable flow over uncommitted user work is a data-loss path (dev-rules Checkpoint transfer, 2026-08-11). `check-consistency.sh` (check `checkpoint-gate`) enforces presence for the named bulk-modifying skills.
