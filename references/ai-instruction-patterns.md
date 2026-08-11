@@ -2,11 +2,15 @@
 
 Best practices for writing effective AI agent/model instructions, compiled from 2025-2026 research.
 
+Last verified: 2026-08 — recalibrated to the Claude 5 model generation (see §17). Explicitness guidance is now model-class-scoped: the portable floor (literal-following near-frontier open models) still needs full density; Claude-5-generation frontier hosts degrade under over-prescription.
+
 ## Sources
 
 **Anthropic official (2026):** [Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) · [Context Engineering for Agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) · [Effective Harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) · [Managed Agents](https://www.anthropic.com/engineering/managed-agents) · [Structured Outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) · [Prompt Caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
 
 **Academic (2025-2026):** [Wharton CoT Report 2025](https://gail.wharton.upenn.edu/research-and-insights/tech-report-chain-of-thought/) · [RDS+/CRDS arXiv 2602.13773](https://arxiv.org/abs/2602.13773) · [Process Reward Models ACL 2025](https://arxiv.org/abs/2501.07301) · [ThinkPRM arXiv 2504.16828](https://arxiv.org/pdf/2504.16828) · [SHIELDA arXiv 2508.07935](https://arxiv.org/html/2508.07935v1) · [Focused CoT ICLR 2025](https://arxiv.org/pdf/2511.22176) · [Context Length Hurts arXiv 2510.05381](https://arxiv.org/html/2510.05381v1) · [Multi-Agent Orchestration arXiv 2511.15755](https://arxiv.org/abs/2511.15755) · [MAS Survey arXiv 2601.13671](https://arxiv.org/html/2601.13671v1) · [Utility-Guided Orchestration arXiv 2603.19896](https://arxiv.org/html/2603.19896) · [Many-Tier Hierarchy arXiv 2604.09443](https://arxiv.org/html/2604.09443v3) · [Instruction Hierarchy arXiv 2404.13208](https://arxiv.org/html/2404.13208v1) · [Reasoning Theater arXiv 2603.05488](https://arxiv.org/html/2603.05488v2) · [SpecBench arXiv 2605.21384](https://arxiv.org/abs/2605.21384) · [SWE-ABS arXiv 2603.00520](https://arxiv.org/abs/2603.00520) · [BrokenMath arXiv 2510.04721](https://arxiv.org/abs/2510.04721) · [AI Review Authorship Bias arXiv 2603.18740](https://arxiv.org/abs/2603.18740) · [MASFT arXiv 2503.13657](https://arxiv.org/abs/2503.13657)
+
+**2026-07/08 wave (see §17):** [New Rules of Context Engineering for Claude 5](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models) · [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) · [Databricks Harness Benchmark](https://www.databricks.com/blog/benchmarking-coding-agents-databricks-multi-million-line-codebase) · [DeepSeek-V4-Flash-0731](https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731) · [Artificial Analysis: DeepSeek V4 Flash](https://artificialanalysis.ai/models/deepseek-v4-flash) · [Prompt-Engineering Diminishing Returns PMC12488032](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12488032/) · [Model-Contingent Technique Efficacy arXiv 2511.21591](https://arxiv.org/pdf/2511.21591) · [Framing Task-Dependence arXiv 2605.05391](https://arxiv.org/abs/2605.05391) · [arXiv 2602.04306](https://arxiv.org/abs/2602.04306)
 
 **Industry/security (2025-2026):** [Lakera Prompt Engineering Guide 2026](https://www.lakera.ai/blog/prompt-engineering-guide) · [Lakera Agent Attacks Q4 2025](https://www.lakera.ai/blog/the-year-of-the-agent-what-recent-attacks-revealed-in-q4-2025-and-what-it-means-for-2026) · [OWASP LLM01:2025](https://genai.owasp.org/llmrisk/llm01-prompt-injection/) · [OWASP Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html) · [OpenAI: Agents vs Injection](https://openai.com/index/designing-agents-to-resist-prompt-injection/) · [Chroma Context Rot 2025](https://www.trychroma.com/context-rot) · [Databricks Structured Outputs 2025](https://www.databricks.com/blog/introducing-structured-outputs-for-batch-and-agent-workflows) · [Preventing AI Agent Drift](https://www.getmaxim.ai/articles/a-comprehensive-guide-to-preventing-ai-agent-drift-over-time/)
 
@@ -14,7 +18,7 @@ Best practices for writing effective AI agent/model instructions, compiled from 
 
 ## 1. Constraint Enforcement
 
-Negative constraints ("Don't...") are less reliable than positive framing. The original claim (Lakera 2026) that hard negatives fail ~5%, soft negatives ~10-15%, positive framing ~2-3% is **[unverified — no quantified failure-rate data found in Lakera 2026 guide; guide confirms qualitative pattern without citing those percentages]**. The qualitative finding holds: Anthropic's official 2026 docs confirm positive framing consistently outperforms prohibitions for Claude 4.x.
+Negative constraints ("Don't...") are less reliable than positive framing — but the effect is task-dependent, not a fixed rate. The formerly circulated failure percentages (hard negatives ~5%, soft ~10-15%, positive ~2-3%, attributed to Lakera 2026) have **no traceable primary source and are removed** (2026-08). Published measurements show framing-direction effects are real but task-dependent ([arXiv 2605.05391](https://arxiv.org/abs/2605.05391), [arXiv 2602.04306](https://arxiv.org/abs/2602.04306)); no study quantifies per-framing failure rates. Anthropic's docs confirm the qualitative pattern. On Claude-5-generation hosts the larger risk is over-constraining: prior-generation prescriptive styles "are often too prescriptive... and can degrade output quality" ([Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5)).
 
 Overloading >3 constraints that conflict with positive goals causes accuracy drops (qualitative; no updated percentage found in 2026 sources).
 
@@ -32,7 +36,7 @@ Overloading >3 constraints that conflict with positive goals causes accuracy dro
 
 **Placement:** Front-load critical constraints in lines 1-5. Repeat at phase boundaries for long sessions.
 
-**Source:** Lakera Prompt Engineering Guide 2026, Anthropic Official Docs 2026 — Last verified: 2026-04
+**Source:** arXiv 2605.05391, arXiv 2602.04306, Anthropic Official Docs 2026, Prompting Claude Fable 5 (2026) — Last verified: 2026-08
 
 ## 2. Structured Phases with Gates
 
@@ -56,9 +60,11 @@ Gates prevent forward drift with incomplete state. 60%+ higher success rate vs u
 
 ## 3. Adaptive Thinking (replaces forced CoT)
 
-**Confirmed 2025 finding (Wharton GenAI Labs, verified 2026):** Forced chain-of-thought adds only 2.9% accuracy for o3-mini and 3.1% for o4-mini — reasoning-capable models. Cost: 20-80% more tokens, 10-20 seconds latency. Non-reasoning models still benefit: Gemini Flash 2.0 +13.5%, Sonnet 3.5 +11.7%.
+**Historical 2025 measurement (Wharton GenAI Labs; models since superseded, directional finding persists):** Forced chain-of-thought added only 2.9% accuracy for o3-mini and 3.1% for o4-mini — reasoning-capable models of that generation. Cost: 20-80% more tokens, 10-20 seconds latency. Non-reasoning tiers of that era still benefited: Gemini Flash 2.0 +13.5%, Sonnet 3.5 +11.7%.
 
-**2026 update — Effort parameter (Claude 4.x):** Use the `effort` API parameter instead of prompting for reasoning depth. Levels: `low`, `medium`, `high`, `xhigh` (best for coding/agentic), `max`. Claude Opus 4.7 respects effort strictly; shallow reasoning on complex problems → raise effort level, not prompt complexity. Explicit reasoning prompt only needed at `low` effort: `"This task involves multi-step reasoning. Think carefully before responding."`
+**2026-08 update — Returns diminish with model maturity, and technique efficacy is model-contingent:** A peer-reviewed medical-exam study found prompt engineering lifts early-generation GPT strongly (3.5: +10.6%, 4.0: +3.2%) but yields statistically insignificant gains on advanced variants (P=.07–.94) ([PMC12488032](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12488032/)). An arXiv planning study found CoT/Algorithm-of-Thought **helps** GPT-5-Thinking but **hurts** GPT-5-mini and Gemini-2.5-Pro — "the efficacy of a prompting technique is contingent on the model, with no single approach proving universally superior" ([arXiv 2511.21591](https://arxiv.org/pdf/2511.21591)). Calibrate per model class; never assume a technique transfers.
+
+**Historical — Effort parameter (Claude 4.x era, 2026-04 data point):** Use the `effort` API parameter instead of prompting for reasoning depth (`low`/`medium`/`high`/`xhigh`/`max`). Claude Opus 4.7 respected effort strictly; shallow reasoning on complex problems → raise effort level, not prompt complexity. On the Claude 5 generation, prompting for reasoning depth is generally counterproductive — over-prescription degrades output (see §17).
 
 **2026 update — Reasoning theater (arXiv 2603.05488):** Visible CoT may not reflect actual model reasoning. Models produce plausible-looking chains diverging from internal computation. Do not use visible CoT as a trust signal; use output quality metrics.
 
@@ -68,12 +74,13 @@ Gates prevent forward drift with incomplete state. 60%+ higher success rate vs u
 | "Reason carefully about each option" | "Compare options against these criteria: [list]" |
 | "Let me think about this..." | Let model decide; override only with effort param |
 
-**When to prompt reasoning explicitly (low-effort configs only):**
-- Non-reasoning models (Haiku) on complex tasks: still beneficial (+11-13%)
+**When to prompt reasoning explicitly:**
+- Smaller non-reasoning tiers only (historical 2025 data: Haiku-class, Gemini Flash 2.0, +11-13%) — re-verify per model, since technique efficacy is model-contingent (arXiv 2511.21591)
 - Multi-criteria decisions with >3 trade-offs
 - Novel problems outside training distribution
+- Never on Claude-5-generation or GPT-5.x thinking tiers — they reason adaptively by default
 
-**Source:** Wharton GenAI Labs 2025, Anthropic Official Docs 2026, arXiv 2603.05488 — Last verified: 2026-04
+**Source:** Wharton GenAI Labs 2025 (historical), Anthropic Official Docs 2026, arXiv 2603.05488, PMC12488032, arXiv 2511.21591 — Last verified: 2026-08
 
 ## 4. Example Density
 
@@ -137,7 +144,7 @@ Confirmed prevention strategies (Anthropic Context Engineering 2026, Harness Des
 **2026 update — Context compaction vs reset (Anthropic Managed Agents 2026):**
 - **Compaction:** Summarizes earlier context in place; preserves continuity; 1,000-2,000 tokens of distilled output typical; context anxiety can still persist
 - **Context reset:** Clean slate for next agent; requires handoff artifact with enough state to resume; eliminates context anxiety; adds orchestration overhead
-- Claude Sonnet 4.5 showed "context anxiety" (premature task wrap-up) requiring resets; Claude Opus 4.5+ eliminated this behavior; harness assumptions go stale as models improve — audit regularly
+- Historical example (2025-era models): Claude Sonnet 4.5 showed "context anxiety" (premature task wrap-up) requiring resets; Claude Opus 4.5+ eliminated this behavior. The durable lesson: harness assumptions go stale as models improve — audit regularly (the 2026-07 removal of >80% of Claude Code's system prompt is the same lesson at larger scale, see §17)
 
 **State file pattern:**
 ```json
@@ -154,15 +161,18 @@ Confirmed prevention strategies (Anthropic Context Engineering 2026, Harness Des
 
 **Source:** Anthropic Context Engineering 2026, SHIELDA (arXiv), Anthropic Managed Agents 2026 — Last verified: 2026-04
 
-## 7. Claude 4.x Literal Interpretation
+## 7. Instruction Literalness — Model-Class Calibration [RETITLED 2026-08 — formerly "Claude 4.x Literal Interpretation"]
 
-**Confirmed (Anthropic Official Docs 2026, Claude Opus 4.7 release):** Claude 4.x takes instructions literally. Claude Opus 4.7 is more literal than 4.6, especially at lower effort levels. It will not silently generalize an instruction from one item to another, and will not infer requests not made.
+Literalness is model-class-dependent, not universal. Calibrate to the class actually running the instructions (mirrors SKILL-SPEC.md §2 "Model-Class Calibration (2026-08)"):
 
-**Practical implications for 2026:**
-- Scope must be stated explicitly: "Apply this formatting to every section, not just the first one"
-- Omitted details = omitted from output
-- At `low`/`medium` effort, model scopes work to exactly what was asked — moderately complex tasks risk under-thinking
-- Code review harnesses tuned for earlier models may show reduced recall on Claude Opus 4.7: the model follows filtering instructions more faithfully, not fewer bugs found but fewer reported below the stated bar
+| Model class | Behavior | Consequence |
+|---|---|---|
+| Claude-5-generation frontier hosts (Opus 5, Fable 5 on Claude Code) | Judgment-capable; prior-generation prescriptive prompts "are often too prescriptive... and can degrade output quality" ([Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5)) | Keep WHAT explicit — intent, scope, gates, output contract; leave HOW to the model |
+| Portable floor — literal-following near-frontier open models (DeepSeek-V4-class) and thin harnesses | Strong raw benchmarks but weak agentic floor: answers instead of abstaining in 94–96% of uncertain cases, weak multi-turn tool orchestration ([aitoolsreview.co.uk](https://aitoolsreview.co.uk/insights/deepseek-v4-ga-review) — single secondary source for the abstention figure, treat as directional; [the-agent-report.com](https://the-agent-report.com/2026/08/deepseek-v4-flash-0731-benchmarks-agent-economics/)) | Full explicitness earns its cost: state scope, every branch, and every fallback |
+
+**Historical data point (Claude 4.x, verified 2026-04):** Claude 4.x took instructions literally; Opus 4.7 more literal than 4.6, especially at lower effort levels — it would not silently generalize an instruction from one item to another or infer requests not made. Omitted details = omitted from output. Code-review harnesses tuned for earlier models showed reduced recall on Opus 4.7 (fewer findings *reported* below the stated bar, not fewer found). This behavior profile now describes the portable floor, not frontier hosts.
+
+**Explicit *intent* wins on every class.** The table below states intent and output contract, not micro-method — that distinction is what survives the generation change:
 
 | Vague (fails) | Explicit (works) |
 |---------------|-----------------|
@@ -170,7 +180,7 @@ Confirmed prevention strategies (Anthropic Context Engineering 2026, Harness Des
 | "Fix the tests" | "Fix failing tests by correcting test logic. Preserve assertion strength. If a test validates wrong behavior, fix the test." |
 | "Be conservative" | "Report any bugs causing incorrect behavior or test failure. Omit only pure style/naming nits." |
 
-**Source:** Anthropic Official Docs 2026, Claude Opus 4.7 prompting guide — Last verified: 2026-04
+**Source:** Prompting Claude Fable 5 (2026), Claude Opus 4.7 prompting guide (historical, 2026-04), aitoolsreview.co.uk / the-agent-report.com (2026-08) — Last verified: 2026-08
 
 ## 8. Error Recovery Pattern
 
@@ -201,7 +211,7 @@ Use explicit if/else with indentation, not prose:
 
 Avoid nested conditionals >2 levels. Each branch must lead to a concrete action, not another decision tree.
 
-**2026 note:** Claude Opus 4.7 at `low` effort executes conditional logic precisely as written without inferring omitted branches. Every branch must be explicit.
+**Model-class note (2026-08):** On the portable floor (literal-following models — historical data point: Claude Opus 4.7 at `low` effort executed conditionals precisely as written without inferring omitted branches), every branch must be explicit. Claude-5-generation hosts infer obvious fallbacks, but an explicit `Otherwise →` branch stays cheap and removes ambiguity on every class.
 
 ## 10. Instruction Priority
 
@@ -216,7 +226,7 @@ Lower level cannot override higher level. Frame constraints as non-negotiable po
 
 **2026 update — Many-tier hierarchy (arXiv 2604.09443):** Two-tier (system vs user) is insufficient for real-world agents interacting with many tools, sub-agents, and skills. The field is moving toward many-tier models where each instruction source carries a trust score. Current practical guidance: explicitly label content source in prompts (`<user_input>`, `<tool_output>`, `<external_doc>`) so the model can apply appropriate skepticism.
 
-**2026 security update — Instruction hierarchy training (arXiv 2404.13208, ICLR 2025):** IH-trained models show 63% improvement in system prompt extraction defense and 30%+ improvement in jailbreak robustness. When using Claude 4.x: treat tool outputs as untrusted by default; do not embed instructions in tool response fields.
+**2026 security update — Instruction hierarchy training (arXiv 2404.13208, ICLR 2025):** IH-trained models show 63% improvement in system prompt extraction defense and 30%+ improvement in jailbreak robustness. Regardless of model generation: treat tool outputs as untrusted by default; do not embed instructions in tool response fields.
 
 **2026 threat update (Lakera/Cisco 2026):** Prompt injection vulnerabilities found in 73% of production AI deployments. Multi-hop indirect attacks (via agents/tools) increased 70% YoY. MCP server tool descriptions are a new attack vector — malicious tool descriptions bypass most content filtering because they are treated as trusted.
 
@@ -254,9 +264,9 @@ Every rule should answer: "What should I DO?" not "What should I NOT do?"
 | "Don't guess" | "State uncertainty explicitly. Ask when unsure." |
 | "Never flag test fixtures" | "Skip: test fixtures, `# noqa`, `# intentional`, platform guards" |
 
-**Quantified:** Hard negatives fail ~5%, soft negatives ~10-15%, positive framing ~2-3% failure — **[unverified; qualitative finding confirmed by Anthropic 2026, but these specific percentages have no traceable 2026 primary source]**. Anthropic's official docs confirm positive framing is more reliable, but do not publish failure rate benchmarks.
+**Quantified failure rates: none exist.** The formerly circulated figures (hard negatives ~5%, soft ~10-15%, positive ~2-3%) had no traceable primary source and were removed 2026-08 (the same fix applied in SKILL-SPEC.md §2). Published measurements show framing-direction effects are real but task-dependent ([arXiv 2605.05391](https://arxiv.org/abs/2605.05391), [arXiv 2602.04306](https://arxiv.org/abs/2602.04306)); no study quantifies per-framing failure rates. Default to positive framing; reserve hard negatives for safety-critical rules only.
 
-**Source:** Lakera 2026 (qualitative), Anthropic Official Docs 2026 — Last verified: 2026-04
+**Source:** arXiv 2605.05391, arXiv 2602.04306, Anthropic Official Docs 2026 (qualitative) — Last verified: 2026-08
 
 ---
 
@@ -341,9 +351,39 @@ Recent research isolates failure modes the patterns above must actively counter.
 
 **Source:** SWE-ABS arXiv 2603.00520, SpecBench arXiv 2605.21384, BrokenMath arXiv 2510.04721, arXiv 2603.18740, USENIX Security '25, CSA 2026, Chroma 2025, MASFT arXiv 2503.13657 — Last verified: 2026-06
 
+## 17. Claude-5 Generation Recalibration — 2026-07/08 Evidence [NEW — 2026-08]
+
+The 2026-07/08 release wave moved the baseline this file calibrates against. Five dated findings:
+
+**1. Anthropic cut >80% of Claude Code's system prompt (2026-07-24).** "We removed over 80% of Claude Code's system prompt for models like Claude Opus 5 and Claude Fable 5 with no measurable loss on our coding evaluations" — [The new rules of context engineering for Claude 5 generation models](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models) (announcement: [x.com/trq212](https://x.com/trq212/status/2080710971228918066)). Diagnosis: at that density the dominant failure mode was **conflicting instructions** — system prompt, skills, and user request clashing (e.g. "leave documentation as appropriate" vs "DO NOT add comments"). Six named shifts: rules→judgment, examples→interface design, upfront context→progressive disclosure, duplicated instructions→consolidated tool/skill descriptions, manual CLAUDE.md memory→auto-memory, simple markdown specs→rich references. **Caveats:** "no measurable loss" refers to Anthropic's own internal evals, and **no independent replication exists as of 2026-08** — the [HN thread](https://news.ycombinator.com/item?id=49051361) contains no technical replication, and skeptics note judgment-mode is a real risk in regulated codebases and that general prompt optimization confounds the capability story ([Developers Digest](https://www.developersdigest.tech/blog/context-engineering-claude-5-new-rules-2026)).
+
+**2. Official prompting doc for the new class.** [Prompting Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5): prior-generation prompt styles "are often too prescriptive for Claude Fable 5 and can degrade output quality." Over-prescription is now a first-class failure mode on frontier hosts, symmetric with under-specification on the portable floor.
+
+**3. Harness design does measurable work independent of the model.** On Databricks' multi-million-line internal codebase — real merged PRs, held-out tests (no LLM judge), sealed git history — "the harness a model is called from dramatically impacts cost and quality... in many cases, simple harnesses like Pi performed best on our workloads" ([Databricks](https://www.databricks.com/blog/benchmarking-coding-agents-databricks-multi-million-line-codebase)). The minimal Pi harness (four core tools, sub-1,000-token system prompt) matched vendor harnesses' success rate with Opus and GPT 5.5 at ~2x lower cost, mainly by sending ~3x less context per turn ([Matei Zaharia](https://x.com/matei_zaharia/status/2074943623301583125)). A meaningful share of apparent "model capability" in agentic benchmarks is harness-dependent.
+
+**4. The portable floor is real — DeepSeek V4-Flash-0731.** Independent measurement confirms a genuine capability jump ([Artificial Analysis](https://artificialanalysis.ai/models/deepseek-v4-flash): GDPval-AA v2 Elo 1189→1559, Terminal-Bench 2.1 ~79% (+17pts), hallucination rate −12pts; release: [Hugging Face](https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731)). But the agentic-reliability gap persists: answering instead of abstaining in 94–96% of uncertain cases, weak multi-turn tool orchestration and long-horizon planning ([aitoolsreview.co.uk](https://aitoolsreview.co.uk/insights/deepseek-v4-ga-review) — single secondary source for the abstention figure, directional; [the-agent-report.com](https://the-agent-report.com/2026/08/deepseek-v4-flash-0731-benchmarks-agent-economics/)). Vendor benchmark numbers are self-reported on an unreleased internal harness — treat with caution. Consequence: near-frontier open models still need full portable-density instructions plus harness-level supervision.
+
+**5. Prompt-engineering returns diminish with model maturity — and are model-contingent.** Peer-reviewed: prompt engineering lifts GPT-3.5 +10.6% and GPT-4.0 +3.2%, but gains on advanced variants are statistically insignificant (P=.07–.94) ([PMC12488032](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12488032/)). And the same advanced technique helps GPT-5-Thinking while hurting GPT-5-mini and Gemini-2.5-Pro ([arXiv 2511.21591](https://arxiv.org/pdf/2511.21591)).
+
+**Net recalibration for this file:** every "be maximally explicit" pattern above is scoped to the portable floor. On Claude-5-generation hosts, keep WHAT explicit — intent, gates, output contracts (§2, §7, §11 stand unchanged) — and leave HOW to judgment (§3, §7, §9 now carry dated historical notes). This matches SKILL-SPEC.md §2 "Model-Class Calibration (2026-08)".
+
+**Source:** as linked above — Last verified: 2026-08
+
 ---
 
 ## Changelog — Changes Since Previous Version (2025-2026)
+
+**2026-08 recalibration (Claude 5 generation):**
+- §1, §12: untraceable failure-rate percentages (hard ~5% / soft ~10-15% / positive ~2-3%) removed outright — previously carried as "[unverified]", now replaced with task-dependence citations (arXiv 2605.05391, 2602.04306), matching the same fix in SKILL-SPEC.md §2.
+- §3: Wharton CoT figures and the `effort`-parameter guidance reframed as dated historical data points (superseded models); added diminishing-returns (PMC12488032) and model-contingent efficacy (arXiv 2511.21591) findings.
+- §7: retitled from "Claude 4.x Literal Interpretation" to "Instruction Literalness — Model-Class Calibration"; Claude 4.x literalness kept as a dated historical data point now describing the portable floor; Claude-5-generation judgment guidance added.
+- §9, §10: model-specific notes dated (Opus 4.7) or made model-agnostic (tool-output trust).
+- §17 added: dated 2026-07/08 evidence — >80% system-prompt cut and conflicting-instruction failure mode (no independent replication, flagged), Prompting Claude Fable 5 doc, Databricks harness benchmark, DeepSeek V4-Flash-0731, diminishing-prompt-returns studies.
+- Header gains a global "Last verified: 2026-08" stamp; touched sections restamped, untouched sections keep their honest earlier stamps.
+
+---
+
+### Previous changelog (2026-04/06 revision)
 
 **Kept:** §1 (failure-% unverified), §2 (60% claim marked directional), §3 (Wharton 2.9/3.1% confirmed), §4 (3-5 examples confirmed), §7 (extended for Opus 4.7), §9 (unchanged), §11 (new failure-rate table added), §12 (unverified disclaimer added).
 

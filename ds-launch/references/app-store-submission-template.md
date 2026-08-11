@@ -1,5 +1,7 @@
 # App Store Submission Notes — Proactive Template
 
+> **Currency rule:** the dated facts in this file (policy names, thresholds, fines, dates, review guidelines) are a verified seed map, never the authority. At run time, re-verify any fact that affects a finding against the live official source (store guideline page, regulator text, platform changelog); the live source wins on conflict. Web access unavailable → apply the seed and mark the finding `unverified-currency`.
+
 > **Why proactive:** Apple App Review reviewers send Guideline 2.1 information requests an average of **2 hours after submission** for AI-using apps. Each round-trip costs **+24-48 hours** in the review queue. Apps that supply this information **upfront** (in the original App Review Information → Notes field) skip the round-trip entirely.
 > Source: Indie maker [@oozn](https://x.com/oozn) confirmed pattern in TR indie community 2026-04. Apple's own [App Review documentation](https://developer.apple.com/app-store/review/) also recommends proactive disclosure.
 
