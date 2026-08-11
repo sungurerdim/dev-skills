@@ -7,7 +7,7 @@ Thanks for your interest in contributing to dev-skills! This guide covers how to
 - **Report a bug** — Open an issue describing the affected skill, steps to reproduce, and expected behavior
 - **Request a skill** — Open an issue describing the workflow the skill would cover and why existing skills don't
 - **Fix a bug or improve a skill** — Fork, fix, and open a PR
-- **Add a new skill** — Follow the structure below, then open a PR
+- **Add a new skill** — Work through [docs/authoring-checklist.md](docs/authoring-checklist.md) (the guided on-ramp: every SKILL-SPEC mandatory section in order, each step tied to the mechanical check that proves it), then open a PR
 
 ## Skill Structure
 
