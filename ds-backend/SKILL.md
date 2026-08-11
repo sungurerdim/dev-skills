@@ -206,7 +206,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 5. Search for pipeline surfaces: ingest jobs, ETL/transform scripts, schedulers/queues, batch scripts, data-quality checks.
 6. Build inventory: endpoints list, tables/models list, auth mechanisms, pipeline stages (ingest → clean → merge → store → serve).
 
-**Gate:** Inventory complete. No backend code found → switch to design mode. If fails → partial inventory → mark missing scopes `not-found` in the inventory, proceed with detected scopes only, note skipped scopes in report.
+**Gate:** Inventory built — endpoints list, tables/models list, auth mechanisms, and pipeline stages each populated or marked `not-found`. No backend code found → switch to design mode. If fails → partial inventory → mark missing scopes `not-found` in the inventory, proceed with detected scopes only, note skipped scopes in report.
 
 ### Phase 3: Analyze [--audit mode]
 

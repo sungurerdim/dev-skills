@@ -182,7 +182,7 @@ Sequenced per approved plan. One skill at a time. Orchestration loop per delegat
 
 **Category B batch at end of Phase 2.** Present all B items — one line each (`[severity] title — file:line · impact/effort/risk · owner`) grouped by owning skill with counts; state the question (`Decide these N items?`). Interactive: Apply all / per-owner bulk (`Apply all ds-review` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All / Defer (`approve-all` excludes CRITICAL; "all" = exactly the displayed set). `--auto`: no prompt — every B item resolved per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning), except items matching the rule-4 exception list, which become `skipped (needs-human)`. Applied B fixes flow back through the owning skill (ds-review for code-level, ds-backend for API, etc.).
 
-**Gate:** Every queued delegation `done`; every B item has a decision; `ds/audit/findings.md` reflects current state. If fails → log each incomplete delegation as `failed (did not signal completion)`, mark undecided B as `deferred`, continue to Phase 3 with collected findings; never block on a single failed delegation.
+**Gate:** Every queued delegation `done`; every B item has a decision; `ds/audit/findings.md` re-read after the final delegation with every new entry classified A or B (step 5). If fails → log each incomplete delegation as `failed (did not signal completion)`, mark undecided B as `deferred`, continue to Phase 3 with collected findings; never block on a single failed delegation.
 
 ### Phase 3: Simplify
 

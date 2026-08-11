@@ -137,7 +137,7 @@ Tests fail → stop. Only create PR when tests covering the changed files pass.
 
 **Size note:** net diff exceeds PR-01 thresholds ([references/rules-pr.md](references/rules-pr.md): `git diff {base}...HEAD --shortstat` → >400 changed lines, or `git diff {base}...HEAD --name-only | wc -l` → >10 files) → append body note "Large PR — consider splitting for reviewability" (MEDIUM, informational — never blocks creation).
 
-**Gate:** Net diff analyzed; PR title generated in conventional commit format. If fails → empty `git diff {base}...HEAD` (commits exist but net = 0) → stop with "Net diff is empty — all changes reverted in later commits. Nothing to describe."; ambiguous classification after net-diff override → default to most conservative non-bumping type, append WARN in PR body.
+**Gate:** `git diff {base}...HEAD` read with non-empty output; PR title generated in conventional commit format (`printf '%s' "{title}" | wc -c` → ≤ 70). If fails → empty `git diff {base}...HEAD` (commits exist but net = 0) → stop with "Net diff is empty — all changes reverted in later commits. Nothing to describe."; ambiguous classification after net-diff override → default to most conservative non-bumping type, append WARN in PR body.
 
 ### Phase 4: Review (under `--auto`: stop here, see below)
 

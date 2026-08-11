@@ -230,7 +230,7 @@ Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Su
 
 Search for store-related configs, version info, existing privacy policy / ToS, CI/CD release workflows; build inventory of what exists vs missing.
 
-**Gate:** Inventory complete. If fails → note what was found as partial; mark missing config type (store configs, version info, privacy policy, CI workflows) as absent rather than unknown; proceed to Phase 3 — missing entries become FAIL findings in review scope.
+**Gate:** Inventory lists each config type (store configs, version info, privacy policy / ToS, CI release workflows) as present or absent. If fails → note what was found as partial; mark missing config type (store configs, version info, privacy policy, CI workflows) as absent rather than unknown; proceed to Phase 3 — missing entries become FAIL findings in review scope.
 
 ### Phase 3: Generate [setup, listing, aso, seo, email, privacy, review, submission-notes]
 

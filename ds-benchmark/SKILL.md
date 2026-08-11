@@ -74,7 +74,7 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 1. **Blueprint profile check.** `grep -n '^## Blueprint Profile' {instruction-file(s)}` → ≥1 match. Match → read type, stack, audience, priorities. No match → own detection + prompt for problem definition.
 
-**Gate:** Profile located or problem definition ready. If fails → no profile + own detection insufficient (empty repo, no manifest) → prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition." **Under `--auto`:** no prompt — infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `needs-human: no problem definition inferable`.
+**Gate:** Blueprint-profile grep (step 1) returned ≥1 match, or a one-sentence problem definition is recorded. If fails → no profile + own detection insufficient (empty repo, no manifest) → prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition." **Under `--auto`:** no prompt — infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `needs-human: no problem definition inferable`.
 
 ### Phase 2: Define Problem Space
 

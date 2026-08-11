@@ -106,7 +106,7 @@ Setup → Detect → Configure → Generate → Verify → [Needs-Approval] → 
 2. Report: "Found {n} existing config files — these will be preserved."
 3. **Checkpoint:** directory is a git repo (`git rev-parse --is-inside-work-tree` → `true`) → `git status --porcelain` → non-empty → interactive: ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: scaffold writes interleave with uncommitted work, single-command rollback is lost); `--auto`: proceed only when the pre-existing dirty state stays untouched by this skill's writes — otherwise stop and record `needs-human`. Never scaffold over uncommitted unrelated changes silently. Not a repo, or clean tree → proceed.
 
-**Gate:** Conflict list confirmed. If fails → no response to overwrite confirmation → default SKIP for that file, announce, continue scanning; re-run after resolving conflicts. **Under `--auto`:** same default — every conflicting file resolves to SKIP (preserve existing) without asking; this is the safe, non-destructive default rather than a `needs-human` case.
+**Gate:** Existing-config scan reported ("Found {n} existing config files"); every conflict carries an overwrite/skip decision. If fails → no response to overwrite confirmation → default SKIP for that file, announce, continue scanning; re-run after resolving conflicts. **Under `--auto`:** same default — every conflicting file resolves to SKIP (preserve existing) without asking; this is the safe, non-destructive default rather than a `needs-human` case.
 
 ### Phase 3: Generate Structure
 

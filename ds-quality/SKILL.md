@@ -167,8 +167,8 @@ runs.
 
 ### Phase 5 — Prove it works (demonstrate, don't claim)
 Run all three and show output, for whichever arm(s) were wired:
-1. **Green baseline:** run the quality command → exit 0.
-2. **Red on broken:** introduce a trivial, reversible failure (e.g. a temp format violation or a deliberately failing assertion in a scratch test) → run the quality command → confirm non-zero + clear output → **revert** → green again.
+1. **Green baseline:** run the Phase-3 entry point → exit 0.
+2. **Red on broken:** introduce a trivial, reversible failure (e.g. a temp format violation or a deliberately failing assertion in a scratch test) → run the Phase-3 entry point → confirm non-zero + clear output → **revert** → green again.
 3. **Arm wiring, no real trigger needed:**
    - Arm A: drive the hook directly —
      ```bash
@@ -182,7 +182,7 @@ Run all three and show output, for whichever arm(s) were wired:
    - Arm E: run the AfterAgent hook script directly → with the temp failure: exit 2 (or deny JSON) + reason; reverted: exit 0, silent.
    - Arm F: pipe `{"stop_hook_active":false,…}` into the Stop hook script → with the temp failure: `{"decision":"block",…}` JSON; with `stop_hook_active:true`: exit 0 silent (loop guard); reverted: exit 0 silent.
 
-**Gate:** Green→red→green demonstrated for the quality command, and the wired arm's trigger test shown (block-on-red / pass-on-green). If fails → red state doesn't trigger the arm as expected → do not report enforcement as installed; mark it "wired but unverified" and surface the specific failure.
+**Gate:** Green→red→green demonstrated for the Phase-3 entry point, and the wired arm's trigger test shown (block-on-red / pass-on-green). If fails → red state doesn't trigger the arm as expected → do not report enforcement as installed; mark it "wired but unverified" and surface the specific failure.
 
 ## Report Format
 

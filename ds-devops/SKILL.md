@@ -92,7 +92,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 **Under `--auto`:** both menus are skipped — mode resolves to `audit+fix` (best-judgment default: scan and fix autonomously) and scope resolves to `all` (Unattended Mode rule 2).
 
-**Gate:** Project type + CI platform identified; mode and scope confirmed. If fails → undetermined type → "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce. **Under `--auto`:** no prompts — undetermined type/platform resolves to whatever manifest signals are present, or "no CI configured" (an Edge Case, not a blocker) when truly absent; recorded in the summary instead of asked.
+**Gate:** Project type matched to a detection signal (step 2) and a CI platform config file found (step 3); mode and scope confirmed. If fails → undetermined type → "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce. **Under `--auto`:** no prompts — undetermined type/platform resolves to whatever manifest signals are present, or "no CI configured" (an Edge Case, not a blocker) when truly absent; recorded in the summary instead of asked.
 
 ### Phase 2: Rule Loading
 
