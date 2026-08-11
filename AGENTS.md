@@ -16,6 +16,7 @@ only executable code is `install.sh`, `scripts/*.sh`, and `ds-brief/assets/verif
 | Install the skills into a host | `./install.sh` (or `--target <dir>`, `--project <dir>`, `--skills a,b`) |
 | Install for a Claude-5 host with an always-on rules layer | `./install.sh --profile lean` — strips the `portable-only`-marked blocks at install time; repo files always keep the full portable text |
 | Check an installed copy for drift | `./install.sh --check` (profile-aware — reads the profile from the version stamp) |
+| Update an existing install | `./install.sh --update` — `git pull --ff-only` + re-install with the stamped profile; never merges on your behalf |
 
 The gate needs `bash`, `python3`, `shellcheck`, and `typos`. A missing tool fails the run loudly
 and names what went unverified — never treat a skipped check as a passing one. There is no CI;

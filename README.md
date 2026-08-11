@@ -186,6 +186,7 @@ git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
                                             #   strips the portable-only blocks at install time
 ./install.sh --project /path/to/other-repo  # install into that repo's .claude instead of ~/.claude
 ./install.sh --check                        # later: installed copy in sync with the repo?
+./install.sh --update                       # fast-forward the clone + re-install (keeps your profile)
 ./install.sh --uninstall                    # remove installed dev-skills content
 ```
 

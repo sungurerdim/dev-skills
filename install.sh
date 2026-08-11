@@ -19,6 +19,10 @@
 #                                always keep the full portable text.
 #   ./install.sh --check         report drift between repo and installed copy
 #                                (profile-aware; reads profile from version stamp)
+#   ./install.sh --update        fast-forward this clone (git pull --ff-only),
+#                                then re-install with the already-stamped profile.
+#                                Equivalent to `git pull && ./install.sh`; never
+#                                merges or rebases on your behalf
 #   ./install.sh --uninstall     remove installed dev-skills content
 #
 # Idempotent: safe to run twice. Sync uses --delete per skill dir, so files
@@ -41,6 +45,7 @@ while [ $# -gt 0 ]; do
     --skills)  only="$2"; shift 2 ;;
     --profile) profile="$2"; shift 2 ;;
     --check)   mode="check"; shift ;;
+    --update)  mode="update"; shift ;;
     --uninstall) mode="uninstall"; shift ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown flag: $1 (see --help)"; exit 2 ;;
@@ -87,6 +92,14 @@ effective_profile() {
   else echo "portable"
   fi
 }
+
+if [ "$mode" = "update" ]; then
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+    || { echo "--update needs a git clone of dev-skills (no .git here). Re-clone, or re-run plain ./install.sh after refreshing the files yourself."; exit 2; }
+  git pull --ff-only \
+    || { echo "git pull --ff-only failed (diverged history or offline). Resolve manually, then re-run ./install.sh."; exit 1; }
+  mode="install"
+fi
 
 case "$mode" in
   install)
