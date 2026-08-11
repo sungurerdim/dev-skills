@@ -17,9 +17,9 @@ only executable code is `install.sh`, `scripts/*.sh`, and `ds-brief/assets/verif
 | Install for a Claude-5 host with an always-on rules layer | `./install.sh --profile lean` — strips the `portable-only`-marked blocks at install time; repo files always keep the full portable text |
 | Check an installed copy for drift | `./install.sh --check` (profile-aware — reads the profile from the version stamp) |
 
-The gate needs `bash`, `python3`, and `shellcheck`. A missing tool fails the run loudly and names
-what went unverified — never treat a skipped check as a passing one. There is no CI; this gate is
-the only enforcement, by design.
+The gate needs `bash`, `python3`, `shellcheck`, and `typos`. A missing tool fails the run loudly
+and names what went unverified — never treat a skipped check as a passing one. There is no CI;
+this gate is the only enforcement, by design.
 
 ## Conventions that are not guessable from the code
 

@@ -251,6 +251,91 @@ $hashes
 PRINEOF
 }
 
+# 29. v6.2 — Gate two-arm form: every phase gate names a failure arm as `If … →`
+#     (SKILL-SPEC Phase Template). A pass-only gate leaves the model to silently
+#     proceed, invent recovery, or stall.
+check_gate_two_arm() {
+  local bad
+  bad=$(grep -n '^\*\*Gate:\*\*' ds-*/SKILL.md | grep -vE 'If .*→' || true)
+  [ -z "$bad" ] || err "gate line without an 'If … →' failure arm (SKILL-SPEC Phase Template):
+$bad"
+}
+
+# 30. v6.2 — Ambiguous-condition phrasing ban (SKILL-SPEC §13 AI-Legibility rule f):
+#     a condition the executor cannot evaluate mechanically is a condition that
+#     silently becomes model mood.
+check_ambiguous_phrases() {
+  local bad
+  bad=$(grep -rniE 'if appropriate|as needed|may want to|should consider|it is recommended' ds-*/SKILL.md || true)
+  [ -z "$bad" ] || err "ambiguous condition phrasing (state the condition explicitly — SKILL-SPEC §13f):
+$bad"
+}
+
+# 31. v6.2 — Marketing-word denylist (SKILL-SPEC Skill Voice forbidden list).
+#     'innovative' is deliberately absent: it is ds-frontend's --style-mode value,
+#     a flag vocabulary term, not voice.
+check_marketing_words() {
+  local bad
+  bad=$(grep -rniwE 'leverage|empower|unlock|seamlessly|cutting-edge|next-generation|world-class|holistic|synergy' ds-*/SKILL.md ds-*/README.md 2>/dev/null || true)
+  [ -z "$bad" ] || err "forbidden marketing word (SKILL-SPEC Skill Voice):
+$bad"
+}
+
+# 32. v6.2 — Canonical-string equality: the five spec-canonical lines must match
+#     SKILL-SPEC verbatim wherever present (presence itself is governed by other
+#     checks/templates). Prevents the silent paraphrase drift that produced two
+#     'a concrete blocker' variants before this check existed.
+check_canonical_strings() {
+  local open_c close_c acct_c pre_c vd_c f line
+  open_c=$(grep -m1 '^> \*\*Completion Evidence — applies to every phase:' SKILL-SPEC.md)
+  close_c=$(grep -m1 '^> \*\*Completion Evidence — final gate' SKILL-SPEC.md)
+  acct_c=$(grep -m1 '^- Full accounting enforced:' SKILL-SPEC.md)
+  pre_c=$(grep -m1 '^- Pre-existing / out-of-scope' SKILL-SPEC.md)
+  vd_c=$(grep -m1 '^\*\*Value Delivered:\*\* 1-5' SKILL-SPEC.md)
+  { [ -n "$open_c" ] && [ -n "$close_c" ] && [ -n "$acct_c" ] && [ -n "$pre_c" ] && [ -n "$vd_c" ]; } \
+    || { err "SKILL-SPEC.md canonical strings not extractable (bands / accounting / pre-existing / value-delivered)"; return; }
+  for f in ds-*/SKILL.md; do
+    line=$(grep -m1 '^> \*\*Completion Evidence — applies to every phase:' "$f")
+    [ -z "$line" ] || [ "$line" = "$open_c" ] || err "$f opening Completion Evidence band deviates from SKILL-SPEC verbatim text"
+    line=$(grep -m1 '^> \*\*Completion Evidence — final gate' "$f")
+    [ -z "$line" ] || [ "$line" = "$close_c" ] || err "$f closing Completion Evidence band deviates from SKILL-SPEC verbatim text"
+    line=$(grep -m1 '^- Full accounting enforced:' "$f")
+    [ -z "$line" ] || [ "$line" = "$acct_c" ] || err "$f full-accounting bullet deviates from SKILL-SPEC canonical text"
+    line=$(grep -m1 '^- Pre-existing / out-of-scope' "$f")
+    [ -z "$line" ] || [ "$line" = "$pre_c" ] || err "$f pre-existing-errors bullet deviates from SKILL-SPEC canonical text"
+    line=$(grep -m1 '^\*\*Value Delivered:\*\* 1-5' "$f")
+    case "$line" in ""|"$vd_c"*) ;; *) err "$f Value-Delivered preamble deviates from the SKILL-SPEC canonical prefix";; esac
+  done
+}
+
+# 33. v6.2 — Frontmatter fields: exactly name + description (Agent Skills
+#     discovery loads these for every skill at startup; anything else is either
+#     dead weight or an unreviewed host directive).
+check_frontmatter_fields() {
+  local f bad
+  for f in ds-*/SKILL.md; do
+    bad=$(awk '/^---$/{n++; next} n==1 && NF && !/^(name|description):/ {print FILENAME": "$0} n>=2{exit}' "$f")
+    [ -z "$bad" ] || err "unexpected frontmatter field (only name + description allowed):
+$bad"
+  done
+}
+
+# 34. v6.2 — Delegation-target existence: a Delegates/Receives token naming a
+#     skill that does not exist routes work into a void (check 20 verifies
+#     reciprocity but silently skips missing targets).
+check_delegation_targets() {
+  local f src part tgt
+  for f in ds-*/SKILL.md; do
+    src="${f%%/*}"
+    part=$(awk '/^\*\*Owns:\*\*/{print; exit}' "$f" | sed -E 's/^.*\*\*Delegates:\*\* //')
+    for tgt in $(printf '%s' "$part" | grep -oE 'ds-[a-z][a-z-]*' | sort -u); do
+      [ "$tgt" = "$src" ] && continue
+      [ -d "$tgt" ] || [ -f "agents/$tgt.md" ] \
+        || err "$f delegation line references non-existent skill $tgt"
+    done
+  done
+}
+
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
 #     input, runs the real check function against it, asserts a FAIL: line
@@ -374,8 +459,48 @@ EOF
   printf '# Principles\nshared text\nplus a silent local addition\n' > "$tmp/f10/ds-gamma/references/principles.md"
   assert_catches "check_principles_sync" "$tmp/f10" check_principles_sync
 
+  # Fixture: check_gate_two_arm — pass-only gate with no failure arm
+  mkdir -p "$tmp/f11/ds-alpha"
+  printf '**Gate:** Pass = all files processed.\n' > "$tmp/f11/ds-alpha/SKILL.md"
+  assert_catches "check_gate_two_arm" "$tmp/f11" check_gate_two_arm
+
+  # Fixture: check_ambiguous_phrases — condition the executor cannot evaluate
+  mkdir -p "$tmp/f12/ds-alpha"
+  printf 'Re-run the scan as needed.\n' > "$tmp/f12/ds-alpha/SKILL.md"
+  assert_catches "check_ambiguous_phrases" "$tmp/f12" check_ambiguous_phrases
+
+  # Fixture: check_marketing_words — forbidden voice
+  mkdir -p "$tmp/f13/ds-alpha"
+  printf 'Leverage the synergy of this world-class skill.\n' > "$tmp/f13/ds-alpha/SKILL.md"
+  assert_catches "check_marketing_words" "$tmp/f13" check_marketing_words
+
+  # Fixture: check_canonical_strings — paraphrased accounting bullet
+  mkdir -p "$tmp/f14/ds-alpha"
+  cat > "$tmp/f14/SKILL-SPEC.md" <<'EOF'
+> **Completion Evidence — applies to every phase:** canonical opening.
+> **Completion Evidence — final gate:** canonical closing. <!-- portable-only -->
+- Full accounting enforced: canonical accounting sentence.
+- Pre-existing / out-of-scope errors: canonical bullet. <!-- portable-only -->
+**Value Delivered:** 1-5 canonical preamble:
+EOF
+  cat > "$tmp/f14/ds-alpha/SKILL.md" <<'EOF'
+> **Completion Evidence — applies to every phase:** canonical opening.
+- Full accounting enforced: a locally reworded accounting sentence.
+EOF
+  assert_catches "check_canonical_strings" "$tmp/f14" check_canonical_strings
+
+  # Fixture: check_frontmatter_fields — extra frontmatter key
+  mkdir -p "$tmp/f15/ds-alpha"
+  printf -- '---\nname: ds-alpha\ndescription: x\nmodel: opus\n---\n# body\n' > "$tmp/f15/ds-alpha/SKILL.md"
+  assert_catches "check_frontmatter_fields" "$tmp/f15" check_frontmatter_fields
+
+  # Fixture: check_delegation_targets — delegates into a void
+  mkdir -p "$tmp/f16/ds-alpha"
+  printf '**Owns:** a | **Delegates:** ds-ghost -> cleanup | **Receives:** none\n' > "$tmp/f16/ds-alpha/SKILL.md"
+  assert_catches "check_delegation_targets" "$tmp/f16" check_delegation_targets
+
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 11 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 17 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -474,6 +599,10 @@ mutation_test() {
   _mut "25 rule heading level"   "sed 's/^### DP-01/## DP-01/' ds-backend/references/rules-data-pipeline.md > t && mv t ds-backend/references/rules-data-pipeline.md"
   _mut "26 rule-id namespace"    "echo 'See ARC-13 for the rationale.' >> ds-backend/references/rules-api.md"
   _mut "23 canonical --auto row" "sed 's/^| \`--auto\` |.*/| \`--auto\` | Reworded locally. |/' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
+  _mut "10 advisory handoff"     "printf 'If the target skill is absent, hard-fail with \"skill not found\".\n' >> ds-fix/SKILL.md"
+  _mut "12 overlap authorization" "id=\$(sed -n 's/^\*\*Dimensions:\*\* *//p' ds-fix/SKILL.md | head -1 | cut -d, -f1 | sed 's/ *(.*//'); sed \"s/^\*\*Dimensions:\*\* none (carrier)/**Dimensions:** \$id/\" ds-commit/SKILL.md > t && mv t ds-commit/SKILL.md"
+  _mut "14b auto-row presence"   "grep -v '^| \`--auto\`' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
+  _mut "16 list-table spacing"   "printf -- '- item\n| a | b |\n' >> ds-fix/SKILL.md"
 
   if [ "$mt_fail" = "0" ]; then
     echo "MUTATION PASS: every mutated check went red"
@@ -687,9 +816,15 @@ check_rule_heading_level
 check_rule_id_namespace
 check_portable_only_markers
 check_principles_sync
+check_gate_two_arm
+check_ambiguous_phrases
+check_marketing_words
+check_canonical_strings
+check_frontmatter_fields
+check_delegation_targets
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets all consistent"
 else
   exit 1
 fi

@@ -35,7 +35,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
-- Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker. <!-- portable-only -->
+- Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 

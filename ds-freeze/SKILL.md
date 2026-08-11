@@ -34,7 +34,7 @@ Every feature stays "in scope" until someone explicitly says otherwise, so a rel
 - Undecided items default to `defer-backlog` — never silently ships an item nobody confirmed (W5 bias toward safety).
 - **State-exempt.** The tracking artifact (a GitHub issue, or `docs/release/{milestone}-scope.md` when `gh` is unavailable) plus git are the durable record; nothing is written to `ds/audit/`. Resuming = re-read the tracking artifact.
 - Standalone — advisory handoff to ds-blueprint (promise census), ds-issue (filing/execution), ds-docs (doc sync), ds-backend/ds-frontend/ds-review (flag-gating), ds-simplify (deletion), ds-test (verify kept set); absent → inline fallback or explicit gap-note, run continues either way.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with a concrete blocker. <!-- portable-only -->
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 
 ## Arguments
