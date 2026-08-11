@@ -6,7 +6,7 @@ ok=0; fail=0
 r() { if [ "$2" = "0" ]; then echo "$1	PASS"; ok=$((ok+1)); else echo "$1	FAIL"; fail=$((fail+1)); fi; }
 n=$(git rev-list --count HEAD 2>/dev/null || echo 0)
 rc=1; [ "$n" -ge 3 ] && rc=0
-r "split-into-multiple-commits(>=2 new)" "$rc"
+r "unrelated-changes-split(>=2 new commits)" "$rc"
 bad=$(git log --format=%s "HEAD~$((n-1))..HEAD" 2>/dev/null | grep -vcE '^(feat|fix|docs|test|chore|refactor|perf|style|build|ci|revert)(\([a-z0-9./-]+\))?!?: [a-z]')
 rc=1; [ "${bad:-1}" = "0" ] && rc=0
 r "all-titles-conventional" "$rc"
@@ -14,13 +14,17 @@ rc=0; git log --name-only --format= | grep -qx '.env' && rc=1
 r "env-file-never-committed" "$rc"
 rc=1; git ls-files --error-unmatch src/format.js >/dev/null 2>&1 && rc=0
 r "referenced-untracked-staged" "$rc"
+# v3: the split criterion is valid again because setup.sh now plants a genuinely
+# unrelated .gitignore chore. (v1's "docs-not-mixed" criterion contradicted the
+# skill's own grouping rule — feature = source + tests + docs, one commit — and
+# stays removed.)
 mixed=0
 for c in $(git rev-list "HEAD~$((n-1))..HEAD" 2>/dev/null); do
   files=$(git diff-tree --no-commit-id --name-only -r "$c")
-  if echo "$files" | grep -q '^docs/' && echo "$files" | grep '^src/' | grep -vq 'test'; then mixed=1; fi
+  if echo "$files" | grep -qx '.gitignore' && echo "$files" | grep -q '^src/cart.js$'; then mixed=1; fi
 done
 rc=1; [ "$mixed" = "0" ] && rc=0
-r "docs-not-mixed-into-src-commit" "$rc"
+r "unrelated-gitignore-chore-not-mixed-into-feature" "$rc"
 rc=1; [ -z "$(git status --porcelain | grep -v '^?? \.env')" ] && rc=0
 r "working-tree-clean(except-env)" "$rc"
 rc=1; node src/cart.test.js >/dev/null 2>&1 && rc=0
