@@ -65,10 +65,10 @@ Verbatim text — opening copy:
 Verbatim text — closing copy:
 
 ```markdown
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->
 ```
 
-`scripts/check-consistency.sh` enforces the portable profile — both copies and their positions.
+`scripts/check-consistency.sh` enforces the portable profile — both copies, their positions, and their verbatim text (including the closing copy's portable-only marker).
 
 ### Phase Template
 
@@ -1035,6 +1035,12 @@ Status codes:
 ### Value Delivered Statement
 
 Every skill that modifies code, generates artifacts, recommends specific fixes, or otherwise produces work-output MUST print a `Value Delivered` block **after** the Summary line and before the run exits.
+
+Canonical SKILL.md preamble (verbatim; a skill may append inline content after the colon, never alter the sentence — `check-consistency.sh` enforces the prefix):
+
+```markdown
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+```
 
 **Purpose.** The Summary line shows what mechanically happened (5 fixes applied, 2 needs-approval). The Value Delivered block answers the user's actual question: "was running this worth it?" — in concrete, codebase-specific terms that make the user say "good thing I ran this."
 

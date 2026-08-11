@@ -103,7 +103,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 1. Run `/speckit.analyze` for cross-artifact consistency (spec ↔ plan ↔ tasks).
 2. CRITICAL findings → fix the affected artifact(s), re-run `/speckit.analyze`.
 
-**Gate:** Pass = zero CRITICAL findings (never advance past a known CRITICAL inconsistency). If it fails after 2 fix rounds — interactive: stop, present the persisting findings with the conflicting artifact excerpts, ask the user to resolve the contradiction. `--auto`: resolve by favoring `spec.md` as the source of truth over `plan.md`/`tasks.md` (rewrite the downstream artifact to match), re-run `/speckit.analyze`; record the resolution choice in the summary — spec-tracked, reversible edits are not on the irreversible-exception list.
+**Gate:** Pass = zero CRITICAL findings (never advance past a known CRITICAL inconsistency). If it fails after 2 fix rounds → interactive: stop, present the persisting findings with the conflicting artifact excerpts, ask the user to resolve the contradiction. `--auto`: resolve by favoring `spec.md` as the source of truth over `plan.md`/`tasks.md` (rewrite the downstream artifact to match), re-run `/speckit.analyze`; record the resolution choice in the summary — spec-tracked, reversible edits are not on the irreversible-exception list.
 
 ### Phase 6: Handoff
 

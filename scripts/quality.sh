@@ -99,6 +99,19 @@ else
   exit 127
 fi
 
+# Spell-check gates real errors now that _typos.toml holds the domain vocabulary
+# (pre-allowlist it produced ~90 false hits; with it, a hit is a real typo).
+if command -v typos >/dev/null 2>&1; then
+  step "typos" "typos"
+else
+  printf '\n=== [quality] typos ===\n' >&2
+  printf '[quality] FAILED: typos not found.\n' >&2
+  printf '[quality] Unverified as a result: spelling across every SKILL.md, reference,\n' >&2
+  printf '[quality] and doc. Install it (brew install typos-cli / cargo install typos-cli)\n' >&2
+  printf '[quality] and re-run.\n' >&2
+  exit 127
+fi
+
 # install.sh moves files into and out of the user's home; the round-trip test is
 # the only proof that its --delete and rm -rf stay scoped to dev-skills content.
 step "install.sh round-trip" "bash scripts/test-install.sh"

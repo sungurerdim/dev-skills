@@ -147,7 +147,7 @@ Under `--auto`: skip the category menu — select every `(recommended)` category
 3. Write/update `~/.config/ds-rig/manifest.json`: per tool — name, version, install method, privacy configs applied (with proof pointers), permission entries written, date.
 4. Report per Report Format.
 
-**Gate:** Every installed/updated tool has a passing observed-effect check, the budget re-count is at or under projection, and the manifest write is read back valid. Any tool failing its effect check → status `installed-unverified` with the failing output; overall run reports WARN.
+**Gate:** Every installed/updated tool has a passing observed-effect check, the budget re-count is at or under projection, and the manifest write is read back valid. If a tool fails its effect check → status `installed-unverified` with the failing output; overall run reports WARN.
 
 ## Report Format
 

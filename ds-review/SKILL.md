@@ -18,7 +18,7 @@ Code review catches what tests miss — security holes, dead code, wrong abstrac
 - User asks about code quality, complexity, or architecture improvements
 - User asks to reduce duplication, fix patterns, or improve maintainability
 
-Four modes: `--tactical` for file-level quality fixes, `--strategic` for architecture-level assessment, `--perf` for deep performance profiling, `--meta-quality` for principle-based holistic audit (SSOT/DRY/KISS/YAGNI/SoC + criteria-fit + consolidation paths).
+Four modes: `--tactical` for file-level quality fixes, `--strategic` for architecture-level assessment, `--perf` for deep performance profiling, `--meta-quality` for principle-based whole-project audit (SSOT/DRY/KISS/YAGNI/SoC + criteria-fit + consolidation paths).
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -47,7 +47,7 @@ Four modes: `--tactical` for file-level quality fixes, `--strategic` for archite
 | `--tactical` | File-level fixes: security, hygiene, types, performance, privacy |
 | `--strategic` | Architecture-level: patterns, coupling, testing, production readiness |
 | `--perf` | Deep performance profiling: bundle size, startup, memory, caching, Core Web Vitals |
-| `--meta-quality` | Principle-based holistic audit: SSOT, DRY, KISS, YAGNI, SoC + criteria-fit + consolidation paths |
+| `--meta-quality` | Principle-based whole-project audit: SSOT, DRY, KISS, YAGNI, SoC + criteria-fit + consolidation paths |
 | `--meta-scope={list}` | Meta-quality scope(s): `ssot`, `dry`, `kiss`, `yagni`, `soc`, `api-surface`, `overengineering`, `redundancy`, `obsolete`, `duplicate`, `all`. Default: `all` |
 | `--criteria-fit` | Enable Phase 3b: project-ideal vs codebase-actual baselines from [references/criteria-fit.md](references/criteria-fit.md) |
 | `--suggest-paths` | Enable Phase 4a path proposals: 3 consolidation paths per finding (effort / impact / risk) from [references/path-proposals.md](references/path-proposals.md) |
@@ -129,7 +129,7 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 
 1. Pre-flight: check if git repo (optional, warn if not).
 2. **IDU:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
-3. **Mode selection.** No mode flag → present a menu covering every mode, each with a one-line what-it-does: All (recommended) — tactical → strategic → meta-quality sequentially (skip --perf unless explicit) / Tactical — file-level quality fixes / Strategic — architecture-level assessment / Performance — deep perf profiling / Meta-Quality — principle-based holistic audit / (Cancel). A disambiguating mode flag skips the menu.
+3. **Mode selection.** No mode flag → present a menu covering every mode, each with a one-line what-it-does: All (recommended) — tactical → strategic → meta-quality sequentially (skip --perf unless explicit) / Tactical — file-level quality fixes / Strategic — architecture-level assessment / Performance — deep perf profiling / Meta-Quality — principle-based whole-project audit / (Cancel). A disambiguating mode flag skips the menu.
 4. **Scope selection.** No `--scope` → ask which scopes (default: all for selected mode).
 5. Uncommitted changes detected → ask: continue / stash first / cancel.
 
@@ -300,7 +300,7 @@ Status: OK (failed=0), WARN (failed>0 no CRITICAL), FAIL (CRITICAL unfixed or er
 
 Formula, cap rules, and the judgment ranges for scopes without countable findings: [references/scopes-strategic.md § Score Calculation](references/scopes-strategic.md).
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), rather than the mechanical activity. Example shapes (placeholders, not literal output):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} CRITICAL/HIGH security findings closed ({n} hardcoded secrets, {n} injection vectors) — exposure window before next deploy eliminated`
 - `{n} N+1 query patterns fixed in {module} — p95 latency expected to drop on hot paths`
