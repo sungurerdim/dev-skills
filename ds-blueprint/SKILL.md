@@ -163,7 +163,7 @@ Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest]
 
 Write profile to detected instruction file. Calculate ideal metrics from `references/weights.md`. Quality-level descriptions in [references/quality-levels.md](references/quality-levels.md).
 
-**Gate:** Profile written with all sections; every foundation line either user-confirmed or explicitly marked `foundation: unconfirmed` (`--auto`) — a foundation line is never silently auto-decided. If fails → write failed (permissions, invalid path, tool doesn't support file creation) → save profile to `ds/audit/blueprint-profile-draft.md`, display full text in chat for manual paste, surface write error with target path.
+**Gate:** Profile block present between the `## Blueprint Profile` / `## End Blueprint Profile` markers with all sections; every foundation line either user-confirmed or explicitly marked `foundation: unconfirmed` (`--auto`) — a foundation line is never silently auto-decided. If fails → write failed (permissions, invalid path, tool doesn't support file creation) → save profile to `ds/audit/blueprint-profile-draft.md`, display full text in chat for manual paste, surface write error with target path.
 
 ### Phase 2.5: Parallel-Track Planning [PARALLEL]
 

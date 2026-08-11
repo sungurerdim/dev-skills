@@ -144,7 +144,7 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
 2. **Component patterns:** component directories, naming, barrel exports, shared lib.
 3. **A11y tooling (layered):** component-level — `@storybook/addon-a11y` (axe-core); lint — eslint-plugin-jsx-a11y, @angular-eslint/eslint-plugin-template, flutter_lints a11y rules; PR-level CI — axe-core on every pull request; full-page — Lighthouse CI + pa11y.
 
-**Gate:** Design system landscape mapped; component patterns identified. If fails → component dirs not locatable → prompt "Where are your component files? (e.g. `src/components/`, `app/ui/`)"; no response → scan all `.tsx`/`.jsx`/`.vue`/`.svelte`/`.dart` from root; record `component_catalog: "heuristic"`.
+**Gate:** Design system inventory recorded (token count, spacing scale, typography count, shadow levels, border radii); component directories identified. If fails → component dirs not locatable → prompt "Where are your component files? (e.g. `src/components/`, `app/ui/`)"; no response → scan all `.tsx`/`.jsx`/`.vue`/`.svelte`/`.dart` from root; record `component_catalog: "heuristic"`.
 
 ### Phase 3: Scan
 

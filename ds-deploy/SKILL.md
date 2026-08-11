@@ -134,7 +134,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 2. Flags → proceed directly. No flags → interactive menu.
 3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`) + target: VPS, PaaS, serverless, container orchestration.
 
-**Gate:** Mode + context confirmed. If fails → re-present interactive menu; context absent (no Dockerfile, no target detected) → "What is your deployment target? (VPS / PaaS / serverless / container)" — abort with WARN if no response after 3 prompts. **Under `--auto`:** no prompt — infer the target from repo signals (Dockerfile, PaaS config files, serverless manifests); still undetected → default `VPS`, WARN in the summary.
+**Gate:** Mode selected (flag or menu response); deployment target identified. If fails → re-present interactive menu; context absent (no Dockerfile, no target detected) → "What is your deployment target? (VPS / PaaS / serverless / container)" — abort with WARN if no response after 3 prompts. **Under `--auto`:** no prompt — infer the target from repo signals (Dockerfile, PaaS config files, serverless manifests); still undetected → default `VPS`, WARN in the summary.
 
 ### Phase 2: Discover
 
@@ -142,7 +142,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 2. Search for deployment configs (Dockerfile, compose, CI deploy steps), monitoring configs (Sentry DSN, logging config, health endpoints), env vars + secrets management.
 3. Build inventory: services, ports, volumes, external dependencies.
 
-**Gate:** Inventory complete. If fails → undiscoverable configs logged as `{ file, status: "not_found" }`, mark inventory `partial`, continue with what was found; surface MEDIUM "incomplete inventory — some deployment configs were not located".
+**Gate:** Inventory lists services, ports, volumes, and external dependencies. If fails → undiscoverable configs logged as `{ file, status: "not_found" }`, mark inventory `partial`, continue with what was found; surface MEDIUM "incomplete inventory — some deployment configs were not located".
 
 ### Phase 3: Analyze [--audit, --checklist]
 

@@ -117,7 +117,7 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 1. Delegate to `/ds-docs`: update README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / specs so every `ship` item's promise matches its implementation, and every `defer-hidden`/`defer-backlog` item is either dropped from "current capabilities" framing or explicitly marked "planned — see #N", never left claiming a deferred feature is live. `ds-docs` absent → advisory handoff: inline-patch the obvious feature-list/README lines this run already touched, gap-note the rest for a manual doc pass. **Under `--auto`:** the `/ds-docs` delegate call forwards `--auto` (Unattended Mode rule 6).
 2. Re-run the promise-census check from Phase 1: confirm zero `ship` items remain `promised-not-implemented` and zero deferred items remain claimed-live in docs.
 
-**Gate:** docs reflect the frozen manifest — zero deferred items claimed live, zero shipped items undocumented. If fails → list the mismatches in the Phase 7 report under "Doc gaps remaining"; never block the run on this alone.
+**Gate:** Promise-census re-check (step 2) reports zero deferred items claimed live and zero `ship` items undocumented. If fails → list the mismatches in the Phase 7 report under "Doc gaps remaining"; never block the run on this alone.
 
 ### Phase 7: Report
 

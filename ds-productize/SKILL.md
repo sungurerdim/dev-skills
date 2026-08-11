@@ -110,7 +110,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 3. Search for GTM surfaces: landing page, analytics/event calls, funnel definitions, launch docs.
 4. Build inventory per scope: present / partial / absent, each with file:line evidence.
 
-**Gate:** Inventory complete with evidence. If fails → a scope has zero detectable surface → mark scope `greenfield` (audit reports gaps as design targets, not violations), continue.
+**Gate:** Inventory lists every active scope as present / partial / absent, with file:line evidence for each detected surface. If fails → a scope has zero detectable surface → mark scope `greenfield` (audit reports gaps as design targets, not violations), continue.
 
 ### Phase 3: Audit [--audit or default]
 
