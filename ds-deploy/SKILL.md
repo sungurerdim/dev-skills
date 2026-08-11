@@ -27,7 +27,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 ## Contract
 
 **Dimensions:** D3, D4, D7, A3 (ops), D2 (cost), D10 (diagnostics + runbooks)
-**Framework alignment (advisory):** Google SRE PRR (D3, D4, D7), AWS/Azure/Google Cloud Well-Architected Cost Optimization (D2) — sourced references in SKILL-SPEC Dimension Coverage Map.
+**Framework alignment (advisory):** Google SRE PRR (D3, D4, D7), AWS/Azure/Google Cloud Well-Architected Cost Optimization (D2).
 
 - Covers deployment, infrastructure hardening, monitoring, incident response.
 - Generates configuration files and checklists — does NOT execute deployment commands.
@@ -37,8 +37,8 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
   - Prefer minimal infra (Caddy over Nginx+certbot, SQLite over managed DB where suited)
   - Wire CI/CD integration, automated SSL, automated backups
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 
 ## Arguments
@@ -83,7 +83,7 @@ Without a flag: present an up-front menu covering every mode, one row each. A di
 |------------|---------------|
 | VPS hardening | SSH config, firewall, fail2ban, unattended upgrades, kernel hardening, AppArmor, audit logging, security scan |
 | Backup strategy | Database backups, file backups, backup testing, offsite storage |
-| Restore-drill proof (D3, advisory) | Backup existing is not resilience — require a documented restore runbook + evidence of ≥1 executed end-to-end drill (worst case: total account/environment loss, restored to a clean target). Missing evidence -> advisory finding "backup exists, restore unproven — run a drill and record the runbook" (never a blocker, SKILL-SPEC §15) |
+| Restore-drill proof (D3, advisory) | Backup existing is not resilience — require a documented restore runbook + evidence of ≥1 executed end-to-end drill (worst case: total account/environment loss, restored to a clean target). Missing evidence -> advisory finding "backup exists, restore unproven — run a drill and record the runbook" (never a blocker) |
 | Zero-downtime | Blue-green, rolling, canary deployment strategy |
 | Cost optimization | Resource right-sizing, free tier usage, unnecessary spend |
 | Backing services (12-Factor #4) | DB/cache/queue/mail attached as swappable resources via URL-style config (`DATABASE_URL`, `REDIS_URL`) — never hardwired to a specific instance |
@@ -95,7 +95,7 @@ Without a flag: present an up-front menu covering every mode, one row each. A di
 |------------|---------------|
 | Structured logging | Log format, log levels, PII redaction in logs |
 | Crash reporting | Sentry / equivalent setup, source maps, PII scrubbing |
-| Error-channel decision (D4, advisory) | Production has an explicit crash/error-reporting decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding naming the blindness risk, never a blocker (SKILL-SPEC §15) |
+| Error-channel decision (D4, advisory) | Production has an explicit crash/error-reporting decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding naming the blindness risk, never a blocker |
 | Uptime monitoring | Health check endpoints, external uptime monitoring |
 | Alerting | Alert thresholds, notification channels, escalation |
 | Metrics | Response time, error rate, resource utilization |
@@ -112,7 +112,7 @@ Without a flag: present an up-front menu covering every mode, one row each. A di
 
 ### Admin & Support Operability (D10, advisory)
 
-Advisory only — findings here are Category B, never blockers (SKILL-SPEC §15). Distinct from Incident (above): Incident covers infra-level SRE response to outages; this covers application-level tooling for support staff handling individual user-reported errors.
+Advisory only — findings here are Category B, never blockers. Distinct from Incident (above): Incident covers infra-level SRE response to outages; this covers application-level tooling for support staff handling individual user-reported errors.
 
 | Check Area | What It Covers |
 |------------|---------------|
@@ -199,7 +199,7 @@ ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | 
 
 `--auto` → append `⚠ Generated without interactive review`.
 
-**Value Delivered:** 1-5 concrete bullets, real configuration outputs only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `Dockerfile hardened: multi-stage build, non-root USER, HEALTHCHECK — image size reduced from {old-size} to {new-size}, attack surface narrowed`
 - `SSL automation wired ({tool} handling cert renewal) — TLS expiry incidents eliminated`
@@ -216,7 +216,8 @@ Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list 
 - Every generated config preserves existing environment variables
 - Monitoring setup includes PII redaction; SSL configuration targets A+ rating
 - Backup strategy includes verification + offsite storage
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -246,4 +247,4 @@ Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list 
 | Already on PaaS (Vercel / Railway) | Focus on platform-specific config, not VPS hardening |
 | GPU / ML workload | Include GPU container config, model serving patterns |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

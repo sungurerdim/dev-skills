@@ -34,10 +34,10 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 - Only manages repository settings and structure — not code quality.
 - Every recommendation cites a specific setting or file.
 - Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
-- **Unattended Mode rule-4 exception-list extension** (per SKILL-SPEC §Unattended Mode rule 4): repo visibility changes (public↔private) and admin/permission changes are added to the exception list, citing "a business/legal decision not inferable from the repo" — under `--auto` these always resolve `needs-human`, never applied blind.
+- **Unattended Mode rule-4 exception-list extension:** repo visibility changes (public↔private) and admin/permission changes are added to the exception list, citing "a business/legal decision not inferable from the repo" — under `--auto` these always resolve `needs-human`, never applied blind.
 
 ## Arguments
 
@@ -52,7 +52,7 @@ No flags → present mode selection.
 
 ## Scopes
 
-Each scope defines an explicit checklist. Every check evaluated on every run — no check silently omitted (DSC).
+Each scope defines an explicit checklist. Every check evaluated on every run — no check silently omitted.
 
 ### settings (5 checks)
 
@@ -219,7 +219,7 @@ Clean checks — scopes where all checks passed:
 Clean: settings ({n}/{n} ✅), structure ({n}/{n} ✅)
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real repo-config outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `Branch protection wired (required reviews, status checks, dismiss-stale) — accidental main-branch overwrites and unreviewed merges blocked`
 - `Squash-only merge + delete-branch-on-merge enabled — commit history stays linear, stale branches no longer accumulate`
@@ -234,10 +234,11 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 
 - Settings changes verified via API read-back
 - Scope boundary — only modify what was requested
-- Every finding gets a disposition (FRC)
-- Every scope check evaluated and accounted for (DSC)
+- Every finding gets a disposition
+- Every scope check evaluated and accounted for
 - Destructive changes: merged-branch deletion + reversible settings resolve automatically under `--auto` (Unattended Mode rule 3); UNMERGED (stale) branch deletion, permission changes, and visibility changes always confirm per item interactively and become `needs-human` under `--auto` — no flag bypasses this (All-Affordance rule 2, Unattended Mode rule 4)
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -260,4 +261,4 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 | Free private plan | Mark protection + auto-merge checks as N/A with reason |
 | needs-input in `--auto` mode | Record `needs-human` (matches rule-4: value only a human can supply, e.g. homepage URL) — list prominently in summary |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

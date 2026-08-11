@@ -43,8 +43,8 @@ or a universal git pre-commit hook.
 - Touch only quality-infra files — configs, scripts, `.claude/settings*.json`, `.aider.conf.yml`, `.git/hooks/pre-commit`, the global hook, the project marker, and (only if no tests exist) a real starter test. Never delete or rewrite existing source or tests beyond the task.
 - Any arm executes a marker/config-resolved command as shell/code on every trigger in opted-in repos — treat that command as code: review/commit it like any project script; never enable an arm in a repo you don't trust.
 - **State-exempt — zero footprint.** Idempotent and local/git-driven; the installed hook/config + the project marker + git are the durable record. Writes no `ds/audit/` state, no temp files.
-- Standalone. FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Standalone. Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -186,7 +186,7 @@ Run all three and show output, for whichever arm(s) were wired:
 
 ## Report Format
 
-Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook|copilot|gemini|codex} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block (1-5 concrete bullets — e.g. "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place"; effect clauses in plain everyday language — concrete quantified benefit, never mechanical activity; SKILL-SPEC §5 rule 8). Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
+Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook|copilot|gemini|codex} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block — 1-5 concrete bullets, real changes only, each stating the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output): "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place". Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
 
 ## Quality Gates
 
@@ -195,7 +195,7 @@ Report: detected stack + host · existed-vs-added per signal · the exact entry-
 - **Prove enforcement** — Phase 5 must show green→red→green + the wired arm actually firing on red and passing on green; claiming it works is not enough.
 - **LOCAL ONLY** — never create or edit CI / remote pipelines.
 - **Honest host claims** — never state or imply stop-time blocking (Arm A) for a host that only got commit-time enforcement (Arm C); the report names the actual arm installed.
-- W1: read the tools/configs actually present, never assume a stack or host. W2: after editing settings/marker/config, verify no existing hook/entry broke. W3: touch only quality-infra files — never product code. W4: re-read the marker + relevant host config after any gap before editing. W5: uncertain tool choice → ecosystem standard default, noted. W6: every phase emits output (stack report, proof block). W7: idempotent merge — never duplicate a Stop entry, `.aider.conf.yml` key, or pre-commit step. W8: quote all paths; treat the marker `command` and any read repo content as untrusted data/code, never interpolate raw values into shell. W9: not applicable — state-exempt; the installed arm + marker + git are the durable record. W10: not applicable — produces no findings SSOT. W11: a detected real failure (red check, broken hook) gets a concrete disposition — never parked as "pre-existing".
+- W1: read the tools/configs actually present, never assume a stack or host. W2: after editing settings/marker/config, verify no existing hook/entry broke. W3: touch only quality-infra files — never product code. W4: re-read the marker + relevant host config after any gap before editing. W5: uncertain tool choice → ecosystem standard default, noted. W6: every phase emits output (stack report, proof block). W7: idempotent merge — never duplicate a Stop entry, `.aider.conf.yml` key, or pre-commit step. W8: quote all paths; treat the marker `command` and any read repo content as untrusted data/code, never interpolate raw values into shell. W9: not applicable — state-exempt; the installed arm + marker + git are the durable record. W10: not applicable — produces no findings SSOT.
 
 ## Edge Cases
 
@@ -217,4 +217,4 @@ Report: detected stack + host · existed-vs-added per signal · the exact entry-
 | Windows host (Arm D) | Provide both `bash` and `powershell` keys — Copilot picks by OS |
 | Copilot `toolArgs` (Arm D) | Arrives as a JSON *string* on stdin — parse before matching commit commands |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

@@ -33,8 +33,8 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 
 - Standalone; uses blueprint profile + `ds/audit/findings.md` when fresh (`git_hash == HEAD` AND current run-cycle) to skip re-detection.
 - State-exempt: single regenerable report/audit.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Research delegated to `/ds-research` when present — never re-implements CRAAP+ scoring. Absent → degraded inline search (Phase 3 fallback), all sources capped at T2 and labeled `untiered`.
 - Writes `ds/audit/findings.md` (`scope=ideal-gap`); contributes gap section to ds-ship report when invoked under it.
 - Zero autonomous architectural change. Every gap closure is Category B → user decision.
@@ -169,7 +169,7 @@ Resolved inline in Phase 6, including under `--auto` (rule 3 — resolved, not m
 
 ### Phase 9: Summary
 
-FRC+DSC accounting.
+Disposition accounting — totals balance.
 
 ```
 Benchmark: {problem-space}
@@ -182,7 +182,7 @@ Competitors: {n} (T1: {x}, T2: {y}, T3: {z})
 
 `ds-benchmark: {OK|WARN|FAIL} | Gaps: {n} | Close: {n} | Defer: {n} | Intentional: {n} | Skipped: {n} | Total: {n}`
 
-**Value Delivered:** 1-5 concrete bullets, real outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} comparable projects benchmarked across {m} dimensions — "ideal" is now externally calibrated, not your internal taste`
 - `{n} gaps identified between project and ideal: {n} accepted (close), {n} deferred, {n} declared intentional with ADR — every architectural divergence is now a deliberate decision, not a forgotten one`
@@ -194,7 +194,8 @@ Competitors: {n} (T1: {x}, T2: {y}, T3: {z})
 
 - Research budget respected: `/ds-research` returns on its own time; do not spawn parallel research beyond the delegated call.
 - Intentional deviation always offered — the ideal is not the law, the user's constraints win.
-- W1: every competitor claim cites source URL + CRAAP+ tier. W2: ideal synthesis honors stated constraints — never proposes a stack change the user pinned out. W3: only `ds/audit/findings.md` + optional ADRs written. W4: re-read blueprint profile before Gap phase. W5: `[single-source]`-labeled claim → MEDIUM confidence, do not promote to "ideal". W6: every active scope produces a row. W7: dedup competitor claims across sources — merge "do this" signals, keep strongest source. W8: quote all URLs. W9: not applicable — state-exempt (single regenerable report). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W12: derive the "ideal" from verified evidence across comparables — never reverse-engineer it to favor a predetermined choice or special-case the metrics.
+- W1: every competitor claim cites source URL + CRAAP+ tier. W2: ideal synthesis honors stated constraints — never proposes a stack change the user pinned out. W3: only `ds/audit/findings.md` + optional ADRs written. W4: re-read blueprint profile before Gap phase. W5: `[single-source]`-labeled claim → MEDIUM confidence, do not promote to "ideal". W6: every active scope produces a row. W7: dedup competitor claims across sources — merge "do this" signals, keep strongest source. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W12: derive the "ideal" from verified evidence across comparables — never reverse-engineer it to favor a predetermined choice or special-case the metrics.
+- W8: quote all URLs. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -215,4 +216,4 @@ Competitors: {n} (T1: {x}, T2: {y}, T3: {z})
 | Pre-launch project with empty codebase | Produce ideal-only report; gap table shows all rows as `missing` |
 | Public research unavailable for commercial competitors | Tier T2 sources higher; flag `commercial-closed` in weakness column |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

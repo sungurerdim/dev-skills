@@ -1,3 +1,4 @@
+<!-- variant: extends the shared principles baseline with "Needs-Approval Reason Discipline" (reject-list parsing for skipped/needs-approval reasons); deliberate divergence from the majority copy -->
 # Engineering Principles (skill-bundled reference)
 
 This file is bundled with every skill that depends on these principles, so the skill works standalone — even when the user installs only this one skill without the rest of the suite or the SKILL-SPEC. Every claim cites the source it came from; verify upstream when in doubt.

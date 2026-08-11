@@ -30,12 +30,12 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 ## Contract
 
 **Dimensions:** C4, D9 (semver)
-**Framework alignment (advisory):** OWASP SAMM Supply Chain Security (C4), SLSA v1.2 (provenance/attestation verification — Source Track added Nov 2025), Semantic Versioning (D9) — sourced references in SKILL-SPEC Dimension Coverage Map.
+**Framework alignment (advisory):** OWASP SAMM Supply Chain Security (C4), SLSA v1.2 (provenance/attestation verification — Source Track added Nov 2025), Semantic Versioning (D9).
 
 - Standalone; uses `ds/audit/findings.md` (stack, deps scopes) when fresh (`git_hash == HEAD` AND current run-cycle), own audit otherwise.
 - **State-exempt:** per-group commits are git checkpoints; re-run continues from remaining groups.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Test gate between upgrade and commit is non-negotiable. Test fail → revert batch.
 - Category A: safe-patch + safe-minor (no breaking changelog) → autonomous. Category B: every major, every upgrade with breaking notes, every removal → batched approval.
 - One `/ds-commit` per group. Never a single mega-commit.
@@ -199,7 +199,7 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 1. Present candidates with "0 source references" evidence.
 2. Approve → remove from manifest + lockfile, run quick tests, commit `chore(deps): remove unused {name}`. **Under `--auto`:** resolves automatically per Unattended Mode rule 3 — removed, quick-tested, and committed without approval (git history keeps this fully reversible).
 
-**Mechanical Done Gate (SKILL-SPEC §4):** the per-group test run above is the test arm — add lint/type: resolve `{check-cmd}` in Phase 1 (ds-quality enforcement arm installed — stop-hook / pre-commit hook / auto-lint → its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision) and capture the baseline before the first group — baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. A bump can break the type graph with tests still green (e.g. a types-package minor) — run `{check-cmd}` after each group before its commit; new red → same revert path as a test failure. After the last group: run the full `{check-cmd}` once — the aggregate run's exact command + observed output is the Completion Evidence; never report `OK` with a new red.
+**Mechanical Done Gate:** the per-group test run above is the test arm — add lint/type: resolve `{check-cmd}` in Phase 1 (ds-quality enforcement arm installed — stop-hook / pre-commit hook / auto-lint → its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision) and capture the baseline before the first group — baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. A bump can break the type graph with tests still green (e.g. a types-package minor) — run `{check-cmd}` after each group before its commit; new red → same revert path as a test failure. After the last group: run the full `{check-cmd}` once — the aggregate run's exact command + observed output is the Completion Evidence; never report `OK` with a new red.
 
 **Gate:** Every group has a commit or `failed`/`skipped` record. Working tree clean of THIS skill's changes. If fails → dirty tree (partial apply, no commit) → revert exactly the touched files via `git restore -- {manifest} {lockfile}` — never a tree-wide `git checkout -- .`, which would destroy the user's unrelated uncommitted work — mark `failed (dirty working tree)` for the summary, continue; revert itself fails → halt + surface conflict with modified-file list.
 
@@ -213,7 +213,7 @@ Covers ONLY items still undecided after Phase 5 (deferred majors/removals, `--au
 
 ### Phase 7: Summary
 
-FRC+DSC accounting.
+Disposition accounting — totals balance.
 
 ```
 | Dep              | Bump  | Class         | Disposition                          |
@@ -225,7 +225,7 @@ FRC+DSC accounting.
 
 **Gate:** Every dep has exactly one disposition; accounting balances. If fails → undisposed dep → assign `skipped (accounting gap)`; imbalanced → status `WARN` with note "{n} deps unaccounted — re-run to pick up the remainder from the last per-group commit".
 
-**Value Delivered:** 1-5 concrete bullets, real upgrade outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} safe-patch + {m} safe-minor upgrades applied with per-group commits + green tests — dormant repo no longer accumulating CVE backlog`
 - `{n} security advisories closed (CRITICAL: {x}, HIGH: {y}) — production exposure window narrowed`
@@ -243,7 +243,8 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 - **Slopsquatting guard:** before adding or accepting any new dependency, confirm it exists in the official registry, was registered before this project began, and has real download history; a near-miss or cross-ecosystem name is a typosquat until proven (~19.7% of LLM-suggested packages are hallucinated — [CSA 2026](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/)).
 - **Stdlib-extraction check:** when the language runtime moves a module out of the standard library into a separate package (Ruby `csv`, Python `distutils`), verify every dependency still importing it declares the package explicitly in the manifest (Gemfile/requirements) — never rely on implicit stdlib presence. Detect: runtime upgrade notes list extracted modules; transitive deps import them; manifest lacks them. (XR-195)
 - **Dependency Adoption Eligibility gate (AND, all required)** — before accepting any brand-new dependency (distinct from the slopsquatting guard above, which verifies a candidate is real; this gate decides whether it should be added at all): (1) genuinely external — not reasonably hand-written for this codebase; (2) reimplementation cost exceeds a documented time-estimate threshold, or is technically infeasible; (3) shipped/bundled size stays under a documented ceiling — exceptions require explicit sign-off recorded in the same PR/commit; (4) serves an optional/lazy feature path, never the critical/eager runtime boot path; (5) is lazy-loaded, not eagerly bundled. Additionally: license is on an explicit allowlist (reject copyleft when incompatible with the project's distribution model); a provenance record (source repo URL, pinned version/commit hash, license) is committed alongside the dependency; a documented one-command removal/rollback path exists. Flag any new-dependency addition that doesn't address all five criteria plus license + provenance as `review-major`, never `safe-minor`.
-- W1: every classification cites registry metadata + changelog URL. W2: after upgrade, verify no broken import in consumers. W3: only manifest + lockfile + approved source lines change. W4: re-read manifest before commit. W5: uncertain changelog → `review-major`, not `safe-minor`. W6: every group produces output. W7: dedup — same dep across monorepo workspaces listed once per workspace. W8: quote package names with version specifiers in shell; reject names containing shell metacharacters. W9: state-exempt — per-group commits are git checkpoints; re-run continues from remaining groups. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W16: dependency verified present in the registry (non-trivial age + downloads) and pinned in the lockfile before add; hallucinated or typosquat names rejected.
+- W1: every classification cites registry metadata + changelog URL. W2: after upgrade, verify no broken import in consumers. W3: only manifest + lockfile + approved source lines change. W4: re-read manifest before commit. W5: uncertain changelog → `review-major`, not `safe-minor`. W6: every group produces output. W7: dedup — same dep across monorepo workspaces listed once per workspace. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W16: dependency verified present in the registry (non-trivial age + downloads) and pinned in the lockfile before add; hallucinated or typosquat names rejected.
+- W8: quote package names with version specifiers in shell; reject names containing shell metacharacters. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -268,4 +269,4 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 | Dep used only in devDependencies | Standard classification; note `dev-only` in plan |
 | Major with seamless migration (no breaking notes) | Still `review-major` — majors are always B regardless of changelog |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

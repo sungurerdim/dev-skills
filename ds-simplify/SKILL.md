@@ -33,7 +33,8 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 
 - Standalone: use `ds/audit/findings.md` when fresh (`git_hash == HEAD` AND current run-cycle); own scan otherwise.
 - State-exempt: one reversible commit per approved batch (delegated to `/ds-commit`) is the durable record.
-- FRC+DSC enforced. Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with a concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Detection only: every deletion requires an approval batch. Every finding cites file:line + concrete ref count or pattern.
 - Three similar lines beat a premature abstraction: abstractions on ≤3 usages → finding.
 
@@ -189,7 +190,7 @@ Record every decision. Batch pending deletions by scope.
 Per approved batch:
 
 1. Apply the deletion / inline / compaction in-place.
-2. **Mechanical Done Gate (SKILL-SPEC §4):** run `{check-cmd}` — resolved in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command; else stack-native lint/type + fail-fast test (`npm test --bail`, `go test ./...`, `pytest -x`, `flutter test`); none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision. Baseline captured before the first batch; baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. New red (tests OR lint/type — a deletion can break the type graph with tests still green) → restore the batch's files (`git restore -- {files}` — no commit exists yet at this step), mark `failed (mechanical gate)` with the captured error, continue to next scope.
+2. **Mechanical Done Gate:** run `{check-cmd}` — resolved in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command; else stack-native lint/type + fail-fast test (`npm test --bail`, `go test ./...`, `pytest -x`, `flutter test`); none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision. Baseline captured before the first batch; baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. New red (tests OR lint/type — a deletion can break the type graph with tests still green) → restore the batch's files (`git restore -- {files}` — no commit exists yet at this step), mark `failed (mechanical gate)` with the captured error, continue to next scope.
 3. Invoke `/ds-commit --single` with: `refactor(simplify): remove {n} {scope} findings`. Record commit hash.
 4. After the last batch: run the full `{check-cmd}` once — per-batch greens can compose into a red; the aggregate run's exact command + observed output is the Completion Evidence.
 
@@ -205,7 +206,7 @@ No separate needs-approval items beyond Phase 4 batch — every item was B.
 
 ### Phase 7: Summary
 
-FRC+DSC accounting.
+Disposition accounting — totals balance.
 
 ```
 | ID    | Scope                | Disposition                            |
@@ -215,7 +216,7 @@ FRC+DSC accounting.
 
 `ds-simplify: {OK|WARN|FAIL} | Removed: {n} | Deferred: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-**Value Delivered:** 1-5 concrete bullets, real deletion outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} dead exports / orphan modules deleted — {n} kB of unused code no longer in bundle, faster module load`
 - `{n} single-caller helpers inlined — abstraction layer that earned nothing has been removed`
@@ -230,7 +231,8 @@ Zero-finding run: `No simplification opportunities detected — codebase is lean
 
 - Deletion is reversible: every batch ends in a git commit — rollback = `git revert {hash}`.
 - Framework contracts honored: do not delete exports required by framework (Next.js `generateMetadata`, React Server Component signatures, Dart widget `build`, etc.).
-- W1: cite file:line + reference count, never assume. W2: verify no new broken import after deletion. W3: only task-required lines — do not reformat adjacent code. W4: re-read file after context gap before deletion. W5: uncertain coupling → defer, not delete. W6: verify all scopes produced output. W7: dedup file:line — single finding for multi-scope hits, keep tightest proposal. W8: no raw shell interpolation. W9: not applicable — state-exempt (one reversible commit per approved batch is the durable record). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W17: before proposing a new helper, grep for an existing one; consolidate near-duplicate clones to a single source of truth rather than leaving regenerated copies in place.
+- W2: verify no new broken import after deletion. W4: re-read file after context gap before deletion. W5: uncertain coupling → defer, not delete. W7: dedup file:line — single finding for multi-scope hits, keep tightest proposal. W9: not applicable — state-exempt (one reversible commit per approved batch is the durable record). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
+- W1: cite file:line + reference count, never assume. W3: only task-required lines — do not reformat adjacent code. W6: verify all scopes produced output. W8: no raw shell interpolation. W17: before proposing a new helper, grep for an existing one; consolidate near-duplicate clones to a single source of truth rather than leaving regenerated copies in place. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -253,4 +255,4 @@ Zero-finding run: `No simplification opportunities detected — codebase is lean
 | Public library with `exports` field | Treat every exported symbol as live for dead-code scope |
 | Single-caller is a test file | Mark `not-applicable (test-only helper)` |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

@@ -33,8 +33,8 @@ Documentation drifts from code the moment it's written. This skill detects the g
 - Only generates/modifies documentation files — never touches source code.
 - Verifies claims against actual source code before writing.
 - Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: generated docs on disk are the progress record; re-running naturally resumes.
 
 ## Arguments
@@ -58,7 +58,7 @@ Without flags: present mode selection to the user.
 | dev | `CONTRIBUTING.md`, `docs/dev/` | Developer onboarding |
 | user | `docs/user/`, `USAGE.md` | End-user guides |
 | ops | `docs/ops/`, `DEPLOY.md` | Deployment, operations |
-| support | `docs/support/`, `RUNBOOK.md` | D10 (advisory, SKILL-SPEC §15) — error-remediation runbooks, known-error KB, support escalation guide |
+| support | `docs/support/`, `RUNBOOK.md` | D10 (advisory) — error-remediation runbooks, known-error KB, support escalation guide |
 | changelog | `CHANGELOG.md` | Version history |
 | compliance | `docs/compliance/` | Privacy policy, DPIA, breach plan, processor registry |
 | adr | `docs/adr/` | Architecture Decision Records — numbered, with Context / Decision / Consequences |
@@ -213,7 +213,7 @@ Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy) | Doc File:Line | C
 4. Do examples use `{placeholder}` values (not real secrets, not hardcoded test data)?
 5. Is there one canonical entry point everyone is directed to (README or docs landing page)?
 
-**End-user docs & support check group (B6, advisory — never a blocker, SKILL-SPEC §15; user-facing project types only: web, mobile, desktop, extension, game):**
+**End-user docs & support check group (B6, advisory — never a blocker; user-facing project types only: web, mobile, desktop, extension, game):**
 
 | Check | Missing = | Where |
 |-------|-----------|-------|
@@ -271,7 +271,7 @@ Total findings = 0 → include "All {n} scopes evaluated: 0 findings" confirmati
 
 **Profile update:** ds-docs does NOT modify the blueprint profile — documentation dimension score is recalculated by ds-blueprint on next run. Run history is in `git log` + terminal summary — never re-injected into context-loaded files.
 
-**Value Delivered:** 1-5 concrete bullets, real doc outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} doc-code drift findings closed — README claims now match actual source behavior`
 - `API docs generated for {n} endpoints with examples — downstream consumers no longer reverse-engineer the contract`
@@ -288,7 +288,8 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 - Every generated doc verified against source — no claims without file:line evidence
 - Only modify documentation files — never touch source code
 - Generated docs match project's existing documentation style
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — generated docs on disk are the durable progress record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -309,4 +310,4 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 | Multilingual docs | Maintain only detected languages, warn about sync |
 | No AI-harness context file present | Auto/Preview: skip silently (advisory, not a gap); `--scope=harness` explicitly requested → offer to generate a minimal starter from verified project commands/conventions only |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

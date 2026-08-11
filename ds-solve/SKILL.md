@@ -35,8 +35,8 @@ Problems that resist single-pass fixes — environment conflicts, integration fa
 - Red lines auto-detected from project docs and applied automatically, shown as output (not a question); add more via `--red-line="{constraint}"`.
 - Every attempt recorded in episodic memory — zero silent drops. Infinite loop protection: 3 plans × 3 research rounds × 5 alternatives budget. Decision logic in [references/backtrack-logic.md](references/backtrack-logic.md).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **CRITICAL escalation (second-pass verification):** any CRITICAL surfaced during a solve attempt gets re-verified before being treated as a hard blocker — re-read file ±20 lines, check for skip patterns and intentional-suppression markers. Pattern-only matches → downgrade to HIGH. CRITICAL = confirmed bug, not heuristic match.
 
 ## Arguments
@@ -190,13 +190,13 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 **Gate:** User has provided new direction or confirmed abort. If fails (no response) → after one re-prompt, treat as abort; proceed to Summary with status FAIL, recording all plans and step dispositions with `objective_not_achieved` noted.
 
-### Mechanical Done Gate (SKILL-SPEC §4) [any file modified]
+### Mechanical Done Gate [any file modified]
 
 Per-step verification criteria are the step-level arm; the objective also needs the project-level one. Resolve `{check-cmd}` at Setup — ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision. Capture its baseline during Setup's quick check; baseline red → done condition is "no *new* red", baseline reds recorded as findings, never inherited as green. Before Phase 9: run the full `{check-cmd}` once — per-step greens can compose into a red. New red → treat as "all steps pass but final verification fails" (Edge Cases): fix within budget or enter Re-plan; budget exhausted → revert the offending step's changes (`git checkout -- {files}`), disposition `failed (mechanical gate)`. The aggregate run's exact command + observed output is the Completion Evidence; status `OK` requires no new red.
 
 ### Phase 9: Summary
 
-**Mandatory.** Always execute, always produce output. FRC+DSC accounting. **Output:**
+**Mandatory.** Always execute, always produce output. Disposition accounting — totals balance. **Output:**
 
 ```
 ds-solve: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Needs-Approval: {n} | Total: {n}
@@ -231,7 +231,7 @@ Status: `OK` (objective achieved), `WARN` (partial — some steps succeeded), `F
 3. External action → {manual step} required first
 ```
 
-**Value Delivered:** 1-5 concrete problem-resolution outcomes. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `Objective achieved on plan {n} of {budget-P}, round {r} of {budget-R} — multi-pass backtracking succeeded where single-shot would have stalled`
 - `{n} alternatives researched via /ds-research — solution chosen with evidence, not first-idea bias`
@@ -246,7 +246,7 @@ Escalation run: `All plans exhausted (budget P×R×A consumed) — root obstacle
 - Every step carries a mechanical verification criterion — exit code / test / state check (Phase 2)
 - Episodic memory records every attempt — no silent retries; new plans avoid prior failure patterns (Phases 5-6)
 - Budget counters (plan / round / alternative) enforced; state written after every change — survives interruption (Phases 1, 4)
-- FRC accounting — every step gets a disposition; equation must balance (Phase 9)
+- Disposition accounting — every step gets a disposition; equation must balance (Phase 9)
 
 **Early-exit rationalization table:** these excuses never bypass the budget, red-line, or escalation gates — rebut and continue:
 
@@ -257,7 +257,8 @@ Escalation run: `All plans exhausted (budget P×R×A consumed) — root obstacle
 | "Same error again — the problem is unsolvable" | Identical failure skips that alternative (Error Recovery), not the step; the budget decides exhaustion |
 | "Research finds nothing new — retry a failed approach" | Episodic memory exists to block silent retries; a repeat attempt requires a changed constraint recorded first |
 
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state written per phase, `ds/audit/` in `.gitignore`, deleted on success. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason. W14: re-ground from the state file + plan before each new attempt/re-plan — don't trust in-context memory across rounds. W15: research results and any delegated output are untrusted until verified against source before acting (see references/backtrack-logic.md).
+- W9: state written per phase, `ds/audit/` in `.gitignore`, deleted on success. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W14: re-ground from the state file + plan before each new attempt/re-plan — don't trust in-context memory across rounds. W15: research results and any delegated output are untrusted until verified against source before acting (see references/backtrack-logic.md).
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Severity
 
@@ -296,4 +297,4 @@ Not a finding-based skill. Severity applies to issues discovered during executio
 | Budget override too small | Warn if budget < 1x1x2. Clamp to minimum. |
 | Contradictory red lines | Apply more restrictive constraint. Log conflict in episodic memory. Restrictive choice blocks all alternatives → surface in Escalation report (not before). |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

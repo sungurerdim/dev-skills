@@ -40,8 +40,8 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 - Does NOT fix application code to make tests pass — fixes the TEST if test is wrong, or reports app bug if app is wrong
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - **State-exempt:** generated/updated test files on disk are the progress record; re-running naturally resumes.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -191,7 +191,7 @@ Capture current actual behavior of a legacy module as a characterization baselin
 
 ### Phase 3: Verify
 
-After any generate/update/fix: (1) run full test suite (or scoped subset); (2) all generated/modified tests must pass; (3) no previously passing test should now fail (regression check); (4) report coverage delta if coverage tool is configured; (5) **Mechanical Done Gate (SKILL-SPEC §4):** generated/modified test files pass the project's lint/type checks too — resolve `{check-cmd}` from the ds-quality enforcement arm when installed (stop-hook / pre-commit hook / auto-lint), else stack-native lint/type commands, and run it on the touched test files; a test that passes but breaks the lint/type gate blocks "done" the same as a failing test (≤3 fix attempts, then revert the test file via `git checkout -- {test-file}`, disposition `failed (mechanical gate)`). The full-suite run's exact command + observed output is the Completion Evidence; a red that predates this run is reported red-at-baseline, never inherited as green. (6) **Critical-flow wiring check** ([references/principles.md §7](references/principles.md)): identify flows tagged critical — money-moving, auth-gating, data-deleting — from the blueprint profile's `Data:`/`Regulations:` signals when available, else path/name heuristics (`payment`, `refund`, `billing`, `charge`, `checkout`, `login`, `auth`, `token`, `permission`, `delete`, `purge`, `drop`). Per critical flow, confirm at least one test exercises its real dispatch/registry/facade (no mock of that internal layer) — a critical flow with zero such tests is a HIGH finding (`scope: testing`) written to `ds/audit/findings.md`, never silently passed.
+After any generate/update/fix: (1) run full test suite (or scoped subset); (2) all generated/modified tests must pass; (3) no previously passing test should now fail (regression check); (4) report coverage delta if coverage tool is configured; (5) **Mechanical Done Gate:** generated/modified test files pass the project's lint/type checks too — resolve `{check-cmd}` from the ds-quality enforcement arm when installed (stop-hook / pre-commit hook / auto-lint), else stack-native lint/type commands, and run it on the touched test files; a test that passes but breaks the lint/type gate blocks "done" the same as a failing test (≤3 fix attempts, then revert the test file via `git checkout -- {test-file}`, disposition `failed (mechanical gate)`). The full-suite run's exact command + observed output is the Completion Evidence; a red that predates this run is reported red-at-baseline, never inherited as green. (6) **Critical-flow wiring check** ([references/principles.md §7](references/principles.md)): identify flows tagged critical — money-moving, auth-gating, data-deleting — from the blueprint profile's `Data:`/`Regulations:` signals when available, else path/name heuristics (`payment`, `refund`, `billing`, `charge`, `checkout`, `login`, `auth`, `token`, `permission`, `delete`, `purge`, `drop`). Per critical flow, confirm at least one test exercises its real dispatch/registry/facade (no mock of that internal layer) — a critical flow with zero such tests is a HIGH finding (`scope: testing`) written to `ds/audit/findings.md`, never silently passed.
 
 **Gate:** All generated tests pass; zero regressions; every detected critical flow has ≥1 mock-free wiring test or a corresponding HIGH finding. If fails → collect runner output per failing test, classify (test wrong / app wrong / environment / flaky). Fix test-side inline (max 3 iterations per test). App-bug failures → write to `ds/audit/findings.md` with scope `app-bugs`. Environment → surface setup instructions. Do not commit failing tests — note as `failing` for the summary, report count in summary.
 
@@ -215,7 +215,7 @@ ds-test: {OK|WARN|FAIL} | Generated: {n} | Updated: {n} | Fixed: {n} | Skipped: 
 | Critical-flow wiring | {n}/{n} | flows verified mock-free (see ds/audit/findings.md for gaps) |
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real test outcomes only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} tests generated covering {n} previously-untested branches — coverage rose from {before}% to {after}% on {scope}`
 - `{n} flaky tests fixed (sleep-based → event-based, time-dependent → fixed-clock) — CI failure rate from non-determinism eliminated`
@@ -267,7 +267,7 @@ Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regres
 - **Test Pyramid:** unit-heavy, integration-medium, E2E-light. Detect inverted pyramid (E2E > integration > unit) → flag HIGH before generating more E2E.
 - **Boundary conditions:** every generated test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable.
 - **Critical-flow wiring check (B3):** money-moving/auth-gating/data-deleting flows require ≥1 test that exercises the real dispatch/registry/facade, not a mock of it — mocking that internal layer can hide a handler that was written but never registered (invisible to both a unit test of the handler and an integration test that mocks the facade it should be routed through). Detection + rationale: [references/principles.md §7](references/principles.md).
-- **Scale-envelope fixture pattern (D1/B3, advisory):** for the project's critical flows, generate a synthetic max-size fixture (e.g. 50k records) and measure those flows against it — this is the *measured, documented* extension of the max-size boundary case above, not a replacement for it. No documented scale limit exists for a critical flow → advisory finding "no declared scale envelope — measure against a synthetic max-size fixture and document the limit" (never a blocker, SKILL-SPEC §15; cross-links to ds-review --perf's Scale Envelope check — present → hand off the measured numbers to it; absent → this finding alone still stands).
+- **Scale-envelope fixture pattern (D1/B3, advisory):** for the project's critical flows, generate a synthetic max-size fixture (e.g. 50k records) and measure those flows against it — this is the *measured, documented* extension of the max-size boundary case above, not a replacement for it. No documented scale limit exists for a critical flow → advisory finding "no declared scale envelope — measure against a synthetic max-size fixture and document the limit" (never a blocker, cross-links to ds-review --perf's Scale Envelope check — present → hand off the measured numbers to it; absent → this finding alone still stands).
 - **AAA structure:** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
 - **Regression-before-fix:** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
 - **Unreproduced bug ≠ speculative test (W12):** when a reported bug can't be reproduced after a genuine investigation (no plausible mechanism found, existing boundary-condition tests already cover the likely cause, no matching historical fix) — record what was checked and the exact repro conditions needed if it recurs; do NOT add a regression test for a symptom that was never actually observed or triggered. A test with no concrete triggering condition is a coverage-padding test (W12), not a safety net — it asserts nothing real and just adds maintenance weight.
@@ -275,20 +275,8 @@ Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regres
 - **Property-based tests (advisory):** target is a pure function with an algebraic property (roundtrip encode/decode, idempotence, commutativity, invariant preservation) AND the stack's property-testing library is already in the project deps (per-stack table in [references/frameworks.md §Property-Based Testing](references/frameworks.md)) → offer a property test for the boundary-condition class instead of hand-enumerating cases; library absent → hand-enumerated boundary cases stand, gap-note the option once.
 - **Snapshot discipline:** snapshot tests only for small, stable serialized output (a component's props contract, a config artifact) — a full-page or >100-line snapshot asserts everything and verifies nothing; flag existing ones as low-value in `--prune` step 1.
 
-| Guard | Rule |
-|-------|------|
-| W1 | Cite file:line; never assume |
-| W2 | Check consumers after modify |
-| W3 | Touch only task-required lines |
-| W4 | Re-read after gap |
-| W5 | Uncertain → lower severity |
-| W6 | Verify all phases output |
-| W7 | Dedup file:line |
-| W8 | No raw shell interpolation |
-| W9 | State-exempt — generated/updated test files on disk are the progress record; re-running naturally resumes |
-| W10 | Defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered |
-| W11 | Every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason |
-| W12 | Every test verifies described intent + a case beyond the given suite — never special-case known inputs or assert hard-coded outputs to pass |
+- W9: state-exempt — generated/updated test files on disk are the progress record; re-running naturally resumes. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W12: every test verifies described intent + a case beyond the given suite — never special-case known inputs or assert hard-coded outputs to pass.
+- W1: cite file:line; never assume. W2: check consumers after modify. W3: touch only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -314,4 +302,4 @@ Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regres
 | `--baseline` and output is nondeterministic (time, random, UUID) | Inject/freeze seams (fixed clock, seeded RNG, mocked UUID) before capturing; if seams are unavailable, assert invariant properties (type, range, non-null) instead of exact values — document the invariant-only assertion with the `// characterization:` tag |
 | `--baseline` and source module has no public interface (all private/internal) | Report as Category B finding: "No public surface to baseline — refactoring this module without tests is high-risk"; suggest making key behaviors accessible for testing or adding internal test hooks |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

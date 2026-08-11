@@ -39,8 +39,8 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 - Minimal liability + maximum privacy: recommends Merchant-of-Record or managed billing over hand-rolled payment handling; funnel metrics are privacy-first (no PII in events, consent-gated where required).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit + plan are regenerable from source; the plan file and git are the durable record.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -84,7 +84,7 @@ Without flags: present the full mode menu — Audit (recommended) — find gaps 
 4. Funnel instrumentation — acquisition→activation→revenue→retention events defined, object-action naming, privacy-first (no PII in properties, consent where required)
 5. Revenue metrics baseline — MRR/churn/trial-to-paid measurable from existing data; LTV:CAC computable once ads spend exists
 6. Launch plan — pre-launch checklist exists (waitlist/beta, announcement channels, press-kit basics) or is generated into the plan
-7. Ecosystem openness (A11, advisory) — webhook emission, standard export formats (ICS/CSV/JSON), embeddable surfaces, public API posture flagged as an anti-lock-in GTM signal when a competitor offers it and this product lacks it; never a blocker (SKILL-SPEC §15); technical implementation is ds-backend's A11 scope
+7. Ecosystem openness (A11, advisory) — webhook emission, standard export formats (ICS/CSV/JSON), embeddable surfaces, public API posture flagged as an anti-lock-in GTM signal when a competitor offers it and this product lacks it; never a blocker; technical implementation is ds-backend's A11 scope
 
 ## Delegation
 
@@ -142,9 +142,9 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 ds-productize: {OK|WARN|FAIL} | Scope: {monetization,pricing,gtm} | Findings: {n} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-FRC+DSC accounting. Audit output: findings table grouped by scope. Plan output: `ds/productize/plan.md` path + open-decision count.
+Disposition accounting — totals balance. Audit output: findings table grouped by scope. Plan output: `ds/productize/plan.md` path + open-decision count.
 
-**Value Delivered:** 1-5 concrete bullets, real outputs only. Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8). Example shapes (placeholders, not literal):
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} paid features had client-only gating — entitlements now flagged for server-side enforcement before launch`
 - `Pricing page decision table produced: {n} tiers, target tier marked, {model} model backed by published conversion benchmarks`
@@ -159,7 +159,8 @@ Zero-change run: `No gaps — monetization/pricing/gtm surfaces meet reviewed sc
 - Every monetization finding cites the file:line or surface (store metadata, provider dashboard item) it was observed on
 - Every benchmark claim in findings/plan cites a rule ID from references — no from-memory statistics
 - Recommendations never include a provider/package that fails Trust Verification (exists, maintained, fits revenue stage)
-- W1: cite file:line or surface, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: state-exempt — audit + plan regenerable; plan file + git are the durable record. W10: defer to fresh `ds/audit/findings.md` for covered scopes (esp. spec-alignment); own scan only for uncovered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W9: state-exempt — audit + plan regenerable; plan file + git are the durable record. W10: defer to fresh `ds/audit/findings.md` for covered scopes (esp. spec-alignment); own scan only for uncovered.
+- W1: cite file:line or surface, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
@@ -189,4 +190,4 @@ Zero-change run: `No gaps — monetization/pricing/gtm surfaces meet reviewed sc
 | Multiple products in one repo | Ask which product; audit one per run, note others as out-of-scope |
 | B2B invoice-based sales (no self-serve) | Skip paywall/trial checks as N/A; audit entitlement, pricing page, GTM only |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

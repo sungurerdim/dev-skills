@@ -33,8 +33,8 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 **Commit message describes only what `git diff` shows.** Not session discussion, not what was tried and reverted, not what was planned. Read diff, describe diff.
 
 - Standalone. Uses blueprint profile for toolchain when available; own detection when absent.
-- FRC+DSC enforced.
-- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Exempt from state protocol:** atomic, git-diff-driven, seconds-long. Git staging area is the natural state. No `ds/audit/commit.json`.
 
 ## Arguments
@@ -80,7 +80,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 - **Code files:** format + lint (no tests) on changed files only. Tool unavailable → offer install, ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`. **Under `--auto`:** no prompt — install and continue when installation is non-interactive and low-risk (a local dev-dependency); otherwise mark `⚠ Skipped (tool unavailable)` and continue.
 - **Docs/config only:** skip code checks.
 - **Format/lint modifications:** include in the same commit, not separate.
-- **Mechanical Done Gate (SKILL-SPEC §4):** ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command IS the pre-commit check: run it on the changed files instead of the ad-hoc format+lint pass, and never bypass its hook. No arm → the format+lint pass above stands; no check tooling at all → Verification-Infrastructure Gap — note it once in the summary, offer `/ds-quality`.
+- **Mechanical Done Gate:** ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command IS the pre-commit check: run it on the changed files instead of the ad-hoc format+lint pass, and never bypass its hook. No arm → the format+lint pass above stands; no check tooling at all → Verification-Infrastructure Gap — note it once in the summary, offer `/ds-quality`.
 - **On failure:** ask "Fix first (recommended) / Commit anyway". "Commit anyway" records WARN + the red check output in the summary — a red commit is never reported as clean. **Under `--auto`:** no prompt — Fix first (the recommended default).
 
 **Gate:** No merge conflicts; quality gates passed or user proceeded. If fails → conflicts present; stop, list conflicting files, instruct user to resolve and re-run; no partial auto-commit.
@@ -213,9 +213,9 @@ Stage files → build message → commit.
 
 `ds-commit: {OK|WARN|FAIL} | Commits: {n} | Files: {n} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-FRC+DSC accounting. Commit hashes + branch + next-step hint (push or PR). Secret-pattern exclusions (if any): `{file}` list excluded from staging by filename pattern.
+Disposition accounting — totals balance. Commit hashes + branch + next-step hint (push or PR). Secret-pattern exclusions (if any): `{file}` list excluded from staging by filename pattern.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only. Example shapes (placeholders, not literal output): Every bullet's effect clause is plain everyday language a non-technical reader understands — concrete benefit, quantified when measurable ("under ~1k concurrent users, pages respond ~40% faster"), never the mechanical activity (SKILL-SPEC §5 rule 8).
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
 - `{n} unrelated changes split into atomic commits — bisect can now isolate any regression to a single concern`
 - `{n} secret patterns intercepted in commit body — credentials no longer leak into git history`
@@ -223,16 +223,17 @@ FRC+DSC accounting. Commit hashes + branch + next-step hint (push or PR). Secret
 
 Zero-change run: `Nothing to commit — working tree clean`.
 
-**Gate:** Summary line + Value Delivered emitted; FRC+DSC accounting balances. If fails → some planned commits did not land; list each (created/failed) with hashes of successes; instruct user to re-run on remaining changes.
+**Gate:** Summary line + Value Delivered emitted; disposition accounting balances. If fails → some planned commits did not land; list each (created/failed) with hashes of successes; instruct user to re-run on remaining changes.
 
 ## Quality Gates
 
 - Commit message describes only what `git diff` shows — verified by re-reading diff
 - Commit rules from [references/rules-commit.md](references/rules-commit.md)
-- Every quality gate check (format, lint, secret scan) gets a disposition (FRC)
+- Every quality gate check (format, lint, secret scan) gets a disposition
 - Conventional type matches litmus test
 - **Secret scan covers message body + trailers ([references/principles.md §5](references/principles.md)):** same pattern detection on proposed message + body + footer. A leak in the message is as visible as one in source.
-- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. W9: not applicable — exempt from state protocol (atomic, git-driven). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W11: every detected error gets a concrete disposition — pre-existing/out-of-scope is not a valid skip reason.
+- W10: defer finding detection to a fresh `ds/audit/findings.md` when present — own scan only for scopes it does not cover.
+- W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Edge Cases
 
@@ -245,4 +246,4 @@ Zero-change run: `Nothing to commit — working tree clean`.
 | Untracked file with no tracked references | Ignore — not a completeness issue |
 | >20 untracked source files | Show count + top 5 referenced; ask "Stage referenced (N) / Review / Skip". Under `--auto`: stage referenced, no prompt. |
 
-> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing.
+> **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->
