@@ -46,7 +46,7 @@ You Aren't Gonna Need It — a feature, function, parameter, flag, or config fie
 - **Detect:** symbol declared (function, class, parameter, env var, flag, feature toggle) with 0 callers found via LSP `findReferences` or full-text grep.
 - **Fix:** delete the unused declaration; if it's an exposed contract, mark as `needs_approval` (potentially called externally).
 - **Threshold:** 0 in-repo references.
-- **Skip:** public API of a library (exported from `index.*` / package manifest), CLI entry points, framework lifecycle hooks (`onMount`, `componentDidMount`, etc.), `_` prefix unused params, `TYPE_CHECKING` imports, plugin entry points declared in manifests.
+- **Skip:** public API of a library (exported from `index.*` / package manifest), CLI entry points, framework lifecycle hooks (`onMount`, `componentDidMount`, etc.), `_` prefix unused params, `TYPE_CHECKING` imports, and plugin entry points that are declared in a manifest **and** carry at least one proven consumer — a loader that reads that manifest, a registration call, or a test that exercises the entry point. A manifest entry with no consumer is the finding, not the exemption: the manifest is a claim, and "it's declared" is exactly how a capability nothing loads survives every sweep.
 - **Confidence:** HIGH for internal helpers with 0 callers; MEDIUM for parameters (might be required by an interface contract).
 - **Impact:** Dead code drains context budget on every model read and confuses contributors about what's live.
 - **Source:** XP / Beck, Extreme Programming.
