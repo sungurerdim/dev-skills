@@ -41,6 +41,8 @@ tooling** — it won't silently scatter configs/tests everywhere.
 /ds-quality --arm aider     # force the Aider arm instead of auto-detecting the host
 /ds-quality --run           # run this repo's resolved quality command now
 /ds-quality --status        # show mode/roots + what auto-arm resolves here + wired arm(s)
+/ds-quality --invariant "…" # build a custom gate from a described invariant (parity, absence,
+                            #   generated-file sync, floor, docs↔code) — red-proven + chain-wired
 /ds-quality --disable       # per-repo kill switch (.claude/ds-quality.json enabled:false)
 /ds-quality --project-hook  # register the Claude Code hook in THIS repo's .claude/settings.json
 /ds-quality --uninstall     # remove the installed arm(s) + scripts + config
@@ -61,6 +63,7 @@ coverage gaps. Exact commands: `references/toolchains.md`.
 - `SKILL.md` — full procedure (Phases 1–5) and contracts.
 - `references/toolchains.md` — per-stack commands + minimal bootstrap.
 - `references/hook-contract.md` — verified Claude Code Stop-hook contract + global install script.
+- `references/invariant-patterns.md` — nine field-proven invariant-gate patterns for `--invariant` mode.
 - `assets/ds-quality-gate.sh` — the Claude Code Stop hook (auto-arming).
 - `assets/ds-quality-detect.sh` — toolchain detector → quality command (used by every arm).
 - `assets/quality.sh.tmpl` — template for a per-project entry point (bootstrap).
