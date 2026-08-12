@@ -19,18 +19,23 @@ The durable record is the GitHub issue + its comments + git — not a local `ds/
 
 **Version gate (once per run):** `gh --version` ≥ 2.94.0 → native sub-issue / issue-type / dependency flags and their JSON fields are available (GitHub.com and GHES 3.17+; blocked-by/blocking relationships need GHES 3.19+). Below 2.94.0 → use the REST/task-list fallbacks marked below and recommend upgrading.
 
+**List calls truncate silently — always `--limit 1000`, then measure.** `gh issue list` and `gh search issues` return **30 items** when `--limit` is omitted. The 31st issue does not error, it just is not there: a 44-issue backlog reads as 30, dedup misses the duplicate, `--do --all` skips the tail, and `--status` reports a count that is simply wrong. So every list call in this skill passes `--limit 1000`, and the run **measures the returned count** (`… --json number --jq 'length'`) instead of eyeballing the list. Returned count == the limit → the set may still be truncated: raise the limit and re-read before quoting any number. A count that was never measured is never reported.
+
 **Read-phase command allowlist:** `--status`, `--sweep` classification, and every `--preview` restrict `gh` to `issue view` / `issue list` / `search issues` / `label list` (+ `repo view` for the slug). Mutating commands (`issue create/edit/close/comment`, `label create`) run only after the per-item confirmation the SKILL gates require (or, under `--auto`, the best-judgment resolution the SKILL gates specify).
 
 ## Dedup search (Phase 2)
 
 ```bash
 # whole set, all states — open AND closed AND in-progress
+# --limit is MANDATORY: without it gh returns 30 and drops the rest silently
 # gh ≥ 2.94.0: read hierarchy/type/dependencies as JSON fields — never re-derive them from labels or body text
-gh issue list --repo <slug> --state all --limit 200 --json number,title,state,labels,issueType,parent,subIssues,blockedBy,blocking
+gh issue list --repo <slug> --state all --limit 1000 --json number,title,state,labels,issueType,parent,subIssues,blockedBy,blocking
 # gh < 2.94.0 fallback: --json number,title,state,labels (hierarchy from task-list checkboxes in bodies)
+# measure what came back before quoting any count; == 1000 means possibly truncated → raise and re-read
+gh issue list --repo <slug> --state all --limit 1000 --json number --jq 'length'
 # keyword search across the repo — OMIT --state to search all states
 # (gh search issues accepts only --state open|closed; omitting it searches both)
-gh search issues "<keywords>" --repo <slug> --json number,title,state
+gh search issues "<keywords>" --repo <slug> --limit 1000 --json number,title,state
 # canonical single-issue read — the ONE detail read that execute (--do), audit (--status),
 # and sweep reconciliation all use; comments is NOT optional — requirement-bearing comments
 # are part of the issue contract (SKILL Phases 5-6), and a body-only read misses them
