@@ -273,12 +273,7 @@ Zero-issue run: `No changes applied — {detected-stacks} pass all enabled scope
 
 ## Severity
 
-| Level | Meaning |
-|-------|---------|
-| CRITICAL | Exposed secrets, known vulnerable dependencies |
-| HIGH | Type errors, lint errors that affect correctness |
-| MEDIUM | Format violations, lint warnings |
-| LOW | Style suggestions, outdated dependencies without CVEs |
+Not defined here — the level set and its criteria have exactly one home: the review skill (ds-review owns severity, skip patterns, and review scope). This skill's format/lint/type/dependency/secret findings map onto that same four-level set, under its Severity Levels section; assign from that definition and never re-derive a local scale. Two skills labelling a finding CRITICAL under different criteria is the drift this single-home rule exists to prevent.
 
 ## Edge Cases
 
