@@ -83,7 +83,7 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 - **Up-Front Mode Menu:** multi-mode skills present the choice covering every scenario (with `(recommended)` + `(Cancel)`) when no disambiguating flag is passed.
 - **Category Bulk Affordance:** menus offer per-group bulk (`all CRITICAL` / `all HIGH` / `all <type>`) **alongside** the total "all" — never replacing it.
 - **Selection Transparency:** every approval states the exact question and shows every item compactly (severity + title + file:line); "all" = exactly the displayed set, never a bare count.
-- **Least-footprint state:** prefer no state; only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint` persist to `ds/audit/<skill>.json`. Every other skill — including git/GitHub-backed ones (ds-commit, ds-pr, ds-issue) — is state-exempt.
+- **Least-footprint state:** prefer no state; only `ds-tune`, `ds-solve`, `ds-ship`, `ds-blueprint`, `ds-mobile`, `ds-frontend` persist to `ds/audit/<skill>.json`. The last two qualify because their multi-scope scan progress exists nowhere else — every other skill, including the git/GitHub-backed ones (ds-commit, ds-pr, ds-issue), is state-exempt because an external record already carries the progress. `scripts/check-consistency.sh` check 5 is the guard: it fails both a non-qualifying skill that grows the protocol and a qualifying skill that loses it.
 
 ## v4 Invariants (2026-07-11)
 

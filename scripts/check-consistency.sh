@@ -699,8 +699,11 @@ done | sort | awk -F'\t' '{if($1==p) print $1" -> "s" + "$2; p=$1; s=$2}')
 [ -z "$dups" ] || err "duplicate Owns tokens:
 $dups"
 
-# 5. Resumable-state protocol only in the 4 qualifying skills (SKILL-SPEC section 5)
-allowed="ds-blueprint ds-ship ds-solve ds-tune"
+# 5. Resumable-state protocol only in the 6 qualifying skills (SKILL-SPEC section 5).
+#    ds-mobile (13 domains) and ds-frontend (multi-scope) joined the set: their
+#    scope-by-scope progress exists nowhere outside the run, so an interruption
+#    used to restart the scan from zero.
+allowed="ds-blueprint ds-frontend ds-mobile ds-ship ds-solve ds-tune"
 for f in $(grep -ln 'DETECT `ds/audit/' ds-*/SKILL.md); do
   skill=${f%%/*}
   case " $allowed " in *" $skill "*) ;; *) err "$skill carries state recovery protocol (only $allowed qualify)";; esac

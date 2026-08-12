@@ -33,7 +33,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 
 - Audits mobile app quality; every finding cites file:line — never fabricates. Only touches mobile code; platform rules only on detected platforms.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
+- State-qualifying (SKILL-SPEC § State Management): a 13-domain audit is a long autonomous loop whose domain-by-domain progress lives nowhere else — an interrupted run re-scans from zero. Progress persists to `ds/audit/mobile.json` with the run's `git_hash`; applied fixes still land in the working tree, where git remains the durable record. State is deleted when the Summary completes.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
@@ -47,6 +47,8 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 | `--release-ready` | Shorthand for `--mode=release-ready` |
 | `--skip-manual` | Skip manual gates (release-ready) |
 | `--diff` | Compare with previous release report |
+| `--resume` | Resume from `ds/audit/mobile.json` without the confirmation prompt |
+| `--clean` | Delete `ds/audit/mobile.json` and start fresh |
 | `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 No flags → present mode selection.
@@ -79,6 +81,10 @@ No flags → present mode selection.
 Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/Score] → [Needs-Approval] → Summary
 
 ### Phase 1: Detect
+
+**Recovery check (first step, runs unconditionally — including under `--auto`):** DETECT `ds/audit/mobile.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently — the re-verify step below catches real drift). Resume → RE-VERIFY the `in_progress` domain by re-reading the files its recorded findings cite, keep `done` domains, announce `[MOB] Resuming from Phase {N}: {name}.` On successful Summary, delete state; `ds/audit/` empty afterwards → remove it. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
+
+**State `data`:** `{ mode, platform, scopes_selected, scopes_done[], architecture, cat2_approved[], findings_per_domain: {domain: [{id, severity, file, line, category, confidence, disposition}]}, release_score }`.
 
 1. **Project detection.**
 
@@ -160,7 +166,7 @@ Load only reference files matching scope:
 
 **Category assignment:** CAT-1 always reported; CAT-2 only if in approved enhancements.
 
-**Recovery (context lost):** progress checklist → read `ds/audit/findings.md` → resume from first incomplete domain. Scan each domain once.
+**Recovery (context lost):** read `ds/audit/mobile.json` → resume from the first domain not marked `done`, re-verifying the `in_progress` one; `ds/audit/findings.md` supplies the finding bodies. The state file is the progress record; an in-chat checklist is not one and does not survive the interruption it exists for. Write state after every completed domain, not only at phase boundaries. Scan each domain once.
 
 **Gate:** Every in-scope domain scanned; findings recorded with severity + confidence. If fails → re-read progress checklist + `ds/audit/findings.md`; resume from first incomplete; if a domain still fails after retry (file unreadable, context lost) → mark `partial` in the scopes-done tracking with collected findings, continue.
 
@@ -232,11 +238,11 @@ Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hoo
 ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-**Cleanup:** remove mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `ds/audit/findings.md`. Empty after removal → delete file.
+**Cleanup:** remove mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `ds/audit/findings.md`. Empty after removal → delete file. Run completed → delete `ds/audit/mobile.json`; `ds/audit/` now empty → remove the directory. Run ended WARN/FAIL → leave state in place so the next invocation can resume it.
 
 Disposition accounting — totals balance.
 
-**Gate:** `fixed + failed + skipped + needs_approval + not_applicable = total`; every modified file re-read; mobile-scoped findings removed from `ds/audit/findings.md`. If fails → counts unreconciled → identify undisposed finding, assign `failed` reason "disposition not recorded", re-run count; cleanup fails → warn, leave file intact rather than partial-modify.
+**Gate:** `fixed + failed + skipped + needs_approval + not_applicable = total`; every modified file re-read; mobile-scoped findings removed from `ds/audit/findings.md`; state file deleted on a completed run (`test ! -f ds/audit/mobile.json`). If fails → counts unreconciled → identify undisposed finding, assign `failed` reason "disposition not recorded", re-run count; cleanup fails → warn, leave file intact rather than partial-modify.
 
 **Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
@@ -255,7 +261,7 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 4. **Platform consistency** — fixes use correct platform API
 5. **Artifact-first recovery** — re-read files before + after editing
 6. **Full accounting** — every finding gets a disposition in summary
-7. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes.
+7. W9: state-qualifying — domain-by-domain progress persists to `ds/audit/mobile.json` (written after each completed domain, deleted on a completed Summary); applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes.
 8. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Edge Cases
