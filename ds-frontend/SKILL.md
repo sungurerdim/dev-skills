@@ -32,7 +32,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 - Audits UI/UX design quality across web ({web-frameworks}), mobile ({mobile-frameworks}), desktop ({desktop-frameworks}) — only touches UI-layer code (styles, components, tokens, ARIA); business + backend untouched.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- State-exempt: audit is regenerable from source; applied fixes land in the working tree — git is the durable record.
+- State-qualifying (SKILL-SPEC § State Management): a multi-scope audit is a long autonomous loop whose scope-by-scope progress lives nowhere else — an interrupted run re-scans from zero. Progress persists to `ds/audit/frontend.json` with the run's `git_hash`; applied fixes still land in the working tree, where git remains the durable record. State is deleted when the Summary completes.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
@@ -46,6 +46,8 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 | `--scope={list}` | Comma-separated scopes (table below) or `all` |
 | `--framework={f}` | Override detection: `react`, `vue`, `svelte`, `angular`, `flutter`, `swiftui`, `compose`, `rn` |
 | `--check` | Report only, zero modifications |
+| `--resume` | Resume from `ds/audit/frontend.json` without the confirmation prompt |
+| `--clean` | Delete `ds/audit/frontend.json` and start fresh |
 | `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
 
 Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — scan + report, no changes / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu. `--auto` always disambiguates, selecting Audit & Fix (best-judgment default — scan and fix autonomously) across all scopes.
@@ -116,6 +118,10 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
 
 ### Phase 1: Detect
 
+**Recovery check (first step, runs unconditionally — including under `--auto`):** DETECT `ds/audit/frontend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently — the re-verify step below catches real drift). Resume → RE-VERIFY the `in_progress` scope by re-reading the files its recorded findings cite, keep `done` scopes, announce `[FE] Resuming from Phase {N}: {name}.` On successful Summary, delete state; `ds/audit/` empty afterwards → remove it. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
+
+**State `data`:** `{ mode, style_mode, framework, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line, category, disposition}]}, design_system_state }`.
+
 1. **Framework detection.**
 
    | Framework | Detection |
@@ -164,7 +170,7 @@ Load matching reference file per in-scope domain:
 
 **Rendered-geometry rules** (RSP-08 viewport matrix, RSP-12 column symmetry, RSP-15 in-item alignment, RSP-17 shared edges/gutters, AXE-16 focus-not-obscured): browser automation available in-session → verify by measured bounding boxes at the relevant viewport (row-sibling centers/baselines within 1–2px; group edges/gutters exact); unavailable → static analysis only, cap confidence at MEDIUM and note `geometry unverified` on the finding.
 
-**False-positive prevention:** skip tokens inside comments, generated files (`*.g.dart`, `*.gen.*`), test fixtures, vendor/`node_modules`. Skip patterns: `/* noqa */`, `// intentional`, `// safe:`. **Recovery (context lost):** check progress checklist → read findings artifact → resume from first incomplete scope.
+**False-positive prevention:** skip tokens inside comments, generated files (`*.g.dart`, `*.gen.*`), test fixtures, vendor/`node_modules`. Skip patterns: `/* noqa */`, `// intentional`, `// safe:`. **Recovery (context lost):** read `ds/audit/frontend.json` → resume from the first scope not marked `done`, re-verifying the `in_progress` one. The state file is the progress record; an in-chat checklist is not one and does not survive the interruption it exists for. Write state after every completed scope, not only at phase boundaries.
 
 **Gate:** Every in-scope check evaluated; findings recorded with severity + confidence + category. If fails → scope unscan-able (reference missing, files unreadable) → mark scope `partial` in the scopes-done tracking, add MEDIUM "scan incomplete for scope {scope} — {reason}", continue; reference missing → WARN, proceed with embedded rules.
 
@@ -211,7 +217,9 @@ ds-frontend: {OK|WARN|FAIL} | Mode: {audit|audit+fix|design} | Fixed: {n} | Skip
 
 Disposition accounting — totals balance. `fixed + failed + skipped + needs_approval + not_applicable = total`.
 
-**Gate:** Summary rendered; equation balances. If fails → unaccounted finding → `skipped (accounting gap)`; still imbalanced → `WARN`, report the items needing reconciliation.
+**State cleanup:** run completed → delete `ds/audit/frontend.json`; `ds/audit/` now empty → remove the directory. Run ended WARN/FAIL → leave state in place so the next invocation can resume it.
+
+**Gate:** Summary rendered; equation balances; state file deleted on a completed run (`test ! -f ds/audit/frontend.json`). If fails → unaccounted finding → `skipped (accounting gap)`; still imbalanced → `WARN`, report the items needing reconciliation; state deletion fails → report the leftover path so the next run is not silently resumed from it.
 
 **Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
@@ -228,7 +236,7 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 2. Only modify UI-layer code (styles, components, tokens, ARIA) — business logic untouched
 3. Every finding gets a disposition — zero silent drops; every scope check evaluated and accounted for — zero silent omissions
 4. After fix, re-read modified file to verify
-5. W9: state-exempt — audit is regenerable from source; applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes.
+5. W9: state-qualifying — scope-by-scope progress persists to `ds/audit/frontend.json` (written after each completed scope, deleted on a completed Summary); applied fixes land in the working tree, git is the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for uncovered scopes.
 6. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery

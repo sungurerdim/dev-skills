@@ -838,7 +838,7 @@ Not all phases are required. Skills select the phases relevant to their workflow
 - progress is **not** already durable in an external system (not git/GitHub/PR-backed, not a single regenerable artifact), AND
 - losing mid-run progress would force expensive re-work (large multi-scope analysis, 100+ experiments).
 
-In practice only long autonomous skills qualify (e.g. `ds-tune` experiment loops, `ds-solve` backtracking, `ds-ship` multi-phase orchestration, `ds-blueprint` full-codebase scoring). Everything else is exempt.
+In practice only long autonomous skills qualify. The qualifying set is exactly six, and `scripts/check-consistency.sh` check 5 enforces it in both directions: `ds-tune` (experiment loops), `ds-solve` (backtracking), `ds-ship` (multi-phase orchestration), `ds-blueprint` (full-codebase scoring), `ds-mobile` (13-domain audit) and `ds-frontend` (multi-scope audit). The last two qualify on the same test as the rest — a scan that walks scope after scope holds its progress in the run alone, so an interruption costs the whole scan. Everything else is exempt.
 
 **Exempt skills** (idempotent, atomic, git-driven, or externally-durable) write no state — their Contract section states the one-line exemption reason. Examples: `ds-init`, `ds-fix`, `ds-commit`, `ds-pr` (git-driven), `ds-issue` (GitHub issue + comments + git are the durable record).
 
