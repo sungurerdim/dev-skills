@@ -272,3 +272,38 @@ Per-stack toolchain lookup for ds-fix. Load only the section matching the detect
 **Config:** `.hadolint.yaml`
 **Detection:** `hadolint` separate install. `trivy` separate install.
 **Note:** Docker has no formatter or type checker. Lint + security only. Trivy scans both Dockerfiles (misconfig) and built images (CVEs). For image scanning: `trivy image <image-name>`.
+
+---
+
+## Google Apps Script (clasp)
+
+| Category | Tool | Fix Command | Check Command |
+|----------|------|-------------|---------------|
+| Format | Prettier | `npx prettier --write .` | `npx prettier --check .` |
+| Lint | ESLint + `eslint-plugin-googleappsscript` | `npx eslint --fix .` | `npx eslint .` |
+| Typecheck | TypeScript over checked JS | N/A (read-only) | `npx tsc --noEmit --allowJs --checkJs` |
+| Remote parity | clasp | N/A — see push note | `npx clasp show-file-status --json` |
+
+**Install:** `npm install -D @google/clasp eslint eslint-plugin-googleappsscript prettier typescript @types/google-apps-script`.
+**Manifest:** `appsscript.json` (Apps Script manifest) + `.clasp.json` (`scriptId`, `rootDir`).
+**Detection:** `.clasp.json` or `appsscript.json` at repo root → Apps Script project. `rootDir` in `.clasp.json` is the pushed subtree — lint and format that subtree, not only the repo root.
+**V8 lint path (the part a generic JS config gets wrong):** Apps Script runs on V8 but is *not* Node — no `require`, no ESM, no `process`, and every service (`SpreadsheetApp`, `UrlFetchApp`, `DriveApp`, `Logger`) is an implicit global. Without the plugin's globals, `no-undef` fires on every service call and gets switched off, which then hides real misspellings that only fail at runtime. eslintrc: `"plugins": ["googleappsscript"]` + `"env": { "googleappsscript/googleappsscript": true }`. Flat config: `languageOptions.globals` spread from `require('eslint-plugin-googleappsscript').environments.googleappsscript.globals`. Set `sourceType: "script"` — a config defaulting to `module` accepts `import` statements that cannot exist at runtime. Keep `no-undef` and `no-unused-vars` on: an unused function is often an orphaned trigger handler.
+**Typecheck path:** clasp 3.x dropped TypeScript transpiling — a TS project bundles (Rollup/esbuild) *before* `clasp push`, so the typecheck runs on the pre-bundle source with the project's own `tsc`. A plain-JS project gets the same coverage via `// @ts-check` headers + `@types/google-apps-script` + the `--allowJs --checkJs` command above.
+**Push is a deploy, not a build:** `clasp push` overwrites the live script and `clasp pull` overwrites the working tree — neither belongs in the fix chain — both sit on the irreversible-exception list. The check-side signal is `clasp show-file-status` (clasp 2.x named it `clasp status`); the repo-vs-remote parity gate is `clasp pull` into a scratch clone plus a diff, never a pull over the working tree.
+
+---
+
+## Cloudflare Workers / Pages (wrangler)
+
+| Category | Tool | Fix Command | Check Command |
+|----------|------|-------------|---------------|
+| Format / Lint | repo's JS/TS chain | see Node.js / TypeScript section | see Node.js / TypeScript section |
+| Binding types | wrangler | `npx wrangler types` | `npx wrangler types --check` (exit 1 = stale) |
+| Typecheck | TypeScript | N/A (read-only) | `npx tsc --noEmit` |
+| Build validation | wrangler | N/A | `npx wrangler deploy --dry-run --outdir dist` |
+| Build validation (Pages Functions) | wrangler | N/A | `npx wrangler pages functions build --outdir dist` |
+
+**Install:** `npm install -D wrangler` (run via `npx wrangler`; Cloudflare recommends the local install over a global one).
+**Manifest:** `wrangler.toml` / `wrangler.jsonc`
+**Detection:** `wrangler.toml` or `wrangler.jsonc` → Workers/Pages project. `functions/` directory alongside a Pages project → Pages Functions build applies. `compatibility_date` present → runtime types are generated from it.
+**Note:** `wrangler deploy --dry-run` compiles without publishing — it is the only build-correctness check available without touching the live Worker, and it belongs in the check chain; bare `wrangler deploy` never does. `wrangler types --check` is a drift gate: it exits 1 when `worker-configuration.d.ts` no longer matches the bindings in the config file, which is how a binding added to config but never regenerated gets caught before it fails at runtime. The Worker runtime is not Node — a lint config assuming Node globals (`process`, `Buffer`, `fs`) passes locally and fails in production; scope Node globals to the build tooling, not the Worker source.

@@ -633,6 +633,8 @@ mutation_test() {
   _mut "11 taxonomy membership"  "sed 's/^\*\*Dimensions:\*\*.*/**Dimensions:** ZZ99/' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
   _mut "13 evidence band"        "grep -v '^> \*\*Completion Evidence — final gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
   _mut "14 flag integrity"       "echo 'Run with \`--status\` to skip.' >> ds-repo/SKILL.md"
+  _mut "14r retired flag"        "echo 'Pass \`--dry-run\` to preview.' >> ds-repo/SKILL.md"
+  _mut "14r retired flag row"    "echo '| \`--no-interactive={x}\` | Retired flag smuggled into the Arguments table. |' >> ds-repo/SKILL.md"
   _mut "15 severity vocabulary"  "echo '### ZZZ-01 [URGENT] bogus severity' >> ds-review/references/rules-quality.md"
   _mut "17 rule-count claim"     "sed 's/[0-9][0-9]* rules across/9999 rules across/' ds-frontend/README.md > t && mv t ds-frontend/README.md"
   _mut "18 mechanical done gate" "grep -v 'Mechanical Done Gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
@@ -798,8 +800,15 @@ for f in ds-*/SKILL.md; do
     grep -v '/ds-' "$f" | grep -q "\`--$flag\`" || continue
     grep -qE "^\| *.?\`--$flag" "$f" || err "$f uses \`--$flag\` but its Arguments table does not define it"
   done
+  # Retired names are SKILL-flag vocabulary (SKILL-SPEC.md §Flag Vocabulary), so match
+  # the shape a skill flag always has here: backtick-delimited on its own (`--preview`)
+  # or an Arguments-table row — the same shape the ghost-flag arm above matches. A
+  # third-party CLI flag inside a command string (`npx wrangler deploy --dry-run
+  # --outdir dist`) is not this skill's vocabulary; ds-fix's toolchain reference has
+  # carried exactly that usage from the start.
   for retired in force-approve dry-run no-interactive confirm; do
-    grep -q -- "--$retired\b" "$f" && err "$f references retired flag --$retired (see SKILL-SPEC.md Unattended Mode / Flag Vocabulary)"
+    grep -q -- "\`--$retired\`" "$f" && err "$f uses retired flag \`--$retired\` (see SKILL-SPEC.md Unattended Mode / Flag Vocabulary)"
+    grep -qE "^\| *.?\`--$retired" "$f" && err "$f Arguments table defines retired flag --$retired (see SKILL-SPEC.md Unattended Mode / Flag Vocabulary)"
   done
 done
 
