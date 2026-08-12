@@ -1,13 +1,13 @@
 ---
 name: ds-mobile
-description: Mobile app quality audit — 179 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native). Use when auditing a mobile app for quality or release readiness.
+description: Mobile app quality audit — 183 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native, Capacitor). Use when auditing a mobile app for quality or release readiness.
 ---
 
 # /ds-mobile
 
-Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 179 rules before you submit.
+Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 183 rules before you submit.
 
-**Mobile App Quality Audit** — 179 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native.
+**Mobile App Quality Audit** — 183 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native, Capacitor.
 
 > **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
 
@@ -88,7 +88,10 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
    | React Native | `package.json` dep `react-native` |
    | iOS Native | `*.xcodeproj` or `Package.swift` |
    | Android Native | `build.gradle` with `android {}` |
+   | Hybrid / WebView shell | `capacitor.config.{ts,js,json}` or `@capacitor/core` in `package.json`; Cordova `config.xml` |
    | Cross-platform | Multiple platform indicators |
+
+   Hybrid is a modifier, not an alternative: a Capacitor app is also an iOS and an Android app, so the native platform rows still apply to its `ios/` and `android/` directories. Detecting hybrid additionally activates the HYB rules (Phase 3).
 
 2. **Platform confirmation.** Ambiguous → ask user. **Under `--auto`:** best-judgment default — `Cross-platform` when multiple indicators are present, else the single detected platform; never blocks.
 3. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching mobile scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
@@ -131,6 +134,7 @@ Load only reference files matching scope:
 | security, privacy, regulatory, store | [rules-compliance.md](references/rules-compliance.md) |
 | ux, visual, a11y | [rules-experience.md](references/rules-experience.md) |
 | arch, testing, perf, network, i18n | [rules-engineering.md](references/rules-engineering.md) |
+| arch (hybrid shell detected) | [rules-engineering.md § Hybrid & WebView Bridge](references/rules-engineering.md) — HYB-01–04, conditional: skipped entirely on native/Flutter/RN projects |
 | release (release-ready) | [rules-release.md](references/rules-release.md) |
 | release-ready scoring | [scoring.md](references/scoring.md) |
 
@@ -145,6 +149,8 @@ Load only reference files matching scope:
 **Per domain:** search files → search violations → read context to verify → skip unverifiable rules.
 
 **arch scope mandatory checks ([references/principles.md §2](references/principles.md)):** evaluate widget / screen / view-model / repository layers against SOLID — SRP (widget changes for >1 reason: UI + state + I/O), OCP, LSP (subtype violates parent navigation contract), ISP (consumer forced to implement unused lifecycle hooks), DIP (UI imports concrete platform-channel instead of abstraction). GRASP — Information Expert, Low Coupling (>7 unrelated peer imports), High Cohesion. Cite principle by name.
+
+**arch scope hybrid checks [hybrid shell detected]:** run HYB-01–04 (rules-engineering.md § Hybrid & WebView Bridge) — WebView origin and bridge exposure in the committed `capacitor.config.*`, plugin dead-load audit (every plugin dependency needs at least one consumer, searched **repo-wide**: a scoped search misses root entry files and manufactures false "unused" findings), the web-build → `cap sync` → native-build chain, and the native behaviors the WebView does not supply. Not a hybrid project → skip silently, no findings, no N/A rows.
 
 **network + perf scope reliability checks ([references/principles.md §4](references/principles.md)):** flag missing — timeout on every API call, retry-with-exponential-backoff on transient failures, offline / slow-network graceful degradation, app-lifecycle handlers (background → foreground state restoration), idempotency keys on payment / order / write endpoints, structured logging surviving across app restart, fail-fast input validation at every boundary (deep links, push notifications, intent extras).
 
@@ -258,6 +264,7 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 |----------|----------|
 | No project file found | Stop: "Mobile project not found in current directory." |
 | Platform ambiguous | Ask user to confirm (`--auto`: Cross-platform if multiple indicators, else the single detected platform) |
+| Hybrid shell, native dirs not committed (`ios/`/`android/` generated at build) | Run HYB rules against `capacitor.config.*` + `package.json`; report native-only checks `not_applicable` with that reason — never as missing-file findings |
 | Reference file fails to load | Skip domain, note as N/A |
 | Architecture Discovery: no corrections | Use detected values |
 | CAT-2 list: user selects 'none' | Audit CAT-1 rules only (default) |
