@@ -38,7 +38,7 @@ Run `/ds-fix`, or ask to fix code quality issues.
 
 ## Supported Stacks
 
-Flutter, Node.js/TypeScript, Python, Go, Rust, JVM (Kotlin/Java), Swift, C#/.NET, Ruby, PHP, C/C++, Shell/Bash, Terraform/HCL, Elixir, Scala, Docker.
+Flutter, Node.js/TypeScript, Python, Go, Rust, JVM (Kotlin/Java), Swift, C#/.NET, Ruby, PHP, C/C++, Shell/Bash, Terraform/HCL, Elixir, Scala, Docker, Google Apps Script (clasp), Cloudflare Workers/Pages (wrangler).
 
 Auto-detected from project manifests. Multiple stacks supported in monorepos. React, Vue, Angular, Svelte, and other Node-based frameworks are covered under the Node.js/TypeScript stack.
 

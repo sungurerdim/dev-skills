@@ -77,6 +77,17 @@ Without a flag: present an up-front menu covering every mode, one row each. A di
 | SSL/TLS | Certificate automation (Let's Encrypt / Caddy), HSTS, cipher suites |
 | DNS | Record configuration, CDN setup, failover |
 
+### Container-less targets
+
+Not every deploy has an image, a host, or a process you own. When Phase 1 resolves the target to one of these, the Dockerfile / VPS-hardening / reverse-proxy areas are **N/A** — state that explicitly in the report instead of emitting "no Dockerfile" or "no firewall" as findings, and run this table instead. Everything below still applies: secrets, config separation, backups, and the failure path.
+
+| Target | Detected by | What replaces the container checks |
+|--------|-------------|-----------------------------------|
+| Cloudflare Workers | `wrangler.toml` / `wrangler.jsonc` with `main` | Build proven without publishing (`npx wrangler deploy --dry-run --outdir dist`) as the pre-deploy gate; `compatibility_date` pinned to a real date, never floating; every binding (KV, D1, R2, Queues, Durable Objects) declared per environment and mirrored in a committed `.dev.vars.example`; secrets set via `wrangler secret put` only — the config file is committed, so a secret in it is a leak; `observability` enabled or its absence recorded as accepted blindness; routes and cron triggers reviewed for catch-all patterns that capture traffic nobody intended |
+| Cloudflare Pages (+ Functions) | `wrangler.toml` with `pages_build_output_dir`, or a `functions/` directory in a Pages project | Same secrets and bindings rules; `npx wrangler pages functions build --outdir dist` as the build gate; preview and production environment variables separated (a preview deploy reaching production data is the recurring failure here); `_headers` and `_redirects` reviewed — on Pages the security headers live in `_headers`, not in a reverse proxy that does not exist |
+| Static site on any CDN | `index.html` + no server process | TLS + cache headers + immutable asset names + one rollback path; backend monitoring, health endpoints, and process supervision are N/A |
+| Localhost, single user | No remote target — the "deploy" is the user starting the app on their own machine | Reverse proxy, TLS, uptime monitoring, alerting, and rate limiting are N/A. What stays and is usually missing: a reproducible one-command start, an explicit statement of where the data lives, a backup that is not on the same disk, a tested restore path, the update procedure, and the documented behavior when the machine is simply off |
+
 ### Infrastructure
 
 | Check Area | What It Covers |
@@ -132,9 +143,9 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 1. **IDU:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
 2. Flags → proceed directly. No flags → interactive menu.
-3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`) + target: VPS, PaaS, serverless, container orchestration.
+3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`, `wrangler.toml`, `wrangler.jsonc`) + target: VPS, PaaS, serverless, container orchestration, or a container-less target (edge platform, static site, localhost-only — see Scopes § Container-less targets). Absence of a container signal is itself a signal: it selects the container-less branch, it does not make the run a Docker audit with everything missing.
 
-**Gate:** Mode selected (flag or menu response); deployment target identified. If fails → re-present interactive menu; context absent (no Dockerfile, no target detected) → "What is your deployment target? (VPS / PaaS / serverless / container)" — abort with WARN if no response after 3 prompts. **Under `--auto`:** no prompt — infer the target from repo signals (Dockerfile, PaaS config files, serverless manifests); still undetected → default `VPS`, WARN in the summary.
+**Gate:** Mode selected (flag or menu response); deployment target identified. If fails → re-present interactive menu; context absent (no Dockerfile, no target detected) → "What is your deployment target? (VPS / PaaS / serverless / container / edge / static / localhost-only)" — abort with WARN if no response after 3 prompts. **Under `--auto`:** no prompt — infer the target from repo signals (Dockerfile, PaaS config files, serverless manifests, `wrangler.*`, a static `index.html` with no server process); still undetected → default `VPS`, WARN in the summary.
 
 ### Phase 2: Discover
 
@@ -149,6 +160,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 Apply rules from [references/rules-deployment.md](references/rules-deployment.md) (container security, deployment patterns, release engineering) + [references/rules-monitoring.md](references/rules-monitoring.md) (observability, alerting).
 
 - **Dockerfile audit — deterministic tool first (advisory):** hadolint present → run it on every Dockerfile and map its findings; absent → gap-note "hadolint not installed — prose checks are this run's fallback" (never auto-install). Prose checks: base image uses specific tag (not `latest`); multi-stage build (separate build + runtime stages); non-root user in runtime stage; `.dockerignore` exists covering `.git`, `node_modules`, `.env`, test files; layer ordering — deps before source code (cache efficiency); no secrets in build args or environment (gitleaks present → run it for this check; absent → pattern-based fallback); image vulnerability scan step (Trivy or equivalent) exists in the build pipeline — absent → HIGH finding "no image CVE scan".
+- **Container-less audit (target from Phase 1 is edge / static / localhost-only):** run the Scopes § Container-less targets row for the detected target instead of the Dockerfile and VPS-hardening bullets, and mark those two areas `not_applicable` with the target as the reason. Build-validation command for the target exists and is wired to the deploy path → evidence; missing → HIGH "deploys without a build gate". Secret found in a committed platform config (`wrangler.toml`, `vercel.json`, `_headers`) → CRITICAL, same as a secret in a Docker image.
 - **Infrastructure audit:** SSH key-only auth, no root login; firewall rules — only required ports open; backup config exists + tested; SSL/TLS A+ on SSL Labs; no exposed debug endpoints or admin panels.
 - **Monitoring audit:** health check endpoint returns meaningful status; structured logging configured (not `console.log` in production); crash reporting has PII redaction; alerting on critical metrics.
 - **Cost audit:** current infrastructure costs analyzed; over-provisioned resources identified; free tier alternatives suggested where applicable; cost calculated at different scale points.
@@ -164,6 +176,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 ### Phase 4: Generate [--generate]
 
 0. **Checkpoint pre-step (before the first file write):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (explain risk). **Under `--auto`:** write only paths untouched by the pre-existing dirty state; a planned write targeting a dirty path resolves `needs-human`. If the tree cannot be checkpointed → generate nothing over uncommitted unrelated changes; report the blocker.
+0b. **Target branch (before any generation).** Container-less target → steps 1-3 below do not apply; generate the platform's own equivalents instead and record steps 1-3 `not_applicable` with the target as the reason: Workers/Pages → `wrangler.toml` binding + environment skeleton with a committed `.dev.vars.example` stub (secret *names* only, never values) and the build-gate command wired into the repo's check chain; Pages/static → `_headers` carrying the security header set the missing reverse proxy would have supplied; localhost-only → a one-command start script plus a backup script with its matching restore command, both runnable by the single user who owns the machine.
 1. **Dockerfile:** multi-stage, non-root, optimized layers, health check.
 2. **docker-compose.yml:** services, networking, volumes, health checks, restart policies.
 3. **Reverse proxy config:** SSL termination, security headers, rate limiting.
@@ -172,7 +185,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 
 Present generated files for review before writing. **Under `--auto`:** no review pause — write directly and list every generated file in the summary.
 
-**Gate:** Generated files syntactically valid — compose files: `docker compose -f {file} config -q` → exit 0 (docker absent → in-session YAML parse → no error); Dockerfiles: hadolint when present (Phase 3 tool rule) → exit 0. If fails → identify invalid files, show syntax error, fix inline + re-run the same validation; un-fixable after retry → skip writing, record `status: "failed (syntax error)"`, surface raw error for manual correction.
+**Gate:** Generated files syntactically valid — compose files: `docker compose -f {file} config -q` → exit 0 (docker absent → in-session YAML parse → no error); Dockerfiles: hadolint when present (Phase 3 tool rule) → exit 0; container-less outputs: Workers/Pages config → `npx wrangler deploy --dry-run --outdir dist` (Pages: `npx wrangler pages functions build --outdir dist`) exit 0, wrangler absent → in-session TOML/JSONC parse; shell scripts → `bash -n {file}` exit 0. If fails → identify invalid files, show syntax error, fix inline + re-run the same validation; un-fixable after retry → skip writing, record `status: "failed (syntax error)"`, surface raw error for manual correction.
 
 ### Phase 5: Monitor Setup [--monitor]
 
@@ -244,6 +257,8 @@ Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list 
 |----------|----------|
 | Serverless project | Skip Docker / VPS checks, focus on function config, cold start, limits |
 | Static site | Minimal: CDN + SSL, skip backend monitoring |
+| Edge platform (Cloudflare Workers / Pages) | Container-less branch: build-gate + bindings + secrets + `_headers`; Dockerfile and VPS scopes reported `not_applicable`, not as findings |
+| Localhost-only, single user | Container-less branch: reproducible start, data location, off-machine backup, tested restore, update path; TLS / uptime / alerting reported `not_applicable` |
 | Monorepo | Ask which service to deploy, respect workspace boundaries. Under `--auto`: process every service with a detected deploy target (Dockerfile/manifest), no prompt. |
 | Already on PaaS (Vercel / Railway) | Focus on platform-specific config, not VPS hardening |
 | GPU / ML workload | Include GPU container config, model serving patterns |

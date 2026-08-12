@@ -41,7 +41,7 @@ Run `/ds-test`, or ask to write tests, improve coverage, or fix failing tests.
 
 ## Supported Stacks
 
-Node.js (Vitest/Jest/Playwright), Python (pytest/Playwright), Go, Rust, Flutter, JVM (JUnit/Kotest), Swift (XCTest), C#/.NET (xUnit/Playwright), Ruby (RSpec/Capybara), PHP (PHPUnit/Pest), Elixir (ExUnit), C/C++ (Google Test/Catch2), Scala (ScalaTest).
+Node.js (Vitest/Jest/Playwright), vanilla JS with no bundler (node:test + jsdom), Python (pytest/Playwright), Go, Rust, Flutter, JVM (JUnit/Kotest), Swift (XCTest), C#/.NET (xUnit/Playwright), Ruby (RSpec/Capybara), PHP (PHPUnit/Pest), Elixir (ExUnit), C/C++ (Google Test/Catch2), Scala (ScalaTest).
 
 ## Features
 

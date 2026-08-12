@@ -29,6 +29,31 @@ Per-stack test framework detection and commands. Load only the section matching 
 
 ---
 
+## Vanilla JS — no bundler, no build step
+
+A repo that serves plain `.js` to the browser has no Vitest/Jest config and often no test-framework dependency at all. That absence is not "untestable" and it is not a reason to add a bundler: Node's built-in runner needs zero dependencies and runs the same files.
+
+| Category | Tool | Run Command | Config |
+|----------|------|-------------|--------|
+| Unit (default, zero-dep) | node:test | `node --test` | none — discovers `test/`, `*.test.js`, `*_test.js` |
+| Unit (one file) | node:test | `node --test test/parser.test.js` | none |
+| Coverage | node:test | `node --test --experimental-test-coverage` | none |
+| DOM without a browser (most complete) | jsdom | `node --test` + a setup file that installs the fake DOM | `--import ./test/dom-setup.js` |
+| DOM without a browser (lighter) | linkedom / happy-dom | same | same |
+| Real browser (when the claim needs one) | Playwright | `npx playwright test` | `playwright.config.ts` |
+
+**Detection:** no test-framework dep (or no `package.json` at all) + `.js` files served directly (`index.html` with `<script src=>`, a `public/`/`static/` directory, a Worker/Apps Script entry) → this path, not "no framework".
+**Availability:** `node:test` was added in Node 18 and became stable in Node 20 — no install, no config file, no transform step.
+**Recommended:** node:test for units; add a DOM shim only for units that actually touch the DOM; Playwright only for claims that need a real browser.
+
+**Module shape is the first decision.** A file loaded by `<script src>` is a classic script, not a module — `import`ing it from a test fails or silently tests a different shape. Two routes: (a) extract the unit under test into an ESM module that both the page and the test import — preferred, because the test then exercises exactly what ships; (b) read the file and evaluate it in a `vm` context holding the fake globals — use only when the page cannot be changed, and record that the test proves behavior of *evaluated text*, not of the page's load path.
+
+**Browser globals are not free.** Whether a given global exists depends on the Node version — check (`node -p "typeof localStorage"`), never assume — and stub what is missing explicitly in the setup file, naming each stub. A silently-absent global turns into a passing test over a code path that never ran.
+
+**Boundary of the path:** layout, CSS cascade, focus order, and cross-frame event ordering are not observable in jsdom. A jsdom test asserting any of those is test theater (W12) — that claim belongs to Playwright or it is not made.
+
+---
+
 ## Python
 
 | Category | Tool | Run Command | Config |
