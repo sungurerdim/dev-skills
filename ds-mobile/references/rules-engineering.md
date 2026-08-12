@@ -11,6 +11,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | **Performance** | PRF-01–10 (1 CRITICAL, 8 HIGH, 1 MEDIUM) | ~160 |
 | **Network & Data** | NET-01–07 (2 CRITICAL, 5 HIGH) | ~250 |
 | **Internationalization & Logging** | DEV-01–05 (5 HIGH) | ~300 |
+| **Hybrid & WebView Bridge** (conditional) | HYB-01–04 (1 CRITICAL, 2 HIGH, 1 MEDIUM) | ~345 |
 
 ---
 
@@ -338,3 +339,39 @@ Uncaught async/framework errors are captured by three mechanisms bound together 
 - **Fix:** Bind all three at startup (e.g. Flutter: runZonedGuarded + FlutterError.onError + PlatformDispatcher.onError — or the platform's equivalents) and keep them permanently; route all three to the same central consent-based reporter. Scope them strictly to uncaught errors: business-logic failures are handled at their site, never here.
 - **Impact:** Each unbound hook is a class of crashes that vanishes without a trace — the app dies, no report is filed, and the team learns about it from store reviews.
 - **Source:** XR-175 — cross-project experience registry (2026).
+
+---
+
+## Hybrid & WebView Bridge (conditional — hybrid platform only)
+
+**Activate when** Phase 1 detects a hybrid shell: `capacitor.config.ts` / `capacitor.config.json` / `@capacitor/core` in `package.json` (or a Cordova `config.xml`). Zero checks on native and Flutter/RN projects. Commands below are Capacitor; a Cordova project maps `cap sync` → `cordova prepare`.
+
+The shell is the whole attack surface: web code that would be sandboxed in a browser tab runs here with native plugin access, and the native projects are generated artifacts that go stale silently.
+
+### HYB-01 [CRITICAL] The WebView Loads Local Assets, Not a Remote Origin
+Production ships bundled assets over the app scheme; live-reload settings never reach a release build.
+- **Detect:** `server.url` set in the committed `capacitor.config.*` (Capacitor's own declaration marks it "not intended for use in production" — it points the shell at a remote origin); `server.cleartext: true`; `server.allowNavigation` carrying a wildcard or a broad domain; `android.webContentsDebuggingEnabled` / `ios.webContentsDebuggingEnabled` true in the release configuration; a single config file with no dev/release split
+- **Fix:** remove `server.url` and `cleartext` from the committed config (keep them in a dev-only override applied by the dev script); `allowNavigation` empty, or the exact hosts needed and nothing wider; debugging flags false for release; verify the shipped build with `npx cap doctor` plus a read of the generated native config
+- **Impact:** with a remote origin loaded, one XSS on that origin owns every native plugin the app has registered — camera, filesystem, contacts, secure storage. This is the single highest-value finding in a hybrid audit
+- **Source:** Capacitor `CapacitorConfig` declarations (`server.url`, `server.cleartext`, `server.allowNavigation`)
+
+### HYB-02 [HIGH] Every Installed Plugin Has At Least One Consumer
+A plugin in the manifest is native code, permissions, and store-declared capability compiled into the binary — whether or not any line of web code calls it.
+- **Detect:** for each `@capacitor/*` / `capacitor-*` / `cordova-plugin-*` dependency, search the **entire repo** for an import or bridge call (`git grep`, repo-wide — a `src/`-scoped search misses a root entry file and produces a false "unused"); a dependency with zero consumers is the finding. Second half of the same check: a plugin *used* in code but missing from the manifest — the runtime failure only appears on device
+- **Fix:** unused → remove the dependency, run `npx cap sync`, then re-check the native permission manifests for the entries it left behind (removing the package does not always remove its merged permissions); used-but-unlisted → add it and sync
+- **Impact:** dead plugins add permissions the store listing must justify and the privacy declaration must cover — a permission with no feature behind it is a rejection reason and a privacy claim you cannot defend
+- **Source:** same manifest-plus-consumer test as ds-review YAGNI-USAGE; Capacitor plugin registration is generated during `cap sync`
+
+### HYB-03 [HIGH] The Build Chain Runs Web Build → `cap sync` → Native Build
+`cap sync` is copy + update in one: it copies the built web assets **and** regenerates native plugin registration. Skipping either half ships a stale shell.
+- **Detect:** a release script that runs `cap copy` (assets only) after a dependency change instead of `cap sync`; `cap sync` invoked without a preceding web build, so it copies the previous build's output; native platform directories committed but no sync step in the release path; no `cap doctor` in the pre-release checklist
+- **Fix:** fixed chain — web build → `npx cap sync` → native build; `cap copy` only when web assets alone changed and no dependency moved; make the chain one command so the ordering cannot be performed from memory
+- **Impact:** the classic failure is invisible in the simulator and fatal on device: the plugin call resolves during development and throws "not implemented" in the shipped build, because registration was never regenerated
+- **Source:** Capacitor CLI — `sync` is defined as copy plus update (`cli/src/tasks/sync.ts`)
+
+### HYB-04 [MEDIUM] Native Behaviors Are Handled, Not Inherited From The Browser
+A page that behaves correctly in a browser tab still misses the platform contracts the shell is expected to honor.
+- **Detect:** no Android hardware back-button handler (back exits the app instead of navigating); safe-area insets unhandled (content under notch / home indicator); no keyboard-resize behavior, so inputs sit behind the keyboard; deep links and app-lifecycle events (background → foreground) not bound in the web layer; browser-only APIs used for storage of anything that must survive an OS cache purge
+- **Fix:** bind back-button, lifecycle, and deep-link handlers at shell start; consume safe-area insets in the layout; select an explicit keyboard resize mode; move must-survive data out of WebView-managed storage into a native-backed store
+- **Impact:** these are the findings users report as "it feels like a website" — and the back-button one alone is a documented store-review complaint class
+- **Source:** platform behaviors the WebView does not supply by default; verified against Capacitor's `CapacitorConfig` platform sections

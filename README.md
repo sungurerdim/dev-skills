@@ -66,7 +66,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Empty repo. Get me to a real project from zero." | [`/ds-init`](ds-init) — scaffold, CI, lint, tests from day one |
 | "Design my API + database + auth + data pipeline, end-to-end." | [`/ds-backend`](ds-backend) — four-layer design, no inconsistent naming, no double-processing jobs |
 | "I need design tokens, component states, theming, a11y baseline." | [`/ds-frontend`](ds-frontend) — design system audit + generation |
-| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 179 rules, 13 domains, release-readiness scoring |
+| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 183 rules, 13 domains, release-readiness scoring |
 
 ### Improve — fix what's already there
 
