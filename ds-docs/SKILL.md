@@ -202,9 +202,13 @@ Missing docs = HIGH; incomplete (<70%) = MEDIUM.
 | Claim references something that doesn't exist | **Stale** — feature/file removed | CRITICAL, suggest removal |
 | Source has something doc doesn't mention | **Gap** — undocumented feature | MEDIUM, suggest adding |
 | Doc duplicates a code-owned fact (version literal, config default, port, dependency version) | **SSOT-copy** — value copied instead of referenced; drifts on next change | MEDIUM, replace with a reference to the owning source (file path, command, or manifest) |
+| Number a tool computes (counts, coverage %, sizes, benchmark figures) or that also lives on another surface, hand-written with no generator and no drift check | **Unwired-number** — correct today, silently wrong after the next change | MEDIUM, emit it from the generator or wire it to a drift check |
+| Access / verification / "last reviewed" date on a source not opened during this run | **Unverified-date** — freshness asserted instead of observed | HIGH, re-open the source now or drop the date |
 | Link returns 404 or target heading missing | **Broken link** | HIGH |
 
-Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy) | Doc File:Line | Claim | Actual | Severity |`
+**Generated and cross-surface numbers — stack-independent rule.** A number a doc states has exactly two legal forms: **emitted by its generator** at build time, or **hand-written and covered by a drift check** that goes red when the owning source moves. This covers every number some tool produces (rule/test counts, coverage, bundle size, benchmark results) and every number repeated on a second surface (config, UI copy, site, store listing, another doc). A hand-copied figure that is correct today is still a finding — the finding is the missing wire, not the value. This is the doc-side, stack-independent form of the ds-devops build-hygiene pair DOP-38 (generated artifacts are regenerated at the gate, never hand-edited) and DOP-39 (a cross-surface fact gets one canonical owner plus a drift gate); it applies with no CI, no pipeline, and no particular stack. Dates obey the same discipline: an access/verification date is written only for a source actually opened in this run, and is never bumped to today because the line around it was edited.
+
+Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy/Unwired-number/Unverified-date) | Doc File:Line | Claim | Actual | Severity |`
 Label map for orchestrated runs: ds-ship's promise census uses `promised-not-implemented` (= `Drift`/`Stale` here) and `implemented-not-documented` (= `Gap` here) — same classes, census-side names.
 
 **Product-DX onboarding-curve check (when scope includes getting-started or API docs):**
@@ -237,7 +241,7 @@ Display plan (target files, sections, sources). Ask: Generate All / High Priorit
 
 **Checkpoint pre-step (before the first doc file is written):** `git status --porcelain` → empty → proceed. Non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (generation may overwrite uncommitted doc edits); `--auto`: proceed only when the pre-existing dirty files stay untouched by this skill's writes — a planned target already dirty → mark it `skipped (needs-human)`. Never overwrite uncommitted doc changes silently.
 
-Principles: extract from code, don't invent — read source for actual signatures/endpoints/configs; brevity over verbosity — every sentence earns its place; scannable format — headers, bullets, tables, copy-pasteable commands; action-oriented — focus on what the reader needs to do. Source mandate: every documented flag, endpoint, or config value MUST be verified by searching source before inclusion.
+Principles: extract from code, don't invent — read source for actual signatures/endpoints/configs; brevity over verbosity — every sentence earns its place; scannable format — headers, bullets, tables, copy-pasteable commands; action-oriented — focus on what the reader needs to do. Source mandate: every documented flag, endpoint, or config value MUST be verified by searching source before inclusion. Every number written must trace to its generator or to a drift-checked canonical owner (see the stack-independent rule in Phase 3) — a figure with neither is not written; every date must belong to a source opened in this run.
 
 **Compliance scope (when scope = compliance):**
 
@@ -289,6 +293,7 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 ## Quality Gates
 
 - Every generated doc verified against source — no claims without file:line evidence
+- Generated / cross-surface numbers come from the generator or a drift check — a hand-copied figure is a finding while it is still correct; access dates are written only for sources opened this run
 - Only modify documentation files — never touch source code
 - Generated docs match project's existing documentation style
 - W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
