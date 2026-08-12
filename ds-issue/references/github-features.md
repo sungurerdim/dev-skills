@@ -31,8 +31,11 @@ gh issue list --repo <slug> --state all --limit 200 --json number,title,state,la
 # keyword search across the repo — OMIT --state to search all states
 # (gh search issues accepts only --state open|closed; omitting it searches both)
 gh search issues "<keywords>" --repo <slug> --json number,title,state
-# one issue's detail when reconciling (gh ≥ 2.94.0: append ,parent,subIssues,blockedBy,blocking)
-gh issue view <n> --repo <slug> --json number,title,body,labels,state
+# canonical single-issue read — the ONE detail read that execute (--do), audit (--status),
+# and sweep reconciliation all use; comments is NOT optional — requirement-bearing comments
+# are part of the issue contract (SKILL Phases 5-6), and a body-only read misses them
+# (gh ≥ 2.94.0: append ,parent,subIssues,blockedBy,blocking)
+gh issue view <n> --repo <slug> --json number,title,body,labels,state,comments
 ```
 
 `--sweep` and `--status` consume these JSON fields directly for hierarchy and blocked-by state.
@@ -95,6 +98,8 @@ EOF
 ```
 
 The `--do` mode posts its plan (under `--preview`) and its close-evidence here; `--status` reads these comments back but judges done-ness from code, not from the comment text. These comments ARE the run's audit trail — there is no local log.
+
+Comments are not only the skill's own trail — **owners add requirements in comments.** A requirement-bearing comment is part of the issue contract: `--do` promotes it into the body's Done list via `gh issue edit` (or rejects it explicitly with a follow-up reference) before any close (SKILL Phase 6 step 1); `--status` audits it exactly like a body Done item, and a closed issue whose comment-criterion has no code-proven evidence is `claimed-done-but-unproven`.
 
 ## Milestones (optional)
 
