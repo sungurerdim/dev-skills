@@ -63,7 +63,7 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 
 ## Execution Flow
 
-Validate → History Tidy → Quality Gates → Analyze → Build → [Review] → Create → [Merge Setup] → [Cleanup] → [Needs-Approval] → Summary
+Validate → History Tidy → Quality Gates → Analyze → [Review Disposition] → Build → [Review] → Create → [Merge Setup] → [Cleanup] → [Needs-Approval] → Summary
 
 ### Phase 1: Validate
 
@@ -78,7 +78,8 @@ Validate → History Tidy → Quality Gates → Analyze → Build → [Review] �
 3. `git branch --show-current` → non-empty (not detached) and ≠ `{base}`
 4. `git fetch origin {base}`
 5. `git rev-list --count origin/{base}..HEAD` → `0` → stop. `git rev-list --count HEAD..origin/{base}` → >0 (behind base) → ask rebase (--auto: rebase automatically)
-6. `gh pr view --json url` → URL printed (existing PR) → show URL, ask: Update / Skip (`--auto`: Update automatically); non-zero exit → no existing PR, continue
+6. `gh pr view --json url,number,state` → URL printed (existing PR) → show URL, ask: Update / Skip (`--auto`: Update automatically); non-zero exit → no existing PR, continue
+7. **Update path — canonical PR read:** `gh pr view {n} --json url,number,state,body,comments,reviews` **plus** the line-level threads (`gh api repos/{owner}/{repo}/pulls/{n}/comments`). Comments and reviews are NOT optional: a reviewer's requested change is part of the PR's contract, and a body-only read updates the PR while that request stays unanswered. Hand the result to Phase 3.5.
 
 **Gate:** All pre-checks passed; branch has commits ahead of base. If fails → stop with the specific check that failed:
 
@@ -138,6 +139,16 @@ Tests fail → stop. Only create PR when tests covering the changed files pass.
 **Size note:** net diff exceeds PR-01 thresholds ([references/rules-pr.md](references/rules-pr.md): `git diff {base}...HEAD --shortstat` → >400 changed lines, or `git diff {base}...HEAD --name-only | wc -l` → >10 files) → append body note "Large PR — consider splitting for reviewability" (MEDIUM, informational — never blocks creation).
 
 **Gate:** `git diff {base}...HEAD` read with non-empty output; PR title generated in conventional commit format (`printf '%s' "{title}" | wc -c` → ≤ 70). If fails → empty `git diff {base}...HEAD` (commits exist but net = 0) → stop with "Net diff is empty — all changes reverted in later commits. Nothing to describe."; ambiguous classification after net-diff override → default to most conservative non-bumping type, append WARN in PR body.
+
+### Phase 3.5: Review Disposition [Update path only] [GATE]
+
+Runs when Phase 1 found an existing PR and the user chose Update; skipped for a first-time PR (nothing has been reviewed yet).
+
+1. From the Phase 1 step 7 read, list every reviewer-borne item the update has to answer: `CHANGES_REQUESTED` reviews, unresolved review threads, and comment-borne requests (items posted after the last push are the prime suspects). This skill's own prior comments are not requirements.
+2. Each item gets exactly one disposition **before** the PR is updated or pushed: **addressed** — the net diff already carries it, cited `file:line`; **rejected** — replied to on its own thread with the reason (per-item confirm); **deferred** — a follow-up issue filed, its number quoted in the reply. Leaving an item with none of the three and still updating the PR is FORBIDDEN. **Under `--auto`:** the run stops at Phase 4 without publishing anyway — dispositions are still resolved per Unattended Mode rule 3 and printed with the prepared body, so the human sees what each review item got.
+3. The rebuilt PR body states what changed since the last review round, one line per addressed item.
+
+**Gate:** every reviewer-borne item carries one of the three dispositions with its evidence. If fails → an item left undispositioned → stop before the update, list those items with their thread URLs, and ask for a decision; `gh api …/pulls/{n}/comments` unavailable (older `gh`, permissions) → disposition the review-level items, record the line-level gap in the summary, and mark the run WARN.
 
 ### Phase 4: Review (under `--auto`: stop here, see below)
 
@@ -232,6 +243,7 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 ## Quality Gates
 
 - PR description describes net diff — not journey of individual commits
+- **Update path: every reviewer-borne item dispositioned** (addressed with `file:line` / rejected with a thread reply / deferred to a filed issue) before the PR is updated — an unanswered requested change blocks the update (Phase 3.5)
 - Every quality gate check (format, lint, test) gets a disposition in summary
 - Conventional commit type on PR title matches net diff classification
 - W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W13: the PR description reflects the verified net diff, not the author's claims about it; don't soften or inflate findings to match the PR narrative or reviewer authority.
@@ -251,7 +263,7 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 | Scenario | Behavior |
 |----------|----------|
 | No commits ahead of base | Report "nothing to push", exit |
-| PR already exists for branch | Show existing PR URL, ask if update needed |
+| PR already exists for branch | Show existing PR URL, ask if update needed; Update reads the PR's comments + reviews + line-level threads and dispositions every reviewer item (Phase 3.5) before any push |
 | CI checks failing | Warn user, create PR but skip auto-merge setup |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->
