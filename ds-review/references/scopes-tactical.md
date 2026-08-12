@@ -46,6 +46,15 @@ Cap rules:
 
 When uncertain, choose lower severity.
 
+**This is the single home for the level set.** Toolchain findings (format, lint, type, dependency, secret scanning) map onto these same four levels — they never get a parallel scale with its own criteria:
+
+| Toolchain finding | Level | Criterion it meets |
+|-------------------|-------|--------------------|
+| Exposed secret, known-vulnerable dependency | CRITICAL | Security |
+| Type error, lint error affecting correctness | HIGH | Broken functionality |
+| Format violation, lint warning | MEDIUM | Suboptimal but works |
+| Style suggestion, outdated dependency with no CVE | LOW | Style only |
+
 ## Judgment Rules
 
 | Rule | Detail |
