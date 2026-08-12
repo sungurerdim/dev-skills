@@ -1,6 +1,6 @@
 ---
 name: ds-quality
-description: Quality-by-Mechanism — installs a deterministic, local, no-CI quality gate (format → lint → type → test) enforced via a host-appropriate mechanism (Claude Code / Codex CLI / Gemini CLI stop-time hooks, Copilot commit-deny hook, Aider auto-lint/test, or git pre-commit). Use when the user asks to enforce quality, set up a quality gate, or block "done" until checks pass, without relying on CI.
+description: Quality-by-Mechanism — installs a deterministic, local, no-CI quality gate (format → lint → type → test) enforced via a host-appropriate mechanism (Claude Code / Codex CLI / Gemini CLI stop-time hooks, Copilot commit-deny hook, Aider auto-lint/test, or git pre-commit). `--invariant` builds a custom gate from a plain-language invariant description (mirror constants stay equal, pattern X never reappears, generated file stays in sync, inventory never drops below N, docs match code, two implementations agree) — delivered red-proven, chain-wired, scope-declared. Use when the user asks to enforce quality, set up a quality gate, block "done" until checks pass without relying on CI, or turn a described invariant into a mechanical check.
 ---
 
 # /ds-quality
@@ -9,7 +9,9 @@ Agents promise "done" without proof; quality ends up depending on whether an
 instruction was followed, not on a mechanism. This skill installs a **deterministic, local,
 no-CI** quality gate — one entry point (format → lint → type → test) — then wires
 it into whichever host you use: a Claude Code Stop hook, Aider's auto-lint/auto-test,
-or a universal git pre-commit hook.
+or a universal git pre-commit hook. Its `--invariant` mode extends the same principle
+past the toolchain: any invariant the user can describe becomes a generated, red-proven,
+chain-wired check (see Invariant Mode).
 
 **Quality-by-Mechanism** — quality is guaranteed by a verify-loop that runs real checks, not by hoping an agent obeys.
 
@@ -21,6 +23,7 @@ or a universal git pre-commit hook.
 - User asks to "enforce quality / set up a quality gate / block done until checks pass"
 - User asks for local format+lint+type+test enforcement without CI
 - User asks to make an agent keep working until tests/build pass
+- User describes an invariant and asks for it to be mechanically enforced ("these two constants must stay equal", "X must never come back", "this generated file must match its source") → `--invariant`
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -30,6 +33,7 @@ or a universal git pre-commit hook.
 | "enforce format/lint/type/test on every stop/commit" | "set up CI / GitHub Actions" (out of scope — LOCAL ONLY) |
 | "make checks deterministic, not instruction-based" | "just run the tests once" (→ run the test runner) |
 | "wire quality enforcement into Aider / a non-Claude-Code host" | "review this PR" (→ ds-review) |
+| "make this invariant mechanically enforced" (`--invariant`) | "run the audits that already exist" (→ `--run`) |
 
 ## Contract
 
@@ -37,10 +41,11 @@ or a universal git pre-commit hook.
 
 - Installs a deterministic, local, no-CI quality gate: one entry point (format → lint → type → test) + a host-appropriate enforcement arm that blocks "done" (or the commit) until it passes green; bootstraps missing tooling when asked.
 - **Enforcement mechanism is host-dependent — no single claim covers every host.** Stop-time (full strength — blocks "done" itself): Claude Code Stop hook (existing, unchanged) · Codex CLI `Stop` hook · Gemini CLI `AfterAgent` hook. Edit-time: Aider `.aider.conf.yml` auto-lint/auto-test. Commit-time (weaker — an agent can still narrate "done" between an edit and the next commit; documented honestly, not hidden): GitHub Copilot `preToolUse` commit-deny hook · git `pre-commit` hook (universal fallback for Cursor, Windsurf, plain terminal).
-- Modes are flag-disambiguated (`--install`/`--run`/`--check`/`--status`/`--disable`/`--project-hook`/`--uninstall`/`--arm`/`--auto`); no flag = bootstrap this repo. When invoked with no flag and intent is ambiguous, present an up-front menu covering every mode (`(recommended)` default + `(Cancel)`). `--auto` skips this menu too — selects the skill's best-judgment default (bootstrap this repo, i.e. the no-flag behavior) without prompting.
+- Modes are flag-disambiguated (`--install`/`--run`/`--check`/`--status`/`--disable`/`--project-hook`/`--uninstall`/`--arm`/`--auto`/`--invariant`); no flag = bootstrap this repo. When invoked with no flag and intent is ambiguous, present an up-front menu covering every mode (`(recommended)` default + `(Cancel)`). `--auto` skips this menu too — selects the skill's best-judgment default (bootstrap this repo, i.e. the no-flag behavior) without prompting.
 - LOCAL ONLY — never creates or edits CI / remote pipelines. Idempotent (safe to re-run, never duplicates hooks). Non-destructive — never weakens, skips, or mocks-away checks to get green.
 - Runs the passes via the tools already present; delegates one-shot fixing of what they report to ds-fix. This skill owns the *gate + enforcement mechanism*, not the fixes.
-- Touch only quality-infra files — configs, scripts, `.claude/settings*.json`, `.aider.conf.yml`, `.git/hooks/pre-commit`, the global hook, the project marker, and (only if no tests exist) a real starter test. Never delete or rewrite existing source or tests beyond the task.
+- `--invariant "<description>"` turns ONE described invariant into four inseparable deliverables: the gate (script or test, in the repo's incumbent gate format), a red-proof (the gate observed non-zero on an injected violation, green on revert), chain wiring (or an explicit unwired statement — never implied enforcement), and a scope declaration (what it scans, what it exempts, its blind spots). Delivery missing any of the four is reported `INCOMPLETE`, never `OK`.
+- Touch only quality-infra files — configs, scripts, `.claude/settings*.json`, `.aider.conf.yml`, `.git/hooks/pre-commit`, the global hook, the project marker, gates generated by `--invariant` (a script/test file + its chain registration), and (only if no tests exist) a real starter test. Never delete or rewrite existing source or tests beyond the task.
 - Any arm executes a marker/config-resolved command as shell/code on every trigger in opted-in repos — treat that command as code: review/commit it like any project script; never enable an arm in a repo you don't trust.
 - **State-exempt — zero footprint.** Idempotent and local/git-driven; the installed hook/config + the project marker + git are the durable record. Writes no `ds/audit/` state, no temp files.
 - Standalone. Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
@@ -56,6 +61,7 @@ or a universal git pre-commit hook.
 | `--run` / `--check` | Run this repo's resolved quality command now (marker → else auto-detect) and report; no setup |
 | `--status` | Report mode/roots, what auto-arm resolves here, which arm(s) are wired, and global install state |
 | `--arm <claude-code\|aider\|git-hook\|copilot\|gemini\|codex>` | Force a specific enforcement arm instead of auto-detecting the host; skips the selection menu |
+| `--invariant "<description>"` | Build a custom gate from a plain-language invariant description: classify against the pattern catalog → copy the repo's own gate precedent → generate → red-proof → wire into the chain → declare scope. See Invariant Mode |
 | `--disable` | Write `.claude/ds-quality.json` `{enabled:false}` — per-repo kill switch (overrides auto-arm) |
 | `--project-hook` | Register the Claude Code Stop hook in THIS repo's `.claude/settings.json` instead of using the global hook |
 | `--uninstall` | Remove the global hook registration + scripts + config (or, with `--project-hook`, the repo's Stop entry; or the `git-hook`/Aider config lines, per `--arm`) |
@@ -191,9 +197,52 @@ Run all three and show output, for whichever arm(s) were wired:
 
 **Gate:** Green→red→green demonstrated for the Phase-3 entry point, and the wired arm's trigger test shown (block-on-red / pass-on-green). If fails → red state doesn't trigger the arm as expected → do not report enforcement as installed; mark it "wired but unverified" and surface the specific failure.
 
+## Invariant Mode (`--invariant "<description>"`)
+
+Phases 1–5 enforce what the toolchain already checks; this mode builds a gate for an
+invariant no toolchain ships — parity, absence, generated-file sync, inventory floor,
+declaration↔code match, order-independence, mirror constants, contract suites. Input: one
+invariant described in plain language. Output: the four deliverables the Contract names
+(gate + red-proof + wiring-or-explicit-unwired + scope declaration).
+
+1. **Restate** the invariant as one falsifiable sentence naming the exact artifacts it
+   binds (files, symbols, constants, directories). Target ambiguous (which two constants?
+   which directory?) → ask before generating anything; under `--auto` → record
+   `needs-human: invariant target ambiguous` and stop.
+2. **Classify** against the table in [references/invariant-patterns.md](references/invariant-patterns.md)
+   (nine patterns, P1–P9). No pattern fits → use the nearest skeleton and record the gap
+   in the report; never refuse solely for lack of a catalog match.
+3. **Precedent** — read the repo's existing gate corpus (`scripts/`, `tool/`, the audit
+   runner's registration list, the test suite's conventions) and copy the incumbent shape:
+   language, header/comment convention, exit-code contract, registration mechanism. A repo
+   with an audit chain gets a new audit in that chain's own format; a repo whose gates are
+   tests gets a test. No corpus exists → follow the pattern skeleton directly.
+4. **Generate** the gate per the pattern skeleton, with the catalog's cross-cutting rules:
+   scope named in the gate and red on zero files matched (ds-review TST-13), discovered
+   inputs carry a count floor, exemptions listed by name with a reason, non-destructive
+   (report, never rewrite), derived-not-typed inputs where the pattern calls for them.
+5. **Red-proof** — inject the exact violation the gate claims to catch (scratch
+   worktree/copy, or the gate's parameterized scan target aimed at a fixture), run the
+   gate, show the observed non-zero output; revert, show green (ds-review TST-11). Prefer
+   the repo's standing proof mechanism (mutation registry, fixture-dir suite test) so the
+   proof re-runs on every gate run; the one-time green→red→green is the floor when no such
+   mechanism exists. A gate without an observed red is not delivered.
+6. **Wire** — register the gate in the chain that gates "done": the Phase-3 entry point,
+   the repo's aggregate audit/verify command, or the installed arm's hook, with the exit
+   code propagating (ds-review TST-14). Prove the wiring by running the *chain* (not the
+   gate directly) with the violation in place → red, reverted → green. No wireable chain
+   exists → deliver the gate unwired, state that explicitly in the report, and offer the
+   no-flag bootstrap to create the missing entry point.
+7. **Declare** — the report states what the gate scans, what it exempts and why, and the
+   blind spots it knowingly leaves.
+
+**Gate:** All four deliverables observed — gate file runs; red-proof output shown (non-zero on the injected violation, green after revert); chain run shown red-then-green (or the unwired statement present); scope declaration present in both the gate and the report. If fails → any deliverable missing → report `INCOMPLETE` naming exactly what is missing; a gate without a demonstrated red, or with silently-implied wiring, is never reported as enforcing.
+
 ## Report Format
 
 Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · pre-existing checks wired into it vs excluded-with-reason (Phase 3 entry-point coverage) · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook|copilot|gemini|codex} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block — 1-5 concrete bullets, real changes only, each stating the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output): "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place". Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
+
+`--invariant` runs report instead: pattern matched · precedent copied (or none found) · gate path · red-proof output (both directions) · wiring point (or the explicit unwired statement) · scope declaration. Summary line: `ds-quality: {OK|INCOMPLETE} | Invariant: {P1–P9|uncataloged} | Gate: {path} | Proof: {red→green} | Wired: {chain-step|UNWIRED — stated}`.
 
 ## Quality Gates
 
@@ -219,6 +268,8 @@ Report: detected stack + host · existed-vs-added per signal · the exact entry-
 | Not a git repo (Arm C) | Cannot install a pre-commit hook; report the gap, fall back to `--run`-only enforcement (manual) |
 | husky / `pre-commit` framework present (Arm C) | Add the entry-point command as a step in the existing manager's config; don't write `.git/hooks/pre-commit` directly (it would be overwritten) |
 | Language has no type-checker | Skip the type step; entry point runs only checks that exist |
+| `--invariant` with no wireable chain | Deliver the gate + red-proof, state UNWIRED explicitly in the report, offer the no-flag bootstrap to create the entry point |
+| `--invariant` description matches no catalog pattern | Use the nearest skeleton, record the catalog gap in the report — never refuse solely for lack of a match |
 | Repo/host you don't trust | Do not enable any arm — every arm executes the marker/config command as code |
 | Codex project layer untrusted (Arm F) | Project hooks won't load — use user-level `~/.codex/hooks.json` or have the user trust the project first |
 | Gemini CLI replaced by Antigravity CLI (Arm E) | Re-verify the hooks config surface against live docs at install time; unreadable → fall back to git pre-commit (Arm C) |
