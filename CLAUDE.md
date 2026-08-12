@@ -56,7 +56,7 @@ Flat list: `ds-backend`, `ds-benchmark`, `ds-blueprint`, `ds-brief`, `ds-commit`
 ## Development
 
 - Skills are pure Markdown; **zero runtime dependencies**
-- **Quality gate — `bash scripts/quality.sh`.** The single entry point, run locally; there is no CI. It runs the consistency gate, that gate's fixture self-test, and the ds-brief verifier's self-test, fail-fast. `--install-hook` wires it to `git commit` (bypass a single commit with `--no-verify`). `python3` absent → the run fails and names what went unverified; an unrun check must never read as a passing one
+- **Quality gate — `bash scripts/quality.sh`.** The single entry point, run locally; there is no CI. It runs the consistency gate, that gate's fixture self-test, and the ds-brief verifier's self-test, fail-fast. `--install-hook` wires it to `git commit`; a red gate is fixed before the commit, never bypassed — the `--no-verify` ban is absolute (ds-commit/references/principles.md rule 4). `python3` absent → the run fails and names what went unverified; an unrun check must never read as a passing one
 - Each skill has `SKILL.md` + supporting files
 - Test: install into `~/.claude/skills/` and invoke via `/ds-<name>`
 - Spec compliance: every skill must satisfy `SKILL-SPEC.md` (audited 2026-05-18 for v2: W10/W11, Trigger Discipline, All-Affordance Rule; updated 2026-07-11 for v4: Standalone Invariant, AI-Legibility, Dimension Ownership)

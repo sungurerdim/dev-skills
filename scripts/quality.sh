@@ -11,8 +11,9 @@
 # formatter/linter/type-checker to run. What it does have is a set of consistency
 # and verifier checks that must actually fire — those are the gate.
 #
-# Escape hatch: `git commit --no-verify` skips the hook. Use it when you mean to;
-# a check you routinely bypass is a check to fix or delete, not to work around.
+# The hook is not bypassed. A red gate is fixed first, then the commit goes in —
+# `--no-verify` is not an option here (ds-commit/references/principles.md rule 4).
+# A check you would want to skip is a check to fix or delete, not to work around.
 
 set -uo pipefail
 cd "$(dirname "$0")/.." || { echo "Cannot reach the repo root from $0 — refusing to run checks against the wrong tree." >&2; exit 2; }
@@ -35,7 +36,7 @@ exec bash "$(git rev-parse --show-toplevel)/scripts/quality.sh"
 HOOKEOF
   chmod +x "$HOOK"
   echo "Installed $HOOK — every commit now runs the gate first."
-  echo "Bypass a single commit with: git commit --no-verify"
+  echo "A failing check now blocks the commit: fix what it names, then commit again."
 }
 
 remove_hook() {

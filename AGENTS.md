@@ -12,7 +12,7 @@ only executable code is `install.sh`, `scripts/*.sh`, and `ds-brief/assets/verif
 |------|---------|
 | Run the quality gate (do this before every commit) | `bash scripts/quality.sh` |
 | Make the gate run on every commit | `bash scripts/quality.sh --install-hook` |
-| Bypass the gate for one commit (say so if you do) | `git commit --no-verify` |
+| Gate red | Fix what it names, re-run, then commit — the hook is never bypassed |
 | Install the skills into a host | `./install.sh` (or `--target <dir>`, `--project <dir>`, `--skills a,b`) |
 | Install for a Claude-5 host with an always-on rules layer | `./install.sh --profile lean` — strips the `portable-only`-marked blocks at install time; repo files always keep the full portable text |
 | Check an installed copy for drift | `./install.sh --check` (profile-aware — reads the profile from the version stamp) |
