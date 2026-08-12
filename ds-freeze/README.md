@@ -39,4 +39,4 @@ Also runs automatically inside `/ds-ship`'s Scope-Freeze branch when the ask sig
 - **GitHub-issue-backed backlog** — every deferred item becomes a real, filed, deduped issue via `/ds-issue`, not a lost decision in a chat transcript
 - **Only touches the kept set** — implementation delegates to `/ds-issue --do` one item at a time; deferred items get zero code changes beyond an optional flag gate
 - **Doc sync on exit** — delegates to `/ds-docs` so the README/spec never claims a feature that got deferred, and never omits one that shipped
-- **State-exempt** — the tracking issue (or `docs/release/*.md` fallback) plus git are the durable record; resuming just re-reads it
+- **State-exempt** — the tracking issue (or `docs/release/*.md` fallback) plus git are the durable record; resuming re-reads it *with its comments*, so a scope decision made in the thread is folded into the checklists instead of being dropped
