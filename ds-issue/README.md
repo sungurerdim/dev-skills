@@ -45,8 +45,8 @@ Drop `.dev-skills/issue-ops.json` in the repo to sharpen the skill with your rep
 - **Dedup-before-create** — searches open + closed + history docs; a candidate that duplicates #N is never filed twice
 - **False-positive gate** — reproduces the symptom against current code; unreproducible → no issue, reports the missing evidence
 - **Grounded anchors** — every `file:line`/symbol in the body is read this run, never assumed
-- **Code-verified status** — `--status` answers done-ness from the codebase, not from the closed flag or comments
-- **End-to-end execution** — `--do #N` re-verifies the root cause (stale → stops), maps the full impact surface (callers/consumers/sync/schema/i18n + project hazards), implements in bounded units, and closes with code-proven evidence; `--do --all` runs that same flow over the whole open backlog in priority order, confirming each issue, skipping blockers, and ending with a per-issue outcome table
+- **Code-verified status** — `--status` answers done-ness from the codebase, not from the closed flag or "done" comments; a requirement added in a comment counts as part of the contract, and a closed issue that never proved it is `claimed-done-but-unproven`
+- **End-to-end execution** — `--do #N` first promotes comment-borne requirements into the body's Done list (or rejects them explicitly — an undispositioned comment-criterion blocks close), re-verifies the root cause (stale → stops), maps the full impact surface (callers/consumers/sync/schema/i18n + project hazards), implements in bounded units, and closes with code-proven evidence; `--do --all` runs that same flow over the whole open backlog in priority order, confirming each issue, skipping blockers, and ending with a per-issue outcome table
 - **Bounded work** — over-large issues split into sub-issues; execution units stay ≤5 files
 - **No dead content** — body is functional only: Problem, Scope + non-goals, machine-checkable Done
 - **Confirm-before-create/close** — nothing is created, edited, or closed without explicit confirmation
