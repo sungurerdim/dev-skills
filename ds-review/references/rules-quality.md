@@ -7,7 +7,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 | Section | Rules | Line |
 |---------|-------|------|
 | **Architecture & Code Quality** | ARC-01–15 (12 HIGH, 3 MEDIUM) | ~12 |
-| **Testing** | TST-01–12 (1 CRITICAL, 6 HIGH, 5 MEDIUM) | ~145 |
+| **Testing** | TST-01–14 (1 CRITICAL, 8 HIGH, 5 MEDIUM) | ~145 |
 
 ---
 
@@ -235,3 +235,17 @@ Intent tokens left for a later step never reach a committed data field.
 - **Fix:** Scan committed artifacts for the placeholder vocabulary and fail the gate on a hit inside a data field. Resolve at apply time; when resolution genuinely must wait, model it as an explicit null/pending state the consumer handles, never as free text that reads like a value.
 - **Impact:** A placeholder in a data field passes every structural check and propagates into reports and counts as if it were real — it surfaces only when someone hand-traces a broken reference, long after the trail is cold.
 - **Source:** XR-207 — cross-project experience registry (2026).
+
+### TST-13 [HIGH] Every Gate Declares the Set It Scans, and the Declaration Is Verified
+A check states which files it covers, and something proves that declaration against the repo's real file set — an unstated scope is an unbounded claim over whatever the check happened to reach.
+- **Detect:** scope arriving from an implicit default (the directory the check is invoked from, a hardcoded two-file list, a glob rooted one level too deep so the repo root is never read); a gate that exits green over an empty or nonexistent input set; a scope list written when the tree was smaller and never revisited, so directories added since are unscanned; a rule claimed as enforced while the corpus violates it outside the scanned subtree.
+- **Fix:** name the scanned set explicitly (a `SCAN_DIRS`-style variable, a manifest, or a printed file count in the check's own output), assert it is non-empty, and — for a rule that is meant to be repo-wide — compare it against the tracked file list (`git ls-files`) so a new directory either joins the scan or fails the gate. Zero files matched is reported as a failure, never as a pass. Deliberate narrowing stays legal: it is declared next to the scope with the reason.
+- **Impact:** A scope-blind gate is green for the same reason an empty one is — it found nothing to object to. The narrower the scope drifts, the greener and more useless the signal, and nobody re-reads a check that has been passing for a year.
+- **Source:** Sibling of TST-11 — TST-11 proves a gate *can* go red, this one proves it is looking at everything it claims to cover.
+
+### TST-14 [HIGH] A Check Nothing Calls Counts as Absent
+Every check, audit, or test in the repo is reachable from the entry point that gates "done", or it is deleted; an uncalled check enforces nothing while reading as coverage.
+- **Detect:** a script under `scripts/`/`tools/` that no task runner, hook, or pipeline invokes (grep the runner config for its name); a test file outside the runner's discovery pattern; a suite excluded from the aggregate command whose results are still quoted as coverage; a caller that discards the check's exit code (`run_checks(); echo done`) so failure cannot propagate; documentation stating "we lint with X" where nothing executes X.
+- **Fix:** wire it into the single entry point, or delete it. A check excluded on purpose (platform-pinned goldens per TST-08, a slow suite moved to pre-push) is named at the entry point beside its exclusion, with the condition under which it does run — silence is not an exclusion record. After wiring, prove the path end-to-end: break the fixture, run the *entry point* (not the check directly), see red.
+- **Impact:** Dead-lettered checks are the cheapest possible false assurance: the rule looks enforced, so nobody looks again, and the first real enforcement happens in production.
+- **Source:** Sibling of TST-11 — TST-11 covers the gate that fires and proves nothing; this covers the gate that never fires at all.
