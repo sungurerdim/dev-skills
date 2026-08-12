@@ -115,7 +115,7 @@ Rules: Increment major version only for breaking changes. Support at least two m
 
 ### API-05 Rate Limiting [HIGH]
 
-**Detect:** Endpoints (especially public or auth-related) with no rate limiting middleware.
+**Detect:** Endpoints (especially public or auth-related) with no rate limiting middleware. Also: a limiter whose backing-store error is swallowed (`try`/`catch` around the check that continues on failure), a limiter with no test covering "store unavailable", and a documented limit whose failure behaviour is written down nowhere.
 
 **Fix:** Add per-endpoint or per-user rate limits. Return `429 Too Many Requests` with standard headers.
 
@@ -142,6 +142,8 @@ The `X-RateLimit-*` family is the de-facto convention. The IETF standardization 
 - **Python/FastAPI:** `slowapi` (wraps `limits` library)
 - **Go/Gin:** `ulule/limiter` or `tollbooth`
 - **Java/Spring:** `bucket4j-spring-boot-starter` or Spring Cloud Gateway filters
+
+**Limiter failure is a design decision, not an accident.** The backing store (Redis, KV, a shared counter) goes away eventually; what the limiter does in that minute is part of the rule. Default **fail-closed** — reject with `429`/`503` — on auth, payment, signup, and every write endpoint. **Fail-open** is legal only where availability outweighs abuse (public read paths), and only when the choice is written beside the config: which endpoint class it covers, why, and the alert that fires while the limiter is degraded. An unhandled limiter exception that silently lets every request through is the same finding as having no limiter — and it takes effect precisely during the incident the limiter existed for. This is ds-compliance ARC-07 (fail-closed authorization) applied one layer out, to throttling.
 
 **Impact:** Protects against abuse, credential stuffing, and denial-of-service. Required by OWASP API Top 10 (API4: Unrestricted Resource Consumption).
 
