@@ -28,9 +28,11 @@ The skill works standalone via auto-detect. An optional committed adapter at `.d
 | `historyDocs` | abandoned/superseded decisions — searched in the dedup sweep so a closed-by-design idea isn't refiled |
 | `labels` | live taxonomy; still confirmed against `gh label list` |
 | `auditMap` | issue-type → project audit commands the `--status` audit runs to prove done-ness |
-| `doneSignal` | the aggregate check command (e.g. `npm run check`) |
+| `doneSignal` | the aggregate check command (e.g. `npm run check`) — seeds the first row of every issue's Gates table |
 | `hazardChecklist` | doc of project-specific data-loss/invariant traps surfaced in the Impact-surface block |
-| `boundedTaskFiles` | split threshold for sub-issues (default ≈5) |
+| `boundedTaskFiles` | split threshold for epic + sub-issues (default ≈5) |
+
+The adapter supplies gate **commands**; it never supplies their **baselines**. A baseline is a measurement of this repo at this moment, so it is run at intake and written into that issue's body ([issue-template.md](issue-template.md) § Gates). An adapter value copied in as a baseline is a memory claim.
 
 ## Auto-detect fallback (no adapter)
 
