@@ -64,6 +64,13 @@ Margin planning built on outdated store/marketplace/processor rates.
 - **Impact:** Commission points are pure margin; stale rate tables mis-price the entire channel decision.
 - **Source:** Apple SBP terms; Play Console service-fees page; Stripe pricing page; AWS Marketplace listing-fee docs. All rates verify-current at audit time.
 
+### CHN-03 [MEDIUM] External-purchase-link right unclaimed or misapplied
+US and EU storefronts now permit linking users to pay outside the app/store — under different, non-substitutable terms per region; treating them as interchangeable misses revenue or invites a guideline violation.
+- **Detect:** Store-distributed app that could sell to a self-serve customer with no evaluation of external-purchase-link eligibility; US-storefront implementation still gated behind the legacy "StoreKit External Purchase Link Entitlement" (retired for the US storefront); EU-storefront implementation assuming the US's zero-commission terms apply (EU still carries Apple's Core Technology Commission stack); no re-verification of the current commission rate for US external links (a rate is being set on court remand — this is not settled at a fixed number).
+- **Fix:** US storefront: external purchase links, buttons, and calls to action are permitted with no entitlement requirement and no Apple commission as of the April 2025 ruling — implement per Apple's current App Review Guidelines (3.1.1/3.1.3) rather than the pre-2025 entitlement flow; treat the exact commission figure as provisional pending the court-ordered remand and re-verify at audit time. EU storefront: the entitlement and Apple's Core Technology Commission (+ related fee stack) still apply — do not assume US terms transfer. Either region: web checkout remains available as a 0%-Apple-commission alternative regardless of the litigation's outcome.
+- **Impact:** Treating US and EU external-link terms as the same either leaves US revenue on the table (unnecessarily paying a legacy commission) or under-budgets EU margin (assuming a fee structure that doesn't apply there) — and the US rate itself is still being finalized in court, so a hardcoded assumption goes stale fast.
+- **Source:** Apple App Review Guidelines 3.1.1/3.1.3 — https://developer.apple.com/app-store/review/guidelines/ ; Apple StoreKit External Entitlement (EU) — https://developer.apple.com/support/storekit-external-entitlement/ ; European Commission DMA anti-steering decision (Apple fined EUR 500M, 23 Apr 2025) — https://digital-markets-act.ec.europa.eu/commission-finds-apple-and-meta-breach-digital-markets-act-2025-04-23_en
+
 ## Revenue Projection
 
 ### PRJ-01 [MEDIUM] Revenue projection without unit-economics anchors

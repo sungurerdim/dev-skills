@@ -76,3 +76,17 @@ PR references related issues for traceability and automatic issue management.
 - **Fix:** Add closing keyword + issue number: "Closes #123" or "Fixes #456" in PR body. For non-closing references: "Relates to #789". Multiple issues: one keyword per issue on separate lines
 - **Impact:** An unlinked PR breaks GitHub's automatic issue-closing on merge, leaving the issue open after the fix has already shipped.
 - **Source:** GitHub docs on linking PRs to issues
+
+---
+
+## Pre-flight Check Failures
+
+Phase 1 Setup gate — per-check error and next action when a pre-check fails.
+
+| Failed check | Error / next action |
+|-------------|---------------------|
+| `git` / `gh` missing | "Install git/gh CLI and run `gh auth login`" |
+| Not on a feature branch | "Checkout a feature branch first" |
+| No commits ahead | "Nothing to push — commit your changes first" |
+| `gh` unauthenticated | "Run `gh auth login` then retry" |
+| Behind base | Offer `git rebase origin/{base}`, stop until user confirms |

@@ -6,14 +6,13 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Database** | DB-01 to DB-19 (3 CRITICAL, 6 HIGH, 9 MEDIUM, 1 LOW) | ~12 |
+| **Database** | DB-01 to DB-24 (3 CRITICAL, 8 HIGH, 12 MEDIUM, 1 LOW) | ~12 |
 
 ---
 
 ## Database
 
-### DB-01 SQL Injection Prevention [CRITICAL]
-
+### DB-01 [CRITICAL] SQL Injection Prevention
 **Detect:** String concatenation or template literals used to build SQL queries. Raw user input interpolated into query strings.
 
 ```
@@ -36,12 +35,10 @@ db.query(`SELECT * FROM users WHERE name = '${name}'`)
 
 **Impact:** SQL injection remains top-3 web vulnerability (OWASP Top 10). Single unparameterized query can expose or destroy entire database.
 
-**Source:** [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
-
+**Source:** [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)
 ---
 
-### DB-02 Index Strategy [HIGH]
-
+### DB-02 [HIGH] Index Strategy
 **Detect:** Queries filtering, sorting, or joining on unindexed columns. `EXPLAIN ANALYZE` shows `Seq Scan` on large tables. Missing composite indexes for multi-column WHERE clauses.
 
 **Fix:** Add indexes matching `WHERE`, `ORDER BY`, `JOIN`, and `GROUP BY` patterns.
@@ -59,12 +56,10 @@ Column order matters in composite indexes: leftmost prefix queries are served. M
 
 **Impact:** Missing indexes are most common cause of slow queries. Single index addition can reduce query time from seconds to milliseconds.
 
-**Source:** [Use The Index, Luke](https://use-the-index-luke.com/), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Indexing section
-
+**Source:** [Use The Index, Luke](https://use-the-index-luke.com/)
 ---
 
-### DB-03 Migration Safety [HIGH]
-
+### DB-03 [HIGH] Migration Safety
 **Detect:** Column drops, renames, or type changes deployed without safety period. Migrations that acquire exclusive locks on large tables.
 
 **Fix:** Use expand-contract pattern for all destructive changes:
@@ -85,16 +80,16 @@ Column order matters in composite indexes: leftmost prefix queries are served. M
 
 Migrations immutable once applied to shared environment. Every `up` has corresponding `down`. PG DDL is transactional; MySQL and SQLite are not.
 
+CI verification loop (every PR touching migrations): start from an empty database, apply all `up` migrations, verify the resulting schema, apply all `down` migrations in reverse, verify the database is back to empty, then re-apply all `up` migrations once more — the successful re-apply is what proves the rollback path is actually idempotent, not just present.
+
 Lint migrations in CI: **Squawk** — free Postgres migration linter (flags `CREATE INDEX` without `CONCURRENTLY`, column adds with volatile defaults, other lock hazards). Alternative: **Atlas** schema-as-code with 50+ built-in analyzers — `atlas migrate lint` moved out of the free tier in October 2025; verify current licensing before adopting, or stay on Squawk.
 
 **Impact:** Unsafe migrations cause downtime, data loss, or long-held table locks that block all queries.
 
-**Source:** [Zero-Downtime PostgreSQL Migrations](https://www.braintreepayments.com/blog/safe-operations-for-high-volume-postgresql/), [Squawk](https://squawkhq.com/), [Atlas](https://atlasgo.io/versioned/lint), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Migration Strategies section
-
+**Source:** [Zero-Downtime PostgreSQL Migrations](https://www.braintreepayments.com/blog/safe-operations-for-high-volume-postgresql/), [Squawk](https://squawkhq.com/), [Atlas](https://atlasgo.io/versioned/lint)
 ---
 
-### DB-04 Connection Pooling [HIGH]
-
+### DB-04 [HIGH] Connection Pooling
 **Detect:** Application creates new database connection per request. Connection count approaches or exceeds `max_connections`. `pg_stat_activity` shows many idle connections.
 
 **Fix:** Use bounded connection pool with appropriate min/max/idle settings.
@@ -117,12 +112,10 @@ Pool size rule of thumb: `(2 * CPU cores) + 1` for NVMe storage. Keep total conn
 
 **Impact:** Unbounded connections exhaust database resources and cause cascading failures under load.
 
-**Source:** [PgBouncer docs](https://www.pgbouncer.org/), [HikariCP](https://github.com/brettwooldridge/HikariCP), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) ORM Patterns section
-
+**Source:** [PgBouncer docs](https://www.pgbouncer.org/), [HikariCP](https://github.com/brettwooldridge/HikariCP)
 ---
 
-### DB-05 Schema Naming [MEDIUM]
-
+### DB-05 [MEDIUM] Schema Naming
 **Detect:** Mixed naming conventions: camelCase and snake_case in same schema, mixed singular/plural table names, inconsistent FK naming.
 
 **Fix:** Adopt and enforce one convention project-wide:
@@ -142,12 +135,10 @@ Consistency matters more than which specific style is chosen.
 
 **Impact:** Inconsistent naming increases cognitive load, causes ORM mapping bugs, and makes schema exploration harder.
 
-**Source:** [PostgreSQL naming conventions](https://www.postgresql.org/docs/current/sql-syntax-lexical.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
-
+**Source:** [PostgreSQL naming conventions](https://www.postgresql.org/docs/current/sql-syntax-lexical.html)
 ---
 
-### DB-06 N+1 Prevention [MEDIUM]
-
+### DB-06 [MEDIUM] N+1 Prevention
 **Detect:** Query logging shows 1 query for list followed by N queries for related data (one per item). `pg_stat_statements` reveals high-frequency, low-cost queries with same pattern.
 
 **Fix:** Use eager loading, JOINs, or batch queries to fetch related data in one round trip.
@@ -166,12 +157,10 @@ Detection tools: `django-debug-toolbar`, `bullet` (Ruby), `laravel-query-detecto
 
 **Impact:** N+1 queries turn single page load into hundreds of database round trips, degrading response time linearly with data size.
 
-**Source:** ORM documentation (Django, SQLAlchemy, ActiveRecord, JPA), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) ORM Patterns section
-
+**Source:** ORM documentation (Django, SQLAlchemy, ActiveRecord, JPA)
 ---
 
-### DB-07 Backup Strategy [MEDIUM]
-
+### DB-07 [MEDIUM] Backup Strategy
 **Detect:** Production database without automated backup configuration. Backups that have never been test-restored.
 
 **Fix:** Implement 3-2-1 rule: **3** copies, **2** storage types, **1** offsite.
@@ -196,12 +185,10 @@ Automate everything. Test restores monthly. Take backup before any destructive m
 
 **Impact:** Untested backups = no backups. Data loss from hardware failure, migration errors, or accidental deletion requires proven restore procedures.
 
-**Source:** [AWS RDS backup docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html), [pg_dump best practices](https://www.postgresql.org/docs/current/app-pgdump.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Backup and Recovery section
-
+**Source:** [AWS RDS backup docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html), [pg_dump best practices](https://www.postgresql.org/docs/current/app-pgdump.html)
 ---
 
-### DB-08 Database Selection [LOW]
-
+### DB-08 [LOW] Database Selection
 **Detect:** Database chosen without evaluating requirements, or PostgreSQL/MySQL used where SQLite suffices (or vice versa).
 
 **Fix:** Use this decision matrix:
@@ -225,12 +212,10 @@ Migrate from SQLite to PostgreSQL when: frequent `SQLITE_BUSY`, file size > 10 G
 
 **Impact:** Choosing right database avoids premature complexity (over-engineering) or painful migrations later (under-engineering).
 
-**Source:** [DB-Engines comparison](https://db-engines.com/en/system/MySQL%3BPostgreSQL%3BSQLite), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Database Selection section
-
+**Source:** [DB-Engines comparison](https://db-engines.com/en/system/MySQL%3BPostgreSQL%3BSQLite)
 ---
 
-### DB-09 Multi-Tenant Data Isolation [CRITICAL]
-
+### DB-09 [CRITICAL] Multi-Tenant Data Isolation
 **Detect:** Multi-tenant schema (shared tables with `tenant_id`/`org_id`/`account_id` column) where queries against tenant-scoped tables omit the tenant filter — hand-written `WHERE` clauses missing `tenant_id = ?`, ORM default scopes without a tenant guard, or row-level security (RLS) not enabled on tenant-scoped tables in Postgres.
 
 ```
@@ -253,10 +238,8 @@ Never trust a client-supplied `tenant_id`; derive it from the authenticated sess
 
 **Impact:** A missing tenant filter lets one tenant read or modify another tenant's rows via a guessable/enumerable ID (IDOR at the data layer) — a full cross-tenant data breach, the most damaging class of bug in multi-tenant SaaS.
 
-**Source:** [OWASP: Insecure Direct Object References](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference), [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
-
-### DB-10 Schema-Level Data Minimization & PII Log Hygiene [HIGH]
-
+**Source:** [OWASP: Insecure Direct Object References](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference), [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)
+### DB-10 [HIGH] Schema-Level Data Minimization & PII Log Hygiene
 **Detect:** PII columns (email, phone, address, birth date, national ID, free-text notes) with no consuming feature — cross-check each PII column against actual reads in application code. Raw identifiers (email/phone) used as join keys across analytics or derived tables. Logging middleware/ORM echo that writes full row payloads (including PII columns) into application logs. PII scanning implemented as regex-only and treated as complete.
 
 **Fix:** Drop or never add PII columns without a consuming feature — minimization is enforced at the schema, not in a policy document (GDPR Art. 5(1)(c) makes it a legal obligation). Join/analytics keys: use surrogate IDs or pseudonymous tokens, never raw identifiers (mapping table in a separate access-controlled store — see ds-compliance PRV-26). Logging: redact at field level before write; know the tooling limits — regex catches structured PII only (emails, IPs, cards), unstructured PII (names, locations, free text) needs ML/NER-based scanning, and for LLM interactions exclude message content from logs entirely rather than trusting scrubbing.
@@ -265,17 +248,16 @@ Never trust a client-supplied `tenant_id`; derive it from the authenticated sess
 
 **Source:** GDPR Art. 5(1)(c); Elastic PII-detection guidance (regex limits); Pydantic Logfire LLM-logging guidance
 
-### DB-11 Declared Duplicate-Prevention Strategy Registry [MEDIUM]
-
+### DB-11 [MEDIUM] Declared Duplicate-Prevention Strategy Registry
 **Detect:** Multiple entity types each carrying their own hand-rolled duplicate-prevention logic (email-match-and-prompt for one, a deterministic composite key for another, TOCTOU self-heal for a third) with no shared registry connecting them. A new create-capable entity type added to the schema with no corresponding duplicate-prevention decision recorded anywhere, and no mechanical check that would fail on that omission.
 
-**Fix:** Define one declarative registry — `{entityType, strategy, rationale}` — where `strategy` is one of `match-and-prompt` / `deterministic-id` / `toctou-heal` / `not-applicable (reason)`. Don't force every entity onto the same strategy (shapes differ too much for that to be anything but a YAGNI violation); require only that each declares one. Add a gate that fails when a create path exists with no registry entry, mirroring how a reconstructibility or nullability-completeness registry gates schema changes elsewhere in the codebase.
+**Fix:** Define one declarative registry — `{entityType, strategy, rationale}` — where `strategy` is one of `match-and-prompt` / `deterministic-id` / `toctou-heal` / `not applicable (reason)`. Don't force every entity onto the same strategy (shapes differ too much for that to be anything but a YAGNI violation); require only that each declares one. Add a gate that fails when a create path exists with no registry entry, mirroring how a reconstructibility or nullability-completeness registry gates schema changes elsewhere in the codebase.
 
 **Impact:** Without a registry-backed gate, a newly added entity type can ship with zero duplicate protection and nothing fails — the record just silently duplicates in production, a regression class invisible to code review because there's no shared place reviewers check.
 
 **Source:** Declarative-registry-plus-gate pattern generalized from schema-completeness/exhaustiveness checking (same shape as an SSOT-registry for any per-entity axis — data-classification, migration-safety, or duplicate-prevention)
 
-### DB-12 Retained Identifiers Stored as Salted Hashes and Physically Purged [HIGH]
+### DB-12 [HIGH] Retained Identifiers Stored as Salted Hashes and Physically Purged
 Device/user identifiers kept for abuse prevention are stored only as salted hashes, expire on schedule, and legacy raw values are physically removed.
 
 **Detect:** Raw device IDs, IP addresses, or user identifiers persisted for fraud/abuse purposes; retention with no purge date; a schema migration that dropped a raw-identifier column without compacting the underlying store.
@@ -286,7 +268,7 @@ Device/user identifiers kept for abuse prevention are stored only as salted hash
 
 **Source:** XR-023 — cross-project experience registry (2026).
 
-### DB-13 Single-Writer Embedded DB Tuned: WAL Plus a Matching Partial Index [MEDIUM]
+### DB-13 [MEDIUM] Single-Writer Embedded DB Tuned: WAL Plus a Matching Partial Index
 A single-writer, read-heavy embedded database (SQLite-class) runs WAL mode with deliberate pragmas, and the hottest recurring query gets an exactly-matching partial index.
 
 **Detect:** Embedded DB on defaults (journal_mode=DELETE, tiny page cache); the most frequent background query scanning without an index whose predicate matches its WHERE clause.
@@ -297,7 +279,7 @@ A single-writer, read-heavy embedded database (SQLite-class) runs WAL mode with 
 
 **Source:** XR-026 — cross-project experience registry (2026).
 
-### DB-14 Workspace/Tenant Identity Is a Permanent Opaque UUID [MEDIUM]
+### DB-14 [MEDIUM] Workspace/Tenant Identity Is a Permanent Opaque UUID
 Workspace/tenant identity is a permanent ASCII UUID, immune to renames.
 
 **Detect:** Workspace identified by its display name, folder name, or email; rename flows that touch identity references; identity strings containing user-controlled or locale-sensitive characters.
@@ -308,7 +290,7 @@ Workspace/tenant identity is a permanent ASCII UUID, immune to renames.
 
 **Source:** XR-141 — cross-project experience registry (2026).
 
-### DB-15 Taxonomies and Labels Live in One Admin-Managed Canonical Registry [HIGH]
+### DB-15 [HIGH] Taxonomies and Labels Live in One Admin-Managed Canonical Registry
 Role, category, and label taxonomies come from one canonical registry (id/label/icon/storeKey); user-visible domain labels are admin-editable data, never hardcoded, while the system runs on fixed semantic roles underneath.
 
 **Detect:** User-facing domain labels ("expert", "client", "room") hardcoded in components or scattered enums; the same taxonomy manually duplicated in a second surface; generated/derived surfaces (exports, reports, satellite sites) inventing their own field/category names; label changes that propagate to some screens but not all.
@@ -319,7 +301,7 @@ Role, category, and label taxonomies come from one canonical registry (id/label/
 
 **Source:** XR-143 + XR-008 — cross-project experience registry (2026).
 
-### DB-16 No Path Deletes User Data Without an Explicit User Request [CRITICAL]
+### DB-16 [CRITICAL] No Path Deletes User Data Without an Explicit User Request
 No background job, sync routine, or maintenance task implicitly deletes user data; deletion happens only on explicit user request.
 
 **Detect:** Cleanup/compaction/sync-reconciliation code paths that remove user records as a side effect; "orphan removal" heuristics acting on user content; TTL expiry applied to user-created data without user-facing contract.
@@ -330,7 +312,7 @@ No background job, sync routine, or maintenance task implicitly deletes user dat
 
 **Source:** XR-145 — cross-project experience registry (2026).
 
-### DB-17 Down-Migrations Document Their Loss Boundary [MEDIUM]
+### DB-17 [MEDIUM] Down-Migrations Document Their Loss Boundary
 Every up-migration has a down counterpart, and each down-migration states in code what it can and cannot restore.
 
 **Detect:** Migrations without down steps; a down-migration that silently restores schema shape while the data (hashed, scrubbed, aggregated) is unrecoverable; operators assuming rollback returns original values.
@@ -341,7 +323,7 @@ Every up-migration has a down counterpart, and each down-migration states in cod
 
 **Source:** XR-021 — cross-project experience registry (2026).
 
-### DB-18 Bulk Mutations Carry Single-Edit Audit and Undo Guarantees [MEDIUM]
+### DB-18 [MEDIUM] Bulk Mutations Carry Single-Edit Audit and Undo Guarantees
 Bulk operations over selected records are grouped under a batch ID, fully audited, and reversible in one step.
 
 **Detect:** Bulk-edit paths that skip the audit trail individual edits write; bulk changes with no grouping identifier; no way to revert a bulk operation except record-by-record.
@@ -352,7 +334,7 @@ Bulk operations over selected records are grouped under a batch ID, fully audite
 
 **Source:** XR-103 — cross-project experience registry (2026).
 
-### DB-19 Storage Access Flows Through One Abstraction Layer [MEDIUM]
+### DB-19 [MEDIUM] Storage Access Flows Through One Abstraction Layer
 All persistence goes through a single storage abstraction; raw low-level store calls outside it are forbidden.
 
 **Detect:** Direct `localStorage`/file/DB-driver calls scattered outside the designated storage layer; serialization or key-naming logic duplicated at call sites.
@@ -362,3 +344,48 @@ All persistence goes through a single storage abstraction; raw low-level store c
 **Impact:** Scattered raw access makes migrations, encryption, and quota handling impossible to retrofit — every storage policy change becomes a full-codebase hunt.
 
 **Source:** XR-010 — cross-project experience registry (2026).
+
+### DB-20 [HIGH] Domain-Correct Data Types
+**Detect:** Monetary columns typed `FLOAT`/`DOUBLE` (binary floating point cannot represent decimal cents exactly); timestamp columns with no timezone (`TIMESTAMP` instead of `TIMESTAMPTZ` in Postgres, or an epoch/ISO-8601 value stored without a documented UTC convention in SQLite); a database-level `ENUM` type used for a value set expected to change; relational data (rows with their own foreign keys and query needs) stored as an opaque JSON blob instead of proper tables.
+
+**Fix:** Store money as an integer count of the smallest unit (cents) or a fixed-point `NUMERIC(19,4)` — never `FLOAT`/`DOUBLE`. Use timezone-aware timestamp types (`TIMESTAMPTZ` in Postgres) or a documented UTC-epoch/ISO-8601 convention in engines with no native timezone type. Prefer a `CHECK` constraint or lookup table over a DB-level `ENUM` for value sets that may grow (`ENUM` alterations are a schema migration in most engines). Reserve JSON/JSONB columns for genuinely schemaless or sparse data — data with its own relationships and query patterns belongs in normalized tables, not a JSON blob.
+
+**Impact:** A `FLOAT` money column silently accumulates rounding error until a customer-facing total doesn't match its line items; a naive timestamp column produces off-by-hours bugs the instant the application crosses a timezone boundary — both are AI-generated-schema mistakes that pass every test written in a single timezone with round dollar amounts.
+
+**Source:** [PostgreSQL Numeric Types documentation](https://www.postgresql.org/docs/current/datatype-numeric.html)
+
+### DB-21 [HIGH] Database-Level Constraints Are Not Optional
+**Detect:** A table with no primary key; a foreign key column with no `REFERENCES` constraint (relationship enforced only in application code); a foreign key with no explicit `ON DELETE` behavior (defaults vary by engine and silently orphan or block deletes); a nullable column where NULL has no defined meaning; a domain rule (non-negative amount, valid status enum) enforced only in application-layer validation with no matching database `CHECK`.
+
+**Fix:** Give every table a primary key. Declare every foreign-key relationship as an actual `REFERENCES` constraint with an explicit `ON DELETE` (`CASCADE`, `SET NULL`, or `RESTRICT` — pick deliberately, never rely on the engine default). Default columns to `NOT NULL`; allow `NULL` only where absence is a meaningful, documented state. Mirror every domain invariant application code assumes (positive amounts, a closed set of valid statuses) as a database `CHECK` constraint.
+
+**Impact:** Application-layer-only validation is bypassed by any direct DB write — a script, a migration, an admin console, or a second service sharing the database — and the database then holds data the application's own invariants assume can't exist, which is the class of bug that corrupts reports and crashes code that "shouldn't need" to check.
+
+**Source:** [PostgreSQL Constraints documentation](https://www.postgresql.org/docs/current/ddl-constraints.html)
+
+### DB-22 [MEDIUM] Query Optimization Workflow
+**Detect:** No routine review of production query performance (no `pg_stat_statements` or engine-equivalent check on any cadence); a slow-query log that isn't configured or isn't reviewed; `SELECT *` on wide tables in hot-path queries; unbounded queries with no `LIMIT`; multi-row inserts issued as one `INSERT` per row instead of a batch.
+
+**Fix:** Enable and review `pg_stat_statements` (or equivalent) on a fixed cadence, sorted by total execution time, not slowest single call. Configure a slow-query log threshold (e.g. Postgres `log_min_duration_statement`) appropriate to the endpoint's latency budget. Use `EXPLAIN (ANALYZE, BUFFERS)` to diagnose a flagged query, watching for `Seq Scan` on large tables and high buffer reads. Replace `SELECT *` with the columns actually used, add `LIMIT` to list endpoints, and batch multi-row writes (`INSERT ... VALUES (...), (...)` or `COPY`) instead of row-at-a-time inserts.
+
+**Impact:** Without a routine review cadence, query regressions ship silently and are discovered only when a customer complains about latency — by which point the fix competes with a production incident instead of a code review comment.
+
+**Source:** [PostgreSQL EXPLAIN documentation](https://www.postgresql.org/docs/current/sql-explain.html), [PostgreSQL pg_stat_statements documentation](https://www.postgresql.org/docs/current/pgstatstatements.html)
+
+### DB-23 [MEDIUM] SQLite Foreign Keys and Busy Timeout Are Off by Default
+**Detect:** A SQLite connection opened with no `PRAGMA foreign_keys=ON` — foreign key constraints are parsed but NOT enforced by default in SQLite, so `REFERENCES` clauses silently do nothing. No `PRAGMA busy_timeout` set, causing concurrent writers to fail immediately with `SQLITE_BUSY` instead of waiting briefly for the lock to clear.
+
+**Fix:** Set `PRAGMA foreign_keys=ON;` on every connection open (it is a per-connection setting, not a database-file setting — a new connection without it silently disables FK enforcement even on a database that has foreign keys defined). Set `PRAGMA busy_timeout` to a non-zero value (e.g. 5000ms) so short write contention waits instead of erroring immediately.
+
+**Impact:** A team that defines foreign keys and assumes they're enforced — because they work fine in whichever client happened to set the pragma — ships orphaned rows the moment a different connection (a script, a migration tool, a second language binding) opens the same file without it.
+
+**Source:** [SQLite Foreign Key Support documentation](https://www.sqlite.org/foreignkeys.html), [SQLite PRAGMA busy_timeout documentation](https://www.sqlite.org/pragma.html#pragma_busy_timeout)
+
+### DB-24 [MEDIUM] Column-Level Encryption for Sensitive PII Columns
+**Detect:** Direct-identifier or sensitive-category PII columns (SSN, financial account numbers, health data, biometric data) stored in plaintext with only disk/volume-level encryption as protection — disk encryption protects against stolen hardware, not against a SQL injection, an over-privileged application role, or a database dump handled carelessly. Distinct from DB-10 (whether the column should exist at all) and DB-12 (hashing identifiers used only for matching, not for retrieval) — this rule covers columns whose plaintext value must be retrievable.
+
+**Fix:** Encrypt sensitive PII columns at the application or database-crypto layer (Postgres `pgcrypto` column functions, or equivalent) so a database-level compromise (injection, over-privileged role, careless dump) does not expose the plaintext value; manage encryption keys outside the database itself (KMS, secrets manager) — a key stored beside its ciphertext protects against nothing.
+
+**Impact:** Disk/volume encryption alone still exposes plaintext PII to anyone with database query access — the exact access level an injection vulnerability or an over-scoped service role grants; column-level encryption is the layer that survives that specific failure.
+
+**Source:** [PostgreSQL pgcrypto documentation](https://www.postgresql.org/docs/current/pgcrypto.html), [OWASP Cryptographic Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html)

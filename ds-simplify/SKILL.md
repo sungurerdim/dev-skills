@@ -33,7 +33,7 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 
 - Standalone: use `ds/audit/findings.md` when fresh (`git_hash == HEAD` AND current run-cycle); own scan otherwise.
 - State-exempt: one reversible commit per approved batch (`/ds-commit` when present, else committed inline) is the durable record.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Detection only: every deletion requires an approval batch. Every finding cites file:line + concrete ref count or pattern.
 - Three similar lines beat a premature abstraction: abstractions on ≤3 usages → finding.
@@ -44,7 +44,7 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 |------|--------|
 | `--preview` | Scan + report, no approval prompt, no deletion |
 | `--scope={x}` | Single scope: dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan, all |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without flags: mode resolves to Full Scan (all scopes), recorded in the summary. `--ask`: shows the mode menu (full scan / preview / single scope).
 
@@ -78,6 +78,10 @@ Without flags: mode resolves to Full Scan (all scopes), recorded in the summary.
 
 `--scope=` overrides the table for the named scope; `--ask` shows the resolved table before running.
 
+| Scope(s) | Reference | Loaded when |
+|----------|-----------|-------------|
+| dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan | [references/scopes-detection.md](references/scopes-detection.md) | Phase 2 runs |
+
 ## Delegation
 
 **Owns:** dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan | **Delegates:** ds-commit → per-batch delete commit after approval | **Receives:** ds-review → overengineering findings routed here; ds-ship → Phase 3 simplify pass; ds-freeze → permanent deletion of hidden features (user-requested)
@@ -98,72 +102,7 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 ### Phase 2: Scan
 
-For each active scope, run the detector. Max 2 scopes in parallel.
-
-**Deterministic detector preference (advisory):** for `dead-code` / `orphan` / `single-caller` on JS/TS, Knip binary or config present → run it and use its module-graph output (entry-point-aware, framework-plugin coverage) as the primary evidence; absent → LSP/grep detectors below. Repo configured with ts-prune but not Knip → still run it, but note in the report that ts-prune is officially in maintenance mode and recommend migrating to Knip (~150 framework plugins, entry-point-aware). For Python `dead-code`, Vulture present → run with `--min-confidence 80`; findings at ≥80 confidence enter the table directly, below 80 → flag with confidence noted and hold for Review Each; absent → LSP/grep detectors below. Tool output still passes false-positive prevention and the Phase 4 approval batch — the tool upgrades the detector, never bypasses the gate.
-
-**2.1 dead-code:**
-
-1. Collect all exported symbols (language-specific: `export`, `module.exports`, `pub fn`, `public`, Dart `public` by default).
-2. For each export, count references via LSP `findReferences` or `git grep -w {name}`.
-3. **String-literal confirmation:** a `git grep` hit inside a comment, a doc (`.md`/`.txt`), or a quoted string literal is not a code reference. Re-run `git grep -w {name} -- '*.{ext}' ':!*.md' ':!*.txt'` and read each match's line — a symbol whose only remaining hits sit inside string literals, comments, or docs is still dead, not a false negative.
-4. Reference count (code references only, after step 3) = 0 → finding. Include file:line of export + "zero references" evidence.
-5. Skip exports in public API manifests (`exports` in `package.json`, Dart `lib/` public re-exports, `__all__` in Python).
-
-**2.2 single-caller:**
-
-1. Collect internal exports (not in public API).
-2. Count references (same string-literal confirmation as 2.1 step 3). Count = 1 → finding with caller file:line + "1 reference at {file}:{line}" evidence.
-3. Propose: inline at caller, remove export.
-4. Skip: recursive helpers, classes with subclasses, trait implementations.
-
-**2.3 fallback:**
-
-1. Scan patterns: `// @deprecated`, `// backward compat`, `// legacy`, `if ({old-version-check})`, `catch { return null }` with no re-throw, feature detection where feature is guaranteed by minimum runtime version.
-2. Each match → finding with file:line + evidence snippet + proposal.
-3. **Pre-release residue discipline:** While a product is unreleased with no external consumers, backward-compat shims, redirect residue, and dual-model retention are never required — prefer the cleanest single-canonical resolution; the "breaking change" constraint is void. Shims/redirects genuinely forced during a transition are explicitly time-boxed and removed in the next release. Where tooling exists, seal the no-residue discipline with a mechanical gate (unused-code/knip-class audit) so residue can't re-accumulate. (XR-116; see also Breaking-first in [../core/principles.md §6](../core/principles.md))
-
-**2.4 dead-branch:**
-
-1. Grep feature-flag references (`process.env.{FLAG}`, `flags.{x}`, `if (config.{x})`).
-2. Statically resolvable flags only: the flag's value is a constant across every config source (all env files/`.env.example`, config files, deployment manifests set the same literal; no runtime setter/toggle mechanism exists) → the never-selected branch is dead → finding. Flag value not statically resolvable (remote config, per-tenant, runtime toggle) → skip, never guess runtime behavior.
-3. Evidence: flag name + each config source file:line showing the constant value + "no runtime setter found".
-4. **Stale-flag governance (advisory):** flags are a distinct compounding debt class — for each flag found in step 1, check for lifecycle metadata (owner + expiry date in the flag registry/config/comment; temporary-vs-permanent designation). Temporary flag with no owner/expiry, or whose value has been constant since a git-blame date older than 90 days → advisory finding "stale flag — assign owner+expiry or remove" (industry practice: owner + expiration set at creation, removal automated — Uber's Piranha removed ~2,000 stale flags this way). Advisory only; never delete a flag whose branch is not provably dead under step 2.
-
-**2.5 premature-abstraction:**
-
-1. Find generic containers, base classes, wrappers, higher-order hooks, render props with ≤3 concrete usages.
-2. Evidence: abstraction file:line + usage count + file:line of each usage.
-3. Proposal: inline usages, drop abstraction.
-
-**2.6 quarantine:**
-
-1. Grep: `// removed`, `// legacy`, `// deprecated`, `// TODO: delete`, `// kill this`, `// unused`, variable `_unused{name}`.
-2. Each match → finding with context.
-
-**2.7 test-realism (advisory handoff, no local detector):**
-
-`/ds-test` present → delegate: emit no local finding for this scope; note in the Phase 3 report `test-realism: covered by /ds-test — run it for fixture-realism analysis`. Absent → gap-note: `test-realism not analyzed — requires /ds-test`.
-
-**2.8 io-drift:**
-
-1. For each function definition, collect signature (param names + types).
-2. Diff against every call site — unused params, extra args at call site, wrong-order params (type-checked only if LSP).
-3. Mismatch → finding with function file:line + caller file:line.
-
-**2.9 ssot-violation:**
-
-1. Build constant map: string/number literals ≥3 chars appearing in 2+ source files.
-2. Filter: exclude test fixtures + framework-expected literals (config keys, HTTP status codes, well-known MIME types).
-3. Remaining duplicates → finding. Evidence: each occurrence file:line.
-4. Propose: single export location.
-
-**2.10 orphan:**
-
-1. Collect: source files, images, JSON, CSS/SCSS, `.md` files under `docs/` or repo root.
-2. Per file, `git grep -n` across tracked files for the filename (with + without extension) and relative path patterns.
-3. Zero inbound references → finding.
-4. Skip: entry points, config files named by convention (`.eslintrc*`, `tsconfig.json`, etc.), `README.md`, `LICENSE`, `CHANGELOG.md`.
+For each active scope, run the detector (max 2 scopes in parallel). Per-scope detection steps, evidence format, tool preference (Knip / Vulture / ts-prune / LSP / grep fallback), and proposal: [references/scopes-detection.md](references/scopes-detection.md).
 
 **False positive prevention:** per signal, re-read 3 lines around match, verify no skip pattern (`# noqa`, `# intentional`, `# safe:`), exclude generated files (`*.g.*`, `*.pb.*`, `*.gen.*`).
 
@@ -180,7 +119,7 @@ Single delete-or-keep table:
 | S{n}  | ssot-violation        | ({n} files)        | constant      | `"{dup-literal}"` in {n} files      | Central export        |
 ```
 
-Per-scope summary line below the table: `Scope {scope-name}: {n} findings, {m} clean`. `test-realism` row: `covered by /ds-test — run it for fixture-realism analysis` or `test-realism not analyzed — requires /ds-test`, per Phase 2.7.
+Per-scope summary line below the table: `Scope {scope-name}: {n} findings, {m} clean`. `test-realism` row: `covered by /ds-test — run it for fixture-realism analysis` or `test-realism not analyzed — requires /ds-test`, per [references/scopes-detection.md](references/scopes-detection.md) `test-realism`.
 
 Write findings to `ds/audit/findings.md` with `scope=simplify` and `category` column set `B` for every row (every deletion is approval-gated).
 
@@ -200,7 +139,7 @@ Record every decision. Batch pending deletions by scope.
 
 ### Phase 5: Execute [skip if --preview or zero approvals]
 
-**Checkpoint pre-gate (once, before the first batch):** `git status --porcelain` — clean, or every batch's files are disjoint from dirty paths → proceed; a batch targets a dirty path → stop that batch, record `needs-human: uncommitted changes in {file} overlap the deletion batch`. Full protocol: [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md). Never run a bulk deletion over uncommitted unrelated changes in the same files.
+**Checkpoint pre-gate (once, before the first batch):** `git status --porcelain` — clean, or every batch's files are disjoint from dirty paths → proceed; a batch targets a dirty path → stop that batch, record `only you can do: uncommitted changes in {file} overlap the deletion batch`. Full protocol: [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md). Never run a bulk deletion over uncommitted unrelated changes in the same files.
 
 Per approved batch:
 
@@ -231,9 +170,9 @@ Disposition accounting — totals balance.
 
 `ds-simplify: {OK|WARN|FAIL} | Removed: {n} | Deferred: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-Closing shape (`Decided without asking` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
+Closing shape (`Decided without asking` lines, every `only you can do` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} dead exports / orphan modules deleted — {n} kB of unused code no longer in bundle, faster module load`
 - `{n} single-caller helpers inlined — abstraction layer that earned nothing has been removed`
@@ -257,9 +196,9 @@ Zero-finding run: `No simplification opportunities detected — codebase is lean
 |-----------|--------|
 | LSP unavailable | Fall back to `git grep` with word boundaries; confidence = MEDIUM for dead-code scope |
 | Test suite missing | Skip post-delete test gate with warning; ask user to confirm before commit |
-| Framework-required export flagged | Honor framework rule, mark `not-applicable (framework contract)` |
+| Framework-required export flagged | Honor framework rule, mark `not applicable (framework contract)` |
 | Deletion breaks import during execute | Revert batch, mark `failed`, continue to next scope |
-| Orphan file claimed by docs-only reference | Treat as live, mark `not-applicable (referenced by docs)` |
+| Orphan file claimed by docs-only reference | Treat as live, mark `not applicable (referenced by docs)` |
 
 ## Edge Cases
 
@@ -270,6 +209,6 @@ Zero-finding run: `No simplification opportunities detected — codebase is lean
 | Monorepo | Scope scan per workspace; aggregate findings with workspace-prefixed IDs |
 | Large codebase (>5k files) | Apply saturation gate: after 2 scopes with consistent patterns, narrow next scope to highest-density directories |
 | Public library with `exports` field | Treat every exported symbol as live for dead-code scope |
-| Single-caller is a test file | Mark `not-applicable (test-only helper)` |
+| Single-caller is a test file | Mark `not applicable (test-only helper)` |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

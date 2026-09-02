@@ -50,3 +50,5 @@ Detector catalog for the Assess phase: which scopes each dimension owns, what pa
 - **Verify context:** for security signals, read 3 lines around match — value from env/config/vault → skip
 
 **Confidence:** HIGH = match + context confirmed (full signal). MEDIUM = pattern, ambiguous context (0.5 signal). LOW = heuristic (skip). Only HIGH + MEDIUM written to `ds/audit/findings.md`.
+
+**User-facing project gate (`ui` ≠ `none`):** additionally check i18n setup (framework-native catalog, ≥1 locale file); default locales configured (minimum: en + project owner's locale); a11y basics (semantic labels on interactive elements, contrast ratio, screen-reader support); responsive layout (breakpoints or adaptive layout). Missing item → HIGH severity. `ui=none` → N/A.

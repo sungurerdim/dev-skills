@@ -36,7 +36,7 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 - Only includes verified, accessible sources and URLs. Presents T5/T6 with confidence caveats. Resolves contradictions when sources disagree. Cites specific source tiers in every synthesis.
 - Standalone: uses blueprint when available, own analysis when absent. Web tracks dispatch `ds-research-agent` when available (same handoff contract as ds-brief Phase 2), inline search when absent — identical methodology either way. Local-codebase track always runs skill-side.
 - State-exempt: single regenerable artifact — each run reproduces its result from scratch; no `ds/audit/` state persisted (only ds-blueprint/ds-frontend/ds-mobile/ds-ship/ds-tune keep state).
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
@@ -45,7 +45,7 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 |------|--------|
 | `--quick` | T1-T2 sources only |
 | `--deep` | All tiers |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without flags: Standard depth (T1-T4) across all scope areas — see Phase 1 for the exact resolution and the `--ask` menu.
 
@@ -119,7 +119,7 @@ Verify all claims cite sources; check contradictions; remove unsupported asserti
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-**Default:** every item resolves by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), recorded in the summary; items matching the publish/irreversible exception list become `skipped (needs-human)`. **`--ask`:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Default:** every item resolves by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), recorded in the summary; items matching the publish/irreversible exception list become `skipped (only you can do)`. **`--ask`:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → record unresolved as `pending-user-decision`, proceed to Output with WARN, list at bottom.
 
@@ -147,7 +147,7 @@ Bands: [A] Primary (85-100), [B] Supporting (70-84), [C] Background (50-69).
 ds-research: {OK|WARN|FAIL} | Sources: {n} | CRAAP+ avg: {score} | Claims: {n} verified | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} sources gathered across T1-T6 tiers ({tier-breakdown}) with CRAAP+ scoring — synthesis is evidence-weighted, not first-result-wins`
 - `Contradictions across sources surfaced ({n} disagreements) — decision-maker sees the disagreement, not a fabricated consensus`

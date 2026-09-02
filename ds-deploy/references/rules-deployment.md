@@ -8,7 +8,10 @@
 | **Deployment Verification** | DEP-18 to DEP-19 (2 HIGH) |
 | **Configuration** | DEP-20 to DEP-21 (1 CRITICAL, 1 HIGH) |
 | **Architecture & Topology** | DEP-22 (1 HIGH) |
-| **DNS & TLS** | DEP-23 to DEP-25 (3 HIGH) |
+| **DNS & TLS** | DEP-23 to DEP-25, DEP-35 (4 HIGH) |
+| **Image & Container Runtime Safety** | DEP-26 to DEP-28 (2 HIGH, 1 MEDIUM) |
+| **Edge & Infrastructure Hardening** | DEP-29 to DEP-31, DEP-34, DEP-36 (4 HIGH, 1 MEDIUM) |
+| **Incident & Rollback Runbooks** | DEP-32 to DEP-33, DEP-37 (3 MEDIUM) |
 
 ## Container Security
 
@@ -42,7 +45,7 @@ app.example.com { reverse_proxy localhost:3000 }
 
 **Impact:** Unencrypted traffic exposes credentials, session tokens, and user data. Modern browsers flag HTTP as insecure.
 
-**Source:** Let's Encrypt, Caddy docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md)
+**Source:** Let's Encrypt docs (https://letsencrypt.org/docs/), Caddy automatic HTTPS docs (https://caddyserver.com/docs/automatic-https)
 
 ---
 
@@ -67,7 +70,7 @@ COPY --from=builder /app/node_modules ./node_modules
 
 **Impact:** Reduces image size 60-90%, shrinks attack surface by excluding build tools, speeds up pulls and deploys.
 
-**Source:** Docker multi-stage build docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md)
+**Source:** Docker multi-stage build docs (https://docs.docker.com/build/building/multi-stage/)
 
 ---
 
@@ -84,7 +87,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Impact:** Without health checks, orchestrators route traffic to unhealthy containers. Health-gated deploys prevent bad releases from reaching users.
 
-**Source:** Kubernetes probe patterns, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Monitoring section)
+**Source:** Kubernetes probe patterns (https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
 
 ---
 
@@ -120,7 +123,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Impact:** Without `.dockerignore`, build context includes everything (`.git` alone can be hundreds of MB). Reduces build time, image size, and secret leakage risk.
 
-**Source:** Docker build context optimization, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md)
+**Source:** Docker build context optimization (https://docs.docker.com/build/building/context/)
 
 ---
 
@@ -132,7 +135,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Impact:** Users experience errors during deployment without graceful transitions. Health-gated rollouts ensure only verified containers receive traffic.
 
-**Source:** Kubernetes rolling update strategy, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Zero-Downtime section)
+**Source:** Kubernetes rolling update strategy (https://kubernetes.io/docs/tutorials/kubernetes-basics/update/update-intro/)
 
 ---
 
@@ -144,7 +147,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Impact:** Single runaway process without limits can consume all host resources and crash co-located services.
 
-**Source:** Kubernetes resource management, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Docker Compose section)
+**Source:** Kubernetes resource management (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
 
 ---
 
@@ -174,7 +177,7 @@ COPY . .                                  # source code (changes frequently)
 
 **Impact:** Dev/prod parity catches environment-specific bugs early. New contributors can run full stack with single command.
 
-**Source:** Docker Compose docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Docker Compose for Production)
+**Source:** Docker Compose docs (https://docs.docker.com/compose/how-tos/production/)
 
 ### DEP-11 | HIGH | Insecure Production Defaults
 
@@ -354,3 +357,147 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 **Impact:** Missing HSTS leaves every first visit vulnerable to SSL-stripping; a `preload` submission made too early is effectively irreversible for months (browser-list removal is slow), locking out any subdomain that still needs plain HTTP.
 
 **Source:** MDN Strict-Transport-Security, hstspreload.org submission requirements
+
+---
+
+### DEP-35 | HIGH | Reverse-Proxy TLS Protocol & Session Hardening
+
+**Detect:** Nginx/Apache/HAProxy config permitting `TLSv1`/`TLSv1.1` alongside 1.2+ (`ssl_protocols` without an explicit floor of TLSv1.2); default/weak cipher suite (no `ssl_ciphers` override, RC4/3DES/export ciphers not excluded); TLS session tickets left at server defaults with no key-rotation plan (undermines forward secrecy); OCSP stapling not enabled (`ssl_stapling on` absent) despite the CA supporting it.
+
+**Fix:** Pin `ssl_protocols TLSv1.2 TLSv1.3;` (drop 1.0/1.1); set a modern cipher suite (Mozilla SSL Configuration Generator "Intermediate" profile for broad compatibility, "Modern" for TLS 1.3-only clients); enable `ssl_stapling on; ssl_stapling_verify on;`; either rotate session-ticket keys on a schedule or disable session tickets in favor of session-ID caching where ticket-key rotation isn't automated. Caddy applies equivalent hardening automatically — this rule targets hand-configured Nginx/Apache/HAProxy.
+
+**Impact:** A permitted legacy protocol or export-grade cipher is a downgrade-attack surface (BEAST/POODLE-class) even when TLS 1.3 is also offered — the weakest permitted option is what an active attacker negotiates; unrotated session-ticket keys quietly defeat the forward secrecy the rest of the config assumes.
+
+**Source:** Mozilla SSL Configuration Generator (https://ssl-config.mozilla.org/)
+
+## Image & Container Runtime Safety
+
+### DEP-26 | HIGH | Image Vulnerability Scan Gate in Build Pipeline
+
+**Detect:** Build/deploy pipeline has no CVE scan step for the built image (no Trivy, Docker Scout, Grype, or registry-native scan invoked before push/deploy).
+
+**Fix:** Add an image scan step (`trivy image {image}` or `docker scout cves {image}`) to the build pipeline, failing the build on CRITICAL/HIGH CVEs with no available fix; re-run on a schedule for already-deployed images since new CVEs land after build time.
+
+**Impact:** An unscanned image ships whatever vulnerabilities its base layers carry on build day, and stays blind to newly-disclosed CVEs in already-deployed images.
+
+**Source:** Trivy documentation (https://trivy.dev/), Docker Scout documentation (https://docs.docker.com/scout/)
+
+---
+
+### DEP-27 | HIGH | Service Ports Bound to Loopback, Not Publicly Exposed
+
+**Detect:** Docker Compose (or equivalent) service publishes a port as `"{port}:{port}"` instead of `"127.0.0.1:{port}:{port}"` for a service meant to sit behind a reverse proxy; a database/cache port published on any host-facing interface at all.
+
+**Fix:** Bind application ports the reverse proxy fronts to `127.0.0.1` (or the orchestrator's internal network only); never publish database/cache ports — reach them over the internal Docker/Compose network exclusively.
+
+**Impact:** A port published on all interfaces is reachable from the public internet the moment the host's firewall allows it — this is how an unauthenticated database ends up indexed by internet scanners within hours of deploy.
+
+**Source:** OWASP Docker Security Cheat Sheet (https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html)
+
+---
+
+### DEP-28 | MEDIUM | Container Restart Policy Configured
+
+**Detect:** Docker Compose service (or equivalent) with no `restart:` policy set (defaults to `no` — the container stays down after any crash or host reboot).
+
+**Fix:** Set `restart: unless-stopped` (or the orchestrator's equivalent) on every long-running service.
+
+**Impact:** Without a restart policy, one crash or host reboot takes the service down until a human notices and manually restarts it — turning a transient fault into an extended outage.
+
+**Source:** Docker documentation — start containers automatically (https://docs.docker.com/engine/containers/start-containers-automatically/)
+
+## Edge & Infrastructure Hardening
+
+### DEP-29 | HIGH | CDN/Edge Security Configuration
+
+**Detect:** Domain proxied through a CDN/edge network (Cloudflare or equivalent) with SSL/TLS mode left at "Flexible" (edge-to-origin traffic unencrypted) instead of "Full (Strict)"; minimum TLS version not pinned at the edge; no page rule/WAF rule blocking direct requests to sensitive paths (`/.env*`, `/.git/*`).
+
+**Fix:** Set the edge SSL/TLS mode to Full (Strict) with a valid origin certificate; pin minimum TLS to 1.2+; add a page rule or WAF rule blocking `.env*` and `.git/*` paths.
+
+**Impact:** "Flexible" SSL mode leaves the edge-to-origin hop in plaintext even though the browser-to-edge hop shows a padlock — an attacker on the origin's network path reads everything the padlock implied was protected.
+
+**Source:** Cloudflare SSL/TLS encryption modes documentation (https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/)
+
+---
+
+### DEP-30 | HIGH | VPS Hardening Baseline (10-Point)
+
+**Detect:** `deploy=vps` project missing one or more of: automated security updates, SSH key-only auth with root login disabled, a default-deny firewall with only required ports open, fail2ban (or equivalent) on the SSH port, kernel network-hardening sysctls, mandatory access control (AppArmor/SELinux), audit logging (auditd), a scheduled security scan.
+
+**Fix:** `PermitRootLogin no` + `PasswordAuthentication no` + `MaxAuthTries 3` in `sshd_config`; default-deny firewall (UFW/nftables) allowing only SSH + HTTP/HTTPS; install and enable fail2ban on the SSH jail; enable unattended/automatic security upgrades; apply baseline sysctl hardening (disable IP forwarding unless routing, enable SYN cookies); enable AppArmor/SELinux enforcing mode; install auditd; run a periodic security scan (e.g. Lynis) and track the score.
+
+**Impact:** Any single missing layer (password SSH auth, no firewall, no fail2ban) is independently how automated internet-wide scanners find and compromise a fresh VPS within hours of first boot — the ten points are cheap and each closes a distinct, commonly-exploited path.
+
+**Source:** OpenSSH `sshd_config` manual (https://man.openbsd.org/sshd_config), Ubuntu community — automatic security updates (https://help.ubuntu.com/community/AutomaticSecurityUpdates), CIS Benchmarks (industry-standard hardening baselines — consult the Linux benchmark for the distribution in use)
+
+---
+
+### DEP-34 | MEDIUM | Disable Unused System Services (VPS)
+
+**Detect:** `systemctl list-units --type=service --state=running` (or distro equivalent) on a production VPS returns enabled services with no role in the deployed stack (e.g. `avahi-daemon`, `cups`, `bluetooth`, a default MTA nobody configured) — installed by the base image, never audited.
+
+**Fix:** Enumerate running services (`systemctl list-units --type=service`), map each to a required role, `systemctl disable --now {service}` anything unmapped; re-run after every base-image or distro upgrade since upgrades can re-enable defaults.
+
+**Impact:** Every enabled-but-unused service is a listening process or attack surface nobody is watching — the VPS-hardening baseline (DEP-30) closes the network/auth paths; this closes the one it shares with every other freshly-imaged VPS: default services nobody asked for.
+
+**Source:** VPS Hardening 25-Point Checklist (https://retzor.com/blog/vps-security-hardening-25-point-checklist-for-2025/)
+
+---
+
+### DEP-31 | HIGH | Backup Integrity Verification & 3-2-1 Redundancy
+
+**Detect:** Backup script with no post-write integrity check (does not verify the archive is non-empty/valid before considering the backup successful); only one copy of backup data, or all copies on the same physical medium/host as the source; no offsite copy.
+
+**Fix:** After every backup write, verify the artifact is non-empty and (where feasible) restorable — e.g. `[ -s "{backup-file}" ] || { echo "ERROR: empty backup"; exit 1; }`; maintain the 3-2-1 pattern — 3 copies, on 2 different media, with 1 stored offsite (e.g. local disk + S3-compatible offsite target via restic/rclone).
+
+**Impact:** A backup job that "succeeds" while writing a zero-byte or truncated file is silent until the moment it is needed for a real restore — which is the single worst time to discover a backup was never valid; a single-copy or single-location backup shares every failure mode (disk death, ransomware, host loss) with the data it is meant to protect.
+
+**Source:** CISA — #StopRansomware Guide, data backup guidance (https://www.cisa.gov/stopransomware/ransomware-guide)
+
+---
+
+### DEP-36 | HIGH | Backup Encryption & Retention Rotation
+
+**Detect:** Database/file backups written unencrypted (plain `pg_dump`/`tar` output with no encryption step) especially before an offsite copy; no retention/rotation policy — backup directory grows unbounded, or old backups are deleted with no `--keep-*` schedule (e.g. a bare `rm` cron with no daily/weekly/monthly tiering).
+
+**Fix:** Encrypt backups at rest and in transit to the offsite target (restic and borg encrypt by default; for plain `pg_dump`, pipe through `gpg`/`age` before writing); apply a tiered retention policy instead of unbounded growth or single-tier deletion (restic: `restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune`); verify the encryption key/passphrase itself is stored in the secrets manager (DEP-01), never alongside the backup.
+
+**Impact:** An unencrypted offsite backup turns a single storage-provider compromise into a full data breach independent of the primary system's own security; unbounded or ad-hoc-deleted backups either exhaust storage or silently lose the recovery points a real incident needs.
+
+**Source:** restic documentation — encryption and retention policies (https://restic.readthedocs.io/en/stable/)
+
+## Incident & Rollback Runbooks
+
+### DEP-32 | MEDIUM | Incident Triage Runbook — First 5 Minutes
+
+**Detect:** No documented, ordered triage sequence for the first minutes of a detected incident — responders improvise the check order each time.
+
+**Fix:** Document and follow a fixed first-5-minutes sequence: (1) confirm the issue is real, not a false positive; (2) confirm the app process is running; (3) check recent error logs; (4) confirm the database/critical dependency is reachable; (5) check host resource health (memory, disk, load); (6) classify severity P1 (down) / P2 (degraded) / P3 (minor) and route accordingly.
+
+**Impact:** An improvised triage order under incident pressure wastes the minutes that matter most and produces inconsistent severity classification between responders — a fixed sequence turns triage into a checklist instead of a judgment call made under stress.
+
+**Source:** Google SRE Workbook — Incident Response (https://sre.google/workbook/incident-response/)
+
+---
+
+### DEP-33 | MEDIUM | Rollback Playbook — Scenario-to-Command Mapping
+
+**Detect:** No documented mapping from incident scenario to the specific rollback command/procedure and its expected downtime — the rollback path is decided ad hoc during the incident.
+
+**Fix:** Maintain a scenario table mapping each common failure to its rollback action and expected downtime, e.g.: bad deploy with no DB change → image rollback (`docker compose up -d` on the previous tag; Kubernetes: `kubectl rollout undo`), <1 min; bad deploy with a DB migration → restore backup + image rollback, 5-30 min; infrastructure failure → redeploy from compose/IaC, 5-15 min; corrupted data → point-in-time DB restore, 15-60 min; suspected security breach → full redeploy on a new host, 1-4 hours.
+
+**Impact:** Deciding the rollback mechanism for the first time during a live incident costs the minutes a pre-agreed playbook would have saved, and risks picking a slower or riskier path than the scenario actually needs.
+
+**Source:** Kubernetes Deployments — rolling back a deployment (https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+
+---
+
+### DEP-37 | MEDIUM | Post-Mortem Required Fields for P1/P2 Incidents
+
+**Detect:** A resolved P1/P2 incident (per DEP-32's severity classification) with no post-mortem document, or one missing required fields — no incident date/duration, no severity, no timeline of detection→mitigation→recovery, no root cause, no explicit "what went well / what went wrong," or action items with no owner or deadline.
+
+**Fix:** Require a post-mortem template with, at minimum: date + duration + severity; a timeline of what happened and when; root cause (not just the trigger); what went well and what went wrong; action items each with a named owner and a deadline. Generate the stub at incident-close time so it isn't skipped once the fire is out.
+
+**Impact:** An incident closed without a completed post-mortem loses the only mechanism that turns an outage into a prevention — action items with no owner or deadline are indistinguishable from action items that don't exist, and the same failure mode recurs.
+
+**Source:** Google SRE Workbook — Postmortem Culture (https://sre.google/workbook/postmortem-culture/)

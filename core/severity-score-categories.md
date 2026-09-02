@@ -61,10 +61,10 @@ Caps: any CRITICAL → max 40; 3+ HIGH → max 60
 | Category | Meaning | Default mode | `--ask` |
 |----------|---------|--------------|---------|
 | **A** (conforms) | Fix conforms to the current agreed architecture/plan — a missing piece, a bug, a violation of a rule the codebase already enforces | Apply | Apply without asking |
-| **B** (changes the plan) | Changes architecture, scope, capability, a user-facing promise, or adds/removes a dependency | Apply using the same impact/effort/risk reasoning an approval block would show; record it in the summary; items on the ask-exception list become `needs-human` | One batched approval block: current → proposed, reason, impact, effort, risk, rollback path |
+| **B** (changes the plan) | Changes architecture, scope, capability, a user-facing promise, or adds/removes a dependency | Apply using the same impact/effort/risk reasoning an approval block would show; record it in the summary; items on the ask-exception list become `only you can do` | One batched approval block: current → proposed, reason, impact, effort, risk, rollback path |
 
 **Finding category** — CAT-1 (conformance: violates a rule, auto-fixable) · CAT-2 (enhancement: user decides). Uncertain → CAT-2.
 
 ## Disposition vocabulary
 
-`fixed` · `failed` · `skipped (reason)` · `needs-human (concrete action)` · `needs-approval` (`--ask` only) · `not-applicable (reason)` · `reverted (captured error)` · `low-confidence` · `discarded (no harm signal)`. The summary balances: `fixed + failed + skipped + needs-human + needs-approval + not-applicable + reverted = total`. Every `skipped`/`needs-human` reason passes the reject list in `principles.md` §11.
+`fixed` · `failed` · `skipped (reason)` · `only you can do (concrete action)` · `not applicable (reason)` · `reverted (captured error)` · `low-confidence` · `discarded (no harm signal)`. The summary balances: `fixed + failed + skipped + only you can do + not applicable + reverted = total`. Every `skipped`/`only you can do` reason passes the reject list in `principles.md` §11.

@@ -2,7 +2,7 @@
 
 Broken CI pipelines, unsigned builds, and outdated dependencies silently erode release quality. This skill audits your entire DevOps setup and flags what needs fixing.
 
-**Audit CI/CD pipelines, code signing, and dependency management for any project type. 35 rules across 13 domains.**
+**Audit CI/CD pipelines, code signing, and dependency management for any project type. 42 rules across 15 domains.**
 
 Works with Flutter, Node.js, Python, Go, Rust, Java/Kotlin, and more.
 
@@ -32,10 +32,10 @@ Run `/ds-devops`, or ask to review your CI/CD setup.
 
 | Scope | What It Checks |
 |-------|---------------|
-| ci | Pipeline presence, quality gates, workflow lint (actionlint + zizmor), `pull_request_target` misuse, CI/local parity, required checks |
+| ci | Pipeline presence, quality gates, workflow lint (actionlint + zizmor), `pull_request_target` misuse, CI/local parity, required checks, caching, monorepo affected-detection, secrets hygiene, runner cost |
 | signing | Code signing automation, credential security (mobile/desktop) |
 | deps | Dependency policy, outdated detection, compatibility, vulnerability audit |
-| release-pipeline | Release automation, version bump workflow |
+| release-pipeline | Release automation, version bump workflow, deploy safety gates |
 
 ## Modes
 

@@ -31,7 +31,7 @@ description: Store and release management — store submission, listing optimiza
 - Covers store account setup, listing metadata, review preparation, release management; generates checklists + metadata — does NOT submit to stores directly.
 - Minimal liability + maximum privacy + maximum automation: store-compliant metadata + common rejection flags; privacy labels with minimal data-collection focus; version management + release notes generation + staged rollout.
 - Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 - **Metadata directory:** `ds/launch/` holds this skill's committed deliverables only — store listing text, privacy-label mappings, release notes, `perf-budget.json`, submission notes (`submission-notes-{apple,google}.txt`, `submission-meta.yml`). No other skill or scratch output writes there.
@@ -51,23 +51,13 @@ description: Store and release management — store submission, listing optimiza
 | `--release` | Release management: version, notes, staged rollout |
 | `--post-launch` | Post-launch monitoring checklist |
 | `--perf-budget` | Author a formal perf budget (LCP, INP, p99, bundle size, startup) + wire CI enforcement via `/ds-devops` |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without flags: every mode runs in sequence, each decision resolved by best judgment and recorded (the skill's default). `--ask` alone (no mode flag) presents an up-front menu of every mode in the Arguments table (each with its one-line effect), Setup marked (recommended), plus (Cancel). A disambiguating flag skips the menu.
 
 ### Perf Budget Mode (`--perf-budget`)
 
-Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational namespace) + wires CI enforcement to read from that path — a functional CI gate (Category B, user-approved, version-controlled), not transient state. Keep only sections fitting the project type; default values from blueprint profile `Config.priorities` + industry baselines.
-
-```json
-{
-  "web":    { "lcp_ms": 2500, "inp_ms": 200, "cls": 0.1, "ttfb_ms": 600, "bundle_js_kb": 300, "bundle_css_kb": 60 },
-  "api":    { "p50_ms": 50, "p95_ms": 200, "p99_ms": 500, "error_rate_pct": 0.5 },
-  "mobile": { "cold_start_ms": 2000, "warm_start_ms": 800, "app_size_mb": 40, "jank_pct": 1.0 }
-}
-```
-
-**CI enforcement:** delegate to `/ds-devops` to add a CI step running the project's native perf tool (Lighthouse CI, k6, Firebase Test Lab, etc.) + compare to `ds/launch/perf-budget.json`; over-budget → CI fails with offending metric(s) named. Budget authoring is Category B (commits project to enforceable numbers); CI wiring is Category A once budget exists.
+Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational namespace) + wires CI enforcement to read from that path — a functional CI gate (Category B, user-approved, version-controlled), not transient state. Schema + CI-enforcement detail: [references/perf-budget-schema.md](references/perf-budget-schema.md).
 
 ## Scopes
 
@@ -91,8 +81,8 @@ Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational names
 | App name | Character limits, keyword inclusion, localization |
 | Description | Short/long with pain-first opening — see voice guide in [references/aso-2026-updates.md](references/aso-2026-updates.md). First line states problem solved or outcome delivered — never feature list. Benefit-driven highlights. |
 | Keywords | Keyword research, competitor analysis, localization |
-| Screenshots | First 3 decide install — problem → solution → delight narrative. Text overlay captions with benefit-driven copy (captions index in Apple search since June 2025). Platform-specific: do not reuse iOS screenshots on Play. Required sizes per device, layout, A/B testing. |
-| Video preview | Portrait video: +7% watch time, +5% conversion vs landscape (Google Play). 15-30s, no audio dependency, demonstrate core value. |
+| Screenshots | 3-shot narrative + caption rules + required sizes — see [references/aso-2026-updates.md](references/aso-2026-updates.md) § Screenshot Narrative. Platform-specific: do not reuse iOS screenshots on Play. |
+| Video preview | 15-30s, no audio dependency, demonstrate core value — portrait-format conversion data: references/aso-2026-updates.md § Screenshot Narrative (Video Preview subsection). |
 | Icon | Platform requirements, design guidelines |
 | Category | Primary / secondary category selection |
 | Age rating | Rating questionnaire guidance |
@@ -104,10 +94,10 @@ Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational names
 | Keyword research | Competitor analysis, search volume estimation, difficulty |
 | Title optimization | Primary keyword in title, character limits, localized titles |
 | Subtitle / short description | Secondary keywords, value proposition, character limits |
-| Screenshot caption indexing | Apple (June 2025): screenshot text overlays index in search. Captions must contain target keywords with benefit-driven copy. See narrative in [references/aso-2026-updates.md](references/aso-2026-updates.md). |
-| Custom Product Pages | Apple: 70 CPPs per app (expanded from 35), each keyword-linkable for organic search. Create CPPs for audience segments + keyword clusters. |
+| Screenshot caption indexing | Apple (June 2025+): screenshot text overlays index in search — target keywords with benefit-driven copy. Detail: [references/aso-2026-updates.md](references/aso-2026-updates.md) § Algorithm Changes. |
+| Custom Product Pages | Apple: up to 70 CPPs per app, each keyword-linkable for organic search — create CPPs per audience segment / keyword cluster. |
 | Category selection | Primary vs secondary, competition density analysis |
-| Search ranking factors | Both stores shifting from keyword-matching to intent-driven semantic discovery. Apple: download velocity, ratings, update frequency, engagement. Google Play: engagement/retention outweighs raw downloads (2:1 redownload ratio), battery optimization as core vital (5% threshold — non-compliant apps excluded from discovery, March 2026). |
+| Search ranking factors | Both stores shifting from keyword-matching to intent-driven semantic discovery — full factor breakdown: references/aso-2026-updates.md § Algorithm Changes. |
 | A/B test recommendations | Title variants, screenshot order, icon alternatives. Google Play: portrait video variants. Apple PPO: up to 3 treatment variants. |
 
 ### Privacy
@@ -120,52 +110,15 @@ Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational names
 
 ### Submission-Notes (`--submission-notes`)
 
-Generates the **App Review Information → Notes** body upfront so reviewer never sends a Guideline 2.1 information request — each follow-up round-trip costs **+24-48 hours**; supplying everything in first submission eliminates them.
+Generates the **App Review Information → Notes** body upfront so reviewer never sends a Guideline 2.1 information request — each follow-up round-trip costs **+24-48 hours**; supplying everything in first submission eliminates them. Field-by-field detection method + required user input: [references/app-store-submission-template.md](references/app-store-submission-template.md) § Skill Generation Rules.
 
-| Section | Auto-detected | User-confirmed |
-|---------|--------------|---------------|
-| App purpose + audience | from blueprint profile (`Type`, `Config.audience`) | yes |
-| How to review (test path) | from existing READMEs / docs | yes |
-| Demo / test credentials | — | required input |
-| Auth providers | scan OAuth/OIDC client IDs, Sign in with Apple capability | confirmed |
-| Payment processors | StoreKit / Play Billing imports | confirmed |
-| **AI / ML services** | scan `requirements.txt`, `pubspec.yaml`, `package.json`, code imports for `{ai-libs}`. For each: name + license + repo URL + hosting location | required input — license & hosting per service |
-| Data handling | privacy-labels cross-reference | yes |
-| Account deletion procedure | search `delete account` UI flow | yes |
-| Regional differences | default "consistent across all regions" | confirm or override |
-| Regulated industry | default "N/A" | confirm or override |
-| Reviewer-only contact | — | required input |
-
-Default and `--ask` alike: auto-detected fields (app purpose, test path, auth providers, payment processors, AI services, data handling, account deletion) populate automatically; fields with no inferable value (demo credentials, reviewer-only contact) are never fabricated — they match the publish/irreversible exception list (a value only a human can supply) and are recorded `needs-human` in the summary instead of guessed. `--ask` additionally prompts for these fields instead of leaving them `needs-human`.
+Default and `--ask` alike: auto-detected fields (app purpose, test path, auth providers, payment processors, AI services, data handling, account deletion) populate automatically; fields with no inferable value (demo credentials, reviewer-only contact) are never fabricated — they match the publish/irreversible exception list (a value only a human can supply) and are recorded `only you can do` in the summary instead of guessed. `--ask` additionally prompts for these fields instead of leaving them `only you can do`.
 
 **Output:** `ds/launch/submission-notes-apple.txt` + `ds/launch/submission-notes-google.txt` + `ds/launch/submission-meta.yml` (audit trail, committed). Generic template + cookbook of pre-written reject replies in [references/app-store-submission-template.md](references/app-store-submission-template.md). **Pre-submission self-audit:** mode runs `--review` active-detection scan first — any CRITICAL → submission notes not generated until fixed; WARN if HIGH findings present but not blocking.
 
 ### Review (Active Detection)
 
-Each check scans codebase + produces PASS/FAIL with severity and file:line — not a manual checklist.
-
-| Check | Detection Method | Severity | Impact |
-|-------|-----------------|----------|--------|
-| Privacy policy | Scan configs + metadata for URL; `curl -s -o /dev/null -w '%{http_code}' {url}` → `200` | CRITICAL | Outright rejection — no review proceeds without a live policy URL |
-| Metadata completeness | Scan store metadata dirs for empty/placeholder content | CRITICAL | Outright rejection under Guideline 2.1 (App Completeness) |
-| Permission descriptions | Parse `Info.plist` / `AndroidManifest.xml` for missing descriptions | HIGH | Rejection or review delay — reviewer cannot verify permission purpose |
-| Privacy manifests + SDK compliance | Scan for `PrivacyInfo.xcprivacy`, flag SDKs without manifests | HIGH | Rejection — required-reason APIs undeclared |
-| AI data consent | Check for consent modal if external AI services detected | HIGH | Rejection under Guideline 5.1.1(i) |
-| Data deletion | Search for account deletion UI flow | HIGH | Rejection under Guideline 5.1.1(v) |
-| Platform cross-references | Search listing text for competing platform mentions | MEDIUM | Listing edit demand or takedown |
-| Crash-prone patterns | Scan entry points for force-unwraps, unhandled exceptions | MEDIUM | Reviewer hits a crash on first launch — instant rejection |
-| Age rating | Verify questionnaire completeness, new 13+/16+/18+ tiers | MEDIUM | Rating-questionnaire rejection, re-submission cycle |
-| SDK + build requirements | Check minimum SDK version (iOS 26 SDK required from April 2026) | MEDIUM | Build rejected as non-compliant at upload |
-| ATT + Privacy Manifests | App Tracking Transparency prompt, SDK `PrivacyInfo.xcprivacy` validation | HIGH | Rejection, or post-launch takedown on audit |
-| IAP external-payment | StoreKit/Play Billing present alongside Stripe/PayPal/checkout URLs for digital content, or "pay on our website" / "subscribe at" strings pointing off-store. **Jurisdiction-split (post-Epic, verify-current):** US App Store storefront — external payment links are permitted without entitlement (Ninth Circuit Dec 11 2025: Apple may eventually charge a "reasonable" cost-based commission — rate not yet set — and may keep external links no more visually prominent than IAP); outside the US — StoreKit External Purchase Link Entitlement required in designated regions, otherwise IAP-only (Guideline 3.1.1). Play: alternative billing per settlement terms; third-party Android stores open from 22 Jul 2026. Flag as CRITICAL only where the pattern violates the target storefront's current rules — never blanket-flag US-storefront external links | CRITICAL (jurisdiction-conditional) | Rejection under Guideline 3.1.1, or post-launch removal |
-| Clone-category risk (4.3(b), Jun 2026) | App's category/concept matches Apple's named spam-prone classes (dating, flashlight, sound effects, wallpaper, simple timers, fortune telling) without a meaningfully differentiated feature set — new "indistinguishable" submissions in these categories are barred and existing low-quality apps may be removed | HIGH | Submission barred outright, or existing listing removed |
-| Live Activities misuse (4.5.3) | ActivityKit/Live Activities used for promotional/unsolicited content — 4.5.3 bars using Live Activities to spam, phish, or send unsolicited messages; random/anonymous-chat features additionally fall under Guideline 1.2 UGC duties (Feb 6 2026 revision) | MEDIUM | Rejection under 4.5.3, compounding with 1.2 for UGC apps |
-| Restore purchases | Non-consumable IAP or subscription imports detected but no restore-purchases call / UI entry point found (Guideline 3.1.2) | HIGH | Rejection under Guideline 3.1.2 |
-| Sign in with Apple | Google/Facebook/Twitter auth SDK detected without `com.apple.developer.applesignin` entitlement or `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | HIGH | Rejection under Guideline 4.8 |
-| Reviewer-access gap | Login/auth flow detected but `ds/launch/submission-notes-apple.txt` absent or missing demo-credentials section — reviewer will hit a login wall with no way through | HIGH | Automatic rejection — reviewer cannot proceed past login |
-| App completeness / remote gating | Primary feature classes wrapped in remote-config / feature-flag conditions with no guaranteed-on default — app may appear non-functional to reviewer (Guideline 2.1; Play deceptive-behavior policy) | HIGH | Rejection under Guideline 2.1 — app looks broken to the reviewer |
-| Content-vs-rating | Gambling SDK, loot-box pattern, open `WebView` with no URL restriction, or UGC text-input detected alongside an age-rating declaration of 4+ / Everyone — declared rating inconsistent with detected content signals | MEDIUM | Rating dispute, forced re-submission |
-| Review timing | Apple: 24-48h typical. Google: 1-7 days (first app longer). | INFO | Sets submission-timeline expectations, not a rejection risk |
+28 checks (LCH-01 to LCH-28), each scanning codebase + producing PASS/FAIL with severity and file:line — not a manual checklist. Full Detect/Fix/Impact/Source per check: [references/rules-store-review.md](references/rules-store-review.md).
 
 ### Release
 
@@ -190,24 +143,11 @@ Email authentication and deliverability (SPF + DKIM + DMARC alignment, RFC 8058 
 
 ### Desktop Distribution (conditional — desktop project detected: Electron/Tauri config, `*.xcodeproj` with macOS target, MSIX/WiX manifest)
 
-| Check | What It Covers | Severity |
-|-------|---------------|----------|
-| macOS notarization | Distribution outside MAS: hardened runtime enabled, app signed with Developer ID cert, notarized via `notarytool` (not legacy `altool`), ticket stapled (`stapler`) — unnotarized apps are blocked by Gatekeeper | HIGH |
-| Windows signing | Authenticode signature on installer + binaries (unsigned → SmartScreen warning kills conversion); MSIX packaging where Microsoft Store or clean install/uninstall matters | HIGH |
-| Auto-update integrity | Update channel (Sparkle, electron-updater, Tauri updater) serves signed updates over HTTPS with signature verification ON — an unsigned update feed is remote code execution as a feature | HIGH |
-| Store option fit | MAS (sandbox + entitlements review) vs direct distribution vs Microsoft Store — chosen deliberately with the sandbox-restriction tradeoff stated; MAS submission then follows the standard store scopes above | MEDIUM |
-| User-facing changelog + staged rollout | Same D6 rules as mobile Release scope — desktop auto-update is the archetypal silent OTA channel | MEDIUM |
+5 checks (macOS notarization, Windows signing, auto-update integrity, store option fit, changelog + staged rollout): [references/scopes-conditional.md](references/scopes-conditional.md) § Desktop Distribution.
 
 ### A9 — Google / Apple Ecosystem Rules (conditional)
 
-**Activate when:** the `integrations` signal names it — `Signals: integrations=` contains `google-workspace` or `apple-ecosystem` ([../core/signal-inventory.md](../core/signal-inventory.md)), or the Blueprint Profile's `Integrations:` field states either. Never inferred from a guess (an OAuth client ID alone does not activate this — the integration must be named by one of the two sources). Zero checks when absent from both.
-
-| Provider | Rule | Scope |
-|----------|------|-------|
-| Google | OAuth consent screen — verify production approval status, homepage/privacy URLs, authorized domains (Google OAuth verification requirement — a citable external platform mandate, so a blocker, not advisory) | review |
-| Apple | Sign in with Apple — verify entitlement + `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | review |
-| Google | Data safety section — ensure declarations match actual API scopes used | privacy |
-| Apple | Apple Privacy Labels — verify nutrition label declares sign-in and contact info if applicable | privacy |
+**Activate when:** the `integrations` signal names it — `Signals: integrations=` contains `google-workspace` or `apple-ecosystem` ([../core/signal-inventory.md](../core/signal-inventory.md)), or the Blueprint Profile's `Integrations:` field states either. Never inferred from a guess. Zero checks when absent from both. Rule table: [references/scopes-conditional.md](references/scopes-conditional.md) § A9 Ecosystem.
 
 ## Delegation
 
@@ -234,11 +174,7 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 ### Phase 3: Generate [setup, listing, aso, seo, email, privacy, review, submission-notes]
 
 - **Store setup:** platform-specific account setup checklist; certificate / signing key guide (CI automation: authenticate with App Store Connect API keys, not Apple-ID/password auth); TestFlight / Internal Testing steps.
-- **Listing metadata:** final store-ready app description (short + long; refine existing `[DRAFT]` descriptions). Keyword research framework, screenshot size requirements, localization checklist. Template structure:
-  - Short description (80 chars max) per language — per-locale keyword optimization, not literal translation; full description with consistent sections across all languages: How it works (3-5 steps), Key features (bullet list, benefit-first: `"Get {benefit}"` not `"Has {feature}"`), Privacy/security highlights + Pricing/plans (if applicable)
-  - Privacy highlight table `| Data Type | Collected (Yes/No) | Shared with 3rd Party (Yes/No) | Purpose |` — maps directly to Apple Privacy Labels + Google Data Safety
-  - Review notes for store review teams: special permission justifications, demo credentials (if needed), features requiring network, consumable vs subscription IAP model
-  - Screenshot narrative (6 recommended, full journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
+- **Listing metadata:** final store-ready app description (short + long; refine existing `[DRAFT]` descriptions) — template + structure: [references/aso-2026-updates.md](references/aso-2026-updates.md) § Store Listing Voice Guide. Keyword research framework, screenshot size requirements, localization checklist. Additionally: privacy highlight table `| Data Type | Collected (Yes/No) | Shared with 3rd Party (Yes/No) | Purpose |` mapping to Apple Privacy Labels + Google Data Safety; review notes for store review teams (special permission justifications, demo credentials if needed, features requiring network, consumable vs subscription IAP model); screenshot narrative (6 recommended, full journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings.
 - **ASO mode:** competitor keyword analysis, title/subtitle optimization, category placement recommendation, A/B variant suggestions.
 - **SEO mode (web):** advisory handoff to `/ds-compliance --scope=web` (WEB-08) — this skill does not audit or generate SEO artifacts locally. `/ds-compliance` absent → gap-note `[seo] not analyzed — requires /ds-compliance --scope=web`. CWV tie-breaker status is still reported here from the perf budget when one exists.
 - **Email mode (sending domain detected):** advisory handoff to `/ds-compliance` — this skill does not query DNS or generate SPF/DKIM/DMARC records locally. `/ds-compliance` absent → gap-note `[email-deliverability] not analyzed — requires /ds-compliance`.
@@ -259,7 +195,7 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 
 ### Phase 5: Needs-Approval Review [--ask, needs_approval > 0]
 
-Without `--ask` this phase does not run — every item was already resolved by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which became `skipped (needs-human)`. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Without `--ask` this phase does not run — every item was already resolved by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which became `skipped (only you can do)`. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → record unresolved as `pending-user-decision`, proceed to Summary with WARN, list prominently.
 
@@ -273,7 +209,7 @@ ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|Desktop|All} | Ready: {n}
 
 Include checklist of remaining items before submission. Disposition accounting — totals balance.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `Store listing + privacy labels generated — submission no longer rejected for missing required fields`
 - `App Review Notes pre-filled — reviewer round-trip eliminated (saves 24-48h per round)`
@@ -282,7 +218,7 @@ Include checklist of remaining items before submission. Disposition accounting �
 
 Zero-change run: `Submission package already complete — no missing fields`.
 
-**Gate:** Summary + Value Delivered printed with submission readiness status. If fails → write partial summary: completed phases, generated artifacts (even partial), open CRITICAL/HIGH findings, status FAIL with "Summary incomplete — re-run to complete remaining phases."
+**Gate:** Summary + Effect printed with submission readiness status. If fails → write partial summary: completed phases, generated artifacts (even partial), open CRITICAL/HIGH findings, status FAIL with "Summary incomplete — re-run to complete remaining phases."
 
 ## Quality Gates
 

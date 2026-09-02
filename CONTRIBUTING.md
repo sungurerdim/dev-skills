@@ -7,7 +7,7 @@ Thanks for your interest in contributing to dev-skills! This guide covers how to
 - **Report a bug** — Open an issue describing the affected skill, steps to reproduce, and expected behavior
 - **Request a skill** — Open an issue describing the workflow the skill would cover and why existing skills don't
 - **Fix a bug or improve a skill** — Fork, fix, and open a PR
-- **Add a new skill** — Work through [docs/authoring-checklist.md](docs/authoring-checklist.md) (the guided on-ramp: every SKILL-SPEC mandatory section in order, each step tied to the mechanical check that proves it), then open a PR
+- **Add a new skill** — Work through [docs/methodology/authoring-checklist.md](docs/methodology/authoring-checklist.md) (the guided on-ramp: every SKILL-SPEC mandatory section in order, each step tied to the mechanical check that proves it), then open a PR
 
 ## Skill Structure
 
@@ -30,7 +30,7 @@ All skills must follow [SKILL-SPEC.md](SKILL-SPEC.md):
 
 - **Size limits** — SKILL.md ≤500 lines, reference files loaded on demand, total skill overhead ≤10K tokens
 - **Contract** — Every finding must cite file and line; standalone guarantee ("zero dependency on other skills")
-- **FRC** — Every finding gets a disposition in the summary (fixed/skipped/failed/needs-approval/not-applicable) — zero silent drops
+- **FRC** — Every finding gets a disposition in the summary (fixed/skipped/failed/needs-approval/not applicable) — zero silent drops
 - **DSC** — Scopes that audit must define an explicit checklist of checks, every check evaluated every run
 - **IDU** — When blueprint profile or `ds/audit/findings.md` exist, use them; when absent, run own complete analysis
 - **Modes** — Provide at least audit-only and audit-and-fix modes where applicable

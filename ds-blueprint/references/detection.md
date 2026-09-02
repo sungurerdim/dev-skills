@@ -16,7 +16,7 @@ AI instruction files where the Blueprint Profile is written. Check in order, use
 | `.windsurfrules` | Windsurf |
 | `.aider.conf.yml` | Aider |
 
-None found: ask user which tool they use, then create appropriate file.
+None found: default — pick by host evidence: `.claude/` dir or `~/.claude` present → `CLAUDE.md`; `.cursor/` → `.cursor/rules/blueprint.md`; `.github/` with Copilot signals → `.github/copilot-instructions.md`; `.windsurf/`/`.devin/` → that rules directory; otherwise `AGENTS.md`. `--ask` → ask the user which tool they run first.
 
 ## Step 1: Stack Detection
 

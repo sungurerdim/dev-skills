@@ -6,14 +6,13 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **API Design** | API-01 to API-14 (1 CRITICAL, 7 HIGH, 3 MEDIUM, 3 LOW) | ~12 |
+| **API Design** | API-01 to API-20 (2 CRITICAL, 10 HIGH, 5 MEDIUM, 3 LOW) | ~12 |
 
 ---
 
 ## API Design
 
-### API-01 RESTful Resource Naming [HIGH]
-
+### API-01 [HIGH] RESTful Resource Naming
 **Detect:** Verb-based URL paths (`/getUsers`, `/createOrder`, `/deleteItem`, `/fetchProducts`).
 
 **Fix:** Rename to noun-based resource paths. Use HTTP methods for actions, plural nouns for collections.
@@ -36,12 +35,10 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 **Note (2026):** For complex parameterized reads that outgrow GET's URL limits, `POST`-as-safe-read was the historical workaround — the HTTP `QUERY` method ([RFC 10008](https://datatracker.ietf.org/doc/rfc10008/), June 2026; safe, idempotent, cacheable, with a request body) is now the standard replacement. Adopt where the framework/infrastructure supports it; OpenAPI 3.2 models it natively.
 
-**Source:** [Google API Design Guide](https://cloud.google.com/apis/design), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 2
-
+**Source:** [Google API Design Guide](https://cloud.google.com/apis/design)
 ---
 
-### API-02 Consistent Error Response [HIGH]
-
+### API-02 [HIGH] Consistent Error Response
 **Detect:** Different error shapes across endpoints (e.g., `{ message: "..." }` on one route, `{ error: "..." }` on another, raw strings on a third).
 
 **Fix:** Standardize all error responses to RFC 9457 Problem Details format:
@@ -68,12 +65,10 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 **Impact:** Clients parse one format. Monitoring tools detect errors reliably. `status` field in body must match HTTP status code.
 
-**Source:** [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 6
-
+**Source:** [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html)
 ---
 
-### API-03 API Versioning [HIGH]
-
+### API-03 [HIGH] API Versioning
 **Detect:** Endpoints with no version prefix, or mixed versioning strategies (some URL-based, some header-based).
 
 **Fix:** Use URI path versioning (`/v1/users`). One strategy, applied consistently.
@@ -88,12 +83,10 @@ Rules: Increment major version only for breaking changes. Support at least two m
 
 **Impact:** Prevents breaking existing clients on deploy. Enables parallel migration windows.
 
-**Source:** [Stripe API versioning](https://stripe.com/docs/api/versioning), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 4
-
+**Source:** [Stripe API versioning](https://stripe.com/docs/api/versioning)
 ---
 
-### API-04 Request Validation [HIGH]
-
+### API-04 [HIGH] Request Validation
 **Detect:** Endpoints that accept request bodies or query parameters without any schema validation at the API boundary (distinct from API-12, which covers mass assignment and client-trusted authorization state on endpoints that already have a schema).
 
 **Fix:** Add schema validation at entry point of every endpoint. Reject malformed input with 422 and descriptive errors.
@@ -109,12 +102,10 @@ Rules: Increment major version only for breaking changes. Support at least two m
 
 **Impact:** Prevents invalid data from reaching business logic or database. Reduces attack surface (injection, type confusion).
 
-**Source:** [OWASP Input Validation Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 8 (API4)
-
+**Source:** [OWASP Input Validation Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)
 ---
 
-### API-05 Rate Limiting [HIGH]
-
+### API-05 [HIGH] Rate Limiting
 **Detect:** Endpoints (especially public or auth-related) with no rate limiting middleware. Also: a limiter whose backing-store error is swallowed (`try`/`catch` around the check that continues on failure), a limiter with no test covering "store unavailable", and a documented limit whose failure behaviour is written down nowhere.
 
 **Fix:** Add per-endpoint or per-user rate limits. Return `429 Too Many Requests` with standard headers.
@@ -147,12 +138,10 @@ The `X-RateLimit-*` family is the de-facto convention. The IETF standardization 
 
 **Impact:** Protects against abuse, credential stuffing, and denial-of-service. Required by OWASP API Top 10 (API4: Unrestricted Resource Consumption).
 
-**Source:** [IETF RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), [Stripe rate limiters](https://stripe.com/blog/rate-limiters), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 7
-
+**Source:** [IETF RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), [Stripe rate limiters](https://stripe.com/blog/rate-limiters)
 ---
 
-### API-06 Cursor Pagination [MEDIUM]
-
+### API-06 [MEDIUM] Cursor Pagination
 **Detect:** Offset-based pagination (`?limit=20&offset=40`) on tables expected to exceed 10,000 rows or with real-time inserts.
 
 **Fix:** Switch to cursor-based pagination with consistent ordering.
@@ -167,12 +156,10 @@ Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at 
 
 **Impact:** Eliminates performance degradation on large, actively-written tables. Prevents duplicate or skipped rows in paginated results.
 
-**Source:** [Slack API pagination](https://api.slack.com/docs/pagination), [Zendesk cursor vs offset](https://developer.zendesk.com/documentation/api-basics/pagination/comparing-cursor-pagination-and-offset-pagination/), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 5
-
+**Source:** [Slack API pagination](https://api.slack.com/docs/pagination), [Zendesk cursor vs offset](https://developer.zendesk.com/documentation/api-basics/pagination/comparing-cursor-pagination-and-offset-pagination/)
 ---
 
-### API-07 Idempotency [MEDIUM]
-
+### API-07 [MEDIUM] Idempotency
 **Detect:** `POST` endpoints that create resources or trigger side effects without idempotency protection. Duplicate submissions create duplicate records.
 
 **Fix:** Accept `Idempotency-Key: <uuid>` header on non-idempotent mutation endpoints. Store key with response; return stored response on replay. Layering: hash the client-supplied key and namespace it per user before storage; treat the Idempotency-Key layer as an optional shield IN FRONT OF endpoint-specific server-side protections (unique constraints, state checks) — never as their replacement. (XR-194)
@@ -190,12 +177,10 @@ Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at 
 
 **Impact:** Enables safe client retries for network failures, especially critical for payment and order flows.
 
-**Source:** [Stripe Idempotent Requests](https://stripe.com/docs/api/idempotent_requests), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 2
-
+**Source:** [Stripe Idempotent Requests](https://stripe.com/docs/api/idempotent_requests)
 ---
 
-### API-08 OpenAPI Specification [MEDIUM]
-
+### API-08 [MEDIUM] OpenAPI Specification
 **Detect:** API project without `openapi.json` or `openapi.yaml`. Endpoints undocumented in machine-readable format.
 
 **Fix:** Generate from code annotations or write spec-first. Lint in CI.
@@ -214,12 +199,10 @@ Design-first (write YAML before code) produces cleaner contracts and enables fro
 
 **Impact:** Machine-readable API contracts enable code generation, automated testing, and accurate documentation.
 
-**Source:** [OpenAPI 3.1 Specification](https://swagger.io/specification/), [OpenAPI Best Practices](https://learn.openapis.org/best-practices.html), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 10
-
+**Source:** [OpenAPI 3.1 Specification](https://swagger.io/specification/), [OpenAPI Best Practices](https://learn.openapis.org/best-practices.html)
 ---
 
-### API-09 HATEOAS Links [LOW]
-
+### API-09 [LOW] HATEOAS Links
 **Detect:** API responses without navigation links. Clients must hard-code endpoint URLs.
 
 **Fix:** Add `_links` or `links` with `rel` types for discoverability:
@@ -240,12 +223,10 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 
 **Impact:** Reduces client-side URL construction. Enables API evolution without breaking existing consumers.
 
-**Source:** [Richardson Maturity Model Level 3](https://martinfowler.com/articles/richardsonMaturityModel.html), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 2
-
+**Source:** [Richardson Maturity Model Level 3](https://martinfowler.com/articles/richardsonMaturityModel.html)
 ---
 
-### API-10 GraphQL Best Practices [LOW]
-
+### API-10 [LOW] GraphQL Best Practices
 **Detect:** GraphQL endpoint without query depth limiting or complexity analysis. Resolvers without batching (N+1 queries).
 
 **Fix:** Add query complexity analysis and depth limiting. Use DataLoader for batched resolution.
@@ -267,10 +248,8 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 
 **Impact:** Prevents denial-of-service via deeply nested or expensive queries. Eliminates N+1 database access patterns in resolvers.
 
-**Source:** [Apollo GraphQL Best Practices](https://www.apollographql.com/docs/apollo-server/performance/), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Sections 1 and 8
-
-### API-11 SSRF Protection on URL Fetches [CRITICAL]
-
+**Source:** [Apollo GraphQL Best Practices](https://www.apollographql.com/docs/apollo-server/performance/)
+### API-11 [CRITICAL] SSRF Protection on URL Fetches
 **Detect:** Server-side fetch of a user-supplied URL (webhook, link preview, image/PDF proxy, "import from URL") without host validation. Search: `requests.get(`, `fetch(`, `axios.get(`, `http.get(`, `URL(` with a host taken from request input. Every agent in Tenzai's 2026 study introduced SSRF in a URL-preview feature (100% rate).
 
 **Fix:** Validate the target before fetching:
@@ -282,8 +261,7 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 
 **Source:** [CWE-918](https://cwe.mitre.org/data/definitions/918.html), [Tenzai 2026](https://blog.tenzai.com/bad-vibes-comparing-the-secure-coding-capabilities-of-popular-coding-agents/)
 
-### API-12 Mass Assignment & Client-Trusted State [HIGH]
-
+### API-12 [HIGH] Mass Assignment & Client-Trusted State
 Distinct from API-04 (which flags an endpoint with *no* schema validation at all): API-12 fires even when a schema exists, on two narrower failure modes that survive API-04 being fixed.
 
 **Detect:** Request body fields spread or bound directly onto a DB model/entity with no explicit allowlist of writable fields (mass assignment / overposting — e.g. `User.update(req.body)`, `Model(**request.json)`); authorization or role/permission state read from client-supplied input (a `role` or `isAdmin` field in the request body, a hidden form field) instead of re-derived server-side from the authenticated session.
@@ -296,8 +274,7 @@ Distinct from API-04 (which flags an endpoint with *no* schema validation at all
 
 ---
 
-### API-13 API Style Selection [LOW]
-
+### API-13 [LOW] API Style Selection
 **Detect:** API style adopted without evaluating client requirements — GraphQL introduced for a single-client API, or tRPC exposed as a public API.
 
 **Fix:** Default to REST; adopt an alternative only when its condition holds:
@@ -312,7 +289,7 @@ Distinct from API-04 (which flags an endpoint with *no* schema validation at all
 
 **Source:** [Fern API design guide (2026)](https://buildwithfern.com/post/api-design-best-practices-guide), [Complete guide to API design in 2026](https://dev.to/zny10289/the-complete-guide-to-api-design-in-2026-rest-graphql-and-trpc-in-production-4ib2), [API design trends 2026](https://calmops.com/backend/api-design-trends-2026/)
 
-### API-14 Long-Lived Connections Ship With a Stateless Fallback Transport [HIGH]
+### API-14 [HIGH] Long-Lived Connections Ship With a Stateless Fallback Transport
 Critical realtime updates delivered over a persistent connection (WebSocket/SSE) automatically fall back to stateless polling with exponential backoff.
 
 **Detect:** WS/SSE as the only delivery path for critical state; no automatic downgrade when the persistent connection dies; auth/permanent errors funneled into the same silent-retry loop as transient drops.
@@ -322,3 +299,61 @@ Critical realtime updates delivered over a persistent connection (WebSocket/SSE)
 **Impact:** Without fallback, users behind common mobile/corporate middleboxes see a permanently frozen app; with auth errors swallowed by retry, a revoked session spins silently instead of re-prompting login.
 
 **Source:** XR-077 — cross-project experience registry (2026).
+
+---
+
+### API-15 [CRITICAL] Broken Object-Level Authorization (BOLA)
+Complements AUTH-11 (rules-auth.md), which adds the cross-user regression-test methodology — this entry is the API-design-side detection surface for the same OWASP API1 risk.
+
+**Detect:** An endpoint that accepts an object ID in the path or body (`/orders/{id}`, `/users/{id}/invoices/{invoiceId}`) and fetches or mutates that object by ID alone, with no check that the authenticated caller owns or is authorized for that specific instance — only role/authentication is verified, not object-level ownership. Applies to GET/PUT/PATCH/DELETE alike, not just writes.
+
+**Fix:** On every object-scoped endpoint, verify the authenticated caller is authorized for THIS object instance before returning or mutating it — a scoped query (`WHERE id = ? AND user_id = ?` instead of `WHERE id = ?`), an ownership check, or an ACL lookup. Never rely on the ID being "hard to guess" as the only control.
+
+**Impact:** BOLA has held the #1 OWASP API risk spot since 2019 and accounts for roughly 40% of API attacks — an authenticated-but-unauthorized caller can enumerate IDs and read or modify any other user's data.
+
+**Source:** [OWASP API Security Top 10 2023 — API1 Broken Object Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/)
+
+### API-16 [HIGH] Middleware Ordering
+**Detect:** Security-relevant middleware registered out of order — authorization checks before authentication runs, rate limiting after the expensive handler instead of before it, security headers missing or applied only on error paths, request logging that doesn't capture the identity attached by auth.
+
+**Fix:** Apply the standard order: CORS → security headers (HSTS, `X-Content-Type-Options`, etc.) → request-ID injection → structured request logging → body parsing/content negotiation → authentication (verify token/key, attach identity) → rate limiting (per identity or IP) → authorization (check permissions for the route) → route handler → error handler (formats thrown errors to RFC 9457).
+
+**Impact:** Authorization before authentication checks permissions against an unverified identity; rate limiting after the handler lets abusive traffic pay the handler's full cost before being rejected — misordering silently defeats the control it appears to provide.
+
+**Source:** [OWASP REST Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html), [Express.js — Using middleware](https://expressjs.com/en/guide/using-middleware.html)
+
+### API-17 [MEDIUM] Structured Request Logging & Correlation ID
+**Detect:** Request logs as unstructured strings (`console.log`, `print`) instead of a consistent schema; no request-scoped correlation ID propagated to the client and echoed in error responses.
+
+**Fix:** Log every request with a consistent structured schema (`request_id`, `method`, `path`, `status`, `duration_ms`, `user_id` when authenticated). Generate or propagate a request ID and return it as `X-Request-ID` on every response so clients can correlate reports with server logs.
+
+**Impact:** Without a correlation ID, reproducing a user-reported failure means grepping logs by timestamp and guesswork instead of one exact-match lookup — incident response and support both slow down.
+
+**Source:** [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
+
+### API-18 [HIGH] Unrestricted Resource Consumption Limits
+**Detect:** No enforced maximum on request body size, list/page size (`?limit=`), array length in request payloads, or per-request timeout — distinct from API-05 (request rate limiting), which bounds frequency, not payload or execution cost.
+
+**Fix:** Enforce a maximum body size at the framework/proxy layer, cap `limit`/`page_size` query parameters server-side regardless of what the client requests, bound array/batch sizes in mutation payloads, and set a request timeout on every handler and outbound call.
+
+**Impact:** Even a rate-limited endpoint can be starved by a single oversized request (huge body, unbounded page size, or a batch array with no cap) — resource-consumption limits close the gap rate limiting alone leaves open.
+
+**Source:** [OWASP API Security Top 10 2023 — API4 Unrestricted Resource Consumption](https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/)
+
+### API-19 [HIGH] Security Misconfiguration
+**Detect:** Stack traces or internal error detail returned in production API responses; CORS configured with a wildcard origin (`Access-Control-Allow-Origin: *`) combined with `Access-Control-Allow-Credentials: true`; debug/introspection endpoints (framework debug mode, admin panels, GraphQL introspection) reachable without authentication in a production deployment.
+
+**Fix:** Strip stack traces and internal detail from error responses outside local development (RFC 9457 `detail` field states the problem, never the exception dump). Scope CORS to an explicit origin allowlist — never combine a wildcard origin with credentialed requests. Gate debug endpoints and introspection behind authentication or disable them entirely in production.
+
+**Impact:** A stack trace discloses file paths, library versions, and query structure to an attacker for free; wildcard CORS plus credentials lets any origin make authenticated requests on a logged-in user's behalf; an open debug/admin endpoint is a direct foothold.
+
+**Source:** [OWASP API Security Top 10 2023 — API8 Security Misconfiguration](https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/)
+
+### API-20 [MEDIUM] Unsafe Consumption of Third-Party APIs
+**Detect:** Responses from third-party APIs, webhooks, or partner integrations consumed without validation — fields used directly in queries, file paths, or rendered output; webhook payloads trusted without signature verification; a third-party redirect or URL followed without the same host-validation applied to user input (API-11).
+
+**Fix:** Treat every third-party response as untrusted input: validate its shape against a schema before use, verify webhook signatures before processing the payload, and apply the same injection/SSRF defenses used for user input (parameterized queries, output encoding, host allowlisting).
+
+**Impact:** Third-party integrations are often granted more implicit trust than user input despite being an equally attacker-influenced channel — a compromised or spoofed upstream (fake webhook, malicious redirect, poisoned API response) reaches the same code paths a direct attack would use.
+
+**Source:** [OWASP API Security Top 10 2023 — API10 Unsafe Consumption of APIs](https://owasp.org/API-Security/editions/2023/en/0xaa-unsafe-consumption-of-apis/)

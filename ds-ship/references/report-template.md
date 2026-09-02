@@ -22,16 +22,16 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 - Sequence gaps: {n} ({0 if none — a pre-launch/launched run with n > 0 cannot report Ship-ready: yes})
 - Doc token reduction: {before} → {after} ({%})
 - Security baseline ([../../core/principles.md](../../core/principles.md) §5): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
-- PR: {url} | declined-this-run | not-applicable ({reason}) | muted
-- Tracking: {n} filed ({refs}) | declined-this-run | not-applicable (0 unresolved) | muted
+- PR: {url} | declined-this-run | not applicable ({reason}) | muted
+- Tracking: {n} filed ({refs}) | declined-this-run | not applicable (0 unresolved) | muted
 
 ## Sequence
 | Skill | Status | Reason / signal | Findings (A / B) |
 |-------|--------|-----------------|------------------|
 | ds-blueprint | ran | findings absent | 12 / 3 |
-| ds-launch | mode-excluded | mode=harden | — |
-| ds-productize | signal-absent — billing=none | | — |
-Status vocabulary: `ran` · `mode-excluded` · `signal-absent — {key}={value}` · `project-type-exclusivity` · `user-trimmed` · `failed` · `missing-skill`. Every candidate skill appears exactly once.
+| ds-launch | skipped — not part of this mode | mode=harden | — |
+| ds-productize | skipped — no billing signal (billing=none) | | — |
+Status vocabulary: `ran` · `skipped — not part of this mode` · `skipped — no signal ({key}={value})` · `skipped — another skill owns it for this project type` · `skipped — removed by you` · `failed` · `skipped — not installed`. Every candidate skill appears exactly once.
 
 ## Missing skills
 | Skill | Would have covered | Signal that justified it |
@@ -106,5 +106,5 @@ Every human-required finding that fails the mandated-blocker test (mandated-bloc
 | D10 | {audited | owner-skipped | unowned} | ds-backend + ds-frontend + ds-deploy + ds-docs |
 | E | N/A (carrier) | ds-ship, ds-pipeline, etc. | Process carriers — not quality dimensions |
 
-Status values: `audited` (skill ran and produced findings), `mode-excluded` (its leg is outside this run's mode), `owner-skipped: {reason}` (skill exists but was not invoked — the reason MUST cite the concrete Phase 0 signal or rule that justified it, e.g. `owner-skipped: monetization=internal, no billing surface detected (Phase 0 step 8)` — a bare `owner-skipped` with no cited reason is not a valid status; resolve it to `audited` (run the skill) or `unowned` (flag) before reporting), `unowned` (no skill claims this dimension). ⚠️ Unowned dimensions MUST be flagged with an explicit warning prefix in the report summary. A general impression ("looks fine", "not needed here") is never a substitute for a cited signal — every non-`audited` status traces to something read this run (a file, a Phase 0 answer, a rule name), never to overall judgment alone.
+Status values: `audited` (skill ran and produced findings), `skipped — not part of this mode` (its leg is outside this run's mode), `owner-skipped: {reason}` (skill exists but was not invoked — the reason MUST cite the concrete Phase 0 signal or rule that justified it, e.g. `owner-skipped: monetization=internal, no billing surface detected (Phase 0 step 8)` — a bare `owner-skipped` with no cited reason is not a valid status; resolve it to `audited` (run the skill) or `unowned` (flag) before reporting), `unowned` (no skill claims this dimension). ⚠️ Unowned dimensions MUST be flagged with an explicit warning prefix in the report summary. A general impression ("looks fine", "not needed here") is never a substitute for a cited signal — every non-`audited` status traces to something read this run (a file, a Phase 0 answer, a rule name), never to overall judgment alone.
 ```

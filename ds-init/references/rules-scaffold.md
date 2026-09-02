@@ -8,6 +8,8 @@ Rules for initial project structure, configuration, and tooling setup. Each rule
 |---------|-------|------|
 | **Structure** | SCF-01–04 (2 HIGH, 2 MEDIUM) | ~12 |
 | **Configuration** | SCF-05–10 (3 HIGH, 1 MEDIUM, 2 LOW) | ~58 |
+| **Stack Scaffold Commands** | reference table (Phase 3, `--stack`) | ~140 |
+| **Generation Detail** | reference (Phase 3 steps 5-6) | ~160 |
 
 ---
 
@@ -135,3 +137,46 @@ Projects built with AI coding agents check project-level agent skills into the r
 - **Fix:** Scaffold `.claude/skills/` (or `.agents/skills/`) with a README stub when the user confirms AI-assisted development; commit project-level skills there so the whole team shares them
 - **Impact:** Skills kept only in individual dotfiles never reach teammates or CI, so the same AI-assisted conventions get reinvented — or silently violated — per developer instead of shared once.
 - **Source:** [Superpowers marketplace guide (2026)](https://pasqualepillitteri.it/en/news/215/superpowers-claude-code-complete-guide), Developers Digest 2026 skills directory
+
+---
+
+## Stack Scaffold Commands
+
+Detection signal, init command, and gate command chain per `--stack` value (SKILL.md Phase 3). Format/lint/type/test tool choice within each chain follows [../../core/toolchains.md](../../core/toolchains.md); an existing config or lockfile entry always wins over these defaults.
+
+| Stack | Detection Signal | Init Command | Gate Command Chain |
+|-------|-------------------|---------------|---------------------|
+| next | `next` in package.json, or user selects | `npx create-next-app@latest` | `npx prettier --check . && npx eslint . && npx tsc --noEmit && npm test` |
+| react | `react` + `vite`/`react-scripts` in package.json, or user selects | `npm create vite@latest -- --template react-ts` | `npx prettier --check . && npx eslint . && npx tsc --noEmit && npm test` |
+| vue | `vue` in package.json, or user selects | `npm create vue@latest` | `npx prettier --check . && npx eslint . && npx vue-tsc --noEmit && npm test` |
+| svelte | `svelte` in package.json, or user selects | `npx sv create` | `npx prettier --check . && npx eslint . && npx svelte-check && npm test` |
+| astro | `astro.config.mjs`/`.ts`, `astro` in package.json, or user selects | `npm create astro@latest` | `npx astro check && npx eslint . && npm test` |
+| flutter | `pubspec.yaml` with `flutter:`, or user selects | `flutter create .` | `dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test` |
+| expo | `app.json`/`app.config.js` with an `expo` key, `expo` in package.json, or user selects | `npx create-expo-app@latest` | `npx expo-doctor && npx tsc --noEmit && npm test` |
+| fastapi | `fastapi` in requirements/pyproject, or user selects | `uv init` (adds `fastapi` + `uvicorn` next) | `ruff format --check . && ruff check . && pyright && pytest -q` |
+| express | `express` in package.json, or user selects | `npm init -y && npm install express` | `npx prettier --check . && npx eslint . && npx tsc --noEmit && npm test` |
+| hono | `hono` in package.json, or user selects | `npm create hono@latest` | `npx prettier --check . && npx eslint . && npx tsc --noEmit && npm test` |
+| bun | `bun.lock`/`bun.lockb`/`bunfig.toml`, or user selects | `bun init -y` | `npx biome check . && bunx tsc --noEmit && bun test` |
+| go | `go.mod`, or user selects | `go mod init {module}` | `test -z "$(gofmt -l .)" && go vet ./... && go build ./... && go test ./...` |
+| rust | `Cargo.toml`, or user selects | `cargo init` | `cargo fmt --check && cargo clippy -- -D warnings && cargo check && cargo test` |
+
+**Bun, Hono, Astro, Expo notes:** Bun is both a package manager (detected via lockfile per `../../core/toolchains.md`) and, under `--stack=bun`, a standalone runtime project scaffolded by `bun init`. Hono targets multiple runtimes (Node, Bun, Cloudflare Workers, Deno) — `create-hono` prompts for the target; the gate chain above assumes the Node/TS default, substitute `bun test` when the Bun target is chosen. Astro's `astro check` is the framework's own type/diagnostic checker, run ahead of the generic TypeScript check. Expo's `expo-doctor` is the framework's own project-health checker; Expo/React Native projects default to Jest, so `npm test` resolves to `jest` once scaffolded.
+
+---
+
+## Generation Detail
+
+Exact shape of the CI workflow and Docker files SKILL.md Phase 3 generates (steps 5-6).
+
+**CI workflow** `[--full]`:
+- Lint → Test → Build pipeline with `permissions: { contents: read }` and a `concurrency` group
+- Branch protection suggestions
+- Cache configuration for deps (setup-node cache, actions/cache)
+- Release workflow with release-please
+- SHA-pin every third-party action (`actions/checkout@<40-char-sha>`) — supply chain mitigation per [../../core/principles.md §5](../../core/principles.md). Tag references like `@v4` MUST NOT appear in generated workflows.
+
+**Docker files** (if `--full` or API/web type):
+- `Dockerfile`: multi-stage build, non-root `USER`, `HEALTHCHECK`
+- `.dockerignore`: minimum `.git`, `node_modules`, `.env*`, `.vscode`, `coverage`, `tests`, `*.md`
+- `docker-compose.yml` for local development
+- `docker-compose.prod.yml` (if `--full`): `restart: unless-stopped`, resource limits, `127.0.0.1` port binding, log rotation

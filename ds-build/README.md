@@ -32,13 +32,13 @@ Any Agent Skills host: `./install.sh --target <that host's skills dir>` (ships `
 4. Execute + verify each — regression test seen red first, implement, signal green, commit per unit
 5. Aggregate gate — full check once, gates vs baseline, diff in scope
 6. Close — evidence written into the issue body / task ticks / outcome report
-7. Summary — units done/blocked/reverted, verify-echo, needs-human items in full
+7. Summary — units done/blocked/reverted, verify-echo, only you can do items in full
 
 ## Features
 
 - **Three sources, one loop** — GitHub issue, tasks.md, plain request all run the shared execution loop in `core/execution-loop.md`
 - **Red proof** — a fix without a test that was observed failing first is not done
 - **Budgeted backtracking** — ≤3 attempts per approach, ≤3 approaches per unit, every failure records its root cause
-- **Checkpoint + revert per unit** — never a tree-wide reset; dirty paths the plan would touch become `needs-human`
+- **Checkpoint + revert per unit** — never a tree-wide reset; dirty paths the plan would touch become `only you can do`
 - **Mechanical Done Gate** — the project's own check chain (or the ds-quality arm) decides "done", not the model
 - **Publishing stays human** — commits are local; push, PR, tag, release are reported with the exact command

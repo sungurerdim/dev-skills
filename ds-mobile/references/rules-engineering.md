@@ -6,12 +6,25 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Architecture & Code Quality** | ARC-01–10 (9 HIGH, 1 LOW) | ~12 |
+| **Architecture & Code Quality** | ARC-01–12 (10 HIGH, 1 MEDIUM, 1 LOW) | ~12 |
 | **Testing** | TST-01–06 (6 HIGH) | ~100 |
 | **Performance** | PRF-01–10 (9 HIGH, 1 MEDIUM) | ~160 |
 | **Network & Data** | NET-01–07 (1 CRITICAL, 6 HIGH) | ~250 |
 | **Internationalization & Logging** | DEV-01–05 (5 HIGH) | ~300 |
 | **Hybrid & WebView Bridge** (conditional) | HYB-01–04 (1 CRITICAL, 2 HIGH, 1 MEDIUM) | ~345 |
+| **Scan-Time Cross-Cutting Checks** | reference (SKILL.md Phase 4) | ~17 |
+
+---
+
+## Scan-Time Cross-Cutting Checks
+
+Applied during Phase 4 Scan alongside the ARC/HYB/NET rules below — these are cross-rule principle applications, not individually numbered.
+
+**arch scope mandatory checks** ([../../core/principles.md §2](../../core/principles.md)): widget/screen/view-model/repository layers vs SOLID — SRP (widget changes for >1 reason: UI + state + I/O), OCP, LSP (subtype violates parent navigation contract), ISP (unused lifecycle hooks), DIP (UI imports concrete platform-channel instead of abstraction) — and GRASP: Information Expert, Low Coupling (>7 unrelated peer imports), High Cohesion. Cite principle by name.
+
+**arch scope hybrid checks** [hybrid shell detected]: run HYB-01–04 (§ Hybrid & WebView Bridge below) — WebView origin/bridge exposure in the committed `capacitor.config.*`, plugin dead-load audit (every plugin needs a consumer, searched repo-wide — a scoped search misses root entry files), the web-build → `cap sync` → native-build chain, and native behaviors the WebView doesn't supply. Not hybrid → skip silently.
+
+**network + perf scope reliability checks** ([../../core/principles.md §4](../../core/principles.md)): flag missing — timeout on every API call, retry-with-backoff on transient failures, offline/slow-network degradation, app-lifecycle handlers (background→foreground), idempotency keys on payment/order/write endpoints, logging surviving restart, fail-fast validation at every boundary (deep links, push, intent extras).
 
 ---
 
@@ -113,6 +126,20 @@ Cyclomatic complexity <= 15. Method <= 50 lines. Nesting <= 3. Parameters <= 4.
 - **Fix:** Extract methods. Early returns. Parameter objects. Composed functions
 - **Impact:** High-complexity functions are the ones bugs hide in and the ones new contributors are afraid to touch — complexity growth compounds review and onboarding cost over time.
 - **Source:** DCM, SonarQube
+
+### ARC-11 [HIGH] Feature-First Directory Structure
+Organize by feature, not by technical layer, at the top level.
+- **Detect:** Top-level directories split by technical layer only (a global `models/`, `services/`, `screens/`) rather than by feature. A new feature's files scattered across 4+ top-level directories instead of one feature folder.
+- **Fix:** Adopt `lib/features/{feature_name}/{data,domain,presentation,widgets}/` — each feature owns its own data/domain/presentation/widgets subtree; shared code lives in a `core/`/`shared/` module. 80%+ of surveyed production Flutter apps use this shape.
+- **Impact:** Layer-first structure means adding or removing one feature touches files scattered across the whole tree; feature-first isolates that change to one directory, and deleting a feature means deleting one folder instead of a cross-cutting search.
+- **Source:** [Flutter App Architecture Guide](https://docs.flutter.dev/app-architecture)
+
+### ARC-12 [MEDIUM] Two-Layer API Client: Raw Transport Separated From Consumer-Facing Helper
+A low-level API client (endpoints, serialization, transport) is wrapped by a separate, higher-level helper that the rest of the app actually calls.
+- **Detect:** Screens/view-models calling a raw HTTP/generated-client method directly, with response-shaping, pagination, or retry logic duplicated at each call site. A single class doing both wire-level request construction and app-facing convenience methods.
+- **Fix:** Split into a raw client (thin wrapper over the endpoints, one method per endpoint, minimal logic) and a helper/facade layer (composes raw-client calls, shapes responses for the UI, owns pagination/retry) — only the helper is imported outside the data layer.
+- **Impact:** Without the split, a transport-level change (new auth header, retry policy, pagination cursor format) requires editing every call site instead of one helper; the split keeps that change to the helper layer alone.
+- **Source:** [Flutter App Architecture Guide](https://docs.flutter.dev/app-architecture) — data-layer service/repository separation
 
 ---
 

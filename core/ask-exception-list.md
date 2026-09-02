@@ -2,7 +2,7 @@
 
 **Consumers:** every `ds-*` skill (default autonomous mode); orchestrators forward it unchanged to delegates.
 
-Skills run autonomously by default: every decision point resolves by best judgment against the evidence gathered (findings, code, profile, prior art in the repo), and the summary records what was decided and why. `--ask` restores the interactive flow at every decision point. **The list below is the only thing a default run does not decide** — each item is skipped, recorded `needs-human` with the concrete action needed, and never executed blind.
+Skills run autonomously by default: every decision point resolves by best judgment against the evidence gathered (findings, code, profile, prior art in the repo), and the summary records what was decided and why. `--ask` restores the interactive flow at every decision point. **The list below is the only thing a default run does not decide** — each item is skipped, recorded `only you can do` with the concrete action needed, and never executed blind.
 
 ## (a) Irreversible — no rollback path exists
 

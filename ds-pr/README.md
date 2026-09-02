@@ -33,12 +33,12 @@ Run `/ds-pr`, or ask to open a pull request.
 3. Quality gates: format, lint, test (PR's changed files only)
 4. Analyze net diff → conventional commit type classification
 5. Review the prepared title + body + version annotation
-6. Push and Create — each recorded `needs-human` by default, confirmed under `--ask`
+6. Push and Create — each recorded `only you can do` by default, confirmed under `--ask`
 
 ## Features
 
 - **History tidy** — collapses WIP commits before publishing
 - **Net diff principle** — PR describes final state, not development journey
 - **Quality gates** — format + lint + test on changed files before preparing the PR
-- **Push and PR-create are needs-human by default** — publishing is never silent; `--ask` confirms and runs both
+- **Push and PR-create are only you can do by default** — publishing is never silent; `--ask` confirms and runs both
 - **Version annotation** — shows bump effect (feat → minor, fix → patch)

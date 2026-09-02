@@ -5,7 +5,7 @@ description: Security and regulatory compliance — OWASP, privacy laws, data pr
 
 # /ds-compliance
 
-Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 142 rules across 9 compliance domains with file:line precision.
+Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 158 rules across 9 compliance domains with file:line precision.
 
 **Security & Regulatory Compliance** — OWASP security, privacy laws, data protection, web security, and internationalization.
 
@@ -13,12 +13,7 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 
 ## Triggers
 
-- User runs `/ds-compliance`
-- User asks about GDPR, KVKK, CCPA, HIPAA, or other regulatory compliance
-- User asks to check for security vulnerabilities, secrets, or injection risks
-- User asks about privacy, data protection, or consent requirements
-- User asks about CSP, CORS, XSS, CSRF, or web security
-- User asks about internationalization compliance
+- User runs `/ds-compliance`, or asks about GDPR/KVKK/CCPA/HIPAA or other regulatory compliance, security vulnerabilities/secrets/injection risks, privacy/data-protection/consent, CSP/CORS/XSS/CSRF, or internationalization compliance
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -33,14 +28,14 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 ## Contract
 
 **Dimensions:** C1 (canonical), C2 (canonical, conditional messaging), C3 (regulatory), A7 (regulatory), A8 (rules), A9 (conditional ecosystem rules), A11 (portability crosscheck)
-**Framework alignment (advisory):** OWASP ASVS 5.0.0 (C1), OWASP SAMM (C2). Tool-derived security findings carry the tool's own ASVS version tag (OSS DAST tools still emit 4.0.3-tagged results — never present them as ASVS 5.0 coverage).
+**Framework alignment (advisory):** OWASP ASVS 5.0.0 (C1), OWASP SAMM (C2). Tool-derived findings carry the tool's own ASVS version tag (OSS DAST tools still emit 4.0.3 — never claim ASVS 5.0 coverage from them).
 
 - Every finding cites file:line — never infer. Unverifiable rules skipped, not guessed. Only audits compliance; code fixes are CAT-1 (auto) or CAT-2 (approval).
 - Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
 - State-exempt: single regenerable report/audit.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
-- **Mobile-project overlap (overlap rule, runtime enforcement):** When project signals mobile (`pubspec.yaml` with `flutter:`, `package.json` with `react-native`, `*.xcodeproj`, or `build.gradle` with `android {}`): `/ds-mobile` present → delegate security/privacy/regulatory to it (mobile-authoritative), default-skip those scopes locally, announce "Mobile project detected — security/privacy/regulatory delegated to /ds-mobile". `/ds-mobile` absent → run the mobile-relevant security/privacy/regulatory checks inline (Phase 1 step 6) instead of dropping the three scopes, announce "Mobile project detected, /ds-mobile absent — security/privacy/regulatory audited inline". Override either path with `--scope=security,privacy,regulatory`.
+- **Mobile-project overlap:** mobile signals (`pubspec.yaml` flutter / `react-native` dep / `*.xcodeproj` / `android {}`) route security/privacy/regulatory per Phase 1 step 6 — `/ds-mobile` present → delegated (mobile-authoritative, default-skip locally); absent → audited inline. Override either path with `--scope=security,privacy,regulatory`.
 
 ## Arguments
 
@@ -50,23 +45,13 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 | `--scope={list}` | security, privacy, regulatory, web, network, arch, perf, a11y, i18n, or `all` |
 | `--type={t}` | Override auto-detection: `web`, `api`, `cli`, `library` |
 | `--secrets-migrate` | Rotation / vault migration walkthrough for hardcoded secrets — always asks per secret (Secrets Migrate Mode), `--ask` or not |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
-Default: no disambiguating flag resolves to `--mode=audit` (recommended), recorded in the summary. `--ask` with no disambiguating flag: present mode selection.
+Default: no disambiguating flag resolves to `--mode=audit` (recommended), recorded in the summary. `--ask`: present mode selection.
 
 ### Secrets Migrate Mode (`--secrets-migrate`)
 
-Per hardcoded secret detected in security scope:
-
-1. **Surface** — file:line, redacted fragment (first 4 chars + `***`), kind (API key / token / password / webhook URL / etc.).
-2. **Ask per secret:**
-   - **Rotate first?** Exposed in git history? `Yes` → require rotation before vault migration; propose provider-specific path ({provider-rotation-flow}: e.g. AWS IAM, Stripe dashboard, GitHub token settings).
-   - **Destination vault?** `env (local)` / `.env.example + CI secret store` / `HashiCorp Vault` / `AWS Secrets Manager` / `GCP Secret Manager` / `Azure Key Vault` / `cloud provider native` / `other`.
-   - **Migration path?** Show replacement snippet: `const {var} = process.env.{ENV_KEY}` (or stack equivalent) + config file update (`.env.example` entry, CI secret declaration).
-3. **Apply** — replace hardcoded with reference, add `.env.example` placeholder entry, README line pointing at vault, and (if `gh` supported) add GitHub Action secret with blank value for user to populate.
-4. **Git history** — secret ever committed → propose `git-filter-repo` surgery as Category B. Autonomous history rewrite is forbidden.
-
-Every secret is its own needs-approval item, and secret rotation/migration matches the publish/irreversible exception list (rotating/transmitting a real credential) — never decided automatically, default or `--ask`. Every run lists each secret and marks it `skipped (needs-human)` until the human acts.
+Full walkthrough (per-secret surface/rotate/vault/apply/git-history steps): [references/scopes-conditional.md](references/scopes-conditional.md) § Secrets Migrate Mode. Every secret is its own needs-approval item and matches the publish/irreversible exception list (rotating/transmitting a real credential) — never decided automatically, default or `--ask`; each stays `skipped (only you can do)` until the human acts.
 
 ## Scopes
 
@@ -98,25 +83,14 @@ Every secret is its own needs-approval item, and secret rotation/migration match
 
 **Owns:** regulatory, privacy (canonical — GDPR / KVKK / CCPA / etc.), a11y-regulatory-framing (ADA / EN301549 mapping), security-regulatory, i18n, secrets-migrate (`--secrets-migrate`) | **Delegates:** ds-mobile → security/privacy/regulatory when mobile detected (`pubspec.yaml` / `Info.plist` / `AndroidManifest.xml`); ds-frontend → a11y implementation + fixes | **Receives:** ds-launch → canonical privacy for store labels; ds-ship → Phase 2 regulatory pass; ds-productize → subscription-law + privacy canonical audit
 
-### Transactional Messaging (conditional)
+### Conditional scopes
 
-**Activate when:** messaging SDK/provider dependency, a consent field in the schema, or reminder-scheduling code is detected — those three signals are the whole activation contract, evaluated here. Zero checks when absent. ds-blueprint installed alongside → its `references/detection.md` § Step 5 carries the fuller provider-signal catalog; absent → the three signals above stand alone, no capability lost.
+| Scope | Reference | Loaded when |
+|-------|-----------|-------------|
+| transactional-messaging | [references/scopes-conditional.md](references/scopes-conditional.md) § Transactional Messaging | messaging SDK/provider dependency, a consent field in the schema, or reminder-scheduling code detected |
+| ecosystem-rules (A9) | [references/scopes-conditional.md](references/scopes-conditional.md) § A9 — Google / Apple Ecosystem Rules | blueprint profile `Integrations` = `google-workspace` or `apple-ecosystem` |
 
-| Check | Rule |
-|-------|------|
-| Consent capture | Explicit opt-in recorded per channel (SMS/WhatsApp/email/push) with timestamp, distinct from general account creation |
-| Lawful basis | Transactional-only messages (appointment reminders, receipts) map to legitimate interest/contract performance; marketing content in the same channel requires separate consent (KVKK Art. 5, GDPR Art. 6) |
-| Opt-out mechanism | STOP/unsubscribe honored within the regulation-mandated window (immediate for SMS per most carrier rules) |
-| Provider disclosure | Privacy policy names the messaging provider(s) and what data is shared (phone number, message content) — cross-ref PRV-15 Data Processing Agreement |
-
-### A9 — Google / Apple Ecosystem Rules (conditional)
-
-**Activate when:** blueprint profile `Integrations` field is `google-workspace` or `apple-ecosystem`. Zero checks when absent.
-
-| Provider | Rule | Scope |
-|----------|------|-------|
-| Google | Google API Limited Use policy compliance — data from restricted scopes cannot be transferred to AI/ads/analytics | privacy |
-| Google | Data-disclosure label ↔ API usage consistency — every declared data type collected via Google APIs matches the actual scope usage | privacy |
+Zero-cost when absent.
 
 ## Execution Flow
 
@@ -134,13 +108,13 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 3. **Stack detection.** Framework, language, architecture pattern, auth, DB, ORM, API style, testing, CI/CD, i18n, deployment.
 
-4. **Mode selection.** No `--mode` → present a menu covering every mode, each with a one-line what-it-does: Audit Only (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / (Cancel). A disambiguating flag (e.g. `--mode`, `--secrets-migrate`) skips the menu.
+4. **Mode selection.** No `--mode` → present a menu of every mode: Audit Only (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / (Cancel). A disambiguating flag (e.g. `--mode`, `--secrets-migrate`) skips the menu.
 
 5. **Scope selection.** Default: all applicable domains, and regulatory frameworks detected from codebase patterns (GDPR, KVKK, CCPA, etc.) apply without confirmation. `--ask`, no `--scope`: ask which domains; confirm the detected regulatory frameworks.
 
 6. **Overlap routing (runtime enforcement of the overlap rules):**
-   - **Mobile project detected** (`pubspec.yaml` with `flutter:` OR `Info.plist` OR `AndroidManifest.xml`) → `/ds-mobile` present → invoke `/ds-mobile --scope=security,privacy,regulatory`, wait for completion, read its `ds/audit/findings.md` updates, remove `security/privacy/regulatory` from active scope; keep only non-mobile-covered scopes (a11y, i18n, web, network, perf, arch) locally (ds-mobile authoritative; running both duplicates findings). `/ds-mobile` absent → keep `security/privacy/regulatory` active and run them here: load [rules-compliance.md](references/rules-compliance.md) as usual, plus the mobile-specific surfaces those rules don't already cover — platform manifest permissions (`AndroidManifest.xml` uses-permission list, `Info.plist` usage-description keys) against declared feature use, mobile secure-storage APIs (Keychain/Keystore) for credential handling, and store privacy-label consistency (PRV-18 crosscheck); gap-note "deeper mobile-specific coverage (13-domain release audit) requires /ds-mobile" so the reduced depth is visible, never silent.
-   - **a11y scope active + project has frontend** (framework detected in `package.json` / equivalent) → `/ds-frontend` present → announce delegation: "a11y implementation + fixes delegated to /ds-frontend. This run keeps regulatory framing only (ADA / EN301549 mapping)." Mark a11y `framing-only`; emit only regulatory-mapping findings. `/ds-frontend` absent → keep the full a11y scope here: audit and CAT-1-fix directly from [rules-a11y.md](references/rules-a11y.md) (A11Y-01–08) in addition to the regulatory-mapping findings; gap-note "deeper design-system a11y coverage requires /ds-frontend".
+   - **Mobile project detected** (`pubspec.yaml` with `flutter:` OR `Info.plist` OR `AndroidManifest.xml`) → `/ds-mobile` present → invoke `/ds-mobile --scope=security,privacy,regulatory`, wait for completion, read its `ds/audit/findings.md` updates, remove `security/privacy/regulatory` from active scope; keep only non-mobile-covered scopes (a11y, i18n, web, network, perf, arch) locally (ds-mobile authoritative; running both duplicates findings). `/ds-mobile` absent → keep `security/privacy/regulatory` active; load [rules-compliance.md](references/rules-compliance.md) as usual plus [references/scopes-conditional.md](references/scopes-conditional.md) § Mobile-Fallback Checks; gap-note "deeper mobile-specific coverage (13-domain release audit) requires /ds-mobile" so the reduced depth is visible, never silent.
+   - **a11y scope active + project has frontend** (framework detected in `package.json` / equivalent) → `/ds-frontend` present → announce "a11y delegated to /ds-frontend; this run keeps regulatory framing only (ADA/EN301549)." Mark a11y `framing-only`; emit only regulatory-mapping findings. `/ds-frontend` absent → audit and CAT-1-fix the full a11y scope directly from [rules-a11y.md](references/rules-a11y.md) (A11Y-01–08) plus the regulatory-mapping findings; gap-note "deeper design-system a11y coverage requires /ds-frontend".
    - **Privacy scope active** → canonical owner. Announce: "/ds-launch --privacy narrows to store-label-correctness. This run emits canonical privacy findings, including event-property PII scanning."
 
 **Gate:** Project type identified; mode + scope confirmed; regulatory frameworks resolved; overlap routing applied. If fails → type undetected + no `--type` response → default `web`, announce, proceed; regulatory ambiguous after detection → default: apply the best-guess framework(s) from detected signals (audience, data locality, stack) and record the assumption in the summary; `--ask`: present detected signals, require explicit framework selection before proceeding.
@@ -183,7 +157,7 @@ Per in-scope domain:
 2. Search contents for violation patterns.
 3. Read files to verify findings in context.
 4. Skip rules that cannot be verified.
-5. **Defense-in-depth check** (core principles §5, [../core/principles.md](../core/principles.md)): flag when only one control layer is detected for a sensitive operation (e.g. input validation present but no output encoding AND no auth layer). Single-control reliance is itself a finding regardless of how strong that control is.
+5. **Defense-in-depth check** ([../core/principles.md](../core/principles.md) §5): flag a sensitive operation backed by only one control layer (e.g. input validation with no output encoding and no auth layer) — single-control reliance is itself a finding regardless of that control's strength.
 
 **Confidence:** HIGH = match + context verified. MEDIUM = pattern, ambiguous. LOW = heuristic.
 
@@ -219,7 +193,7 @@ Architecture: {detected-summary}
 
 ### Phase 6: Fix [SKIP if audit-only]
 
-**Checkpoint pre-step (before the first fix is written,** [core checkpoint protocol](../core/checkpoint-protocol.md)**):** `git status --porcelain` → empty → proceed. Non-empty and disjoint from this run's planned writes → proceed, list the dirty paths as untouched. Non-empty and a planned fix touches a dirty path → default: mark that fix `skipped (needs-human)`, continue with disjoint fixes. `--ask`: show the dirty files, ask Commit first (recommended) / Stash / Proceed anyway (the mechanical-gate revert path `git checkout -- {file}` also discards pre-existing edits in that file). Never run a bulk fix over uncommitted unrelated changes silently.
+**Checkpoint pre-step (before the first fix is written,** [core checkpoint protocol](../core/checkpoint-protocol.md)**):** `git status --porcelain` → empty → proceed. Non-empty and disjoint from this run's planned writes → proceed, list the dirty paths as untouched. Non-empty and a planned fix touches a dirty path → default: mark that fix `skipped (only you can do)`, continue with disjoint fixes. `--ask`: show the dirty files, ask Commit first (recommended) / Stash / Proceed anyway (the mechanical-gate revert path `git checkout -- {file}` also discards pre-existing edits in that file). Never run a bulk fix over uncommitted unrelated changes silently.
 
 **Overwrite prevention:** before generating/modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if target exists. Default: Keep existing when it already has non-trivial content, otherwise update; the decision and diff are recorded in the summary. `--ask`: show diff between existing + proposed, ask "Update existing / Keep existing / Show diff".
 
@@ -231,7 +205,7 @@ Architecture: {detected-summary}
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Default: every item, including CRITICAL, resolves via the same impact/effort/risk reasoning an approval block would show, applied and recorded `fixed`/`failed`; items matching the publish/irreversible exception list (e.g. secret rotation, per the Secrets Migrate section) resolve `skipped (needs-human)` instead. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Default: every item, including CRITICAL, resolves via the same impact/effort/risk reasoning an approval block would show, applied and recorded `fixed`/`failed`; items matching the publish/irreversible exception list (e.g. secret rotation, per the Secrets Migrate section) resolve `skipped (only you can do)` instead. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → re-present each with forced binary prompt (Apply / Skip); user declines → mark `skipped (no response)`, proceed.
 
@@ -259,11 +233,10 @@ Disposition accounting — totals balance. `fixed + failed + skipped + needs_app
 
 **Gate:** Summary balances; every modified file re-read. If fails → identify findings without disposition, assign `disposition: skipped (accounting-fix)`, recompute summary, add WARN: `"{n} finding(s) auto-skipped to balance accounting"`.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} CRITICAL secrets in source intercepted — credentials no longer leak into git history (rotation guidance attached)`
 - `{regulation} compliance: {n} consent gaps, {n} retention policy gaps closed — exposure window before {audit-date} eliminated`
-- `OWASP Top 10: {n} CRITICAL injection vectors flagged with {file}:{line} — {m} fixed directly (CAT-1), {k} escalated for approval (CAT-2)`
 
 Zero-finding run: `Compliance scope clean — no regulatory or security findings`.
 
@@ -280,7 +253,6 @@ Zero-finding run: `Compliance scope clean — no regulatory or security findings
 
 | Situation | Action |
 |-----------|--------|
-| Regulatory framework ambiguous | Default: apply best-guess framework(s) from detected signals, recorded in the summary. `--ask`: list detected signals, ask user to confirm applicable frameworks. |
 | Rule references external policy that changed | Flag as needs-verification, use last known version |
 | Fix requires architectural change | Classify as needs-approval, present to user |
 | Compliance doc template generation fails | Generate partial template, list missing sections |

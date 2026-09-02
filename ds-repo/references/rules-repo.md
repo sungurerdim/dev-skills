@@ -9,6 +9,7 @@ Rules for repo settings, branch protection, and metadata. Each rule: ID, severit
 | **Settings** | RPO-01–04, RPO-09 (2 HIGH, 3 MEDIUM) | ~12 |
 | **Hygiene** | RPO-05–08, RPO-10, RPO-11 (2 HIGH, 2 MEDIUM, 2 LOW) | ~58 |
 | **Security** | RPO-12–15 (3 HIGH, 1 MEDIUM) | ~126 |
+| **Scope Checklists** | settings/protection/hygiene/metadata/team/structure/oss-readiness | ~160 |
 
 ---
 
@@ -154,3 +155,82 @@ CodeQL analysis wired with zero workflow authoring, covering every push and PR.
 - **Fix:** `gh api -X PATCH repos/{owner}/{repo}/code-scanning/default-setup --input - <<< '{"state":"configured","query_suite":"default","languages":["{detected-language}"]}'`
 - **Impact:** Without default-setup code scanning, injection and memory-safety classes of bug ship silently — no CI job ever looks for them.
 - **Source:** GitHub code scanning REST API documentation
+
+---
+
+## Scope Checklists
+
+Per-scope enumeration for [SKILL.md](../SKILL.md) Phase 2 Audit — every check evaluated on every run, no check silently omitted. `security` is fully covered by RPO-12–15 above (no separate list).
+
+#### settings (5 checks)
+
+1. **Merge strategy** — squash-only (`allow_squash_merge=true`, `allow_merge_commit=false`, `allow_rebase_merge=false`)
+2. **Commit title format** — `PR_TITLE` (`squash_merge_commit_title`)
+3. **Commit message format** — `PR_BODY` (`squash_merge_commit_message`)
+4. **Delete branch on merge** — enabled (`delete_branch_on_merge=true`)
+5. **Auto-merge** — enabled (`allow_auto_merge=true`)
+
+#### protection (9 checks)
+
+1. **Branch protection enabled** — default branch has protection rules
+2. **Required reviews** — solo repo → **N/A — solo** (detect: `git shortlog -sn | wc -l` = 1, or no CODEOWNERS/team signal); otherwise at least 1 required reviewer
+3. **Required status checks** — CI must pass before merge (required solo or team)
+4. **Dismiss stale reviews** — enabled when new commits pushed; N/A when check 2 is N/A (no reviewer to dismiss)
+5. **Ruleset coverage** — detect via `gh api repos/{owner}/{repo}/rulesets` alongside classic branch protection (`gh api repos/{owner}/{repo}/branches/{branch}/protection`); org plan supports repository rulesets and none exist → recommend migrating to rulesets (layered enforcement, bypass audit log); no ruleset support → classic branch protection is the valid fallback, not a finding
+6. **Ruleset bypass list** — ruleset lists admins/broad roles in its bypass list with no documented justification → HIGH finding; classic "do not allow bypassing" maps to an empty bypass list, and GitHub's auto-migration can pre-populate admins into it — silently weakening protection. Keep the bypass list empty unless a justification note exists. N/A when no ruleset exists
+7. **Push ruleset** — ruleset-only capability with no classic counterpart: blocks restricted file paths (`.env`, secret-pattern files), extensions, and oversized files at the push layer across the entire fork network; plan supports rulesets and none exists → LOW opportunity finding (complements the oss-readiness git-secret-history check); no ruleset support → N/A
+8. **Linear history** — `required_linear_history=true` on the default branch (mechanical protection — required solo or team)
+9. **Force-push disabled** — `allow_force_pushes=false` on the default branch (mechanical protection — required solo or team)
+
+#### hygiene (4 checks)
+
+1. **Stale branches** — no open PR (`gh pr list --head {branch}` → empty output) + last commit > 30 days ago (`git log -1 --format=%cs {branch}`). UNMERGED work — deletion loses commits: always `needs-approval`, confirmed per item regardless of flags — matches the publish/irreversible exception list (permanent deletion with no backup); recorded `only you can do` by default rather than executed blind; `--ask` confirms per item; never bulk-deleted
+2. **Merged branches** — already merged into default but not deleted (`git branch -r --merged {default-branch}` lists them; commits preserved in base — safe to bulk-delete after one confirmation)
+3. **Orphan remotes** — remote-tracking refs whose upstream no longer exists (`git remote prune` — safe)
+4. **History bloat** — blobs > 10 MB in history inflating every clone (`git rev-list --objects --all` + `git cat-file --batch-check` size sort). Finding proposes `git filter-repo --strip-blobs-bigger-than <size>` (the recommended tool — not `git filter-branch` or BFG) + post-rewrite `git gc`, with LFS migration as the keep-the-file alternative. History rewrite is destructive and breaks every existing clone: always `needs-approval` with an explicit team-coordination + backup warning, never autonomous — same rule as the git-secret-history surgery (oss-readiness check 15). Matches the publish/irreversible exception list (history rewrite on a shared branch) — recorded `only you can do` by default, `--ask` confirms per item, never executed blind
+
+#### metadata (7 checks)
+
+1. **Description** — non-empty repo description
+2. **Topics** — at least 3 relevant topics
+3. **License** — license file present (MEDIUM on public, LOW on private)
+4. **Homepage URL** — non-empty
+5. **README badges** — CI status badge present in README
+6. **Social preview** — custom social preview image (public repos only, N/A on private)
+7. **Tags/releases strategy** — semver tags, tag count matches release count
+
+#### team (2 checks)
+
+1. **CODEOWNERS** — present for team repos (>1 contributor), N/A for solo (detect: `git shortlog -sn | wc -l` = 1, or no team signal)
+2. **CONTRIBUTING.md** — present for public repos, N/A for private solo
+
+#### structure (3 checks)
+
+1. **`.gitignore` completeness** — IDE, OS, language-specific entries present
+2. **Config file sprawl** — no multiple competing configs for same tool
+3. **Codebase (Twelve-Factor #1)** — one repo tracks one deployable app across many deploys: repo hosts multiple unrelated deployable apps without workspace/monorepo tooling boundaries, or app code is duplicated across separate repos instead of shared via a package → flag
+
+#### oss-readiness (16 checks — activated by `--oss-ready` flag or explicit scope selection)
+
+Content generation for checks 3-5 below: `/ds-docs` present → delegate (LICENSE/CONTRIBUTING/SECURITY content); absent → this scope's own Fix text stands alone as the inline template.
+
+1. **LICENSE present** — file at repo root, SPDX-recognized identifier
+2. **LICENSE compatibility** — dependency licenses compatible with repo license (e.g., strong-copyleft dep under MIT → finding), evaluated against an explicit allow/review/deny policy where one exists (none → propose authoring one); full transitive-tree license scan + SBOM export delegated to ds-deps (advisory-handoff: absent → direct-dep spot check inline, gap-note for the tree)
+3. **CODE_OF_CONDUCT.md** — present, tailored (not stock Contributor Covenant copy with no customization)
+4. **CONTRIBUTING.md** — present, covers local setup + PR expectations + testing
+5. **SECURITY.md** — present, declares vulnerability reporting channel
+6. **Issue templates** — `bug_report.md` + `feature_request.md` under `.github/ISSUE_TEMPLATE/`
+7. **PR template** — `.github/pull_request_template.md` present
+8. **CODEOWNERS** — present, maps key paths to maintainers
+9. **README first impression** — problem statement, install, quick usage, screenshot/demo (where applicable), maintenance signal (last commit / release < 6 months)
+10. **Discoverability — topics** — ≥3 relevant GitHub topics
+11. **Discoverability — badges** — CI status + license badge minimum
+12. **Short description** — repo description populated, one sentence, ≤100 chars
+13. **Homepage URL** — populated when project has docs site / landing page
+14. **Dependabot or renovate** — `.github/dependabot.yml` or `renovate.json` present, enabled for supported stacks
+15. **Git secret history** — scan git history for hardcoded secrets (`git log -p -S"api_key"` / `git-secrets --scan-history` / `trufflehog`). Any hit → Category B finding with `git-filter-repo` surgery proposal; autonomous deletion is forbidden. Matches the publish/irreversible exception list (secret rotation/deletion + history rewrite) — recorded `only you can do` by default, never executed blind; `--ask` confirms per item.
+16. **SPDX file headers** — source files carry a case-sensitive `SPDX-License-Identifier: <expr>` comment at/near the top; the declared identifier matches the LICENSE file. Missing headers → LOW finding with bulk-add proposal (Category A — mechanical, no public-facing text change)
+
+OSS-readiness emits Category B findings for anything user-visible (README rewrites, LICENSE changes, trademark concerns). Templates, metadata, Dependabot config may be Category A when they don't alter public-facing text.
+
+**Trademark / name collision check (part of check 10):** Brief search for project name against USPTO / EUIPO common-term lookup. Ambiguous or conflicting → HIGH finding with "consult legal counsel" suggestion.

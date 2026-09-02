@@ -1,0 +1,26 @@
+# Loop Mechanics — ds-tune Phase 7
+
+Skill-side rules layered on top of the `ds/tune/program.md` loop (steps 1-9, [program-template.md](program-template.md)). Loaded when Phase 7 runs.
+
+- **Significance check (OPT-05, template steps 5-6):** `noisy: true` → run `bash ds/tune/bench.sh` `runs_n` times (min 3) under identical conditions instead of once; extract the metric from each run, compute mean ± standard deviation in one `awk` pass over the collected values. When the `runs_n` runs disagree wildly (stddev > baseline mean), still decide by the 2×stddev rule below — keep all runs, drop no outliers. `noisy: false` → single run, exactly as the template states.
+- **Decision (template step 8, strengthened) — keep/discard table:**
+
+| Noisy | N repeats | Keep condition | Discard condition | Tie rule |
+|-------|-----------|-----------------|--------------------|----------|
+| `false` | 1 | metric improved (`direction`) AND no test regressions | metric same or worse, OR any previously passing test now fails | no delta counts as "same" → discard |
+| `true` | `runs_n` (min 3) | mean improved (`direction`) AND improvement exceeds 2× the combined standard deviation of baseline and experiment AND no test regressions | mean same/worse, OR improvement stays within the 2×stddev noise floor, OR any test regression | within the 2×stddev band → discard as statistically insignificant, logged with mean±stddev in `description`, never treated as a bug |
+
+Test regressions checked via `/ds-test --run` when present (advisory handoff); absent → run the full test suite via the stack-native command directly, not just the bench. DISCARD in either case: `git reset HEAD~1 --hard`, then `git status --porcelain` → empty output confirms zero residue. (Per [../../core/principles.md §7](../../core/principles.md): a metric win that breaks tests is still a regression; per OPT-05, a metric win within noise is not a win.)
+- **Reward-hacking red flags (W12/OPT-07, checked on the experiment diff before the decision):** the diff edits `ds/tune/eval`, `ds/tune/bench.sh`, or test files while the declared target is a different file; hard-codes target metric values; or branches on eval-specific inputs → auto-DISCARD with the red flag named in the `description` column, regardless of the measured number — a metric win produced by editing the measurement is a hack, not an improvement.
+- **Loop-abort red flags (mechanical, checked every iteration — these stop the whole loop, not just one experiment):**
+
+| Signal | Command | Threshold → action |
+|--------|---------|---------------------|
+| Regression streak | `tail -3 ds/tune/results.tsv \| cut -f3,7` (status + description columns) | 3 consecutive `discard` rows tagged `regression` in `description` → abort |
+| Runtime blowout | current experiment's `duration` column vs the baseline's `bench.sh` duration | duration > 3× baseline duration → abort |
+| Gate red | `{check-cmd}` (Mechanical Done Gate, resolved at Phase 2) | exit code non-zero beyond the recorded baseline (new red, not baseline-red) → abort |
+
+Any row true → stop the loop, do not start another experiment: `git reset HEAD~1 --hard` to the last kept commit, record `only you can do: {signal} — {observed} vs threshold {n}`, exit the Loop phase with WARN.
+- **Mechanical Done Gate:** "no test regressions" in the Decision rule includes the lint/type arm — resolve `{check-cmd}` during Phase 2 (ds-quality enforcement arm installed — stop-hook / pre-commit hook / auto-lint → its gate command; else stack-native lint/type + full test; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision) and capture its baseline at Phase 5 alongside the metric baseline. A KEEP requires no *new* `{check-cmd}` red in addition to the metric win — a metric win that breaks lint/type is a regression → DISCARD. On loop exit: run the full `{check-cmd}` once against the final kept state; its exact command + observed output is the Completion Evidence, and baseline reds are reported red-at-baseline, never inherited as green.
+- **After each experiment:** update `ds/audit/tune.json` — increment `experiment_count`, update `last_experiment_idx`, phase 7 stays `in_progress`. On DISCARD, append a one-line failure hypothesis (why the variant lost) to the row's `description` — subsequent experiments avoid recorded failure patterns instead of blindly retrying.
+- **Goodhart exit check (W12/OPT-07, once, before reporting overall improvement):** held-out check distinct from `bench_cmd` available (secondary eval, full test suite beyond the bench, unseen data slice) → run the final kept state against it once and report both numbers; unavailable → mark the improvement `provisional (visible-bench only)` in the summary — visible-suite gains can saturate while held-out performance lags. Then confirm the goal, not the scorer, improved: fresh context available (a second pass that receives only the kept diff + the stated goal, none of the loop trajectory) → have it confirm the change serves the goal; unavailable → re-read the kept diff from disk and state, from the diff alone, how it improves the goal. Confirmation fails → flag the kept experiments for user review instead of declaring the win.

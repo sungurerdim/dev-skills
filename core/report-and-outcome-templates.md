@@ -27,7 +27,7 @@ $ {check-cmd}
 ## 3. Summary line
 
 ```
-{skill-name}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Needs-human: N | Total: N
+{skill-name}: {OK|WARN|FAIL} | Fixed: N | Skipped: N | Failed: N | Only you can do: N | Total: N
 ```
 
 | Status | Meaning |
@@ -36,16 +36,16 @@ $ {check-cmd}
 | **WARN** | Some failures or skips, no unresolved CRITICAL |
 | **FAIL** | Unresolved CRITICAL, or an execution error |
 
-**Accounting:** `fixed + failed + skipped + needs-human + needs-approval + not-applicable + reverted = total`. A summary that does not balance is a bug in the run, not a rounding note. Skills with a domain-specific line (`Commits: N`, `Removed: N`, `Generated: N`) keep their extra fields and still balance. Every `skipped`/`needs-human` reason passes the reject list (`principles.md` §11).
+**Accounting:** `fixed + failed + skipped + only you can do + not applicable + reverted = total`. A summary that does not balance is a bug in the run, not a rounding note. Skills with a domain-specific line (`Commits: N`, `Removed: N`, `Generated: N`) keep their extra fields and still balance. Every `skipped`/`only you can do` reason passes the reject list (`principles.md` §11).
 
-**Scope resolution line** (skills with a scope table): `Scopes: {ran: a, b} · {N/A: c — reason} · {mode-excluded: d}` — every declared scope appears once.
+**Scope resolution line** (skills with a scope table): `Scopes: {ran: a, b} · {N/A: c — reason} · {skipped — not part of this mode: d}` — every declared scope appears once.
 
-## 4. Value Delivered
+## 4. Effect
 
 Preamble (verbatim prefix in every SKILL.md):
 
 ```markdown
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 ```
 
 | Rule | Detail |
@@ -73,11 +73,11 @@ Decided without asking — say if wrong: {each default chosen by judgment that t
 Only you can do: {each open human-owned action, stated in full — what it is, what changes if it is or isn't done, the recommendation and its reason}
 ```
 
-The accounting's `needs-human` dispositions feed `Only you can do:`; every decision made by judgment feeds `Decided without asking — say if wrong:`. Under `--ask` the same block closes the run; the difference is only that decisions were confirmed rather than decided.
+The accounting's `only you can do` dispositions feed `Only you can do:`; every decision made by judgment feeds `Decided without asking — say if wrong:`. Under `--ask` the same block closes the run; the difference is only that decisions were confirmed rather than decided.
 
 **Presenting options** — an `--ask` menu, an open-items list, an offer of next steps: recommendation first, with its reason; then every option in the same shape — **name** — what it is in one plain sentence — what happens if it is picked. Written for a reader who remembers nothing of the session: an option explained earlier is explained again in full, never named by reference. Genuinely no recommendation → say why the options are balanced. Several inputs needed → one batched ask, a second round only when an answer depends on a prior one.
 <!-- portable-only:end -->
 
 ## 6. Orchestrator report (`ds/audit/report.md`, ds-ship only)
 
-Per delegate: pre-note (expected findings/cost) → summary line → verify-echo → dispositions. Aggregate: mode, scope resolution across delegates (`ran` / `N/A` / `mode-excluded` / `signal-absent`), missing skills, findings by severity, measured instruction-token line, recommended human actions (advisory vs mandated blocker), Outcome Report. Overwritten per run; history lives in `git log`.
+Per delegate: pre-note (expected findings/cost) → summary line → verify-echo → dispositions. Aggregate: mode, scope resolution across delegates (`ran` / `N/A` / `skipped — not part of this mode` / `skipped — no signal`), missing skills, findings by severity, measured instruction-token line, recommended human actions (advisory vs mandated blocker), Outcome Report. Overwritten per run; history lives in `git log`.

@@ -2,7 +2,7 @@
 
 | Section | Rules |
 |---------|-------|
-| **Observability** | MON-01 to MON-07 (4 HIGH, 2 MEDIUM, 1 LOW) |
+| **Observability** | MON-01 to MON-09 (4 HIGH, 4 MEDIUM, 1 LOW) |
 
 ## Observability
 
@@ -40,7 +40,7 @@ slog.Info("request processed",
 
 **Impact:** Structured logs → filtering, aggregation, and alerting in log management tools (Loki, Betterstack, Axiom). Unstructured text requires regex parsing and breaks on format changes.
 
-**Source:** OpenTelemetry Logging specification, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Log aggregation)
+**Source:** OpenTelemetry Logging specification (https://opentelemetry.io/docs/specs/otel/logs/)
 
 ---
 
@@ -69,7 +69,7 @@ app.get('/readyz', async (req, res) => {
 
 **Impact:** Liveness failures → container restarts; readiness failures → remove instance from load balancer. Combining into one endpoint → unnecessary restarts when a dependency is temporarily unavailable.
 
-**Source:** Kubernetes probe best practices, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Health Endpoint)
+**Source:** Kubernetes probe best practices (https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
 
 ---
 
@@ -91,7 +91,7 @@ sentry_sdk.init(dsn="https://...@sentry.io/...", traces_sample_rate=0.1)
 
 **Impact:** Mean time to detection (MTTD) directly impacts mean time to recovery (MTTR). Automated alerts cut MTTD from hours to seconds for solo developers who cannot monitor dashboards continuously.
 
-**Source:** Sentry alerting docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Incident Response: Detection phase)
+**Source:** Sentry alerting docs (https://docs.sentry.io/product/alerts/)
 
 ---
 
@@ -132,7 +132,7 @@ Alert on downtime sustained longer than 1 minute. Configure a status page for tr
 
 **Impact:** Internal health checks cannot detect network-level, DNS, or full-host failures. External monitoring provides user's perspective on availability.
 
-**Source:** UptimeRobot, Better Stack, [cost-optimization.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/cost-optimization.md) (Monitoring section)
+**Source:** UptimeRobot (https://uptimerobot.com/), Better Stack (https://betterstack.com/uptime)
 
 ---
 
@@ -151,7 +151,7 @@ Alert on downtime sustained longer than 1 minute. Configure a status page for tr
 
 **Impact:** Cloud services with usage-based pricing can generate unexpected bills. Free tier limits change without notice (SendGrid removed its free tier in May 2025, PlanetScale in April 2024). Proactive monitoring prevents surprise costs.
 
-**Source:** Cloud provider cost management docs, [cost-optimization.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/cost-optimization.md) (Cost Scaling Thresholds)
+**Source:** AWS Budgets docs (https://aws.amazon.com/aws-cost-management/aws-budgets/)
 
 ---
 
@@ -166,3 +166,23 @@ A queue-consuming service's health endpoint checks the age of the oldest queued 
 **Impact:** A wedged worker behind a green liveness check is an invisible outage — jobs pile up for hours while every dashboard says healthy.
 
 **Source:** XR-079 — cross-project experience registry (2026).
+
+### MON-08 | MEDIUM | Log Aggregation Tier Matches Project Maturity
+
+**Detect:** Production logs going only to the container's local JSON-file driver (or stdout with no collector) on a project with multiple services or real production traffic — debugging an incident requires SSHing into the host and grepping raw log files.
+
+**Fix:** Adopt an aggregation tier matching project maturity: single-host/solo-dev → Docker JSON driver with `max-size`/`max-file` is sufficient; multi-service or team project → self-hosted Loki + Grafana; production SaaS with paying users → managed BetterStack or Axiom (both have usable free tiers).
+
+**Impact:** Without aggregation, a cross-service incident forces the responder to correlate raw log files by hand across every host — the exact work an aggregation tier exists to eliminate, and the reason MTTR stays high even after MON-01 structured logging is in place.
+
+**Source:** Grafana Loki documentation (https://grafana.com/docs/loki/latest/)
+
+### MON-09 | MEDIUM | Infrastructure Resource Metrics Monitored With Alert Thresholds
+
+**Detect:** No CPU/memory/disk-usage monitoring configured beyond uptime pings (MON-05) and log aggregation (MON-08) — resource exhaustion is discovered only when it causes an outage, not before; no alert threshold set on disk usage specifically (the resource most likely to fail slowly and silently until full).
+
+**Fix:** Add infrastructure resource metrics: self-hosted (Prometheus + `node_exporter`) or managed (Grafana Cloud free tier, provider-native VPS metrics) reporting CPU, memory, and disk usage; alert at a resource-exhaustion threshold (e.g. 85% sustained) before it becomes an incident, distinct from the uptime/error-rate alerts MON-03/05 already cover.
+
+**Impact:** Uptime and error-rate monitoring both fire only after user-visible failure; resource metrics are the only signal that catches a disk filling up or memory climbing toward OOM while there's still time to act instead of react.
+
+**Source:** Google SRE Book — Monitoring Distributed Systems / Four Golden Signals (https://sre.google/sre-book/monitoring-distributed-systems/)

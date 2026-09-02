@@ -48,7 +48,7 @@ rm -rf /tmp/dev-skills
 | 4 | Docs | Compact context-loaded docs; fill gaps via `/ds-docs`; optional ADRs |
 | 5 | Release + Launch gates (release/launch) | devops → deploy → release → repo; launch adds ds-launch and --oss-ready |
 | 6 | Report | Write `ds/audit/report.md` (+ `ds/audit/report.html` on --html) with every excluded skill and its reason |
-| 7 | Handoff offers | PR via `/ds-pr` (needs-human by default), durable tracking via `/ds-issue` |
+| 7 | Handoff offers | PR via `/ds-pr` (only you can do by default), durable tracking via `/ds-issue` |
 
 ## Features
 
@@ -60,7 +60,7 @@ rm -rf /tmp/dev-skills
 - `--html` produces self-contained, offline, ASCII-only visual report
 - Project-type-aware routing (mobile / web / backend / library / CLI)
 - **Milestone-gate triggers** — release-candidate, pre-launch, post-incident (not generic "audit everything")
-- **Mode axis** — harden / release / launch / maintain decides which legs exist; a leg outside the mode is `mode-excluded`, never run for completeness
-- **Signal-justified delegation** — every delegated skill states the signal that gives it a scope here (`billing=stripe`, `ui=none`); `signal-absent` is the primary exclusion, the stage matrix only orders what remains
+- **Mode axis** — harden / release / launch / maintain decides which legs exist; a leg outside the mode is `skipped — not part of this mode`, never run for completeness
+- **Signal-justified delegation** — every delegated skill states the signal that gives it a scope here (`billing=stripe`, `ui=none`); `skipped — no signal` is the primary exclusion, the stage matrix only orders what remains
 - **Measured instruction tokens** — the report states how many instruction tokens the run loaded (`wc -c` of every SKILL.md read ÷ 4)
 - **Target-based delegation routing** — App Store → `/ds-launch`, server/container/k8s → `/ds-deploy`, library → `/ds-repo --oss-ready`. ds-ship never decides between ds-deploy and ds-launch on its own.

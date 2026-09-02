@@ -22,7 +22,7 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | `ds-<name>/` | One directory per skill (ds-init, ds-fix, ds-review, ds-deploy, etc.) |
 | `SKILL-SPEC.md` | Authoritative skill format spec — every `ds-*` must conform |
 | `agents/` | Shared agent definitions (`ds-research-agent` — worker for ds-research + ds-brief); install to the host agent dir, e.g. `~/.claude/agents/` |
-| `docs/` | Topic-organized references (backend, frontend, devops, compliance, business, launch, methodology, infrastructure) |
+| `docs/` | `methodology/` (research + program records, authoring checklist) and `guide.html` (interactive production-readiness guide); the former lifecycle guides were migrated into the owning skills' rules files in 2.0.0 |
 | `core/` | Shared runtime references every skill links to as `../core/<file>.md` — principles, severity/score, findings + profile format, signal inventory, ask-exception list, checkpoint protocol, execution loop, report templates, secret patterns, toolchains, CRAAP, plus the `software-best-practices.md` catalog and the `experience-rules.md` XR pointer map. Shipped on every install; no SKILL.md inside |
 | `scripts/` | The gate: `quality.sh` (entry point), `check-consistency.sh` (+ `--self-test`, `--mutation-test`), `test-install.sh` (installer round-trip) |
 | `install.sh` · `install.cmd` | The installer (bash + coreutils + git, no rsync) and its Windows launcher; `--check`, `--status`, `--update`, `--uninstall` |
@@ -108,7 +108,7 @@ Driven by [The new rules of context engineering for Claude 5 generation models](
 
 ## v7 Invariants (2026-09-02, release 2.0.0)
 
-- **Autonomous Default:** no flag = every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list (`core/ask-exception-list.md`) is skipped and recorded `needs-human`. `--ask` (canonical row, byte-exact across all skills) restores menus and approval batches at every decision point and propagates from ds-ship to its delegates. `--auto` is retired — no alias. Guards: `check_ask_row_canonical`, retired-flag list, `check_undefined_flags`.
+- **Autonomous Default:** no flag = every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list (`core/ask-exception-list.md`) is skipped and recorded `only you can do`. `--ask` (canonical row, byte-exact across all skills) restores menus and approval batches at every decision point and propagates from ds-ship to its delegates. `--auto` is retired — no alias. Guards: `check_ask_row_canonical`, retired-flag list, `check_undefined_flags`.
 - **Relevance First:** every skill with ≥ 2 scopes carries a `| Scope | Runs when (signal) | Otherwise |` table; scopes run on a project signal (`core/signal-inventory.md`, produced by ds-blueprint's `Signals:` line) and are otherwise `N/A — reason`. ds-ship's `--mode=harden|release|launch|maintain` decides which release/launch legs run at all. Guard: `check_scope_resolution_table`.
 - **Standalone with core:** shared references live once in `core/` (no SKILL.md, shipped on every install including `--skills` subsets); skills link `../core/<file>.md`; sibling skills stay advisory (present → delegate, absent → inline or gap-note). The spec is never cited from a skill — canonical inline equivalents instead. Guards: `check_core_links`, `check_spec_citations`, `check_dead_sources`.
 - **Every rule states its Impact**, every phase gate has a red branch, every README count mirrors its SKILL.md. Guards: `check_rule_impact`, `check_duplicate_rule_titles`, `check_readme_counts`.
@@ -133,7 +133,7 @@ Data: none | Regulations: none
 Audience: public, other-developers | Deploy: git-clone-plus-install-sh
 
 Entry: README.md (docs) ; install.sh (tooling)
-Modules: ds-*/=skill(32); core/=shared-references(14); agents/=shared-agent(1); docs/=reference-docs(9-dirs); scripts/=gate-tooling(3)
+Modules: ds-*/=skill(32); core/=shared-references(14); agents/=shared-agent(1); docs/=methodology(1-dir)+guide.html; scripts/=gate-tooling(3)
 Data Flow: repo-clone→install.sh→~/.claude/skills→AI-host-invocation
 External: none
 Toolchain: bash scripts/quality.sh | CI: none — local gate only (git pre-commit) | Container: none

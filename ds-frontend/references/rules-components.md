@@ -6,8 +6,48 @@ Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Component Quality** | CMP-01 to CMP-27 (12 HIGH, 14 MEDIUM, 1 LOW) | ~12 |
-| **Interactions** | INT-01 to INT-05 (3 MEDIUM, 2 LOW) | ~246 |
+| **Framework Detection** | reference table (SKILL.md Phase 1) | ~14 |
+| **Ecosystem Rules** | reference table (SKILL.md Scopes A9) | ~35 |
+| **Component Quality** | CMP-01 to CMP-27 (12 HIGH, 14 MEDIUM, 1 LOW) | ~46 |
+| **Interactions** | INT-01 to INT-05 (3 MEDIUM, 2 LOW) | ~280 |
+
+---
+
+## Framework Detection
+
+Detection signal per framework, evaluated in SKILL.md Phase 1 step 1. First hit wins; a genuinely polyglot project (e.g. a Svelte app with an Astro marketing site) may report more than one.
+
+| Framework | Detection |
+|-----------|-----------|
+| React | `package.json` dep `react` |
+| Vue | `package.json` dep `vue` |
+| Svelte | `package.json` dep `svelte`, no `$state`/`$derived`/`$effect`/`$props` runes in `.svelte` files |
+| Svelte 5 (runes) | `package.json` dep `svelte` ^5, `$state`/`$derived`/`$effect`/`$props` calls in `.svelte`/`.svelte.js`/`.svelte.ts` files |
+| Astro | `astro.config.mjs`/`.ts`, `.astro` component files, `package.json` dep `astro` |
+| SolidJS | `package.json` dep `solid-js`, `createSignal`/`createEffect`/`createMemo` imports |
+| htmx | `package.json`/CDN script tag for `htmx.org`, `hx-get`/`hx-post`/`hx-target`/`hx-swap` attributes in HTML/templates |
+| Angular | `package.json` dep `@angular/core` |
+| Flutter | `pubspec.yaml` with `flutter:` |
+| React Native | `package.json` dep `react-native` |
+| SwiftUI | `*.swift` files importing `SwiftUI` |
+| Compose | `build.gradle` with `compose` |
+| Electron/Tauri | `package.json` dep `electron` or `@tauri-apps/api` |
+| Plain HTML/CSS | `*.html` + `*.css` without framework |
+
+## Ecosystem Rules
+
+A9 — Google / Apple Ecosystem Rules (conditional, SKILL.md Scopes). Active only when the blueprint profile's `Integrations` field is `google-workspace` or `apple-ecosystem`; zero checks otherwise.
+
+| Provider | Rule | Scope |
+|----------|------|-------|
+| Google | Official button/flow standards — Google Identity branding (G-button, One Tap, Credential Manager) | tokens, components |
+| Apple | Apple HIG Sign-in — `ASAuthorizationAppleIDButton`, SF Symbols, HIG | tokens, components |
+
+**Framework-specific pattern each new row checks:**
+- **Svelte 5 (runes):** a `.svelte.js`/`.svelte.ts` module exporting a reassignable `$state` primitive directly (`export let count = $state(0)`) is broken — reassignment doesn't propagate across the module boundary. Flag a raw exported `$state` value; fix by exporting an object, class, or getter/setter pair instead. **Source:** [Svelte docs — states are not exportable](https://svelte.dev/docs/svelte/$state) (verified 2026-09-02, HTTP 200).
+- **Astro:** client-side interactivity requires an explicit `client:*` directive (`client:load`/`client:idle`/`client:visible`/`client:media`/`client:only`) on any framework island — a component using event handlers or state with no `client:*` directive ships zero JS and silently does nothing. Flag an interactive island component with no directive. **Source:** [Astro docs — Islands](https://docs.astro.build/en/concepts/islands/) (verified 2026-09-02, HTTP 200).
+- **SolidJS:** props are not reactive when destructured (`const { x } = props`) — Solid implements props as getters for fine-grained reactivity, and destructuring reads the value once at that point instead of tracking it. Flag destructured props used in JSX or inside `createEffect`; fix via `splitProps`/`mergeProps` or accessing `props.x` directly. **Source:** [SolidJS docs — Props](https://docs.solidjs.com/concepts/components/props) (verified 2026-09-02, HTTP 200).
+- **htmx:** every `hx-get`/`hx-post`/`hx-put`/`hx-delete` target endpoint should return an HTML fragment, not JSON — htmx swaps response markup directly into the DOM. The default `hx-swap` is `innerHTML`; an unset `hx-swap` on a nested target can replace more than intended, and swapping into `<body>` always forces `innerHTML` regardless of the configured strategy. **Source:** [htmx docs — hx-swap](https://htmx.org/attributes/hx-swap/) (verified 2026-09-02, HTTP 200).
 
 ---
 

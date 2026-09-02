@@ -34,7 +34,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 
 - Standalone; uses `ds/audit/findings.md` (stack, deps scopes) when fresh (`git_hash == HEAD` AND current run-cycle), own audit otherwise.
 - **State-exempt:** per-group commits are git checkpoints; re-run continues from remaining groups.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Test gate between upgrade and commit is non-negotiable. Test fail → revert batch.
 - Category A: safe-patch + safe-minor (no breaking changelog) → autonomous. Category B: every major, every upgrade with breaking notes, every removal → batched approval.
@@ -47,7 +47,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 |------|--------|
 | `--preview` | Classify + security scan + report only — no upgrade execution |
 | `--scope={x}` | Specific group: patch, minor, major, security, all |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without flags: default — apply safe-patch + safe-minor, surface majors, recorded in the summary. `--ask`: shows an up-front menu — Upgrade safe groups (recommended), plus each mode in the Arguments table (Preview / Scoped) and (Cancel).
 
@@ -71,6 +71,11 @@ Without flags: default — apply safe-patch + safe-minor, surface majors, record
 
 `--scope=` overrides the table for the named scope; `--ask` shows the resolved table before running.
 
+| Reference | Loaded when |
+|-----------|-------------|
+| [references/stack-commands.md](references/stack-commands.md) | Phase 1, 2, or 5 needs a stack-specific command (npm/pnpm/yarn/go/python/rust/ruby/dart/php/jvm/dotnet/swift) |
+| [references/classify-advisories.md](references/classify-advisories.md) | Phase 3 runs |
+
 ## Delegation
 
 **Owns:** deps-upgrade-execution, safe-patch, safe-minor, review-major, security-advisory-prioritization, dep-license-scan | **Delegates:** ds-test → per-group test validation; ds-commit → per-group commit | **Receives:** ds-devops → audit handoff (detection → execution); ds-fix → deps-upgrade-execution handoff; ds-ship → periodic hygiene pass; ds-repo → transitive license scan + SBOM export (oss-readiness check 2)
@@ -81,22 +86,7 @@ Setup → Discover → Classify → Plan → Execute → [Needs-Approval] → Su
 
 ### Phase 1: Setup
 
-1. **Detect stack + manifest:**
-
-   | Manifest | Stack |
-   |----------|-------|
-   | `package.json` | npm / pnpm / yarn |
-   | `go.mod` | go |
-   | `pyproject.toml` / `requirements*.txt` | python (poetry / pip) |
-   | `Cargo.toml` | rust |
-   | `Gemfile` | ruby |
-   | `pubspec.yaml` | dart |
-   | `composer.json` | php |
-   | `build.gradle*` / `pom.xml` | jvm (gradle / maven) |
-   | `*.csproj` / `*.sln` | dotnet |
-   | `Package.swift` | swift (spm) |
-
-   Record every manifest — monorepos include all workspaces.
+1. **Detect stack + manifest:** per-stack manifest patterns (npm/go/python/rust/ruby/dart/php/jvm/dotnet/swift) in [references/stack-commands.md](references/stack-commands.md) § Manifest detection. Record every manifest — monorepos include all workspaces.
 
 2. **Lockfile verification.** Missing lockfile → HIGH finding, abort upgrade (lockfile-first policy). `--preview` still classifies.
 
@@ -107,24 +97,8 @@ Setup → Discover → Classify → Plan → Execute → [Needs-Approval] → Su
 Per manifest:
 
 1. **Current versions:** parse manifest + lockfile.
-2. **Latest stable** via stack-native tooling:
-
-   | Stack | Command |
-   |-------|---------|
-   | npm | `npm outdated --json` |
-   | pnpm | `pnpm outdated --format json` |
-   | yarn | `yarn outdated --json` |
-   | go | `go list -u -m all` |
-   | python | `pip list --outdated --format=json` / `poetry show --outdated` |
-   | rust | `cargo outdated --format json` |
-   | ruby | `bundle outdated` |
-   | dart | `dart pub outdated --json` |
-   | jvm (gradle) | `./gradlew dependencyUpdates` (needs the `com.github.ben-manes.versions` plugin; absent → gap-note) |
-   | jvm (maven) | `mvn versions:display-dependency-updates` (needs the versions-maven-plugin) |
-   | dotnet | `dotnet list package --outdated` |
-   | swift (spm) | no native outdated command — compare `Package.resolved` pinned versions against the registry; `swift package update` applies updates within `Package.swift`'s declared ranges |
-
-3. **Security advisories:** `npm audit --json` / `pip-audit --format=json` / `cargo audit --json` / `bundler-audit` / `pub audit` / `./gradlew dependencyCheckAnalyze` (jvm/gradle) / `mvn verify -P owasp` (jvm/maven) / `dotnet list package --vulnerable` (dotnet). Also Dependabot via `gh` CLI if available. Stack-native audit command unavailable → `osv-scanner` present → run it against the lockfile (V2: `osv-scanner scan --lockfile={lockfile}`; V1 syntax `osv-scanner --lockfile=` also accepted) as the cross-ecosystem fallback and record advisories per dep; absent → skip the advisory sub-step with warning `security advisories unchecked for {manifest} — no audit tool available`.
+2. **Latest stable** via stack-native tooling: [references/stack-commands.md](references/stack-commands.md) § Latest-stable check.
+3. **Security advisories:** stack-native audit commands + `osv-scanner` cross-ecosystem fallback: [references/stack-commands.md](references/stack-commands.md) § Security advisories. No audit tool available → skip the advisory sub-step with warning `security advisories unchecked for {manifest} — no audit tool available`.
 4. **Removal candidates:** grep source + config for `import {name}` / `require('{name}')` / stack equivalents. Zero in-source references → removal candidate.
 5. Record each dep's current / latest / advisory for the plan table.
 
@@ -143,15 +117,7 @@ Per dep, determine `bump_type` + `classification`:
 | major | `{x}.{y}.{z}` → `{x+n}.0.0` | Always `review-major` |
 | pre-1.0 | `0.{x}.{y}` → `0.{x+n}.{y}` | Treat minor bump as `review-major` (semver pre-1.0 convention) |
 
-**Supply-chain override ([../core/principles.md §5](../core/principles.md)):** any package introducing/expanding `postinstall` / `preinstall` / `prepare` lifecycle scripts (or non-npm equivalents) auto-promotes to `review-major` regardless of semver delta. New executable install hooks = known supply-chain attack surface.
-
-**Release-age cooldown (advisory, default 7 days):** target version published less than 7 days ago (npm: `npm view {name} time --json` → the version's publish timestamp; other stacks: registry publish timestamp) → hold it out of the safe groups this run — classification stands, execution deferred with note `held (release-age {n}d < 7d cooldown)`; the previous in-cooldown-window version applies instead when it satisfies the same bump class. Security-advisory fixes override the cooldown (patching a known CVE beats worm-window caution). Rationale: recent registry worm/compromise events were detected within days of publication (xz-utils ~3 days; Shai-Hulud npm worm — CISA alert within the week) — a short quarantine window converts "first victim" into "warned bystander".
-
-**Provenance signal (advisory):** npm — run `npm audit signatures` (verifies registry signatures + provenance attestations; trusted-publishing/OIDC publishes carry provenance automatically since Jul 2025); PyPI — check attestation presence (PEP 740). A newly-added package with no provenance, or an upgrade where the publisher/repository identity changed vs the previous version → note as supply-chain signal, promote to `review-major`.
-
-**License scan + SBOM (advisory, on request or via ds-repo handoff):** walk the full transitive tree from the lockfile (not just direct deps) with a scanner when present (syft / ScanCode / FOSSA class), attach a license to every package, evaluate against the project's allow/review/deny policy (strong-copyleft entering a permissive/proprietary product → HIGH finding). `syft` present → generate `syft scan . -o cyclonedx-json=sbom.cdx.json` (CycloneDX SBOM at the repo root); other scanner present → export its native SPDX/CycloneDX format where CI expects one; no scanner installed → direct-dep license spot check from registry metadata + gap-note `SBOM not generated — requires syft or an equivalent scanner`; never install tools unasked.
-
-**Dependency-confusion defense (advisory — active attack vector, documented May 2026 npm campaign across ≥9 organizational scopes):** when the project uses internal/private packages, check the defense stack and report gaps: (1) internal packages use a claimed registry scope/namespace (`@org/…`) — unscoped internal names are hijackable from the public registry; (2) CI installs enforce the lockfile (`npm ci` / `pnpm install --frozen-lockfile` / `pip install --require-hashes`) — a mutable install can silently resolve a public lookalike; (3) registry resolution order pins the private registry for internal scopes (`.npmrc` scoped registry / `pip.conf` index priority) so public never shadows private; (4) where infrastructure allows, build servers restrict registry egress to the approved proxy. Missing layer → HIGH gap-note in the summary, never auto-reconfigured.
+**Advisory classification signals:** five checks beyond the semver bump table — supply-chain lifecycle-script override (auto-promotes to `review-major`), release-age cooldown (default 7 days, holds a dep out of the safe groups), provenance signal (`npm audit signatures` / PEP 740), license scan + SBOM (syft/ScanCode/FOSSA class), dependency-confusion defense (scope claiming, lockfile-enforced installs, registry resolution order, egress restriction). Full thresholds, commands, and rationale: [references/classify-advisories.md](references/classify-advisories.md).
 
 **Changelog extraction:**
 
@@ -185,35 +151,20 @@ Write findings to `ds/audit/findings.md` with `scope=deps` and `category` column
 
 ### Phase 5: Execute [skip if --preview]
 
-**Checkpoint pre-step (before the first bump):** `git status --porcelain` — record the output as the baseline; clean, or every planned write is disjoint from dirty paths → proceed; manifest or lockfile dirty at baseline → stop, record `needs-human`. Full protocol: [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md). Never run a bulk upgrade over uncommitted unrelated changes silently.
+**Checkpoint pre-step (before the first bump):** `git status --porcelain` — record the output as the baseline; clean, or every planned write is disjoint from dirty paths → proceed; manifest or lockfile dirty at baseline → stop, record `only you can do`. Full protocol: [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md). Never run a bulk upgrade over uncommitted unrelated changes silently.
 
 Per group, in order: **security** → **safe-patch** → **safe-minor** → (approval) → **review-major** → **removal**.
 
 **Safe group execution:**
 
-1. Apply version bumps (manifest + lockfile) via native command:
-
-   | Stack | Command |
-   |-------|---------|
-   | npm | `npm install {name}@{version}` then `npm install` to refresh lockfile |
-   | pnpm | `pnpm update {name} --latest` |
-   | yarn | `yarn upgrade {name}@{version}` |
-   | go | `go get {name}@{version}` then `go mod tidy` |
-   | python (poetry) | `poetry add {name}@{version}` |
-   | python (pip) | `pip install {name}=={version}` then update the project's pin file per its own convention (pip-tools: `pip-compile`; plain pins: edit `requirements.txt` entry) — never invent a new lock filename |
-   | cargo | `cargo update -p {name} --precise {version}` |
-   | jvm (maven) | `mvn versions:use-latest-releases` (scope to one package via `-Dincludes={groupId}:{artifactId}`) |
-   | jvm (gradle) | edit the version literal in `build.gradle(.kts)` or the `gradle/libs.versions.toml` catalog entry directly — no native single-package bump command |
-   | dotnet | `dotnet add package {name} --version {version}` |
-   | swift (spm) | edit the version requirement in `Package.swift`, then `swift package resolve` |
-
+1. Apply version bumps (manifest + lockfile) via native command: [references/stack-commands.md](references/stack-commands.md) § Version bump commands.
 2. Invoke `/ds-test --run` (advisory handoff — target absent → stack-native fast path directly: `npm test --bail`, `go test ./...`, `pytest -x`). Pass → proceed. Fail unresolved → revert manifest + lockfile, mark group `failed (tests broke)`, continue.
 3. `/ds-commit` present → invoke `/ds-commit --single` with message `chore(deps): bump {scope-or-group} ({n} packages)` (body lists each dep `{name}: {current} → {latest}`); absent → commit inline: `git add {manifest} {lockfile}` then `git commit -m "chore(deps): bump {scope-or-group} ({n} packages)"` with the same body. Record hash either way — never leave an approved group uncommitted.
 
 **Review-major group (requires approval):**
 
 1. Present every entry — one line each (`name: current → proposed · breaking?`) grouped by package class with counts; state the question (`Upgrade which of these N majors?`). "All" = exactly the displayed set. Full detail (breaking notes, migration steps from changelog, rollback path) under each entry.
-2. Default: no menu shown — every major resolves by best judgment (applied using the same impact/effort/risk reasoning a menu would show, recorded in the summary); nothing about a major version bump matches the irreversible-exception list, so none is stranded as `needs-human`. `--ask`: modes — **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**.
+2. Default: no menu shown — every major resolves by best judgment (applied using the same impact/effort/risk reasoning a menu would show, recorded in the summary); nothing about a major version bump matches the irreversible-exception list, so none is stranded as `only you can do`. `--ask`: modes — **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**.
 3. Per approved major: apply bump, run **full** test suite (not quick); fail → revert + mark failed; pass → commit.
 4. One commit per major. `/ds-commit` present → invoke `/ds-commit --single` with message `chore(deps): upgrade {name} to {major-version}` (body: breaking notes + migration link); absent → commit inline: `git add {manifest} {lockfile}` then `git commit -m "chore(deps): upgrade {name} to {major-version}"` with the same body.
 
@@ -224,21 +175,7 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 
 **Mechanical Done Gate:** the per-group test run above is the test arm — add lint/type: resolve `{check-cmd}` in Phase 1 (ds-quality enforcement arm installed — stop-hook / pre-commit hook / auto-lint → its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision) and capture the baseline before the first group — baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. A bump can break the type graph with tests still green (e.g. a types-package minor) — run `{check-cmd}` after each group before its commit; new red → same revert path as a test failure. After the last group: run the full `{check-cmd}` once — the aggregate run's exact command + observed output is the Completion Evidence; never report `OK` with a new red.
 
-**Lockfile-integrity command (per ecosystem, run after each group before its commit):**
-
-| Ecosystem | Command |
-|-----------|---------|
-| npm | `npm ls --depth=0` + `git diff --quiet package-lock.json` |
-| pnpm | `pnpm install --frozen-lockfile` |
-| yarn | `yarn install --immutable --mode=skip-build` |
-| pip | `pip check` (+ `uv lock --check` when uv-managed) |
-| cargo | `cargo tree --locked` |
-| go | `go mod verify` |
-| dart | `dart pub get --enforce-lockfile` |
-| bundler | `bundle check` |
-| composer | `composer validate --no-check-publish` + `composer install --dry-run` |
-
-Non-zero exit → same revert path as a failed `{check-cmd}` run: restore the group's manifest + lockfile, mark `failed (lockfile integrity)`, continue to the next group.
+**Lockfile-integrity command** (per ecosystem, run after each group before its commit): [references/stack-commands.md](references/stack-commands.md) § Lockfile-integrity command. Non-zero exit → same revert path as a failed `{check-cmd}` run: restore the group's manifest + lockfile, mark `failed (lockfile integrity)`, continue to the next group.
 
 **Gate:** Every group has a commit or `failed`/`skipped` record. `git status --porcelain` output matches the checkpoint baseline (this skill's changes all committed or reverted). If fails → dirty tree (partial apply, no commit) → revert exactly the touched files via `git restore -- {manifest} {lockfile}` — never a tree-wide `git checkout -- .`, which would destroy the user's unrelated uncommitted work — mark `failed (dirty working tree)` for the summary, continue; revert itself fails → halt + surface conflict with modified-file list.
 
@@ -246,7 +183,7 @@ Non-zero exit → same revert path as a failed `{check-cmd}` run: restore the gr
 
 Covers ONLY items still undecided after Phase 5 (deferred majors/removals) — items already decided in Phase 5's inline resolution are never re-presented (no double-asking).
 
-**Default:** no review step is shown — remaining items (deferred majors/removals) resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **`--ask`:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Default:** no review step is shown — remaining items (deferred majors/removals) resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (only you can do)`. **`--ask`:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** Every B item has a decision (applied → fixed/failed, or explicitly skipped). If fails → undecided after prompt (dismissed/timed out) → mark `skipped (no decision)` for the summary, continue to Summary; do not re-prompt.
 
@@ -262,11 +199,11 @@ Disposition accounting — totals balance.
 
 `ds-deps: {OK|WARN|FAIL} | Bumped: {n} | Majors-pending: {n} | Skipped: {n} | Failed: {n} | Total: {n} | Advisories-closed: {n}`
 
-Closing shape (`Decided without asking` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
+Closing shape (`Decided without asking` lines, every `only you can do` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
 **Gate:** Every dep has exactly one disposition; accounting balances. If fails → undisposed dep → assign `skipped (accounting gap)`; imbalanced → status `WARN` with note "{n} deps unaccounted — re-run to pick up the remainder from the last per-group commit".
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} safe-patch + {m} safe-minor upgrades applied with per-group commits + green tests — dormant repo no longer accumulating CVE backlog`
 - `{n} security advisories closed (CRITICAL: {x}, HIGH: {y}) — production exposure window narrowed`
@@ -283,7 +220,7 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 - Workspace-wide consistency: dep across multiple workspace manifests → bump to a single version across all.
 - **Slopsquatting guard:** before adding or accepting any new dependency, confirm it exists in the official registry, was registered before this project began, and has real download history; a near-miss or cross-ecosystem name is a typosquat until proven (~19.7% of LLM-suggested packages are hallucinated — [CSA 2026](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/)).
 - **Stdlib-extraction check:** when the language runtime moves a module out of the standard library into a separate package (Ruby `csv`, Python `distutils`), verify every dependency still importing it declares the package explicitly in the manifest (Gemfile/requirements) — never rely on implicit stdlib presence. Detect: runtime upgrade notes list extracted modules; transitive deps import them; manifest lacks them. (XR-195)
-- **Dependency Adoption Eligibility gate (AND, all required)** — before accepting any brand-new dependency (distinct from the slopsquatting guard above, which verifies a candidate is real; this gate decides whether it should be added at all): (1) genuinely external — not reasonably hand-written for this codebase; (2) reimplementation cost exceeds a documented time-estimate threshold, or is technically infeasible; (3) shipped/bundled size stays under a documented ceiling — exceptions require explicit sign-off recorded in the same PR/commit; (4) serves an optional/lazy feature path, never the critical/eager runtime boot path; (5) is lazy-loaded, not eagerly bundled. Additionally: license is on an explicit allowlist (reject copyleft when incompatible with the project's distribution model); a provenance record (source repo URL, pinned version/commit hash, license) is committed alongside the dependency; a documented one-command removal/rollback path exists. Flag any new-dependency addition that doesn't address all five criteria plus license + provenance as `review-major`, never `safe-minor`.
+- **Dependency Adoption Eligibility gate:** a brand-new dependency needs 5 AND-criteria plus license + provenance before acceptance, else it classifies `review-major`, never `safe-minor`: [references/classify-advisories.md](references/classify-advisories.md) § Dependency Adoption Eligibility gate.
 - W1: every classification cites registry metadata + changelog URL. W2: after upgrade, verify no broken import in consumers. W3: only manifest + lockfile + approved source lines change. W4: re-read manifest before commit. W5: uncertain changelog → `review-major`, not `safe-minor`. W6: every group produces output. W7: dedup — same dep across monorepo workspaces listed once per workspace. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W16: dependency verified present in the registry (non-trivial age + downloads) and pinned in the lockfile before add; hallucinated or typosquat names rejected.
 - W8: quote package names with version specifiers in shell; reject names containing shell metacharacters. <!-- portable-only -->
 

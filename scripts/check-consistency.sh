@@ -260,9 +260,9 @@ check_canonical_strings() {
   close_c=$(grep -m1 '^> \*\*Completion Evidence — final gate' SKILL-SPEC.md)
   acct_c=$(grep -m1 '^- Full accounting enforced:' SKILL-SPEC.md)
   pre_c=$(grep -m1 '^- Pre-existing / out-of-scope' SKILL-SPEC.md)
-  vd_c=$(grep -m1 '^\*\*Value Delivered:\*\* 1-5' SKILL-SPEC.md)
+  vd_c=$(grep -m1 '^\*\*Effect:\*\* 1-5' SKILL-SPEC.md)
   { [ -n "$open_c" ] && [ -n "$close_c" ] && [ -n "$acct_c" ] && [ -n "$pre_c" ] && [ -n "$vd_c" ]; } \
-    || { err "SKILL-SPEC.md canonical strings not extractable (bands / accounting / pre-existing / value-delivered)"; return; }
+    || { err "SKILL-SPEC.md canonical strings not extractable (bands / accounting / pre-existing / effect)"; return; }
   for f in ds-*/SKILL.md; do
     line=$(grep -m1 '^> \*\*Completion Evidence — applies to every phase:' "$f")
     [ -z "$line" ] || [ "$line" = "$open_c" ] || err "$f opening Completion Evidence band deviates from SKILL-SPEC verbatim text"
@@ -272,8 +272,8 @@ check_canonical_strings() {
     [ -z "$line" ] || [ "$line" = "$acct_c" ] || err "$f full-accounting bullet deviates from SKILL-SPEC canonical text"
     line=$(grep -m1 '^- Pre-existing / out-of-scope' "$f")
     [ -z "$line" ] || [ "$line" = "$pre_c" ] || err "$f pre-existing-errors bullet deviates from SKILL-SPEC canonical text"
-    line=$(grep -m1 '^\*\*Value Delivered:\*\* 1-5' "$f")
-    case "$line" in ""|"$vd_c"*) ;; *) err "$f Value-Delivered preamble deviates from the SKILL-SPEC canonical prefix";; esac
+    line=$(grep -m1 '^\*\*Effect:\*\* 1-5' "$f")
+    case "$line" in ""|"$vd_c"*) ;; *) err "$f Effect preamble deviates from the SKILL-SPEC canonical prefix";; esac
   done
 }
 
@@ -472,7 +472,7 @@ self_test() {
 
   # Fixture: check_ask_row_canonical — skill reworded the canonical --ask row
   mkdir -p "$tmp/askrow/ds-x"
-  printf '| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |\n' > "$tmp/askrow/SKILL-SPEC.md"
+  printf '| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |\n' > "$tmp/askrow/SKILL-SPEC.md"
   printf '| `--ask` | Interactive run but it also opens a PR. |\n' > "$tmp/askrow/ds-x/SKILL.md"
   assert_catches "check_ask_row_canonical" "$tmp/askrow" check_ask_row_canonical
 
@@ -594,7 +594,7 @@ EOF
 > **Completion Evidence — final gate:** canonical closing. <!-- portable-only -->
 - Full accounting enforced: canonical accounting sentence.
 - Pre-existing / out-of-scope errors: canonical bullet. <!-- portable-only -->
-**Value Delivered:** 1-5 canonical preamble:
+**Effect:** 1-5 canonical preamble:
 EOF
   cat > "$tmp/f14/ds-alpha/SKILL.md" <<'EOF'
 > **Completion Evidence — applies to every phase:** canonical opening.

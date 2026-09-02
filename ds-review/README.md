@@ -37,7 +37,7 @@ Run `/ds-review`, or ask to review your code quality.
 
 ## Features
 
-- 8 tactical scopes (86 checks) + 9 strategic scopes (103 checks) + 11 perf groups + 5 meta-quality detector scopes + 1 derived alias
+- 8 tactical scopes (109 checks) + 9 strategic scopes (110 checks) + 11 perf groups + 5 meta-quality detector scopes + 1 derived alias
 - Diff scoping (default when a diff exists): reviews only changed files + their direct consumers instead of the whole repo; `--diff[={ref}]` forces it explicitly, `--scope=all` forces a full-repo scan
 - `yagni` / `obsolete` / `duplicate` (function-level) detection and the tactical `simplify` scope are delegated to ds-simplify
 - Anti-overengineering 3-gate screens every finding before reporting (false-positive guard)

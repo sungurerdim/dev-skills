@@ -68,4 +68,4 @@ Lives in the host's context-loaded instruction file (Claude Code `CLAUDE.md`, Co
 4. Nothing outside the two headings is ever modified.
 5. After every write: count the block's lines; > 25 → merge multi-key lines, drop `External` entries without a purpose, drop `Modules` entries with zero files; still > 25 → WARN in the summary with the offending line indices.
 
-**Consumers read the profile before their own detection** — `Type`/`Stack`/`Toolchain` skip re-detection; `Target` calibrates severity (prototype lenient, enterprise strict); `Priorities` order scopes; `Constraints`/`Red lines` turn conflicting proposals into `needs-human`; `Scores` focus effort on the lowest dimensions; `Signals` resolve which scopes apply at all.
+**Consumers read the profile before their own detection** — `Type`/`Stack`/`Toolchain` skip re-detection; `Target` calibrates severity (prototype lenient, enterprise strict); `Priorities` order scopes; `Constraints`/`Red lines` turn conflicting proposals into `only you can do`; `Scores` focus effort on the lowest dimensions; `Signals` resolve which scopes apply at all.

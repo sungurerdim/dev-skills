@@ -1,6 +1,6 @@
 ---
 name: ds-docs
-description: Documentation integrity — gap analysis, doc-drift verification against source, ADR tracking, and AI-harness context-file curation. Use when documentation is incomplete or stale, the user asks to write/improve README, API docs, or guides, wants an architecture decision recorded, or wants CLAUDE.md/AGENTS.md trimmed.
+description: Documentation integrity — gap analysis, doc-drift verification, ADR tracking, and AI-harness context-file curation. Use when docs are incomplete or stale, the user asks to write/improve README or API docs, wants a decision recorded, or wants CLAUDE.md/AGENTS.md trimmed.
 ---
 
 # /ds-docs
@@ -33,7 +33,7 @@ Documentation drifts from code the moment it's written, decisions evaporate with
 - Only generates/modifies documentation files — never touches source code.
 - Verifies claims against actual source code before writing.
 - Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: generated docs on disk are the progress record; re-running naturally resumes.
 
@@ -45,7 +45,7 @@ Documentation drifts from code the moment it's written, decisions evaporate with
 | `--scope={x}` | Single scope: readme, api, dev, user, ops, support, changelog, compliance, adr, harness, refine, verify |
 | `--adr` | ADR mode: scan architecture decisions, propose/maintain numbered ADR files under `docs/adr/` |
 | `--update` | Regenerate even if docs exist |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Default: no disambiguating flag resolves to Auto mode (detect + analyze + generate all applicable scopes), recorded in the summary. `--ask` with no disambiguating flag: present mode selection to the user.
 
@@ -83,55 +83,12 @@ Default: no disambiguating flag resolves to Auto mode (detect + analyze + genera
 | refine | any source — applies whenever existing docs are found | N/A — no existing docs to refine |
 | verify | any source — applies whenever existing docs are found | N/A — no existing docs to verify |
 
-### ADR scope (activated by `--adr` flag or when `adr` scope is explicitly selected)
+### Scope references
 
-**Structure + template:** `docs/adr/NNNN-{kebab-slug}.md`, sequential zero-padded numbering from `0001`. Template follows the Nygard format that `adr-tools` and `log4brains` manage — generated ADRs stay compatible with those corpora:
-
-```markdown
-# ADR NNNN: {Title}
-**Status:** proposed | accepted | deprecated | superseded-by NNNN
-**Date:** YYYY-MM-DD
-## Context
-{One paragraph: forces at play — technical, political, social, project-level — that pressured this decision.}
-## Decision
-{One paragraph: the choice taken. Active voice. Specific.}
-## Consequences
-{Bullet list: positive + negative consequences, known and anticipated.}
-```
-
-**Operations (`--adr` mode):**
-
-1. **Inventory:** list existing ADRs, verify numbering contiguous, flag any missing status/date/sections. Spot-check each `accepted` ADR's referenced file paths/symbols against current code — a since-removed reference → flag `drifted`, propose a status review (deprecate / supersede); never silently trust an ADR the system has outgrown. An ADR grounded in a measurement or experiment carries a `**Locked:** {evidence reference} — not to be revisited without new evidence` line (DOC-21); a locked ADR reopened with no new evidence cited is flagged, not treated as a valid update.
-2. **Proposal candidates:** every Category B decision surfaced in recent `ds/audit/findings.md` runs (scope `ideal-gap`, `architecture`, `stack-fitness`) without a matching ADR → propose a draft ADR. A finding disposed `skipped (accepted debt)` with a stated reason and fix path, recurring across runs with no ADR → propose a debt-tracking ADR instead (ID, missing piece, deferral reason, fix path — DOC-22), so reviews cite the existing record instead of re-litigating it. Default: each draft resolves by best judgment (written using best-judgment synthesis of the finding), recorded in the summary. `--ask`: user approves each before writing.
-3. **Supersedence:** new ADR contradicting an earlier one cites superseded ADR; earlier ADR updated to `status: superseded-by NNNN`.
-4. **No autonomous ADR writes without record.** Every new ADR is Category B. Default: title + draft resolve by best judgment — nothing about drafting a documentation file (git-reversible, no credential, no business/legal call) matches the publish/irreversible exception list, so it is never left `needs-human`; the choice is recorded in the summary. `--ask`: user approves title + draft before file creation.
-
-### Harness scope (activated by `--scope=harness` or when `harness` scope is explicitly selected)
-
-**Target files:** `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/*.mdc`, `.windsurfrules`/`.devin/rules/*.md`, `.github/copilot-instructions.md` + `.github/instructions/*.instructions.md`, `GEMINI.md`, `CONVENTIONS.md` (Aider) — root file plus every nested per-package file in a monorepo.
-
-These files are re-injected into every session as low-trust background context, not read once like a README — signal density matters more than completeness. Apply rules from [references/rules-writing.md](references/rules-writing.md) DOC-10 to DOC-17.
-
-**Operations:**
-
-1. **Inventory:** find every target file present (root + nested). None present → record as advisory gap, do not fabricate one unless the user explicitly requested `harness` scope with no existing file (then generate a minimal starter from verified project commands/conventions only, per Phase 5).
-2. **Classify content, line by line:**
-
-   | Category | Verdict | Rule |
-   |----------|---------|------|
-   | Non-guessable commands, style rules diverging from tool defaults, non-obvious gotchas/rationale, repo etiquette | Keep — flag as gap if missing and the project clearly has one | DOC-15 |
-   | Directory layout, dependency lists, file-by-file descriptions, architecture overviews | Cut — agent derives this by reading code | DOC-11 |
-   | Generic/self-evident advice ("write clean code") | Cut — measurably degrades output, not just wasted tokens | DOC-12 |
-   | Pasted API docs, long tutorials, frequently-changing detail | Replace with a link | DOC-13 |
-   | Secrets, credentials, API keys, tokens | Cut immediately | DOC-10 (CRITICAL) |
-   | Negative-framed rule with a positive equivalent | Rewrite positive | DOC-16 |
-3. **Verify before flagging DOC-11:** read the actual file/directory the content claims to describe — confirm it is genuinely derivable before reporting. Unconfirmed → do not flag.
-4. **Length check (DOC-14):** measure with `wc -l` (line budgets) / `wc -c` (char budgets), compare against the target harness's own budget (Claude Code `CLAUDE.md` <200 lines; Cursor rule file <500 lines; Windsurf/Devin `global_rules.md` 6,000 chars / workspace rule file 12,000 chars; cross-harness community consensus <300 lines). Still over budget after cutting DOC-10–13 → propose a split: nested per-directory files (monorepo pattern) or path-scoped/glob-conditional rules where the harness supports them — never `@path`/`@file.md` imports alone, which load in full at launch and do not reduce context.
-5. **Monorepo check (DOC-17):** one root file covering unrelated packages → propose nested per-package files.
-
-**Gate:** Every present file inventoried and classified; every DOC-11 flag verified against source. If fails → source unreadable → mark item `inconclusive`, do not cut it.
-
-Category B: a harness context file shapes every future session's behavior across the whole project, a higher blast radius than most doc edits. Default: the diff (cuts + additions + one-line rationale each) applies using the same cut/keep judgment named above — nothing about editing a harness file matches the publish/irreversible exception list — recorded in the summary. `--ask`: show the proposed diff and get approval before writing.
+| Scope | Reference | Loaded when |
+|-------|-----------|-------------|
+| adr | [references/scope-adr.md](references/scope-adr.md) — ADR template, numbering, inventory/proposal/supersedence operations | `--adr` flag or `adr` scope explicitly selected |
+| harness | [references/scope-harness.md](references/scope-harness.md) — target files, content classification (DOC-10–17), length budgets, Category B approval | `--scope=harness` or `harness` scope explicitly selected |
 
 ## Delegation
 
@@ -168,84 +125,12 @@ Scan existing docs, detect project type, assess completeness. Apply quality rule
 
 ### Phase 3: Gap Analysis (ideal vs current)
 
-Ideal docs by project type:
+Full detail (ideal-docs-by-type table, Verify-scope claim/verification tables, the generated-numbers stack-independent rule, Product-DX check, End-user docs & support check group): [references/gap-analysis.md](references/gap-analysis.md). Missing docs = HIGH; incomplete (<70%) = MEDIUM.
 
-| Type | README | API | Dev | User | Ops | Changelog | Compliance |
-|------|--------|-----|-----|------|-----|-----------|------------|
-| cli | Full | - | Basic | Full (man/help) | - | Yes | - |
-| library | Full | Full | Full | Guides | Publish | Yes | - |
-| api | Full | Full | Full | Full | Full | Yes | Privacy, DPIA, Breach plan |
-| web | Full | Components | Full | Basic | Full | Yes | Privacy, Cookie policy, DPIA |
-| mobile | Full | - | Full | Store listing | Full | Yes | Privacy, DPIA, Breach plan, Processor registry |
-| desktop | Full | - | Full | Full | Full | Yes | Privacy, DPIA |
-| monorepo | Full | Per-package | Full | Per-package | Full | Yes | Per-package if user-facing |
-| iac | Full | - | Full | Runbook | Full | Yes | - |
-| devtool | Full | Full | Full | Full | - | Yes | - |
-| data | Full | Schema | Full | Pipeline guide | Full | Yes | Privacy, DPIA, Model card privacy |
-| ml | Full | Model card | Full | Inference guide | Full | Yes | Privacy, DPIA, Model card privacy |
-| embedded | Full | HW interface | Full | Setup guide | Flash guide | Yes | - |
-| game | Full | - | Full | Player guide | - | Yes | Privacy (if online/IAP) |
-| extension | Full | API/hooks | Full | Marketplace | Publish | Yes | Privacy (if data collected) |
-
-Missing docs = HIGH; incomplete (<70%) = MEDIUM.
-
-**Harness scope:** orthogonal to project type — audits whatever AI-harness context files exist (`CLAUDE.md`/`AGENTS.md`-class; see Harness scope below). None present → advisory, not a gap, unless the scope was explicitly requested.
-
-**Refine scope:** analyze for scannability, clarity, redundancy, conciseness.
-
-**Verify scope (doc vs code sync) — the most critical scope:** finds lies in documentation. For every testable claim, search source to confirm or deny.
-
-| Claim type | How to verify |
-|-----------|--------------|
-| CLI flags / arguments | Search source for flag definitions (argparse, cobra, clap, commander) |
-| Function signatures | Search for function/method definition, compare params + return type |
-| API endpoints | Search route definitions (express routes, FastAPI paths, controller annotations) |
-| Config keys / env vars | Search for config reads (`process.env`, `os.environ`, config file parsers) |
-| Code examples | Verify function names, params, return values match source |
-| Default values | Search for default assignments |
-| Version numbers | Compare doc versions with manifest/lockfile |
-| Setup/install steps | Verify each command works (referenced scripts/commands exist) |
-| Feature descriptions | Search for feature implementation |
-| Architecture claims | Verify patterns match actual code structure |
-| Performance claims | Verify benchmarks / metrics against implementation |
-| Security claims | Verify stated security features exist in code |
-| Vendor/third-party name in customer-facing copy | Confirm the named vendor/model is still the one wired in the current pipeline; prefer function-neutral phrasing ("speech-to-text engine") unless the name is contractually required (DOC-24) |
-
-**Verification process:** parse each doc into testable claims (every code block, table row, flag, path, number, link); per claim, search codebase for the referenced entity; classify:
-
-| Result | Classification | Action |
-|--------|---------------|--------|
-| Claim matches source | Verified | Skip |
-| Claim doesn't match source | **Drift** — doc outdated | HIGH, show diff |
-| Claim references something that doesn't exist | **Stale** — feature/file removed. Before asserting: run a control query proven to return hits on the same corpus/tool/flags (DOC-25) — a control that returns nothing means the search is broken, not the subject | CRITICAL, suggest removal |
-| Source has something doc doesn't mention | **Gap** — undocumented feature | MEDIUM, suggest adding |
-| Doc duplicates a code-owned fact (version literal, config default, port, dependency version) | **SSOT-copy** — value copied instead of referenced; drifts on next change | MEDIUM, replace with a reference to the owning source (file path, command, or manifest) |
-| Number a tool computes (counts, coverage %, sizes, benchmark figures) or that also lives on another surface, hand-written with no generator and no drift check | **Unwired-number** — correct today, silently wrong after the next change | MEDIUM, emit it from the generator or wire it to a drift check |
-| Access / verification / "last reviewed" date on a source not opened during this run | **Unverified-date** — freshness asserted instead of observed | HIGH, re-open the source now or drop the date |
-| Link returns 404 or target heading missing | **Broken link** | HIGH |
-
-**Generated and cross-surface numbers — stack-independent rule.** A number a doc states has exactly two legal forms: **emitted by its generator** at build time, or **hand-written and covered by a drift check** that goes red when the owning source moves. This covers every number some tool produces (rule/test counts, coverage, bundle size, benchmark results) and every number repeated on a second surface (config, UI copy, site, store listing, another doc). A hand-copied figure that is correct today is still a finding — the finding is the missing wire, not the value. This is the doc-side, stack-independent form of the ds-devops build-hygiene pair DOP-38 (generated artifacts are regenerated at the gate, never hand-edited) and DOP-39 (a cross-surface fact gets one canonical owner plus a drift gate); it applies with no CI, no pipeline, and no particular stack. Dates obey the same discipline: an access/verification date is written only for a source actually opened in this run, and is never bumped to today because the line around it was edited.
+**Harness scope:** orthogonal to project type — audits whatever AI-harness context files exist (`CLAUDE.md`/`AGENTS.md`-class; [references/scope-harness.md](references/scope-harness.md)). None present → advisory, not a gap, unless the scope was explicitly requested.
 
 Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy/Unwired-number/Unverified-date) | Doc File:Line | Claim | Actual | Severity |`
 Label map for orchestrated runs: ds-ship's promise census uses `promised-not-implemented` (= `Drift`/`Stale` here) and `implemented-not-documented` (= `Gap` here) — same classes, census-side names.
-
-**Product-DX onboarding-curve check (when scope includes getting-started or API docs):**
-1. Does a "Quickstart" / "Getting Started" guide exist with copy-pasteable first command?
-2. Can a new user complete the core flow (install → configure → first success) in under 5 steps?
-3. Is the first example minimal (no auth, no config, no external dependencies if possible)?
-4. Do examples use `{placeholder}` values (not real secrets, not hardcoded test data)?
-5. Is there one canonical entry point everyone is directed to (README or docs landing page)?
-
-**End-user docs & support check group (B6, advisory — never a blocker; user-facing project types only: web, mobile, desktop, extension, game):**
-
-| Check | Missing = | Where |
-|-------|-----------|-------|
-| User-facing FAQ exists | MEDIUM advisory | `docs/user/FAQ.md`, `FAQ.md`, or an in-app/site FAQ section |
-| Task-based walkthroughs for the top user flows (short step guides or ≤60s screen-recording equivalents) | MEDIUM advisory | `docs/user/` per-flow guide, or linked from the FAQ/help surface |
-| Help surface reachable from the product itself | MEDIUM advisory | In-app help link/menu item, or a site help section linked from the product UI — not doc-repo-only |
-| Support contact path published | MEDIUM advisory | Email, contact form, or ticketing link in README/site footer/in-app |
-
-**Minimum verification coverage:** ALL code blocks, ALL flag/option tables, ALL numbered step lists, ALL internal links. These are highest-drift-risk.
 
 **Gate:** Gap analysis complete with severity-classified findings. If fails → unreadable source file referenced by a claim → record `{ type: "inconclusive", severity: "MEDIUM", reason: "source file unreadable" }`, re-read once before marking inconclusive; still fails → flag scope `inconclusive` in summary.
 
@@ -257,32 +142,35 @@ Default: skip this phase — proceed directly to Phase 5 with every detected gap
 
 ### Phase 5: Generate Documentation (skip if --preview)
 
-**Checkpoint pre-step (before the first doc file is written,** [core checkpoint protocol](../core/checkpoint-protocol.md)**):** `git status --porcelain` → empty → proceed. Non-empty and disjoint from this run's planned targets → proceed, list the dirty paths as untouched. Non-empty and a planned target is already dirty → default: mark that target `skipped (needs-human)`, continue with the rest. `--ask`: show the dirty files, ask Commit first (recommended) / Stash / Proceed anyway (generation may overwrite uncommitted doc edits). Never overwrite uncommitted doc changes silently.
+**Checkpoint pre-step (before the first doc file is written,** [core checkpoint protocol](../core/checkpoint-protocol.md)**):** `git status --porcelain` → empty → proceed. Non-empty and disjoint from this run's planned targets → proceed, list the dirty paths as untouched. Non-empty and a planned target is already dirty → default: mark that target `skipped (only you can do)`, continue with the rest. `--ask`: show the dirty files, ask Commit first (recommended) / Stash / Proceed anyway (generation may overwrite uncommitted doc edits). Never overwrite uncommitted doc changes silently.
 
-Principles: extract from code, don't invent — read source for actual signatures/endpoints/configs; brevity over verbosity — every sentence earns its place; scannable format — headers, bullets, tables, copy-pasteable commands; action-oriented — focus on what the reader needs to do. Source mandate: every documented flag, endpoint, or config value MUST be verified by searching source before inclusion. Every number written must trace to its generator or to a drift-checked canonical owner (see the stack-independent rule in Phase 3) — a figure with neither is not written; every date must belong to a source opened in this run.
+Principles: extract from code, don't invent — read source for actual signatures/endpoints/configs; brevity over verbosity — every sentence earns its place; scannable format — headers, bullets, tables, copy-pasteable commands; action-oriented — focus on what the reader needs to do. Source mandate: every documented flag, endpoint, or config value MUST be verified by searching source before inclusion. Every number written must trace to its generator or to a drift-checked canonical owner (see [references/gap-analysis.md](references/gap-analysis.md) § Generated and cross-surface numbers) — a figure with neither is not written; every date must belong to a source opened in this run.
 
 **Compliance scope (when scope = compliance):**
 
 - **Overwrite prevention:** target file exists → do NOT overwrite blind. Default: resolves by best judgment (Update when the proposed version is more accurate/complete than the existing one, else Keep), decision recorded in the summary. `--ask`: show diff between existing + proposed, ask "Update / Keep / Show diff".
 - **Infrastructure-detail safety:** compliance docs MUST NOT embed hardcoded server addresses, internal endpoints, secret-management tool names, or proprietary internal tool names. Use placeholders (`{your-domain}`, `{DPA-contact-email}`, `{your-cloud-region}`). Disclosing internal infra in a public privacy policy is itself a security finding.
 
-Compliance template structures (scan codebase for data flows, third-party SDKs, privacy configs, API patterns):
+Generate from template (scan codebase for data flows, third-party SDKs, privacy configs, API patterns; fill every `{placeholder}` from verified source, never invent):
 
-| Document | Sections (compact) |
-|----------|--------------------|
-| **Privacy Policy** | Who we are; Data collected (table: type / source / purpose); Data NOT collected; How data is used; Local storage; Server-side processing; Auth; Third-party services (table: service / entity / data shared / purpose); Data retention (table: type / period / deletion trigger); User rights (access, delete, export, revoke, portability); Children's privacy; International transfers; Security measures; Changes; Contact |
-| **DPIA** | Processing description + data category table; Necessity & proportionality + legal basis table per framework; Risk matrix (ID / description / likelihood / severity / inherent risk) + mitigation table (risk ID / control / status / residual risk); Consultation record; Decision (approved/rejected + residual risk + review date max 12 months); dated Review Log (what was corrected, when, trigger — DOC-20) |
-| **Breach Notification Plan** | Scope; Regulatory timelines table (GDPR / KVKK / CCPA / LGPD / UK GDPR / PIPL / PIPA / PDPA — authority + user deadlines); Severity classification (P1/P2/P3/P4 with criteria + containment + notification timelines); 5-phase procedure (Detection → Containment → Authority Notification → User Notification → Remediation); Contact info; dated Review Log (what was corrected, when, trigger — DOC-20) |
-| **Processor Registry** | Per-processor: service name, legal entity, location, data processed, data NOT processed, legal basis per framework, user control, DPA/SCC status + expiry, transfer mechanism, retention. Annual review checklist (active, DPA current, transfers valid, minimization, opt-out functional, retention aligned) |
-| **ToS / EULA** | Service description; Eligibility & account terms; License grants (free vs paid); Payment terms (subscription/one-time/auto-renewal); Cancellation & refund policy; Acceptable use (prohibited activities); Disclaimer of warranties; Limitation of liability; Termination rights; Governing law & dispute resolution; Privacy Policy cross-reference; Contact / DPO; Version & change tracking. For API/SaaS: rate limits, SLA (uptime credits), data retention after termination. For mobile: App Store SKUs reference. |
-| **User FAQ** (`docs/user/FAQ.md`) | Grouped by topic (Getting Started, Account, Billing, Troubleshooting); each entry: question as a real user would phrase it + direct answer + link to the relevant walkthrough or support path if unresolved |
-| **Walkthrough outline** (`docs/user/{flow}.md`, one per top user flow) | Goal (one sentence — what the user accomplishes); Steps (numbered, screenshot/GIF placeholder per step, ≤60s-equivalent length); Expected result; "Still stuck?" link to the support contact path |
+| Document | Template | Target |
+|----------|----------|--------|
+| Privacy Policy | [references/template-privacy-policy.md](references/template-privacy-policy.md) | `docs/compliance/privacy-policy.md` |
+| DPIA | [references/template-dpia.md](references/template-dpia.md) | `docs/compliance/dpia.md` |
+| Breach Notification Plan | [references/template-breach-notification.md](references/template-breach-notification.md) | `docs/compliance/breach-notification.md` |
+| Processor Registry | [references/template-processor-registry.md](references/template-processor-registry.md) | `docs/compliance/processor-registry.md` |
+| Store Privacy Labels | [references/template-store-privacy-labels.md](references/template-store-privacy-labels.md) | `docs/compliance/store-privacy-labels.md` |
+| ToS / EULA | Service description; eligibility & account terms; license grants (free vs paid); payment terms (subscription/one-time/auto-renewal); cancellation & refund policy; acceptable use; disclaimer of warranties; limitation of liability; termination rights; governing law & dispute resolution; Privacy Policy cross-reference; Contact/DPO; version tracking. API/SaaS adds rate limits + SLA; mobile adds App Store SKU reference. | `docs/compliance/tos.md` |
+| User FAQ | Grouped by topic (Getting Started, Account, Billing, Troubleshooting); each entry: question as a real user would phrase it + direct answer + link to the relevant walkthrough or support path if unresolved | `docs/user/FAQ.md` |
+| Walkthrough outline | Goal (one sentence); numbered steps with screenshot/GIF placeholder per step, ≤60s-equivalent; expected result; "Still stuck?" link to the support contact path | `docs/user/{flow}.md`, one per top user flow |
+
+DPIA, Breach Notification, and Processor Registry templates each carry their own dated Review Log section (DOC-20) — corrections tracked there, not restated here.
 
 **Gate:** Every generated claim verified against source with file:line evidence. If fails → unverifiable claim → remove from generated doc, add `<!-- TODO: verify {claim} — source not found -->` at removed location, record scope `partial`, surface MEDIUM "unverified claim removed from {file}".
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-Default: items resolve by best judgment (`fixed` or `failed`), recorded in the summary, except items matching the publish/irreversible exception list, which become `skipped (needs-human)`. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Default: items resolve by best judgment (`fixed` or `failed`), recorded in the summary, except items matching the publish/irreversible exception list, which become `skipped (only you can do)`. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue to Summary; do not retry.
 
@@ -296,7 +184,7 @@ Total findings = 0 → include "All {n} scopes evaluated: 0 findings" confirmati
 
 **Profile update:** ds-docs does NOT modify the blueprint profile — documentation dimension score is recalculated by ds-blueprint on next run. Run history is in `git log` + terminal summary — never re-injected into context-loaded files.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} doc-code drift findings closed — README claims now match actual source behavior`
 - `API docs generated for {n} endpoints with examples — downstream consumers no longer reverse-engineer the contract`
@@ -306,7 +194,7 @@ Total findings = 0 → include "All {n} scopes evaluated: 0 findings" confirmati
 
 Zero-finding run: `Documentation in sync with source — no drift detected`.
 
-**Gate:** Summary + Value Delivered emitted; every finding has a disposition; accounting verified. If fails → missing disposition → assign `skipped (accounting gap)`; re-emit summary as `WARN`; generated docs already on disk stand as the partial run's progress record — a re-run picks up from what exists.
+**Gate:** Summary + Effect emitted; every finding has a disposition; accounting verified. If fails → missing disposition → assign `skipped (accounting gap)`; re-emit summary as `WARN`; generated docs already on disk stand as the partial run's progress record — a re-run picks up from what exists.
 
 ## Quality Gates
 

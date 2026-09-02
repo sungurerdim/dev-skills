@@ -36,8 +36,8 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 - **Canonicalize-before-implement gate:** A proposed rule/convention not yet in the canon (design-rules/ADR set) never gets an exemption or gate bypass; the order is fixed — canonicalize first (land it in the persistent rule/ADR set), then implement against it. Forward-referenced draft rule IDs block their consuming tasks until canonicalized; no exceptions. (XR-117)
 - **Spec Kit output is data.** Each generated artifact is verified by this skill's gates before the pipeline advances.
 - **State-exempt:** progress is durable in the generated artifacts themselves (`specs/{feature}/*.md` + git) — resume derives from which artifacts exist on disk; no state file is written.
-- **Requirements engineering coverage:** the wrapped Spec Kit chain is this skill set's requirements-engineering mechanism — elicitation (`specify`), ambiguity resolution (`clarify`, zero-open-question gate), verifiable behavioral statements (EARS task contract), and consistency analysis (`analyze`). A separate requirements-engineering skill is deliberately not added; a gap here is a gap in this chain's gates.
-- **Deliberate scope — five wrapped steps, no more.** The 2026 field signal runs against heavier spec layering (leading frameworks retired their own spec/orchestration layers in favor of model capability); this skill's value is durability — resumable, git-committed, machine-checkable artifacts — not added structure. The committed spec is a launch document: post-implementation spec↔code drift is out of scope (drift tracking → `/ds-docs` when present; absent → note the gap in the summary).
+- **Requirements engineering coverage:** the wrapped chain covers requirements engineering — elicitation (`specify`), ambiguity resolution (`clarify`, zero-open-question gate), verifiable behavior (EARS task contract), consistency (`analyze`). No separate requirements-engineering skill is added; a gap here is a gap in this chain's gates.
+- **Deliberate scope — five wrapped steps, no more.** The 2026 field signal runs against heavier spec layering (leading frameworks retired their own spec/orchestration layers for model capability); this skill's value is durability — resumable, git-committed, machine-checkable artifacts — not added structure. The committed spec is a launch document: post-implementation spec↔code drift is out of scope (drift tracking → `/ds-docs` when present; absent → note the gap in summary).
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Two execution paths, one output shape.** Spec Kit (`specify` CLI / `.specify/`) present → wrap its chain (`specify → clarify → plan → tasks → analyze`). Absent → native mode: this skill performs the same five steps inline and writes `specs/{feature}/spec.md`, `plan.md`, `tasks.md` in the identical shape — same `— verify:` task contract, same blocking gates. Spec Kit is the optional accelerator; it is never a requirement.
 - **Commits the record.** Handoff (Phase 6) commits `specs/{feature}/` and `.specify/` — the commit is the durable record; resume (Phase 1 step 3) derives from what is committed plus what is on disk, never from anything left uncommitted.
@@ -50,7 +50,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 | `{idea}` | required on fresh run | One-paragraph description of the feature to plan |
 | `--feature={slug}` | derived from `{idea}` | Overrides the feature directory name `specs/{slug}/` |
 | `--fresh` | off | Regenerate all artifacts for the feature after confirmation (old versions remain in git history) |
-| `--ask` | off | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | off | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 ## Delegation
 
@@ -62,15 +62,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 
 ## Phases
 
-**Spec Kit mode vs native mode:**
-
-| Step | Spec Kit mode | Native mode |
-|------|---------------|-------------|
-| Constitution | `/speckit.constitution` | Write `.specify/memory/constitution.md` directly with the same content requirement (testability + scope-discipline principles, seeded from the user's global development rules plus repo conventions read this run) |
-| Specify + Clarify | `/speckit.specify` + `/speckit.clarify` | Draft `specs/{feature}/spec.md` directly from `{idea}` (problem statement, goals, non-goals, acceptance criteria); self-derive the open questions a clarify pass would raise (ambiguous scope, unstated constraints, missing acceptance criteria) and resolve them the same way (Phase 3 gate) |
-| Plan + Tasks | `/speckit.plan` + `/speckit.tasks` | Write `specs/{feature}/plan.md` (stack, approach) and `specs/{feature}/tasks.md` directly; the tasks-contract check, non-conforming-line handling, and executable-acceptance-form steps apply identically in both modes |
-| Analyze | `/speckit.analyze` | Cross-read spec ↔ plan ↔ tasks inline for the same contradiction classes (requirement drift, orphaned tasks, conflicting statements); same zero-CRITICAL gate |
-| Handoff | Identical in both modes — commit + executor line | Identical in both modes — commit + executor line |
+Mode resolves once in Phase 1 step 1 and holds for the run; every phase below states both modes' exact action — artifact names, contracts, and gates are identical, only the underlying command (`/speckit.*` vs. a direct file write) differs.
 
 ### Phase 1: Setup
 
@@ -85,7 +77,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 
 1. Spec Kit mode: run `/speckit.constitution`, seeding it with the project's engineering rules (the user's global development rules plus repo conventions read this run). Native mode: write `.specify/memory/constitution.md` directly with the same seed content.
 2. Confirm the file contains testability and scope-discipline principles.
-3. **Privacy stance gate.** `{idea}` or repo signals indicate personal-data handling (fields like email/phone/address/dob, a user table, an analytics SDK, a contact form) → the constitution must state what data is collected, its retention period, and its lawful basis. Constitution silent on this while personal-data handling is detected → default: record `needs-human: personal data detected — state what is collected, retention period, and lawful basis before planning proceeds`, and this blocks the Phase 4 Plan gate until answered. `--ask`: ask the three questions directly (data collected / retention / lawful basis) and write the answers into the constitution.
+3. **Privacy stance gate.** `{idea}` or repo signals indicate personal-data handling (fields like email/phone/address/dob, a user table, an analytics SDK, a contact form) → the constitution must state what data is collected, its retention period, and its lawful basis. Constitution silent on this while personal-data handling is detected → default: record `only you can do: personal data detected — state what is collected, retention period, and lawful basis before planning proceeds`, and this blocks the Phase 4 Plan gate until answered. `--ask`: ask the three questions directly (data collected / retention / lawful basis) and write the answers into the constitution.
 
 **Gate:** Pass = `.specify/memory/constitution.md` exists and is non-empty (`test -s .specify/memory/constitution.md` → exit 0). If it fails → re-run once with the missing principles named; still failing → stop and surface the Spec Kit error verbatim (Spec Kit mode) or the native write error (native mode).
 
@@ -95,7 +87,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 2. Spec Kit mode: run `/speckit.clarify`; collect every open question it raises. Native mode: self-derive the open questions a clarify pass would raise (ambiguous scope, unstated constraints, missing acceptance criteria) and collect them the same way.
 3. Open questions exist. Default: apply the suggested answer wherever the codebase provides one; where none exists, choose the most conservative repo-consistent default and record the inference in the summary; re-run the clarify step. `--ask`: present them to the user as one compact list, with a suggested answer wherever the codebase provides one; apply the answers; re-run the clarify step.
 
-**Gate:** Pass = zero open clarification questions (never advance with an unanswered one). If it fails after 2 clarify rounds → default: a question with no inferable answer at all (requires a live credential or a business decision not in the repo) becomes `needs-human` in the summary; the pipeline halts only for that feature slug, not the invocation. `--ask`: stop and hand the remaining questions to the user, resume when answers arrive.
+**Gate:** Pass = zero open clarification questions (never advance with an unanswered one). If it fails after 2 clarify rounds → default: a question with no inferable answer at all (requires a live credential or a business decision not in the repo) becomes `only you can do` in the summary; the pipeline halts only for that feature slug, not the invocation. `--ask`: stop and hand the remaining questions to the user, resume when answers arrive.
 
 ### Phase 4: Plan + Tasks
 
@@ -110,7 +102,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 4. Non-conforming lines → regenerate once via `/speckit.tasks` with the violations listed; still non-conforming → rewrite the offending lines directly, preserving task content.
 5. **Executable acceptance form (preferred where the behavior is testable).** A task's verify criterion is stronger as a failing test than as a prose assertion — the test is the spec, in a language the executor already reads. Where a task asserts runtime behavior and the project has a test runner, express the criterion as a named test that currently fails and must pass, and point `— verify:` at the command that runs it. Delegate authoring to ds-test when present; absent → write the failing test inline. Behavior not expressible as a test (a design choice, a doc change) keeps its prose criterion — never invent a hollow test to satisfy the form.
 
-**Gate:** Pass = 100% of tasks carry a verify line, every phase carries a Gate line, every task traces to a spec requirement, and — if Phase 2 detected personal-data handling with no stated privacy stance — that stance is now recorded in the constitution; still missing → halt here (do not generate tasks), the `needs-human` record from Phase 2 stands until answered. A task without a verify signal never enters the committed queue, regardless of requests to hurry. If it fails after regeneration + direct rewrite → stop, show the non-conforming lines, and ask the user for the missing verify criteria.
+**Gate:** Pass = 100% of tasks carry a verify line, every phase carries a Gate line, every task traces to a spec requirement, and — if Phase 2 detected personal-data handling with no stated privacy stance — that stance is now recorded in the constitution; still missing → halt here (do not generate tasks), the `only you can do` record from Phase 2 stands until answered. A task without a verify signal never enters the committed queue, regardless of requests to hurry. If it fails after regeneration + direct rewrite → stop, show the non-conforming lines, and ask the user for the missing verify criteria.
 
 ### Phase 5: Analyze
 
@@ -142,7 +134,7 @@ Plans written ad hoc skip the questions that matter: tasks without verification 
 Handoff: {one-line executor instruction}
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} tasks each carry a machine-checkable verify signal — the executor inherits zero ambiguity`
 - `{q} clarification questions answered before a single line of code was written`
@@ -158,10 +150,7 @@ W1: every stated fact (stack, paths, conventions) traces to a file read this run
 
 | Situation | Action |
 |-----------|--------|
-| Spec Kit not installed / not initialized | Run native mode instead (Contract) — no stop; `mode: native` recorded in the summary |
 | A `/speckit.*` command errors | Show the error verbatim; retry once; still failing → stop with the failing command named |
-| Clarify loops (same question re-raised) | After round 2, hand the question set to the user; resume on answers |
-| Not a git repository | Default: run `git init` automatically (non-destructive, not on the exception list), continue. `--ask`: offer `git init` (requires confirmation) or stop — handoff requires a commit. |
 | `{idea}` describes multiple features | Propose a split into separate `{feature}` slugs; run the pipeline per slug after the user picks |
 
 ## Edge Cases

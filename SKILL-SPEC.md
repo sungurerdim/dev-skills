@@ -116,7 +116,7 @@ In the execution flow overview, the convention is:
 ```markdown
 # Rules: Domain Name
 
-## RULE-ID [SEVERITY] Title
+### RULE-ID [SEVERITY] Title
 Short description of what to check.
 - **Detect:** What pattern indicates a violation
 - **Fix:** How to resolve it
@@ -329,7 +329,7 @@ Every skill runs autonomously by default. `--ask` is the single, universal flag 
 
 1. **No flag = best judgment.** Every point that would ask the user resolves from the evidence gathered (findings, code, project profile, prior art in the codebase) and is recorded in the summary as what was decided and why. No menu, approval gate, `[Y/n]`, or free-text question is shown.
 2. **Category A and Category B both resolve.** A default run does not list Category B / `needs-approval` items and stop — it decides them with the same impact/effort/risk reasoning an approval block would show a human, applies them, and records that reasoning. CRITICAL findings are included (the per-item confirmation in the All-Affordance Rule is an `--ask` floor).
-3. **The ask-exception list is the only thing a default run does not decide** — [`core/ask-exception-list.md`](core/ask-exception-list.md): (a) genuinely irreversible actions, (b) publishing actions that move work off the local machine. They are skipped and recorded `needs-human` with the exact action the human can take. Committing is not publishing. The list does not grow ad hoc — a skill that must extend it does so in its own Contract, citing clause (a) or (b).
+3. **The ask-exception list is the only thing a default run does not decide** — [`core/ask-exception-list.md`](core/ask-exception-list.md): (a) genuinely irreversible actions, (b) publishing actions that move work off the local machine. They are skipped and recorded `only you can do` with the exact action the human can take. Committing is not publishing. The list does not grow ad hoc — a skill that must extend it does so in its own Contract, citing clause (a) or (b).
 4. **`--ask` asks at every decision point** — mode menu, scope table, approval batches, per-item CRITICAL confirmation, checkpoint choices — following Interaction Discipline, the All-Affordance Rule, the Up-Front Mode Menu and Selection Transparency, all of which apply only under `--ask`.
 5. **Propagation.** An orchestrator (`ds-ship`, `ds-pipeline`) invoked with `--ask` forwards `--ask` to every skill it delegates to (Orchestration Contract §10.3); a delegate never asks on its own when the orchestrator was not asked, and never falls back to prompting just because it was invoked as a child.
 6. **Summary is the record.** Every default run ends with the Outcome Report (`core/report-and-outcome-templates.md` § 5): every decision made by judgment under `Decided without asking — say if wrong:` and every open human-owned action under `Only you can do:`, stated in full, so nothing silently vanishes. The labels are the always-on rules layer's (dev-rules › Outcome Report); core § 5 is the portable copy and is stripped from lean/claude installs.
@@ -338,14 +338,14 @@ Every skill runs autonomously by default. `--ask` is the single, universal flag 
 **Canonical Arguments-table row** — every skill pastes this verbatim:
 
 ```markdown
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 ```
 
 **Writing the two branches.** State the default first, then the `--ask` branch — `Default: {what is decided and how it is recorded}. --ask: {the menu or question}.` — never the reverse, and never a bare "ask the user". A phase that exists only to collect approvals is annotated `[--ask, needs_approval > 0]` and does not run otherwise.
 
 ### Relevance First
 
-"Scan everything" is never the default. Every skill with two or more scopes carries a **scope-resolution table** — `| Scope | Runs when (signal) | Otherwise |` — evaluated at setup against the project's signals ([`core/signal-inventory.md`](core/signal-inventory.md), read from the blueprint profile's `Signals:` line or resolved by the skill itself), and echoed in the summary as `ran` / `N/A — {key}={value}` / `unknown → ran`. A scope runs because a signal says it applies; an `unknown` signal never excludes a scope; `--scope=` overrides the table for the named scopes; `--ask` shows the resolved table before running. Orchestrators justify every delegation the same way (`signal-absent — key=value` before any matrix default; `mode-excluded` for legs outside the run's mode). Enforced by `check-consistency.sh` check `scope-resolution-table`.
+"Scan everything" is never the default. Every skill with two or more scopes carries a **scope-resolution table** — `| Scope | Runs when (signal) | Otherwise |` — evaluated at setup against the project's signals ([`core/signal-inventory.md`](core/signal-inventory.md), read from the blueprint profile's `Signals:` line or resolved by the skill itself), and echoed in the summary as `ran` / `N/A — {key}={value}` / `unknown → ran`. A scope runs because a signal says it applies; an `unknown` signal never excludes a scope; `--scope=` overrides the table for the named scopes; `--ask` shows the resolved table before running. Orchestrators justify every delegation the same way (`skipped — no key signal (key=value)` before any matrix default; `skipped — not part of this mode` for legs outside the run's mode). Enforced by `check-consistency.sh` check `scope-resolution-table`.
 
 ### Flag Vocabulary
 
@@ -378,7 +378,7 @@ Every menu, list, or selection point that a skill presents to the user under `--
 **Rules:**
 
 1. "All" affordance is **always visible** but is **not the default** unless the skill's recommendation policy says so explicitly.
-2. **Destructive scope** — when "all" would trigger destructive actions (rm, force-push, drop, schema migration, credential rotation), each item in the batch STILL requires a separate final confirmation. "All" approves intent, not bypass. **Without `--ask`:** items on the ask-exception list are skipped and recorded `needs-human`; everything else in the destructive batch resolves by best judgment on a checkpointed tree (no confirmation exists to wait for).
+2. **Destructive scope** — when "all" would trigger destructive actions (rm, force-push, drop, schema migration, credential rotation), each item in the batch STILL requires a separate final confirmation. "All" approves intent, not bypass. **Without `--ask`:** items on the ask-exception list are skipped and recorded `only you can do`; everything else in the destructive batch resolves by best judgment on a checkpointed tree (no confirmation exists to wait for).
 3. **Secret exclusion** — when "all" stages files (`git add -A`-style flows), `.env`, `*.pem`, `credentials.*`, `secrets.*`, and lockable variants are excluded automatically. The summary surfaces the exclusion list.
 4. **CRITICAL findings are never auto-included in `approve-all`** — they always require a separate, explicit confirmation per finding. **This is an `--ask` floor only**; without `--ask` there is no one to confirm with, so CRITICAL findings resolve by best judgment (applied, not stranded) unless they independently match the ask-exception list.
 5. **Single-option menus are exempt.** A menu with one option does not need an "all" affordance.
@@ -881,15 +881,15 @@ Every finding produced by an audit phase MUST appear in the summary with exactly
 | `fixed` | Applied successfully, verified | Fix confirmed via re-read or API check |
 | `failed` | Fix attempted, did not succeed | Tool error, API rejection, or verification failed |
 | `skipped` | Intentionally not fixed, reason stated | Platform limitation, plan scope, user declined |
-| `needs-input` | Requires information from user | URL, credential, preference, or decision the skill cannot infer |
+| `only you can do` | Requires information from user | URL, credential, preference, or decision the skill cannot infer |
 | `needs-approval` | Risky or cross-module, awaiting confirmation | Destructive action, multi-contributor impact, architectural change |
-| `not-applicable` | Re-verified and dismissed | Context changed, false positive on re-check, already resolved |
+| `not applicable` | Re-verified and dismissed | Context changed, false positive on re-check, already resolved |
 
 **Rules:**
 
-1. Every finding gets exactly one disposition — `fixed + failed + skipped + needs-input + needs-approval + not-applicable = total`
-2. `needs-input` findings MUST trigger a question to the user before the summary phase. Present the finding context and ask for the required input. If the user provides input → attempt fix → `fixed` or `failed`. If the user declines → `skipped`.
-3. `needs-approval` findings MUST trigger a review step before the summary phase. Present all needs-approval items with context (why they are risky: cross-module, destructive, architectural). Ask: Apply All / Review Each / Skip All. If the user approves → attempt fix → `fixed` or `failed`. If the user skips → `skipped (user declined)`. **Without `--ask`:** no review step is shown — items resolve per best judgment (`fixed` or `failed`, using the same impact/effort/risk reasoning the review step would have shown) except items matching the Autonomous Default rule-4 exception list, which become `skipped (needs-human)`.
+1. Every finding gets exactly one disposition — `fixed + failed + skipped + only you can do + not applicable + reverted = total`
+2. `only you can do` findings MUST trigger a question to the user before the summary phase. Present the finding context and ask for the required input. If the user provides input → attempt fix → `fixed` or `failed`. If the user declines → `skipped`.
+3. `needs-approval` findings MUST trigger a review step before the summary phase. Present all needs-approval items with context (why they are risky: cross-module, destructive, architectural). Ask: Apply All / Review Each / Skip All. If the user approves → attempt fix → `fixed` or `failed`. If the user skips → `skipped (user declined)`. **Without `--ask`:** no review step is shown — items resolve per best judgment (`fixed` or `failed`, using the same impact/effort/risk reasoning the review step would have shown) except items matching the Autonomous Default rule-4 exception list, which become `skipped (only you can do)`.
 4. `skipped` findings MUST include a parenthetical reason: `Skipped: 2 (1 platform limit, 1 user declined)`
 5. The summary table lists every finding with its disposition — no finding appears only in the audit phase and disappears from the summary.
 
@@ -899,7 +899,7 @@ Every finding produced by an audit phase MUST appear in the summary with exactly
 |---|----------------------|------------------------------------|
 | 1 | {finding_1}          | fixed ✅                           |
 | 2 | {finding_2}          | skipped ({limitation_reason})      |
-| 3 | {finding_3}          | needs-input → user provided → fixed ✅ |
+| 3 | {finding_3}          | only you can do → user provided → fixed ✅ |
 | 4 | {finding_4}          | skipped ({limitation_reason})      |
 | 5 | {finding_5}          | needs-approval → user approved → fixed ✅ |
 ```
@@ -965,24 +965,24 @@ Status codes:
 - **WARN** — some failures but no CRITICAL findings unresolved
 - **FAIL** — CRITICAL finding unresolved, or execution error
 
-**Accounting gate:** The summary MUST satisfy `fixed + failed + skipped + needs-input + needs-approval + not-applicable = total`. If the equation does not balance, the skill has a bug.
+**Accounting gate:** The summary MUST satisfy `fixed + failed + skipped + only you can do + not applicable + reverted = total`. If the equation does not balance, the skill has a bug.
 
-### Value Delivered Statement
+### Effect Statement
 
-Every skill that modifies code, generates artifacts, recommends specific fixes, or otherwise produces work-output MUST print a `Value Delivered` block **after** the Summary line and before the run exits.
+Every skill that modifies code, generates artifacts, recommends specific fixes, or otherwise produces work-output MUST print a `Effect` block **after** the Summary line and before the run exits.
 
 Canonical SKILL.md preamble (verbatim; a skill may append inline content after the colon, never alter the sentence — `check-consistency.sh` enforces the prefix):
 
 ```markdown
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 ```
 
-**Purpose.** The Summary line shows what mechanically happened (5 fixes applied, 2 needs-approval). The Value Delivered block answers the user's actual question: "was running this worth it?" — in concrete, codebase-specific terms that make the user say "good thing I ran this."
+**Purpose.** The Summary line shows what mechanically happened (5 fixes applied, 2 needs-approval). The Effect block answers the user's actual question: "was running this worth it?" — in concrete, codebase-specific terms that make the user say "good thing I ran this."
 
 **Format:**
 
 ```
-Value Delivered:
+Effect:
 - {Concrete benefit — what problem was prevented, what cost was avoided, what capability was gained}
 - {…}
 - {…}
@@ -1002,14 +1002,14 @@ Value Delivered:
 **Examples — good:**
 
 ```
-Value Delivered:
+Effect:
 - 3 hardcoded API keys removed from src/config/*.ts — credentials no longer leak into git history on next commit
 - 4 N+1 queries fixed in pkg/orders — order-list endpoint p95 latency expected to drop from ~800ms to ~120ms (estimated from query plan)
 - 12 unused exports deleted from lib/utils — bundle size reduced ~6KB, faster module load
 ```
 
 ```
-Value Delivered:
+Effect:
 - 1 CRITICAL: SQL injection vector closed in src/api/search.ts:47 — search endpoint no longer concatenates user input into raw SQL
 - 7 missing await detected in async handlers — promise rejections will now propagate to error middleware instead of silently dropping
 ```
@@ -1024,7 +1024,7 @@ Value Delivered:
 - Leverage best-in-class patterns for clean code       ❌ marketing
 ```
 
-**Gate:** Skill exits with a Value Delivered block following the Summary line. If fails (skill produced no fix-output and is not in `--preview` mode) → emit `No changes applied — codebase is clean on {scopes}`. A skill that completes a fix run without a Value Delivered block is a spec violation.
+**Gate:** Skill exits with a Effect block following the Summary line. If fails (skill produced no fix-output and is not in `--preview` mode) → emit `No changes applied — codebase is clean on {scopes}`. A skill that completes a fix run without a Effect block is a spec violation.
 
 ---
 
@@ -1057,7 +1057,7 @@ The boundaries below define **primary ownership** — which skill provides the d
 | ds-productize | Paid-product readiness: monetization model + billing/entitlement integrity, pricing/packaging, GTM baseline | Full monetization/pricing/gtm audit + productization plan |
 | ds-frontend | Frontend design quality: design system, tokens, components, states, a11y, responsive, theming | Full UI audit + design system generation for any framework |
 | ds-tune | Autonomous optimization: measurable metric loop, 100+ experiments, keep only improvements | Full optimization workflow for any measurable metric |
-| ds-build | Plan executor: issue / tasks.md / request → bounded units, a verify signal each, red-proven tests, budgeted backtracking | Whole plan executed; publishing steps recorded needs-human |
+| ds-build | Plan executor: issue / tasks.md / request → bounded units, a verify signal each, red-proven tests, budgeted backtracking | Whole plan executed; publishing steps recorded only you can do |
 | ds-debug | Bug hunter: reproduce → localize → ≤ 3 hypotheses → minimal fix behind a red-proven regression test | Full cycle; not reproduced → stop without an edit |
 | ds-release | Release cutter: version from commits, changelog, every version surface, check green, local commit + tag | Everything up to the tag; push / release / registry printed as commands |
 | ds-simplify | Complexity reduction: dead code, single-caller helpers, premature abstractions, unused deps | Full simplification audit + approved deletion, one reversible commit per group |
@@ -1377,7 +1377,7 @@ Same meaning, fewer tokens. Apply these compression patterns without losing prec
 | Quality Gates (W1-W11) | 6-10 line itemized list | Compact one-liner per weakness (see template) | ~55% |
 | Error Recovery (standard-only) | 6-8 line table with generic rows | Omit section — standard recovery is baseline | 100% |
 | Severity (standard-only) | 8-10 line table repeating 4 levels | Omit section — standard severity is baseline | 100% |
-| Accounting contract | 2 separate bullet items | Single: `Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.` — self-describing; a lone install has no spec to resolve an acronym against | ~40% |
+| Accounting contract | 2 separate bullet items | Single: `Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.` — self-describing; a lone install has no spec to resolve an acronym against | ~40% |
 | Summary phase body | 5-8 lines with accounting/format explanation | 2 lines: `Disposition accounting — totals balance.` + output format | ~65% |
 | Redundant prose removal | "The goal of this phase is to..." | Direct imperative: "Decompose into steps." | ~30% |
 | Single-row tables | `\| Col \|\n\|---\|\n\| Val \|` | Inline: `**Col:** Val` | ~60% |
@@ -1493,7 +1493,7 @@ Before releasing any skill, verify:
 - [ ] No artifact accumulates across runs — every state file, findings file, report file, and profile section is rewritten on each run (overwrite-only).
 - [ ] Skill never writes to the context-loaded instruction file (`CLAUDE.md` / `.cursorrules` / `.github/copilot-instructions.md` / `.windsurfrules` / `.aider.conf.yml` / `AGENTS.md` / etc.) outside the Blueprint Profile markers, and never adds timestamps, score deltas, run history, philosophy, or anything that fails the Dev-Value Gate (see §10.1).
 - [ ] Blueprint Profile section stays ≤ 25 lines after the skill writes; every line maps to a documented consumer behavior (no dead lines).
-- [ ] Skill prints a `Value Delivered` block after the Summary line in every run that modifies code, generates artifacts, or recommends fixes. Each bullet maps to a real applied change — concrete, user-facing, no filler (see §5 Value Delivered Statement).
+- [ ] Skill prints a `Effect` block after the Summary line in every run that modifies code, generates artifacts, or recommends fixes. Each bullet maps to a real applied change — concrete, user-facing, no filler (see §5 Effect Statement).
 - [ ] SKILL.md contains a `**Dimensions:**` declaration line, and every declared ID exists in the Appendix: Dimension Coverage Map (see §11 Dimension Ownership Design Rule).
 - [ ] Every cross-skill reference follows the advisory-handoff pattern — target present → delegate; target absent → inline-check or gap-note; never a hard-fail (see §12 Standalone Invariant).
 - [ ] No ambiguous-condition phrasing (`"if appropriate"`, `"consider"`, `"may want to"`, `"as needed"`, `"might"`, `"possibly"`, `"could"`, `"should consider"`, `"it is recommended"`) — see §13 AI-Legibility Writing Standard rule (f).
@@ -1668,7 +1668,7 @@ All skills that mutate code or configuration MUST classify every action:
 **MUST:**
 
 1. Category A is never silently promoted to B, and Category B is never compressed into A (honest classification).
-2. Under `--ask`, all Category B items surface in one batched approval block, not one-by-one. **Without `--ask`:** no approval block is shown — B items resolve by best judgment, except items on the ask-exception list, which become `skipped (needs-human)`.
+2. Under `--ask`, all Category B items surface in one batched approval block, not one-by-one. **Without `--ask`:** no approval block is shown — B items resolve by best judgment, except items on the ask-exception list, which become `skipped (only you can do)`.
 3. Each B item presents: current → proposed, reason (concrete benefit), impact, effort, risk, rollback path — recorded in the summary regardless of whether a human (`--ask`) or best judgment made the call.
 4. A and B findings are recorded in `ds/audit/findings.md` with a `category` column alongside `severity`.
 
@@ -1718,7 +1718,7 @@ The engineering principles every skill internalizes (cross-cutting themes, SOLID
 - [Positive guarantee]: "Always [behavior]"
 - [Boundary]: "Only [scope] — [other skill] handles [excluded scope]"
 - [Independence]: "Fully functional standalone — zero dependency on other skills. When blueprint profile or ds/audit/findings.md exist, uses them to skip redundant analysis. When absent, runs own complete analysis with identical quality."
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
@@ -1964,7 +1964,7 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | ds-pr | PR | ds-deploy | DEP | ds-quality | QAL |
 | ds-deps | DPS | ds-benchmark | BEN | ds-pipeline | PIPE |
 | ds-productize | PTZ | ds-freeze | FRZ | ds-debug | DBG |
-| ds-release | REL | | | | |
+| ds-release | REL | ds-rig | RIG | | |
 
 **Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.
 

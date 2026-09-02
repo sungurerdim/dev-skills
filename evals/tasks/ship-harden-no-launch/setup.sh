@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Small node library with tests and no UI / store / billing signals. A harden-mode
 # ship run must produce ds/audit/report.md with Mode: harden and must not run the
-# launch legs (ds-benchmark, ds-launch, ds-productize) — they are mode-excluded and
-# signal-absent here.
+# launch legs (ds-benchmark, ds-launch, ds-productize) — they are skipped — not part of this mode and
+# skipped — no signal here.
 set -euo pipefail
 d="${1:?target dir}"; rm -rf "$d"; mkdir -p "$d/src" "$d/test"
 cd "$d"; git init -q -b main; git config user.email eval@example.com; git config user.name "Eval Fixture"

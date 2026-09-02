@@ -13,11 +13,7 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 
 ## Triggers
 
-- User runs `/ds-productize`
-- User asks to turn a project into a paid product / SaaS ("make this a paid SaaS", "how do I monetize this")
-- User asks for a monetization or paywall audit ("is my billing production-ready", "audit my subscription setup")
-- User asks to design pricing tiers or packaging ("design my pricing page", "which tiers should I offer")
-- User asks for go-to-market readiness ("is this ready to sell", "GTM baseline check")
+- User runs `/ds-productize`, or asks to turn a project into a paid product/SaaS, audit monetization/paywall/billing readiness, design pricing tiers or packaging, or check go-to-market readiness — see the table below for concrete phrases
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -39,7 +35,7 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 - Minimal liability + maximum privacy: recommends Merchant-of-Record or managed billing over hand-rolled payment handling; funnel metrics are privacy-first (no PII in events, consent-gated where required).
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-exempt: audit + plan are regenerable from source; the plan file and git are the durable record.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
@@ -50,9 +46,9 @@ Projects reach technical ship-readiness with zero revenue readiness: no monetiza
 | `--plan` | Produce a productization plan (`ds/productize/plan.md`): model choice, tier design, GTM checklist |
 | `--scope={x}` | Specific scope: monetization, pricing, gtm (comma-separated) |
 | `--preview` | Show the audit findings and the productization plan in chat; write no files (`ds/audit/findings.md`, `ds/productize/plan.md` stay untouched) |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
-Default: no disambiguating flag resolves to `--audit` (recommended), recorded in the summary. `--ask` with no disambiguating flag: present the full mode menu — Audit (recommended) — find gaps in monetization/pricing/gtm / Plan — design the productization path from current state / All — audit then plan / (Cancel).
+Default: no disambiguating flag resolves to `--audit` (recommended), recorded in the summary. `--ask`: present the full mode menu — Audit (recommended) — find gaps in monetization/pricing/gtm / Plan — design the productization path from current state / All — audit then plan / (Cancel).
 
 ## Scopes
 
@@ -105,7 +101,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 
 1. Flags → proceed directly. No flags → interactive menu.
 2. **Upstream artifacts:** Profile → {Type + Stack, Config.audience, Config.deploy, Config.data}. Findings({monetization, pricing, gtm, spec-alignment}) → verify + use. Absent → own analysis.
-3. Monetization-intent block — four questions, each with a signal-derived `(recommended)` default: current/target model `(recommended: billing=none → freemium/undecided; billing=store-iap → store subscription; billing∈{stripe,paddle,lemonsqueezy,revenuecat,other} → subscription)`; target price range `(recommended: existing price literals or store listing when found, else not-stated)`; B2B vs B2C vs prosumer `(recommended: audience=public → B2C/prosumer; audience=internal → B2B; audience=developers → B2B)`; platforms — store IAP vs web checkout vs both `(recommended: platforms∩{ios,android}≠∅ → store IAP; platforms∋web → web checkout; both present → both)`. Default: apply every `(recommended)` default from the `billing`/`platforms`/`audience` signals and record each as `Decided without asking — say if wrong: {question} = {value}`; a signal that resolves to `unknown` records that question `not-stated` rather than guessing. `--ask`: ask the block once, only the unknowns.
+3. **Monetization-intent block** — four questions with signal-derived `(recommended)` defaults: [references/monetization-intent.md](references/monetization-intent.md). Default: apply every recommended default and record each as `Decided without asking — say if wrong: {question} = {value}`; `unknown` signal → that question `not-stated`, never guessed. `--ask`: ask the block once, only the unknowns.
 4. Load references by active scope: [references/rules-monetization.md](references/rules-monetization.md) (monetization + pricing surface), [references/rules-pricing.md](references/rules-pricing.md) (pricing method, channels, unit economics), [references/rules-gtm.md](references/rules-gtm.md) (gtm).
 
 **Gate:** Mode + scope + intent answers recorded (by signal default or by `--ask` response). If fails → a signal-derived default is `unknown` and `--ask` got no response → mark that intent `not-stated`, WARN, calibrate findings to "model not yet chosen" instead of guessing one.
@@ -122,7 +118,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 ### Phase 3: Audit [--audit or default]
 
 1. Evaluate every scope checklist item (Scopes section) against the inventory — each check yields finding / pass / N/A with reason.
-2. Severity per the Severity table; benchmarks and thresholds from the loaded references. Security baseline on billing surfaces (core principles §5, [../core/principles.md](../core/principles.md)): validate at every boundary, least privilege on provider credentials, no secrets in source; config discipline (core principles §8, [../core/principles.md](../core/principles.md)): prices/product IDs externalized to provider config, never hardcoded.
+2. Severity per the Severity table; benchmarks and thresholds from the loaded references. Security baseline on billing surfaces: validate at every boundary, least privilege on provider credentials, no secrets in source; config discipline: prices/product IDs externalized to provider config, never hardcoded ([../core/principles.md](../core/principles.md) §5, §8).
 3. Classify: **A** — code-level conformance to the already-chosen model (unverified webhook signature, client-only entitlement check, hardcoded price literal). **B** — model, tier, price, packaging, or promise changes (business decisions).
 4. Cross-check value proposition against blueprint `spec-alignment` findings when fresh — a promised-not-implemented paid feature is CRITICAL here (selling what doesn't exist).
 5. Write findings to `ds/audit/findings.md` (scoped overwrite: monetization, pricing, gtm). `--preview`: print the findings table in chat instead; write nothing.
@@ -132,34 +128,33 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 ### Phase 4: Plan [--plan or All]
 
 1. Generate the plan — chosen/recommended model with rationale + benchmark, tier table with prices and gates, billing-provider decision path, GTM checklist (landing, funnel events, launch steps), open business decisions as an explicit decision table. Default: write/overwrite `ds/productize/plan.md`. `--preview`: print the same plan in chat; write nothing.
-2. Every recommendation cites a rule ID from references or an inventory fact — no unsourced business advice. KISS/YAGNI (core principles §6, [../core/principles.md](../core/principles.md)): recommend the simplest stack that fits the stated revenue stage — no enterprise billing machinery, custom receipt servers, or multi-tier entitlement services pre-revenue.
+2. Every recommendation cites a rule ID from references or an inventory fact — no unsourced business advice. KISS/YAGNI ([../core/principles.md](../core/principles.md) §6): recommend the simplest stack that fits the stated revenue stage — no enterprise billing machinery, custom receipt servers, or multi-tier entitlement services pre-revenue.
 3. Present the plan's decision table to the user; record chosen options in the plan file.
 
 **Gate:** Plan produced (file written, or printed in chat under `--preview`) with decision table present. If fails → write unresolved decisions as `OPEN — needs owner decision` rows; plan ships with open rows rather than invented answers.
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-Default: every item resolves by best judgment (applied, using the same impact/effort/risk reasoning an approval block would show) and the reasoning is recorded in the summary; items matching the publish/irreversible exception list become `skipped (needs-human)` instead. `--ask`: state the question (`Decide these N items?`) and present each item compactly (one line `[severity] title — file:line or surface`) grouped by scope with counts; ask Apply all / per-scope bulk (`Apply all pricing` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Default: every item resolves by best judgment (applied, using the same impact/effort/risk reasoning an approval block would show) and the reasoning is recorded in the summary; items matching the publish/irreversible exception list become `skipped (only you can do)` instead. `--ask`: state the question (`Decide these N items?`) and present each item compactly (one line `[severity] title — file:line or surface`) grouped by scope with counts; ask Apply all / per-scope bulk (`Apply all pricing` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → no response → `skipped (no response)`, proceed.
 
 ### Phase 6: Summary
 
 ```
-ds-productize: {OK|WARN|FAIL} | Scopes: ran {a,b} · N/A — {c}={reason} | Findings: {n} | Fixed: {n} | Skipped: {n} | Needs-human: {n} | Failed: {n} | Total: {n}
+ds-productize: {OK|WARN|FAIL} | Scopes: ran {a,b} · N/A — {c}={reason} | Findings: {n} | Fixed: {n} | Skipped: {n} | Only you can do: {n} | Failed: {n} | Total: {n}
 ```
 
 Disposition accounting — totals balance. Audit output: findings table grouped by scope. Plan output: `ds/productize/plan.md` path + open-decision count, or the chat-printed equivalent under `--preview`.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} paid features had client-only gating — entitlements now flagged for server-side enforcement before launch`
-- `Pricing page decision table produced: {n} tiers, target tier marked, {model} model backed by published conversion benchmarks`
 - `Cancellation flow fails parity ({n} steps vs {m} to subscribe) — legal exposure flagged before first paying customer`
 
 Zero-change run: `No gaps — monetization/pricing/gtm surfaces meet reviewed scope`. Preview run: `Preview only — {n} findings, plan drafted in chat; re-run without --preview to write ds/audit/findings.md and ds/productize/plan.md`.
 
-**Gate:** Summary + Value Delivered printed; plan path confirmed when Phase 4 ran. If fails → plan unwritten → surface error, print plan content to chat as fallback, status WARN.
+**Gate:** Summary + Effect printed; plan path confirmed when Phase 4 ran. If fails → plan unwritten → surface error, print plan content to chat as fallback, status WARN.
 
 ## Quality Gates
 
@@ -173,7 +168,7 @@ Zero-change run: `No gaps — monetization/pricing/gtm surfaces meet reviewed sc
 
 | Situation | Action |
 |-----------|--------|
-| No monetization surface at all (pure OSS/internal tool) | Default: assume no paid intent, exit with `not-applicable`, suggest ds-repo --oss-ready. `--ask`: ask whether paid intent exists first; no → same exit. |
+| No monetization surface at all (pure OSS/internal tool) | Default: assume no paid intent, exit with `not applicable`, suggest ds-repo --oss-ready. `--ask`: ask whether paid intent exists first; no → same exit. |
 | Payment provider undetectable but billing code present | Default: audit provider-agnostic checks only, mark provider checks `N/A (provider unknown)`. `--ask`: ask user which provider first; unanswered → same fallback. |
 | Store-distributed app (IAP rules apply) | Route store-specific execution to ds-launch; keep model/tier/entitlement checks here |
 | User rejects every B item | Plan records rejections as intentional decisions; report Ship-ready-to-sell: no with open count |
