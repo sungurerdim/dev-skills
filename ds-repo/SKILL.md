@@ -46,7 +46,7 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 | `--preview` | Audit only, no changes |
 | `--scope={x}` | Specific scope(s), comma-separated |
-| `--oss-ready` | OSS-readiness mode (see `oss-readiness` scope below) |
+| `--oss-ready` | OSS-readiness mode (see `oss-readiness` scope below) — shorthand for `--scope=oss-readiness`, the same scope by its own name |
 
 Without flags: Full Audit & Fix runs directly — every scope scanned, Category A fixes applied, Category B fixes applied by best judgment and recorded (the publish/irreversible exception list resolves `only you can do` instead of applying blind). `--ask` presents a menu: Full Audit (recommended — scan every scope, report only) / Audit & Fix / Scoped (`--scope`) / OSS-ready (`--oss-ready`) / (Cancel).
 
@@ -83,7 +83,7 @@ Setup → Audit → Gap Analysis → [Plan Review] → [Apply] → [Needs-Approv
 
 1. `git --version` → exit 0 and `gh auth status` → exit 0 — `git` required; `gh` required for settings/protection scopes.
 2. Detect repo info via GitHub API: name, default branch, visibility, description, topics, license, homepage, plan.
-3. **Upstream artifacts:** Profile → {Type + Stack, Config.constraints}. Findings({repo}) → verify + use. Absent → own analysis.
+3. **Upstream artifacts:** Profile → {Type + Stack, `Constraints:`}. Findings({repo}) → verify + use. Absent → own analysis.
 4. **Mode selection.** A disambiguating flag skips this step. Without one: Full Audit & Fix runs directly (the default). `--ask`: present a menu of every mode — Full Audit (recommended — scan every scope, report only) / Audit & Fix / Scoped (`--scope`) / OSS-ready (`--oss-ready`) / (Cancel).
 5. **Scope selection.** `--scope={x}` → restrict to the named scopes. No `--scope` → every scope runs. `--ask` with no `--scope` → ask which scopes before proceeding.
 

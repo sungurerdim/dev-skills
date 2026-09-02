@@ -40,18 +40,18 @@ User runs `/ds-frontend`, or asks to audit UI/design-system/components/a11y/WCAG
 
 | Flag | Effect |
 |------|--------|
-| `--mode={x}` | `audit`, `audit+fix`, `design` |
 | `--style-mode={x}` | `controlled` (default, ship-grade strict tokens + WCAG AA), `innovative` (prototype, relaxed). [references/controlled-vs-innovative.md](references/controlled-vs-innovative.md) |
 | `--aesthetic={preset}` | Named preset (3 IDs). [references/aesthetics-presets.md](references/aesthetics-presets.md) |
 | `--scope={list}` | Comma-separated scopes (table below) or `all` |
 | `--framework={f}` | Override detection: `react`, `vue`, `svelte`, `svelte5`, `astro`, `solid`, `htmx`, `angular`, `flutter`, `swiftui`, `compose`, `rn` |
-| `--check` | Report only, zero modifications |
+| `--preview` | Analyze and report only — no file is written |
+| `--generate` | Generate the design system (tokens, states, theming) instead of auditing it |
 | `--resume` | Resume from `ds/audit/frontend.json` without the confirmation prompt |
 | `--clean` | Delete `ds/audit/frontend.json` and start fresh |
-| `--target={path}` | Restrict Fix/Design output to files under `{path}` — used to promote one prototype directory to production (see Translating Innovative → Controlled) |
+| `--target={path}` | Restrict Fix/Design output to files under `{path}` — promotes one prototype directory to production (see Translating Innovative → Controlled) |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
-Default: resolves to Audit & Fix across all scopes (scan and fix autonomously), recorded in the summary. `--ask`: up-front menu covering every mode, one-line what-it-does each — Audit (recommended) — scan + report, no changes / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu.
+Default: resolves to Audit & Fix across all scopes (scan + fix), recorded in the summary. `--ask`: up-front menu, one-line what-it-does each — Audit (recommended) — scan + report, no changes (`--preview`) / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system (`--generate`) / (Cancel). A disambiguating flag (e.g. `--preview`, `--scope`) skips the menu.
 
 ## Scopes
 
@@ -75,7 +75,7 @@ Every scope runs unless its signal excludes it (table below); an `unknown` signa
 
 **Activate when:** blueprint `Integrations` is `google-workspace` or `apple-ecosystem`; zero checks when absent. Button/flow rules: [references/rules-components.md § Ecosystem Rules](references/rules-components.md).
 
-## Style Mode (orthogonal to Mode)
+## Style Mode
 
 | Style Mode | Token rules | A11y | States required | Output use |
 |-----------|------------|------|----------------|-----------|
@@ -86,7 +86,7 @@ Selection heuristic (when not flagged), translating innovative → controlled, a
 
 ## Aesthetic Presets
 
-`--aesthetic={preset}` → load preset from [references/aesthetics-presets.md](references/aesthetics-presets.md) (3 IDs, full catalog + mood/token detail there): `design` mode → populate `tokens.json` with preset palette/typography/spacing/shadow/radius; `audit`/`audit+fix` → add preset-specific lint rules from its `forbidden` list.
+`--aesthetic={preset}` → load preset from [references/aesthetics-presets.md](references/aesthetics-presets.md) (3 IDs, full catalog + mood/token detail there): `--generate` → populate `tokens.json` with preset palette/typography/spacing/shadow/radius; audit (default/`--preview`) → add preset-specific lint rules from its `forbidden` list.
 
 ## Delegation
 
@@ -100,16 +100,16 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
 
 **Recovery check (first step, unconditional every invocation):** DETECT `ds/audit/frontend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD`. Mismatch → default: resume silently (the re-verify step below catches real drift), recorded in the summary; `--ask`: prompt `Resume anyway? [Y/n]`. Resume → RE-VERIFY the `in_progress` scope by re-reading the files its findings cite, keep `done` scopes, announce `[FE] Resuming from Phase {N}: {name}.` Successful Summary → delete state; empty `ds/audit/` → remove it. Fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append.
 
-**State `data`:** `{ mode, style_mode, framework, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line, category, disposition}]}, design_system_state }`
+**State `data`:** `{ generate, style_mode, framework, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line, category, disposition}]}, design_system_state }`
 
 1. **Framework detection** — full signal table (13 frameworks incl. Svelte 5 runes, Astro, SolidJS, htmx) + each new framework's specific pattern: [references/rules-components.md § Framework Detection](references/rules-components.md).
 
 2. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle is stale, diff context only) → read findings matching frontend scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
-3. **Upstream artifacts:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
+3. **Upstream artifacts:** Profile → Type+Stack, `Priorities:`, `Scores:`. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 4. **Design system detection.** Search for: CSS custom properties (`:root { --color-* }`), Tailwind config; styled-components/Emotion/MUI/Chakra theme; Flutter `ThemeData`; SwiftUI Color assets; Compose `MaterialTheme`; `tokens.json`/`.yaml`/`design-tokens.*`.
-5. **Mode + scope.** Default: mode resolves to Audit & Fix, scope resolves to all, recorded in the summary. `--ask`: menu for Audit / Audit & Fix / Design / Custom; map scope selection to reference files.
+5. **Run type + scope.** Default: resolves to Audit & Fix, scope resolves to all, recorded in the summary. `--ask`: menu for Audit / Audit & Fix / Design / Custom; map scope selection to reference files.
 
-**Gate:** Framework identified; design system state cataloged (exists/partial/absent); mode + scope confirmed. If fails → framework undetectable: prompt "Which frontend framework?" (offer list); no response → fall back to plain HTML/CSS, announce; design system inconclusive → record `design_system: "unknown"`, proceed (missing tokens surface as findings).
+**Gate:** Framework identified; design system state cataloged (exists/partial/absent); run type + scope confirmed. If fails → framework undetectable: prompt "Which frontend framework?" (offer list); no response → fall back to plain HTML/CSS, announce; design system inconclusive → record `design_system: "unknown"`, proceed (missing tokens surface as findings).
 
 ### Phase 2: Configure [SKIP if single scope]
 
@@ -137,7 +137,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 **Gate:** Report with findings + severities + summary. If fails → missing scope row: re-read the collected findings, add row with recorded counts (or `0`), re-emit; do not proceed until every selected scope appears.
 
-### Phase 5: Fix [SKIP if audit-only or --check]
+### Phase 5: Fix [SKIP if --preview]
 
 0. **Checkpoint** (`../core/checkpoint-protocol.md`). `git status --porcelain` → empty: clean tree, proceed. Non-empty: default — proceed only when the pre-existing dirty state stays untouched by this skill's writes, otherwise stop that unit and record `only you can do`; `--ask` — show the dirty files, ask **Commit first (recommended) / Stash / Proceed anyway** (risk: fix edits interleave with uncommitted work, single-command rollback is lost). Never run a bulk fix over uncommitted unrelated changes silently.
 1. **Plan.** Group by file, order CRITICAL → HIGH → MEDIUM → LOW.
@@ -152,7 +152,7 @@ Default: items resolve by best judgment (`fixed`/`failed`) with the reasoning re
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → mark `skipped (no decision)`, proceed; do not retry.
 
-### Phase 7: Design [SKIP if mode ≠ design]
+### Phase 7: Design [SKIP unless --generate]
 
 **Design input — prefer the highest-fidelity form available.** A runnable HTML/CSS mockup carries the intended design more precisely than a prose description or a screenshot, because it is expressed in the same language as the output — ask for or produce one before working from a description. Only a description available → generate a mockup artifact first, confirm it with the user, then build against the confirmed artifact rather than re-interpreting the prose at each step.
 
@@ -164,12 +164,12 @@ Default: items resolve by best judgment (`fixed`/`failed`) with the reasoning re
 
 ### Mechanical Done Gate [any fix applied]
 
-Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed → use its gate command; else stack-native format/lint/type/test (include the a11y lint layer from Phase 2 when wired); none detectable → Verification-Infrastructure Gap, offer `/ds-quality`, record the decision. Capture the baseline before Phase 5; baseline red → done means "no *new* red", never inherited as green. After each Phase 5/6 fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 8: run the full `{check-cmd}` once — its command + output is the Completion Evidence. Re-reading the file (Phase 5 step 3) is necessary but not this gate — only the check command's green is. Never report `OK` with a new red. Audit-only/`--check`/design-only runs → N/A, state it.
+Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed → use its gate command; else stack-native format/lint/type/test (include the a11y lint layer from Phase 2 when wired); none detectable → Verification-Infrastructure Gap, offer `/ds-quality`, record the decision. Capture the baseline before Phase 5; baseline red → done means "no *new* red", never inherited as green. After each Phase 5/6 fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 8: run the full `{check-cmd}` once — its command + output is the Completion Evidence. Re-reading the file (Phase 5 step 3) is necessary but not this gate — only the check command's green is. Never report `OK` with a new red. `--preview`/`--generate` runs → N/A, state it.
 
 ### Phase 8: Summary
 
 ```
-ds-frontend: {OK|WARN|FAIL} | Mode: {audit|audit+fix|design} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
+ds-frontend: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 Scopes: ran {a, b, …} · N/A — {key}={value} {…}
 ```
 
@@ -198,7 +198,7 @@ UI-layer-only scope, per-finding disposition, and post-fix re-read are enforced 
 | Situation | Action |
 |-----------|--------|
 | No framework detected | Ask user to specify; fall back to CSS/HTML-only analysis |
-| No design system found | Recommend design mode; audit hardcoded values |
+| No design system found | Recommend `--generate`; audit hardcoded values |
 | Token file format unrecognized | Catalog CSS custom properties as tokens; warn non-standard |
 | ARIA pattern unclear for complex widget | Reference W3C APG by component type; flag only you can do |
 
@@ -220,7 +220,7 @@ Contrast policy (binding for every rule touching contrast — full definitions i
 | Tailwind (utility-first) | Audit config + custom values; skip "hardcoded color" for utility classes |
 | CSS-in-JS (styled-components, Emotion) | Scan theme objects as token source; ThemeProvider as design system |
 | No CSS (API-only) | Report "No UI layer detected", exit |
-| Design mode on existing system | Audit existing + suggest improvements; preserve structure |
+| `--generate` on existing system | Audit existing + suggest improvements; preserve structure |
 | Monorepo, multiple frameworks | Detect per-package; audit each with its own rules |
 | Flutter / SwiftUI / Compose | `ThemeData`/Color assets/`MaterialTheme` as token source |
 | Server-rendered (Next.js SSR, Nuxt SSR) | Audit rendered HTML alongside source |

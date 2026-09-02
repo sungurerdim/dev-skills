@@ -26,7 +26,12 @@ rm -rf /tmp/dev-skills
 
 ## Use
 
-Run `/ds-devops`, or ask to review your CI/CD setup.
+```bash
+/ds-devops               # full scan + fix — best judgment, recorded in the summary
+/ds-devops --ask         # full scan with interactive approval
+/ds-devops --preview     # dry run — show what would be checked, no scanning or fixes
+/ds-devops --scope=ci    # single domain
+```
 
 ## Scopes
 
@@ -36,11 +41,3 @@ Run `/ds-devops`, or ask to review your CI/CD setup.
 | signing | Code signing automation, credential security (mobile/desktop) |
 | deps | Dependency policy, outdated detection, compatibility, vulnerability audit |
 | release-pipeline | Release automation, version bump workflow, deploy safety gates |
-
-## Modes
-
-| Mode | What It Does |
-|------|-------------|
-| **Full Audit** | Scan all scopes, report findings |
-| **Audit & Fix** | Scan, review findings, then fix |
-| **Quick Fix** | Scan and auto-fix, minimal review |

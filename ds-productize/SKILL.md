@@ -100,7 +100,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 ### Phase 1: Setup
 
 1. Flags → proceed directly. No flags → interactive menu.
-2. **Upstream artifacts:** Profile → {Type + Stack, Config.audience, Config.deploy, Config.data}. Findings({monetization, pricing, gtm, spec-alignment}) → verify + use. Absent → own analysis.
+2. **Upstream artifacts:** Profile → {Type + Stack, `Audience:`, `Deploy:`, `Data:`}. Findings({monetization, pricing, gtm, spec-alignment}) → verify + use. Absent → own analysis.
 3. **Monetization-intent block** — four questions with signal-derived `(recommended)` defaults: [references/monetization-intent.md](references/monetization-intent.md). Default: apply every recommended default and record each as `Decided without asking — say if wrong: {question} = {value}`; `unknown` signal → that question `not-stated`, never guessed. `--ask`: ask the block once, only the unknowns.
 4. Load references by active scope: [references/rules-monetization.md](references/rules-monetization.md) (monetization + pricing surface), [references/rules-pricing.md](references/rules-pricing.md) (pricing method, channels, unit economics), [references/rules-gtm.md](references/rules-gtm.md) (gtm).
 

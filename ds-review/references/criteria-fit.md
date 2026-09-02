@@ -45,11 +45,11 @@ When a hard signal triggers, ask exactly once per scope:
 - All matching (recommended) — apply the same choice to every scope with mismatch
 ```
 
-User choice (if `loosen` selected) is surfaced as a recommendation to update the blueprint profile's `Config.constraints` directly — no intermediate state file.
+User choice (if `loosen` selected) is surfaced as a recommendation to update the blueprint profile's `Constraints:` directly — no intermediate state file.
 
 ## Override semantics
 
-A user may explicitly raise a baseline by setting `Config.constraints` in the blueprint profile. Example:
+A user may explicitly raise a baseline by setting `Constraints:` in the blueprint profile. Example:
 
 ```
 Constraints: keep framework, SSOT-baseline: 8 (mono-package monorepo by design)

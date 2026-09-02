@@ -183,6 +183,23 @@ expected_tree() {
   apply_core_profile "$dst/core" "$eff"
 }
 
+# installed_orphans — skills this install placed that the repo no longer ships.
+# Read from the stamp, never from a directory glob: a bare `ds-*` listing would
+# also match skills the user installed from somewhere else, and deleting those
+# is not ours to do.
+installed_orphans() {
+  local stamped s
+  [ -f "$version_file" ] || return 0
+  stamped=$(sed -n 's/^skills=//p' "$version_file" | tr ',' ' ')
+  for s in $stamped; do
+    case " $(skill_list | tr '\n' ' ') " in
+      *" $s "*) ;;
+      *) [ -d "$skills_dir/$s" ] && echo "$s" ;;
+    esac
+  done
+  return 0
+}
+
 # drift_report — prints DRIFT/MISSING lines; returns 1 on any drift. Shared by
 # --check and --status.
 drift_report() {
@@ -209,6 +226,9 @@ drift_report() {
       cmp -s "$a" "$agents_dir/$(basename "$a")" || { echo "DRIFT in agents/$(basename "$a")"; drift=1; }
     done
   fi
+  for s in $(installed_orphans); do
+    echo "ORPHAN: $s was installed by an older dev-skills and no longer exists — re-run ./install.sh to remove it"; drift=1
+  done
   rm -rf "$expected"
   return "$drift"
 }
@@ -251,18 +271,36 @@ case "$mode" in
         cp "$a" "$agents_dir/$(basename "$a")"
       done
     fi
-    echo "dev-skills@$(stamp) profile=$eff" > "$version_file"
+    # Orphans are read from the OLD stamp, before it is overwritten: a skill the
+    # repo has since deleted (ds-solve in 2.0.0) is invisible to a repo listing,
+    # so without the stamp it would sit in the install forever.
+    orphans=$(installed_orphans)
+    if [ -n "$orphans" ]; then
+      echo "Removed skill(s) no longer in dev-skills: $(echo "$orphans" | tr '\n' ' ')"
+      for s in $orphans; do rm -rf "${skills_dir:?}/$s"; done
+    fi
+    # The stamp records what this install placed. A --skills subset keeps the
+    # skills a previous run installed in the list, so they stay tracked.
+    stamped_now=$(skill_list)
+    if [ -n "$only" ] && [ -f "$version_file" ]; then
+      prev=$(sed -n 's/^skills=//p' "$version_file" | tr ',' '\n')
+      stamped_now=$(printf '%s\n%s\n' "$prev" "$stamped_now" | grep -v '^$' | sort -u)
+    fi
+    {
+      echo "dev-skills@$(stamp) profile=$eff"
+      echo "skills=$(printf '%s' "$stamped_now" | tr '\n' ',' | sed 's/,$//')"
+    } > "$version_file.tmp" && mv "$version_file.tmp" "$version_file"
     if [ "$with_agents" = "1" ]; then
       echo "Installed/synced $n skill(s) + core/ [$eff profile] -> $skills_dir (agents -> $agents_dir)"
     else
       echo "Installed/synced $n skill(s) + core/ [$eff profile] -> $skills_dir (skills only — shared agents are Claude-Code-specific)"
     fi
-    echo "Version: $(cat "$version_file")"
+    echo "Version: $(head -1 "$version_file")"
     ;;
   check)
     eff=$(effective_profile)
     drift=0
-    [ -f "$version_file" ] && echo "Installed: $(cat "$version_file") | Repo: dev-skills@$(stamp) profile=$eff" \
+    [ -f "$version_file" ] && echo "Installed: $(head -1 "$version_file") | Repo: dev-skills@$(stamp) profile=$eff" \
       || { echo "No version stamp found — install not done via install.sh yet."; drift=1; }
     drift_report "$eff" || drift=1
     [ "$drift" = "0" ] && echo "In sync." || exit 1
@@ -270,7 +308,7 @@ case "$mode" in
   status)
     eff=$(effective_profile)
     if [ -f "$version_file" ]; then
-      echo "Installed: $(cat "$version_file") at $skills_dir"
+      echo "Installed: $(head -1 "$version_file") at $skills_dir"
     else
       echo "Installed: nothing (no version stamp at $skills_dir) — run ./install.sh"
     fi
@@ -299,7 +337,7 @@ case "$mode" in
     fi
     ;;
   uninstall)
-    for s in $(skill_list); do
+    for s in $(skill_list) $(installed_orphans); do
       rm -rf "${skills_dir:?}/$s"
     done
     [ -z "$only" ] && rm -rf "${skills_dir:?}/core"

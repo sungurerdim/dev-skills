@@ -179,6 +179,30 @@ esac
 ./install.sh --target "$skills" --check >/dev/null 2>&1
 check "re-install restores drifted + deleted files (guards: --delete not resyncing)" "0" "$?"
 
+# --- 5b. a skill deleted upstream is named, then removed ----------------------
+# Reproduces 2.0.0's ds-solve: the repo no longer ships it, so a repo listing
+# cannot see it — only the stamp's own record of what this install placed can.
+mkdir -p "$skills/ds-gone-upstream"; printf 'stale\n' > "$skills/ds-gone-upstream/SKILL.md"
+sed -i.bak 's/^skills=/skills=ds-gone-upstream,/' "$skills/.dev-skills-version" && rm -f "$skills/.dev-skills-version.bak"
+out=$(./install.sh --target "$skills" --check 2>&1)
+case "$out" in
+  *"ORPHAN: ds-gone-upstream"*) ok "--check names a skill deleted upstream (guards: a retired skill living on forever)" ;;
+  *) bad "--check names a skill deleted upstream" "no ORPHAN line in output" ;;
+esac
+./install.sh --target "$skills" >/dev/null 2>&1
+if [ -d "$skills/ds-gone-upstream" ]; then
+  bad "re-install removes a skill deleted upstream" "ds-gone-upstream survived at $skills"
+else
+  ok "re-install removes a skill deleted upstream (guards: --check reporting a drift no run can clear)"
+fi
+if [ -d "$skills/ds-not-from-this-repo" ]; then
+  ok "orphan cleanup spares skills this installer never placed (guards: deleting a user's own ds-* skill)"
+else
+  bad "orphan cleanup spares skills this installer never placed" "ds-not-from-this-repo was deleted"
+fi
+./install.sh --target "$skills" --check >/dev/null 2>&1
+check "--check is clean after the orphan is cleared" "0" "$?"
+
 # --- 6. uninstall is scoped ---------------------------------------------------
 ./install.sh --target "$skills" --uninstall >/dev/null 2>&1
 left=$(find "$skills" -maxdepth 1 -type d -name 'ds-*' -not -name 'ds-not-from-this-repo' | wc -l | tr -d ' ')

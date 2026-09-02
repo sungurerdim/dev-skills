@@ -6,26 +6,26 @@ Loaded when Phase 0 builds the plan. Order of precedence: **mode** decides which
 
 | Mode | Legs that run | Legs that are `skipped — not part of this mode` |
 |------|---------------|-------------------------------|
-| harden | P2 rule audit (blueprint bootstrap, review, stack-specific, compliance/mobile, test, fix) · P3 simplify · P4 docs | P1 benchmark · productize · P5 release chain · launch legs · Ship-ready verdict (reports `Health:`) |
-| release | harden + P5 release chain: devops → deploy → release → repo; productize when `billing ≠ none` | P1 benchmark · ds-launch · OSS readiness · store legs |
+| improve | P2 rule audit (blueprint bootstrap, review, stack-specific, compliance/mobile, test, fix) · ds-deps `--security-only` · P3 simplify · P4 docs | P1 benchmark · productize · P5 release chain · launch legs · Ship-ready verdict (reports `Health:`) |
+| release | improve + P5 release chain: devops → deploy → release → repo; productize when `billing ≠ none` | P1 benchmark · ds-launch · OSS readiness · store legs |
 | launch | release + P1 benchmark · ds-launch (store / web / library publish readiness) · ds-repo --oss-ready when `audience=public` · productize when `billing ≠ none` or paid intent | — |
-| maintain | blueprint diff · ds-deps · ds-tune when a metric loop exists · ds-fix · ds-test | P1 benchmark · P3 simplify unless `size=large` · P5 chain · launch legs |
+| maintain | blueprint diff · ds-deps · ds-review `--diff` · ds-tune when a metric loop exists · ds-fix · ds-test · ds-simplify when the blueprint diff reports dead code or complexity · ds-docs when the diff touched a documented surface | P1 benchmark · P5 chain · launch legs |
 
 ## Signal justification per skill
 
 | Skill | Runs when (signal) | Otherwise |
 |-------|--------------------|-----------|
-| ds-blueprint | findings absent, stale (hash ≠ HEAD), lacking `Signals:`, or `--refresh-findings` | skipped (findings fresh at HEAD) |
+| ds-blueprint | findings absent, lacking `Signals:`, `--refresh-findings`, or drifted from `git_hash` — full run when the drift is large or structural (rewritten history · manifest/lockfile/CI/container change · ≥ 40 commits, ≥ 25% of source files, or ≥ 500 changed lines), incremental otherwise; both per the Freshness rule in ../core/findings-and-profile-format.md | skipped (findings fresh at HEAD) |
 | ds-review --strategic | `size ≠ small` | skipped — no size signal (size=small) (tactical pass covers it) |
-| ds-review --tactical, ds-test, ds-fix | any source | skipped — no signal (no source )|
+| ds-review --tactical, ds-test, ds-fix | any source; in maintain ds-review runs `--diff` (only what changed since the last run) | skipped — no signal (no source )|
 | ds-backend | `api ≠ none` or `db ≠ none` | skipped — no api signal (api=none), db=none |
 | ds-frontend | `ui ∈ {web, desktop}` | skipped — no ui signal (ui=none) |
 | ds-mobile | `mobile ≠ none` | skipped — no mobile signal (mobile=none) |
 | ds-compliance | `pii=yes` or `auth ≠ none` or `ui=web`; not when ds-mobile owns the overlapping scopes | skipped — no signal / skipped — another skill owns it for this project type |
 | ds-productize | `billing ≠ none` or paid intent (release/launch modes) | skipped — no billing signal (billing=none) |
-| ds-simplify | any source | — |
-| ds-docs | any docs or README | — |
-| ds-deps | maintain mode, or `stack` scope reports outdated majors | skipped — no signal (stack current )|
+| ds-simplify | any source in improve/release/launch; in maintain when the blueprint diff reports dead code or complexity findings | skipped — no signal (nothing to remove) |
+| ds-docs | any docs or README; in maintain only when the diff touched a documented surface | skipped — no signal (docs untouched) |
+| ds-deps | maintain mode; improve mode as `--security-only` (a vulnerable patch version is a hardening finding, not a version-currency one); or `stack` scope reports outdated majors | skipped — no signal (stack current )|
 | ds-devops | release/launch (`ci=none` is itself the finding) | skipped — not part of this mode |
 | ds-deploy | release/launch and `deploy ∉ {none, store}` | skipped — no deploy signal (deploy=none) / store |
 | ds-release | release/launch | skipped — not part of this mode |

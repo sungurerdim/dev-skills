@@ -28,15 +28,14 @@ rm -rf /tmp/dev-skills
 
 Run `/ds-mobile`, or ask to review your mobile app.
 
-## Modes
+## Run Types
 
-| Mode | What It Does |
-|------|-------------|
-| **Audit Only** | Scan all domains, report only |
-| **Audit & Fix** | Scan, review findings, then fix |
-| **Quick Fix** | Scan and auto-fix, minimal review |
-| **Release Ready** | 100-point scoring, manual gates, live policy fetch, store launch kit |
-| **Custom** | Pick specific domains and mode |
+| Run | What It Does |
+|-----|-------------|
+| Default | Scan, review findings, then fix — all domains |
+| `--preview` | Scan all domains, report only |
+| `--release-ready` | 100-point scoring, manual gates, live policy fetch, store launch kit |
+| Custom (`--ask`) | Pick specific domains and run type |
 
 ## What It Checks
 
@@ -58,7 +57,7 @@ Run `/ds-mobile`, or ask to review your mobile app.
 
 13 domains, 177 rules selectable via `--scope=`, plus 4 conditional Hybrid & WebView Bridge rules that activate only on Capacitor/Cordova projects (181 total).
 
-## Release Ready Mode
+## Release Readiness (`--release-ready`)
 
 Answers: **"Can I ship this to the App Store / Play Store right now?"**
 

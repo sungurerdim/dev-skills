@@ -46,7 +46,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 | Flag | Effect |
 |------|--------|
 | `--preview` | Classify + security scan + report only — no upgrade execution |
-| `--scope={x}` | Specific group: patch, minor, major, security, all |
+| `--scope={x}` | One group: safe-patch, safe-minor, review-major, security, removal |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without flags: default — apply safe-patch + safe-minor, surface majors, recorded in the summary. `--ask`: shows an up-front menu — Upgrade safe groups (recommended), plus each mode in the Arguments table (Preview / Scoped) and (Cancel).
@@ -86,7 +86,7 @@ Setup → Discover → Classify → Plan → Execute → [Needs-Approval] → Su
 
 ### Phase 1: Setup
 
-1. **Detect stack + manifest:** per-stack manifest patterns (npm/go/python/rust/ruby/dart/php/jvm/dotnet/swift) in [references/stack-commands.md](references/stack-commands.md) § Manifest detection. Record every manifest — monorepos include all workspaces.
+1. **Detect stack + manifest:** profile `Stack:` when present, else scan manifest patterns: [references/stack-commands.md](references/stack-commands.md) § Manifest detection. Record every manifest — monorepos include all workspaces.
 
 2. **Lockfile verification.** Missing lockfile → HIGH finding, abort upgrade (lockfile-first policy). `--preview` still classifies.
 

@@ -67,7 +67,7 @@ This file is loaded by `/ds-frontend` when `--style-mode=<controlled|innovative>
 |----------|------|
 | `/ds-frontend` on existing repo, no `--style-mode` flag | controlled |
 | `/ds-frontend` on a `proto/` or `explore/` directory | innovative |
-| `/ds-frontend --mode=design` (token / catalog generation) | controlled (tokens are ship contracts) |
+| `/ds-frontend --generate` (token / catalog generation) | controlled (tokens are ship contracts) |
 | User says "explore", "experiment", "try", "concept", "what if" | innovative |
 | User says "audit", "review", "ship", "production", "release" | controlled |
 | User says "moodboard", "direction", "alternatives" | innovative |
@@ -81,7 +81,7 @@ When unclear: ask.
 When a prototype is approved and needs to ship:
 
 ```bash
-/ds-frontend --mode=audit+fix --style-mode=controlled --scope=tokens,a11y,states --target=src/proto/checkout-v2/
+/ds-frontend --style-mode=controlled --scope=tokens,a11y,states --target=src/proto/checkout-v2/
 ```
 
 Skill will:

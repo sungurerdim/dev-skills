@@ -166,14 +166,14 @@ forbidden:
 ## How `/ds-frontend` Uses Presets
 
 ```bash
-/ds-frontend --mode=design --aesthetic=warm-trust
+/ds-frontend --generate --aesthetic=warm-trust
 # → tokens.json populated from preset
 # → motion + shadow + radius variables wired
-# → forbidden list emitted as findings rules in audit mode
+# → forbidden list emitted as findings rules during audit runs
 ```
 
 ```bash
-/ds-frontend --mode=audit --aesthetic=warm-trust
+/ds-frontend --check --aesthetic=warm-trust
 # → audit checks the project against the preset's `forbidden` list
 # → flags any pure-black surface, gradient CTA, or >12px shadow
 ```

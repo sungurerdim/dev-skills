@@ -1,6 +1,6 @@
 ---
 name: ds-ship
-description: Ship orchestrator — classify the project, pick a mode (harden/release/launch/maintain), delegate only the skills the project's signals justify, consolidate findings, produce an audit report. Use for an end-to-end audit or ship pipeline across multiple skills.
+description: Ship orchestrator — classify the project, pick a mode (improve/release/launch/maintain), delegate only the skills the project's signals justify, consolidate findings, produce an audit report. Use for an end-to-end audit or ship pipeline across multiple skills.
 ---
 
 # /ds-ship
@@ -66,7 +66,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 
 | Flag | Effect |
 |------|--------|
-| `--mode={x}` | `harden` (deep audit, no ship legs) · `release` (+ release gates) · `launch` (+ store/public legs) · `maintain` (periodic hygiene). Full leg breakdown: [references/sequences.md](references/sequences.md) § Modes and their legs. Absent → derived from stage + intent (table below), stated in the report |
+| `--mode={x}` | `improve` (deep audit, no ship legs) · `release` (+ release gates) · `launch` (+ store/public legs) · `maintain` (periodic hygiene). Full leg breakdown: [references/sequences.md](references/sequences.md) § Modes and their legs. Absent → derived from stage + intent (table below), stated in the report |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 | `--preview` | Phase 0 only: classification, mode, scope resolution, proposed sequence with signal reasons. No delegations, no mutations |
 | `--stage={x}` | Override auto-classified stage: idea, spec-only, scaffold, implementation, review-pending, pre-launch, launched, frozen |
@@ -81,14 +81,14 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 
 | Stage / intent signal | Mode |
 |-----------------------|------|
-| idea, spec-only, scaffold, implementation, review-pending | harden |
+| idea, spec-only, scaffold, implementation, review-pending | improve |
 | pre-launch with `deploy ≠ store` and no public/store intent | release |
 | pre-launch with `platforms ∩ {ios, android}`, store intent, paid intent, or "open the product publicly" | launch |
 | launched, frozen | maintain |
 | User wording contains "release", "tag", "version" | release |
 | User wording contains "launch", "store", "publish", "go public" | launch |
 
-Without flags: mode derived, sequence derived, delegations run; the report opens with the derivation so it stays auditable. `--ask`: mode-first menu — Harden / Release / Launch / Maintain, the derived one marked `(recommended)`, then the sequence table for confirmation or trimming, then (Cancel).
+Without flags: mode derived, sequence derived, delegations run; the report opens with the derivation so it stays auditable. `--ask`: mode-first menu — Improve / Release / Launch / Maintain, the derived one marked `(recommended)`, then the sequence table for confirmation or trimming, then (Cancel).
 
 **Unattended full run:** the default run performs the entire cascade — classification, all delegations, Category A + B resolution, mode-included gates — with zero prompts. It may commit, never pushes/opens a PR/tags/publishes: every publishing step is on the exception list (../core/ask-exception-list.md), recorded `only you can do` with the exact command.
 
@@ -124,7 +124,7 @@ P0 Assess + Mode → [P1 Ideal-vs-Current — launch] → P2 Rule Audit → P3 S
 
 11. **Skill sequence.** Mode + stage + type → default order from references/sequences.md; every candidate skill is kept or excluded with a recorded reason — `skipped — not part of this mode`, `skipped — no signal ({key}={value})`, `skipped — another skill owns it for this project type`, or `skipped — removed by you` (`--skip`, or the user's stated reason under `--ask`). A skill in neither list is an incomplete plan — do not advance. Each kept delegation records: `signal: {key}={value} · expected: {findings|artifact} · cost: {small|medium|large}`. New feature with open design → `/ds-pipeline` first (Feature-planning branch). Scope-reduction intent → `/ds-freeze` first (Scope-Freeze branch).
 
-**Gate:** Mode recorded with its reason; stage cited; signals resolved; value proposition recorded; every candidate skill is sequenced-with-justification or excluded-with-reason; `ds/audit/ship.json` populated. `--preview` → print the plan and stop here. If fails → abort with "ds-ship: aborted — mode, sequence, or exclusion reasons not resolved. Re-run with `--mode=X` / `--stage=X` or answer the ambiguity block." Never proceed on a plan with an unjustified delegation or an unexplained gap.
+**Gate:** Mode recorded with its reason; stage cited; signals resolved; value proposition recorded; every candidate skill is sequenced-with-justification or excluded-with-reason; `ds/audit/ship.json` populated. **Announce before delegating:** one line — `Mode: {mode} ({derivation}) · Stage: {stage} · Queued: {n} ({names}) · Excluded: {n}` — so a wrong derivation is visible at the start of a long run, not only in the final report; the run then proceeds without waiting (`--ask` turns the same line into the mode-first menu). `--preview` → print the plan and stop here. If fails → abort with "ds-ship: aborted — mode, sequence, or exclusion reasons not resolved. Re-run with `--mode=X` / `--stage=X` or answer the ambiguity block." Never proceed on a plan with an unjustified delegation or an unexplained gap.
 
 ### Phase 1: Ideal-vs-Current Gap [mode = launch]
 
@@ -190,7 +190,7 @@ Sequenced per the plan. One skill at a time. Orchestration loop per delegation:
 
 **Release chain (release and launch), then launch legs (launch only):** order, descriptions, and per-skill conditions — references/phases.md § Phase 5. Every `/ds-repo --oss-ready` finding is Category B.
 
-Harden and maintain modes: this phase is `skipped — not part of this mode`; the report says so and the verdict line reads `Health:` instead of `Ship-ready:`.
+Improve and maintain modes: this phase is `skipped — not part of this mode`; the report says so and the verdict line reads `Health:` instead of `Ship-ready:`.
 
 **Gate:** Every Phase 5 delegation `done`; all B items decided. If fails (a gate skill did not signal completion) → log `failed`, mark its B items `deferred`, set ship-readiness `no` for those gates, continue.
 
@@ -257,7 +257,7 @@ W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no un
 |-----------|--------|
 | Delegated skill unavailable | Surface in the report (`## Missing skills` — skill, what it would have covered, the justifying signal); never substitute with own analysis. Mark phase WARN. |
 | Delegated skill fails / errors | Record the failure in the orchestration log, continue to the next, do not mask the failure |
-| Mode or stage cannot be derived (no signals, empty repo) | Mode `harden`, stage `idea`, both recorded as defaults with the missing signals named |
+| Mode or stage cannot be derived (no signals, empty repo) | Mode `improve`, stage `idea`, both recorded as defaults with the missing signals named |
 | User declines every B item (`--ask`) | Proceed with A only; report Ship-ready: no with the open B count |
 | Stage misclassified (user disagrees) | Accept `--stage=X` / `--mode=X` override, re-plan sequence, resume |
 | Findings file becomes stale mid-run (new commit) | Re-invoke `/ds-blueprint --refresh` before continuing the current phase |
@@ -267,7 +267,7 @@ W1: every claim in `ds/audit/report.md` cites file:line or findings ID — no un
 
 | Scenario | Behavior |
 |----------|----------|
-| Empty repo | Stage = idea, mode = harden; skip Phases 1–5; report lists the proposed sequence only |
+| Empty repo | Stage = idea, mode = improve; skip Phases 1–5; report lists the proposed sequence only |
 | Monorepo | Classify + orchestrate per workspace; aggregate report with workspace-prefixed sections |
 | Frozen project (no commits >180d) | Mode maintain; ds-deps security-only; ds-launch `skipped — not part of this mode` |
 | Mobile-only project | Phase 2 runs ds-mobile instead of ds-compliance for overlapping scopes |

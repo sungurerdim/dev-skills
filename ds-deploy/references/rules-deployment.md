@@ -238,7 +238,7 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 
 **Detect:** Flag definitions with no owner, purpose, or planned removal date; flags older than their intended lifetime still active; an old flag key reused for a new purpose.
 
-**Fix:** Require owner + purpose + expiry metadata at flag creation; sweep stale flags on a recurring cadence; ban flag-key reuse. (Code-level dead-branch/stale-flag detection lives in ds-simplify — this rule covers the release-process governance.)
+**Fix:** Require owner + purpose + expiry metadata at flag creation; sweep stale flags on a recurring cadence; ban flag-key reuse. (Code-level stale-flag detection lives in ds-simplify (its `fallback` scope) — this rule covers the release-process governance.)
 
 **Impact:** Every stale flag is an untested code path and a config surface that can be flipped in production; reused keys inherit stale targeting rules.
 

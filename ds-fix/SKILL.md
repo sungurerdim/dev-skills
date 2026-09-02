@@ -29,7 +29,7 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 **Dimensions:** B1 (fix), A8 (mechanical), C1 (mechanical)
 
 - Runs automated fixers in safe order: l10n → format → lint → typecheck → security — mutating scopes first, read-only verification after (typecheck validates the post-fix state), matching the ds-quality gate order (format → lint → type).
-- `--check` mode: report only, zero modifications.
+- `--preview` mode: report only, zero modifications.
 - Missing tools skip with a warning — never fails on absent optional tooling.
 - Re-validates after fix to confirm it worked. Reports counts, not verbose output.
 - Does not perform code review, architecture analysis, or refactoring.
@@ -43,7 +43,7 @@ AI assistants skip formatting, ignore lint errors, and never run type checks. Th
 | Flag | Effect |
 |------|--------|
 | (none) | Fix all scopes; diff-default file scoping applies automatically when a diff exists (see Phase 1) |
-| `--check` | Report only, no modifications |
+| `--preview` | Report only, no modifications |
 | `--scope=X,Y` | Specific scope(s), comma-separated; `all` forces a full-project run even when a diff exists |
 | `--diff[={ref}]` | Force diff-file scoping explicitly: bare → working tree + staged vs HEAD; with `{ref}` → merge-base diff vs that ref. Redundant when a diff already exists — see Phase 1 default |
 | `--skip-if-clean` | Run only scopes whose check-mode reports issues. Default `true` when invoked by another skill (ds-commit/ds-pr/ds-ship gates), `false` when user-invoked. |
@@ -100,7 +100,7 @@ Detect stacks in two tiers (multiple stacks may coexist, e.g. monorepo): Tier 1 
 - Change set: `git diff --name-only` (working tree) ∪ `git diff --name-only --cached` (staged) ∪ `git diff --name-only origin/{base}...HEAD` (branch vs base; skip this leg when `origin/{base}` does not resolve).
 - Any non-empty → format/lint/l10n run against that file set (tools that accept file args); typecheck and security's dependency-audit leg always run project-wide (partial type-checking/dep audits are unsound). All empty → full-project run.
 
-**Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)) **[fix mode — N/A under `--check`]:** before the first mutating scope, run `git status --porcelain`. Default: proceed only when pre-existing dirty state stays untouched by this skill's writes — otherwise stop that unit, record `only you can do`. `--ask`: non-empty → ask **Commit first (recommended) / Stash / Proceed anyway** (risk: fixer edits interleave with uncommitted work, single-command rollback is lost). Empty output → clean tree, proceed.
+**Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)) **[fix mode — N/A under `--preview`]:** before the first mutating scope, run `git status --porcelain`. Default: proceed only when pre-existing dirty state stays untouched by this skill's writes — otherwise stop that unit, record `only you can do`. `--ask`: non-empty → ask **Commit first (recommended) / Stash / Proceed anyway** (risk: fixer edits interleave with uncommitted work, single-command rollback is lost). Empty output → clean tree, proceed.
 
 ### Phase 2: L10n [scope: l10n]
 
@@ -114,19 +114,19 @@ Run these steps in order:
 | Placeholder consistency | Every `{placeholder-token}` in base MUST exist in all translations |
 | Encoding | Detect mojibake (cp1252→UTF-8 double-encoding) |
 
-**Fix mode:** generate files, stage generated output. **Check mode:** report mismatches only. Framework + key files per stack: [references/l10n-frameworks.md](references/l10n-frameworks.md). No framework detected → skip silently.
+**Fix mode:** generate files, stage generated output. **Preview mode:** report mismatches only. Framework + key files per stack: [references/l10n-frameworks.md](references/l10n-frameworks.md). No framework detected → skip silently.
 
 **Gate:** L10n files generated/validated, or no framework. If fails → tool unavailable: apply Tool Install Policy; persistent key mismatches after one fix attempt → report mismatched keys, mark scope `WARN`, don't abort.
 
 ### Phase 3: Format [scope: format]
 
-Look up format tool from [`../core/toolchains.md`](../core/toolchains.md). **Fix mode:** run fix command. **Check mode:** run check command, report exit code. Non-default formatter (e.g., `{alt-formatter}` instead of `{default-formatter}`) → detect from config files and use that.
+Look up format tool from [`../core/toolchains.md`](../core/toolchains.md). **Fix mode:** run fix command. **Preview mode:** run check command, report exit code. Non-default formatter (e.g., `{alt-formatter}` instead of `{default-formatter}`) → detect from config files and use that.
 
 **Gate:** Format clean before proceeding to lint. If fails → tool unavailable: apply Tool Install Policy; formatter exits non-zero after run → report file count, proceed to lint (don't block pipeline on residual format issues).
 
 ### Phase 4: Lint [scope: lint]
 
-Look up lint tool from [`../core/toolchains.md`](../core/toolchains.md). **Fix mode:** run fix command, then re-run check to verify. **Check mode:** run check command only, report issues. Non-default linter → detect from config and use that.
+Look up lint tool from [`../core/toolchains.md`](../core/toolchains.md). **Fix mode:** run fix command, then re-run check to verify. **Preview mode:** run check command only, report issues. Non-default linter → detect from config and use that.
 
 Stack-specific content patterns (e.g. `print(`/`console.log` outside a logger, per stack), linter-owned complexity thresholds, and the advisory `typos` spell-check sub-check: [references/lint-checks.md](references/lint-checks.md). Complexity thresholds run mechanically via the stack's linter config; project already sets a different threshold → keep the project's value, report the delta.
 
@@ -187,9 +187,9 @@ Zero-issue run: `No changes — {detected-stacks} pass all enabled scopes`.
 ## Quality Gates
 
 - Format runs before lint — never reverse the order
-- Post-fix re-verification is owned by each scope's in-phase re-check plus the Mechanical Done Gate's aggregate run — the observed output is the evidence. `--check` mode: report only; zero modifications proven by identical `git status --porcelain` output before and after.
+- Post-fix re-verification is owned by each scope's in-phase re-check plus the Mechanical Done Gate's aggregate run — the observed output is the evidence. `--preview` mode: report only; zero modifications proven by identical `git status --porcelain` output before and after.
 - Scope boundary: only run scopes requested (or all if none specified).
-- **Secrets — tracked file is CRITICAL, untracked is HIGH** (Phase 6a) — never auto-fix, always report. Tracked: "rotate this credential immediately, then add the variable name (placeholder value) to `.env.example`". Untracked: "add to `.gitignore` before it is ever committed" ([../core/secret-patterns.md](../core/secret-patterns.md)).
+- **Secrets** — never auto-fixed, always reported, per Phase 6a's severity table and actions.
 - **Regression-test gate:** fix touches security-critical or business-logic code and no regression test covers the affected path → add MEDIUM finding `regression test missing for {file}:{line} fix path` before completing ([../core/principles.md §7](../core/principles.md)).
 - **CRITICAL escalation:** any CRITICAL secret finding re-verified before reporting — re-read file ±20 lines, check skip patterns (`# noqa`, test fixtures, generated files, env-loader patterns). Insufficient evidence → downgrade to HIGH.
 - **Educational output triple:** every applied fix includes `why:` (impact if unfixed), `avoid:` (anti-pattern), `prefer:` (correct pattern) beside "what changed". Single-line counts/messages exempt.
@@ -210,7 +210,7 @@ One home: [`../core/severity-score-categories.md`](../core/severity-score-catego
 | Tool not installed | Tool Install Policy (above) — warn once per tool, skip, continue |
 | Formatter and linter conflict | Formatter wins (runs first), linter adapts |
 | No l10n framework / no type checker | Skip that scope silently |
-| `--check` with `--scope=format` | Run format check only, exit code = pass/fail |
+| `--preview` with `--scope=format` | Run format check only, exit code = pass/fail |
 | Large repo (>10K files) | Default file filtering, don't override excludes |
 | Pre-existing config (`.eslintrc`, `ruff.toml`, etc.) | Respect project config — never override with defaults |
 | Lock file conflict | Warn, skip dependency operations |

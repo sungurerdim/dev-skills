@@ -1,6 +1,6 @@
 # Rules: Design System & Theming
 
-Rules for audit/fix/design modes. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
+Rules applied during audit, fix, and `--generate` runs. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
 
 ## Table of Contents
 

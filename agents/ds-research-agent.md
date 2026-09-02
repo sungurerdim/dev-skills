@@ -49,7 +49,7 @@ Missing `currentDate` → use the host date. Missing `citationIdBase` → `0` (s
 
 ### Output artifact
 
-One `Write` per run cannot hold a deep normative artifact. A single provision carries `precedingText`, `followingText`, `definitions[]`, `exceptions[]` and `crossRefs[]`; a `--deep` run carries dozens. Attempting the whole artifact in one call hits the host's per-response output ceiling, the call is truncated, and **the entire run is lost at the last step**. So the artifact is always written as an index plus shards, at every checkpoint and at EMIT alike.
+One `Write` per run cannot hold a deep normative artifact. A single provision carries `precedingText`, `followingText`, `definitions[]`, `exceptions[]` and `crossRefs[]`; a many-faceted topic carries dozens. Attempting the whole artifact in one call hits the host's per-response output ceiling, the call is truncated, and **the entire run is lost at the last step**. So the artifact is always written as an index plus shards, at every checkpoint and at EMIT alike.
 
 | Rule | Detail |
 |------|--------|
@@ -245,7 +245,7 @@ Run in order.
 |-------------|---------|
 | Simple fact / single narrow question | 1 worker, 3-10 tool calls |
 | Comparison / multi-aspect | 2-4 parallel workers, each owns one sub-aspect |
-| `--deep` / many-faceted | up to 5 parallel workers |
+| many-faceted topic | up to 5 parallel workers |
 
 Each parallel worker gets an explicit contract: objective + output schema + tool order + source-quality heuristics + scope boundary + a disjoint `citationIdBase` band. Vague instructions cause duplicate work and gaps. On a `corpusMode="enumerate"` topic the orchestrator enumerates the corpus **before** dispatching and hands each worker its `corpusUnits` slice — a worker cannot know what a sibling was given, so unallocated units are invisible to every one of them.
 

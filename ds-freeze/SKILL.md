@@ -29,7 +29,7 @@ Every feature stays "in scope" until someone explicitly says otherwise, so a rel
 
 **Dimensions:** none (carrier)
 
-- One skill for the whole scope-freeze loop: build the candidate list (implemented features, promised-not-built features, open issues) → three-way disposition (`ship` / `defer-hidden` / `defer-backlog`) → release manifest → implement the kept set → sync docs.
+- One skill for the whole scope-freeze loop: candidate list → three-way disposition (`ship` / `defer-hidden` / `defer-backlog`) → release manifest → implement the kept set → sync docs.
 - **Never deletes code.** `defer-hidden` gates a feature behind a flag/toggle so it is unreachable this release; permanent removal is ds-simplify's job, with its own approval gate — ds-freeze only proposes it as a follow-up.
 - Undecided items default to `defer-backlog` — never silently ships an item nobody confirmed (W5).
 - **State-exempt.** The tracking artifact (a GitHub issue, or `docs/release/{milestone}-scope.md` when `gh` is unavailable) plus git are the durable record; nothing is written to `ds/audit/`. Resuming = re-read the tracking artifact **and its comments** — decisions land in the thread as often as the checklist.
@@ -46,18 +46,18 @@ Every feature stays "in scope" until someone explicitly says otherwise, so a rel
 | `--preview` | Phase 1–2 only: candidate inventory, no triage or mutation |
 | `--milestone={name}` | Label for the release manifest / tracking issue (e.g. `v1.0`); default resolves from the best available repo signal — see Phase 1 |
 | `--scope={area}` | Restrict inventory to one module/domain (large monorepos) |
-| `--resume={#N}` | Resume from an existing tracking issue number; re-reads its checklists, unchecked items stay undecided |
+| `--continue={#N}` | Continue from an existing tracking issue number; re-reads its checklists, unchecked items stay undecided |
 | `--skip-implement` | Stop after Phase 4 (manifest + filing) — implementation deferred to a separate `/ds-build` or `/ds-issue --do` pass |
 
-Without flags: Full flow runs directly — inventory through doc sync, every triage/approval decision made by best judgment and recorded. `--ask` presents an up-front menu — Full flow (recommended, inventory through doc sync) / Preview (inventory only) / Manifest only (triage + filing, `--skip-implement`) / Resume (continue an existing tracking issue) / (Cancel). A disambiguating flag skips the menu.
+Without flags: Full flow runs directly — inventory through doc sync, every triage/approval decision made by best judgment and recorded. `--ask` presents an up-front menu — Full flow (recommended, inventory through doc sync) / Preview (inventory only) / Manifest only (triage + filing, `--skip-implement`) / Continue (an existing tracking issue) / (Cancel). A disambiguating flag skips the menu.
 
 ### Flag-Gate Contract
 
-Every flag's effect on phase execution, stated in full — no phase runs unless the table in [references/rules-freeze.md](references/rules-freeze.md) Flag-Gate Contract allows it. Summary: default/`--ask` run every phase; `--preview` stops after Phase 2; `--skip-implement` skips Phase 5; `--resume`/`--milestone`/`--scope` modify without gating.
+One rule: every phase runs by default. Only two flags gate phases — `--preview` stops after Phase 2 (inventory only); `--skip-implement` skips Phase 5 (implementation) only. Every other flag (`--ask`, `--continue`, `--milestone`, `--scope`) modifies behavior without gating any phase.
 
 ## Scopes
 
-**Candidate sources:** implemented features (promise census "implemented"), promised-not-built features (promise census "promised-not-implemented" + `docs/`/`specs/`/`research/` proposals), open GitHub issues.
+**Candidate sources:** the promise census's `implemented` and `promised-not-implemented` items, `docs/`/`specs/`/`research/` proposals, and open GitHub issues.
 
 **Disposition set (exactly one per item):** `ship` — release-critical, must reach complete/correct this release · `defer-hidden` — code exists, too complex or risky for this release, gate behind a flag and park the rest · `defer-backlog` — not built yet or trivial to omit, becomes a tracked future item, no code action now.
 
@@ -71,9 +71,9 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 
 ### Phase 1: Setup + Load
 
-1. No state file to recover (Contract) — `--resume={#N}` given → re-read that tracking issue **with its comments** (`gh issue view {N} --json body,comments`; doc-tracked run → `docs/release/*.md` plus its git log) and treat unchecked items as still undecided. Comments are not chatter: fold every scope decision, new candidate, or disposition change posted there into the checklists before triage resumes, or reject it explicitly with a reply saying why — a checklist-only re-read silently drops thread decisions. `--resume` absent → fresh start.
+1. No state file to recover (Contract) — `--continue={#N}` given → re-read that tracking issue **with its comments** (`gh issue view {N} --json body,comments`; doc-tracked run → `docs/release/*.md` plus its git log) and treat unchecked items as still undecided. Comments are not chatter: fold every scope decision, new candidate, or disposition change posted there into the checklists before triage resumes, or reject it explicitly with a reply saying why — a checklist-only re-read silently drops thread decisions. `--continue` absent → fresh start.
 2. Resolve `--milestone`. Default: resolves to the best available repo signal (unreleased CHANGELOG heading, next semver bump inferred from the current manifest version, or a date-stamped fallback `release-{YYYY-MM-DD}`), recorded in the tracking artifact and summary header. `--ask`: ask `Which release/milestone is this freeze for?`
-3. Findings freshness check (W10): `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle) and covers `promise-census`/`ideal-gap` → reuse those rows instead of re-deriving. Prior-cycle findings — however recent — are diff context only, never a re-derivation substitute. Stale/absent → advisory handoff to `/ds-blueprint` if present; absent → own lightweight pass: read README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / `docs/`, `specs/`, `research/` for capability claims, cross-check against source.
+3. Findings freshness check (W10): `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle) and covers `spec-alignment`/`ideal-gap` → reuse those rows instead of re-deriving. Prior-cycle findings — however recent — are diff context only, never a re-derivation substitute. Stale/absent → advisory handoff to `/ds-blueprint` if present; absent → own lightweight pass: read README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / `docs/`, `specs/`, `research/` for capability claims, cross-check against source.
 4. Load open GitHub issues (`gh issue list --state open --limit 1000`; `--limit` is mandatory — the default caps at 30 with no error, silently excluding candidates from triage). Measure the returned count (`--json number --jq 'length'`) and state it in the inventory header; count == the limit → raise it and re-read. `gh` unavailable or unauthenticated → note the gap, continue with doc/code-derived candidates only.
 5. Mode menu (see Arguments) unless a disambiguating flag was passed.
 

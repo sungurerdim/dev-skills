@@ -20,7 +20,7 @@ Or run the full installer — `ds-freeze` ships with every other skill.
 /ds-freeze --preview                # candidate inventory only, no mutation
 /ds-freeze --milestone=v1.0         # label the release manifest / tracking issue
 /ds-freeze --skip-implement         # triage + file backlog, skip implementation
-/ds-freeze --resume=#142            # continue an existing tracking issue
+/ds-freeze --continue=#142          # continue an existing tracking issue
 ```
 
 Also runs automatically inside `/ds-ship`'s Scope-Freeze branch when the ask signals scope reduction ("simplify the release", "cut to an MVP") — the frozen `ship` set becomes the working scope for every later ship-cascade phase.
@@ -32,7 +32,7 @@ Also runs automatically inside `/ds-ship`'s Scope-Freeze branch when the ask sig
 | (default) | Full loop: inventory, collaborative triage, release manifest, implement kept set, sync docs |
 | `--preview` | Inventory only — see the candidate list before committing to a triage session |
 | `--skip-implement` | Stop after filing — hand implementation to a separate `/ds-build` or `/ds-issue --do` pass |
-| `--resume=#N` | Continue a triage session from its tracking issue |
+| `--continue=#N` | Continue a triage session from its tracking issue |
 
 ## Features
 

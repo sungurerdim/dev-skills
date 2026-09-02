@@ -43,11 +43,9 @@ AI models hallucinate sources, cite outdated data, can't distinguish blog post f
 
 | Flag | Effect |
 |------|--------|
-| `--quick` | T1-T2 sources only |
-| `--deep` | All tiers |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
-Without flags: Standard depth (T1-T4) across all scope areas — see Phase 1 for the exact resolution and the `--ask` menu.
+Without flags: every applicable track runs across all scope areas, widening past T1/T2 only when they don't converge (Phase 3 saturation gate) — see Phase 1 for scope resolution and the `--ask` menu.
 
 ## Delegation
 
@@ -57,16 +55,15 @@ Without flags: Standard depth (T1-T4) across all scope areas — see Phase 1 for
 
 Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Output
 
-### Phase 1: Setup [SKIP with flags]
+### Phase 1: Setup
 
-1. **Depth selection.** Default: Standard (T1-T4, balanced) unless `--quick` (T1-T2, fast) or `--deep` (all tiers, 20+ sources) is given; the choice is recorded in the summary. `--ask` (and no `--quick`/`--deep` given): present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — T1-T4, balanced / Quick — T1-T2, fast / Deep — all tiers, 20+ sources / (Cancel).
-2. **Scope selection.** Default: all areas run — Local codebase / Security-CVE / Changelog-releases / Dependencies — the fullest-coverage default. `--ask`: choose areas from that list.
+1. **Scope selection.** Default: all areas run — Local codebase / Security-CVE / Changelog-releases / Dependencies — the fullest-coverage default, recorded in the summary. `--ask`: choose areas from that list.
 
-**Gate:** Depth + scope resolved. If fails → under `--ask`, no selection after one re-prompt → default Standard (T1-T4) all scopes, warn user, proceed.
+**Gate:** Scope resolved. If fails → under `--ask`, no selection after one re-prompt → default all areas, warn user, proceed.
 
 ### Phase 2: Parse Query
 
-**Upstream artifacts:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis. Findings file fresh → use project type and stack from metadata.
+**Upstream artifacts:** Profile → Type + Stack, `Constraints:`. Findings() → verify + use. Absent → own analysis. Findings file fresh → use project type and stack from metadata.
 
 Extract from arguments: concepts, tech domain, comparison mode, and the scope areas resolved in Phase 1 (add a troubleshooting lens when the query names a symptom or error).
 
@@ -85,8 +82,8 @@ Agent present → dispatch `ds-research-agent` for the web tracks (handoff contr
 | Local codebase | Search project files | If focus includes local |
 | T1: Official docs | Search official sites | Always |
 | T2: GitHub / changelogs | Search github.com | Always |
-| T3: Technical blogs | Search general web | Standard+ |
-| T4: Community (SO / Reddit) | stackoverflow, reddit | Standard+ |
+| T3: Technical blogs | Search general web | Unless T1/T2 already saturated |
+| T4: Community (SO / Reddit) | stackoverflow, reddit | Unless T1/T2 already saturated |
 | Security (NVD / CVE / Snyk) | Dependency-mode per CRAAP+ | If security query |
 | Comparison A/B | Full search + analyze + synthesize | If comparison detected |
 

@@ -47,7 +47,7 @@ Auto-detected from project manifests. Multiple stacks supported in monorepos. Re
 - **Deterministic order** — l10n → format → lint → typecheck → security (mutating scopes first; typecheck verifies the post-fix state)
 - **16 stacks** — auto-detects from manifest files, with per-stack toolchain lookup
 - **Smart detection** — uses project config to pick the right tool variant (e.g., Biome vs Prettier)
-- **Check mode** — `--check` for CI/report-only, no file modifications
+- **Preview mode** — `--preview` for CI/report-only, no file modifications
 - **Diff scoping (default when a diff exists)** — fixers scope to changed files (typecheck stays project-wide — partial type-checking is unsound); `--diff[={ref}]` forces it, `--scope=all` forces a full-project run
 - **`--skip-if-clean` mode** — default `true` when invoked by ds-commit / ds-pr / ds-ship gates, `false` when user-invoked. No-op for clean scopes.
 - **Educational triple per fix** — every applied fix emits `why:` / `avoid:` / `prefer:` next to "what changed"

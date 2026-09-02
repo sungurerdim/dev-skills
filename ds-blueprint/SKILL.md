@@ -114,7 +114,7 @@ Discovery → [Foundation] → Assess → Consolidate → Dashboard → [Suggest
 5. **Skillset stamp.** Read `.dev-skills-version` beside the installed skills dir (e.g. `~/.claude/skills/.dev-skills-version`); absent → `unknown`.
 
 **Decision tree:**
-1. Profile exists + no `--init`/`--refresh` → Phase 3 (incremental); foundation lines missing from the profile → Phase 2 first, `derived` mode.
+1. Profile exists + no `--init`/`--refresh` → measure drift against the findings' `git_hash` per the Freshness rule in [../core/findings-and-profile-format.md](../core/findings-and-profile-format.md): fresh or small drift → Phase 3 incremental (only the scopes the diff touched); rewritten history, a manifest/lockfile/CI/container change, or a large diff (≥ 40 commits, ≥ 25% of source files, or ≥ 500 changed lines) → full detection + every scope, exactly as `--refresh` does, stating the numbers that decided it. Foundation lines missing from the profile → Phase 2 first, `derived` mode.
 2. Profile exists + `--refresh` → Phase 3 with fresh detection; Phase 7 rewrites `Scores:` + `Signals:` only.
 3. `--init` (profile present or not) → Phase 2 (Foundation pass), then stop after the profile write.
 4. No profile + no `--init` → Phase 2 in `derived` mode, then continue to Phase 3.
@@ -161,7 +161,7 @@ Scoring formula from references/scopes.md, dimension weights from references/wei
 
 **Gate:** Every resolved scope scanned; every signal has file:line evidence; false-positive checks applied. If fails → scope un-scan-able (codebase too large, binary-only files, access denied) → mark it `confidence: inconclusive` in state.data.findings_per_scope, continue scoring with available signals, flag `[PARTIAL SCAN]` in the dashboard (scores read as lower bounds).
 
-### Phase 3.1: Project Map
+### Phase 3.1: `Entry:`/`Modules:`/`Data Flow:`
 
 Build from Discovery + Assess, one line each (field shapes: ../core/findings-and-profile-format.md § 2): Entry point (main file(s) + framework); Modules (each top-level dir — role, file count, key files, not a full listing); Data Flow (primary user-facing flow end-to-end, e.g. `{source}→auth→process→store→{sink}`, incl. intermediate systems); External (runtime deps with purpose, grouped: db/cache/queue/auth/third-party); Toolchain (format/lint, test framework, CI platform, container).
 
@@ -201,7 +201,7 @@ Dimensions below target:
 ### Phase 7: Update Profile [SKIP if --preview]
 
 1. Rewrite `Scores:` (`model={model-id}`, or `model=unknown`) and `Signals:` in place; `--refresh` also rewrites `Type`/`Stack`/`Toolchain`/`Integrations` from fresh detection. Preserved-vs-rewritten lines: references/profile-format.md.
-2. Legacy `### Last Run`/`### Run History`/`### Current Scores` blocks → rewrite to minimal key-value format; report `{n} legacy lines rotated to git log`; never re-inject.
+2. Legacy `### Last Run`/`### Run History`/`### `Scores:` blocks → rewrite to minimal key-value format; report `{n} legacy lines rotated to git log`; never re-inject.
 3. Previous scores existed → display delta table in chat (Prev/Curr/Δ). Trend over >1 run: `git log -- <instruction-file>`, never an accumulated block.
 4. **Dev-Value Gate** (forbidden-line list: ../core/findings-and-profile-format.md § 2): strip every forbidden line class before the write; report `{n} dev-value-gate lines stripped`.
 5. **Context-budget guard:** `sed -n '/^## Blueprint Profile/,/^## End Blueprint Profile/p' {instruction-file} | wc -l` → ≤ 27 (25 content lines + 2 markers). Over-limit handling: ../core/findings-and-profile-format.md § 2.

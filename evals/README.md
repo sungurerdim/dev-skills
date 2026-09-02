@@ -49,7 +49,7 @@ outcome is applied by hand (zero-change tasks are green by design and say so).
 | simplify-dead-code | ds-simplify | "Simplify this repo — remove dead code." | dead function + orphan file removed, live code and tests untouched |
 | test-generate-sensitive | ds-test | "Write tests for src/pricing.js." | generated suite goes red on threshold and rounding mutants (assertion strength, runner-aware) |
 | fix-autonomy-no-prompt | ds-fix | "Fix the code quality issues in this repo." | ruff-fixable defects land under the autonomous default with no menu, question, or approval stop; nothing unrequested |
-| ship-harden-no-launch | ds-ship | "Harden this project before the next release." | `--mode=harden` report states its mode and runs zero launch legs (ds-benchmark / ds-launch / ds-productize) on a library with no store or billing signals |
+| ship-improve-no-launch | ds-ship | "Improve this project before the next release." | `--mode=improve` report states its mode and runs zero launch legs (ds-benchmark / ds-launch / ds-productize) on a library with no store or billing signals |
 | build-tasks-md | ds-build | "Execute specs/001-text-helpers/tasks.md." | every task implemented and verify-proven, tasks ticked or retired, committed, clean tree |
 | debug-reproduce-fix | ds-debug | "Fix bug #7 — see README." | red reproduced, source fixed (test never weakened), regression test red-proven against the original code |
 | release-tag-changelog | ds-release | "Cut the next release." | feat → minor bump, dated CHANGELOG section with Unreleased kept, release commit + annotated tag on HEAD, publishing left to the human |

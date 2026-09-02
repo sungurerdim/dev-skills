@@ -25,7 +25,7 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 ```
 /ds-pipeline {one-paragraph feature idea}
 /ds-pipeline --feature={slug}          # resume an existing feature's pipeline
-/ds-pipeline --feature={slug} --fresh  # regenerate all artifacts (confirmed)
+/ds-pipeline --feature={slug} --refresh  # regenerate all artifacts (confirmed)
 ```
 
 ## Flags
@@ -34,7 +34,7 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 |------|--------|
 | `{idea}` | Fresh run — plans the described feature |
 | `--feature={slug}` | Overrides the derived `specs/{slug}/` directory name |
-| `--fresh` | Regenerates all artifacts after confirmation |
+| `--refresh` | Regenerates all artifacts after confirmation |
 
 ## Features
 

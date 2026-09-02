@@ -38,7 +38,7 @@ User-facing checks (i18n, a11y, responsive layout — Phase 3 "User-facing proje
 - Enterprise quality: Testing +5%, Architecture +3%, others decrease proportionally
 - Prototype quality: All dimensions equal weight (11.1% each)
 
-## Ideal Metrics by Project Type
+## `Ideal:` by Project Type
 
 | Type | Coupling | Cohesion | Complexity | Coverage |
 |------|----------|----------|------------|----------|

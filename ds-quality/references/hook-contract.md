@@ -117,14 +117,14 @@ copied-in script (`.claude/hooks/ds-quality-gate.sh` inside the repo) so it trav
 
 Verified against official docs on the dates noted; if behavior diverges, re-verify the live docs — don't guess.
 
-## Codex CLI — `Stop` hook (stop-time; developers.openai.com/codex/hooks)
+## Codex CLI — `Stop` hook (before-done; developers.openai.com/codex/hooks)
 
 - Config: `<repo>/.codex/hooks.json` or inline `[hooks]` in `.codex/config.toml` (one representation per layer); user-level `~/.codex/hooks.json`. **Project-local hooks load only when the project layer is trusted.**
 - Shape: `hooks.Stop[] = { hooks: [ { "type":"command", "command":"…", "statusMessage":"…" } ] }` — `matcher` is not used for `Stop`.
 - Stdin JSON includes `stop_hook_active` (loop guard — exit 0 when `true`) and `last_assistant_message`.
 - Block: exit 0 + stdout `{"decision":"block","reason":"…"}` → Codex continues, `reason` becomes the continuation prompt. Exit 2 + stderr reason also works. **Plain-text stdout is invalid for `Stop` — JSON only.** `continue:false` from any matching Stop hook overrides block decisions.
 
-## Gemini CLI — `AfterAgent` hook (stop-time; geminicli.com/docs/hooks)
+## Gemini CLI — `AfterAgent` hook (before-done; geminicli.com/docs/hooks)
 
 - Config: `.gemini/settings.json` (project) > `~/.gemini/settings.json` (user) > `/etc/gemini-cli/settings.json`.
 - Shape: `hooks.AfterAgent[] = { matcher, hooks: [ { "name":"…", "type":"command", "command":"…", "timeout":<ms> } ] }`. Tool-event matchers are regex; `"*"` matches all.
@@ -132,7 +132,7 @@ Verified against official docs on the dates noted; if behavior diverges, re-veri
 - `AfterAgent` fires when the agent loop ends; impact class "Retry / Halt" — review output, force retry or halt.
 - Transition note: unpaid-tier Gemini CLI is being replaced by Antigravity CLI (announced for 2026-06-18) — re-verify the config surface at install time.
 
-## GitHub Copilot — hooks (commit-time enforcement; docs.github.com/copilot: use-hooks + hooks-configuration)
+## GitHub Copilot — hooks (before-commit enforcement; docs.github.com/copilot: use-hooks + hooks-configuration)
 
 - Config: `.github/hooks/*.json` (repo; default branch required for cloud agent, cwd for CLI) or `~/.copilot/hooks/*.json` (user; `$COPILOT_HOME/hooks/` if set). Loaded at CLI start.
 - Shape: `{ "version": 1, "hooks": { "<event>": [ { "type":"command", "bash":"…", "powershell":"…", "cwd":"…", "env":{…}, "timeoutSec":N } ] } }` — supply **both** `bash` and `powershell` for cross-OS.

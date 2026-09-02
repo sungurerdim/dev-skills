@@ -59,14 +59,12 @@ AI reports fabricate sources, repeat data instead of single-sourcing it, and pro
 
 | Flag | Effect |
 |------|--------|
-| `--quick` | Shallow research (T1-T2, fast), atomic |
-| `--deep` | All tiers, parallel workers |
-| `--summarize <sources>` | `summarize` scope: index+summarize user-supplied URLs/text → report (no discovery) |
+| `--summarize <sources>` | Override: force `summarize` scope on the given URLs/text — index+summarize, no discovery (auto-detected already when the request supplies sources with no open topic) |
 | `--static` | Static/print-pure output: everything expanded, minimal JS |
 | `--no-archive` | Skip the evidence bundle — emit the HTML + findings only (default is to archive every cited source) |
 | `--from-artifact <findings.json>` | **Re-render without research**: Phase 2 skipped; Phase 3 runs on the given artifact (URL spot-checks skipped — bundle SHA-256 is the integrity check; fully offline); Phases 4-6 as normal. Dates stay the artifact's own `accessDate`. For design/template changes; pair with `priorArtifactPath` research for a stale slice |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
-| (no flag) | Resolves by best judgment (Phase 1); `--ask` asks depth + scope + audience |
+| (no flag) | Resolves by best judgment (Phase 1); `--ask` asks scope + audience |
 
 ## Scopes
 
@@ -77,8 +75,8 @@ AI reports fabricate sources, repeat data instead of single-sourcing it, and pro
 
 | Scope | Runs when (signal) | Otherwise |
 |-------|---------------------|-----------|
-| research | default — the request names a topic with no pre-supplied sources | N/A — `--summarize` given |
-| summarize | `--summarize` flag with supplied URLs/text | N/A — no `--summarize` flag |
+| research | request names an open topic, no pre-supplied sources to condense | N/A — request supplies URLs/text to summarize |
+| summarize | request supplies URLs/text to condense, no open topic (or `--summarize` override) | N/A — request names an open topic |
 
 ## Delegation
 
@@ -88,22 +86,22 @@ AI reports fabricate sources, repeat data instead of single-sourcing it, and pro
 
 Setup → Research → Verify → Build Report → [Needs-Approval] → Output
 
-### Phase 1: Setup [SKIP with flags]
+### Phase 1: Setup
 
-1. **Depth + scope + audience.** Default: Standard/research/General, unless the request text names a depth/scope/audience, recorded in the summary. `--ask`, no disambiguating flag: present a menu covering every depth, each with a one-line what-it-does: Standard (recommended) — balanced / Quick — fast, T1-T2 / Deep — parallel workers / (Cancel); then scope research / summarize; in the same batched ask, audience: General reader (recommended — terms explained) / Expert (dense, unexplained terms). Audience sets prose register only (report-template.md § Authoring language) — verification discipline never changes. A disambiguating flag (`--quick`/`--deep`/`--summarize`) skips the menu either way.
+1. **Scope + audience.** Default: scope from the request (URLs/text supplied with no open topic → `summarize`; otherwise → `research`; `--summarize` overrides); audience General, unless the request text names one; recorded in the summary. `--ask`, no disambiguating flag: present scope (research / summarize) and audience (General reader (recommended — terms explained) / Expert (dense, unexplained terms)) in one batched ask; (Cancel). Audience sets prose register only (report-template.md § Authoring language) — verification discipline never changes. A disambiguating flag (`--summarize`) skips the menu.
 2. **Topic parse + date.** Extract concepts/comparison from the request. Resolve `currentDate` from host context; inject into every search query to avoid stale results.
 3. **Research plan gate.** Default: the agent plans autonomously — this step is skipped. `--ask`: draft the 3-7 questions a complete brief must answer and show them compactly (approve / edit / add — one batched ask); the approved list dispatches as `planSeed`.
 4. **Scenario-dimension gate [branch-shaped topics].** Default: derive the decision dimensions from the request text — **full value sets** ordered by discriminating power (role/entity type first, then data/asset sensitivity, then activity, then geography) — and record the derivation in the summary. `--ask`: in the same batched ask, propose the dimensions and let the user approve / edit / add. Obligations differ by legal form → the entity-type dimension is mandatory and starts from the standard value set (report-template.md § Many-dimension topics), never trimmed. Dispatches as `dimensions`.
 5. **Corpus + normative detection.** Topic is law / regulation / official procedure → set `normative`. Topic has a finite authoritative corpus (statute articles, standard clauses, endpoints) → set `corpusMode="enumerate"`. Both are detected from the topic, not asked.
 6. **Corpus enumeration [BLOCKING, before any research dispatch].** `corpusMode="enumerate"` → build the ledger **now**, as its own step: fetch the official text's own contents listing and write `corpus[]` — every unit, from the source, never from recollection. This is a separate dispatch (one agent run, or inline) whose only job is the ledger; it does not research content. The ledger then drives Phase 2's allocation. Enumerating inside the research workers instead is what leaves units unassigned: a worker sees only its own slice, so a unit nobody was given is invisible to every worker and surfaces — if at all — only after the run.
 
-**Gate:** Pass = topic + scope + currentDate resolved (audience → General when unanswered); branch-shaped topic → dimensions approved with exhaustive value sets incl. a catch-all; `corpusMode="enumerate"` → `corpus[]` exists, came from the official contents listing, and its unit count is stated. If the official listing is unreachable → do not proceed on a remembered list: research the reachable units, record the unenumerable range as a `knownUnknown`, and drop `corpusNoGaps` from the HIGH gate. If too broad/ambiguous → default: proceed directly with Standard/research on the literal topic, warn, and record in the summary (currentDate → host date). `--ask`: ask 1 clarifying question first; no answer after one re-prompt → same default, warn, proceed.
+**Gate:** Pass = topic + scope + currentDate resolved (audience → General when unanswered); branch-shaped topic → dimensions approved with exhaustive value sets incl. a catch-all; `corpusMode="enumerate"` → `corpus[]` exists, came from the official contents listing, and its unit count is stated. If the official listing is unreachable → do not proceed on a remembered list: research the reachable units, record the unenumerable range as a `knownUnknown`, and drop `corpusNoGaps` from the HIGH gate. If too broad/ambiguous → default: proceed directly with `research` scope on the literal topic, warn, and record in the summary (currentDate → host date). `--ask`: ask 1 clarifying question first; no answer after one re-prompt → same default, warn, proceed.
 
-### Phase 2: Research [research scope]
+### Phase 2: Research
 
 Handoff to `ds-research-agent` (set `model` explicitly). Input contract = the agent's **Inputs (handoff contract)** block (single source of truth for the field list); output = an artifact index at `artifactPath` plus the shards it names (the agent's **Artifact write contract**) + one-line `EMITTED …` return. Read the index first, then each `shards[].path`; `shards:[]` → `sections`/`sources` are inline.
 
-- Agent present → dispatch (Phase 1's approved question list rides in `planSeed`; the approved `dimensions`, plus `normative` / `corpusMode` when detected, ride alongside — the agent adopts them and may extend, never silently drop). Project has a source registry → pass it as `sourceRoutes` (known ground opens first; discovery covers the rest). Comparison/multi-aspect → orchestrate 2-4 parallel workers (≤5 on `--deep`), each a sub-aspect with an explicit contract; merge per the contract below. Split by **dimension**, not by regime, on multi-regime topics — a worker owning "cross-border transfer, both regimes" produces a comparable pair; two workers each owning one regime produce two monologues. Prior artifact for the same topic exists → pass its path as `priorArtifactPath` so the agent runs its Regeneration-stability diff at extraction time (the Phase 3 regeneration check then re-verifies at report level).
+- Agent present → dispatch (Phase 1's approved question list rides in `planSeed`; the approved `dimensions`, plus `normative` / `corpusMode` when detected, ride alongside — the agent adopts them and may extend, never silently drop). Project has a source registry → pass it as `sourceRoutes` (known ground opens first; discovery covers the rest). Comparison/multi-aspect → orchestrate 2-4 parallel workers, each a sub-aspect with an explicit contract; merge per the contract below. Split by **dimension**, not by regime, on multi-regime topics — a worker owning "cross-border transfer, both regimes" produces a comparable pair; two workers each owning one regime produce two monologues. Prior artifact for the same topic exists → pass its path as `priorArtifactPath` so the agent runs its Regeneration-stability diff at extraction time (the Phase 3 regeneration check then re-verifies at report level).
 - Agent absent → run the same pipeline inline ([references/research-pipeline.md](references/research-pipeline.md)): start-wide WebSearch → fetch/index → think-step → reviewer/reviser double-verify → synthesize → write the same artifact schema yourself, under the same write contract (index + shards, checkpoint every phase).
 - `summarize` scope → skip discovery; index/fetch the supplied sources, extract+verify, write artifact.
 

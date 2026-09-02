@@ -38,26 +38,25 @@ User runs `/ds-mobile`, asks to audit/review a mobile app (Flutter, RN, iOS, And
 
 | Flag | Effect |
 |------|--------|
-| `--mode={x}` | `audit`, `audit+fix`, `quick-fix`, `release-ready` |
 | `--scope={list}` | security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release, or `all` |
 | `--platform={p}` | Override: `flutter`, `react-native`, `ios`, `android` |
-| `--release-ready` | Shorthand for `--mode=release-ready` |
+| `--preview` | Analyze and report only — no file is written |
+| `--release-ready` | Score release readiness — scope + behavior in Run Types below |
 | `--skip-manual` | Skip manual gates (release-ready) |
 | `--diff` | Compare with previous release report |
 | `--resume` | Resume from `ds/audit/mobile.json` without the confirmation prompt |
 | `--clean` | Delete `ds/audit/mobile.json` and start fresh |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
-Default: mode resolves to `audit+fix` (the most complete default — scan, review, fix), recorded in the summary, unless `--release-ready` is passed. `--ask` with no disambiguating flag: present mode selection.
+Default: resolves to scan, review, fix across all scopes, recorded in the summary, unless `--preview` or `--release-ready` is passed. `--ask` with no disambiguating flag: present the run-type menu.
 
-## Modes
+## Run Types
 
-| Mode | Scope | Behavior |
-|------|-------|----------|
-| `audit` | All selected | Scan and report only |
-| `audit+fix` | All selected | Scan, review, fix |
-| `quick-fix` | All selected | Scan + auto-fix, minimal review |
-| `release-ready` | security, privacy, regulatory, store, release, i18n, a11y | 100-point scoring + manual gates + live policy fetch |
+| Run | Scope | Behavior |
+|-----|-------|----------|
+| Default | All selected | Scan, review, fix |
+| `--preview` | All selected | Scan and report only |
+| `--release-ready` | security, privacy, regulatory, store, release, i18n, a11y | 100-point scoring + manual gates + live policy fetch |
 
 ## Delegation
 
@@ -75,7 +74,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 **Recovery check (first step, runs unconditionally on every invocation):** DETECT `ds/audit/mobile.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → default: resume silently (best judgment — the re-verify step below catches real drift), recorded in the summary; `--ask`: prompt `Resume anyway? [Y/n]`. Resume → RE-VERIFY the `in_progress` domain by re-reading the files its recorded findings cite, keep `done` domains, announce `[MOB] Resuming from Phase {N}: {name}.` On successful Summary, delete state; `ds/audit/` empty afterwards → remove it. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
 
-**State `data`:** `{ mode, platform, scopes_selected, scopes_done[], architecture, cat2_approved[], findings_per_domain: {domain: [{id, severity, file, line, category, confidence, disposition}]}, release_score }`.
+**State `data`:** `{ release_ready, platform, scopes_selected, scopes_done[], architecture, cat2_approved[], findings_per_domain: {domain: [{id, severity, file, line, category, confidence, disposition}]}, release_score }`.
 
 1. **Project detection.**
 
@@ -94,14 +93,14 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 2. **Platform confirmation.** Default: ambiguous detection resolves to `Cross-platform` when multiple indicators are present, else the single detected platform — best judgment, recorded in the summary, never blocks. `--ask`: ambiguous → ask user.
 3. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching mobile scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
-4. **Upstream artifacts:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
-5. **Mode selection.** Default: resolves to `audit+fix` unless `--release-ready` is passed, recorded in the summary. A disambiguating flag (`--mode`, `--release-ready`) selects that mode directly. `--ask` with no disambiguating flag: present the Modes table above as the menu (Audit marked `(recommended)`), plus Custom — pick scopes — and `(Cancel)`.
-6. **Scope parsing.** Default: `audit` mode, all domains.
-7. **Custom scope** (if Custom, `--ask` only): ask for domains + mode.
+4. **Upstream artifacts:** Profile → `Data:`, `Deploy:`, `Scores:`, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
+5. **Run-type selection.** Default: resolves to scan, review, fix (all scopes) unless `--preview` or `--release-ready` is passed, recorded in the summary. A disambiguating flag (`--preview`, `--release-ready`, `--scope`) selects that run directly. `--ask` with no disambiguating flag: present the Run Types table above as the menu (Audit marked `(recommended)`), plus Custom — pick scopes — and `(Cancel)`.
+6. **Scope parsing.** Default: all domains.
+7. **Custom scope** (if Custom, `--ask` only): ask for domains + run type.
 8. **Regulatory framework detection** (security/regulatory/store/all): auto-detect indicators (GDPR, KVKK, CCPA, LGPD, PIPL, etc.). Default: every detected indicator used as-is, recorded in the summary. `--ask`: confirm with user. Rules tagged `[FRAMEWORK: X,Y]` checked only if at least one is active.
 9. **Release-ready setup** (release-ready only): detect available platforms (`android/`, `ios/`; both → ask which). Report path: `ds/mobile/release.json` (single committed file, overwritten each run). `--diff`: read the previous report first, diff in memory, present in chat — trend over >1 run comes from `git log -- ds/mobile/release.json`, never a directory of stale reports. Fetch live policy data (references/scoring.md).
 
-**Gate:** Platform identified; mode + scope confirmed; regulatory frameworks resolved. If fails → platform undetectable → prompt user (Flutter / RN / iOS / Android / Cross-platform), record the detected platform; mode/scope unconfirmed after prompt → default `audit` + `all`, warn; regulatory ambiguous → ask user to confirm before proceeding.
+**Gate:** Platform identified; run type + scope confirmed; regulatory frameworks resolved. If fails → platform undetectable → prompt user (Flutter / RN / iOS / Android / Cross-platform), record the detected platform; run type/scope unconfirmed after prompt → default to `--preview` + `all`, warn; regulatory ambiguous → ask user to confirm before proceeding.
 
 ### Phase 2: Architecture Discovery [SKIP if 1-2 domains]
 
@@ -152,7 +151,7 @@ Load only reference files matching scope:
 
 ### Phase 5: Report
 
-#### Standard Report (audit modes)
+#### Standard Report (non-`--release-ready` runs)
 
 ```
 ## Audit Report — {project-name}
@@ -174,7 +173,7 @@ Architecture: {summary}
 
 **Severity:** CRITICAL > HIGH > MEDIUM > LOW. Uncertain → choose lower.
 
-#### Release Readiness Report (release-ready mode)
+#### Release Readiness Report (`--release-ready` runs)
 
 Per references/scoring.md: 100-point dynamic scoring across 7 dimensions, manual gates, consequence table, diff against previous report. Include: policy values used (fetched vs fallback), dimension breakdown with bar chart, findings by severity, manual gate status, and "if you publish now" consequence table for CRITICAL+HIGH.
 
@@ -182,20 +181,18 @@ Per references/scoring.md: 100-point dynamic scoring across 7 dimensions, manual
 
 ### Phase 6: Post-Report
 
-| Mode | Behavior |
-|------|----------|
-| `audit` | Ask: Fix all / CRITICAL+HIGH only / Pick by severity / Report only |
-| `audit+fix` | Auto-transition to fix |
-| `quick-fix` | Auto-apply all |
-| `release-ready` | Ask: Fix plan / Save report only / Guidance for key findings |
+| Run | Behavior |
+|-----|----------|
+| Standard | `--preview` → Report only. Otherwise default: auto-transition to fix. `--ask`: ask Fix all / CRITICAL+HIGH only / Pick by severity / Report only |
+| `--release-ready` | Default: Save report only. `--ask`: ask Fix plan / Save report only / Guidance for key findings |
 
-**Gate:** Post-report action determined — default: the mode default, applied immediately with no prompt, recorded in the summary (`audit` → Report only; `audit+fix` → Fix all; `quick-fix` → Auto-apply all; `release-ready` → Save report only); `--ask`: the user's selection. If fails → `--ask` gets no selection after one re-prompt: apply the mode default, record it.
+**Gate:** Post-report action determined — default (no `--ask`): Standard runs auto-transition to fix unless `--preview` (then Report only); `--release-ready` defaults to Save report only; applied immediately with no prompt, recorded in the summary. `--ask`: the user's selection. If fails → `--ask` gets no selection after one re-prompt: apply the run's default action, record it.
 
-### Phase 7: Fix [SKIP if audit-only or report-only]
+### Phase 7: Fix [SKIP if Phase 6 resolved to report-only]
 
 0. **Checkpoint** (`../core/checkpoint-protocol.md`). `git status --porcelain` → empty → clean tree, proceed. Non-empty: default — proceed only when the pre-existing dirty state stays untouched by this skill's writes, else stop and record `only you can do`; `--ask` — ask **Commit first (recommended) / Stash / Proceed anyway** (risk: fix edits interleave with uncommitted work, single-command rollback is lost). Never run a bulk fix over uncommitted unrelated changes silently.
 1. **Plan.** Read findings, apply severity filter, group by file, identify dependencies. Present CAT-1 + CAT-2 (pre-approved) — one line per fix (`[severity] title — file:line`) grouped by severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
-2. **Confirmation.** Default: apply all CAT-1 + pre-approved CAT-2 fixes automatically for every mode, including CRITICAL, by best judgment, recorded in the summary. `--ask`: `quick-fix` → summary + proceed; `audit+fix` → full plan + ask (Apply all / per-severity bulk, CRITICAL still confirms per item); `release-ready` → show auto-fixable vs guidance split.
+2. **Confirmation.** Default: apply all CAT-1 + pre-approved CAT-2 fixes automatically, including CRITICAL, by best judgment, recorded in the summary. `--ask`: Standard run → full plan + ask (Apply all / per-severity bulk, CRITICAL still confirms per item); `--release-ready` → show auto-fixable vs guidance split.
 3. **Execute.** Apply grouped by file. Re-read before + after each edit. Record applied/failed/skipped.
 
 **Gate:** All standard fixes attempted; each recorded. If fails → fix unattempt-able (file unreadable, edit error): record `failed` as the finding's disposition, revert any partial edit via re-read + restore, continue; list failed fixes in Phase 9 summary with reason.
@@ -213,7 +210,7 @@ Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed → use i
 ### Phase 9: Summary
 
 ```
-ds-mobile: {OK|WARN|FAIL} | Mode: {audit|audit+fix|quick-fix|release-ready} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
+ds-mobile: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
 
 **Cleanup:** remove mobile-scoped findings (security, privacy, regulatory, store, ux, visual, a11y, arch, testing, perf, network, i18n, release) from `ds/audit/findings.md`. Empty after removal → delete file. Run completed → delete `ds/audit/mobile.json`; `ds/audit/` now empty → remove the directory. Run ended WARN/FAIL → leave state in place so the next invocation can resume it.

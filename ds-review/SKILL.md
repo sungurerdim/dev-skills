@@ -18,7 +18,7 @@ Code review catches what tests miss — security holes, dead code, wrong abstrac
 - User asks about code quality, complexity, or architecture
 - User asks to reduce duplication, fix patterns, improve maintainability
 
-Four modes: `--tactical` (file-level fixes), `--strategic` (architecture assessment), `--perf` (deep performance profiling), `--meta-quality` (principle-based whole-project audit — SSOT/DRY/KISS/SoC + criteria-fit + consolidation paths).
+Four modes, each a flag in Arguments below: `--tactical` / `--strategic` / `--perf` / `--meta-quality`.
 
 ### Triggers — INVOKE / DON'T INVOKE
 
@@ -114,9 +114,7 @@ Deep performance analysis beyond the tactical `performance` scope: 11 check grou
 
 **Delegated scopes** — `yagni`, `obsolete`, `duplicate` detection: delegation + inline-grep-fallback rule in [references/meta-quality-scopes.md](references/meta-quality-scopes.md).
 
-**Scope boundary:** principle-level audit — flags SSOT/DRY/KISS/SoC violations, evaluates project criteria fit, proposes consolidation paths. Fixes only on explicit user selection; every finding produces 3 path proposals (effort/impact/risk).
-
-**Anti-overengineering 3-gate applies here too** — same rule as Phase 2 below: report only with at least one harm signal present, else silent discard, counted `discarded (no harm signal)`.
+**Scope boundary:** principle-level audit — flags SSOT/DRY/KISS/SoC violations, evaluates project criteria fit, proposes consolidation paths. Fixes only on explicit user selection; every finding produces 3 path proposals (effort/impact/risk). Screened by the same anti-overengineering 3-gate as every other mode (Phase 2) — not restated here.
 
 ## Delegation
 
@@ -133,7 +131,7 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 ### Phase 1: Setup [--ask]
 
 1. Pre-flight: `git rev-parse --is-inside-work-tree` → `true` (non-zero exit → warn, continue — git optional).
-2. **Upstream artifacts:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
+2. **Upstream artifacts:** Profile → Priorities, Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
 3. **Mode selection.** Default: All — tactical → strategic → meta-quality sequentially (`--perf` excluded unless explicit) — recorded in the summary. A disambiguating mode flag always resolves it. `--ask` with no mode flag → menu covering every mode, one-line what-it-does each: All (recommended, same order as Default) / Tactical — file-level quality fixes / Strategic — architecture-level assessment / Performance — deep perf profiling / Meta-Quality — principle-based whole-project audit / (Cancel).
 4. **Scope selection.** Default: every scope for the selected mode. `--ask` with no `--scope` → ask which.
 5. **Diff-default resolution.** `--scope=all` → full-repo scan, skip this step. Otherwise detect whether a diff exists, scope to it automatically (an explicit `--diff[={ref}]` forces the same resolution against the named ref):
@@ -150,8 +148,8 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 
 | `ds/audit/findings.md` state | Action |
 |-------------------------------|--------|
-| Fresh (`git_hash == HEAD`, this run-cycle; any prior-cycle file counts stale) | Verify + fix: filter by active scopes; per finding read file:line ± 10 lines, confirm valid; confirmed → fix list; false positive/resolved → `not applicable`/`already-resolved` (both Skipped). Skip own analysis for covered scopes. |
-| Stale/absent, `/ds-blueprint` present | Invoke `/ds-blueprint --refresh` (absent entirely → `--preview --scope=all`), wait, re-read, apply the row above. |
+| Fresh (`git_hash == HEAD`, this run-cycle; any prior-cycle file counts drifted) | Verify + fix: filter by active scopes; per finding read file:line ± 10 lines, confirm valid; confirmed → fix list; false positive/resolved → `not applicable`/`already-resolved` (both Skipped). Skip own analysis for covered scopes. |
+| Drifted, `/ds-blueprint` present | Graded ([`../core/findings-and-profile-format.md` § Freshness](../core/findings-and-profile-format.md)), not binary: incremental → re-analyze diff-touched scopes, reuse rest, apply Fresh row; structural/large or absent → `/ds-blueprint --refresh` (`--preview --scope=all` if absent), wait, re-read, apply Fresh row. |
 | `/ds-blueprint` absent | Run own scope analysis (below); append results with `source: ds-review` + current `git_hash`. |
 
 Scopes the findings file does not cover always run own analysis regardless of row.

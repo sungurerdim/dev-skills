@@ -7,8 +7,8 @@ r() { if [ "$2" = "0" ]; then echo "$1	PASS"; ok=$((ok+1)); else echo "$1	FAIL";
 rep="ds/audit/report.md"
 rc=1; [ -s "$rep" ] && rc=0
 r "report-written(ds/audit/report.md)" "$rc"
-rc=1; grep -qiE 'Mode\**:? *\**:? *harden' "$rep" 2>/dev/null && rc=0
-r "report-states-mode-harden" "$rc"
+rc=1; grep -qiE 'Mode\**:? *\**:? *improve' "$rep" 2>/dev/null && rc=0
+r "report-states-mode-improve" "$rc"
 # a launch leg counts as run when its row/line in the report is not excluded
 ran=$(grep -iE 'ds-(launch|benchmark|productize)' "$rep" 2>/dev/null | grep -viE 'skipped — not part of this mode|skipped — no signal|skipped|not run|excluded' | wc -l | tr -d ' ')
 rc=1; [ "${ran:-1}" = "0" ] && rc=0

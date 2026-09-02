@@ -1,30 +1,13 @@
 # Rules: Release Scope Triage
 
-Supporting detail for [SKILL.md](../SKILL.md): the full flag-gating table, error recovery, and edge cases. Loaded when a flag combination, failure, or boundary condition needs the exact behavior.
+Supporting detail for [SKILL.md](../SKILL.md): error recovery and edge cases. Loaded when a failure or boundary condition needs the exact behavior.
 
 ## Table of Contents
 
 | Section | Line |
 |---------|------|
-| **Flag-Gate Contract** | ~12 |
-| **Error Recovery** | ~26 |
-| **Edge Cases** | ~36 |
-
----
-
-## Flag-Gate Contract
-
-Every flag's effect on phase execution, stated in full — no phase runs unless this table allows it.
-
-| Flag | Phases enabled | Phases disabled |
-|------|-----------------|-------------------|
-| (none) — default | 1–7, every decision resolved by best judgment and recorded | — |
-| `--ask` | 1–7, with menus/questions at every decision point | — |
-| `--preview` | 1–2 only | 3–7 |
-| `--skip-implement` | 1–4, 6–7 | 5 (Implement Kept Set) |
-| `--resume={#N}` | 1 re-reads the tracking issue instead of starting fresh; 2–7 unchanged | — |
-| `--milestone={name}` | modifier only — labels the manifest in Phase 1 step 2; no phase gating | — |
-| `--scope={area}` | modifier only — restricts Phase 2's candidate set; no phase gating | — |
+| **Error Recovery** | ~12 |
+| **Edge Cases** | ~22 |
 
 ---
 

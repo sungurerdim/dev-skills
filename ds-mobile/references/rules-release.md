@@ -1,6 +1,6 @@
 # Rules: Release Readiness & Store Submission
 
-Rules for release-ready mode. Each rule: ID, severity, title, detect pattern, fix action.
+Rules applied during a `--release-ready` run. Each rule: ID, severity, title, detect pattern, fix action.
 
 ## Build Configuration
 

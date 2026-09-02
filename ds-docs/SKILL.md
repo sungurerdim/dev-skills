@@ -44,7 +44,6 @@ Documentation drifts from code the moment it's written, decisions evaporate with
 | `--preview` | Analyze gaps only, no generation |
 | `--scope={x}` | Single scope: readme, api, dev, user, ops, support, changelog, compliance, adr, harness, refine, verify |
 | `--adr` | ADR mode: scan architecture decisions, propose/maintain numbered ADR files under `docs/adr/` |
-| `--update` | Regenerate even if docs exist |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Default: no disambiguating flag resolves to Auto mode (detect + analyze + generate all applicable scopes), recorded in the summary. `--ask` with no disambiguating flag: present mode selection to the user.
@@ -100,9 +99,9 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 ### Phase 0: Pre-flight [ALWAYS — never skip]
 
-**Upstream artifacts:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis. Findings file fresh (meta `git_hash` equals `git rev-parse HEAD` output, current run-cycle) → target specific gaps (skip own analysis for covered areas); stale or absent → run own full analysis.
+**Upstream artifacts:** Profile → {`Audience:`, `Entry:`/`Modules:`/`Data Flow:`, Type, `Priorities:`}. Findings({docs}) → verify + use. Absent → own analysis. Freshness: see ../core/findings-and-profile-format.md — fresh → target specific gaps, skip covered scopes; drifted → incremental re-analysis of touched scopes, full only if structural/large; absent → own full analysis.
 
-**Gate:** upstream artifacts read, findings loaded or own analysis planned. If fails → findings unreadable or stale `git_hash` → discard, proceed with own full analysis; profile absent → continue + note "no blueprint profile — using own analysis" in run header.
+**Gate:** upstream artifacts read, findings loaded or own analysis planned. If fails → findings unreadable → discard, proceed with own full analysis; profile absent → continue + note "no blueprint profile — using own analysis" in run header.
 
 ### Phase 1: Setup
 
@@ -116,7 +115,7 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 Scan existing docs, detect project type, assess completeness. Apply quality rules from [references/rules-writing.md](references/rules-writing.md):
 
 1. Search for doc files (`README.md`, `CONTRIBUTING.md`, `docs/*`, `CHANGELOG.md`, `API.md`, `DEPLOY.md`); per found doc, read + assess completeness (0-100%).
-2. Detect project type from config files.
+2. Project type: profile `Type` if present; else detect from config files.
 3. Check doc-sync: README drift, API signature mismatch, deprecated refs, broken links; a structural change (file move/add/delete, rename, dependency bump) with no matching doc update — Phase 3 Verify scope's Drift/Stale detection is the safety net when same-commit coupling was missed (DOC-18); multiple `docs/compliance/*` copies within one checkout (monorepo packages) with diverged content and no canonical-plus-pointer structure (DOC-19); sibling files in a project's own machine-parsed corpus (a rules/fixtures/data directory another tool extracts from) using inconsistent heading levels or entry shapes for equivalent entries (DOC-26).
 4. Deterministic doc linters configured in the repo (`.vale.ini` / `.markdownlint*` / `lychee.toml` / `.lycheeignore`) → run them and fold their output into findings ([references/rules-writing.md](references/rules-writing.md) DOC-09 severity mapping); absent → perform the same checks manually and record a gap-note — never install tools unasked.
 5. **Doc-type discipline (Diátaxis, advisory):** classify each `user`/`dev`/`api` doc against the four Diátaxis types — tutorial / how-to guide / reference / explanation (framework with multi-org production adoption: Django, Canonical/Ubuntu, Cloudflare). One doc mixing types (reference tables interleaved with tutorial narrative, explanation buried in a how-to) → MEDIUM finding proposing a split along type boundaries; a needed type missing entirely for the project's audience (e.g. reference exists but no how-to for the top user tasks) → advisory row in the Phase 3 gap table.
