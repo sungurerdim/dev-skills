@@ -25,10 +25,12 @@ rm -rf /tmp/dev-skills
 ## Use
 
 ```bash
-/ds-productize                       # up-front menu: Audit / Plan / All
+/ds-productize                       # resolves to --audit by default, recorded in the summary
 /ds-productize --audit               # gap audit of existing monetization/pricing/gtm
 /ds-productize --plan                # productization plan -> ds/productize/plan.md
 /ds-productize --scope=monetization  # one scope only
+/ds-productize --preview             # audit + plan shown in chat, no files written
+/ds-productize --ask                 # up-front menu: Audit / Plan / All, plus confirmations throughout
 ```
 
 ## Scopes

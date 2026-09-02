@@ -32,7 +32,7 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 **Dimensions:** B1 (simplification)
 
 - Standalone: use `ds/audit/findings.md` when fresh (`git_hash == HEAD` AND current run-cycle); own scan otherwise.
-- State-exempt: one reversible commit per approved batch (delegated to `/ds-commit`) is the durable record.
+- State-exempt: one reversible commit per approved batch (`/ds-commit` when present, else committed inline) is the durable record.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Detection only: every deletion requires an approval batch. Every finding cites file:line + concrete ref count or pattern.
@@ -44,9 +44,9 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 |------|--------|
 | `--preview` | Scan + report, no approval prompt, no deletion |
 | `--scope={x}` | Single scope: dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan, all |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
-Without flags: present mode menu (full scan / preview / single scope).
+Without flags: mode resolves to Full Scan (all scopes), recorded in the summary. `--ask`: shows the mode menu (full scan / preview / single scope).
 
 ## Scopes
 
@@ -58,10 +58,25 @@ Without flags: present mode menu (full scan / preview / single scope).
 | dead-branch | Feature-flag branches whose flag value is constant across every config source (no runtime setter) — the untaken branch is dead |
 | premature-abstraction | Generics, hooks, wrappers, base classes built on ≤3 concrete usages |
 | quarantine | `// removed`, `// legacy`, `// deprecated`, `// TODO delete`, `_unused` markers |
-| test-realism | Test fixtures with unrealistic data (`{tiny-email}`, `{tiny-price}`, empty-string secrets, length-1 arrays as "collection") |
+| test-realism | Unrealistic test fixture data — delegated to `/ds-test` when present; gap-noted otherwise (not scanned locally) |
 | io-drift | Function signature vs caller signature mismatch — unused params, extra args at call site |
 | ssot-violation | Same constant, URL, regex, or rule duplicated across 2+ files |
 | orphan | Modules, assets, or images with zero inbound references from source, config, or docs |
+
+| Scope | Runs when (signal) | Otherwise |
+|-------|---------------------|-----------|
+| dead-code | any source | — |
+| single-caller | any source | — |
+| fallback | any source | — |
+| dead-branch | any source | — |
+| premature-abstraction | any source | — |
+| quarantine | any source | — |
+| test-realism | `tests`≠`none` | N/A — no test suite detected |
+| io-drift | any source | — |
+| ssot-violation | any source | — |
+| orphan | any source | — |
+
+`--scope=` overrides the table for the named scope; `--ask` shows the resolved table before running.
 
 ## Delegation
 
@@ -75,7 +90,7 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scan, appended with own `source` + current `git_hash`.
 
-2. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel). A disambiguating flag skips the menu. Under `--auto`: skip the menu — mode resolves to Full Scan (all scopes).
+2. **Mode selection.** `--preview` or `--scope=` passed → skip this step, that mode applies. Otherwise — default: mode resolves to Full Scan (all scopes), recorded in the summary, no menu shown. `--ask`: present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel).
 
 3. **Project detection.** Identify language(s) + LSP availability. LSP present (TypeScript, Go, Python, Dart, Rust) → use `findReferences` / `documentSymbol`. LSP absent → grep fallback.
 
@@ -91,13 +106,14 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 
 1. Collect all exported symbols (language-specific: `export`, `module.exports`, `pub fn`, `public`, Dart `public` by default).
 2. For each export, count references via LSP `findReferences` or `git grep -w {name}`.
-3. Reference count = 0 → finding. Include file:line of export + "zero references" evidence.
-4. Skip exports in public API manifests (`exports` in `package.json`, Dart `lib/` public re-exports, `__all__` in Python).
+3. **String-literal confirmation:** a `git grep` hit inside a comment, a doc (`.md`/`.txt`), or a quoted string literal is not a code reference. Re-run `git grep -w {name} -- '*.{ext}' ':!*.md' ':!*.txt'` and read each match's line — a symbol whose only remaining hits sit inside string literals, comments, or docs is still dead, not a false negative.
+4. Reference count (code references only, after step 3) = 0 → finding. Include file:line of export + "zero references" evidence.
+5. Skip exports in public API manifests (`exports` in `package.json`, Dart `lib/` public re-exports, `__all__` in Python).
 
 **2.2 single-caller:**
 
 1. Collect internal exports (not in public API).
-2. Count references. Count = 1 → finding with caller file:line + "1 reference at {file}:{line}" evidence.
+2. Count references (same string-literal confirmation as 2.1 step 3). Count = 1 → finding with caller file:line + "1 reference at {file}:{line}" evidence.
 3. Propose: inline at caller, remove export.
 4. Skip: recursive helpers, classes with subclasses, trait implementations.
 
@@ -105,7 +121,7 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 
 1. Scan patterns: `// @deprecated`, `// backward compat`, `// legacy`, `if ({old-version-check})`, `catch { return null }` with no re-throw, feature detection where feature is guaranteed by minimum runtime version.
 2. Each match → finding with file:line + evidence snippet + proposal.
-3. **Pre-release residue discipline:** While a product is unreleased with no external consumers, backward-compat shims, redirect residue, and dual-model retention are never required — prefer the cleanest single-canonical resolution; the "breaking change" constraint is void. Shims/redirects genuinely forced during a transition are explicitly time-boxed and removed in the next release. Where tooling exists, seal the no-residue discipline with a mechanical gate (unused-code/knip-class audit) so residue can't re-accumulate. (XR-116; see also XR-199 in references/principles.md)
+3. **Pre-release residue discipline:** While a product is unreleased with no external consumers, backward-compat shims, redirect residue, and dual-model retention are never required — prefer the cleanest single-canonical resolution; the "breaking change" constraint is void. Shims/redirects genuinely forced during a transition are explicitly time-boxed and removed in the next release. Where tooling exists, seal the no-residue discipline with a mechanical gate (unused-code/knip-class audit) so residue can't re-accumulate. (XR-116; see also Breaking-first in [../core/principles.md §6](../core/principles.md))
 
 **2.4 dead-branch:**
 
@@ -125,11 +141,9 @@ For each active scope, run the detector. Max 2 scopes in parallel.
 1. Grep: `// removed`, `// legacy`, `// deprecated`, `// TODO: delete`, `// kill this`, `// unused`, variable `_unused{name}`.
 2. Each match → finding with context.
 
-**2.7 test-realism:**
+**2.7 test-realism (advisory handoff, no local detector):**
 
-1. Scan test files for: email `{tiny-domain}`, `test@test.test`, price `{trivial-amount}`, id `1`/`"1"`/`"a"`, array `[]` or `[1]` used as "collection", string `"test"`/`"foo"`.
-2. Each finding → propose realistic replacement (`{user-prefix}+audit@{realistic-domain}`, `{realistic-price}`, Unicode name, `[` 3–5 realistic items `]`).
-3. **Secret-pattern fixtures ([references/principles.md §5](references/principles.md)):** flag test fixtures with strings matching secret-scan regex (`sk-{test}...`, `AKIA...`, `ghp_...`, JWT-like `eyJ...`). Even fake-looking realistic tokens get mistaken for real leaks in CI logs. Propose obvious-fake placeholders (`FAKE_API_KEY_FOR_TESTS`, `not-a-real-token-{n}`).
+`/ds-test` present → delegate: emit no local finding for this scope; note in the Phase 3 report `test-realism: covered by /ds-test — run it for fixture-realism analysis`. Absent → gap-note: `test-realism not analyzed — requires /ds-test`.
 
 **2.8 io-drift:**
 
@@ -166,7 +180,7 @@ Single delete-or-keep table:
 | S{n}  | ssot-violation        | ({n} files)        | constant      | `"{dup-literal}"` in {n} files      | Central export        |
 ```
 
-Per-scope summary line below the table: `Scope {scope-name}: {n} findings, {m} clean`.
+Per-scope summary line below the table: `Scope {scope-name}: {n} findings, {m} clean`. `test-realism` row: `covered by /ds-test — run it for fixture-realism analysis` or `test-realism not analyzed — requires /ds-test`, per Phase 2.7.
 
 Write findings to `ds/audit/findings.md` with `scope=simplify` and `category` column set `B` for every row (every deletion is approval-gated).
 
@@ -176,10 +190,9 @@ Write findings to `ds/audit/findings.md` with `scope=simplify` and `category` co
 
 All findings are Category B — every deletion requires approval.
 
-1. Present full table — one line per row (`type · target — file:line`) grouped by scope with counts; state the question (`Delete these N items?`). "All" = exactly the displayed set.
-2. Offer: **Apply All** / **Apply by Scope** (per-scope bulk alongside the total) / **Review Each** / **Skip All**.
+1. Default: every row resolves automatically to `delete`, using the same impact/effort/risk reasoning an approval batch would show (reversible via the batch's git commit in Phase 5, so not on the irreversible-exception list), recorded in the summary.
+2. `--ask`: present full table — one line per row (`type · target — file:line`) grouped by scope with counts; state the question (`Delete these N items?`). "All" = exactly the displayed set. Offer: **Apply All** / **Apply by Scope** (per-scope bulk alongside the total) / **Review Each** / **Skip All**.
 3. Apply All → all rows → `delete`. Skip All → all → `skipped (user declined)`. Review Each → per-row `keep | delete | defer`. Apply by Scope → per-scope bulk.
-4. **Under `--auto`:** no approval batch is shown — every row resolves automatically to `delete`, using the same impact/effort/risk reasoning the interactive batch would show (reversible via the batch's git commit in Phase 5, so not on the irreversible-exception list), recorded in the summary.
 
 Record every decision. Batch pending deletions by scope.
 
@@ -187,13 +200,13 @@ Record every decision. Batch pending deletions by scope.
 
 ### Phase 5: Execute [skip if --preview or zero approvals]
 
-**Checkpoint pre-gate (once, before the first batch):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (state the risk: a failed batch rolls back via `git restore -- {files}`, which also discards uncommitted user edits in those files); `--auto`: proceed only when the pre-existing dirty files are untouched by this skill's deletions — a batch targets a dirty file → stop that batch, record `needs-human: uncommitted changes in {file} overlap the deletion batch`. Never run a bulk deletion over uncommitted unrelated changes in the same files.
+**Checkpoint pre-gate (once, before the first batch):** `git status --porcelain` — clean, or every batch's files are disjoint from dirty paths → proceed; a batch targets a dirty path → stop that batch, record `needs-human: uncommitted changes in {file} overlap the deletion batch`. Full protocol: [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md). Never run a bulk deletion over uncommitted unrelated changes in the same files.
 
 Per approved batch:
 
 1. Apply the deletion / inline / compaction in-place.
 2. **Mechanical Done Gate:** run `{check-cmd}` — resolved in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command; else stack-native lint/type + fail-fast test (`npm test --bail`, `go test ./...`, `pytest -x`, `flutter test`); none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision. Baseline captured before the first batch; baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. New red (tests OR lint/type — a deletion can break the type graph with tests still green) → restore the batch's files (`git restore -- {files}` — no commit exists yet at this step), mark `failed (mechanical gate)` with the captured error, continue to next scope.
-3. Invoke `/ds-commit --single` with: `refactor(simplify): remove {n} {scope} findings`. Record commit hash.
+3. `/ds-commit` present → invoke `/ds-commit --single` with: `refactor(simplify): remove {n} {scope} findings`; record commit hash. Absent → commit inline: `git add {batch files}` then `git commit -m "refactor(simplify): remove {n} {scope} findings"`; record commit hash. Never leave an approved batch uncommitted.
 4. After the last batch: run the full `{check-cmd}` once — per-batch greens can compose into a red; the aggregate run's exact command + observed output is the Completion Evidence.
 
 Parallel execution per scope allowed. One commit per scope-batch so user can revert a single scope cleanly.
@@ -217,6 +230,8 @@ Disposition accounting — totals balance.
 ```
 
 `ds-simplify: {OK|WARN|FAIL} | Removed: {n} | Deferred: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
+
+Closing shape (`Assumed:` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
 **Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 

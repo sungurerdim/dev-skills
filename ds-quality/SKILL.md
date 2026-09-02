@@ -15,6 +15,8 @@ chain-wired check (see Invariant Mode).
 
 **Quality-by-Mechanism** — quality is guaranteed by a verify-loop that runs real checks, not by hoping an agent obeys.
 
+**Install per host:** Claude Code — `/ds-quality --install` (global Stop hook, once); Codex CLI / Gemini CLI — `--arm codex` / `--arm gemini` (Stop / AfterAgent hook); GitHub Copilot — `--arm copilot` (commit-deny hook); Aider — `--arm aider` (`.aider.conf.yml` auto-lint/auto-test); any other host (Cursor, Windsurf, plain terminal) — `--arm git-hook` (git pre-commit). No flag in a target repo bootstraps that repo's missing tooling first, then wires the detected host's arm — see Phase 4.
+
 > **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
 
 ## Triggers
@@ -41,7 +43,7 @@ chain-wired check (see Invariant Mode).
 
 - Installs a deterministic, local, no-CI quality gate: one entry point (format → lint → type → test) + a host-appropriate enforcement arm that blocks "done" (or the commit) until it passes green; bootstraps missing tooling when asked.
 - **Enforcement mechanism is host-dependent — no single claim covers every host.** Stop-time (full strength — blocks "done" itself): Claude Code Stop hook (existing, unchanged) · Codex CLI `Stop` hook · Gemini CLI `AfterAgent` hook. Edit-time: Aider `.aider.conf.yml` auto-lint/auto-test. Commit-time (weaker — an agent can still narrate "done" between an edit and the next commit; documented honestly, not hidden): GitHub Copilot `preToolUse` commit-deny hook · git `pre-commit` hook (universal fallback for Cursor, Windsurf, plain terminal).
-- Modes are flag-disambiguated (`--install`/`--run`/`--check`/`--status`/`--disable`/`--project-hook`/`--uninstall`/`--arm`/`--auto`/`--invariant`); no flag = bootstrap this repo. When invoked with no flag and intent is ambiguous, present an up-front menu covering every mode (`(recommended)` default + `(Cancel)`). `--auto` skips this menu too — selects the skill's best-judgment default (bootstrap this repo, i.e. the no-flag behavior) without prompting.
+- Modes are flag-disambiguated (`--install`/`--run`/`--check`/`--status`/`--disable`/`--project-hook`/`--uninstall`/`--arm`/`--invariant`); no flag = bootstrap this repo — the default whenever intent is ambiguous and no flag disambiguates it. `--ask` with no disambiguating flag → present an up-front menu covering every mode (`(recommended)` default + `(Cancel)`).
 - LOCAL ONLY — never creates or edits CI / remote pipelines. Idempotent (safe to re-run, never duplicates hooks). Non-destructive — never weakens, skips, or mocks-away checks to get green.
 - Runs the passes via the tools already present; delegates one-shot fixing of what they report to ds-fix. This skill owns the *gate + enforcement mechanism*, not the fixes.
 - `--invariant "<description>"` turns ONE described invariant into four inseparable deliverables: the gate (script or test, in the repo's incumbent gate format), a red-proof (the gate observed non-zero on an injected violation, green on revert), chain wiring (or an explicit unwired statement — never implied enforcement), and a scope declaration (what it scans, what it exempts, its blind spots). Delivery missing any of the four is reported `INCOMPLETE`, never `OK`.
@@ -57,7 +59,7 @@ chain-wired check (see Invariant Mode).
 |------|--------|
 | `--install` | One-time global install/refresh of the Claude Code arm: gate + detector scripts, `.hooks.Stop` registration, default `auto` config. No project changes. |
 | (none) | **Bootstrap THIS repo's missing tooling** (formatter/linter/type/test + a real starter test if none), then select and wire an enforcement arm. Detect → establish signals → entry point → select arm → prove (Phase 5). |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 | `--run` / `--check` | Run this repo's resolved quality command now (marker → else auto-detect) and report; no setup |
 | `--status` | Report mode/roots, what auto-arm resolves here, which arm(s) are wired, and global install state |
 | `--arm <claude-code\|aider\|git-hook\|copilot\|gemini\|codex>` | Force a specific enforcement arm instead of auto-detecting the host; skips the selection menu |
@@ -70,7 +72,7 @@ Set `mode`/`roots` by editing `~/.claude/ds-quality.config.json`; `mode:"off"` d
 
 ## Delegation
 
-**Owns:** quality-gate-setup, verify-loop-enforcement, hook-install | **Delegates:** ds-fix → verify-loop toolchain passes; ds-test → starter-suite generation when the project has zero tests | **Receives:** ds-rig → quality-gate wiring after rig setup
+**Owns:** quality-gate-setup, verify-loop-enforcement, hook-install | **Delegates:** ds-fix → verify-loop toolchain passes; ds-test → starter-suite generation when the project has zero tests | **Receives:** ds-rig → quality-gate wiring after rig setup; ds-build → enforcement-arm bootstrap when no gate exists
 
 ## Execution Flow
 
@@ -82,14 +84,14 @@ Detect toolchain → Establish quality signals → Single entry point → Enforc
 - Identify the host: `.aider.conf.yml` or an active Aider session → Aider; `~/.claude/` present / running inside Claude Code → Claude Code; `.codex/` or `~/.codex/` → Codex CLI; `.gemini/` or `~/.gemini/` → Gemini CLI; `.github/hooks/` or `~/.copilot/` → Copilot; none → universal (git pre-commit).
 - **Report the detected stack + host before changing anything.**
 
-**Gate:** Stack, existing tooling, and host are all identified from real manifests/lockfiles/configs — never assumed. If fails → no manifest/lockfile detected (unknown stack) → ask the user which language/toolchain to target before proceeding; do not guess. **Under `--auto`:** this blocker matches the publish/irreversible exception list (no value inferable from the repo) — skip the ask, stop this phase, and record `needs-human: unknown stack — specify language/toolchain`.
+**Gate:** Stack, existing tooling, and host are all identified from real manifests/lockfiles/configs — never assumed. If fails → no manifest/lockfile detected (unknown stack): this blocker matches the publish/irreversible exception list (no value inferable from the repo). Default: stop this phase and record `needs-human: unknown stack — specify language/toolchain`. `--ask`: ask the user which language/toolchain to target before proceeding; do not guess.
 
 ### Phase 2 — Establish the quality signals
-For the detected stack (see [references/toolchains.md](references/toolchains.md) for exact commands + bootstrap), ensure each EXISTS and RUNS — run each tool's check command once and observe the exit code, never infer from config presence; create minimal **standard** config only where missing, preferring tools already in the lockfile:
+For the detected stack (see [`../core/toolchains.md`](../core/toolchains.md) for exact commands + bootstrap), ensure each EXISTS and RUNS — run each tool's check command once and observe the exit code, never infer from config presence; create minimal **standard** config only where missing, preferring tools already in the lockfile:
 1. **Formatter** in check-mode.
 2. **Linter** with the ecosystem's standard ruleset.
 3. **Type-checker** if the language supports it.
-4. **Test runner** with at least a smoke + boundary test. If NO tests exist, create a small **real** starter suite asserting actual behavior of a core module, including boundary cases (empty/null/max/edge). Mark thin coverage clearly. **Never fake tests.**
+4. **Test runner** with at least a smoke + boundary test. If NO tests exist: ds-test present → delegate starter-suite generation to it; absent → create a small **real** starter suite inline, asserting actual behavior of a core module, including boundary cases (empty/null/max/edge). Mark thin coverage clearly. **Never fake tests.**
 
 No heavy new dependencies without justification. Standard, boring defaults only.
 
@@ -113,14 +115,14 @@ The entry point runs only checks that actually exist for the detected stack. Nev
 
 Report both lists — wired / excluded-with-reason — in the run report; they are the entire coverage claim this skill is allowed to make.
 
-**Gate:** Single entry point exists, encodes the fail-fast order format-check → lint → type-check → tests (non-zero-on-failure is proven by Phase 5, not re-tested here), and every pre-existing check is either called by it or listed as an excluded-with-reason line. If fails → no supported build system present and the template is unusable in this shell → surface the blocker and ask the user to specify an entry-point mechanism; do not fabricate a passing command. **Under `--auto`:** same exception-list case as Phase 1 — record `needs-human: no entry-point mechanism available` instead of asking, and stop this phase without fabricating a command.
+**Gate:** Single entry point exists, encodes the fail-fast order format-check → lint → type-check → tests (non-zero-on-failure is proven by Phase 5, not re-tested here), and every pre-existing check is either called by it or listed as an excluded-with-reason line. If fails → no supported build system present and the template is unusable in this shell: same exception-list case as Phase 1. Default: record `needs-human: no entry-point mechanism available` and stop this phase without fabricating a command. `--ask`: surface the blocker and ask the user to specify an entry-point mechanism; do not fabricate a passing command.
 
 ### Phase 4 — Enforcement (select the arm, then wire it)
 Every arm enforces the **same** entry point from Phase 3 — they differ only in *when* they run it.
-Detected host (Phase 1) picks a default; if more than one applies or detection is ambiguous, present
+Detected host (Phase 1) picks a default. `--arm` always skips the menu. Otherwise: default — when more than one host applies or detection is ambiguous, picks the best-judgment default (Claude Code Stop hook if running inside Claude Code, else the first-detected host in Arm A→F order, else Arm C git pre-commit as the universal fallback), recording the choice in the summary. `--ask`: present
 the menu: `[1] Claude Code Stop hook (stop-time; recommended if using Claude Code)` / `[2] Aider auto-lint/auto-test (edit-time)`
 / `[3] git pre-commit hook (commit-time, universal — works with any host)` / `[4] Copilot hooks (commit-deny + stop report)`
-/ `[5] Gemini CLI AfterAgent hook (stop-time)` / `[6] Codex CLI Stop hook (stop-time)` / `(Cancel)`. `--arm` skips the menu. `--auto` also skips the menu — when detection is ambiguous, picks the best-judgment default (Claude Code Stop hook if running inside Claude Code, else the first-detected host in Arm A→F order, else Arm C git pre-commit as the universal fallback), recording the choice in the summary.
+/ `[5] Gemini CLI AfterAgent hook (stop-time)` / `[6] Codex CLI Stop hook (stop-time)` / `(Cancel)`.
 
 **Two-tier local hooks (design refinement).** Where the arm supports staged-vs-full scope, split by cost: pre-commit runs fast checks on staged files only (format, lint, l10n, secret scan); pre-push mirrors CI — full project + full test suite. **Hook reuse + version sync:** release/automation scripts reuse these hooks instead of re-coding them, and verify the installed hook version matches the versioned source at each run — `.git/hooks/` isn't committed and silently goes stale. (XR-083)
 
@@ -174,8 +176,6 @@ runs.
 **Arm F — Codex CLI (Stop hook, stop-time).** `<repo>/.codex/hooks.json` (project layer loads only in trusted projects; user-level: `~/.codex/hooks.json`), schema `hooks.Stop[].hooks[] = {type:"command", command, statusMessage}`:
 - Script contract mirrors Arm A: read stdin JSON; `stop_hook_active` true → exit 0 (loop guard); run the entry point; green → exit 0 with no output; red → stdout `{"decision":"block","reason":<failing output>}` — Codex keeps working, using the reason as the continuation prompt. Plain-text stdout is invalid for `Stop`; emit JSON only.
 
-**Arm G — optional, project-conditional (known-false-claims denylist).** When a shipped user-visible claim (marketing/docs/UI copy) has once been wrong, add it as multilingual regex to a permanent denylist scanned at commit/push time by whichever arm is wired; the same falsehood must not re-enter through another locale or PR — the list only grows. (XR-094)
-
 **Gate:** The correct arm for the detected host is selected and wired without clobbering existing config. If fails → `jq` missing (Arm A/D/F), `.aider.conf.yml` unwritable (Arm B), not a git repo (Arm C), or untrusted project layer (Arm F) → report the specific blocker per Edge Cases, fall back to `--run`-only enforcement — never silently skip enforcement.
 
 ### Phase 5 — Prove it works (demonstrate, don't claim)
@@ -207,8 +207,8 @@ invariant described in plain language. Output: the four deliverables the Contrac
 
 1. **Restate** the invariant as one falsifiable sentence naming the exact artifacts it
    binds (files, symbols, constants, directories). Target ambiguous (which two constants?
-   which directory?) → ask before generating anything; under `--auto` → record
-   `needs-human: invariant target ambiguous` and stop.
+   which directory?): default → record `needs-human: invariant target ambiguous` and stop.
+   `--ask` → ask before generating anything.
 2. **Classify** against the table in [references/invariant-patterns.md](references/invariant-patterns.md)
    (nine patterns, P1–P9). No pattern fits → use the nearest skeleton and record the gap
    in the report; never refuse solely for lack of a catalog match.
@@ -240,7 +240,7 @@ invariant described in plain language. Output: the four deliverables the Contrac
 
 ## Report Format
 
-Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · pre-existing checks wired into it vs excluded-with-reason (Phase 3 entry-point coverage) · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook|copilot|gemini|codex} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block — 1-5 concrete bullets, real changes only, each stating the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output): "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place". Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
+Report: detected stack + host · existed-vs-added per signal · the exact entry-point command · pre-existing checks wired into it vs excluded-with-reason (Phase 3 entry-point coverage) · which arm(s) were wired and why · coverage gaps · open human-owned decisions. End with `ds-quality: {OK|WARN|FAIL} | Signals: {n} established | Arm: {claude-code|aider|git-hook|copilot|gemini|codex} {installed|repaired|present} | Proof: {green→red→green}` and a **Value Delivered** block ([`../core/report-and-outcome-templates.md`](../core/report-and-outcome-templates.md) § 4) — real changes only, quantified when measurable, never the mechanical activity. Example shapes (placeholders, not literal output): "format+lint+type+test now block every 'done' in this repo — an agent can no longer report success on red", "starter test suite added where there were zero — first regression net in place". Zero-change run → `No changes — gate already installed and green; nothing to bootstrap`.
 
 `--invariant` runs report instead: pattern matched · precedent copied (or none found) · gate path · red-proof output (both directions) · wiring point (or the explicit unwired statement) · scope declaration. Summary line: `ds-quality: {OK|INCOMPLETE} | Invariant: {P1–P9|uncataloged} | Gate: {path} | Proof: {red→green} | Wired: {chain-step|UNWIRED — stated}`.
 

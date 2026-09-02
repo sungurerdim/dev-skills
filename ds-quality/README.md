@@ -5,16 +5,18 @@ was followed, not on a mechanism. This skill installs a single quality entry poi
 lint → type → test) and wires it into a host-appropriate enforcement arm that blocks "done" (or
 the commit) until it passes green. Quality becomes a mechanism, not a hope.
 
-## Host support
+## Install
 
-| Host | Arm | When it fires | Strength |
-|------|-----|----------------|----------|
-| Claude Code | Stop hook (`~/.claude/hooks/ds-quality-gate.sh`) | Every Stop | Full — blocks "done" itself |
-| Codex CLI | `.codex/hooks.json` `Stop` hook | Every Stop | Full — blocks "done" itself (loop-guarded) |
-| Gemini CLI | `.gemini/settings.json` `AfterAgent` hook | Agent loop end | Full — forces retry/halt on red |
-| Aider | `.aider.conf.yml` `auto-lint`/`auto-test` + `lint-cmd`/`test-cmd` | After every edit | Full — Aider re-runs it inline |
-| GitHub Copilot | `.github/hooks/*.json` `preToolUse` commit-deny + `agentStop` report | `git commit` tool call | Commit-time — `agentStop` cannot block, stated honestly |
-| Cursor, Windsurf, any other host | git `pre-commit` hook | `git commit` | Commit-time only — an agent can still claim "done" between an edit and the commit |
+One command per host — each wires the same Phase-3 entry point into that host's own enforcement point:
+
+| Host | Install | Arm | When it fires | Strength |
+|------|---------|-----|----------------|----------|
+| Claude Code | `/ds-quality --install` (once, global) | Stop hook (`~/.claude/hooks/ds-quality-gate.sh`) | Every Stop | Full — blocks "done" itself |
+| Codex CLI | `/ds-quality --arm codex` | `.codex/hooks.json` `Stop` hook | Every Stop | Full — blocks "done" itself (loop-guarded) |
+| Gemini CLI | `/ds-quality --arm gemini` | `.gemini/settings.json` `AfterAgent` hook | Agent loop end | Full — forces retry/halt on red |
+| Aider | `/ds-quality --arm aider` | `.aider.conf.yml` `auto-lint`/`auto-test` + `lint-cmd`/`test-cmd` | After every edit | Full — Aider re-runs it inline |
+| GitHub Copilot | `/ds-quality --arm copilot` | `.github/hooks/*.json` `preToolUse` commit-deny + `agentStop` report | `git commit` tool call | Commit-time — `agentStop` cannot block, stated honestly |
+| Cursor, Windsurf, any other host | `/ds-quality --arm git-hook` | git `pre-commit` hook | `git commit` | Commit-time only — an agent can still claim "done" between an edit and the commit |
 
 ## How it works
 
@@ -50,9 +52,15 @@ tooling** — it won't silently scatter configs/tests everywhere.
 
 ## Supported stacks
 
-JS/TS (node), Dart/Flutter, Python, Go (incl. golangci-lint when configured), Rust,
+JS/TS (node), vanilla JS (`node:test`, no bundler), Dart/Flutter, Python, Go (incl.
+golangci-lint when configured), Rust, JVM (Gradle), Swift, C#/.NET, Ruby, PHP, Elixir,
+Scala, C/C++ (static analysis), Terraform (format check), Shell/Bash, Docker (lint),
 Makefile-driven, plus a generic fallback that wires universally-available checks and flags
-coverage gaps. Exact commands: `references/toolchains.md`.
+coverage gaps. Exact commands: `../core/toolchains.md`. Google Apps Script (clasp) and
+Cloudflare Workers (wrangler) are documented in core but excluded from the lightweight
+auto-arm detector specifically — their checks need an authenticated network call, unsafe
+for a credential-free Stop hook; the full `/ds-quality` bootstrap flow still covers them
+via `../core/toolchains.md`.
 
 ## Requires
 
@@ -61,7 +69,7 @@ coverage gaps. Exact commands: `references/toolchains.md`.
 ## Files
 
 - `SKILL.md` — full procedure (Phases 1–5) and contracts.
-- `references/toolchains.md` — per-stack commands + minimal bootstrap.
+- `../core/toolchains.md` — per-stack commands + minimal bootstrap (shipped beside every skill).
 - `references/hook-contract.md` — verified Claude Code Stop-hook contract + global install script.
 - `references/invariant-patterns.md` — nine field-proven invariant-gate patterns for `--invariant` mode.
 - `assets/ds-quality-gate.sh` — the Claude Code Stop hook (auto-arming).

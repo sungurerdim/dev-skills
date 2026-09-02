@@ -34,7 +34,7 @@ db.query(`SELECT * FROM users WHERE name = '${name}'`)
 - **Ruby/Rails:** `User.where(id: user_id)` (ActiveRecord parameterizes automatically)
 - **PHP/Laravel:** `DB::select('SELECT * FROM users WHERE id = ?', [$userId])`, Eloquent ORM
 
-**Why:** SQL injection remains top-3 web vulnerability (OWASP Top 10). Single unparameterized query can expose or destroy entire database.
+**Impact:** SQL injection remains top-3 web vulnerability (OWASP Top 10). Single unparameterized query can expose or destroy entire database.
 
 **Source:** [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
 
@@ -57,7 +57,7 @@ db.query(`SELECT * FROM users WHERE name = '${name}'`)
 
 Column order matters in composite indexes: leftmost prefix queries are served. Monitor unused indexes via `pg_stat_user_indexes` and remove to reduce write overhead.
 
-**Why:** Missing indexes are most common cause of slow queries. Single index addition can reduce query time from seconds to milliseconds.
+**Impact:** Missing indexes are most common cause of slow queries. Single index addition can reduce query time from seconds to milliseconds.
 
 **Source:** [Use The Index, Luke](https://use-the-index-luke.com/), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Indexing section
 
@@ -87,7 +87,7 @@ Migrations immutable once applied to shared environment. Every `up` has correspo
 
 Lint migrations in CI: **Squawk** — free Postgres migration linter (flags `CREATE INDEX` without `CONCURRENTLY`, column adds with volatile defaults, other lock hazards). Alternative: **Atlas** schema-as-code with 50+ built-in analyzers — `atlas migrate lint` moved out of the free tier in October 2025; verify current licensing before adopting, or stay on Squawk.
 
-**Why:** Unsafe migrations cause downtime, data loss, or long-held table locks that block all queries.
+**Impact:** Unsafe migrations cause downtime, data loss, or long-held table locks that block all queries.
 
 **Source:** [Zero-Downtime PostgreSQL Migrations](https://www.braintreepayments.com/blog/safe-operations-for-high-volume-postgresql/), [Squawk](https://squawkhq.com/), [Atlas](https://atlasgo.io/versioned/lint), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Migration Strategies section
 
@@ -115,7 +115,7 @@ Pool size rule of thumb: `(2 * CPU cores) + 1` for NVMe storage. Keep total conn
 - **Go:** `sql.DB` with `SetMaxOpenConns(25)`, `SetMaxIdleConns(10)`, `SetConnMaxLifetime(30m)`
 - **Java/Spring:** HikariCP with `maximumPoolSize=25`, `idleTimeout=30000`
 
-**Why:** Unbounded connections exhaust database resources and cause cascading failures under load.
+**Impact:** Unbounded connections exhaust database resources and cause cascading failures under load.
 
 **Source:** [PgBouncer docs](https://www.pgbouncer.org/), [HikariCP](https://github.com/brettwooldridge/HikariCP), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) ORM Patterns section
 
@@ -140,7 +140,7 @@ Pool size rule of thumb: `(2 * CPU cores) + 1` for NVMe storage. Keep total conn
 
 Consistency matters more than which specific style is chosen.
 
-**Why:** Inconsistent naming increases cognitive load, causes ORM mapping bugs, and makes schema exploration harder.
+**Impact:** Inconsistent naming increases cognitive load, causes ORM mapping bugs, and makes schema exploration harder.
 
 **Source:** [PostgreSQL naming conventions](https://www.postgresql.org/docs/current/sql-syntax-lexical.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
 
@@ -164,7 +164,7 @@ Consistency matters more than which specific style is chosen.
 
 Detection tools: `django-debug-toolbar`, `bullet` (Ruby), `laravel-query-detector`, `sqlcommenter`.
 
-**Why:** N+1 queries turn single page load into hundreds of database round trips, degrading response time linearly with data size.
+**Impact:** N+1 queries turn single page load into hundreds of database round trips, degrading response time linearly with data size.
 
 **Source:** ORM documentation (Django, SQLAlchemy, ActiveRecord, JPA), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) ORM Patterns section
 
@@ -194,7 +194,7 @@ litestream replicate mydb.sqlite s3://my-bucket/mydb
 
 Automate everything. Test restores monthly. Take backup before any destructive migration.
 
-**Why:** Untested backups = no backups. Data loss from hardware failure, migration errors, or accidental deletion requires proven restore procedures.
+**Impact:** Untested backups = no backups. Data loss from hardware failure, migration errors, or accidental deletion requires proven restore procedures.
 
 **Source:** [AWS RDS backup docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html), [pg_dump best practices](https://www.postgresql.org/docs/current/app-pgdump.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Backup and Recovery section
 
@@ -223,7 +223,7 @@ Automate everything. Test restores monthly. Take backup before any destructive m
 
 Migrate from SQLite to PostgreSQL when: frequent `SQLITE_BUSY`, file size > 10 GB, multi-server writes, or row-level security requirements.
 
-**Why:** Choosing right database avoids premature complexity (over-engineering) or painful migrations later (under-engineering).
+**Impact:** Choosing right database avoids premature complexity (over-engineering) or painful migrations later (under-engineering).
 
 **Source:** [DB-Engines comparison](https://db-engines.com/en/system/MySQL%3BPostgreSQL%3BSQLite), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Database Selection section
 
@@ -251,7 +251,7 @@ CREATE POLICY tenant_isolation ON invoices
 
 Never trust a client-supplied `tenant_id`; derive it from the authenticated session/JWT claim server-side.
 
-**Why:** A missing tenant filter lets one tenant read or modify another tenant's rows via a guessable/enumerable ID (IDOR at the data layer) — a full cross-tenant data breach, the most damaging class of bug in multi-tenant SaaS.
+**Impact:** A missing tenant filter lets one tenant read or modify another tenant's rows via a guessable/enumerable ID (IDOR at the data layer) — a full cross-tenant data breach, the most damaging class of bug in multi-tenant SaaS.
 
 **Source:** [OWASP: Insecure Direct Object References](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference), [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
 
@@ -261,7 +261,7 @@ Never trust a client-supplied `tenant_id`; derive it from the authenticated sess
 
 **Fix:** Drop or never add PII columns without a consuming feature — minimization is enforced at the schema, not in a policy document (GDPR Art. 5(1)(c) makes it a legal obligation). Join/analytics keys: use surrogate IDs or pseudonymous tokens, never raw identifiers (mapping table in a separate access-controlled store — see ds-compliance PRV-26). Logging: redact at field level before write; know the tooling limits — regex catches structured PII only (emails, IPs, cards), unstructured PII (names, locations, free text) needs ML/NER-based scanning, and for LLM interactions exclude message content from logs entirely rather than trusting scrubbing.
 
-**Why:** Every PII column that exists without a purpose is breach surface plus regulatory liability at rest; PII that leaks into logs escapes every access control the database enforced.
+**Impact:** Every PII column that exists without a purpose is breach surface plus regulatory liability at rest; PII that leaks into logs escapes every access control the database enforced.
 
 **Source:** GDPR Art. 5(1)(c); Elastic PII-detection guidance (regex limits); Pydantic Logfire LLM-logging guidance
 
@@ -271,7 +271,7 @@ Never trust a client-supplied `tenant_id`; derive it from the authenticated sess
 
 **Fix:** Define one declarative registry — `{entityType, strategy, rationale}` — where `strategy` is one of `match-and-prompt` / `deterministic-id` / `toctou-heal` / `not-applicable (reason)`. Don't force every entity onto the same strategy (shapes differ too much for that to be anything but a YAGNI violation); require only that each declares one. Add a gate that fails when a create path exists with no registry entry, mirroring how a reconstructibility or nullability-completeness registry gates schema changes elsewhere in the codebase.
 
-**Why:** Without a registry-backed gate, a newly added entity type can ship with zero duplicate protection and nothing fails — the record just silently duplicates in production, a regression class invisible to code review because there's no shared place reviewers check.
+**Impact:** Without a registry-backed gate, a newly added entity type can ship with zero duplicate protection and nothing fails — the record just silently duplicates in production, a regression class invisible to code review because there's no shared place reviewers check.
 
 **Source:** Declarative-registry-plus-gate pattern generalized from schema-completeness/exhaustiveness checking (same shape as an SSOT-registry for any per-entity axis — data-classification, migration-safety, or duplicate-prevention)
 

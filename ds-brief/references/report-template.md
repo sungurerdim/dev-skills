@@ -1,6 +1,6 @@
 # Report Template Conventions
 
-Distilled from four hand-built guides (gvk-20b, vergi-kilavuzu ×2, is-hukuku) and the akis design system (`akis/assets/tokens.css`, `akis/dist/firm-site.html`, `akis/src/constants/palettes.js`). `assets/brief-template.html` is the concrete, working skeleton of these rules — clone and fill it; never generate the HTML from scratch (lowers hallucination risk). These conventions are the *why*; the skeleton is the *what*. All visible label strings here are canonical English — localized to the request language at build (SKILL.md Contract).
+Distilled from four hand-built guides (gvk-20b, vergi-kilavuzu ×2, is-hukuku) and a reference firm-site design system (token palette + compact/density conventions). `assets/brief-template.html` is the concrete, working skeleton of these rules — clone and fill it; never generate the HTML from scratch (lowers hallucination risk). These conventions are the *why*; the skeleton is the *what*. All visible label strings here are canonical English — localized to the request language at build (SKILL.md Contract). This is the brief-specific HTML/CSS/JS layer; verification and sourcing method lives in [core craap](../../core/craap.md) and [verification.md](verification.md) — this file never restates scoring, tiers, or the independence test.
 
 ## Hard requirements (every brief)
 
@@ -51,7 +51,7 @@ A visible **"Print / PDF"** button (inline SVG icon + label, no emoji) calls `wi
 ## Theming (brand baked at build, validated dark, light/dark toggle)
 
 - **The brand palette is chosen once, at build, and baked into the CSS** — the `:root` brand 5 (`primary, accent, bg, surface, text`). There is no runtime brand switching and no JS color application; the reader's only control is the light/dark toggle. This also removes the runtime color-injection surface entirely: with no `setProperty` color path, no `safeColor()`-style guard is needed — the defense is structural. Colors are validated at build instead (see the validation note below).
-- **Brand presets** (validated pairs, from `akis/src/constants/palettes.js`; **default = `slate`** — neutral, corporate, best for report/legal content):
+- **Brand presets** (validated pairs; **default = `slate`** — neutral, corporate, best for report/legal content):
 
   | Preset | `--primary` | `--accent` | `--bg` | `--surface` | `--text` |
   |---|---|---|---|---|---|
@@ -81,7 +81,7 @@ Chrome is everything that is not the report: header, nav, tools, trust strip, di
 | Back to top is always present | Fixed bottom-right, appears after 400px of scroll, ≥44px on coarse pointers, above the iOS safe area, hidden in print. It is core chrome — never pruned with an optional block. |
 | Size budget | Target ≤ 1.5 MB for the single file. Over budget → prune unused `ds-opt` blocks, move bulk verbatim text into collapsed `<details>`, dedupe repeated quotes. Never split the file (single-file is a hard requirement), and never buy space by dropping sources, Unknowns, or the coverage ledger. |
 
-## Compact / density (akis firm-site)
+## Compact / density (reference firm-site conventions)
 
 - **Fluid spacing scale:** one `clamp()` scale (`--space-2xs … --space-xl`), not per-breakpoint padding overrides. Section padding/gap pull from it → tight on small screens, airy on large, no media-query sprawl.
 - **Intrinsic grids:** `repeat(auto-fit, minmax(min(280px,100%), 1fr))` + every grid child `min-width:0` — responsive with **zero breakpoints**.
@@ -188,7 +188,7 @@ Any brief whose content is law, regulation, or official procedure ships these, i
 | **Deadlines table** | Every period in the brief in one table: trigger event → period → counted from (calendar/business days, from notification/from awareness) → consequence of missing it → source. Scattered deadlines are missed deadlines; the action list's deadline chips link here. |
 | **Sanctions table** | Consequence → who imposes it → range → appeal path → **index year of the amounts** and the revaluation rule. An amount without its year is stale-in-waiting (verification.md Skill-side gate). |
 | **Escalation triggers** | The honest counterpart to the "informational only" notice: a short list of situations where the reader must stop and get professional or regulator input, each with the concrete signal that triggers it. A brief cannot make a lawyer unnecessary; it can tell the reader exactly when one becomes necessary — and cover everything else completely. |
-| **Obligation rank** | Every `must`/`mustnot` badge traces to an N1-N4 instrument (craap.md § Normative source ladder). Guidance and recitals justify `should` at most. |
+| **Obligation rank** | Every `must`/`mustnot` badge traces to an N1-N4 instrument ([core craap](../../core/craap.md) § Normative source ladder). Guidance and recitals justify `should` at most. |
 
 ## Obligation levels (`ds-opt:oblg` — legal/official/rules content)
 

@@ -30,11 +30,12 @@ Run `/ds-init`, or ask to scaffold a new project.
 
 | Mode | What It Does |
 |------|-------------|
-| **Interactive** (default) | Guide through type + stack selection |
+| Default | Type + stack resolve from signals or the lowest-blast-radius fallback; every decision resolved by best judgment |
 | **--minimal** | Bare minimum directory structure |
-| **--full** | Full production setup (CI, Docker, testing, docs) |
+| **--full** | Full production setup — adds CI workflow files, Docker, docs |
+| **--research** | Look up comparable scaffolds and current framework/tool versions first |
 | **--preview** | Preview files without creating them |
-| **--auto** | Zero-interaction — every decision resolved by best judgment |
+| **--ask** | Interactive — menus and confirmations at every decision point |
 
 ## Supported Types
 
@@ -51,6 +52,7 @@ Run `/ds-init`, or ask to scaffold a new project.
 
 - Detects existing files and preserves them (no overwrites without confirmation)
 - Generates `.env.example` (never real secrets)
-- CI pipeline: lint → test → build
+- Local quality gate wired by default; CI pipeline (lint → test → build) generates under `--full`
+- Privacy-policy stub + data-inventory file when the project handles personal data
 - Docker multi-stage builds for production
 - Comprehensive `.gitignore` per stack

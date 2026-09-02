@@ -25,9 +25,9 @@ rm -rf /tmp/dev-skills
 ## Use
 
 ```bash
-/ds-deps                  # full classify + execute with approval
+/ds-deps                  # full classify + execute — safe groups + majors resolved by best judgment
+/ds-deps --ask            # full classify + execute with interactive approval
 /ds-deps --preview        # classify + security scan + report, no writes
-/ds-deps --auto           # zero-interaction — safe groups + majors resolved by best judgment
 /ds-deps --scope=security # security advisories only
 ```
 
@@ -42,6 +42,9 @@ rm -rf /tmp/dev-skills
 | ruby | `bundle outdated`, `bundler-audit` |
 | dart | `dart pub outdated`, `pub audit` |
 | php | `composer outdated`, `composer audit` |
+| jvm (gradle/maven) | `dependencyUpdates` plugin, `versions:display-dependency-updates` |
+| dotnet | `dotnet list package --outdated`, `--vulnerable` |
+| swift (spm) | `Package.resolved` diff, no native audit |
 
 ## Features
 

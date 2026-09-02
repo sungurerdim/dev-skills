@@ -4,7 +4,7 @@
 # Runnable by a human: `bash scripts/quality.sh`. Exits non-zero on the first failure.
 #
 # ds-quality fills the `step` lines below with the REAL commands for the detected stack
-# (see the skill's references/toolchains.md) and removes the ones whose tools don't exist.
+# (see core/toolchains.md, shipped beside every skill) and removes the ones whose tools don't exist.
 # Each step runs a single shell command string so pipelines (e.g. gofmt -l) work.
 
 set -uo pipefail

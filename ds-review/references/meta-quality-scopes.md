@@ -2,6 +2,8 @@
 
 Principle-based detection scopes for `/ds-review --meta-quality`. Each scope defines: detector rule, threshold, false-positive guard, skip patterns.
 
+**Delegated scopes.** `yagni`, `obsolete`, and function/module-level `duplicate` detection are not run here — ds-simplify present → delegate (its `dead-code`, `premature-abstraction`, `orphan`, `fallback`, and `quarantine` scopes cover this ground); ds-simplify absent → run one inline dead-export grep (zero cross-file references via a full-text/LSP search) and record the gap-note `[scope] not analyzed — requires ds-simplify`.
+
 ## SSOT-ARCHITECTURAL [HIGH] Same fact in 2+ authoritative locations
 
 Single Source of Truth violation — a configuration value, business rule, constant, or domain decision exists in two or more modules with the same semantic intent.
@@ -39,18 +41,6 @@ Keep It Simple, Stupid — the solution's complexity is disproportionate to the 
 - **Impact:** Reading cost compounds for every future maintainer.
 - **Source:** Brooks, Mythical Man-Month; Kernighan, Programming Style.
 
-## YAGNI-USAGE [HIGH] Defined but never used
-
-You Aren't Gonna Need It — a feature, function, parameter, flag, or config field is declared but has zero references in source or tests.
-
-- **Detect:** symbol declared (function, class, parameter, env var, flag, feature toggle) with 0 callers found via LSP `findReferences` or full-text grep.
-- **Fix:** delete the unused declaration; if it's an exposed contract, mark as `needs_approval` (potentially called externally).
-- **Threshold:** 0 in-repo references.
-- **Skip:** public API of a library (exported from `index.*` / package manifest), CLI entry points, framework lifecycle hooks (`onMount`, `componentDidMount`, etc.), `_` prefix unused params, `TYPE_CHECKING` imports, and plugin entry points that are declared in a manifest **and** carry at least one proven consumer — a loader that reads that manifest, a registration call, or a test that exercises the entry point. A manifest entry with no consumer is the finding, not the exemption: the manifest is a claim, and "it's declared" is exactly how a capability nothing loads survives every sweep.
-- **Confidence:** HIGH for internal helpers with 0 callers; MEDIUM for parameters (might be required by an interface contract).
-- **Impact:** Dead code drains context budget on every model read and confuses contributors about what's live.
-- **Source:** XP / Beck, Extreme Programming.
-
 ## SOC-ISOLATION [MEDIUM] Responsibility scattered across 3+ modules
 
 Separation of Concerns — a single conceptual responsibility (input validation, currency formatting, retry/backoff logic, etc.) is implemented in three or more modules independently.
@@ -70,19 +60,10 @@ Shallow-module detection (Ousterhout): a module's public interface is large rela
 - **Detect:** module exporting ≥10 symbols where external consumers import ≤ half of them (count via LSP `findReferences` / grep on import sites); internal modules imported via deep paths bypassing the package's public index; library `package.json` missing an `exports` field (every internal file is de-facto public API).
 - **Fix:** narrow the surface — funnel access through a public `index.*`, mark the rest internal; on Node packages add a `package.json` `exports` field to lock down deep imports; propose lint enforcement where ESLint is configured (`no-restricted-exports`, `no-restricted-imports` for deep paths) so the budget holds mechanically.
 - **Threshold:** ≥10 exports with ≤50% externally consumed, or any deep-path import bypassing an existing public index.
-- **Skip:** published library entry points (their contract is external consumers — apply YAGNI-USAGE skip list), generated code, barrel files that ARE the public index.
+- **Skip:** published library entry points (their contract is external consumers), generated code, barrel files that ARE the public index.
 - **Confidence:** HIGH for deep-path bypass of an existing index; MEDIUM for export-count ratios (consumers may exist out-of-repo).
 - **Impact:** Every needless export is API contract you must maintain and a place complexity leaks; deep modules absorb complexity so consumers don't have to.
 - **Source:** Ousterhout, A Philosophy of Software Design (deep modules); ESLint no-restricted-exports; Node package `exports` encapsulation.
-
-## OVERENGINEERING [MEDIUM] Combined SSOT + KISS + YAGNI signals
-
-Alias scope combining the three above. Activate when the user does not want to think about which sub-scope a finding belongs to.
-
-- **Detect:** run SSOT-ARCHITECTURAL + KISS-FIT + YAGNI-USAGE detectors; report findings under the unified `overengineering` label.
-- **Threshold:** same per-detector thresholds.
-- **Fix:** route to the matching sub-scope's fix pattern.
-- **Confidence:** inherit from underlying sub-detector.
 
 ## REDUNDANCY [LOW] DRY + duplicate constants
 
@@ -93,30 +74,9 @@ Alias scope combining `dry-pattern` + repeated literal constants (numbers, strin
 - **Threshold:** ≥3 occurrences of the same literal in source (excluding tests).
 - **Skip:** trivial constants (0, 1, empty string, true, false), test fixture values, generated code.
 
-## OBSOLETE [HIGH] Unreachable / legacy / deprecated paths
-
-Code paths, exports, or APIs that no modern caller reaches.
-
-- **Detect:** unreachable branches (statically provable), legacy import paths preserved for backwards-compat with no remaining caller, `@deprecated` annotations whose alternatives are used everywhere else.
-- **Fix:** delete the obsolete path; if there's a published migration window, mark `needs_approval`.
-- **Threshold:** unreachable OR 0 modern callers OR explicit `@deprecated` + 90+ days since deprecation.
-- **Skip:** intentional fallbacks for platforms/browsers explicitly supported in the project's compat matrix.
-- **Confidence:** HIGH for static-unreachable; MEDIUM for deprecated-but-still-imported.
-- **Impact:** Maintainers waste time understanding code that is no longer load-bearing.
-
-## DUPLICATE [MEDIUM] Function/module-level duplicate
-
-Alias for `dry-pattern` applied at function or module granularity (rather than statement sequence).
-
-- **Detect:** two or more functions with ≥80% body similarity AND identical/near-identical signatures.
-- **Fix:** consolidate into one function with parameterized variants OR delete the redundant copy.
-- **Threshold:** ≥2 functions with ≥80% body similarity.
-- **Skip:** test helpers intentionally parallel for readability; platform-conditional implementations.
-- **Confidence:** HIGH at 95%+ similarity; MEDIUM at 80-95%.
-
 ## Cross-scope deduplication
 
-When a single file:line surfaces in multiple meta-quality scopes (e.g., a function flagged as both KISS and YAGNI), apply these rules before reporting:
+When a single file:line surfaces in multiple meta-quality scopes (e.g., a function flagged as both KISS and SOC-ISOLATION), apply these rules before reporting:
 
 1. **Same file:line** → merge into one finding, list all matched scopes, keep the highest severity.
 2. **Within 10 lines** → merge if the underlying issue is the same (e.g., two adjacent duplicates).
@@ -130,7 +90,7 @@ Report a finding only when AT LEAST ONE harm signal is present; no signal → si
 2. **Misleads:** it misleads a future reader (human or AI) about what is live, canonical, or intended.
 3. **Not worth its keep:** the complexity costs more to keep than the value it adds.
 
-In doubt on signal 3 → treat the complexity as worth its keep (that signal does not fire). Canonical statement of this gate: principles.md §10 — the text here is the detector-side restatement, not a second source of truth.
+In doubt on signal 3 → treat the complexity as worth its keep (that signal does not fire). Canonical statement of this gate: [`../../core/principles.md` §9](../../core/principles.md) — the text here is the detector-side restatement, not a second source of truth.
 
 ## Confidence-driven reporting
 

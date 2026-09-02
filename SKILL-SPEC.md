@@ -27,7 +27,7 @@ Every SKILL.md follows this section sequence:
 | 1 | Title + Tagline | Yes | One-line skill identity |
 | 2 | Triggers | Yes | When to auto-activate this skill. MUST include `INVOKE / DON'T INVOKE` table (3-5 rows) — see §2 Trigger Discipline |
 | 3 | Contract | Yes | Behavioral boundaries and guarantees. MUST include `**Dimensions:**` declaration line listing owned taxonomy dimensions (see §11). |
-| 4 | Arguments | Yes | Flags, modes, defaults. MUST include `--auto` with the canonical row (see §2 Unattended Mode) — no skill-local variant. |
+| 4 | Arguments | Yes | Flags, modes, defaults. MUST include `--ask` with the canonical row (see §2 Autonomous Default) — no skill-local variant. |
 | 5 | Scopes | If applicable | What the skill inspects or generates |
 | 6 | Delegation | Yes | Single pipe-separated line: `**Owns:** ... \| **Delegates:** ... \| **Receives:** ...` (see §10.2) |
 | 7 | Execution Flow | Yes | Phase overview (single line) |
@@ -91,7 +91,7 @@ Verbatim text — closing copy:
 Annotations:
 - `[SKIP if ...]` — conditional step bypass
 - `[PARALLEL]` — steps that can run concurrently
-- `[CONDITION]` — phase-level entry condition (e.g., `[--auto]`, `[findings > 0]`)
+- `[CONDITION]` — phase-level entry condition (e.g., `[--ask]`, `[findings > 0]`)
 - `[SKIP if X — except step Y]` — phase-level skip with one or more unconditional steps preserved (e.g., Recovery Check)
 - No annotation — **mandatory phase, always executes**
 
@@ -321,43 +321,31 @@ Skills that present choices to the user (scope selection, fix application, appro
 3. **No nested prompts** — a single Phase asks at most one menu. Multi-decision phases batch their decisions or split into sub-phases.
 4. **`(Cancel)` always last** — every menu includes an explicit cancel/skip option so the user is never trapped.
 
-### Unattended Mode (`--auto`)
+### Autonomous Default and `--ask`
 
-`--auto` is the single, universal flag for running a skill — or an entire orchestrator chain — with zero user interaction. Every `ds-*` skill's Arguments table MUST include it with exactly this contract; no skill re-derives, narrows, or renames it locally beyond the fixed exception list in rule 4.
+Every skill runs autonomously by default. `--ask` is the single, universal flag that restores the interactive flow; every `ds-*` skill's Arguments table carries it with the canonical row below and no skill re-derives, narrows, or renames it. No skill exposes a "suppress prompts" / "apply everything" flag — the default already does that — and no skill exposes a skill-local "ask about this one thing" flag: `--ask` is the only flag on this axis.
 
 **Contract:**
 
-1. **Zero prompts.** Under `--auto`, no menu, no approval gate, no `Approve? [Y/n]`, no free-text question is ever shown. Every point in this spec that says "ask the user" instead resolves via the skill's own best judgment against the evidence it has gathered (findings, code, project profile, prior art in the codebase).
-2. **`--auto` disambiguates every menu.** It satisfies Up-Front Mode Menu rule 4 and Interaction Discipline in full — mode, scope, and approval selection all resolve to the skill's best-judgment default without ever being displayed.
-3. **Category A and Category B both resolve automatically.** Unlike a plain interactive run, `--auto` does not merely list Category B / `needs-approval` items and stop — it applies them, using the same impact/effort/risk reasoning the interactive approval block would show a human, and records that reasoning in the summary. CRITICAL findings are included (All-Affordance Rule 4 is an interactive-mode floor only — see there).
-4. **Small exception list — the only things `--auto` does not decide.** Two kinds of action are auto-skipped and recorded as `needs-human` rather than executed blind: those that are (a) genuinely irreversible and unrecoverable via git or any rollback path, and those that (b) **publish** — that move work out of the local repository onto a remote, shared, or public surface. Publishing is excluded even when it is technically undoable, because undoing it does not un-share it.
+1. **No flag = best judgment.** Every point that would ask the user resolves from the evidence gathered (findings, code, project profile, prior art in the codebase) and is recorded in the summary as what was decided and why. No menu, approval gate, `[Y/n]`, or free-text question is shown.
+2. **Category A and Category B both resolve.** A default run does not list Category B / `needs-approval` items and stop — it decides them with the same impact/effort/risk reasoning an approval block would show a human, applies them, and records that reasoning. CRITICAL findings are included (the per-item confirmation in the All-Affordance Rule is an `--ask` floor).
+3. **The ask-exception list is the only thing a default run does not decide** — [`core/ask-exception-list.md`](core/ask-exception-list.md): (a) genuinely irreversible actions, (b) publishing actions that move work off the local machine. They are skipped and recorded `needs-human` with the exact action the human can take. Committing is not publishing. The list does not grow ad hoc — a skill that must extend it does so in its own Contract, citing clause (a) or (b).
+4. **`--ask` asks at every decision point** — mode menu, scope table, approval batches, per-item CRITICAL confirmation, checkpoint choices — following Interaction Discipline, the All-Affordance Rule, the Up-Front Mode Menu and Selection Transparency, all of which apply only under `--ask`.
+5. **Propagation.** An orchestrator (`ds-ship`, `ds-pipeline`) invoked with `--ask` forwards `--ask` to every skill it delegates to (Orchestration Contract §10.3); a delegate never asks on its own when the orchestrator was not asked, and never falls back to prompting just because it was invoked as a child.
+6. **Summary is the record.** Every default run ends with the Outcome Report (`core/report-and-outcome-templates.md` § 5) listing every decision made by judgment under `Assumed:` and every `needs-human` item in full, so nothing silently vanishes.
+7. **`--auto` is retired.** It was the opt-in for what is now the default; a skill that still carries it fails `check-consistency.sh` (retired flags).
 
-   *(a) Irreversible:*
-   - Force-push or history rewrite on a shared/remote branch
-   - Permanent deletion of a branch, tag, or remote resource with no local backup
-   - Rotating, deleting, or transmitting a real secret/credential
-   - Any action requiring a value only a human can supply (a live credential, a business/legal/financial decision not inferable from the repo)
-
-   *(b) Publishing — outward-facing, never automatic:*
-   - `git push` of any kind, to any remote
-   - Opening, updating, or merging a pull/merge request
-   - Deploying to a shared, staging, or production environment
-   - Submitting to an app store, or publishing to a package registry
-
-   **Committing is NOT publishing.** Under `--auto` a skill still commits its work locally — leaving changes uncommitted would strand them and violate FRC. The boundary is the remote: commit freely, publish never.
-
-   This list does not grow ad hoc — a skill that needs to add to it does so explicitly in its own Contract section, citing which clause above it matches. Everything not on this list is resolved per rules 1-3, never asked, never silently dropped (ties to FRC and W11 Error Ownership).
-5. **Summary is the only output.** Under `--auto`, intermediate phase narration collapses to the minimum needed for the Outcome Report; the run still ends with the standard Task/Done/Gain summary, listing every `needs-human` item from rule 4 explicitly so nothing silently vanishes.
-6. **Propagation.** An orchestrator (`ds-ship`, `ds-pipeline`) invoked with `--auto` MUST forward `--auto` to every skill it delegates to (Orchestration Contract §10.3). A delegated skill never falls back to interactive mode just because it was invoked as a child, not the top-level call.
-7. **One flag, not several.** No skill exposes a second flag whose function is "suppress prompts" or "apply everything" — `--auto` already covers both (rule 3). A skill that previously exposed `--force-approve`, an inverted `--confirm`, or a skill-local "skip this one prompt" flag (e.g. `--no-*-suggest`) removes it; that behavior is already implied by `--auto`. A flag whose function is genuinely different (output format, dependency-graph scope, git behavior) is unaffected by this rule.
-
-**Canonical Arguments-table row** — every skill pastes this verbatim (only the skill name changes if referenced elsewhere):
+**Canonical Arguments-table row** — every skill pastes this verbatim:
 
 ```markdown
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 ```
 
-**Absent `--auto`:** every gate in this spec (Interaction Discipline, All-Affordance Rule, Up-Front Mode Menu, FRC rule 3) behaves exactly as written — interactive by default. `--auto` is opt-in for every skill except where a skill's own Contract states an autonomous default (e.g. `ds-solve`); even there, `--auto` is the flag that removes that skill's own optional interactive checkpoint, keeping the axis identical across the suite: **no flag → most interactive available default; `--auto` → zero questions.**
+**Writing the two branches.** State the default first, then the `--ask` branch — `Default: {what is decided and how it is recorded}. --ask: {the menu or question}.` — never the reverse, and never a bare "ask the user". A phase that exists only to collect approvals is annotated `[--ask, needs_approval > 0]` and does not run otherwise.
+
+### Relevance First
+
+"Scan everything" is never the default. Every skill with two or more scopes carries a **scope-resolution table** — `| Scope | Runs when (signal) | Otherwise |` — evaluated at setup against the project's signals ([`core/signal-inventory.md`](core/signal-inventory.md), read from the blueprint profile's `Signals:` line or resolved by the skill itself), and echoed in the summary as `ran` / `N/A — {key}={value}` / `unknown → ran`. A scope runs because a signal says it applies; an `unknown` signal never excludes a scope; `--scope=` overrides the table for the named scopes; `--ask` shows the resolved table before running. Orchestrators justify every delegation the same way (`signal-absent — key=value` before any matrix default; `mode-excluded` for legs outside the run's mode). Enforced by `check-consistency.sh` check `scope-resolution-table`.
 
 ### Flag Vocabulary
 
@@ -365,7 +353,7 @@ One small, consistent vocabulary across all skills — a skill MUST NOT invent a
 
 | Flag | Meaning | Notes |
 |------|---------|-------|
-| `--auto` | Zero-interaction run | See Unattended Mode above. The only flag on this axis. |
+| `--ask` | Interactive run | See Autonomous Default above. The only flag on this axis; `--auto` is retired. |
 | `--preview` | Show the plan/diff without applying it | Canonical no-mutation flag. `--dry-run` is not used — rename to `--preview`. |
 | `--scope=<value>` | Restrict to a subset (paths, categories, or names) | Placeholder name may hint at shape (`<path>`, `<list>`) but stays lowercase, singular, one spelling per skill. |
 | `--mode=<value>` | Select among named operating modes | Only when a skill has 3+ modes that don't fit `--scope`. |
@@ -377,7 +365,7 @@ Every flag is spelled `--flag` or `--flag=value` — no bare positional subcomma
 
 ### All-Affordance Rule
 
-Every menu, list, or selection point that a skill presents to the user MUST include an **"all"** affordance (synonym: `apply-all`, `approve-all`, `all matching`) when more than one item is available.
+Every menu, list, or selection point that a skill presents to the user under `--ask` MUST include an **"all"** affordance (synonym: `apply-all`, `approve-all`, `all matching`) when more than one item is available.
 
 | Interaction point | Required "all" affordance | Example label |
 |-------------------|---------------------------|---------------|
@@ -390,9 +378,9 @@ Every menu, list, or selection point that a skill presents to the user MUST incl
 **Rules:**
 
 1. "All" affordance is **always visible** but is **not the default** unless the skill's recommendation policy says so explicitly.
-2. **Destructive scope** — when "all" would trigger destructive actions (rm, force-push, drop, schema migration, credential rotation), each item in the batch STILL requires a separate final confirmation. "All" approves intent, not bypass. **Under `--auto`:** items matching the Unattended Mode rule-4 exception list are auto-skipped and recorded `needs-human`; everything else in the destructive batch resolves per Unattended Mode rule 3 (no confirmation exists to wait for).
+2. **Destructive scope** — when "all" would trigger destructive actions (rm, force-push, drop, schema migration, credential rotation), each item in the batch STILL requires a separate final confirmation. "All" approves intent, not bypass. **Without `--ask`:** items on the ask-exception list are skipped and recorded `needs-human`; everything else in the destructive batch resolves by best judgment on a checkpointed tree (no confirmation exists to wait for).
 3. **Secret exclusion** — when "all" stages files (`git add -A`-style flows), `.env`, `*.pem`, `credentials.*`, `secrets.*`, and lockable variants are excluded automatically. The summary surfaces the exclusion list.
-4. **CRITICAL findings are never auto-included in `approve-all`** — they always require a separate, explicit confirmation per finding. **This is an interactive-mode floor only**; under `--auto` there is no one to confirm with, so CRITICAL findings resolve per Unattended Mode rule 3 (applied, not stranded) unless they independently match the rule-4 exception list.
+4. **CRITICAL findings are never auto-included in `approve-all`** — they always require a separate, explicit confirmation per finding. **This is an `--ask` floor only**; without `--ask` there is no one to confirm with, so CRITICAL findings resolve by best judgment (applied, not stranded) unless they independently match the ask-exception list.
 5. **Single-option menus are exempt.** A menu with one option does not need an "all" affordance.
 6. **Category bulk affordances** — whenever items carry a natural grouping (severity, type, scope, safety class), the menu offers a bulk option **per group in addition to the total "all"**: e.g. `Apply all CRITICAL`, `Apply all HIGH`, `Apply all <type>`, alongside `Apply all`. The total "all" is never replaced by category options — both are always present. This lets the user clear a whole class in one action without losing the single-action-for-everything path. (CRITICAL category bulk still confirms per item per rule 2/4.)
 
@@ -400,16 +388,16 @@ Every menu, list, or selection point that a skill presents to the user MUST incl
 
 ### Up-Front Mode Menu
 
-Every **multi-mode / multi-function** skill (more than one mode, scope, or operation) MUST present the choice **up front** when the user does not pass a disambiguating flag — never silently auto-pick one path.
+Every **multi-mode / multi-function** skill (more than one mode, scope, or operation) MUST present the choice **up front under `--ask`** when the user does not pass a disambiguating flag. Without `--ask` the menu is never shown: the skill selects its best-judgment default and records the choice in the summary.
 
 1. The menu **covers every scenario** the skill supports (one row per mode/scope), each with a one-line "what it does" so the choice is unambiguous.
 2. A **recommended** default is marked `(recommended)` but is not auto-selected without showing the menu, unless the user passed an explicit flag.
 3. The menu includes the All-Affordance options (`all scopes` / `everything`) and `(Cancel)` last.
-4. When a flag already disambiguates (e.g. `--status`, `--scope=x`, `--auto`), the menu is skipped — the flag IS the choice. `--auto` always disambiguates, selecting the skill's best-judgment default (Unattended Mode rule 2).
+4. When a flag already disambiguates (e.g. `--status`, `--scope=x`), the menu is skipped — the flag IS the choice.
 
 ### Selection Transparency Rule
 
-Every point where the skill asks the user to choose or approve MUST make **exactly what is being asked** unmistakable, and present the items **compactly and completely** so approval is transparent.
+Every point where the skill asks the user to choose or approve (under `--ask`) MUST make **exactly what is being asked** unmistakable, and present the items **compactly and completely** so approval is transparent.
 
 1. **State the question** — a one-line header naming the decision and its consequence: `Approve these 7 fixes? (applies to working tree)`, not a bare list.
 2. **Show every item being approved, compact** — one scannable line per item with its identity + severity/type + location: `[CRITICAL] SQL injection — src/api/search.ts:47`. Never ask the user to approve a count ("apply 12 fixes?") without the enumerated list behind it.
@@ -621,7 +609,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W14: Context Rot
 
-**Applies to:** ds-ship, ds-solve, ds-issue, ds-freeze (any multi-phase run).
+**Applies to:** ds-ship, ds-build, ds-issue, ds-freeze (any multi-phase run).
 
 **Definition:** Accuracy degrades as the working context grows — even within the model's window — so constraints, instructions, or earlier findings stated early get silently dropped. Distinct from W4 Memory Decay (post-compression staleness).
 
@@ -638,7 +626,7 @@ The following are **domain-specific** — only the skills named in **Applies to*
 
 ### W15: Subagent / Handoff Failure
 
-**Applies to:** ds-ship, ds-solve, ds-issue, ds-research, ds-brief, ds-freeze (skills that delegate to phases or subagents).
+**Applies to:** ds-ship, ds-build, ds-issue, ds-research, ds-brief, ds-freeze (skills that delegate to phases or subagents).
 
 **Definition:** Treating data returned by a delegated phase or subagent as ground truth — specifications, scopes, or findings get distorted or lost across the handoff and errors compound silently.
 
@@ -780,7 +768,7 @@ In practice only long autonomous skills qualify. The qualifying set is enumerate
 
 **Exempt skills** (idempotent, atomic, git-driven, or externally-durable) write no state — their Contract section states the one-line exemption reason. Examples: `ds-init`, `ds-fix`, `ds-commit`, `ds-pr` (git-driven), `ds-issue` (GitHub issue + comments + git are the durable record).
 
-**Recovery-check exemption from `[SKIP]` annotations:** Even when a phase is annotated `[SKIP if --auto]` or `[SKIP if {flag}]`, the Recovery Check (step 1 of Setup phase for qualifying skills) MUST execute unconditionally. Annotate the phase header `[SKIP if --auto — except step 1 Recovery Check]` so the AI does not skip the recovery step in `--auto` mode. A skipped recovery on a resumed session causes silent state corruption.
+**Recovery-check exemption from `[SKIP]` annotations:** Even when a phase is annotated `[--ask]` or `[SKIP if {flag}]`, the Recovery Check (step 1 of Setup phase for qualifying skills) MUST execute unconditionally. Annotate the phase header `[--ask — except step 1 Recovery Check]` so the AI does not skip the recovery step on a default run. A skipped recovery on a resumed session causes silent state corruption.
 
 **Naming:** State file lives under the single shared namespace as `ds/audit/<skill>.json` (e.g., `ds/audit/review.json`, `ds/audit/solve.json`). The skill token is the portion after `ds-` (e.g., `ds-review` → `ds/audit/review.json`). One `.gitignore` entry `ds/audit/` covers the whole suite.
 
@@ -820,7 +808,7 @@ In practice only long autonomous skills qualify. The qualifying set is enumerate
    - File + `--clean` given → delete state file, fresh start. If `ds/audit/` is then empty, remove the directory.
    - File exists → continue to step 2.
 2. **READ STATE** — Parse the JSON.
-   - If `git_hash` ≠ current HEAD → warn: `State from commit {state_hash} differs from HEAD {current}. Source-reading phases will re-verify. Resume? [Y/n]`. User N → delete state, fresh start. User Y, `--resume` given, or `--auto` given → continue (under `--auto`, resuming is the best-judgment default — re-verification in step 3 catches genuine drift).
+   - If `git_hash` ≠ current HEAD → default: continue (resuming is the best-judgment default — re-verification in step 3 catches genuine drift) and note the mismatch; `--ask` → warn: `State from commit {state_hash} differs from HEAD {current}. Source-reading phases will re-verify. Resume? [Y/n]`. User N → delete state, fresh start.
    - Determine `current_phase` and `done` phases from the `phases` array.
 3. **RE-VERIFY** — For phases marked `in_progress`:
    - Re-read source files that phase depends on.
@@ -838,7 +826,7 @@ In practice only long autonomous skills qualify. The qualifying set is enumerate
 | Summary phase completes successfully | Delete state file. If `ds/audit/` is then empty, remove the directory. |
 | `--clean` flag | Delete existing state before fresh start |
 | User chose "start fresh" on hash mismatch | Delete state |
-| `--resume` not given, state exists | Ask: `Resume previous run? [Y/n]`. N → delete + fresh. Y → resume. Under `--auto`: resume (no prompt). |
+| `--resume` not given, state exists | Default: resume (no prompt), announce it. `--ask`: `Resume previous run? [Y/n]`. N → delete + fresh. Y → resume. |
 
 **`.gitignore` enforcement (first fresh invocation per project):**
 - Setup phase checks root `.gitignore` for `ds/audit/` pattern.
@@ -877,7 +865,7 @@ Skills that audit code should offer a consistent mode pattern:
 | `audit+fix` | Scan, report, then fix CAT-1 findings automatically |
 | `quick-fix` | Fix CAT-1 findings without full report |
 
-Skills may add domain-specific modes (e.g., `release-ready`, `design`). Mode selection is presented as an interactive menu when no flag is provided; `--auto` selects the skill's best-judgment default without showing the menu (Unattended Mode rule 2).
+Skills may add domain-specific modes (e.g., `release-ready`, `design`). Mode selection is presented as a menu under `--ask` when no flag is provided; otherwise the skill selects its best-judgment default without showing the menu and records the choice.
 
 ### Finding Resolution Completeness (FRC)
 
@@ -900,7 +888,7 @@ Every finding produced by an audit phase MUST appear in the summary with exactly
 
 1. Every finding gets exactly one disposition — `fixed + failed + skipped + needs-input + needs-approval + not-applicable = total`
 2. `needs-input` findings MUST trigger a question to the user before the summary phase. Present the finding context and ask for the required input. If the user provides input → attempt fix → `fixed` or `failed`. If the user declines → `skipped`.
-3. `needs-approval` findings MUST trigger a review step before the summary phase. Present all needs-approval items with context (why they are risky: cross-module, destructive, architectural). Ask: Apply All / Review Each / Skip All. If the user approves → attempt fix → `fixed` or `failed`. If the user skips → `skipped (user declined)`. **Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`, using the same impact/effort/risk reasoning the review step would have shown) except items matching the Unattended Mode rule-4 exception list, which become `skipped (needs-human)`.
+3. `needs-approval` findings MUST trigger a review step before the summary phase. Present all needs-approval items with context (why they are risky: cross-module, destructive, architectural). Ask: Apply All / Review Each / Skip All. If the user approves → attempt fix → `fixed` or `failed`. If the user skips → `skipped (user declined)`. **Without `--ask`:** no review step is shown — items resolve per best judgment (`fixed` or `failed`, using the same impact/effort/risk reasoning the review step would have shown) except items matching the Autonomous Default rule-4 exception list, which become `skipped (needs-human)`.
 4. `skipped` findings MUST include a parenthetical reason: `Skipped: 2 (1 platform limit, 1 user declined)`
 5. The summary table lists every finding with its disposition — no finding appears only in the audit phase and disappears from the summary.
 
@@ -1068,7 +1056,9 @@ The boundaries below define **primary ownership** — which skill provides the d
 | ds-productize | Paid-product readiness: monetization model + billing/entitlement integrity, pricing/packaging, GTM baseline | Full monetization/pricing/gtm audit + productization plan |
 | ds-frontend | Frontend design quality: design system, tokens, components, states, a11y, responsive, theming | Full UI audit + design system generation for any framework |
 | ds-tune | Autonomous optimization: measurable metric loop, 100+ experiments, keep only improvements | Full optimization workflow for any measurable metric |
-| ds-solve | Adaptive problem-solving: multi-plan backtracking, web research, constraint preservation | Full iterative solve with 3-layer budget ({P} plans x {R} rounds x {A} alternatives) |
+| ds-build | Plan executor: issue / tasks.md / request → bounded units, a verify signal each, red-proven tests, budgeted backtracking | Whole plan executed; publishing steps recorded needs-human |
+| ds-debug | Bug hunter: reproduce → localize → ≤ 3 hypotheses → minimal fix behind a red-proven regression test | Full cycle; not reproduced → stop without an edit |
+| ds-release | Release cutter: version from commits, changelog, every version surface, check green, local commit + tag | Everything up to the tag; push / release / registry printed as commands |
 | ds-simplify | Complexity reduction: dead code, single-caller helpers, premature abstractions, unused deps | Full simplification audit + approved deletion, one reversible commit per group |
 | ds-deps | Dependency upgrades: safe-patch/safe-minor/review-major classification, migration notes, rollback | Full upgrade workflow with per-group commits |
 | ds-quality | Continuous local quality enforcement: format/lint/type/test verify-loop wired to the host's hook mechanism | Hook install + verify-loop for any stack |
@@ -1235,7 +1225,9 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 | ds-launch | **Config.audience** → know store requirements. **Config.deploy** → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
 | ds-productize | **Type + Stack** → platform routing (store IAP vs web checkout). **Config.audience** → B2B/B2C calibration. **Config.deploy** → checkout surface detection. | monetization, pricing, gtm (producer); spec-alignment (consumer) |
 | ds-frontend | **Config.priorities** → order scope execution. **Type + Stack** → select framework-specific patterns. **Current Scores** → focus on lowest-scoring UX dimensions. | tokens, components, states, a11y, responsive, theming |
-| ds-solve | **Type + Stack** → research query context. **Config.constraints** → automatic red lines. **Current Scores** → weak dimensions near objective. | — (context consumer, not scope producer) |
+| ds-build | **Type + Stack** → `{check-cmd}` resolution and unit signals. **Config.constraints** → automatic red lines for every unit. **Signals** → impact-map axes that apply. | — (context consumer, not scope producer) |
+| ds-debug | **Type + Stack** → reproduction runner and bisect signal. **Config.constraints** → fixes never cross a red line. | — (context consumer, not scope producer) |
+| ds-release | **Type + Stack** → version surfaces and registry publish command. **Config.deploy** → post-release smoke target. | — (context consumer, not scope producer) |
 | ds-simplify | **Config.constraints** → respect keep-constraints when proposing deletions. **Project Map.Toolchain** → verify deletions against build. | hygiene, simplify |
 | ds-deps | **Project Map.Toolchain** → package manager + lockfile directly. **Stack** → registry selection. | stack, stack-fitness, deps-upgrade |
 | ds-quality | **Project Map.Toolchain** → wire verify-loop commands without re-detection. | — (runs external tools) |
@@ -1451,16 +1443,16 @@ The following must NOT appear in any SKILL.md:
 | Model routing (haiku, sonnet, opus) | Platform-specific |
 | `Per X Rules:` cross-references | Assumes shared rule set |
 | Platform-specific SDK calls | Not universal |
-| Citations of this spec (`SKILL-SPEC`, `Unattended Mode rule N`, `rule-4 exception`, `IDU`, `DSC`, `OVERLAP-n`, `§N`) | A lone install has no spec to resolve them against; the executor is left with a pointer and no rule. Enforced by `check-consistency.sh` check `spec-citations` |
+| Citations of this spec (`SKILL-SPEC`, `Autonomous Default rule N`, `rule-4 exception`, `IDU`, `DSC`, `OVERLAP-n`, `§N`) | A lone install has no spec to resolve them against; the executor is left with a pointer and no rule. Enforced by `check-consistency.sh` check `spec-citations` |
 
 **Canonical inline equivalents** — a skill says the rule, never the citation:
 
 | Instead of | Write |
 |-----------|-------|
-| `resolve per Unattended Mode rule 3` | `resolve by best judgment` |
-| `Unattended Mode rule 2` (a flag disambiguates the menu) | `a flag disambiguates every menu` |
-| `Unattended Mode rule 6` (propagation) | `flag propagation to every delegate` |
-| `Unattended Mode rule-4 exception list` | `the publish/irreversible exception list` (`core/ask-exception-list.md`) |
+| `resolve per best judgment` | `resolve by best judgment` |
+| `the autonomous default` (a flag disambiguates the menu) | `a flag disambiguates every menu` |
+| `Autonomous Default rule 6` (propagation) | `flag propagation to every delegate` |
+| `Autonomous Default rule-4 exception list` | `the publish/irreversible exception list` (`core/ask-exception-list.md`) |
 | `SKILL-SPEC §15` (advisory vs mandated) | `the mandated-blocker test: a citable external authority makes it a documented prerequisite whose omission causes rejection, legal exposure, or a broken production path` |
 | `SKILL-SPEC § State Management` | `state-qualifying: a resumable multi-scope audit whose progress exists nowhere else` |
 | `**IDU:**` | `**Upstream artifacts:**` |
@@ -1647,7 +1639,7 @@ A skill is an orchestrator when its primary purpose is to coordinate other ds-* 
 1. **No own analysis.** Orchestrator never rediscovers what a delegated skill discovers. It consumes `ds/audit/findings.md` as the single source of truth.
 2. **Staleness bootstrap.** When `ds/audit/findings.md` is absent or stale (git-hash mismatch), the orchestrator invokes the canonical full-scanner (`ds-blueprint`) before any other delegation.
 3. **Delegation loop.** For every invoked skill: pre-note (log to own report) → invoke → wait for done → re-read findings diff → classify Category A/B → route → mark done → advance.
-4. **Flag propagation.** When the orchestrator itself was invoked with `--auto`, it MUST pass `--auto` on every delegated invocation at the "invoke" step of rule 3 — a delegated skill never runs interactively just because it wasn't the top-level call. The orchestrator's own gates (Phase-level confirmations, Category A/B batches it presents itself) resolve per Unattended Mode identically to any other skill.
+4. **Flag propagation.** When the orchestrator itself was invoked with `--ask`, it MUST pass `--ask` on every delegated invocation at the "invoke" step of rule 3; without it a delegate never prompts on its own. The orchestrator's own gates (Phase-level confirmations, Category A/B batches it presents itself) resolve per Autonomous Default identically to any other skill.
 5. **Resume discipline.** Orchestrator state (`ds/audit/<orchestrator>.json`) records the delegation queue, A/B counters, and the pending approval batch so a fresh invocation resumes from the last completed step.
 6. **Report SSOT.** Only the orchestrator writes `ds/audit/report.md`. Rerun overwrites.
 7. **Planner / Generator / Evaluator separation.** Orchestrators MUST keep the three concerns separate: the planner (Phase 0 in ds-ship — classify + propose sequence) decides what to invoke; the generator is each delegated skill (which produces the work); the evaluator (Phase 2-7 review steps) judges the output and gates the next step. Conflating these — letting the planner judge its own plan, or letting a generator self-evaluate — collapses to single-agent quality (≤5% actionable rate per arXiv 2511.15755). The Category A/B approval gate is the canonical evaluator boundary.
@@ -1675,8 +1667,8 @@ All skills that mutate code or configuration MUST classify every action:
 **MUST:**
 
 1. Category A is never silently promoted to B, and Category B is never compressed into A (honest classification).
-2. All Category B items surface in one batched approval block, not one-by-one. **Under `--auto`:** no approval block is shown — B items resolve per Unattended Mode rule 3, except items matching the rule-4 exception list, which become `skipped (needs-human)`.
-3. Each B item presents: current → proposed, reason (concrete benefit), impact, effort, risk, rollback path — recorded in the summary regardless of whether a human or `--auto` made the call.
+2. Under `--ask`, all Category B items surface in one batched approval block, not one-by-one. **Without `--ask`:** no approval block is shown — B items resolve by best judgment, except items on the ask-exception list, which become `skipped (needs-human)`.
+3. Each B item presents: current → proposed, reason (concrete benefit), impact, effort, risk, rollback path — recorded in the summary regardless of whether a human (`--ask`) or best judgment made the call.
 4. A and B findings are recorded in `ds/audit/findings.md` with a `category` column alongside `severity`.
 
 ---
@@ -1770,7 +1762,7 @@ Phase1 → Phase2 → [Phase3] → Phase4 → Summary
 
 ### Phase N-1: Needs-Approval Review [needs-approval > 0]
 
-Present needs_approval items with risk context. Interactive: Apply All / Review Each / Skip All. `--auto`: resolved per Unattended Mode rule 3, no prompt.
+Present needs_approval items with risk context under `--ask`: Apply All / Review Each / Skip All. Default: resolved by best judgment, no prompt, recorded in the summary.
 
 **Gate:** All needs-approval items resolved.
 
@@ -1905,7 +1897,7 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | B | Engineering | 6 (B1–B6) |
 | C | Trust & Compliance | 5 (C1–C5) |
 | D | Operations | 10 (D1–D10) |
-| E | Process carriers (orchestrators, not dimensions) | 10 skills |
+| E | Process carriers (orchestrators, not dimensions) | 11 skills |
 
 ### Dimension Table
 
@@ -1938,13 +1930,13 @@ The authoritative taxonomy of quality/coverage dimensions for the dev-skills sui
 | D3 | Resilience/reliability | ds-backend + ds-deploy | Retry strategies, disaster recovery, backup + restore-drill proof (not just backup existence) | [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) + [Azure Well-Architected](https://learn.microsoft.com/en-us/azure/well-architected/pillars) Reliability |
 | D4 | Observability/monitoring | ds-deploy + ds-backend | Logging, metrics, alerting, tracing infrastructure; production crash/error-reporting channel decision (privacy-compliant opt-in aggregate, or documented blindness-risk acceptance — ds-compliance PRV-20 crosscheck) | [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) |
 | D5 | Data management (schema/migration/retention) | ds-backend | Schema design, migration integrity, data retention policies | [ISO/IEC 25010](https://www.iso.org/standard/78176.html) Reliability + Maintainability |
-| D6 | CI/CD & release engineering | ds-devops + ds-launch | Pipeline integrity, code signing, staged rollout, user-facing release trust (changelog + rollback narrative) | [DORA](https://dora.dev/) (deployment frequency, lead time for changes) |
+| D6 | CI/CD & release engineering | ds-devops + ds-launch + ds-release | Pipeline integrity, code signing, staged rollout, user-facing release trust (changelog + rollback narrative) | [DORA](https://dora.dev/) (deployment frequency, lead time for changes) |
 | D7 | Deploy/infra & incident response | ds-deploy | Containerization, TLS, monitoring, incident runbooks | [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) + [ITIL 4 Incident Management](https://www.axelos.com/resource-hub/practice/problem-management-itil-4-practice-guide) |
 | D8 | Repo governance | ds-repo | Branch protection, CODEOWNERS, metadata, OSS readiness | [OWASP SAMM](https://owaspsamm.org/) Governance business function |
 | D9 | Breaking-change management (semver/contract) | ds-deps (semver) + ds-review (API contract) | API/schema/export break detection, migration path quality | [Semantic Versioning](https://semver.org/) |
 | D10 | Admin & support operability | ds-backend (admin API + stats) + ds-frontend (admin UI) + ds-deploy (diagnostics + runbooks) + ds-docs (support docs) | Back-office/admin surfaces, operator statistics & reports, diagnostic bundles, error-remediation runbooks | [ITIL 4 Incident/Problem Management](https://www.axelos.com/resource-hub/practice/problem-management-itil-4-practice-guide) + [Google SRE PRR](https://sre.google/sre-book/evolving-sre-engagement-model/) |
 | D11 | Agent environment & tooling rig | ds-rig | Machine-level AI-dev toolset install/update with version pinning, telemetry/call-home hardening, harness allow/ask/deny permission profiles, MCP tool-count token budget | [SLSA](https://slsa.dev/) (supply-chain pinning) + [12-Factor III Config](https://12factor.net/config) |
-| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-solve, ds-research, ds-brief, ds-freeze | Orchestration, spec pipeline, commits, PRs, release-scope triage — not quality dimensions | n/a — carrier, not a dimension |
+| E | Process carriers | ds-ship, ds-pipeline, ds-commit, ds-pr, ds-issue, ds-init, ds-build, ds-debug, ds-research, ds-brief, ds-freeze | Orchestration, spec pipeline, commits, PRs, release-scope triage — not quality dimensions | n/a — carrier, not a dimension |
 
 ### Amendment
 
@@ -1962,7 +1954,7 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | Skill | Prefix | Skill | Prefix | Skill | Prefix |
 |-------|--------|-------|--------|-------|--------|
 | ds-init | INI | ds-launch | LCH | ds-research | RSC |
-| ds-fix | FIX | ds-compliance | CMP | ds-solve | SOL |
+| ds-fix | FIX | ds-compliance | CMP | ds-build | BLD |
 | ds-test | TST | ds-frontend | FE | ds-tune | TUN |
 | ds-review | REV | ds-mobile | MOB | ds-ship | SHP |
 | ds-blueprint | BP | ds-devops | OPS | ds-simplify | SMP |
@@ -1970,7 +1962,8 @@ Example: `[REV Phase 3/5] Fix — 3/11 findings applied`
 | ds-commit | CMT | ds-backend | BE | ds-issue | ISS |
 | ds-pr | PR | ds-deploy | DEP | ds-quality | QAL |
 | ds-deps | DPS | ds-benchmark | BEN | ds-pipeline | PIPE |
-| ds-productize | PTZ | ds-freeze | FRZ | | |
+| ds-productize | PTZ | ds-freeze | FRZ | ds-debug | DBG |
+| ds-release | REL | | | | |
 
 **Rule:** Prefixes are reserved. A new skill MUST register a unique prefix here before release. Exempt skills (`ds-init`, `ds-fix`, `ds-commit`, `ds-pr`) still carry a prefix for progress markers, even though they don't write state files.
 

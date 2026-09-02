@@ -121,4 +121,4 @@ Mode drift = starting in one mode and silently producing the other's output. The
 - `aesthetics-presets.md` — named aesthetic moods
 - `rules-design-system.md` — token format and enforcement
 - `rules-accessibility.md` — WCAG details
-- `principles.md` §1 — token-first principle
+- `../../core/principles.md` §1 — token-first principle

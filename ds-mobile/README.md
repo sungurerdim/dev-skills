@@ -1,8 +1,8 @@
 # ds-mobile
 
-Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 183 rules before you submit.
+Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 177 rules before you submit.
 
-**Audit your mobile app against 183 rules across 13 domains, fix violations, and score release readiness.**
+**Audit your mobile app against 177 rules across 13 domains, fix violations, and score release readiness.**
 
 Works with Flutter, SwiftUI, Kotlin/Compose, React Native, and Capacitor/Cordova hybrid shells.
 
@@ -42,19 +42,21 @@ Run `/ds-mobile`, or ask to review your mobile app.
 
 | Domain | Rules |
 |--------|-------|
-| Security | 11 |
+| Security | 12 |
 | Privacy | 5 |
 | Regulatory (GDPR, KVKK, CCPA...) | 13 |
-| Store Compliance | 21 |
+| Store Compliance | 22 |
 | UX | 27 |
-| Visual Design | 25 |
+| Visual Design | 24 |
 | Accessibility | 12 |
 | Architecture | 10 |
 | Testing | 6 |
-| Performance | 9 |
+| Performance | 10 |
 | Network | 7 |
-| Internationalization | 4 |
-| Release Readiness | 21 |
+| Internationalization | 5 |
+| Release Readiness | 20 |
+
+13 domains, 173 rules selectable via `--scope=`, plus 4 conditional Hybrid & WebView Bridge rules that activate only on Capacitor/Cordova projects (177 total).
 
 ## Release Ready Mode
 

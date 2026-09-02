@@ -94,7 +94,7 @@ Rules: Increment major version only for breaking changes. Support at least two m
 
 ### API-04 Request Validation [HIGH]
 
-**Detect:** Endpoints that accept request bodies or query parameters without schema validation at API boundary.
+**Detect:** Endpoints that accept request bodies or query parameters without any schema validation at the API boundary (distinct from API-12, which covers mass assignment and client-trusted authorization state on endpoints that already have a schema).
 
 **Fix:** Add schema validation at entry point of every endpoint. Reject malformed input with 422 and descriptive errors.
 
@@ -278,15 +278,21 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 - Prefer a host allowlist; allow `https` only; disable `file:`/`gopher:`/`ftp:` schemes.
 - Re-validate after every redirect; resolve DNS once and connect to that resolved IP (defeats DNS rebinding).
 
+**Impact:** An unvalidated URL fetch lets an attacker reach internal services, cloud metadata endpoints, and cloud credentials from the server — turning a preview/webhook/import feature into a full internal-network foothold.
+
 **Source:** [CWE-918](https://cwe.mitre.org/data/definitions/918.html), [Tenzai 2026](https://blog.tenzai.com/bad-vibes-comparing-the-secure-coding-capabilities-of-popular-coding-agents/)
 
-### API-12 Server-Side Input Validation [HIGH]
+### API-12 Mass Assignment & Client-Trusted State [HIGH]
 
-**Detect:** Validation only on the client. Handlers consuming request body/query/params without a schema validator. Request fields mass-assigned to a model/entity.
+Distinct from API-04 (which flags an endpoint with *no* schema validation at all): API-12 fires even when a schema exists, on two narrower failure modes that survive API-04 being fixed.
 
-**Fix:** Validate every external input against an explicit schema at the boundary (zod / pydantic / JSON Schema / Bean Validation); reject by default; allowlist writable fields. Re-check authorization server-side regardless of UI state.
+**Detect:** Request body fields spread or bound directly onto a DB model/entity with no explicit allowlist of writable fields (mass assignment / overposting — e.g. `User.update(req.body)`, `Model(**request.json)`); authorization or role/permission state read from client-supplied input (a `role` or `isAdmin` field in the request body, a hidden form field) instead of re-derived server-side from the authenticated session.
 
-**Source:** [OWASP API Security Top 10 — API3/API4](https://owasp.org/API-Security/editions/2023/en/0x11-t10/)
+**Fix:** Allowlist writable fields explicitly per endpoint (schema `pick`/`omit`, DTO, or ORM attribute allowlist) — never bind a request body onto a model wholesale. Re-derive authorization state (role, ownership, permissions) from the server-side session/DB on every request; never trust a client-supplied authorization field.
+
+**Impact:** Mass assignment lets an attacker set fields the UI never exposes (`role`, `isAdmin`, `balance`) by adding them to the request body; trusting client-supplied authorization state allows privilege escalation with one crafted field, independent of whether schema validation is otherwise in place.
+
+**Source:** [OWASP API Security Top 10 — API3 Broken Object Property Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/)
 
 ---
 

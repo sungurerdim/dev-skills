@@ -10,7 +10,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 |---------|-------|------|
 | **Security** | SEC-01–13 (4 BLOCKER, 5 CRITICAL, 4 HIGH) | ~12 |
 | **Privacy** | PRV-01–05, PRV-26–45 (3 BLOCKER, 2 CRITICAL, 12 HIGH, 8 MEDIUM) | ~139 |
-| **Regulatory Compliance** | PRV-06–19, PRV-21–25 (11 BLOCKER, 8 CRITICAL) | ~354 |
+| **Regulatory Compliance** | PRV-06–19, PRV-21–25, PRV-46–49 (15 BLOCKER, 8 CRITICAL) | ~354 |
 | **Advisory (Non-Blocking)** | PRV-20 (1 ADVISORY) | ~594 |
 
 ---
@@ -27,6 +27,7 @@ Credentials, tokens, and secrets must not be in plaintext files or unencrypted s
   - Plaintext secrets in `application.yml`, `settings.py`, `config/*.json`
   - Exclude: `.env.example`, test fixtures with dummy values
 - **Fix:** Use environment variables loaded at runtime. Use secret managers (Vault, AWS Secrets Manager, GCP Secret Manager, Doppler). Add `.env` to `.gitignore`. For Docker: use secrets, not ENV in Dockerfile
+- **Impact:** A plaintext or committed credential is readable by anyone with repo/filesystem access, including in git history long after the file appears fixed.
 - **Source:** OWASP A07:2025 (Authentication Failures)
 
 ### SEC-02 [BLOCKER] No Hardcoded Credentials
@@ -36,6 +37,7 @@ Zero secrets in source code.
   - Files: `**/.env`, `**/credentials*`, `**/secrets*` committed to git
   - Exclude: `.env.example`, test fixtures with dummy values
 - **Fix:** Move to environment variables or secret manager. Add to `.gitignore`. Use server-side proxy for third-party API keys
+- **Impact:** A hardcoded secret ships inside the source and leaks to every clone, fork, and build artifact — rotation requires a code change, not just a config change.
 - **Source:** OWASP A07:2025 (Authentication Failures)
 
 ### SEC-03 [BLOCKER] Debug Mode Off in Production
@@ -47,6 +49,7 @@ No debug features exposed in production builds.
   - Java/Kotlin: `debug=true` in application.properties
   - Stack traces exposed in error responses
 - **Fix:** Environment-based config. Strip debug code in production builds. Never expose stack traces to clients
+- **Impact:** Debug mode in production exposes stack traces, internal routes, and in some frameworks a live code-execution console directly to attackers.
 - **Source:** OWASP A02:2025 (Security Misconfiguration)
 
 ### SEC-04 [BLOCKER] TLS Enforced
@@ -56,6 +59,7 @@ All connections over HTTPS. No plaintext HTTP in production.
   - No HTTPS redirect configuration
   - Missing HSTS headers
 - **Fix:** Redirect HTTP to HTTPS. Set HSTS header: `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`. Use TLS 1.2+ only
+- **Impact:** Plaintext HTTP lets any network intermediary read or alter traffic in transit — credentials, session tokens, and personal data travel exposed.
 - **Source:** OWASP A04:2025 (Cryptographic Failures)
 
 ### SEC-05 [CRITICAL] Input Validation & Injection Prevention
@@ -76,6 +80,7 @@ AES-256-GCM symmetric. No MD5/SHA-1 for security. No custom crypto.
   - Custom crypto implementations
   - Weak password hashing (plain SHA-256 without salt/iteration)
 - **Fix:** Use platform crypto libraries. Password hashing: bcrypt/scrypt/argon2. Encryption: AES-256-GCM. Use random IV/nonce per operation
+- **Impact:** Weak or custom cryptography (MD5/SHA-1, ECB mode, hand-rolled ciphers) is breakable with known techniques and protects nothing against a motivated attacker.
 - **Source:** OWASP A04:2025 (Cryptographic Failures)
 
 ### SEC-07 [CRITICAL] Secure HTTP Headers
@@ -93,6 +98,7 @@ Dependencies audited, versions pinned, lockfile committed.
   - Unpinned versions: `^`, `~`, `latest`, `>=` without upper bound
   - Missing lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, Pipfile.lock, poetry.lock, go.sum) in git
 - **Fix:** Pin exact versions. Commit lockfiles. Run `npm audit` / `pip audit` / `safety check` regularly
+- **Impact:** An unpinned dependency can silently pull a compromised or backdoored version on the next install — the exact supply-chain vector behind several major incidents.
 - **Source:** OWASP A03:2025 (Software Supply Chain Failures)
 
 ### SEC-09 [CRITICAL] Server-Side Auth & Authorization
@@ -102,6 +108,7 @@ Auth validated server-side on every request. No client-only auth checks.
   - Authorization based on client-provided role/permission without server verification
   - Missing token validation on protected routes
 - **Fix:** Auth middleware on all protected routes. Validate JWT/session server-side. Check permissions per resource, not just authentication. Use RBAC or ABAC
+- **Impact:** A client-asserted role or permission is trivially forged — without server-side verification, any user can claim to be an admin.
 - **Source:** OWASP A01:2025 (Broken Access Control)
 
 ### SEC-10 [HIGH] Session Management
@@ -112,9 +119,10 @@ Secure session configuration. Token rotation. Proper logout.
   - Logout doesn't invalidate server-side session
   - Long-lived tokens without refresh mechanism
 - **Fix:** Set cookie flags: `Secure; HttpOnly; SameSite=Strict`. Short-lived access tokens (15min) + refresh token rotation. Server-side session invalidation on logout. Regenerate session ID after auth state change
+- **Impact:** A session with no rotation or secure flags stays hijackable for its full lifetime, and a logout that doesn't invalidate the server-side session leaves a stolen token valid after the user thinks they're signed out.
 - **Source:** OWASP Session Management Cheat Sheet
 
-### SEC-11 [HIGH] Rate Limiting
+### SEC-11 [HIGH] Rate Limiting (API/Web)
 API endpoints protected against abuse.
 - **Detect:**
   - No rate limiting middleware on auth endpoints (login, register, password reset)
@@ -157,6 +165,7 @@ Equal-weight Accept/Reject. Purpose-level granularity. Data deletion mechanism.
   - No account/data deletion flow
 - **Fix:** Consent UI with equal-sized buttons. Per-purpose toggles. Account deletion endpoint and UI
 - **Note:** For KVKK-specific consent requirements, see PRV-11
+- **Impact:** Without equal-weight consent and a deletion path, consent is legally defective under GDPR Art. 7 and users have no way to exercise the erasure right the rest of the audit assumes exists.
 - **Source:** GDPR Art. 7, CNIL 2025
 
 ### PRV-02 [BLOCKER] Privacy Policy
@@ -165,6 +174,7 @@ Accessible on website/app. AI service usage disclosed.
   - No privacy policy link accessible to users
   - Third-party AI services (OpenAI, Anthropic, Google AI) used without disclosure
 - **Fix:** Add privacy policy link in footer/settings. Disclose AI providers and data processing purposes
+- **Impact:** Undisclosed AI-provider data processing and an unreachable privacy policy are themselves GDPR Art. 13-14 transparency violations, independent of what the processing actually does.
 - **Source:** GDPR Art. 13-14
 
 ### PRV-03 [CRITICAL] Data Minimization
@@ -174,12 +184,14 @@ Collect only necessary data. No unnecessary tracking.
   - Device fingerprinting without consent
   - Tracking scripts loaded before consent
 - **Fix:** Remove unnecessary data collection. Replace fingerprinting with privacy-preserving identifiers
+- **Impact:** Collecting more than the feature needs expands breach blast radius and violates the minimization principle regardless of how well the excess data is secured.
 - **Source:** GDPR Art. 25
 
 ### PRV-04 [CRITICAL] Right to Erasure
 Complete data deletion including databases and third-party services.
 - **Detect:** No data deletion endpoint/UI. Deletion removes access but retains backend data
 - **Fix:** Implement complete erasure: databases, backups (schedule), third-party services. Provide deletion UI in account settings
+- **Impact:** Deletion that removes access but leaves the underlying record defeats the erasure right — the data is still there for the next breach or subpoena to expose.
 - **Source:** GDPR Art. 17
 
 ### PRV-05 [HIGH] Data Logging Hygiene
@@ -201,6 +213,7 @@ No PII in logs, error reports, or analytics.
 
 - **Fix:** Sanitize logs. Redact PII fields. Never log auth tokens or passwords. Use structured logging with field-level redaction. Implement redaction filter in logging/error-reporting pipeline — apply before data leaves process (e.g., Sentry `beforeSend`, Winston transport, Python `logging.Filter`, Go middleware, Java `LoggingFilter`). Test redaction with sample PII strings to verify patterns catch real-world formats
 - **Limits:** Regex catches structured PII only (emails, IPs, cards); unstructured PII (names, locations, free text) needs ML/NER-based scanning — treat regex-only pipelines as partial coverage, not proof of absence. For LLM interactions, exclude message content from logs entirely rather than relying on scrubbing — models emit sensitive data without keyword patterns
+- **Impact:** PII written to logs, error trackers, or analytics spreads personal data into systems with weaker access control than the primary database, multiplying the breach surface.
 - **Source:** OWASP Logging Cheat Sheet; Elastic PII detection guidance; Pydantic Logfire LLM-logging guidance
 
 ### PRV-26 [HIGH] Pseudonymization & Identifier Separation
@@ -210,6 +223,7 @@ Raw identifiers replaced with stable pseudonymous tokens; the mapping table live
   - Identifier↔pseudonym mapping stored in the same database/schema as the pseudonymized data
   - Schema fields collecting PII with no consuming feature (schema-level minimization gap — cross-check each PII column against actual reads)
 - **Fix:** Introduce a pseudonymization layer: generate stable tokens mapped to user IDs; store the mapping table in a separate access-controlled system that only identity-sensitive operations can query. Drop PII columns with no consuming feature. GDPR Art. 5(1)(c) makes minimization a legal obligation, not a preference
+- **Impact:** Raw identifiers keyed directly into analytics let anyone with query access re-identify individuals — pseudonymization is the control that forces a second, access-controlled lookup instead.
 - **Source:** GDPR Art. 4(5), Art. 5(1)(c); AWS prescriptive guidance (pseudonymized identifiers over raw personal data)
 
 ### PRV-27 [HIGH] Retention TTL in Code
@@ -219,6 +233,7 @@ Retention periods are enforced by automated deletion in code/config — not by a
   - Tables holding personal data with no `created_at`-based purge path
   - Backups/exports excluded from the deletion pipeline (PRV-04 erasure gap)
 - **Fix:** Declare retention per data class in code/config and enforce it mechanically: DB TTL indexes (Mongo TTL, Postgres `pg_cron` purge jobs), object-store lifecycle rules (S3 Lifecycle), log retention settings. A stated policy without an executing mechanism is a finding, not compliance
+- **Impact:** A retention period stated only in a policy document with no enforcing job means data is kept exactly as long as nobody remembers to delete it — indefinitely, in practice.
 - **Source:** GDPR Art. 5(1)(e) storage limitation
 
 ### PRV-28 [HIGH] Analytics Privacy Floor
@@ -228,6 +243,7 @@ Server-side/cookieless analytics still meets consent obligations; aggregate outp
   - Consent state not propagated to the server-side tag pipeline (events fire regardless of consent)
   - Aggregate analytics exposing small cohorts (user counts below a minimum group size) in dashboards/exports
 - **Fix:** Enforce consent centrally in the server-side pipeline — event dispatch conditional on consent status. For aggregate outputs, suppress small cohorts: practical k-anonymity thresholds range k=3–5 (basic suppression) up to k=10–30+ in regulated contexts — no formal consensus exists, so document the chosen k rather than hard-coding an industry claim; pure k-anonymity is vulnerable to differencing attacks, so combine with noise for sensitive metrics
+- **Impact:** Server-side analytics that skips consent, or aggregate exports that expose small cohorts, defeats the purpose of consent gating and can re-identify individuals from 'anonymous' rollups.
 - **Source:** ePrivacy Directive (first-party cookies in scope); k-anonymity literature (no formal threshold standard — contested/verify-current)
 
 ### PRV-29 [HIGH] Field-Sensitivity Registry SSOT
@@ -371,6 +387,7 @@ California Consumer Privacy Act + California Privacy Rights Act. Amended CPPA re
   - Search: absence of `doNotSell`, `optOut`, `gpc`, `ccpa`, `cpra` in settings/privacy pages
 - **Fix:** Add "Do Not Sell/Share" toggle. Implement opt-out API. Detect and honor Global Privacy Control (GPC) signals as valid opt-out requests with **visible confirmation**, not background-only processing (silent GPC handling drew a record $1.35M fine, Sept 2025). Disclose ADMT use with an opt-out path. Respond within 45 days. Schedule the phased cybersecurity audit: gross revenue >$100M in 2026 → audit by 1 Apr 2028; >$50M in 2027 → by 1 Apr 2029; all remaining covered businesses → by 1 Apr 2030
 - **GPC scope note:** GPC is a legally binding opt-out signal in California (Civ. Code §1798.135 + 11 CCR §7025) and in a growing set of other US states — the exact count is contested between sources; check the current enforcement list rather than hard-coding a number. California AB 566 ("Opt Me Out Act") additionally mandates browser-level GPC support from 1 Jan 2027
+- **Impact:** Missing opt-out/GPC handling is an active California enforcement target (a $1.35M fine already levied for silent GPC processing) and denies residents a right the statute guarantees.
 - **Source:** CCPA 1798.120; CPPA amended regulations, effective 1 Jan 2026; Cal. Civ. Code §1798.135
 
 ### PRV-07 [BLOCKER] LGPD Compliance [FRAMEWORK: LGPD]
@@ -381,6 +398,7 @@ Brazil Lei Geral de Protecao de Dados.
   - Cross-border transfer without safeguards
   - Search: absence of `lgpd`, `encarregado` in privacy files
 - **Fix:** Declare legal basis per activity. Appoint DPO. Per-purpose consent granularity. Cross-border SCCs
+- **Impact:** Processing without a declared legal basis or DPO contact is a direct LGPD violation exposing the business to ANPD fines the moment a data subject or auditor asks the question this rule checks.
 - **Source:** LGPD Lei 13.709/2018
 
 ### PRV-08 [BLOCKER] PIPL Compliance [FRAMEWORK: PIPL]
@@ -390,6 +408,7 @@ China Personal Information Protection Law.
   - Data stored outside China without SCIA or Standard Contract
   - Search: absence of `pipl`, `scia` in compliance files
 - **Fix:** Separate consent per purpose. Store data in China or complete SCIA. Explicit consent for sensitive data
+- **Impact:** Cross-border transfer without SCIA/Standard Contract, or bundled consent, is a PIPL violation under one of the strictest cross-border enforcement regimes globally.
 - **Source:** PIPL 2021
 
 ### PRV-09 [BLOCKER] UK GDPR Compliance [FRAMEWORK: UK_GDPR]
@@ -401,6 +420,7 @@ UK General Data Protection Regulation (post-Brexit).
   - Search: absence of `uk_gdpr`, `aadc`, `ico_registration` in compliance files
 - **Fix:** Register with ICO. Designate UK representative. Implement AADC for child-accessible services
 - **DUAA 2025 note:** the Data (Use and Access) Act (Royal Assent 19 Jun 2025) AMENDS — does not replace — UK GDPR/DPA 2018/PECR, phased Jun 2025→Jun 2026: new "recognised legitimate interests" basis (no balancing test for listed purposes), loosened automated-decision-making rules, transfers test now "not materially lower" protection, statutory complaint right to controllers (30-day acknowledgment — privacy-notice/complaint-handling updates due 19 Jun 2026), low-risk cookies (security, analytics) permitted on opt-out, PECR fines raised to GDPR level (£17.5M / 4%)
+- **Impact:** No ICO registration or UK representative leaves the business unreachable by the regulator and non-compliant with a registration duty independent of any breach.
 - **Source:** UK GDPR 2018, ICO AADC, ICO — DUAA 2025 guidance
 
 ### PRV-10 [BLOCKER] ePrivacy Compliance [FRAMEWORK: EPRIVACY]
@@ -411,6 +431,7 @@ EU ePrivacy Directive (Cookie Law).
   - Search: tracking SDK init before consent check
 - **Fix:** Block non-essential tracking until consent. Categorize: necessary, analytics, marketing. Granular opt-in. Re-consent annually
 - **Status note (2026):** the 2002 Directive remains the binding law. The ePrivacy *Regulation* replacement is effectively abandoned; the Digital Omnibus proposal (tabled 19 Nov 2025) would move cookie-consent rules into GDPR (new Arts. 88a/88b) but is an UNADOPTED proposal as of mid-2026 — do not audit against it as law
+- **Impact:** Loading tracking scripts before consent is captured is the single most commonly cited ePrivacy/cookie-law violation and the easiest for a regulator to detect from the outside.
 - **Source:** ePrivacy Directive 2002/58/EC; EP Legislative Train — Digital Omnibus package
 
 ### PRV-11 [BLOCKER] KVKK Compliance [FRAMEWORK: KVKK]
@@ -422,6 +443,7 @@ Turkey Kisisel Verilerin Korunmasi Kanunu — cross-border regime rewritten by L
   - Standard contract signed but not notified to the Board within 5 business days (independently fined violation — 2026 ceiling TRY 90,308–1,806,177)
   - Search: absence of `kvkk`, `verbis`, `acik_riza` in compliance files
 - **Fix:** Register with VERBIS. Obtain explicit consent for processing. Cross-border: use the tiered regime in order (adequacy → standard contract/BCR with 5-business-day Board notification → statutory exception); document which tier applies per transfer
+- **Impact:** Skipping VERBIS registration or the tiered cross-border regime carries independently fined violations in Turkey — missing the 5-business-day Board notification alone is its own penalty line.
 - **Source:** KVKK 6698 as amended by Law 7499 (Art. 9); kvkk.gov.tr cross-border transfer guideline (Rehber No. 48); 2026 fine indexation (Tebliğ No. 585, RG 27 Nov 2025)
 
 ### PRV-12 [BLOCKER] PIPA Compliance [FRAMEWORK: PIPA]
@@ -431,6 +453,7 @@ South Korea Personal Information Protection Act.
   - Third-party sharing without separate consent
   - Search: absence of `pipa`, `pipc` in compliance files
 - **Fix:** Separate opt-in consent per purpose before collection. Mandatory privacy impact assessment for large-scale processing
+- **Impact:** Bundled consent instead of per-purpose opt-in is a PIPA violation, and large-scale processing with no privacy impact assessment skips a mandatory Korean regulatory step.
 - **Source:** PIPA 2011 (amended 2023)
 
 ### PRV-13 [BLOCKER] PDPA Compliance [FRAMEWORK: PDPA]
@@ -441,6 +464,7 @@ Thailand/Singapore Personal Data Protection Act.
   - No breach notification mechanism
   - Search: absence of `pdpa`, `pdpc` in compliance files
 - **Fix:** Consent before collection. Appoint DPO. Breach notification within 72 hours (Singapore) / without delay (Thailand)
+- **Impact:** No consent mechanism, DPO, or breach-notification path leaves the business unable to meet Thailand/Singapore's statutory notification windows when an incident occurs.
 - **Source:** Thailand PDPA 2019, Singapore PDPA 2012
 
 ### PRV-14 [BLOCKER] HIPAA Compliance [FRAMEWORK: HIPAA]
@@ -453,6 +477,7 @@ US Health Insurance Portability and Accountability Act — Protected Health Info
   - Missing minimum necessary rule: code accesses full patient records when only subset needed
   - Backup/disaster recovery not documented for systems containing PHI
 - **Fix:** Encrypt PHI at rest (AES-256) and in transit (TLS 1.2+). Implement access logging with who/what/when for every PHI access. BAA with all third parties processing PHI. Apply minimum necessary principle. Document backup/DR procedures. Annual risk assessment.
+- **Impact:** Unencrypted PHI, missing access logging, or PHI shared without a BAA are each independently reportable HIPAA violations that trigger OCR enforcement and breach-notification duties.
 - **Source:** HIPAA Privacy Rule (45 CFR Part 164), HITECH Act 2009
 
 ### PRV-15 [CRITICAL] Data Processing Agreement [FRAMEWORK: GDPR,UK_GDPR,LGPD,KVKK]
@@ -477,6 +502,7 @@ Written DPA with all data processors.
   4. Data minimization verified (no scope creep since last review)
   5. User opt-out/control mechanisms functional
   6. Retention policies aligned with stated periods
+- **Impact:** An undocumented or unreviewed data processor is an unmanaged compliance liability — if that processor mishandles data, the controller inherits the violation with no paper trail showing due diligence.
 - **Source:** GDPR Art. 28
 
 ### PRV-16 [CRITICAL] Data Protection Impact Assessment [FRAMEWORK: GDPR,UK_GDPR,LGPD,PIPL]
@@ -490,6 +516,7 @@ DPIA required for high-risk processing.
   3. **Risk Assessment:** Risk matrix (Risk ID, description, likelihood [Low/Medium/High], severity [Low/Medium/High], inherent risk level). Mitigation table (Risk ID, control measure, implementation status, residual risk)
   4. **Consultation:** DPO/legal review record. Data subject notification plan
   5. **Decision:** Approved/Rejected. Residual risk summary. Review date (max 12 months). Consult DPA if high residual risk remains after mitigations
+- **Impact:** Skipping the DPIA for high-risk processing is itself a GDPR Art. 35 violation, separate from whatever risk the assessment would have caught.
 - **Source:** GDPR Art. 35
 
 ### PRV-17 [CRITICAL] Breach Notification [FRAMEWORK: GDPR,CCPA,LGPD,PIPL,UK_GDPR,KVKK,PIPA,PDPA]
@@ -514,6 +541,7 @@ Timely notification upon data breach.
   3. **Authority Notification (per framework timelines above):** File with relevant authority using framework-specific forms/systems
   4. **User Notification (when required):** In-app + email, plain language, user's preferred language, recommended protective actions
   5. **Remediation (1–4 weeks):** Root cause analysis, permanent fix, update security controls, post-incident report
+- **Impact:** A missing or undocumented breach response plan turns a routine incident into a missed 72-hour notification deadline — a penalty layered on top of the breach itself.
 - **Source:** GDPR Art. 33-34
 
 ### PRV-18 [CRITICAL] Data Portability [FRAMEWORK: GDPR,CCPA,UK_GDPR,LGPD,PIPA]
@@ -523,6 +551,7 @@ Users can export their data in machine-readable format.
   - Search: absence of `data_export`, `download_my_data`, `portability` in account/settings
   - A9/A11 crosscheck: a stated privacy-policy portability *promise* with no matching real endpoint/button in code (policy says "you can export your data" but no `data_export`/`download_my_data` implementation found) — CRITICAL, not just MEDIUM gap, since this is a legal claim contradicted by the product
 - **Fix:** Data export in JSON/CSV. "Download My Data" button. Response within 30 days (GDPR) or 45 days (CCPA)
+- **Impact:** No export path denies users the portability right GDPR/CCPA guarantee, and a policy that promises export with no working implementation is a false legal claim on top of the gap.
 - **Source:** GDPR Art. 20; extends A11 (ecosystem openness — ds-backend's standard-format export surface is the technical implementation this rule verifies)
 
 ### PRV-19 [CRITICAL] Consent Withdrawal [FRAMEWORK: GDPR,UK_GDPR,LGPD,PIPL,KVKK,PIPA,PDPA]
@@ -531,6 +560,7 @@ Withdrawal as easy as giving consent.
   - No withdrawal mechanism
   - Withdrawal harder than consent
 - **Fix:** Toggle per purpose in settings. One-tap withdrawal. Stop processing immediately. Log withdrawal timestamp
+- **Impact:** Withdrawal harder than consent (or missing entirely) is itself a GDPR Art. 7(3) violation, and processing continues on consent the user tried to revoke.
 - **Source:** GDPR Art. 7(3)
 
 ### PRV-21 [BLOCKER] EU AI Act Obligations & Timeline [FRAMEWORK: EU_AI_ACT]
@@ -550,6 +580,7 @@ EU AI Act (Reg. 2024/1689) — obligations phase in on the Digital-Omnibus-on-AI
   | High-risk AI embedded in Annex I regulated products | 2 Aug 2028 (was 2 Aug 2027) |
 
 - **Fix:** Disclose AI providers + processing purpose (PRV-02). Block NCII/CSAM generation paths before 2 Dec 2026. Classify high-risk exposure against the 2027/2028 dates — flagging Annex III urgency against 2 Aug 2026 over-flags by 16 months. Penalty tiers: up to €35M or 7% of worldwide turnover (most serious); up to €15M or 3% (transparency violations)
+- **Impact:** Missing transparency disclosure or an unblocked NCII/CSAM generation path exposes the business to penalties up to €35M or 7% of global turnover once general enforcement starts.
 - **Source:** EU AI Act Service Desk implementation timeline (ai-act-service-desk.ec.europa.eu); Digital Omnibus provisional agreement, 7 May 2026
 
 ### PRV-22 [BLOCKER] COPPA Compliance [FRAMEWORK: COPPA]
@@ -561,6 +592,7 @@ US Children's Online Privacy Protection Rule — FTC amended rule effective 23 J
   - No written data-security program or retention limits for children's data
   - Search: absence of `coppa`, `parental_consent`, `vpc`, age-gate logic in child-facing flows
 - **Fix:** Implement VPC before collection; add a second, separate consent step for any third-party disclosure; treat biometrics/IDs as personal information; write retention limits + security program. Note: FTC Policy Statement (25 Feb 2026) grants discretionary relief for age-verification-related collection only — the rest of the rule is enforced
+- **Impact:** Collecting from children without verifiable parental consent is an active FTC enforcement target — $20M and $10M settlements already levied in 2025 for exactly this gap.
 - **Source:** FTC amended COPPA Rule (Federal Register 2025-05904, 22 Apr 2025); FTC Policy Statement 25 Feb 2026
 
 ### PRV-23 [CRITICAL] EU Data Act [FRAMEWORK: EU_DATA_ACT]
@@ -571,6 +603,7 @@ Regulation (EU) 2023/2854 — applicable since 12 Sept 2025. Hits cloud/SaaS pro
   - Connected-product/related-service data not accessible to the user or their designated third party
   - Crosscheck PRV-18/A11: no machine-readable export path defeats the switching right technically
 - **Fix:** Add switching clauses to ToS/contracts; publish switching/porting documentation; implement export in a structured, machine-readable format; plan for enhanced interoperability requirements (from 12 Sept 2026)
+- **Impact:** Missing switching/porting terms locks customers into the service in violation of a regulation specifically written to prevent cloud lock-in — exposure applies from 12 Sept 2025.
 - **Source:** EU Data Act (Reg. 2023/2854), applicable 12 Sept 2025
 
 ### PRV-24 [CRITICAL] EU Cyber Resilience Act Readiness [FRAMEWORK: EU_CRA]
@@ -580,6 +613,7 @@ Products with digital elements sold in the EU. First hard deadline is imminent: 
   - No incident-reporting runbook capable of the CRA cascade: 24h early warning → 72h full notification → 14-day final report, to ENISA/national CSIRT via the Single Reporting Platform
   - No SBOM or dependency inventory (needed for the Dec 2027 CE/security-by-design obligations)
 - **Fix:** Publish a vulnerability-disclosure policy + security contact now; write the 24h/72h/14d reporting runbook before 11 Sept 2026; start SBOM generation. Full obligations (CE marking, technical documentation, security-by-design) apply 11 Dec 2027; penalties up to €15M or 2.5% of global turnover
+- **Impact:** No vulnerability-disclosure policy or incident-reporting runbook misses a hard deadline (11 Sept 2026) that applies even to products already shipped, independent of whether a vulnerability is ever found.
 - **Source:** EU CRA (in force 10 Dec 2024) — digital-strategy.ec.europa.eu/policies/cyber-resilience-act + /cra-reporting
 
 ### PRV-25 [CRITICAL] PCI DSS Scope Check [FRAMEWORK: PCI_DSS]
@@ -589,7 +623,36 @@ Card data handling. Active version: PCI DSS v4.0.1 (sole version since 31 Dec 20
   - Card numbers in logs, database columns, or analytics events
   - Payment forms without SRI/CSP protection on payment-page scripts (v4 requirements 6.4.3 / 11.6.1 — script inventory + change detection on payment pages)
 - **Fix:** Prefer full PSP delegation so scope collapses to SAQ-A (never store/process/transmit raw PAN). Raw card data unavoidable → full v4.0.1 assessment applies; never log PAN/CVV; add payment-page script integrity monitoring
+- **Impact:** Raw card data touching own servers pulls the business into full PCI DSS v4.0.1 scope instead of SAQ-A — an assessment and liability burden most businesses can avoid by delegating to a PSP.
 - **Source:** PCI SSC — v4.0.1; future-dated requirements effective 31 Mar 2025 (PCI SSC blog)
+
+### PRV-46 [BLOCKER] European Accessibility Act Obligations [FRAMEWORK: EAA]
+EU Directive 2019/882 — accessibility requirements for products and services sold or offered to EU consumers (e-commerce, banking, e-books, passenger transport, telecom), in force since 28 Jun 2025.
+- **Detect:** e-commerce checkout flows, banking/payment services, e-book readers/platforms, passenger-transport ticketing or self-service terminals, or telecom/electronic-communications services marketed to EU consumers, with no WCAG 2.1 AA conformance evidence and no published accessibility statement; no member-state complaint-handling contact identified.
+- **Fix:** Conform the covered service's core user journeys to WCAG 2.1 AA (technical checks: [rules-a11y.md](rules-a11y.md) A11Y-01–08); publish a per-service accessibility statement naming the standard met and any known gaps; identify the designated market-surveillance/enforcement body for each EU member state the service operates in. A gap that cannot be closed immediately still needs the accessibility statement disclosing it — silence is worse than a disclosed gap.
+- **Impact:** EAA is in active enforcement, not a future deadline — the first court ruling (France/Carrefour) rejected 71% RGAA conformance as a defense and imposed daily penalties; NL/SE/DK market-surveillance audits are already running.
+- **Source:** Directive (EU) 2019/882 (European Accessibility Act) — https://eur-lex.europa.eu/eli/dir/2019/882/oj
+
+### PRV-47 [BLOCKER] Digital Services Act — Transparency & Notice-and-Action [FRAMEWORK: DSA]
+EU Regulation 2022/2065 — applies to intermediary/hosting/online-platform services offering services to EU users; obligations phased in from Aug 2023 (very large platforms), fully applicable to all covered services since 17 Feb 2024.
+- **Detect:** a hosting/platform service with user-generated or third-party content and no notice-and-action mechanism for illegal content (Art. 16); no statement of reasons issued on content removal/restriction/account action (Art. 17); no published point of contact for authorities (Art. 11) or for users (Art. 12); recommender-system-driven feeds with no plain-language parameter disclosure (Art. 27); ads targeted using special-category-data profiling (Art. 26(3)) or any profiling-based ad targeting a known minor (Art. 28).
+- **Fix:** Implement a notice-and-action flow any user can trigger, producing a timely decision; issue a statement of reasons for every content/account restriction; publish electronic points of contact for both authorities and users; disclose recommender-system main parameters in the terms and in-product; never target ads using special-category-data profiling, and never target profiling-based ads at a user known to be a minor.
+- **Impact:** Non-compliance penalties reach up to 6% of global annual turnover, and the notice-and-action gap specifically is the duty regulators check first — it is directly observable from outside the company with no internal access needed.
+- **Source:** Regulation (EU) 2022/2065 (Digital Services Act) — https://eur-lex.europa.eu/eli/reg/2022/2065/oj
+
+### PRV-48 [BLOCKER] Age Verification / Age-Appropriate Design [FRAMEWORK: AGE_VERIFICATION]
+A service likely to be accessed by children (UK AADC standard), or hosting age-restricted content in a US state with an age-verification statute — SCOTUS upheld Texas-style age-verification laws for sexual content in *Free Speech Coalition v. Paxton* (Jun 2025) — needs age assurance proportionate to risk. COPPA's separate federal under-13 parental-consent regime is PRV-22.
+- **Detect:** a service likely to be accessed by children with no age-assurance mechanism and adult-default settings (high-privacy-by-default absent, geolocation on by default, nudge techniques toward oversharing); age-restricted content (sexually explicit or similar state-defined categories) served in a jurisdiction with an age-verification statute using self-declared age only (a birthdate field with no verification); no documented age-assurance method proportionate to the content risk.
+- **Fix:** For services likely accessed by children, apply the UK AADC's core standards regardless of jurisdiction as a baseline (high privacy by default, geolocation off by default, no nudge techniques toward weakening privacy, minimal data collection); for age-restricted content in a state with a verification statute, implement verification proportionate to the risk (document check, third-party age-estimation, or equivalent assurance) rather than self-declaration alone. Route under-13 US flows to the full COPPA VPC flow (PRV-22).
+- **Impact:** This is a live, enforceable requirement in multiple regimes at once — the UK ICO has issued enforcement action under AADC since 2020, and the US Supreme Court has now upheld state age-verification mandates for adult content, removing the strongest prior legal argument against them.
+- **Source:** ICO Age Appropriate Design Code — https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/childrens-information/childrens-code-guidance-and-resources/age-appropriate-design-a-code-of-practice-for-online-services/ ; *Free Speech Coalition, Inc. v. Paxton*, 606 U.S. ___ (2025) — https://www.supremecourt.gov/opinions/24pdf/23-1122_3e04.pdf
+
+### PRV-49 [BLOCKER] Quebec Law 25 Compliance [FRAMEWORK: QUEBEC_LOI25]
+Quebec's Act to modernize legislative provisions as regards the protection of personal information ("Law 25") — staged obligations since Sept 2022, fully in force since Sept 2024; enforced by the Commission d'accès à l'information (CAI).
+- **Detect:** personal information of Quebec residents processed with no designated, named privacy officer (undocumented default is a gap in itself); no privacy impact assessment on file for a new system/project involving personal information, or for a transfer of information outside Quebec; consent collected without Law 25's granularity (bundled into general terms, non-specific, or pre-ticked); no confidentiality-incident register maintained; automated-decision-making with no notice to the affected individual.
+- **Fix:** Formally designate a privacy officer (title + contact published); run and document a privacy impact assessment before any new personal-information project and before any transfer of information outside Quebec; collect clear, specific, granular consent separate from general terms of service; maintain an incident register recording every confidentiality incident regardless of whether it met the notification threshold; disclose automated-decision-making and provide an explanation channel.
+- **Impact:** Law 25 penalties reach the higher of C$25M or 4% of worldwide turnover for the most serious violations, and Quebec grants a private right of action with statutory damages that PIPEDA does not — exposure materially larger than most other regimes in this file.
+- **Source:** Commission d'accès à l'information du Québec — Law 25 obligations summary — https://www.cai.gouv.qc.ca/protection-renseignements-personnels/sujets-et-domaines-dinteret/principaux-changements-loi-25
 
 ---
 
@@ -602,4 +665,5 @@ Never a blocker (mandated-blocker test: a citable external authority makes it a 
   - Error payload includes fields beyond the allowlist: error class/type, app/build version, and an aggregate counter only — no user ID, email, IP, free-text stack-trace-with-PII, or request body
   - No error-reporting channel exists at all and no documented risk acceptance for "support-mail blindness" is present (this half of the check is informational, not a compliance gap — routed to ds-deploy/ds-backend's advisory finding, not duplicated here)
 - **Fix:** Gate error-reporting SDK init behind the same consent flow as analytics (PRV-01). Scrub payload to the allowlist (class, version, counter) before send — strip stack traces of literal values, user identifiers, and request/response bodies.
+- **Impact:** An error channel with no consent gate, or one that leaks stack-trace PII, silently converts a debugging tool into an unconsented personal-data pipeline — undermining the trust a zero-telemetry product is built on.
 - **Source:** GDPR Art. 5(1)(c) data minimization, applied to error telemetry; extends D4 (dimension coverage map)

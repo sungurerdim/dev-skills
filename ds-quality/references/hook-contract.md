@@ -65,10 +65,12 @@ To allow the stop: emit nothing and `exit 0`.
 
 Copy both scripts, write the default config, and register the hook once, without clobbering existing hooks:
 
+Resolve `{assets-dir}` to the `assets/` directory beside this SKILL.md (the installed skill's own copy); a host that exposes a `${CLAUDE_SKILL_DIR}`-style variable may use it to build that path as an optional convenience, never as the only way to find it.
+
 ```bash
 mkdir -p ~/.claude/hooks
-cp ~/.claude/skills/ds-quality/assets/ds-quality-gate.sh   ~/.claude/hooks/ds-quality-gate.sh
-cp ~/.claude/skills/ds-quality/assets/ds-quality-detect.sh ~/.claude/hooks/ds-quality-detect.sh
+cp "{assets-dir}/ds-quality-gate.sh"   ~/.claude/hooks/ds-quality-gate.sh
+cp "{assets-dir}/ds-quality-detect.sh" ~/.claude/hooks/ds-quality-detect.sh
 chmod +x ~/.claude/hooks/ds-quality-gate.sh ~/.claude/hooks/ds-quality-detect.sh
 
 # default auto config (only if absent — never overwrite the user's roots)

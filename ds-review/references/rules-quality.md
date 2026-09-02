@@ -1,6 +1,6 @@
 # Rules: Architecture & Testing
 
-Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action. Severity scale: CRITICAL / HIGH / MEDIUM / LOW (matches the skill's score formula; CRITICAL = security, data loss, crash only).
+Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action. Severity, confidence, score, and skip patterns: one home — [`../../core/severity-score-categories.md`](../../core/severity-score-categories.md).
 
 ## Table of Contents
 
@@ -27,6 +27,7 @@ Separation between handlers/controllers (entry), services/use cases (logic), and
   - FastAPI: routers -> services -> repositories
   - Django: views -> services -> models/managers
   - Go: handlers -> services -> repositories
+- **Impact:** Business logic in handlers can't be reused or unit-tested without spinning up the transport layer, and every route reimplements its own version of the same rule.
 - **Source:** Clean Architecture, Hexagonal Architecture
 
 ### ARC-02 [HIGH] Unidirectional Data Flow
@@ -48,6 +49,7 @@ Data models use immutable patterns. No in-place mutation.
   - Python: `@dataclass(frozen=True)` or Pydantic `model_config = ConfigDict(frozen=True)`
   - Go: return new structs instead of mutating
   - Rust: ownership model (default immutable)
+- **Impact:** In-place mutation of shared data creates action-at-a-distance bugs — a change made through one reference silently corrupts state another layer still holds.
 - **Source:** Eric Evans — Domain-Driven Design (Value Objects), Effective Java (Item 17: Minimize Mutability)
 
 ### ARC-04 [HIGH] Dependency Injection
@@ -60,12 +62,14 @@ Constructor injection preferred. DI container for lifecycle management.
   - Django: explicit service instantiation in views/factories
   - Go: constructor injection (idiomatic)
   - Spring: `@Autowired` / constructor injection
+- **Impact:** Direct instantiation of dependencies inside business logic makes the code untestable without the real service and locks the module to one implementation.
 - **Source:** SOLID Dependency Inversion Principle
 
 ### ARC-05 [HIGH] No Business Logic in Entry Points
 Zero business rules in route handlers, controllers, or CLI commands. Entry points = parse input + call service + format output.
 - **Detect:** if/else business decisions in route handlers. Data transformation in controllers. Validation logic mixed with handling
 - **Fix:** Move to service layer. Entry points: parse request, validate input shape, call service, format response
+- **Impact:** Business rules embedded in entry points can't be reused across transports (HTTP, CLI, queue) and are exercised only by end-to-end tests.
 - **Source:** Clean Architecture, SOLID SRP
 
 ### ARC-06 [HIGH] Consistent Error Handling Strategy
@@ -76,12 +80,14 @@ Single error handling pattern across codebase. Errors categorized and handled pe
   - Error types not categorized (validation vs business vs infrastructure)
   - Search: empty catch blocks, `catch (e) {}`, `except: pass`, `_ = err`; business logic catching the language's broadest exception type (`catch (Object)`, bare `except:`); error types outside a central sealed hierarchy
 - **Fix:** Define error hierarchy (ValidationError, NotFoundError, AuthError, InternalError). Global error handler middleware. Map errors to HTTP status codes. Log infrastructure errors, return safe messages to clients. Structure errors as one central, sealed (closed-variant) exception hierarchy; business logic catches specific members, never the universal supertype; every caught error logs at warning or above — the combination makes 'silently swallowed' unrepresentable. (XR-078)
+- **Impact:** Mixed error-handling styles mean some failures are logged and some vanish silently, and callers can't rely on one error shape.
 - **Source:** Microsoft Error Handling Guidelines, Go Error Handling (Effective Go), Node.js Error Handling Best Practices
 
 ### ARC-07 [HIGH] Feature Modularization
 Feature modules with clear boundaries. No circular dependencies.
 - **Detect:** Single flat directory with everything. Feature coupling. Imports crossing module boundaries without clear API
 - **Fix:** Group by feature (not by type). Each feature exposes public API. Shared module for common utilities. Clear dependency direction
+- **Impact:** A flat, uncoupled-by-feature layout means one feature change requires scanning the whole tree to find every affected file.
 - **Source:** Modular Architecture Patterns
 
 ### ARC-08 [HIGH] Typed Error Results
@@ -92,24 +98,28 @@ Typed results for recoverable errors. Exceptions for exceptional cases only.
   - Python: Result pattern or explicit exception types
   - Go: `(value, error)` return pattern (idiomatic)
   - Rust: `Result<T, E>` (built-in)
+- **Impact:** Using exceptions for expected, recoverable outcomes forces callers to guess which errors are exceptional via try/catch, and untyped propagation hides what a function can actually fail with.
 - **Source:** Rust Error Handling (The Rust Programming Language), TypeScript Discriminated Unions, Go (value, error) Pattern
 
 ### ARC-09 [HIGH] Defensive External Data Parsing
 Validate all external data at boundaries. No trust for API responses, user input, or file contents.
 - **Detect:** Force-casting external data. No schema validation on API responses. Unvalidated file uploads
 - **Fix:** Validate with schemas at boundaries: Zod (TS), Pydantic (Python), serde (Rust). Handle malformed data gracefully. Never trust external shape
+- **Impact:** Trusting external shape without validation lets malformed API responses or uploads crash the process or corrupt downstream state.
 - **Source:** Postel's Law, Secure by Design
 
 ### ARC-10 [MEDIUM] Complexity Limits
 Cyclomatic complexity <= 15. Function <= 50 lines. Nesting <= 3. Parameters <= 4.
 - **Detect:** Functions exceeding limits. Deep nesting. Long parameter lists
 - **Fix:** Extract functions. Early returns. Parameter objects. Composed functions
+- **Impact:** Functions past these limits take measurably longer to review correctly and hide more defects per line.
 - **Source:** SonarQube, ESLint complexity rules
 
 ### ARC-11 [HIGH] Duplication Drift
 Reused logic lives in one place. AI-assisted churn drove copy/pasted lines from 8.3% to 12.3% while "moved" (refactored) lines fell from 24.1% to 9.5% (2020→2024) — regenerating beats reusing by default.
 - **Detect:** Near-identical functions or blocks differing only in literals. A new helper that duplicates an existing one. Code rewritten within two weeks of being added (high churn). Search: clone detectors `jscpd`, `pmd cpd`, or LSP "find similar".
 - **Fix:** Reuse or extend the existing implementation instead of regenerating. Consolidate clones to a single source of truth. Three similar lines are fine; a fourth copy means extract.
+- **Impact:** A duplicated block fixed in one copy and missed in the others reintroduces the same bug, and the miss rate rises with every additional copy.
 - **Source:** GitClear — AI Copilot Code Quality 2025 (https://www.gitclear.com/ai_assistant_code_quality_2025_research)
 
 ### ARC-12 [HIGH] God-Module Decomposition via Strangler-Fig Phases
@@ -160,6 +170,7 @@ Coverage is a diagnostic signal, never a target — low coverage on a critical p
 - **Detect:** Critical-path modules (auth, payments, data mutations, core business logic) with low or zero branch coverage. Tests without assertions. Happy-path-only tests. Coverage-padding: tests that execute code but assert nothing meaningful
 - **Fix:** Add branch-covering tests for critical paths and error paths first. Treat a coverage report as a risk map, not a scoreboard — no blanket percentage gate
 - **Note:** 80% meaningful beats 95% superficial; chasing the number produces the superficial kind
+- **Impact:** An untested critical path (auth, payments, data mutation) fails silently in production exactly where the cost of a bug is highest.
 - **Source:** Martin Fowler — Test Coverage (coverage as diagnostic), Google Testing Blog — Code Coverage Best Practices
 
 ### TST-03 [HIGH] Fakes Over Mocks
@@ -177,12 +188,14 @@ Test with real databases and services using containers.
   - Supertest/httptest for API integration
   - Seed test data, clean up after each test
   - Separate test config from production
+- **Impact:** Mocking the database in an “integration” test certifies nothing about the real query, migration, or driver behavior it claims to cover.
 - **Source:** Testcontainers, Integration Testing Patterns
 
 ### TST-05 [CRITICAL] No Weakened Assertions
 Never skip, mock away, or relax assertions to make tests pass.
 - **Detect:** `skip` on failing tests. Assertions changed to match bugs. Mocks replacing the tested unit
 - **Fix:** Fix code or fix test to validate correct behavior. Every bug fix = regression test
+- **Impact:** A weakened or skipped assertion turns a red test green without fixing the underlying defect, and the next regression on that path ships unnoticed.
 - **Source:** Kent Beck — Test-Driven Development: By Example, Google Testing Blog
 
 ### TST-06 [HIGH] Static Analysis
@@ -193,12 +206,14 @@ Linter + type checker must pass.
   - Python: mypy strict + ruff/flake8
   - Go: `go vet` + `golangci-lint`
   - Rust: `clippy` (default)
+- **Impact:** Without an enforced linter/type-checker, a whole class of defects (unreachable code, type mismatches, unused values) reaches review only if a human happens to spot it.
 - **Source:** TypeScript Strict Mode Documentation, mypy Documentation, golangci-lint, Rust Clippy
 
 ### TST-07 [MEDIUM] Generated End-User-Facing Output Gets Its Own Quality Gate
 When the project generates a separate artifact meant for someone else's end users — a customer-facing static site, an exported report/PDF, an embeddable widget — rather than serving its own routes, that artifact carries its own performance/accessibility/quality gate. A drift-check that only verifies the *template* stayed in sync with its source is not a substitute for verifying the *generated output* itself.
 - **Detect:** A project's performance/a11y/Lighthouse CI config targets only the app's own routes; a separately-produced generated artifact (customer site, exported document, embeddable widget) has no equivalent gate. An existing check named like a quality gate (`template:check`, `export:verify`) actually only asserts template-source drift, not output quality — a name that reads as coverage but isn't.
 - **Fix:** Add a dedicated gate for the generated artifact using the same baseline thresholds as the main app's gate, run against representative generated output — not just the template source. Rename any drift-only check so its name doesn't imply broader coverage than it has.
+- **Impact:** A generated artifact with no dedicated gate can regress in performance or accessibility while the app's own gate stays green, and nobody notices until an end user does.
 - **Source:** Extends TST-02 (coverage as diagnostic) to artifact-level coverage — the gate must reach every surface real users see, not only the surfaces the app itself renders
 
 ### TST-08 [MEDIUM] Platform-Pinned Golden Tests: Excluded Locally, Run Fully in CI

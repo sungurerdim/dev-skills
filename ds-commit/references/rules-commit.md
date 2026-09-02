@@ -20,6 +20,7 @@ Commit message follows `type(scope): description` per Conventional Commits 1.0. 
   - Scope containing spaces or special characters
   - Search: commit titles not matching `^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+`
 - **Fix:** Classify change by type. Add scope if change is localized to a module. Format: `type(scope): lowercase imperative description`
+- **Impact:** A non-conventional title breaks changelog generators and semantic-release tooling that parse the type prefix to compute the version bump.
 - **Source:** conventionalcommits.org v1.0.0
 
 ### CMT-02 [HIGH] Descriptive Title
@@ -29,6 +30,7 @@ Title describes WHAT changed in system's behavior, not a vague label.
   - Titles that name files instead of behavior: "update utils.ts"
   - Titles that describe activity instead of outcome: "working on auth"
 - **Fix:** Describe behavioral change. "fix(auth): prevent token refresh loop on expired sessions" instead of "fix bug". Reader should understand impact without reading diff
+- **Impact:** A vague title forces every future reader — and `git blame`, bisect, and changelog output — to open the diff just to learn what changed.
 - **Source:** Chris Beams "How to Write a Git Commit Message"
 
 ### CMT-03 [HIGH] Atomic Commits
@@ -39,6 +41,7 @@ One logical change per commit. Commit can be reverted independently without brea
   - Commit combining formatting with logic changes
   - Multiple "and" clauses needed to describe commit
 - **Fix:** Split into separate commits, each with single purpose. Use `git add -p` for partial staging. Formatting changes go in dedicated commit
+- **Impact:** A commit bundling unrelated changes cannot be reverted or cherry-picked without dragging the unrelated change along with it.
 - **Source:** Git best practices, Conventional Commits rationale
 
 ### CMT-04 [MEDIUM] Title Length
@@ -48,6 +51,7 @@ Title stays within 50 characters (72 absolute max). GitHub Desktop and `git log 
   - Title exceeds 72 characters (hard limit)
   - Details crammed into title instead of body
 - **Fix:** Shorten title to essential description. Move details, context, and reasoning to commit body. Use scope to reduce title words: `fix(parser): handle empty input` instead of `fix: handle empty input in the parser module`
+- **Impact:** A title truncated by `git log --oneline` or the GitHub UI hides the actual change from anyone scanning history.
 - **Source:** Git documentation, GitHub UI constraints
 
 ### CMT-05 [MEDIUM] Body Explains Why
@@ -57,6 +61,7 @@ Commit body explains motivation and context. Diff shows what changed; body expla
   - Body describing diff instead of reasoning
   - No body on commits where the "why" is non-obvious
 - **Fix:** Explain: Why was change needed? What alternatives were considered? What trade-offs were made? Link to issues or discussions. Wrap body at 72 characters
+- **Impact:** A body that repeats the diff instead of the reasoning gives a future maintainer no more information than `git show` already provides.
 - **Source:** Chris Beams "How to Write a Git Commit Message"
 
 ### CMT-06 [LOW] Imperative Mood
@@ -66,4 +71,5 @@ Title uses imperative mood: "add feature" not "added feature" or "adding feature
   - Gerund in title: "adding", "fixing", "removing", "updating"
   - Third person: "adds", "fixes", "removes"
 - **Fix:** Rewrite in imperative: "add" not "added", "fix" not "fixed". Test with: "If applied, this commit will [title]" — should read naturally
+- **Impact:** Inconsistent tense across commit history is a minor readability tax, but it is the cheapest-to-fix signal of a rushed, unreviewed message.
 - **Source:** Git documentation, git's own generated messages (Merge branch, Revert)

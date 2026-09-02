@@ -23,18 +23,21 @@ All user-visible strings in resource/locale files. Zero hardcoded UI text.
   - Python (web): `gettext` or `babel` with PO files
   - Python (CLI): `gettext` with PO files
   - Go: `go-i18n` or `golang.org/x/text`
+- **Impact:** Hardcoded UI text ships in one language only — every other-locale user gets a mixed or wrong-language interface, with no mechanical way to find the untranslated strings later.
 - **Source:** i18n best practices
 
 ### I18N-02 [HIGH] Locale-Aware Formatting
 Dates, numbers, currency formatted per locale. No hardcoded format strings.
 - **Detect:** Hardcoded date format (`MM/DD/YYYY`). Hardcoded currency symbol (`$`). Manual number formatting with fixed decimal separator
 - **Fix:** Use `Intl.DateTimeFormat`, `Intl.NumberFormat` (JS). Use `locale` module (Python). Use `time.Format` with locale (Go). Always derive format from user's locale
+- **Impact:** A hardcoded date/currency format displays the wrong convention to most of the world's users (DD/MM vs MM/DD, comma vs period decimal) — data reads as wrong or confusing.
 - **Source:** MDN Intl, Unicode CLDR
 
 ### I18N-03 [HIGH] Pluralization Rules
 ICU message format or equivalent. CLDR defines up to six plural categories — `zero`, `one`, `two`, `few`, `many`, `other` (EN uses 2, AR all 6, Slavic 3-4).
 - **Detect:** Manual if/else for singular/plural. Hardcoded "1 item"/"X items". Template literals with simple ternary for plurals. Locale resource files missing required CLDR categories for their language — Polish/Russian reduced to `one`/`other` without `few`/`many`; any plural set missing the `other` fallback
 - **Fix:** Use ICU plural syntax in resource files with the full CLDR category set per locale — always include `other` as fallback. Libraries: `intl-messageformat` (JS), `babel` (Python). Test with Arabic, Polish, or other complex-plural languages
+- **Impact:** Manual singular/plural logic breaks on any language with more than English's two plural forms — Arabic and Slavic-family UIs show grammatically wrong text on every count.
 - **Source:** ICU, Unicode CLDR Plural Rules
 
 ### I18N-04 [HIGH] Structured Logging
@@ -45,6 +48,7 @@ JSON logs. No secrets/PII. Correlation IDs. Defined log levels.
   - Python: `structlog` or `logging` with JSON formatter
   - Go: `slog` (stdlib) or `zap`
   - Sanitize sensitive fields. Add correlation IDs. Define levels: debug/info/warn/error
+- **Impact:** Unstructured or PII-carrying logs make security/ops analysis manual across locales and can turn a log-access incident into a personal-data breach.
 - **Source:** Observability best practices, 12-Factor App
 - **Cross-ref:** Same check as [ARC-03](rules-arch.md) (canonical, arch scope) — when both `i18n` and `arch` scopes run together, report once under ARC-03.
 
@@ -81,6 +85,7 @@ Numbers and currencies must be formatted per locale.
   - Search: `toFixed(2)` for currency display (doesn't handle locale-specific decimal separators)
   - Search: hardcoded thousand separators (`,` or `.`) in number formatting
 - **Fix:** Use `Intl.NumberFormat` (JS), `NumberFormat` (Flutter/Dart), `babel.numbers` (Python). Specify locale and currency code. Let formatter handle symbol placement, decimal separator, and grouping.
+- **Impact:** A hardcoded currency symbol or decimal separator misdisplays amounts for most non-US locales — a wrong-looking price is a directly visible trust break.
 - **Source:** ICU Number Formatting
 
 ### I18N-08 [MEDIUM] No Business Logic in Message Files

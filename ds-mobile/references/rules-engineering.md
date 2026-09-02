@@ -6,10 +6,10 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Architecture & Code Quality** | ARC-01–10 (3 CRITICAL, 6 HIGH, 1 LOW) | ~12 |
-| **Testing** | TST-01–06 (1 CRITICAL, 5 HIGH) | ~100 |
-| **Performance** | PRF-01–10 (1 CRITICAL, 8 HIGH, 1 MEDIUM) | ~160 |
-| **Network & Data** | NET-01–07 (2 CRITICAL, 5 HIGH) | ~250 |
+| **Architecture & Code Quality** | ARC-01–10 (9 HIGH, 1 LOW) | ~12 |
+| **Testing** | TST-01–06 (6 HIGH) | ~100 |
+| **Performance** | PRF-01–10 (9 HIGH, 1 MEDIUM) | ~160 |
+| **Network & Data** | NET-01–07 (1 CRITICAL, 6 HIGH) | ~250 |
 | **Internationalization & Logging** | DEV-01–05 (5 HIGH) | ~300 |
 | **Hybrid & WebView Bridge** (conditional) | HYB-01–04 (1 CRITICAL, 2 HIGH, 1 MEDIUM) | ~345 |
 
@@ -17,7 +17,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 ## Architecture & Code Quality
 
-### ARC-01 [CRITICAL] Clean Architecture Layers
+### ARC-01 [HIGH] Clean Architecture Layers
 Presentation (UI + ViewModel) / Domain (use cases) / Data (repositories). Dependencies inward only.
 - **Detect:**
   - Business logic (if/else decisions, calculations, validation) in UI widgets/views/composables
@@ -26,9 +26,10 @@ Presentation (UI + ViewModel) / Domain (use cases) / Data (repositories). Depend
   - Search for: `http.get`, `dio.`, `fetch(`, `Retrofit`, `Room` in UI/presentation files
 - **Fix:** Extract logic to use cases (domain layer). Create repository interfaces in domain, implement in data. UI observes ViewModel state only
 - **Production examples:** AppFlowy (73k+ stars) uses plugin architecture with event-based RPC + Protobuf across Flutter/Rust FFI boundary. Immich (60k+ stars) uses MVVM + Riverpod providers with hexagonal backend (repositories -> services -> controllers). Signal uses layered architecture: UI -> Service (singleton managers) -> Storage -> DB -> Network.
+- **Impact:** Business logic embedded in the UI layer cannot be unit tested or reused, so every behavior change requires a UI-level test (or no test at all) and regressions surface only at runtime.
 - **Source:** Android Architecture Guide, Flutter Architecture
 
-### ARC-02 [CRITICAL] Unidirectional Data Flow
+### ARC-02 [HIGH] Unidirectional Data Flow
 State down, events up. Single source of truth per data type.
 - **Detect:** Two-way binding. State modified from multiple locations. UI mutating shared state directly
 - **Fix:** ViewModel exposes immutable state. UI sends events. ViewModel processes and emits new state
@@ -49,6 +50,7 @@ Data classes immutable. copyWith for derivation.
   - Kotlin: data class (val only)
   - Swift: struct
   - RN: TypeScript readonly + Immer
+- **Impact:** Mutable models with shared references let one part of the app change state another part is mid-read on, producing bugs that only reproduce under specific timing.
 - **Source:** Kotlin Data Classes, Swift Value Types (WWDC), Dart Immutable Data Patterns
 
 ### ARC-04 [HIGH] Dependency Injection
@@ -59,15 +61,17 @@ Constructor injection preferred. DI container for lifecycle scope.
   - Android: Hilt
   - iOS: constructor injection / Environment
   - RN: React Context / providers
+- **Impact:** Hardcoded concrete dependencies make a class untestable in isolation — every test drags in the real network/database/platform dependency behind it.
 - **Source:** Android DI Guide
 
-### ARC-05 [CRITICAL] No Business Logic in UI
+### ARC-05 [HIGH] No Business Logic in UI
 Zero business rules in widgets/views/composables. UI = display + event forwarding.
 - **Detect:** if/else business decisions in build()/render()/body. API calls from UI. Data transformation in UI
 - **Fix:** Move to ViewModel or use case. UI maps state to widgets. Events dispatched to ViewModel
+- **Impact:** Business rules inside widget/view code duplicate silently across screens that need the same rule, so a fix applied to one screen leaves the others still wrong.
 - **Source:** Clean Architecture, SOLID SRP
 
-### ARC-06 [CRITICAL] State Restoration
+### ARC-06 [HIGH] State Restoration
 Handle process death (Android) and background termination (iOS).
 - **Detect:** State lost on process death. Form data lost on background kill. Navigation stack not restored
 - **Fix:**
@@ -75,6 +79,7 @@ Handle process death (Android) and background termination (iOS).
   - iOS: scene state restoration APIs
   - Flutter: RestorationMixin
   - Persist in-progress work to local storage
+- **Impact:** Unrecovered process death or background termination discards in-progress form data and navigation state — the user's work disappears with no error to explain why.
 - **Source:** Android Architecture, iOS App Lifecycle
 
 ### ARC-07 [HIGH] Feature Modularization
@@ -92,18 +97,21 @@ Typed results for recoverable errors. Exceptions for exceptional cases only.
   - Swift: Result<T, E>
   - Dart: Either (dartz/fpdart) / sealed class
   - TS: discriminated unions
+- **Impact:** Untyped error propagation forces every caller to guess what can go wrong, so failure paths get skipped and errors surface as unhandled exceptions in production.
 - **Source:** Kotlin Result API, Swift Error Handling (Swift Programming Language Guide), Dart Either Pattern
 
 ### ARC-09 [HIGH] Defensive API Parsing
 Null-safe JSON. Fallback for unexpected shapes. No force-cast.
 - **Detect:** Force-unwrap on JSON fields (`!`, `as!`, `.value!`). No fallback for missing fields. FormatException unhandled
 - **Fix:** Conditional parsing with defaults. Handle String where Map expected. Validate shape before parsing
+- **Impact:** A force-unwrap or unguarded cast on API response data crashes the app the first time the backend sends a null, a missing field, or a shape the client didn't expect.
 - **Source:** Postel's Law
 
 ### ARC-10 [LOW] Complexity Limits
 Cyclomatic complexity <= 15. Method <= 50 lines. Nesting <= 3. Parameters <= 4.
 - **Detect:** Functions exceeding limits. Deep nesting. Long parameter lists
 - **Fix:** Extract methods. Early returns. Parameter objects. Composed functions
+- **Impact:** High-complexity functions are the ones bugs hide in and the ones new contributors are afraid to touch — complexity growth compounds review and onboarding cost over time.
 - **Source:** DCM, SonarQube
 
 ---
@@ -122,6 +130,7 @@ CI gate at 80%+. Quality over quantity.
 - **Detect:** Coverage < 80%. Tests without assertions. Happy-path-only tests
 - **Fix:** CI coverage gate. Branch coverage for critical paths. Test edge cases and errors
 - **Note:** 80% meaningful > 95% superficial. Mobile average only 30%
+- **Impact:** Below 80% meaningful coverage, regressions in the untested paths ship undetected until a user hits them — the CI gate exists specifically to catch what manual testing misses.
 - **Source:** ICSE 2025 Research
 
 ### TST-03 [HIGH] Fakes Over Mocks
@@ -139,12 +148,14 @@ Visual regression testing for UI.
   - iOS: XCTest snapshot
   - Flutter: matchesGoldenFile
   - Update goldens intentionally
+- **Impact:** Without golden/screenshot tests, a layout regression (broken padding, clipped text, wrong color) ships silently because nothing in CI looks at rendered output.
 - **Source:** Android Screenshot Testing
 
-### TST-05 [CRITICAL] No Weakened Assertions
+### TST-05 [HIGH] No Weakened Assertions
 Never skip, mock away, or relax assertions to pass tests.
 - **Detect:** `skip: true` on failing tests. Assertions changed to match bugs. Mock replacing tested unit
 - **Fix:** Fix code or fix test to validate correct behavior. Every bug fix = regression test
+- **Impact:** A weakened assertion or skipped test turns a red build green without fixing anything — the bug it was guarding against ships, and the test suite now lies about coverage.
 - **Source:** Kent Beck — Test-Driven Development: By Example, Google Testing Blog
 
 ### TST-06 [HIGH] Static Analysis CI Gate
@@ -156,6 +167,7 @@ Lint + analyzer must pass in CI.
   - Android: ktlint + detekt
   - iOS: SwiftLint
   - RN: ESLint + TS strict
+- **Impact:** With no lint/analyze gate in CI, style and correctness regressions accumulate until a manual cleanup pass becomes unavoidable — the exact cost automation was supposed to prevent.
 - **Source:** Flutter Analysis Options, Android ktlint/detekt, SwiftLint, ESLint TypeScript
 
 ---
@@ -166,6 +178,7 @@ Lint + analyzer must pass in CI.
 60fps (16ms). 120fps on high-refresh (8ms). Jank < 5%.
 - **Detect:** Dropped frames during scroll/animation. Build > 8ms. Raster > 8ms
 - **Fix:** Profile with platform tools. Reduce rebuilds. Const constructors. Offload heavy work to isolate/worker
+- **Impact:** Dropped frames during scroll or animation are the most visible, most-complained-about defect class in app-store reviews — users describe it as 'laggy' or 'janky' even when everything else works.
 - **Source:** Flutter Perf Metrics, Android Rendering
 
 ### PRF-02 [HIGH] Cold Start < 2s
@@ -188,12 +201,14 @@ Cold < 2s. Warm < 1s. > 5s is excessive.
 Track APK/IPA size. Tree-shaking. Remove unused assets.
 - **Detect:** APK > 50MB unjustified. Unused assets. No size analysis
 - **Fix:** `flutter build --analyze-size`. R8 shrinking. Remove unused packages. WebP/AVIF images
+- **Impact:** An oversized binary raises the abandon rate on slow connections and metered data plans, and on some markets pushes the app past a download-size warning threshold users treat as a stop sign.
 - **Source:** Android Reduce App Size Guide, Flutter App Size Optimization, Apple App Thinning
 
 ### PRF-04 [HIGH] Image Lazy Loading
 Images on-demand as scrolled into view. Placeholder during load.
 - **Detect:** All images loaded at screen init. No placeholder. High memory from images
 - **Fix:** Lazy load with placeholder (shimmer/blurhash). Cache images. Server-side resize for device
+- **Impact:** Loading every image at once on a list screen spikes memory and network usage immediately, often triggering an OS memory-pressure kill on lower-end devices before the screen even finishes rendering.
 - **Source:** Android Image Loading (Coil/Glide), Flutter Image Best Practices, Apple UIKit Image Optimization
 
 ### PRF-05 [HIGH] Efficient List Rendering
@@ -203,7 +218,7 @@ Virtualized/recycled list rendering for long lists.
 - **Impact:** 10K+ items without virtualization → jank, OOM, and 60fps failure
 - **Source:** Flutter ListView.builder, Android RecyclerView/LazyColumn, Shopify FlashList, Apple LazyVStack
 
-### PRF-06 [CRITICAL] Memory Leak Prevention
+### PRF-06 [HIGH] Memory Leak Prevention
 All subscriptions, controllers, and observers properly disposed.
 - **Detect:**
   - Flutter: `StreamController` / `AnimationController` / `TextEditingController` without `.dispose()` in `dispose()` method
@@ -242,6 +257,7 @@ Animations must not trigger expensive layout recalculations or rebuild entire su
   - Android/Compose: `Modifier.graphicsLayer { alpha = ... }` instead of `Modifier.alpha()` on complex subtrees. `RenderEffect` for GPU-side effects
   - RN: `useNativeDriver: true` in Animated API. `Reanimated` worklets for complex gesture-driven animations
   - Web: Animate `transform`/`opacity` only (compositor-only properties). `will-change` hint for known animation targets. `requestAnimationFrame` for frame sync
+- **Impact:** Animating layout-triggering properties instead of compositor-only ones forces a full layout+paint pass every frame, turning a decorative animation into the actual cause of the jank users report.
 - **Source:** Flutter Animations Overview, iOS Core Animation Programming Guide, Jetpack Compose Animation, React Native Reanimated
 
 ### PRF-10 [MEDIUM] Embedded Large Assets Are Subset to Actual Coverage — Offline, Not In-Build
@@ -255,7 +271,7 @@ Large bundled static assets (fonts, dictionaries, model files) are reduced to th
 
 ## Network & Data
 
-### NET-01 [CRITICAL] Offline-First Source of Truth
+### NET-01 [HIGH] Offline-First Source of Truth
 Local DB is canonical. Remote is sync target.
 - **Detect:** UI reads from network directly. No local persistence. App unusable offline
 - **Fix:** Local DB primary read. Background sync. UI reads local. Define conflict strategy
@@ -266,37 +282,43 @@ Local DB is canonical. Remote is sync target.
 Retry transient failures. Cap retries.
 - **Detect:** Fixed-interval retries. No retry on transient. Immediate retry flooding. No max limit
 - **Fix:** delay * 2^attempt + jitter. Max 3-5 retries. Cap 30-60s. Distinguish transient vs permanent
+- **Impact:** Retrying without backoff during an outage adds client-generated load on top of a struggling backend, turning a partial outage into a full one.
 - **Source:** MASVS-NETWORK
 
 ### NET-03 [HIGH] Circuit Breaker
 Stop calling failing service after threshold.
 - **Detect:** Repeated calls to failing endpoint. No failure tracking. Frozen on timeout
 - **Fix:** Track failures. Open after N. Half-open on cooldown. Close on success. Show offline UI during open
+- **Impact:** With no circuit breaker, every screen that calls a failing endpoint hangs for the full timeout on every attempt, compounding one backend outage into an app-wide stall.
 - **Source:** Michael Nygard — Release It!, Microsoft Azure Circuit Breaker Pattern
 
 ### NET-04 [HIGH] Cache: TTL + ETag + SWR
 Memory -> disk -> network. Stale-while-revalidate.
 - **Detect:** No caching. Full fetch every screen. No stale display during revalidation
 - **Fix:** LRU memory + disk + network. SWR: serve cached, update background. Respect Cache-Control
+- **Impact:** No caching means every screen revisit re-fetches from network, so a slow or flaky connection makes even previously-loaded content reload from scratch every time.
 - **Source:** HTTP Caching MDN
 
-### NET-05 [HIGH] Deep Linking
-Universal Links (iOS) + App Links (Android) with domain verification.
+### NET-05 [HIGH] Deep Link Fallback & Deferred Linking
+Universal Links (iOS) + App Links (Android) with domain verification, plus first-install handling. Store-side domain/AASA verification config is STO-17; this rule covers the runtime linking behavior — unverified schemes, missing fallback, deferred (first-install) linking.
 - **Detect:** No deep links. Custom schemes only (unverified). No install fallback
 - **Fix:** Verified deep links. Deferred deep linking for first-install. Web fallback
 - **Note:** Firebase Dynamic Links being deprecated
+- **Impact:** Custom-scheme-only links with no verified domain association and no web fallback break every marketing, email, and cross-app link into the app, and first-install deep links silently lose their destination.
 - **Source:** Android App Links Guide, Apple Universal Links Documentation, Flutter Deep Linking
 
 ### NET-06 [CRITICAL] Sensitive Data Cache Exclusion
 No credentials/PII in HTTP cache, screenshot cache, keyboard cache.
 - **Detect:** Sensitive API responses cached. Sensitive fields in autocomplete. Screenshot of sensitive screen in app switcher
 - **Fix:** `Cache-Control: no-store` for sensitive endpoints. Disable autocomplete on sensitive fields. FLAG_SECURE / windowScene for app switcher
+- **Impact:** Sensitive fields cached in HTTP cache, autocomplete, or the app-switcher screenshot are readable by anything with access to that cache — a shared device, screen-recording malware, or a forensic device image.
 - **Source:** MASVS-STORAGE, MASVS-PRIVACY
 
 ### NET-07 [HIGH] Sync Status Indicators
 Show sync state, last sync time, offline indicator.
 - **Detect:** No sync indication. User unaware of data currency. No offline mode indication
 - **Fix:** Sync icon/text. "Last synced: X min ago". Offline banner. Pending changes count
+- **Impact:** With no sync-status indicator, users can't tell whether what they're looking at is current, and act on stale data believing it's live.
 - **Source:** Google Health Stack Sync
 
 ---
@@ -313,24 +335,28 @@ All UI strings in resource files. Zero hardcoded.
   - Android: strings.xml
   - iOS: .xcstrings / Localizable.strings
   - RN: react-intl / i18n-js
+- **Impact:** Hardcoded strings can't be localized without a code change and a new release, blocking every future market the app wants to expand into.
 - **Source:** Flutter Internationalization Guide, Android String Resources, Apple Localization Guide, react-intl
 
 ### DEV-02 [HIGH] Locale-Aware Formatting
 Dates, numbers, currency formatted per locale.
 - **Detect:** Hardcoded date format (MM/DD/YYYY). Hardcoded currency symbol. Manual number formatting
 - **Fix:** Use Intl/DateFormat APIs with user locale
+- **Impact:** A hardcoded date/number/currency format displays wrong values to every locale that doesn't match the hardcoded convention — e.g. US date format misread as day-first by non-US users.
 - **Source:** ICU Formatting Guide, Android DateFormat, Apple NSDateFormatter, Flutter intl Package
 
 ### DEV-03 [HIGH] Pluralization Rules
 ICU message format. Languages have different rules (EN: 2, AR: 6, Slavic: 4).
 - **Detect:** Manual if/else for singular/plural. Hardcoded "1 item"/"X items"
 - **Fix:** ICU plural syntax in resource files. Test with complex-plural languages
+- **Impact:** Manual singular/plural if-else breaks for any language with more than two plural forms (Arabic has 6, Slavic languages have 4), producing grammatically wrong UI text.
 - **Source:** ICU, Unicode CLDR
 
 ### DEV-04 [HIGH] Structured Logging
 JSON logs. No secrets/PII. Correlation IDs.
 - **Detect:** Unstructured log messages. Sensitive data in logs (tokens, passwords, PII). No request correlation
 - **Fix:** Structured JSON format. Sanitize sensitive fields. Add correlation IDs. Define log levels (debug/info/warn/error)
+- **Impact:** Unstructured logs with embedded PII or secrets turn every log aggregator and crash-reporting dashboard into an unintended data-exposure surface.
 - **Source:** OpenTelemetry Specification, Google SRE Book (Monitoring Distributed Systems)
 
 ### DEV-05 [HIGH] Three Global Error Hooks Bound Together at Startup

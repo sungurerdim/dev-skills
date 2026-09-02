@@ -31,42 +31,6 @@ Per-project-type ideal values for Phase 3 gap analysis (current vs ideal). Consu
 | mobile | <55% | >65% | <12 | 65%+ |
 | devtool | <35% | >75% | <10 | 80%+ |
 
-## Score Calculation
+## Score Calculation, Severity & Skip Patterns
 
-For review scopes without fixable findings (architecture, patterns), score reflects structural health:
-- 90-100: No significant issues, patterns are consistent
-- 70-89: Minor inconsistencies, 1-2 structural concerns
-- 50-69: Notable issues, multiple inconsistencies
-- 30-49: Significant structural problems
-- 0-29: Fundamental architectural issues
-
-These ranges are guidelines, not formulas. Use judgment within range based on finding severity and count.
-
-For scopes with countable findings:
-
-```
-base_score = 100
-penalty_per_CRITICAL = -25
-penalty_per_HIGH = -10
-penalty_per_MEDIUM = -3
-penalty_per_LOW = -1
-
-scope_score = max(0, base_score + sum(penalties))
-```
-
-Cap rules:
-- Any CRITICAL finding → scope score max 40
-- 3+ HIGH findings → scope score max 60
-
-## Judgment Rules
-
-| Rule | Detail |
-|------|--------|
-| Evidence | Every finding cites `file:line`. Read actual code before reporting. |
-| Conservative | Uncertain → lower severity. Style → max LOW. |
-| Pattern threshold | 3+ examples before concluding systemic pattern. |
-| CRITICAL validation | Analyze as "this is a bug" AND "this might be intentional". Both agree → include. Disagree → downgrade. |
-
-## Skip Patterns
-
-Never flag intentionally marked code: `# noqa`, `# intentional`, `# safe:`, `_` prefix, `TYPE_CHECKING` blocks, platform guards, test fixtures.
+One home: [`../../core/severity-score-categories.md`](../../core/severity-score-categories.md). Scopes without countable findings (architecture, patterns) score on structural health using the same CRITICAL/HIGH/MEDIUM/LOW judgment — the 100-point formula's cap rules still bound the range, applied by judgment rather than a per-finding sum. Evidence discipline: every finding cites `file:line`, read actual code before reporting; 3+ examples before concluding a systemic pattern.

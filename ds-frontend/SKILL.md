@@ -31,10 +31,11 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 **Dimensions:** A5 (ux scope), A6 (UI), A7 (implementation), A9 (conditional ecosystem rules), D10 (admin UI)
 
 - Audits UI/UX design quality across web ({web-frameworks}), mobile ({mobile-frameworks}), desktop ({desktop-frameworks}) — only touches UI-layer code (styles, components, tokens, ARIA); business + backend untouched.
+- Privacy/PII data-handling audit is out of scope: `/ds-compliance` present → advisory-handoff; absent → gap-note `[privacy] not analyzed — requires /ds-compliance`. This skill never runs its own privacy detector.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-qualifying (state-qualifying: a resumable multi-scope audit whose progress exists nowhere else): a multi-scope audit is a long autonomous loop whose scope-by-scope progress lives nowhere else — an interrupted run re-scans from zero. Progress persists to `ds/audit/frontend.json` with the run's `git_hash`; applied fixes still land in the working tree, where git remains the durable record. State is deleted when the Summary completes.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
-- Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with concrete blocker. <!-- portable-only -->
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -42,15 +43,16 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 |------|--------|
 | `--mode={x}` | `audit`, `audit+fix`, `design` |
 | `--style-mode={x}` | `controlled` (default, ship-grade strict tokens + WCAG AA), `innovative` (prototype, relaxed). [references/controlled-vs-innovative.md](references/controlled-vs-innovative.md) |
-| `--aesthetic={preset}` | Named preset (11 IDs below). [references/aesthetics-presets.md](references/aesthetics-presets.md) |
+| `--aesthetic={preset}` | Named preset (3 IDs below). [references/aesthetics-presets.md](references/aesthetics-presets.md) |
 | `--scope={list}` | Comma-separated scopes (table below) or `all` |
 | `--framework={f}` | Override detection: `react`, `vue`, `svelte`, `angular`, `flutter`, `swiftui`, `compose`, `rn` |
 | `--check` | Report only, zero modifications |
 | `--resume` | Resume from `ds/audit/frontend.json` without the confirmation prompt |
 | `--clean` | Delete `ds/audit/frontend.json` and start fresh |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--target={path}` | Restrict Fix/Design output to files under `{path}` — used to promote one prototype directory to production (see Translating Innovative → Controlled) |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
-Without flags: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — scan + report, no changes / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu. `--auto` always disambiguates, selecting Audit & Fix (best-judgment default — scan and fix autonomously) across all scopes.
+Default: resolves to Audit & Fix across all scopes (best-judgment default — scan and fix autonomously), recorded in the summary. `--ask`: present an up-front menu covering every mode, each with a one-line what-it-does — Audit (recommended) — scan + report, no changes / Audit & Fix — scan + report + fix CAT-1 / Design — generate/populate design system / (Cancel). A disambiguating flag (e.g. `--mode`, `--scope`) skips the menu.
 
 ## Scopes
 
@@ -58,17 +60,31 @@ Without flags: present an up-front menu covering every mode, each with a one-lin
 |-------|--------|-----------|
 | tokens | Color/spacing/typography/shadow/border token consistency, hardcoded value detection | rules-design-system.md |
 | components | Component API quality, naming, composition, reuse, overlays, route liveness, control-action binding, icon system, AI-friendly docs | rules-components.md |
-| solid | SOLID/GRASP in components: SRP, OCP, ISP, DIP, Low Coupling, High Cohesion ([references/principles.md §2](references/principles.md)) | rules-components.md |
+| solid | SOLID/GRASP in components: SRP, OCP, ISP, DIP, Low Coupling, High Cohesion ([../core/principles.md §2](../core/principles.md)) | rules-components.md |
 | states | empty/loading/error/success/disabled/hover/focus/active coverage | rules-components.md |
 | ux | Nielsen 10 heuristics, interaction laws (Fitts/Hick/Jakob/Tesler et al.), perceived performance (optimistic-UI rollback, INP budget), validation-timing strategy, deceptive-pattern screening, UX writing, nav-depth/breadcrumb IA, onboarding/first-use audit; integrate with states scope | rules-ux.md |
 | a11y | WCAG 2.2 AA, ARIA patterns (APG), keyboard nav, contrast, screen reader | rules-accessibility.md |
 | responsive | Layout overflow, breakpoints, container queries, fluid typography, multi-column symmetry, alignment & visual geometry (in-item, row/column data, shared edges/gutters, vertical rhythm), print styles, RTL-readiness, Core Web Vitals | rules-responsive.md |
 | theming | Dark mode, `light-dark()`, color-scheme, semantic tokens, theme switching | rules-design-system.md |
-| config | Env-consumed values externalized; `.env.example` updated; no secrets in source ([references/principles.md §8](references/principles.md)) | rules-design-system.md |
+| config | Env-consumed values externalized; `.env.example` updated; no secrets in source ([../core/principles.md §8](../core/principles.md)) | rules-design-system.md |
 | admin-ui | D10 (advisory) — back-office/admin surfaces follow the same design-system tokens, states, and a11y rules as user-facing UI; no unstyled/raw-HTML admin screens | rules-components.md |
 | scheduling | Conditional (D3) — scheduling/calendar/booking surfaces: hover preview, create=edit, drag thresholds, capacity conflicts, off-hours, entity color SSOT | rules-scheduling.md |
 
-Default: all scopes.
+| Scope | Runs when (signal) | Otherwise |
+|-------|---------------------|-----------|
+| tokens | ui ≠ none | N/A — no UI surface |
+| components | ui ≠ none | N/A — no UI surface |
+| solid | ui ≠ none | N/A — no UI surface |
+| states | ui ≠ none | N/A — no UI surface |
+| ux | ui ≠ none | N/A — no UI surface |
+| a11y | ui ≠ none | N/A — no UI surface |
+| responsive | ui = web | N/A — non-web UI (adaptive mobile layout is ds-mobile's scope) |
+| theming | ui ≠ none | N/A — no UI surface |
+| config | ui ≠ none | N/A — no UI surface |
+| admin-ui | ui ≠ none and an admin/back-office surface is detected | N/A — no admin surface detected |
+| scheduling | a scheduling/calendar/booking surface is detected (calendar dependency, `/booking` or `/schedule` route) | N/A — no scheduling surface detected |
+
+Every scope runs unless its signal excludes it (table above); an `unknown` signal never excludes a scope. `--scope=` overrides for the named scopes; `--ask` shows the resolved table before running.
 
 ### A9 — Google / Apple Ecosystem Rules (conditional)
 
@@ -96,17 +112,9 @@ Default: all scopes.
 
 | ID | Best For | Anchor Color |
 |----|----------|--------------|
-| `dark-oled-luxury` | premium SaaS, fintech, AI tools | gold on black |
 | `warm-trust` | health, legal, family, advisory | deep teal |
-| `clean-minimal` | productivity, dev tools, docs | monochrome |
-| `arctic-data` | dashboards, analytics, monitoring | cold blue-grey |
-| `terracotta-craft` | artisan, indie commerce, wellness | terracotta |
-| `neo-brutalist` | manifestos, indie creative, music | primary red |
 | `clinical-calm` | medical, mental health, telehealth | muted sea-green |
-| `consumer-glow` | mobile apps, social, lifestyle | vibrant gradient |
-| `editorial` | content publishing, long-form, magazine | serif accent |
 | `enterprise-sober` | B2B tools, admin panels, internal | workhorse blue |
-| `studio-mono` | designer/dev portfolios | single-color |
 
 ## Delegation
 
@@ -118,7 +126,7 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
 
 ### Phase 1: Detect
 
-**Recovery check (first step, runs unconditionally — including under `--auto`):** DETECT `ds/audit/frontend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently — the re-verify step below catches real drift). Resume → RE-VERIFY the `in_progress` scope by re-reading the files its recorded findings cite, keep `done` scopes, announce `[FE] Resuming from Phase {N}: {name}.` On successful Summary, delete state; `ds/audit/` empty afterwards → remove it. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
+**Recovery check (first step, runs unconditionally on every invocation):** DETECT `ds/audit/frontend.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → default: resume silently (best judgment — the re-verify step below catches real drift), recorded in the summary; `--ask`: prompt `Resume anyway? [Y/n]`. Resume → RE-VERIFY the `in_progress` scope by re-reading the files its recorded findings cite, keep `done` scopes, announce `[FE] Resuming from Phase {N}: {name}.` On successful Summary, delete state; `ds/audit/` empty afterwards → remove it. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
 
 **State `data`:** `{ mode, style_mode, framework, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line, category, disposition}]}, design_system_state }`.
 
@@ -140,7 +148,7 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
 2. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching frontend scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 3. **Upstream artifacts:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 4. **Design system detection.** Search for: CSS custom properties (`:root { --color-* }`), Tailwind config, CSS modules theme; styled-components / Emotion / MUI / Chakra theme; Flutter `ThemeData`/`ColorScheme`; SwiftUI Color assets; Compose `MaterialTheme`; `tokens.json`/`tokens.yaml`/`design-tokens.*`.
-5. **Mode + scope.** Ask or use flags: Audit / Audit & Fix / Design / Custom; map scope selection to reference files (default: all). **Under `--auto`:** no ask — mode resolves to Audit & Fix, scope resolves to all (a flag disambiguates every menu).
+5. **Mode + scope.** Default: mode resolves to Audit & Fix, scope resolves to all, recorded in the summary (a flag disambiguates every menu). `--ask`: menu for Audit / Audit & Fix / Design / Custom; map scope selection to reference files.
 
 **Gate:** Framework identified; design system state cataloged (exists/partial/absent); mode + scope confirmed. If fails → framework undetectable → prompt "Which frontend framework?" (offer list); no response → fall back to plain HTML/CSS, announce; design system inconclusive → record `design_system: "unknown"`, proceed (missing tokens surface as findings).
 
@@ -182,7 +190,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 ### Phase 5: Fix [SKIP if audit-only or --check]
 
-0. **Checkpoint.** `git status --porcelain` → non-empty → interactive: ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: fix edits interleave with uncommitted work, single-command rollback is lost); `--auto`: proceed only when the pre-existing dirty state stays untouched by this skill's writes — otherwise stop and record `needs-human`. Never run a bulk fix over uncommitted unrelated changes silently. Empty output → clean tree, proceed.
+0. **Checkpoint** (`../core/checkpoint-protocol.md`). `git status --porcelain` → empty → clean tree, proceed. Non-empty: default — proceed only when the pre-existing dirty state stays untouched by this skill's writes, otherwise stop that unit and record `needs-human`; `--ask` — show the dirty files, ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: fix edits interleave with uncommitted work, single-command rollback is lost). Never run a bulk fix over uncommitted unrelated changes silently.
 1. **Plan.** Group by file, order CRITICAL → HIGH → MEDIUM → LOW.
 2. **Execute.** CAT-1: hardcoded color → token; missing `alt` → add; contrast → adjust to 4.5:1; missing `:focus-visible` → add outline; missing `aria-label` → add from context.
 3. **Verify + record.** Re-read each modified file; record applied/failed/skipped.
@@ -191,7 +199,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — items resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Default: items resolve by best judgment (`fixed` or `failed`) with the reasoning recorded in the summary; only items matching the publish/irreversible exception list become `skipped (needs-human)`. `--ask`: state the question (`Approve these N items?`), present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → mark `skipped (no decision)`, proceed; do not retry.
 
@@ -203,7 +211,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 2. **Component catalog** — state coverage matrix, missing state recs, a11y compliance per component.
 3. **A11y checklist** — WCAG 2.2 AA list specific to detected framework + components.
 
-**Gate:** Artifacts generated and written — each declared path exists on disk (`ls {path}` → listed); user informed of paths. If fails → artifact unwritable (permission, path conflict) → surface error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue. **Under `--auto`:** no ask — retries once with a sanitized fallback path; still unwritable → `failed (write error)`, recorded in the generated-artifacts list, run continues.
+**Gate:** Artifacts generated and written — each declared path exists on disk (`ls {path}` → listed); user informed of paths. If fails → artifact unwritable (permission, path conflict) → default: retry once with a sanitized fallback path, still unwritable → `failed (write error)` recorded in the generated-artifacts list, run continues; `--ask`: surface the error, ask user to confirm/alternative path; no response → skip, record `failed (write error)` in the generated-artifacts list, continue.
 
 ### Mechanical Done Gate [any fix applied]
 
@@ -213,9 +221,10 @@ Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hoo
 
 ```
 ds-frontend: {OK|WARN|FAIL} | Mode: {audit|audit+fix|design} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
+Scopes: ran {a, b, …} · N/A — {key}={value} {…}
 ```
 
-Disposition accounting — totals balance. `fixed + failed + skipped + needs_approval + not_applicable = total`.
+Disposition accounting — totals balance. `fixed + failed + skipped + needs_approval + not_applicable = total` (shape: [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)).
 
 **State cleanup:** run completed → delete `ds/audit/frontend.json`; `ds/audit/` now empty → remove the directory. Run ended WARN/FAIL → leave state in place so the next invocation can resume it.
 
@@ -250,10 +259,12 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 
 ## Severity
 
+Contrast policy (stated once, binding for every rule that touches contrast — see `references/rules-accessibility.md` AXE-03/AXE-09 for the full definitions): text below the applicable WCAG threshold (4.5:1 normal text, 3:1 large text ≥18pt/24px or ≥14pt/18.7px bold — SC 1.4.3) is CRITICAL, a complete reading lockout; non-text/UI-component contrast below 3:1 (borders, icons, focus rings — SC 1.4.11) is HIGH, a narrower, partial-perception loss.
+
 | Level | Meaning |
 |-------|---------|
-| CRITICAL | Missing keyboard access on interactive element; text contrast <3:1; no focus indicator; interactive element without accessible name |
-| HIGH | Hardcoded colors bypassing token system; missing empty/error states on data-driven component; no dark mode handling for themed app |
+| CRITICAL | Missing keyboard access on interactive element; text contrast below 4.5:1 normal / 3:1 large text; no focus indicator; interactive element without accessible name |
+| HIGH | Hardcoded colors bypassing token system; missing empty/error states on data-driven component; no dark mode handling for themed app; non-text/UI-component contrast below 3:1 |
 | MEDIUM | Spacing values off scale; missing loading state in async component; non-semantic token names |
 | LOW | Minor spacing inconsistency; missing hover transition; suboptimal token naming |
 

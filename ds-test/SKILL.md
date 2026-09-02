@@ -39,6 +39,7 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 - Uses project's existing test framework — never introduces a new framework unless none exists; test files go in project's established test directory (auto-detected)
 - Does NOT fix application code to make tests pass — fixes the TEST if test is wrong, or reports app bug if app is wrong
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- Writes `ds/audit/findings.md` only when a test run confirms an application bug (scope `app-bugs`) or files a critical-flow-wiring gap (scope `testing`) — never for test-quality-only observations; verifies `ds/audit/` is in `.gitignore` before the first write, appending the line when absent.
 - **State-exempt:** generated/updated test files on disk are the progress record; re-running naturally resumes.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
@@ -57,9 +58,22 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | `--prune` | Find and delete low-value tests, replace with meaningful ones |
 | `--scope={path}` | Limit to specific file, directory, or module |
 | `--baseline[=path]` | Characterization baseline: capture current actual behavior of a legacy module before refactoring; tests assert what the code DOES today, not what it should do. Optional `=path` narrows to a specific file, directory, or module. |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
-### Mode Menu (no mode flag passed)
+### Mode Resolution (no mode flag)
+
+| Repo state | Resolved mode |
+|------------|---------------|
+| Request names baseline / prune / coverage / E2E intent explicitly | That mode, regardless of the rows below |
+| No test framework detected | Setup (2d) |
+| No tests exist for the target scope | Generate (2a) |
+| Tests exist and the suite is currently red | Run + Fix (2c) |
+| Tests exist, suite green, source changed since the test file's last touch | Update (2b) |
+| Both — some target files untested AND the existing suite is red | Run + Fix (2c) first to establish true failures, then decide: fix the failures, generate for the files still uncovered |
+
+Default: the table above resolves the mode from repo state and the request; the choice is recorded in the summary — the resolved mode enters the matching phase (2a-2e) as if its flag were passed. `--ask`: show the mode menu below instead of resolving silently. Any mode flag (`--generate`, `--update`, `--run`, `--e2e`, `--coverage`, `--setup`, `--prune`, `--baseline`) overrides both and skips straight to its phase. No two phases claim the same input: the table above is the single tie-breaker when no flag is passed.
+
+### Mode Menu (`--ask`, no mode flag)
 
 | Mode | What it does |
 |------|--------------|
@@ -71,10 +85,8 @@ AI-generated tests often mock everything, assert nothing useful, and break on th
 | Setup | Set up test framework and infrastructure |
 | Prune | Find and delete low-value tests, replace with meaningful ones |
 | Baseline | Characterize a legacy module's current behavior before refactoring |
-| Full lifecycle (all) | Generate + run + fix in one autonomous pass (`--auto`) |
+| Full lifecycle (all) | Generate, then run + fix, in one pass |
 | (Cancel) | Exit, no changes |
-
-Shown only when no mode flag is passed — any flag above (`--generate`, `--update`, `--run`, `--e2e`, `--coverage`, `--setup`, `--prune`, `--baseline`, `--auto`) disambiguates and skips the menu.
 
 ## Scopes
 
@@ -86,11 +98,19 @@ Shown only when no mode flag is passed — any flag above (`--generate`, `--upda
 | `snapshot` | Snapshot/golden tests for UI components or serialized output |
 | `fixture` | Test data setup, factories, builders, seed files |
 
-Default: `unit` + `integration`. E2E and snapshot require explicit `--e2e` or `--scope`.
+| Scope | Runs when (signal) | Otherwise |
+|-------|---------------------|-----------|
+| `unit` | any source | — |
+| `integration` | any source | — |
+| `e2e` | `ui`≠`none` or `api`≠`none`, requested via `--e2e`/`--scope=e2e` | N/A — no UI/API surface, or not requested |
+| `snapshot` | `ui` in {web, ios, android, desktop} | N/A — no UI surface |
+| `fixture` | any source | — |
+
+`--scope=` overrides the table for the named scopes; `--ask` shows the resolved table before running.
 
 ## Delegation
 
-**Owns:** test-generation, test-run-fix, coverage, test-regression, e2e | **Delegates:** none | **Receives:** ds-deps → post-upgrade test run; ds-issue → regression-test generation; ds-tune → per-experiment test validation; ds-ship → Phase 2 rule audit; ds-quality → starter-suite generation when the project has zero tests. Verified consumer of ds-blueprint findings (testing, functional-completeness): generates/fixes tests from them, does not re-produce scan findings.; ds-freeze → kept-set aggregate green check
+**Owns:** test-generation, test-run-fix, coverage, test-regression, e2e | **Delegates:** none | **Receives:** ds-deps → post-upgrade test run; ds-issue → regression-test generation; ds-tune → per-experiment test validation; ds-ship → Phase 2 rule audit; ds-quality → starter-suite generation when the project has zero tests. Verified consumer of ds-blueprint findings (testing, functional-completeness): generates/fixes tests from them, does not re-produce scan findings.; ds-freeze → kept-set aggregate green check; ds-build → red-proven regression tests for fix-type units; ds-debug → regression-test red-proof for a localized bug
 
 ## Execution Flow
 
@@ -100,11 +120,11 @@ Setup → [Generate / Update / Run+Fix / Baseline] → Verify → [Needs-Approva
 
 1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings with `testing` scope; use to prioritize which modules need tests (skip own coverage analysis for covered scopes). Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 2. **Upstream artifacts:** Profile → {Ideal Metrics.Coverage, Project Map.Toolchain, Current Scores.Testing, Type + Stack}. Findings({testing}) → verify + use. Absent → own analysis.
-3. **Detect test framework** from project config + dependencies. See [references/frameworks.md](references/frameworks.md).
+3. **Detect test framework** from project config + dependencies. See [../core/toolchains.md](../core/toolchains.md).
 4. **Detect test conventions:** test directory (`test/`, `tests/`, `__tests__/`, `spec/`, `src/**/*.test.*`); naming pattern (`*_test.go`, `*.test.ts`, `*.spec.rb`, `test_*.py`); helper/fixture locations (`fixtures/`, `factories/`, `support/`, `conftest.py`); mock patterns (mocking library + structure).
 5. **Read 2-3 existing test files** to learn project style: imports, assertion style (`expect` vs `assert`), `describe`/`it` vs `test()`, mock + fixture usage, setup/teardown patterns.
 6. No framework + `--setup` → proceed to Framework Setup (Phase 2d). No framework + no `--setup` → suggest running with `--setup`.
-7. **Checkpoint pre-gate (before the first file write):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (state the risk: regression and gate failures are reverted via `git checkout -- {test-file}`, which also discards uncommitted edits in that file); `--auto`: proceed only when the pre-existing dirty files are untouched by this skill's writes — a write targets a dirty file → skip that file, record `needs-human: uncommitted changes in {file}`. Never run a bulk test rewrite over uncommitted unrelated changes in the same files.
+7. **Checkpoint pre-gate (before the first file write):** `git status --porcelain` — clean, or every planned write is disjoint from dirty paths → proceed; a planned write targets a dirty path → skip that file, record `needs-human: uncommitted changes in {file}`. Full protocol (the `--ask` menu, stop conditions): [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md). Never run a bulk test rewrite over uncommitted unrelated changes in the same files.
 
 **Gate:** Test framework detected or `--setup` mode. If fails → no framework + no `--setup` → "No test framework detected. Re-run with --setup to install one, or specify your framework." Exit with WARN; do not attempt generation without a framework.
 
@@ -115,7 +135,7 @@ Per uncovered source file (or scoped path):
 1. Read source — understand public interface (exported functions, class methods, API endpoints).
 2. Identify test-worthy targets: public functions/methods with logic (not simple getters); edge cases (null, empty arrays, boundary values, error paths); branches (every if/else, switch case, try/catch).
 3. Generate test file following project conventions: match naming, import style, assertion library; group by function/method using `describe`/`context`; include happy path + edge cases + error cases; per test: clear name describing **behavior**, not implementation.
-4. **Integration tests:** identify cross-module interactions, test integration points with minimal mocking. **E2E tests (`--e2e`):** identify user flows, generate browser/API test scenarios — E2E framework detection in [references/frameworks.md](references/frameworks.md).
+4. **Integration tests:** identify cross-module interactions, test integration points with minimal mocking. **E2E tests (`--e2e`):** identify user flows, generate browser/API test scenarios — E2E framework detection in [../core/toolchains.md](../core/toolchains.md).
 
 **Test naming rule:** describe WHAT the behavior is, not HOW it's implemented — `"returns empty array when no items match filter"` (good, behavior) vs `"test filterItems function"` (bad, implementation); `"rejects login with expired token"` vs `"test authentication"`.
 
@@ -143,14 +163,14 @@ Per uncovered source file (or scoped path):
 
 1. Identify changed source files (`git diff --name-only HEAD` plus staged, or user-specified scope); per changed file, find its corresponding test file.
 2. Compare source changes: new params, renamed methods, changed return types, removed functions.
-3. Update test file: new params → update calls, add tests for new param edge cases; renamed method → update references; changed return type → update assertions; removed function → remove tests (with confirmation) or mark `skipped` with TODO; new function → generate new tests (per Phase 2a). Under `--auto`: skip the confirmation — removed-function tests are removed automatically (reversible via git), recorded in the summary.
+3. Update test file: new params → update calls, add tests for new param edge cases; renamed method → update references; changed return type → update assertions; new function → generate new tests (per Phase 2a). Removed function — default: remove its tests automatically (reversible via git), recorded in the summary. `--ask`: confirm before removing, else mark `skipped` with TODO.
 4. Run updated tests to verify passing.
 
 **Gate:** Updated tests pass; no previously passing tests regressed. If fails → previously passing test now fails → do not weaken assertion; revert test file via `git checkout -- {test-file}`, note `{ test, reason: "regression after update", disposition: "reverted" }` for the summary, write a finding to `ds/audit/findings.md` with scope `app-bugs` identifying the source change that broke the test.
 
 ### Phase 2c: Run + Fix [--run]
 
-1. Execute test suite (or scoped subset): detect and run test command from [references/frameworks.md](references/frameworks.md). Parse output: extract failures, errors, skipped.
+1. Execute test suite (or scoped subset): detect and run test command from [../core/toolchains.md](../core/toolchains.md). Parse output: extract failures, errors, skipped.
 2. Per failure, classify:
 
 | Classification | Action |
@@ -158,7 +178,7 @@ Per uncovered source file (or scoped path):
 | **Test is wrong** (assertion outdated, mock stale, fixture missing) | Fix the test |
 | **App is wrong** (source bug causing failure) | Report as app bug — write the finding; the test stays failing at full strength (it now pins the regression). Never modify test or source to force green |
 | **Environment issue** (missing dep, config, DB not running) | Report with setup instructions |
-| **Flaky test** (timing, ordering — passes sometimes) | Flag as flaky, suggest fix approach |
+| **Flaky test** (timing, ordering — passes sometimes) | Re-run 3× isolated + 1× shuffled-order before quarantine (see Phase 3 gate) |
 
 3. Fix test-side issues automatically. For app bugs, write a finding to `ds/audit/findings.md` with scope `app-bugs` (NOT `testing` — `testing` scope is reserved for code-quality findings about coverage and test quality).
 4. Re-run to verify fixes. Max 3 fix-run iterations.
@@ -171,7 +191,7 @@ Per uncovered source file (or scoped path):
 
 If no test framework exists:
 
-1. Detect stack from manifests; recommend canonical framework for stack (see [references/frameworks.md](references/frameworks.md)); ask user to confirm framework choice. Under `--auto`: skip the question — the recommended canonical framework is selected automatically.
+1. Detect stack from manifests; recommend canonical framework for stack (see [../core/toolchains.md](../core/toolchains.md)). Default: the recommended canonical framework is selected automatically, recorded in the summary. `--ask`: confirm the framework choice before installing.
 2. Install + create config: add test dependency to manifest (`package.json`, `pyproject.toml`, etc.); create test config (`jest.config.ts`, `pytest.ini`, etc.); create test directory with example test; add test script to manifest (`"test": "vitest"` in `package.json` etc.); add test step to CI config if it exists.
 3. Run example test to verify setup works.
 
@@ -192,13 +212,22 @@ Capture current actual behavior of a legacy module as a characterization baselin
 
 ### Phase 3: Verify
 
-After any generate/update/fix: (1) run full test suite (or scoped subset); (2) all generated/modified tests must pass; (3) no previously passing test should now fail (regression check); (4) report coverage delta if coverage tool is configured; (5) **Mechanical Done Gate:** generated/modified test files pass the project's lint/type checks too — resolve `{check-cmd}` from the ds-quality enforcement arm when installed (stop-hook / pre-commit hook / auto-lint), else stack-native lint/type commands, and run it on the touched test files; a test that passes but breaks the lint/type gate blocks "done" the same as a failing test (≤3 fix attempts, then revert the test file via `git checkout -- {test-file}`, disposition `failed (mechanical gate)`). The full-suite run's exact command + observed output is the Completion Evidence; a red that predates this run is reported red-at-baseline, never inherited as green. (6) **Critical-flow wiring check** ([references/principles.md §7](references/principles.md)): identify flows tagged critical — money-moving, auth-gating, data-deleting — from the blueprint profile's `Data:`/`Regulations:` signals when available, else path/name heuristics (`payment`, `refund`, `billing`, `charge`, `checkout`, `login`, `auth`, `token`, `permission`, `delete`, `purge`, `drop`). Per critical flow, confirm at least one test exercises its real dispatch/registry/facade (no mock of that internal layer) — a critical flow with zero such tests is a HIGH finding (`scope: testing`) written to `ds/audit/findings.md`, never silently passed.
+| Input state | Action | Verify signal |
+|--------------|--------|---------------|
+| Uncovered source targeted | generate | New tests pass; zero regressions; coverage delta reported when a coverage tool is configured |
+| Source changed since the test file's last touch | update | Updated tests pass; zero regressions |
+| Suite executed | run | Every failure classified (test-wrong / app-wrong / environment / flaky) |
+| Test-side failure classified | fix | Fix re-run passes within 3 iterations, or reverted with disposition `failed (mechanical gate)` |
+| Low-value test flagged | prune | Suite green after deletion; a replacement test (when generated) passes |
+| Coverage gap identified | coverage | New tests targeting the gap pass; coverage delta reported |
 
-**Gate:** All generated tests pass; zero regressions; every detected critical flow has ≥1 mock-free wiring test or a corresponding HIGH finding. If fails → collect runner output per failing test, classify (test wrong / app wrong / environment / flaky). Fix test-side inline (max 3 iterations per test). App-bug failures → write to `ds/audit/findings.md` with scope `app-bugs`. Environment → surface setup instructions. Do not commit failing tests — note as `failing` for the summary, report count in summary.
+Every row also requires: **Mechanical Done Gate** — touched test files pass the project's lint/type checks; resolve `{check-cmd}` from the ds-quality enforcement arm when installed (stop-hook / pre-commit hook / auto-lint), else stack-native lint/type commands ([../core/toolchains.md](../core/toolchains.md)); a test that passes but breaks the lint/type gate blocks "done" the same as a failing test (≤3 fix attempts, then revert via `git checkout -- {test-file}`, disposition `failed (mechanical gate)`). The full-suite run's exact command + observed output is the Completion Evidence; a red that predates this run is reported red-at-baseline, never inherited as green. **Critical-flow wiring check** ([../core/principles.md §7](../core/principles.md)): identify flows tagged critical — money-moving, auth-gating, data-deleting — from the blueprint profile's `Data:`/`Regulations:` signals when available, else path/name heuristics (`payment`, `refund`, `billing`, `charge`, `checkout`, `login`, `auth`, `token`, `permission`, `delete`, `purge`, `drop`). Per critical flow, confirm at least one test exercises its real dispatch/registry/facade (no mock of that internal layer) — a critical flow with zero such tests is a HIGH finding (`scope: testing`) written to `ds/audit/findings.md`, never silently passed. Baseline (`--baseline`) verifies through its own gate (Phase 2e).
+
+**Gate:** Every row's verify signal observed for the action(s) taken; zero regressions; every detected critical flow has ≥1 mock-free wiring test or a corresponding HIGH finding; every generated regression test was observed red against the unfixed code before green, both outputs captured; a test suspected flaky has 3 isolated runs + 1 shuffled-order run before quarantine. If fails → collect runner output per failing test, classify (test wrong / app wrong / environment / flaky); fix test-side inline (max 3 iterations per test); app-bug failures → write to `ds/audit/findings.md` with scope `app-bugs`; environment → surface setup instructions; a regression test never observed red → rewrite it before marking the app-bug resolved; a flaky test quarantined without the 4 runs → run them now, then quarantine with a linked issue (`/ds-issue` when present, else `needs-human: file and link a tracking issue`), never delete or retry-until-green. Do not commit failing tests — note as `failing` for the summary, report count in summary.
 
 ### Phase 4: Needs-Approval Review [needs_approval > 0]
 
-**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the publish/irreversible exception list are skipped and recorded `needs-human` instead.
+**Default:** every item resolves automatically using the same impact/effort/risk reasoning an approval block would show, recorded in the summary; items matching the publish/irreversible exception list are skipped and recorded `needs-human` instead. **`--ask`:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → unresolved → mark `skipped (no response)` and proceed.
 
@@ -215,6 +244,8 @@ ds-test: {OK|WARN|FAIL} | Generated: {n} | Updated: {n} | Fixed: {n} | Skipped: 
 | Failing   | {n}   | app bugs (see ds/audit/findings.md)      |
 | Critical-flow wiring | {n}/{n} | flows verified mock-free (see ds/audit/findings.md for gaps) |
 ```
+
+Disposition accounting — totals balance. Closing shape (`Assumed:` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
 **Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
@@ -250,17 +281,17 @@ Every test MUST justify its existence by addressing a **concrete, specific risk*
 | "Deleting untested code wastes the hours spent writing it" | Sunk cost; unverified code is debt, not progress |
 | "Weakening this assertion turns the suite green" | A green suite that stops constraining behavior is the W12 failure itself |
 
-**Prune phase (`--prune` or part of `--auto`):** flag existing tests that provide no concrete value:
+**Prune phase (`--prune`):** flag existing tests that provide no concrete value:
 
 1. Search for tests asserting only: constructor/getter/setter behavior, trivial pass-through, framework-guaranteed behavior, 1:1 reimplementation of source code, or oversized snapshots (>100 lines — assert everything, verify nothing). Flag as CRITICAL (reward-hacking class, not merely low-value): assertions hard-coding expected outputs for special-cased known inputs, and test edits that weaken or bypass assertions to reach green.
    - **Enumerating assertion** (HIGH) — a test that pins *today's members of a set* instead of the rule that decides membership: the five package names currently exported, the three enum cases, the four config keys, the two allowed hosts. It passes green when a sixth member appears, so the contract it advertises silently widens exactly when it should fail. Detect: an assertion listing literal members of a collection the source computes or that grows over time. Replace with the rule — assert the predicate every member must satisfy, or compare against the generator's output — and keep a literal list only where the set is genuinely closed by specification, with that specification cited in the test.
-2. Present flagged tests as table `| # | Test | File:Line | Reason | Action |` grouped by Reason with counts; state the question (`Delete these N tests?`). Ask: **Delete all** / **Delete all <reason>** (per-reason bulk alongside the total) / **Review each** / **Keep all**. "All" = exactly the displayed set. Under `--auto`: no question shown — resolves automatically to delete all flagged tests (reversible via git), reported with reasons in the summary.
+2. Present flagged tests as table `| # | Test | File:Line | Reason | Action |` grouped by Reason with counts. Default: resolves automatically to delete all flagged tests (reversible via git), reported with reasons in the summary. `--ask`: state the question (`Delete these N tests?`); ask **Delete all** / **Delete all <reason>** (per-reason bulk alongside the total) / **Review each** / **Keep all**. "All" = exactly the displayed set.
 3. **Replacement rule:** after deleting a low-value test, check if file/module now has meaningful untested logic. Yes → generate a valuable replacement test targeting a real risk.
-4. **Mutation check (advisory):** stack's mutation tool available (per-stack table in [references/frameworks.md §Mutation Testing](references/frameworks.md)) → run it on the scoped module, report mutation score beside line coverage, treat every surviving mutant as a weak-assertion finding, and feed each into `--generate`/`--update` as a targeted instruction (`mutant at {file}:{line} survived — add the assertion that kills it`) instead of regenerating whole files. Tool absent → gap-note `mutation tool unavailable — assertion quality verified by pattern review only`, apply the step-1 pattern list as the fallback detector. Coverage alone is not proof: a documented real-world suite reported 93% line coverage against a 58.62% mutation score — a 34-point gap of assertions that constrain nothing.
+4. **Mutation check (advisory):** stack's mutation tool available (per-stack table in [../core/toolchains.md §Mutation testing](../core/toolchains.md)) → run it on the scoped module, report mutation score beside line coverage, treat every surviving mutant as a weak-assertion finding, and feed each into `--generate`/`--update` as a targeted instruction (`mutant at {file}:{line} survived — add the assertion that kills it`) instead of regenerating whole files. Tool absent → gap-note `mutation tool unavailable — assertion quality verified by pattern review only`, apply the step-1 pattern list as the fallback detector. Coverage alone is not proof: a documented real-world suite reported 93% line coverage against a 58.62% mutation score — a 34-point gap of assertions that constrain nothing.
 
 ### Other Gates
 
-Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regression-before-fix, Coverage-as-diagnostic) derive from [references/principles.md §7](references/principles.md).
+Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regression-before-fix, Coverage-as-diagnostic) derive from [../core/principles.md §7](../core/principles.md).
 
 - Generated tests must pass before declaring done — never commit failing tests.
 - Keep assertions at full strength — fix the test logic or report the app bug instead of weakening checks.
@@ -268,13 +299,13 @@ Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regres
 - Mocks minimal — only mock external dependencies (network, filesystem, time), not internal modules. Generated test matches project's existing style — no style drift.
 - **Test Pyramid:** unit-heavy, integration-medium, E2E-light. Detect inverted pyramid (E2E > integration > unit) → flag HIGH before generating more E2E.
 - **Boundary conditions:** every generated test suite covers empty, null, max-size, concurrent, locale, timezone, Unicode, leap-day where applicable.
-- **Critical-flow wiring check (B3):** money-moving/auth-gating/data-deleting flows require ≥1 test that exercises the real dispatch/registry/facade, not a mock of it — mocking that internal layer can hide a handler that was written but never registered (invisible to both a unit test of the handler and an integration test that mocks the facade it should be routed through). Detection + rationale: [references/principles.md §7](references/principles.md).
+- **Critical-flow wiring check (B3):** money-moving/auth-gating/data-deleting flows require ≥1 test that exercises the real dispatch/registry/facade, not a mock of it — mocking that internal layer can hide a handler that was written but never registered (invisible to both a unit test of the handler and an integration test that mocks the facade it should be routed through). Detection + rationale: [../core/principles.md §7](../core/principles.md).
 - **Scale-envelope fixture pattern (D1/B3, advisory):** for the project's critical flows, generate a synthetic max-size fixture (e.g. 50k records) and measure those flows against it — this is the *measured, documented* extension of the max-size boundary case above, not a replacement for it. No documented scale limit exists for a critical flow → advisory finding "no declared scale envelope — measure against a synthetic max-size fixture and document the limit" (never a blocker, cross-links to ds-review --perf's Scale Envelope check — present → hand off the measured numbers to it; absent → this finding alone still stands).
 - **AAA structure:** every generated test body has visible Arrange / Act / Assert separation — comments or whitespace lines, never one-shot expressions.
-- **Regression-before-fix:** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix.
+- **Regression-before-fix:** in `--run` mode, when an app bug is found, generate the regression test FIRST (failing), confirm it fails, then propose the source fix — red proof enforced by Phase 3's gate.
 - **Unreproduced bug ≠ speculative test (W12):** when a reported bug can't be reproduced after a genuine investigation (no plausible mechanism found, existing boundary-condition tests already cover the likely cause, no matching historical fix) — record what was checked and the exact repro conditions needed if it recurs; do NOT add a regression test for a symptom that was never actually observed or triggered. A test with no concrete triggering condition is a coverage-padding test (W12), not a safety net — it asserts nothing real and just adds maintenance weight.
 - **Coverage as diagnostic:** never write a coverage target into generated test configs; configure coverage as a reporter only. The diagnostic is "what did we miss?", not "did we hit X%?".
-- **Property-based tests (advisory):** target is a pure function with an algebraic property (roundtrip encode/decode, idempotence, commutativity, invariant preservation) AND the stack's property-testing library is already in the project deps (per-stack table in [references/frameworks.md §Property-Based Testing](references/frameworks.md)) → offer a property test for the boundary-condition class instead of hand-enumerating cases; library absent → hand-enumerated boundary cases stand, gap-note the option once.
+- **Property-based tests (advisory):** target is a pure function with an algebraic property (roundtrip encode/decode, idempotence, commutativity, invariant preservation) AND the stack's property-testing library is already in the project deps (per-stack table in [../core/toolchains.md §Property-based testing](../core/toolchains.md)) → offer a property test for the boundary-condition class instead of hand-enumerating cases; library absent → hand-enumerated boundary cases stand, gap-note the option once.
 - **Snapshot discipline:** snapshot tests only for small, stable serialized output (a component's props contract, a config artifact) — a full-page or >100-line snapshot asserts everything and verifies nothing; flag existing ones as low-value in `--prune` step 1.
 
 - W9: state-exempt — generated/updated test files on disk are the progress record; re-running naturally resumes. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W12: every test verifies described intent + a case beyond the given suite — never special-case known inputs or assert hard-coded outputs to pass.
@@ -300,7 +331,7 @@ Discipline rules below (Test Pyramid, Boundary conditions, AAA structure, Regres
 | Monorepo with multiple test frameworks | Detect per-package, run each package's framework |
 | E2E requires running server | Check for dev server script, start it, run tests, stop it |
 | Coverage tool not configured | Skip coverage analysis, suggest setup |
-| `--auto` with failing app tests | Write findings to `ds/audit/findings.md`; fix test-side failures only — app-bug tests stay failing at full strength |
+| Default run with failing app tests | Write findings to `ds/audit/findings.md`; fix test-side failures only — app-bug tests stay failing at full strength |
 | `--baseline` and output is nondeterministic (time, random, UUID) | Inject/freeze seams (fixed clock, seeded RNG, mocked UUID) before capturing; if seams are unavailable, assert invariant properties (type, range, non-null) instead of exact values — document the invariant-only assertion with the `// characterization:` tag |
 | `--baseline` and source module has no public interface (all private/internal) | Report as Category B finding: "No public surface to baseline — refactoring this module without tests is high-risk"; suggest making key behaviors accessible for testing or adding internal test hooks |
 

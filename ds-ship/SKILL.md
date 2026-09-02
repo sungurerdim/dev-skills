@@ -67,8 +67,7 @@ Hard routing rules — ds-ship never decides between ds-deploy and ds-launch on 
 | Flag | Effect |
 |------|--------|
 | `--mode={x}` | `harden` (deep audit + fixes, no ship legs) · `release` (harden + release gates: devops, deploy, release, repo) · `launch` (release + store/public launch legs: benchmark, launch, productize when billing, OSS readiness) · `maintain` (periodic hygiene: deps, tune, blueprint diff). Absent → derived from stage + intent (table below) and stated in the report |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
-| `--ask` | Interactive run — mode-first menu, sequence confirmation, Category B approval batches at every decision point. Without it every decision resolves by best judgment and is recorded in the report |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 | `--preview` | Phase 0 only: classification, mode, scope resolution, proposed sequence with signal reasons. No delegations, no mutations |
 | `--stage={x}` | Override auto-classified stage: idea, spec-only, scaffold, implementation, review-pending, pre-launch, launched, frozen |
 | `--html` | Additionally produce `ds/audit/report.html` — self-contained, mermaid flow + findings heatmap, offline, ASCII-only |

@@ -20,6 +20,7 @@ cp -r dev-skills/ds-rig ~/.claude/skills/ds-rig   # or ./install.sh
 /ds-rig --permissions-only # apply/refresh harness allow/ask/deny profiles
 /ds-rig --budget           # MCP tool-count + token-tax report
 /ds-rig --uninstall rtk    # symmetric removal via the tool's own uninstaller
+/ds-rig --ask              # interactive: category menu, per-item confirmations
 ```
 
 ## Categories

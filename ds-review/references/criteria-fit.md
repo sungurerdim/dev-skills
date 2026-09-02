@@ -10,17 +10,17 @@ The baselines below are calibrated against the project-type definitions in ds-bl
 
 ## Baselines
 
-| Project Type | SSOT | DRY-Pattern | KISS | YAGNI | SoC | Notes |
-|--------------|------|-------------|------|-------|-----|-------|
-| `small-cli` (<2k LOC) | 0-2 | 0-3 | 0-2 | 0-3 | 0-1 | Strict — small scope makes duplication visible fast |
-| `cli` (2k-20k LOC) | 0-3 | 0-5 | 0-3 | 0-5 | 0-2 | Moderate — some duplication is acceptable for ergonomics |
-| `library` | 0-1 | 0-2 | 0-2 | 0-2 | 0-1 | Strictest — public surface must be deliberate |
-| `web-app` | 0-3 | 0-5 | 0-4 | 0-6 | 0-3 | Web stack tolerates more boilerplate; framework-required patterns dilute strictness |
-| `api` | 0-3 | 0-5 | 0-4 | 0-5 | 0-2 | Similar to web-app; backend logic should be more disciplined |
-| `mobile` | 0-4 | 0-6 | 0-5 | 0-6 | 0-3 | Platform abstractions create duplication by necessity |
-| `devtool` | 0-2 | 0-3 | 0-3 | 0-3 | 0-2 | Author-quality codebase; expectations match small-cli |
-| `monorepo` | 0-5 | 0-10 | 0-6 | 0-10 | 0-5 | Multi-package context; baselines scale with workspace count |
-| `iac` (Terraform / Pulumi / Bicep) | 0-2 | 0-5 | 0-3 | 0-3 | 0-2 | DSL-driven; repeated module blocks are expected |
+| Project Type | SSOT | DRY-Pattern | KISS | SoC | Notes |
+|--------------|------|-------------|------|-----|-------|
+| `small-cli` (<2k LOC) | 0-2 | 0-3 | 0-2 | 0-1 | Strict — small scope makes duplication visible fast |
+| `cli` (2k-20k LOC) | 0-3 | 0-5 | 0-3 | 0-2 | Moderate — some duplication is acceptable for ergonomics |
+| `library` | 0-1 | 0-2 | 0-2 | 0-1 | Strictest — public surface must be deliberate |
+| `web-app` | 0-3 | 0-5 | 0-4 | 0-3 | Web stack tolerates more boilerplate; framework-required patterns dilute strictness |
+| `api` | 0-3 | 0-5 | 0-4 | 0-2 | Similar to web-app; backend logic should be more disciplined |
+| `mobile` | 0-4 | 0-6 | 0-5 | 0-3 | Platform abstractions create duplication by necessity |
+| `devtool` | 0-2 | 0-3 | 0-3 | 0-2 | Author-quality codebase; expectations match small-cli |
+| `monorepo` | 0-5 | 0-10 | 0-6 | 0-5 | Multi-package context; baselines scale with workspace count |
+| `iac` (Terraform / Pulumi / Bicep) | 0-2 | 0-5 | 0-3 | 0-2 | DSL-driven; repeated module blocks are expected |
 
 ## How baselines are applied
 

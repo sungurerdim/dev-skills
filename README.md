@@ -1,7 +1,7 @@
 # dev-skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/skills-30-blue)]()
+[![Skills](https://img.shields.io/badge/skills-32-blue)]()
 [![Tool](https://img.shields.io/badge/works_with-Claude_Code_·_OpenCode_·_Cursor_·_Copilot_·_Windsurf_(Devin_Desktop)_·_Aider-green)]()
 
 Your AI coding assistant will hallucinate an API that doesn't exist, break file B while fixing file A, weaken your tests until they pass, and silently drop fields during data conversion. Most AI "skills" are 50-line rule snippets that can't prevent any of this.
@@ -14,7 +14,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 
 | Number | Meaning |
 |--------|---------|
-| **30 skills** | One per real lifecycle moment — equip, discover, build, improve, document, comply, monetize, track, ship. Each skill owns defined [taxonomy dimensions](SKILL-SPEC.md#appendix-dimension-coverage-map) (A1–D11: product, engineering, trust, operations) with automated coverage tracking in `/ds-ship` reports |
+| **32 skills** | One per real lifecycle moment — equip, discover, build, improve, document, comply, monetize, track, ship. Each skill owns defined [taxonomy dimensions](SKILL-SPEC.md#appendix-dimension-coverage-map) (A1–D11: product, engineering, trust, operations) with automated coverage tracking in `/ds-ship` reports |
 | **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`core/software-best-practices.md`](core/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
@@ -66,7 +66,8 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Empty repo. Get me to a real project from zero." | [`/ds-init`](ds-init) — scaffold, CI, lint, tests from day one |
 | "Design my API + database + auth + data pipeline, end-to-end." | [`/ds-backend`](ds-backend) — four-layer design, no inconsistent naming, no double-processing jobs |
 | "I need design tokens, component states, theming, a11y baseline." | [`/ds-frontend`](ds-frontend) — design system audit + generation |
-| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 183 rules, 13 domains, release-readiness scoring |
+| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 177 rules, 13 domains, release-readiness scoring |
+| "The plan exists — an issue, a `tasks.md`, a request. Execute it with proof." | [`/ds-build`](ds-build) — bounded units, a verify signal per unit, red-proven tests, budgeted backtracking, code-proven close |
 
 ### Improve — fix what's already there
 
@@ -79,7 +80,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Make quality automatic — block 'done' until checks pass, no CI." | [`/ds-quality`](ds-quality) — local Stop-hook verify-loop (format→lint→type→test), enforced by mechanism |
 | "Tests are missing or asserting nothing. Generate real ones." | [`/ds-test`](ds-test) — patterns matched, mocks rejected, real bugs surfaced |
 | "Optimize a measurable metric autonomously — 100 experiments overnight." | [`/ds-tune`](ds-tune) — git ratchet, only improvements survive |
-| "Hard problem resists a single-pass fix." | [`/ds-solve`](ds-solve) — plan → try → backtrack → re-plan, with web research |
+| "Something is broken and nobody knows why." | [`/ds-debug`](ds-debug) — reproduce the red, localize (bisect, trace), ≤3 hypotheses, minimal fix behind a regression test seen failing first |
 
 ### Document
 
@@ -92,7 +93,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 
 | Question | Skill |
 |----------|-------|
-| "Am I privacy/regulatory compliant? GDPR, KVKK, CCPA, accessibility law?" | [`/ds-compliance`](ds-compliance) — 98 rules, file:line precision |
+| "Am I privacy/regulatory compliant? GDPR, KVKK, CCPA, accessibility law?" | [`/ds-compliance`](ds-compliance) — 142 rules, file:line precision |
 
 ### Monetize — turn it into a paid product
 
@@ -120,6 +121,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "First production deploy — container, TLS, health checks, runbook." | [`/ds-deploy`](ds-deploy) — generates production-ready configs + monitoring |
 | "App store / web release / library publish — what gates do I need?" | [`/ds-launch`](ds-launch) — store metadata, perf budgets, release prep |
 | "Repo settings, CODEOWNERS, branch protection, OSS readiness." | [`/ds-repo`](ds-repo) — full repo metadata audit |
+| "Cut the next release — version, changelog, tag." | [`/ds-release`](ds-release) — version from the commits, every version surface bumped, check green before the tag; push, GitHub release and registry stay yours, with the exact commands |
 
 ## Recommended sequences
 
@@ -133,9 +135,10 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | **Pre-launch** | `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
 | **Pre-launch, scope too big** | `ds-freeze` → `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
 | **Paid product / SaaS** | `ds-productize` → `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
-| **Solo-dev daily loop** | `ds-fix` → `ds-test` → `ds-commit` → `ds-pr` |
-| **Stuck on a hard bug** | `ds-solve` |
-| **Idea → executable plan** | `ds-pipeline` → hand `specs/{feature}/tasks.md` to your executor |
+| **Solo-dev daily loop** | `ds-build` or `ds-debug` → `ds-commit` → `ds-pr` |
+| **Stuck on a bug** | `ds-debug` |
+| **Idea → executable plan → done** | `ds-pipeline` → `ds-build` |
+| **Cut a release** | `ds-commit` → `ds-release` (publishing handed back with the commands) |
 | **Public OSS release** | `ds-docs` → `ds-repo --oss-ready` → `ds-launch` |
 
 `/ds-blueprint` is the recommended first run on any unfamiliar codebase — it writes `ds/audit/findings.md` that every later skill reads to skip redundant scans.
@@ -151,7 +154,7 @@ Least footprint by default: **most skills write nothing.** A skill creates a fil
       findings.md         ← shared findings across skills
       report.md           ← ds-ship consolidated report
       report.html         ← optional, ds-ship --html
-      <skill>.json        ← state ONLY for long autonomous skills (ds-tune, ds-solve, ds-ship, ds-blueprint)
+      <skill>.json        ← state ONLY for long autonomous skills (ds-tune, ds-ship, ds-blueprint, ds-frontend, ds-mobile)
     <skill>/              ← committed — genuine user deliverables only (scripts/configs/outputs the user keeps), never logs
       ...                 ← e.g. ds/tune/, ds/mobile/, ds/launch/
   .gitignore              ← contains the line `ds/audit/`
@@ -169,7 +172,8 @@ Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orches
 - **Error Ownership Gate (W11)** — detected errors get a concrete disposition; "pre-existing" / "out of scope" / "not my change" are never valid skip reasons
 - **Findings-SSOT Gate (W10)** — downstream skills defer to fresh `ds/audit/findings.md`, never re-detect what blueprint already covered
 - **Trigger Discipline** — every skill ships an INVOKE / DON'T INVOKE table; unscoped verbs (`improve`, `fix`, `audit`) alone are not valid triggers
-- **All-Affordance Rule** — every menu (scope, fix, approve, alternative path) offers an "all" option; CRITICAL findings + destructive actions still require per-item confirmation
+- **Autonomous by default** — every decision resolves by best judgment from the evidence gathered and is recorded in the summary; `--ask` restores menus and approval batches at every decision point; publishing and irreversible steps always stay with you, listed with the exact command
+- **Relevance first** — every scope runs only on a project signal (`has_ui`, `has_billing`, `platforms`…) and is otherwise reported `N/A` with the reason; nothing scans "everything" by default
 - **Inter-skill coordination** via `ds/audit/findings.md` + blueprint profile — share analysis, avoid duplicate work
 - **Token-efficient** — 10K token budget per skill, references loaded on demand
 - **Tool-agnostic** — works with any AI tool that accepts markdown instructions
@@ -180,7 +184,7 @@ Most AI "skills" are static 30–100 line rule snippets. dev-skills are **orches
 
 ```bash
 git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
-./install.sh                                # all 30 skills + shared agent -> ~/.claude
+./install.sh                                # all 32 skills + core/ + shared agent -> ~/.claude
 ./install.sh --skills ds-review,ds-commit  # or only the ones you want
 ./install.sh --profile lean                 # Claude-5 host + always-on rules layer (e.g. dev-rules):
                                             #   strips the portable-only blocks at install time
@@ -221,18 +225,18 @@ rm -rf /tmp/dev-skills
 
 > **Why "reference", not "paste":** a SKILL.md runs ~4–11K tokens (measured 2026-07-28: median 21KB ≈ 5K tokens, largest `ds-brief` 45KB ≈ 11K; the gate caps any SKILL.md at 48KB ≈ 12K). Pasting it into an always-on rules file loads it on every request and measurably degrades instruction-following as rules accumulate ([IFScale](https://arxiv.org/abs/2507.11538)); skills are designed to load only when invoked. See [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research and the per-host plan.
 
-Install one skill, several, or all 30 — they are independent.
+Install one skill, several, or all 32 — they are independent; `core/` ships with every selection.
 
 ## Host support
 
-All 30 skills are capability-abstracted markdown following the open [Agent Skills spec](https://agentskills.io), so they are not tied to one vendor. Two tiers, and the difference matters when you install:
+All 32 skills are capability-abstracted markdown following the open [Agent Skills spec](https://agentskills.io), so they are not tied to one vendor. Two tiers, and the difference matters when you install:
 
 - **Loads skills natively** — point `./install.sh --target` at the host's skills directory and it works. Verified 2026-07-28 against the spec's own [client showcase](https://agentskills.io/clients), where each of these publishes its own skills documentation: Claude Code, OpenCode, Cursor, GitHub Copilot, VS Code, OpenAI Codex, Gemini CLI, Amp, Goose, Roo Code, Kiro, Factory, Junie — roughly 45 products in total and growing.
 - **No skills loader — reference on demand** — Aider (`--read`) and Windsurf/Devin Desktop (a `.windsurf/rules/` pointer). Neither appears in the showcase as of that date; use the per-host rows in the install table above and never paste a full SKILL.md into an always-on rules file.
 
 `ds-quality` is the one skill whose *mechanism* is host-specific, because each host exposes a different hook point: stop-time on Claude Code, edit-time on Aider, commit-time via git pre-commit elsewhere. See [`ds-quality/README.md`](ds-quality/README.md) for that matrix, and [docs/methodology/cross-host-program.md](docs/methodology/cross-host-program.md) for the research-backed cross-host roadmap (v5).
 
-**What actually makes this different** is not host count — catalogs claiming 10–13 platforms exist, and the spec itself is read by ~45 clients. It is depth per skill: 30 multi-phase systems with executable gates, error recovery, and systematic mitigation of 17 named AI failure modes (W1–W17), shipped as pure markdown with zero runtime dependencies. Most catalogs ship many single-purpose prompts; this one ships fewer, gated, and self-verifying.
+**What actually makes this different** is not host count — catalogs claiming 10–13 platforms exist, and the spec itself is read by ~45 clients. It is depth per skill: 32 multi-phase systems with executable gates, error recovery, and systematic mitigation of 17 named AI failure modes (W1–W17), shipped as pure markdown with zero runtime dependencies. Most catalogs ship many single-purpose prompts; this one ships fewer, gated, and self-verifying.
 
 ## How skills work
 

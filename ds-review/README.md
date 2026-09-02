@@ -2,7 +2,7 @@
 
 Code review catches what tests miss — security holes, dead code, wrong abstractions, and performance traps hiding in plain sight. Skill scans for all of them with file:line precision.
 
-**Tactical fixes + strategic architecture + deep performance profiling + principle-based meta-quality (SSOT / DRY / KISS / YAGNI / SoC). 30+ scopes.**
+**Tactical fixes + strategic architecture + deep performance profiling + principle-based meta-quality (SSOT / DRY / KISS / SoC). 30+ scopes.**
 
 ## Install
 
@@ -33,12 +33,13 @@ Run `/ds-review`, or ask to review your code quality.
 | **Tactical** (default) | File-level: security, hygiene, types, performance, privacy |
 | **Strategic** | Architecture-level: patterns, coupling, testing, production readiness |
 | **Performance** | Deep profiling: bundle size, startup time, memory, caching, Core Web Vitals |
-| **Meta-Quality** | Principle audit: SSOT / DRY / KISS / YAGNI / SoC + criteria-fit baselines + 3 consolidation paths per finding |
+| **Meta-Quality** | Principle audit: SSOT / DRY / KISS / SoC + criteria-fit baselines + 3 consolidation paths per finding |
 
 ## Features
 
-- 9 tactical scopes (97 checks) + 9 strategic scopes (103 checks) + 11 perf groups + 7 meta-quality detector scopes + 3 derived aliases
-- `--diff[={ref}]` scoping: review only changed files (+ their direct consumers) instead of the whole repo
+- 8 tactical scopes (86 checks) + 9 strategic scopes (103 checks) + 11 perf groups + 5 meta-quality detector scopes + 1 derived alias
+- Diff scoping (default when a diff exists): reviews only changed files + their direct consumers instead of the whole repo; `--diff[={ref}]` forces it explicitly, `--scope=all` forces a full-repo scan
+- `yagni` / `obsolete` / `duplicate` (function-level) detection and the tactical `simplify` scope are delegated to ds-simplify
 - Anti-overengineering 3-gate screens every finding before reporting (false-positive guard)
 - Score calculation per scope with CRITICAL/HIGH caps
 - Needs-approval protocol for cross-module changes with reason validator (rejects "pre-existing" / "out of scope" / "too hard" / "not my change")

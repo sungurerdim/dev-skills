@@ -25,10 +25,10 @@ rm -rf /tmp/dev-skills
 ## Use
 
 ```bash
-/ds-simplify                  # full scan, interactive approval
+/ds-simplify                  # full scan, every finding resolved by best judgment
+/ds-simplify --ask            # full scan, interactive approval at every batch
 /ds-simplify --preview        # scan + report, no approval, no deletion
 /ds-simplify --scope=dead-code
-/ds-simplify --auto           # zero-interaction — every finding resolved by best judgment
 ```
 
 ## Scopes
@@ -41,7 +41,7 @@ rm -rf /tmp/dev-skills
 | dead-branch | Feature flags whose value is constant across every config source — untaken branch is dead |
 | premature-abstraction | Generics / base classes / wrappers on ≤3 usages |
 | quarantine | `// removed` / `// legacy` / `// deprecated` / `_unused` markers |
-| test-realism | `a@b.c`, `$1`, length-1 "collections" |
+| test-realism | Delegated to `/ds-test` when present; gap-noted otherwise |
 | io-drift | Function signature ≠ caller signature |
 | ssot-violation | Same constant / URL / regex duplicated |
 | orphan | Modules / assets with zero inbound references |

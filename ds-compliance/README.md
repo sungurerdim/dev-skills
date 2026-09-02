@@ -1,8 +1,8 @@
 # ds-compliance
 
-Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 138 rules across 9 compliance domains with file:line precision.
+Single missing privacy policy or unpatched XSS can mean fines, data breaches, or store rejection. Skill audits 142 rules across 9 compliance domains with file:line precision.
 
-**Audit web, API, CLI, and library projects against 138 rules. Security, privacy, regulatory, web security, network, architecture, performance, i18n.**
+**Audit web, API, CLI, and library projects against 142 rules. Security, privacy, regulatory, web security, network, architecture, performance, i18n.**
 
 Auto-detects project type and loads the appropriate rule set.
 
@@ -39,6 +39,7 @@ Run `/ds-compliance`, or ask to audit your project.
 | network | TLS enforcement, rate limiting, timeouts, cert pinning |
 | arch | Audit logging, input validation, error leakage, dependency security |
 | perf | Resource exhaustion, N+1 queries, memory leaks, graceful shutdown |
+| a11y | WCAG 2.2 AA, semantic labels, contrast, keyboard nav |
 | i18n | Internationalization, hardcoded strings |
 
 ## Modes

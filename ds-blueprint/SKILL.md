@@ -50,8 +50,7 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions, 
 
 | Flag | Effect |
 |------|--------|
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
-| `--ask` | Interactive run — mode menu, per-line Foundation interrogation, and approval prompts at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 | `--preview` | Analyze + dashboard in chat only — writes nothing: no profile, no `ds/audit/findings.md`, no state |
 | `--init` | Profile creation (or re-creation) with the Foundation pass; no dimension analysis |
 | `--refresh` | Fast path: re-detect Type/Stack/Toolchain/`Signals:`, rescore, rewrite `Scores:` + `Signals:`; foundation lines untouched, no interrogation |

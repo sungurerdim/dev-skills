@@ -34,6 +34,7 @@ Restrictive CORS. No wildcard origins in production.
   - CORS allowing any origin with credentials
   - Search: `origin: '*'`, `origin: true`, `cors({ origin: '*' })` in production code
 - **Fix:** Whitelist specific origins. Never use `*` with credentials. Validate origin against whitelist. Set appropriate `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers`
+- **Impact:** A wildcard CORS origin (especially with credentials) lets any website read authenticated API responses on behalf of a logged-in user — cross-origin data theft.
 - **Source:** MDN CORS, OWASP
 
 ### WEB-03 [CRITICAL] XSS Prevention
@@ -45,6 +46,7 @@ No raw HTML rendering of user input. Output encoding enforced.
   - Server: template rendering without auto-escaping
   - Search: `innerHTML`, `dangerouslySetInnerHTML`, `v-html`, `|safe`, `mark_safe` near user input variables
 - **Fix:** Use framework auto-escaping (React JSX, Vue templates, Angular templates). Sanitize with DOMPurify when raw HTML is required. Never use `eval()` or `innerHTML` with user data
+- **Impact:** Unescaped user input rendered as HTML lets an attacker run arbitrary script in every victim's browser session — session theft, account takeover, defacement.
 - **Source:** OWASP XSS Prevention Cheat Sheet
 
 ### WEB-04 [CRITICAL] CSRF Protection
@@ -55,6 +57,7 @@ State-changing operations protected against cross-site request forgery.
   - No CSRF middleware configured
   - Search: POST/PUT/DELETE handlers without CSRF validation
 - **Fix:** Use `SameSite=Strict` or `SameSite=Lax` cookies. CSRF tokens for form submissions. Verify `Origin`/`Referer` headers. Use framework CSRF middleware (Node/Express: `csrf-csrf` or `csrf-sync` — `csurf` is deprecated; Django CSRF, Spring CSRF)
+- **Impact:** Without CSRF protection, a malicious site can trigger state-changing requests (transfers, password changes, deletions) using the victim's own authenticated session.
 - **Source:** OWASP CSRF Prevention Cheat Sheet
 
 ### WEB-14 [HIGH] Third-Party Content Integrity
@@ -80,6 +83,7 @@ Layout adapts to all screen sizes. No horizontal scroll on mobile.
   - Search: fixed-width containers without responsive alternatives (`width: [4-9]\d\dpx`, `width: \d{4,}px` without accompanying `max-width` or `%`/`vw` fallback)
   - Images without responsive sizing (`<img` without `srcset` or CSS `max-width: 100%`)
 - **Fix:** Use relative units (%, rem, vw). Mobile-first media queries. Viewport meta tag: `<meta name="viewport" content="width=device-width, initial-scale=1">`. Responsive images with `srcset`/`sizes`. CSS Grid/Flexbox for layouts
+- **Impact:** A layout that doesn't adapt forces mobile users into horizontal scrolling and unreadable text — a majority-share traffic segment gets a broken experience.
 - **Source:** Responsive Web Design, MDN
 
 ### WEB-06 [HIGH] Web Accessibility (WCAG 2.2 AA)
@@ -103,6 +107,7 @@ Custom error pages (404, 500) with helpful content and consistent branding.
   - No custom 404 page
   - No global error boundary (React) or error page (Next.js)
 - **Fix:** Custom 404 with navigation/search. Custom 500 with "try again" and support contact. Error boundaries for React. Never expose stack traces. Log errors server-side
+- **Impact:** A default framework error page or an exposed stack trace leaks internal structure to attackers and shows every real user a dead end with no way back.
 - **Source:** UX best practices
 
 ### WEB-08 [HIGH] SEO Fundamentals
@@ -115,6 +120,7 @@ Proper meta tags, semantic HTML, structured data for public-facing pages.
   - Client-side only rendering without SSR/SSG for content pages
 - **Fix:** Unique `<title>` and `<meta description>` per page. Open Graph tags for social sharing. Semantic HTML (header, main, nav, article, section). Generate sitemap.xml. SSR/SSG for content pages
 - **Cross-ref:** Launch-surface SEO execution (sitemap/robots generation, JSON-LD validation, CWV tie-breaker, llms.txt posture) is canonical in ds-launch `--seo`; this rule is the audit-time web-quality check — when both run, generation work routes to ds-launch
+- **Impact:** Missing title/description/OG tags and non-semantic markup suppress search ranking and produce blank, unclickable link previews when shared.
 - **Source:** Google Search Central, MDN Semantic HTML
 
 ---
@@ -140,6 +146,7 @@ Modern formats, responsive sizes, lazy loading for below-fold images.
   - No responsive image sizing (srcset/sizes)
   - Search: `<img` without `loading="lazy"` (excluding above-fold hero images)
 - **Fix:** Convert to WebP/AVIF. Use `<img srcset>` for responsive sizes. `loading="lazy"` for below-fold. Use image CDN (Cloudinary, imgix, Vercel Image Optimization) for on-the-fly resizing
+- **Impact:** Unoptimized, non-lazy images inflate page weight and push back Largest Contentful Paint — slower loads measurably cost conversion and search ranking.
 - **Source:** web.dev Image Optimization
 
 ### WEB-11 [HIGH] Code Splitting & Dynamic Imports
@@ -149,6 +156,7 @@ Route-based code splitting. Lazy load non-critical JavaScript.
   - No dynamic imports for routes/features
   - Heavy libraries imported in main bundle (moment.js, lodash full)
 - **Fix:** Route-based splitting (Next.js/React.lazy automatic). Dynamic import for heavy features. Replace heavy libraries with lighter alternatives (date-fns, lodash-es). Tree-shake unused exports
+- **Impact:** A single unsplit bundle forces every visitor to download the whole application's code before any route renders, even for a one-page visit.
 - **Source:** webpack Code Splitting, Next.js Dynamic Imports
 
 ### WEB-12 [HIGH] HTTPS & Cookie Security
@@ -159,6 +167,7 @@ All cookies secure. Proper cookie attributes.
   - Missing `SameSite` attribute
   - Cookies with excessive expiry (> 1 year for non-essential)
 - **Fix:** Set all cookies: `Secure; HttpOnly; SameSite=Lax` (or Strict for sensitive). Session cookies: no explicit expiry (browser session). Persistent cookies: reasonable TTL. Use `__Host-` prefix for sensitive cookies (browser-enforced: requires `Secure`, forbids `Domain`, requires `Path=/` — blocks subdomain cookie-tossing); use `__Secure-` only when legitimate subdomain sharing is required. Reference form: `Set-Cookie: __Host-SID=<token>; path=/; Secure; HttpOnly; SameSite=Strict`
+- **Impact:** A cookie missing Secure/HttpOnly/SameSite is readable over plaintext HTTP, stealable via XSS, or replayable cross-site — any one of the three defeats session security.
 - **Source:** MDN HTTP Cookies, OWASP Cookie Security
 
 ### WEB-13 [CRITICAL] Sensitive Data Cache Exclusion
@@ -169,4 +178,5 @@ No credentials/PII in HTTP cache, CDN cache, or logs.
   - PII in CDN-cached responses
   - Sensitive data in error messages/stack traces returned to client
 - **Fix:** `Cache-Control: no-store, no-cache` for sensitive endpoints. Auth tokens in headers only (never URL). Sanitize error responses. Exclude sensitive paths from CDN
+- **Impact:** Sensitive data cached by a browser, proxy, or CDN persists outside the application's control and can surface in shared caches, browser history, or logs long after the response is served.
 - **Source:** OWASP Secure Headers

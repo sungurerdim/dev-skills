@@ -18,24 +18,28 @@ Network-level compliance rules for API security, transport layer, and DoS preven
 Enforce TLS 1.2+ for all connections. TLS 1.0/1.1 are deprecated (RFC 8996).
 - **Detect:** `ssl_version`, `TLSv1`, `TLSv1_1`, `PROTOCOL_TLSv1`, `MinVersion` set below TLS 1.2, `ssl.PROTOCOL_TLS` without explicit minimum
 - **Fix:** Set minimum TLS 1.2. Go: `tls.Config{MinVersion: tls.VersionTLS12}`. Node: `secureOptions: crypto.constants.SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1`. Python: `ssl.PROTOCOL_TLS_CLIENT` (defaults to 1.2+)
+- **Impact:** TLS below 1.2 carries known cryptographic weaknesses (BEAST/POODLE-class attacks) — connections can be downgraded and traffic decrypted.
 - **Source:** NIST SP 800-52r2, PCI DSS 4.0
 
 ### NET-02 [BLOCKER] Certificate Validation
 Never disable SSL/TLS certificate verification in production code.
 - **Detect:** `verify=False`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `InsecureSkipVerify: true`, `CURLOPT_SSL_VERIFYPEER => false`, `ssl_verify: false`
 - **Fix:** Remove verification bypass. For development/testing, use environment-specific config, not code changes. For self-signed certs in staging, add CA to trust store
+- **Impact:** Disabled certificate verification lets any attacker on the network path present a fake certificate and silently intercept or alter every request (MITM).
 - **Source:** OWASP A02:2025 (Security Misconfiguration)
 
 ### NET-03 [CRITICAL] HSTS Header
 HTTP Strict Transport Security prevents protocol downgrade attacks.
 - **Detect:** Missing `Strict-Transport-Security` header on HTTPS responses. `max-age` below 31536000 (1 year). Missing `includeSubDomains`
 - **Fix:** Add header: `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`. For new deployments, start with lower max-age and increase
+- **Impact:** Without HSTS, a user's first request (or any request after a cleared cache) can be downgraded to plain HTTP and intercepted before the redirect to HTTPS happens.
 - **Source:** RFC 6797, OWASP
 
 ### NET-04 [CRITICAL] Certificate Pinning (Mobile/Desktop)
 Pin certificates or public keys for sensitive API connections in native apps.
 - **Detect:** Mobile/desktop apps making HTTPS calls without certificate pinning. Missing `TrustManager` override (Android), missing `URLSessionDelegate` pinning (iOS), no `CertificatePinner` (OkHttp)
 - **Fix:** Pin leaf or intermediate certificate public key hash. Implement backup pins for rotation. Flutter: `SecurityContext` with `setTrustedCertificatesBytes`. React Native: `ssl-pinning` or custom `TrustManager`
+- **Impact:** Without pinning, a compromised or coerced CA — or a MITM proxy with a trusted root — can issue a valid-looking certificate and intercept mobile/desktop API traffic undetected.
 - **Source:** OWASP Mobile Top 10 M3
 
 ---
@@ -46,24 +50,28 @@ Pin certificates or public keys for sensitive API connections in native apps.
 All public-facing endpoints must have rate limiting to prevent abuse and DoS.
 - **Detect:** API endpoints without rate limiting middleware. Missing `X-RateLimit-*` response headers. No throttle/rate-limit configuration in API gateway, reverse proxy, or application code
 - **Fix:** Add rate limiting: per-IP for anonymous, per-user for authenticated. Return `429 Too Many Requests` with `Retry-After` header. Express: `express-rate-limit`. Django: `django-ratelimit`. Go: `golang.org/x/time/rate`. Use sliding window algorithm for fairness
+- **Impact:** An endpoint with no rate limit is open to credential stuffing, scraping, and resource-exhaustion DoS at whatever rate an attacker can send requests.
 - **Source:** OWASP API4:2023 (Unrestricted Resource Consumption)
 
 ### NET-06 [CRITICAL] Request Size Limits
 Enforce maximum request body size to prevent memory exhaustion.
 - **Detect:** No body size limit configured. Missing `client_max_body_size` (nginx), `LimitRequestBody` (Apache), `bodyParser.json({limit})` (Express), `DATA_UPLOAD_MAX_MEMORY_SIZE` (Django)
 - **Fix:** Set reasonable limits: API JSON: 1-10MB, file uploads: explicit per-endpoint limit with streaming. Express: `app.use(express.json({limit: '1mb'}))`. Nginx: `client_max_body_size 10m;` Validate the application limit against the CURRENT documented hard limit of the fronting CDN/proxy/gateway — read the provider's live documentation at change time, never a value remembered from training or an old note; re-verify when the provider tier or vendor changes. (XR-196)
+- **Impact:** A request body with no size cap lets a single oversized payload exhaust memory and take down the process — a trivial DoS vector.
 - **Source:** OWASP API4:2023
 
 ### NET-07 [CRITICAL] Request Timeout Configuration
 All external calls must have explicit timeouts to prevent resource exhaustion.
 - **Detect:** HTTP clients without timeout: `requests.get()` without `timeout=`, `fetch()` without `AbortController`, `http.Client{}` without `Timeout`, database queries without statement timeout
 - **Fix:** Set connect timeout (5-10s), read timeout (30s), write timeout (30s). For long operations, use async processing with progress callbacks. Python: `requests.get(url, timeout=(5, 30))`. Go: `&http.Client{Timeout: 30 * time.Second}`
+- **Impact:** A call with no timeout can hang forever on a slow or dead peer, tying up threads/connections until the whole service exhausts its pool and stops serving anyone.
 - **Source:** NIST resilience guidelines
 
 ### NET-08 [HIGH] API Versioning
 APIs must have versioning strategy to prevent breaking changes.
 - **Detect:** API routes without version prefix (`/api/users` instead of `/api/v1/users`). No `Accept` header version negotiation. No sunset/deprecation headers on old versions
 - **Fix:** URL path versioning (`/api/v1/`) or header versioning (`Accept: application/vnd.api+json;version=1`). Document deprecation timeline. Add `Sunset` header to deprecated versions
+- **Impact:** Shipping breaking changes with no version seam forces every consumer to update in lockstep with the server — one deploy breaks every client at once.
 - **Source:** REST API design best practices
 
 ---
@@ -74,24 +82,28 @@ APIs must have versioning strategy to prevent breaking changes.
 Database and HTTP connection pools must have bounded sizes and timeouts.
 - **Detect:** Connection pools without `maxPoolSize`/`pool_size`/`MaxOpenConns`. Missing `idle_timeout`/`maxIdleTime`. Unbounded connection creation in loops
 - **Fix:** Set pool size based on expected concurrency (typically 10-25 for DB, 100 for HTTP). Set idle timeout (30-60s). Set max lifetime (5-10min). Go: `db.SetMaxOpenConns(25); db.SetMaxIdleConns(5); db.SetConnMaxLifetime(5 * time.Minute)`
+- **Impact:** An unbounded connection pool exhausts the database's or upstream's connection limit under load, taking down every other consumer sharing that resource.
 - **Source:** Database and HTTP client documentation
 
 ### NET-10 [HIGH] Retry with Backoff
 Retries on external service failures must use exponential backoff with jitter.
 - **Detect:** Retry loops without delay (`while (!success) { retry(); }`). Fixed delay retries. Missing jitter. Unlimited retry count
 - **Fix:** Exponential backoff: `delay = min(base * 2^attempt + random_jitter, max_delay)`. Max 3-5 retries. Circuit breaker for persistent failures. Python: `tenacity` library. Go: custom or `cenkalti/backoff`
+- **Impact:** Retrying without backoff turns a transient blip into a self-inflicted DoS — synchronized retries from every failed caller spike load exactly when the dependency is already struggling.
 - **Source:** AWS architecture best practices
 
 ### NET-11 [HIGH] Circuit Breaker Pattern
 Repeated failures to external services should trip circuit breaker to prevent cascade failures.
 - **Detect:** External service calls without circuit breaker. Repeated timeout/error handling that continues calling failing service
 - **Fix:** Implement circuit breaker with three states: closed (normal), open (failing, fast-fail), half-open (testing recovery). Track failure rate over sliding window. Go: `sony/gobreaker`. Node: `opossum`. Python: `pybreaker`
+- **Impact:** Without a circuit breaker, a slow or failing downstream keeps getting hammered by every caller, and the failure cascades upstream instead of being contained.
 - **Source:** Michael Nygard, "Release It!"
 
 ### NET-12 [HIGH] DNS Resolution Caching
 Avoid DNS lookup on every request for frequently called services.
 - **Detect:** HTTP clients creating new connections per request without connection reuse. DNS resolution on every API call in hot paths
 - **Fix:** Use connection pooling (reuses existing connections, avoids DNS). For custom DNS: set TTL-based cache. Node: `http.Agent({keepAlive: true})`. Go: default `http.Client` reuses connections. Python: `requests.Session()` for connection reuse
+- **Impact:** Re-resolving DNS and reconnecting on every request adds latency to every call and can overwhelm the DNS resolver under load.
 - **Source:** Performance and reliability best practices
 
 ### NET-13 [HIGH] Client IP Read Only Behind a Configured Trusted Proxy, Rightmost Value

@@ -40,7 +40,7 @@ AI-dev environments accumulate ad-hoc: tools get installed unpinned, telemetry s
 - **Permission profiles:** where the detected harness exposes an allow/ask/deny permission surface, apply the safe-default profile ([references/permissions.md](references/permissions.md)) covering both harness defaults and rig-installed tools — merge, never clobber; backup before write. Harness without a permission surface → gap-note; the run continues.
 - **Global-only, zero project footprint:** every permission write targets the harness's user/global-scope config file — never a project- or repo-scoped permission file (`.claude/settings.local.json`, project `.claude/settings.json`, `.github/hooks/*.json`, project-root `kilo.jsonc`, etc.). Workspace-autonomy (full permissions inside whatever project is currently open) is expressed with cwd-relative matchers written once into the global file, never as a per-project entry — ds-rig performs no project-scoped operation, full stop.
 - **Harness's own directories are read-allow, not ask:** reads of the harness's own config/skill/plugin/agent directories are written as ALLOW (never ask) in the profile — a harness reading its own shipped skills/plugins is not a trust boundary. Writes to those same paths stay DENY (RC-10) except this skill's own gated writes.
-- **Never silent:** unpinned `npx -y`/`curl|bash` execution, credential-passthrough MCP servers, self-updating tools, harness-config writes, budget-crossing MCP adds, and sandbox/permission-disabling flags each require separate per-item confirmation — never bundled into a bulk "yes". This list is this skill's own explicit extension to the publish/irreversible exception list (publish/irreversible exception list, clause "requiring a value only a human can supply" — each item is a judgment call no repo evidence can settle): **under `--auto`**, none of these are silently applied — each auto-skips and is recorded `needs-human`, exactly like the fixed exception list; everything else in this skill resolves automatically by best judgment.
+- **Never silent:** unpinned `npx -y`/`curl|bash` execution, credential-passthrough MCP servers, self-updating tools, harness-config writes, budget-crossing MCP adds, and sandbox/permission-disabling flags are this skill's own explicit extension to the publish/irreversible exception list (clause "requiring a value only a human can supply" — each item is a judgment call no repo evidence can settle). Default: none of these are silently applied — each is skipped and recorded `needs-human`, exactly like the rest of the exception list; everything else in this skill resolves automatically by best judgment. `--ask`: each item gets a separate per-item confirmation with the specific risk named, never bundled into a bulk "yes".
 - **State-exempt — externally durable.** The manifest `~/.config/ds-rig/manifest.json` (tools, versions, privacy configs applied, permission entries written) is the durable record; writes no `ds/audit/` state, nothing to the repo.
 - Standalone. Every tool referenced is advisory: present → use; absent → documented zero-dependency fallback per catalog.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
@@ -57,7 +57,7 @@ AI-dev environments accumulate ad-hoc: tools get installed unpinned, telemetry s
 | `--permissions-only` | Apply/refresh harness permission profiles only |
 | `--budget` | MCP tool-count + token-tax report only |
 | `--uninstall {tool\|--all}` | Invoke each tool's own uninstall per manifest; remove its privacy/permission entries; update manifest |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
 ## Scopes
 
@@ -72,6 +72,21 @@ AI-dev environments accumulate ad-hoc: tools get installed unpinned, telemetry s
 | Skill distribution | npx skills, dev-skills install.sh --target | manual copy into host skill dirs |
 | Base CLI utilities | gh, ripgrep, jq, fd | POSIX equivalents (grep, find) |
 
+This skill operates machine-level, not project-level (Contract) — relevance keys are the rig's own Phase 1 detection facts, not `core/signal-inventory.md`'s per-project keys (`ui`, `api`, `db`, … do not apply here).
+
+| Scope | Runs when (signal) | Otherwise |
+|-------|---------------------|-----------|
+| Token-reducing CLI proxy | any source — always offered | — |
+| Context-sandboxed execution MCP | any source — offered with the sandbox-escape caveat confirmed per item | — |
+| Persistent memory MCP | any source — always offered | — |
+| LSP bridge | a language server exists for a language detected in the current project | N/A — no language server available for any detected language |
+| Git quality gate | a `.git/` repo is detected | N/A — no git repo in the current workspace |
+| Security scanners | any source — always offered | — |
+| Skill distribution | a supported harness with a skill directory is detected | N/A — no supported harness detected |
+| Base CLI utilities | any source — always offered | — |
+
+`unknown` (a probe that could not run, e.g. command not found) never excludes a scope — it is offered and marked `unknown` in the report per Phase 1's Gate.
+
 ## Delegation
 
 **Owns:** rig-install, privacy-hardening, permission-profiles, mcp-token-budget | **Delegates:** ds-quality → quality-gate wiring after rig setup | **Receives:** none
@@ -85,7 +100,7 @@ Detect → Select & Budget → Trust Gate → Install/Update → Privacy Hardeni
 1. OS + architecture + available package managers (brew, apt/dnf, winget/scoop, npm, pip/uv, cargo) — from command probes, not assumption.
 2. Installed harnesses: probe config dirs (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.copilot/`/`.github/hooks/`, `.aider.conf.yml`, OpenCode/Cursor/Windsurf dirs per [references/permissions.md](references/permissions.md)) — and read each harness's current telemetry-relevant settings for the privacy posture baseline.
 3. Catalog tools already installed + their versions (`{tool} --version` probes).
-4. Registered MCP servers per harness config + estimated tool-definition count — count with `jq` over each harness's MCP config (e.g. `jq '.mcpServers | length'`), never by eyeballing the file.
+4. Registered MCP servers per harness config + estimated tool-definition count — count with `jq` over each harness's MCP config (e.g. `jq '.mcpServers | length' {config}`; no `jq` → `python3 -c "import json,sys; print(len(json.load(open(sys.argv[1])).get('mcpServers',{})))" {config}`), never by eyeballing the file.
 5. Existing manifest `~/.config/ds-rig/manifest.json` → this is a re-run: load it; missing → first run.
 6. Report the detected rig before changing anything.
 
@@ -93,20 +108,18 @@ Detect → Select & Budget → Trust Gate → Install/Update → Privacy Hardeni
 
 ### Phase 2 — Select & Budget
 
-1. Present the up-front category menu (one row per Scopes category): what it installs, measured benefit, token cost, `(recommended)` marks from detection (e.g. LSP bridge recommended when a language server exists for the project languages). Include `all recommended`, per-category bulk, `everything`, and `(Cancel)` last.
-2. Re-run with manifest: default selection = manifest-tracked tools needing update; new categories offered separately.
-3. Project the post-install MCP tool count. Projected count crosses the ~20-30 threshold → show the projection with the affected servers and require explicit override or de-selection.
-4. For every selected MCP-class tool, state the Skills/CLI alternative when one exists ("could a CLI script do this?" heuristic) so the user chooses with the trade-off visible.
+1. Default: select every `(recommended)` category from detection (e.g. LSP bridge recommended when a language server exists for the project languages) plus manifest-tracked tools needing update; record the selection and its reasoning in the report. `--ask`: present the up-front category menu instead — one row per Scopes category with what it installs, measured benefit, token cost, and `(recommended)` marks from detection; include `all recommended`, per-category bulk, `everything`, and `(Cancel)` last.
+2. Re-run with manifest: default selection = manifest-tracked tools needing update; `--ask` offers new categories separately.
+3. Project the post-install MCP tool count. Projected count crosses the ~20-30 threshold → show the projection with the affected servers. Default: budget-crossing selections resolve per the Contract's Never-silent extension (skipped, recorded `needs-human`). `--ask`: require explicit override or de-selection instead.
+4. For every selected MCP-class tool, state the Skills/CLI alternative when one exists ("could a CLI script do this?" heuristic) so the trade-off is recorded, or shown under `--ask`.
 
-Under `--auto`: skip the category menu — select every `(recommended)` category from detection plus manifest-tracked updates; budget-crossing selections are not silently overridden — they resolve per the Contract's Never-silent extension (skipped, recorded `needs-human`).
-
-**Gate:** Selection confirmed with the budget projection shown. If the user cancels → exit with the read-only Detect report; budget exceeded without override → return to selection, never proceed silently.
+**Gate:** Selection confirmed with the budget projection shown. If fails → budget exceeded with no resolution → return to selection, never proceed silently; under `--ask` and the user cancels → exit with the read-only Detect report.
 
 ### Phase 3 — Trust Gate (per-item, before anything executes)
 
 1. For each selected item verify against live sources: exists in the official registry/repo, resolved version is current, license visible, telemetry posture documented. Record the evidence (URL + version).
-2. Classify against the never-silent table (Contract). Items in a never-silent class → separate per-item confirmation with the specific risk named. Under `--auto`: no confirmation is shown — these items are skipped and recorded `needs-human` (Contract's Never-silent extension); all other items proceed automatically once evidence + pin are recorded.
-3. Pin: record the exact version/commit that will be installed. Unpinnable install paths (bare `curl|bash` with no version) → offer the pinned alternative; none exists → require explicit per-item acceptance. Under `--auto`: no pinned alternative exists → skip and record `needs-human`.
+2. Classify against the never-silent table (Contract). Default: items in a never-silent class are skipped and recorded `needs-human` (Contract's Never-silent extension); all other items proceed automatically once evidence + pin are recorded. `--ask`: never-silent-class items get a separate per-item confirmation with the specific risk named instead.
+3. Pin: record the exact version/commit that will be installed. Unpinnable install paths (bare `curl|bash` with no version) → offer the pinned alternative. Default: no pinned alternative exists → skip and record `needs-human`. `--ask`: no pinned alternative exists → require explicit per-item acceptance instead.
 
 **Gate:** Every selected item has recorded evidence + a pinned version + required confirmations. If verification fails for an item (registry miss, dead repo, undocumented telemetry) → drop it from the batch, report why, continue with the rest.
 
@@ -125,33 +138,44 @@ Under `--auto`: skip the category menu — select every `(recommended)` category
 3. Apply tool + package-manager opt-outs and the universal ones where honored (`DO_NOT_TRACK=1`, package-manager analytics opt-outs) in the user's shell profile — merge, never duplicate.
 4. Prove per item: read back the config/env that disables telemetry; where the item ships a status command, run it and capture the output.
 5. Report the honest remainder: traffic that cannot be disabled (model API calls, a scanner's functional API queries) is listed as `functional-network`, distinguished from telemetry — never silently omitted.
-6. An item with no documented opt-out and confirmed call-home behavior → report it, offer removal (tools) or explicit user acceptance (tools and harnesses); never leave it silently phoning home. Under `--auto`: resolves via best judgment — remove the tool when a documented catalog fallback exists; no fallback exists → skip and record `needs-human` (explicit acceptance is a human judgment call).
-7. Items whose documented opt-out is **known-broken** (open upstream bugs; ⚠ entries in [references/privacy.md](references/privacy.md)) → classify `non-disableable-in-practice`, cite the upstream issue, and put the accept/replace decision to the user — a setting that is written but not honored is never reported as `proven`. Under `--auto`: replace with the catalog fallback when one exists; none exists → record `needs-human`.
+6. An item with no documented opt-out and confirmed call-home behavior → report it, never leave it silently phoning home. Default: remove the tool when a documented catalog fallback exists; no fallback exists → skip and record `needs-human` (explicit acceptance is a human judgment call). `--ask`: offer removal (tools) or explicit user acceptance (tools and harnesses) as a choice instead.
+7. Items whose documented opt-out is **known-broken** (open upstream bugs; ⚠ entries in [references/privacy.md](references/privacy.md)) → classify `non-disableable-in-practice`, cite the upstream issue — a setting that is written but not honored is never reported as `proven`. Default: replace with the catalog fallback when one exists; none exists → record `needs-human`. `--ask`: put the accept/replace decision to the user instead.
 
 **Gate:** Every detected harness and installed tool has (a) captured proof of disabled telemetry, (b) a recorded explicit user acceptance, or (c) a `functional-network`/`no-telemetry-by-default` classification with its source. If a verification read fails → mark `unproven`, list it in the report's open items; the run ends WARN, not OK.
 
 ### Phase 6 — Permission Profiles
 
-1. For each detected harness with a permission surface ([references/permissions.md](references/permissions.md) — verify the surface against live docs at apply time), resolve the **global/user-scope config path only** (see the per-harness table's "Global config path" column — never the project-local column), back it up, then merge the full profile: **RC-1..RC-10 → deny** (filesystem/disk destruction, privilege escalation, unpinned remote code, git history destruction, credential access, exfiltration, persistence writes, cloud/infra destruction, sandbox-weakening), the **protected-path map → deny** (system dirs, user-critical dirs, harness/rig configs, shell-persistence paths — path-centric layer independent of which command targets them, writes only — see next), the **official-harness-directories rule → allow** (reads of the harness's own config/skill/plugin/agent dirs — never ask), **RC-11..RC-16 → ask** (push/publish, external writes, installs, new-host fetches, executable bits, data migrations), and the **workspace-autonomy rule → allow** (cwd-relative matchers, written once to the global file, granting full file ops + project-local commands inside whatever project root is currently open, prompt-free; command-class risks RC-3/4/6/7/10 and remote-facing RC-5/11 stay enforced even inside).
-2. Where the harness exposes a scriptable blocking hook, offer the chain-resistant hook-script arm in the same confirmation (recommended — declarative pattern lists are evadable by command chaining; the hook parses the command). State the Honest-limits section in the report verbatim class: pattern lists raise the floor, they are not a sandbox. Under `--auto`: apply the recommended hook-script arm automatically when the harness supports it; the honest-limits note is always included in the report.
+1. For each detected harness with a permission surface ([references/permissions.md](references/permissions.md) — verify the surface against live docs at apply time), resolve the **global/user-scope config path only** (see the per-harness table's "Global config path" columns — one path, shown in its macOS/Linux/Git Bash and native-Windows notations — never the project-local column), back it up, then merge the full profile per this verdict table:
+
+   | Class | Verdict | Covers |
+   |-------|---------|--------|
+   | RC-1..RC-10 | deny | filesystem/disk destruction, privilege escalation, unpinned remote code, git history destruction, credential access, exfiltration, persistence writes, cloud/infra destruction, sandbox-weakening |
+   | Protected-path map | deny | system dirs, user-critical dirs, harness/rig configs, shell-persistence paths — path-centric, independent of which command targets them; writes only |
+   | Official-harness-directories rule | allow | reads of the harness's own config/skill/plugin/agent dirs — never ask |
+   | RC-11..RC-16 | ask | push/publish, external writes, installs, new-host fetches, executable bits, data migrations |
+   | Workspace-autonomy rule | allow | cwd-relative matchers, written once to the global file, granting full file ops + project-local commands inside whatever project root is currently open, prompt-free; command-class risks RC-3/4/6/7/10 and remote-facing RC-5/11 stay enforced even inside |
+
+2. Where the harness exposes a scriptable blocking hook, the chain-resistant hook-script arm is the strongest available control (declarative pattern lists are evadable by command chaining; the hook parses the command) — state the Honest-limits section in the report verbatim class regardless: pattern lists raise the floor, they are not a sandbox. Default: apply the recommended hook-script arm automatically when the harness supports it. `--ask`: offer it in a confirmation instead.
 3. Add allow/ask entries for tools installed this run so the rig works without permission friction — additive merge, never remove or loosen existing user entries. These entries also go to the global config path only.
 4. Harness with no permission surface (e.g. Aider), or whose only permission surface is project/repo-scoped (e.g. Copilot's `.github/hooks/*.json`, a project-root `kilo.jsonc`) → gap-note in the report naming the compensating control (git pre-commit gate via ds-quality when present; manual review otherwise) — never fall back to writing the project-scoped file.
-5. Loosening any existing deny rule is out of scope — flag it as needs-user-decision instead. Under `--auto`: recorded `needs-human` (the publish/irreversible exception list — a rule-loosening decision is not inferable from the repo).
+5. Loosening any existing deny rule is out of scope. Default: recorded `needs-human` (the publish/irreversible exception list — a rule-loosening decision is not inferable from the repo). `--ask`: flagged as needs-user-decision instead.
 
-**Gate:** Each written config parses (host's own validation or JSON/TOML parse), a diff against the backup shows only additive entries, the modified path is confirmed to be the global/user-scope file (never a path inside a project working directory), and the report includes the RC-class coverage table (which classes landed as deny/ask/hook per harness) plus the honest-limits note. If a merge would overwrite an existing entry → stop that file, show the conflict, ask; parse failure → restore the backup and report. Under `--auto`: no ask — a conflicting entry is skipped and recorded `needs-human`, the run continues with the remaining files.
+**Gate:** Each written config parses (host's own validation or JSON/TOML parse), a diff against the backup shows only additive entries, the modified path is confirmed to be the global/user-scope file (never a path inside a project working directory), and the report includes the RC-class coverage table (which classes landed as deny/ask/hook per harness) plus the honest-limits note. If fails → parse failure → restore the backup and report; a merge would overwrite an existing entry → default: skip that file and record `needs-human`, continue with the remaining files; `--ask`: stop that file, show the conflict, ask instead.
 
 ### Phase 7 — Prove & Manifest
 
 1. Per-tool observed-effect check from the catalog's verify column (e.g. `rtk gain` produces output; `ctx_doctor` green; `pre-commit run --all-files` executes; LSP hover returns a symbol).
 2. Re-count registered MCP tools; compare against Phase 2 projection and the budget threshold.
-3. Write/update `~/.config/ds-rig/manifest.json`: per tool — name, version, install method, privacy configs applied (with proof pointers), permission entries written, date. Read-back: `jq -e . ~/.config/ds-rig/manifest.json` → exit 0.
+3. Write/update `~/.config/ds-rig/manifest.json` (Windows/Git Bash: same `~/.config/ds-rig/manifest.json` path — `~` resolves to `$USERPROFILE`): per tool — name, version, install method, privacy configs applied (with proof pointers), permission entries written, date. Read-back: `jq -e . ~/.config/ds-rig/manifest.json` → exit 0 (no `jq` → `python3 -c "import json,sys; json.load(open(sys.argv[1]))" ~/.config/ds-rig/manifest.json` → exit 0).
 4. Report per Report Format.
 
 **Gate:** Every installed/updated tool has a passing observed-effect check, the budget re-count is at or under projection, and the manifest write is read back valid. If a tool fails its effect check → status `installed-unverified` with the failing output; overall run reports WARN.
 
 ## Report Format
 
-Report: detected rig (OS · harnesses · managers) · per-category action table (installed/updated/skipped/failed + version + evidence) · privacy posture table covering tools AND harnesses (item → opt-out proof | explicit acceptance | functional-network | unproven) · permission profile diff summary per harness · MCP budget before/after · gap-notes + open user decisions. End with `ds-rig: {OK|WARN|FAIL} | Tools: {n} installed, {m} updated | Privacy: {p}/{n} proven | Permissions: {h} harnesses profiled | Budget: {count}/{threshold}` and a **Value Delivered** block (1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands, quantified when measurable, never the mechanical activity — e.g. "CLI output now token-filtered on every Bash call — measured {x}% session savings claim applies", "zero tools phoning home — {n}/{n} opt-outs proven by config read"). Zero-change run → `No changes — rig current, privacy proven, permissions in place`.
+Report: detected rig (OS · harnesses · managers) · per-category action table (installed/updated/skipped/failed + version + evidence) · privacy posture table covering tools AND harnesses (item → opt-out proof | explicit acceptance | functional-network | unproven) · permission profile diff summary per harness · MCP budget before/after · gap-notes + open user decisions. End with `ds-rig: {OK|WARN|FAIL} | Tools: {n} installed, {m} updated | Privacy: {p}/{n} proven | Permissions: {h} harnesses profiled | Budget: {count}/{threshold}`, then the Outcome Report ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)).
+
+**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output): "CLI output now token-filtered on every shell command — measured {x}% session savings claim applies", "zero tools phoning home — {n}/{n} opt-outs proven by config read". Zero-change run → `No changes — rig current, privacy proven, permissions in place`.
 
 ## Quality Gates
 

@@ -25,9 +25,9 @@ rm -rf /tmp/dev-skills
 ## Use
 
 ```bash
-/ds-tune           # Full setup: discover goal, analyze, generate, baseline, start loop
-/ds-tune run       # Resume loop from existing ds/tune/ setup
-/ds-tune status    # Show experiment results and improvement
+/ds-tune              # Full setup: discover goal, analyze, generate, baseline, start loop
+/ds-tune --run        # Resume the loop from an existing ds/tune/ setup
+/ds-tune --status     # Show experiment results and improvement
 ```
 
 ## How It Works

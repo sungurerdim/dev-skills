@@ -48,137 +48,41 @@ AI-generated APIs ship with inconsistent naming, missing pagination, no auth str
 |------|--------|
 | `--audit` | Review existing API/DB/auth for issues |
 | `--design` | Design new endpoints, schema, or auth flow |
-| `--spec` | Generate OpenAPI spec, migration files, or auth documentation |
-| `--migrate` | Generate or review database migrations |
+| `--spec` | Generate OpenAPI spec, migration files, or auth documentation (includes migration generation/review — no separate flag) |
 | `--scope={x}` | Specific scope: api, db, auth, data-pipeline, llm (comma-separated) |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
-Without flags: present an up-front mode menu — Audit (recommended) / Design / (Cancel); each option's effect matches its row in the Arguments table above. A disambiguating flag (`--audit`/`--design`/`--scope`/`--auto`) skips the menu.
+Default: Audit (recommended); the choice is recorded in the summary. A disambiguating flag (`--audit`/`--design`/`--scope`) selects that mode directly. `--ask` with no disambiguating flag: present the up-front mode menu — Audit (recommended) / Design / (Cancel); each option's effect matches its row in the Arguments table above.
 
 ## Scopes
 
-### API [Product DX]
+| Scope | Covers |
+|-------|--------|
+| `api` | API design — naming, versioning, status codes, pagination, errors, rate limiting, caching, idempotency, security (OWASP API Top 10) |
+| `db` | Database design — schema, indexing, migrations, query patterns, backup, PII/privacy, multi-tenant isolation |
+| `auth` | Authentication — OAuth2/OIDC, JWT/session, RBAC, MFA, API keys, social login |
+| `data-pipeline` | Ingest → clean → merge → store → serve — idempotency, quality gates, retention, lineage, sync round-trip integrity |
+| `llm` | LLM/AI features — conditional, active only when an LLM/AI provider integration is detected or `--scope=llm` is passed |
 
-| Check Area | What It Covers |
-|------------|---------------|
-| Naming | RESTful naming, resource vs action endpoints |
-| Versioning | URL vs header versioning strategy |
-| Status codes | Correct HTTP status code usage |
-| Pagination | Cursor vs offset, page size limits |
-| Error format | RFC 9457 Problem Details (`application/problem+json`) |
-| Input validation | Request validation, sanitization |
-| Rate limiting | Headers, algorithm selection (token bucket, sliding window) |
-| Caching | HTTP caching headers, ETag, Cache-Control |
-| Idempotency | `Idempotency-Key` header for non-idempotent POST |
-| Logging | Structured request logging (request ID, duration, status) |
-| Error-channel decision (D4, advisory) | Production crash/error reporting has an explicit decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only — see ds-compliance crosscheck), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding, never a blocker |
-| Ecosystem openness (A11, advisory) | Webhook emission surface (versioned payload, HMAC signature verified constant-time, timestamp replay-tolerance check — industry convention ~5 min — `webhook-id` as consumer idempotency key, retry/backoff — aligned to the [Standard Webhooks](https://www.standardwebhooks.com/) spec where feasible) for state-change events; standard-format export endpoints (ICS/CSV/JSON, not just proprietary JSON) for user data; embeddable-surface posture (widget/iframe API) where the product has a natural embed use case. Product holds user data with no standard export path -> advisory portability finding (see ds-compliance crosscheck); never a blocker |
-| Security | OWASP API Security Top 10 (2023 edition — current as of 2026) checks |
-| SLO baseline (advisory) | Critical user journeys have RED metrics (rate/errors/duration) exposed and an SLO defined; error-budget policy + burn-rate alerting delegated to ds-devops (advisory-handoff: absent → gap-note, never a blocker) |
-| Destructive-operation response integrity | Multi-scope destructive endpoints (reset/delete/purge) are split into clearly-named, narrowly-scoped, idempotent operations behind escalating confirmation — never one ambiguous "clear all". Every destructive response compares expected-vs-actual outcome (e.g. `{deleted: 0}` when records were expected) and returns a warning/conflict status, never a bare 200/success, on divergence — silent false-success on a no-op delete is CRITICAL |
+| Scope | Runs when (signal) | Otherwise |
+|-------|---------------------|-----------|
+| `api` | api ≠ none | N/A — no API surface detected |
+| `db` | db ≠ none | N/A — no database detected |
+| `auth` | auth ≠ none | N/A — no auth mechanism detected |
+| `data-pipeline` | pipeline surfaces found in Discover (ingest jobs, ETL/transform scripts, schedulers/queues), or integrations include an ingest/ETL signal | N/A — no pipeline surfaces detected |
+| `llm` | integrations contain an LLM/AI provider (`OPENAI_`, `ANTHROPIC_`, or an SDK import), or `--scope=llm` passed | N/A — no LLM/AI integration detected |
 
-### Database
+An `unknown` signal never excludes a scope — it runs the scope and reports the signal as unresolved. `--scope=` overrides this table for the named scopes; `--ask` shows the resolved table before running.
 
-| Check Area | What It Covers |
-|------------|---------------|
-| Schema design | Normalization, naming conventions, data types |
-| Indexing | Missing indexes, over-indexing, composite order, GIN/GiST/BRIN for advanced cases |
-| Migrations | Expand-contract pattern, safe vs dangerous ops, rollback tested, CI migration lint (Squawk) |
-| Query patterns | N+1 detection, EXPLAIN ANALYZE review, `pg_stat_statements`, connection pooling |
-| Backup | 3-2-1 rule, WAL archiving, restore testing |
-| Restore-drill proof (D3, advisory) | Backup existing is not resilience — require a documented restore runbook + evidence of ≥1 executed end-to-end drill (worst case: total account/environment loss, restored to a clean target). Missing evidence -> advisory finding "backup exists, restore unproven — run a drill and record the runbook" (never a blocker) |
-| Data privacy | PII classification, encryption at rest, GDPR right-to-erasure, retention |
-| Local cache reconstructibility (conditional — offline-first/cached-client architecture) | Every client-side cache/store classified as server-native (recoverable via re-fetch), derived (recoverable by re-parsing another artifact), or justified-transient (device-only, documented reason) — an unclassified local-only store that can't be reconstructed after a device wipe is a data-loss risk, flag HIGH. Cross-device write conflicts resolve via server-side ordering (ETag/If-Match/revision), never device wall-clock last-write-wins |
-| Bulk restore/import safety | Bulk write/restore/import/migration operations enqueue in bounded batches (drain-before-next-batch) through the normal write pipeline, never exceeding its hard queue-depth cap; default mode is dry-run (diff of new-vs-existing, no writes) with an explicit force/second-confirm flag required for the destructive path |
-| Schema vs. form-layer enforcement | A new required-field/business-rule constraint on data that also flows through a lenient boundary-schema parse (legacy records, external sync, historical imports) is enforced at the write/form (application) layer, not added to the boundary schema validator — a stricter schema would reject pre-existing valid records on read |
+Four checks activate independent of `--scope`, gated on their own signal: Admin & Support Operability (D10, advisory — any endpoint surface), Multi-Tenant/Org Configuration (an org/workspace concept with more than one config layer), Transactional Messaging (a messaging SDK, a consent field, or reminder-scheduling code), A9 Google/Apple Ecosystem Rules (blueprint `Integrations` is `google-workspace` or `apple-ecosystem`). Full check-area tables for every scope plus these four: [references/scopes.md](references/scopes.md).
 
-### Data Pipeline
-
-| Check Area | What It Covers |
-|------------|---------------|
-| Ingest validation | Schema/contract validation at every entry boundary, reject-by-default on malformed input |
-| Idempotency | Jobs and handlers safe to re-run; dedup keys on at-least-once delivery |
-| Cleaning & quality | Null/duplicate/range checks, quarantine path for bad records (never silent drop) |
-| Merge & dedup | Deterministic merge keys, conflict policy, no order-dependent results |
-| Incremental loads | Watermark/cursor-based increments, safe backfill, full-reload escape hatch |
-| Storage & retention | Raw vs derived separation, retention/archival policy, PII minimization in intermediate stores |
-| Observability | Per-job structured logs, failure alerts, row-count/freshness checks |
-| Lineage | Source→transform→sink traceable; transformations documented or self-describing |
-| Schema evolution | Compatibility mode chosen deliberately (BACKWARD default; FULL only where producer/consumer upgrade order must be independent); field changes additive-only — never rename/retype, add new field with default; CI compatibility gate against the schema registry where one exists |
-| Data contract | Contract = schema + integrity constraints + PII metadata + enforcement policy, version-controlled like code — a bare schema alone is not a contract |
-| Sync round-trip integrity | Every field synced with an external system has: an internal write path, an outbound field mapping, an inbound field mapping, and a schema/field-list constant referencing it — plus a `roundtrip` regression test (write→sync-out→reload→sync-in→assert). Flag any synced field missing one of the four or its regression test — the sneakiest bug class here shows data, appears to sync, then silently drops the field only after reload |
-| Retry/outbox semantics | Retry-queue results are three-valued: succeeded / failed (real error, increments attempt counter, eventually quarantines) / not-ready (precondition unmet — auth, scope, flag — does NOT increment attempt counter). Flag any retry loop with only success/failure that would quarantine a job purely because a precondition was temporarily unmet |
-
-### Auth
-
-| Check Area | What It Covers |
-|------------|---------------|
-| Flow design | OAuth2 / OIDC correctness, PKCE required for all client types per RFC 9700 |
-| Token handling | JWT signing (RS256/ES256), expiry, refresh rotation, storage (never localStorage) |
-| Session management | Cookie security (HttpOnly, Secure, SameSite), CSRF, session fixation |
-| RBAC | Role/permission model, authorization middleware, least privilege |
-| Password security | Argon2id (primary), NIST 800-63B policy (min length, breached check, no complexity rules) |
-| Social login | Provider integration, account linking, `sub` as stable identifier — used everywhere identity is a key: cross-device data binding, audit-log attribution, encryption derivation, never the mutable email address |
-| MFA | TOTP, WebAuthn / passkeys, recovery codes (hashed, single-use), SMS OTP deprecation |
-| API keys | Prefixed keys, hash-only storage, scoped permissions, rotation support |
-| Crypto-enforced separation of duties (conditional — active when a sensitive-data encryption key is distributed to a subset of roles) | Recipient set for the key derives from a static seed/allowlist, never from a generic `Role.can()`/`hasPermission()` call — such helpers commonly short-circuit true for admin, silently handing the key to the role the design meant to exclude. Flag any key-distribution path that calls a general permission-check function instead of a dedicated allowlist |
-
-### LLM & AI Features [conditional — active only when an LLM/AI provider integration is detected (SDK import, API client, model config) or `--scope=llm` is passed]
-
-| Check Area | What It Covers |
-|------------|---------------|
-| OWASP LLM Top 10 | v2.0 (2025) — mitigations mapped per applicable category, esp. LLM01 Prompt Injection, LLM06 Excessive Agency, LLM10 Unbounded Consumption |
-| Prompt-injection defense | Retrieved/external content treated as data, never instructions (W8); privilege separation between user input and system prompt; model output validated before acting on it; tool-call surface allowlisted |
-| Agentic features | Tool-using/autonomous agents additionally checked against the OWASP Agentic list (ASI:2026 — goal hijack, tool misuse, memory/context poisoning): tool permission scoping, inter-agent auth, context integrity |
-| Eval harness in CI | Golden-dataset eval suite wired into CI with pass/fail thresholds (faithfulness/hallucination-rate); no eval gate on an AI feature = HIGH finding |
-| Hallucination guards | Layered, never single-layer: system-prompt constraints + RAG grounding with citation enforcement + runtime faithfulness monitoring |
-| Model pinning + cost budget | Exact model version pinned (never `latest`/unversioned alias); per-request and per-user/session token+cost caps with alerting — unbounded consumption is both a cost and an abuse vector |
-| AI-feature UX | Streaming with stop control, deliberation display, scoped uncertainty indicators → delegate to ds-frontend (advisory-handoff: absent → note the UX checklist inline as gap-note) |
-
-### Admin & Support Operability (D10, advisory)
-
-Advisory only — findings here are Category B, never blockers.
-
-| Check Area | What It Covers |
-|------------|---------------|
-| Admin API surface | Admin-only endpoints (user/config/feature-flag management) gated behind role-checked authz, not just authentication |
-| Operator statistics | Business/usage reporting endpoints (dashboards, aggregate metrics) exist and are paginated/rate-limited, not raw DB dumps |
-| Export integrity | Periodic report exports (CSV/PDF) use streaming/batched generation, not full-table loads into memory |
-| Audit-log undo/restore | If an audit/change-log entry already stores the full before-state of a mutation, verify a corresponding single-record "undo/restore this entry" action exists (read before-state → recreate/rewrite, with conflict handling). An audit trail with full state capture but no restore path is a missed high-value/low-risk feature — flag MEDIUM, not a blocker |
-
-### Multi-Tenant / Org Configuration (conditional)
-
-**Activate when:** the project has an org/workspace/team concept with more than one config-affecting or authorization layer (detected via a multi-tenant schema pattern, an `organizations`/`workspaces` table joined to user settings, or an admin-settings/member-role UI). Zero checks when absent.
-
-| Check | Rule |
-|-------|------|
-| Config layering | Config split into four ownership layers with defined precedence: deployment bootstrap (code, never runtime-writable) → system defaults (code, read-only fallback) → org/workspace config (admin-writable, shared) → per-user preferences (personal). Every enforceable key supports an explicit lock/override flag at the org layer (`{default, enforced}`) — `enforced=true` beats the user's personal preference deterministically. Flag a flat config surface mixing deployment secrets, org-wide settings, and per-user preferences with no override precedence |
-| Resource ownership & entitlement | Org/resource "owner" is an explicit, transferable designation field — never inferred from creator identity or current payer (subscription receipts are often non-transferable, which would lock the whole org to one person's billing status). Removing/deleting a designated owner without a prior mandatory transfer is blocked (sole-owner guard). Paid-tier entitlement anchors to a stable org/workspace ID, not the purchasing individual's account — flag any entitlement check keyed on a personal user ID for a multi-seat product |
-| Authorization fan-out SSOT | A single grant/revoke action (assign or remove a role/membership) updates every authorization layer it touches — app-level RBAC, storage/file ACL, and any sensitive-data encryption-key access — in one atomic path. Flag any system where RBAC, storage sharing, and crypto-key distribution for the same grant are configured through separate, independently-callable admin actions |
-
-### Transactional Messaging (conditional)
-
-**Activate when:** messaging SDK/provider dependency, a consent field in the schema, or reminder-scheduling code is detected — those three signals are the whole activation contract, evaluated here. Zero checks when absent. ds-blueprint installed alongside → its `references/detection.md` § Step 5 carries the fuller provider-signal catalog; absent → the three signals above stand alone, no capability lost.
-
-| Check | Rule |
-|-------|------|
-| Provider credentials | API keys/tokens via secret manager or env, never hardcoded; scoped to transactional-send permission only |
-| Retry/idempotency | Send operations use an idempotency key (message/notification ID) to prevent duplicate sends on retry |
-| Opt-out honored at send time | Every send checks current opt-out/consent status immediately before dispatch, not just at signup |
-
-### A9 — Google / Apple Ecosystem Rules (conditional)
-
-**Activate when:** blueprint profile `Integrations` field is `google-workspace` or `apple-ecosystem`. Zero checks when absent.
-
-| Provider | Rule | Area |
-|----------|------|------|
-| Google | OAuth scope minimization — request only what the integration needs | API |
-| Google | Incremental authorization — request additional scopes per-feature | API |
-| Google | Verification + Limited Use compliance for sensitive/restricted scopes | API |
-| Google | API quota management + exponential backoff on 429 responses | API |
-| Google | Refresh token security — rotate on reuse, secure storage | API |
-| Apple | Token verification — validate `identityToken` (RS256, `aud`, `iss`, expiry) | API |
-| Apple | Private Relay email — use `sub` as stable identifier, not email | API |
+| Scope | Reference File | Loaded when |
+|-------|-----------------|-------------|
+| `api` | [references/rules-api.md](references/rules-api.md) | scope `api` ran |
+| `db` | [references/rules-database.md](references/rules-database.md) | scope `db` ran |
+| `auth` | [references/rules-auth.md](references/rules-auth.md) | scope `auth` ran |
+| `data-pipeline` | [references/rules-data-pipeline.md](references/rules-data-pipeline.md) | scope `data-pipeline` ran |
+| all scopes | [references/scopes.md](references/scopes.md) | full check-area detail needed beyond the rule files, or a conditional cross-cutting check activates |
 
 ## Delegation
 
@@ -190,12 +94,12 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 ### Phase 1: Setup
 
-1. Flags → proceed directly. No flags → interactive menu.
+1. Flags → proceed directly. No flags → default to Audit, recorded in the summary; `--ask` → mode menu (see Arguments).
 2. **Upstream artifacts:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
 3. Detect project stack (framework, ORM, auth library) by scanning config files + dependencies.
-4. Load relevant reference docs by detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md), [references/rules-data-pipeline.md](references/rules-data-pipeline.md).
+4. Resolve scopes against the scope-resolution table above; load each ran scope's reference file.
 
-**Gate:** Scope and mode confirmed. If fails → no flags + no menu response → default `--audit --scope=api,db,auth,data-pipeline` (+`llm` when an AI-provider integration is detected), WARN, announce defaulted scope before proceeding.
+**Gate:** Scope and mode confirmed. If fails → `--ask` menu shown with no response → default `--audit --scope=api,db,auth,data-pipeline` (+`llm` when an AI-provider integration is detected), WARN, announce defaulted scope before proceeding.
 
 ### Phase 2: Discover
 
@@ -246,9 +150,9 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 
 **Cross-cutting checks:**
 
-- **Architecture ([references/principles.md §2](references/principles.md)):** every API/service module vs SOLID/GRASP — SRP (handler doing >1 concern), OCP (new endpoint requires editing existing), LSP (subtype changes contract), ISP (controller injecting unused dependency), DIP (handler depending on concrete DB driver instead of repository abstraction, or a central dispatcher containing an `if (type === '<literal>')` branch per external integration instead of a registered adapter/strategy object exposing a standard interface — cross-cutting concerns like auth-refresh/rate-limit/retry/ID-rewriting live once in the dispatcher, never duplicated per adapter), Information Expert (logic away from owning entity), Low Coupling (>7 unrelated peer imports), High Cohesion (one module owning unrelated concerns). Cite principle by name in finding title.
-- **Reliability ([references/principles.md §4](references/principles.md)):** flag missing — timeout on every outbound call, retry-with-exponential-backoff (idempotent only — never on POST without idempotency key), circuit breaker on high-volume external deps, health checks (liveness + readiness), idempotency keys on externally-exposed write endpoints, graceful shutdown (drain → close → exit), structured logging (JSON/kv, never raw `print`), fail-fast validation at every boundary.
-- **Twelve-Factor ([references/principles.md §3](references/principles.md)):** stateless processes (Factor 6 — no in-memory session/cache survives restart), backing services as URLs from env (Factor 4), config in env (Factor 3), port binding via env-provided value (Factor 7), build/release/run separation (Factor 5), logs to stdout (Factor 11), admin tasks (migrations, seeds) as one-off processes (Factor 12).
+- **Architecture ([../core/principles.md §2](../core/principles.md)):** every API/service module vs SOLID/GRASP — SRP (handler doing >1 concern), OCP (new endpoint requires editing existing), LSP (subtype changes contract), ISP (controller injecting unused dependency), DIP (handler depending on concrete DB driver instead of repository abstraction, or a central dispatcher containing an `if (type === '<literal>')` branch per external integration instead of a registered adapter/strategy object exposing a standard interface — cross-cutting concerns like auth-refresh/rate-limit/retry/ID-rewriting live once in the dispatcher, never duplicated per adapter), Information Expert (logic away from owning entity), Low Coupling (>7 unrelated peer imports), High Cohesion (one module owning unrelated concerns). Cite principle by name in finding title.
+- **Reliability ([../core/principles.md §4](../core/principles.md)):** flag missing — timeout on every outbound call, retry-with-exponential-backoff (idempotent only — never on POST without idempotency key), circuit breaker on high-volume external deps, health checks (liveness + readiness), idempotency keys on externally-exposed write endpoints, graceful shutdown (drain → close → exit), structured logging (JSON/kv, never raw `print`), fail-fast validation at every boundary.
+- **Twelve-Factor ([../core/principles.md §3](../core/principles.md)):** stateless processes (Factor 6 — no in-memory session/cache survives restart), backing services as URLs from env (Factor 4), config in env (Factor 3), port binding via env-provided value (Factor 7), build/release/run separation (Factor 5), logs to stdout (Factor 11), admin tasks (migrations, seeds) as one-off processes (Factor 12).
 
 Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity.
 
@@ -256,14 +160,14 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 ### Phase 4: Design [--design mode]
 
-1. Ask user for requirements (entities, relationships, user roles). **Under `--auto`:** infer requirements from the blueprint profile, existing schema/spec files, and prior art in the codebase; no context found → proceed with minimal conventional CRUD defaults and record every assumption in the summary.
+1. Default: infer requirements from the blueprint profile, existing schema/spec files, and prior art in the codebase; no context found → proceed with minimal conventional CRUD defaults and record every assumption in the summary. `--ask`: ask the user for requirements (entities, relationships, user roles).
 2. Generate per scope:
    - **API:** endpoint list with methods, paths, request/response shapes, status codes
    - **DB:** ER diagram (text), table definitions, index strategy
    - **Auth:** flow diagram (text), token strategy, permission model
-3. Present design for user review + iteration.
+3. Default: finalize on the first best-judgment pass, recorded directly in the generated-artifacts list. `--ask`: present design for user review + iteration.
 
-**Gate:** User approves design or requests changes. If fails → changes requested → apply, re-present; after 3 rounds with no approval → ask "Continue with current / Abort?"; honor choice, record in the generated-artifacts list. **Under `--auto`:** no approval loop — the design finalizes on the first best-judgment pass and is recorded directly in the generated-artifacts list.
+**Gate:** Design finalized (default) or user approves / requests changes (`--ask`). If fails → `--ask` changes requested → apply, re-present; after 3 rounds with no approval → ask "Continue with current / Abort?"; honor choice, record in the generated-artifacts list.
 
 ### Phase 5: Spec [--spec mode]
 
@@ -275,13 +179,13 @@ Cross-scope dedup: merge findings at same `{file}:{line}`, keep highest severity
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block is shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolve `skipped (needs-human)` instead.
+Default: every item, including CRITICAL, resolves via the same impact/effort/risk reasoning an approval review would show, applied and recorded `fixed`/`failed`; items matching the publish/irreversible exception list resolve `skipped (needs-human)` instead. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → forced binary re-prompt; no response → `skipped (no response)` and proceed.
 
 ### Mechanical Done Gate [any project file modified — applied fixes, flag-gate tasks from ds-freeze]
 
-Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Checkpoint pre-step, before this skill's first write to a project file: `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (the revert path `git checkout -- {file}` also discards pre-existing edits in that file); `--auto`: proceed only when the pre-existing dirty files stay untouched by this skill's writes — overlap → resolve those items `skipped (needs-human)`. Never run a fix batch over uncommitted unrelated changes silently. Capture the baseline before the first modification; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each applied fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 7: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Never report `OK` with a new red. Spec-only/design-only runs (no working-tree modification) → gate not applicable, state `no files modified — mechanical gate N/A`.
+Resolve `{check-cmd}` in Phase 1: ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap — report it, offer `/ds-quality`, record the decision. Checkpoint pre-step, before this skill's first write to a project file: `git status --porcelain` → non-empty: default — proceed only when the pre-existing dirty files stay untouched by this skill's writes; overlap → resolve those items `skipped (needs-human)`. `--ask`: ask Commit first (recommended) / Stash / Proceed anyway (the revert path `git checkout -- {file}` also discards pre-existing edits in that file). Never run a fix batch over uncommitted unrelated changes silently. Capture the baseline before the first modification; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green. After each applied fix batch: run `{check-cmd}` on the touched scope — new red → repair and re-run the same command (≤3 attempts); still red → revert via `git checkout -- {file}`, disposition `failed (mechanical gate)` with the captured error. Before Phase 7: run the full `{check-cmd}` once; its command + observed output is the Completion Evidence. Never report `OK` with a new red. Spec-only/design-only runs (no working-tree modification) → gate not applicable, state `no files modified — mechanical gate N/A`.
 
 ### Phase 7: Summary
 
@@ -322,8 +226,8 @@ Zero-change run: `No design changes — existing API/DB/auth meets reviewed scop
 |-----------|--------|
 | No backend code found | Switch to design mode, ask what to build |
 | Framework not recognized | Use generic patterns, warn about framework-specific optimizations |
-| Multiple ORMs / auth libraries | Ask user which is primary. **Under `--auto`:** infer the primary from usage frequency/config and record the assumption in the summary. |
-| Migration would cause data loss | Flag as CRITICAL, require explicit approval. **Under `--auto`:** still generated with the CRITICAL flag retained and a safer expand-contract alternative proposed alongside it — never silently applied to a live database (this skill generates spec files only). |
+| Multiple ORMs / auth libraries | Default: infer the primary from usage frequency/config and record the assumption in the summary. `--ask`: ask the user which is primary. |
+| Migration would cause data loss | Default: still generated with the CRITICAL flag retained and a safer expand-contract alternative proposed alongside it — never silently applied to a live database (this skill generates spec files only). `--ask`: flag as CRITICAL and require explicit approval before proceeding. |
 
 ## Severity
 

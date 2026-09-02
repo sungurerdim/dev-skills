@@ -22,7 +22,7 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 rm -rf /tmp/dev-skills
 ```
 
-Requires the `gh` CLI, authenticated (`gh auth login`).
+Sharpest with the `gh` CLI installed and authenticated (`gh auth login`). Missing or unauthenticated → falls back to a local `tasks.md` backlog automatically, stated once — never a hard stop.
 
 ## Use
 
@@ -32,9 +32,9 @@ Requires the `gh` CLI, authenticated (`gh auth login`).
 | `/ds-issue --sweep` | Sweep the whole tracker for duplicate/overlap/redundant/obsolete clusters |
 | `/ds-issue --status` | Code-verified done-audit (read-only) — what's done, claimed-but-unproven, in-progress, blocked |
 | `/ds-issue --do #N` | Execute issue #N end-to-end (re-verify → impact map → implement → code-proven close) |
-| `/ds-issue --do --all` | Execute every open issue end-to-end, in priority order; confirm each per item; skip-and-record blockers, continue |
+| `/ds-issue --do --all` | Execute every open issue end-to-end, in priority order; resolves by best judgment (confirm each per item under `--ask`); skip-and-record blockers, continue |
 | `/ds-issue --do #N --preview` | Plan only — impact map + plan written into the issue body; no source files changed |
-| `/ds-issue --auto` | Zero-interaction run — every decision (including `--do --all`) resolved by best judgment |
+| `/ds-issue --ask` | Interactive run — menus, approval batches and confirmations at every decision point (default: every decision resolves by best judgment, recorded in the summary) |
 
 ## Project adapter (optional)
 

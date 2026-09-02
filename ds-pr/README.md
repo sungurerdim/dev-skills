@@ -2,7 +2,7 @@
 
 PR descriptions that list every commit instead of net change create noise, confuse reviewers, and break changelogs. This skill describes what the diff actually shows.
 
-**Create pull requests with conventional commit titles for clean release-please changelogs.**
+**Prepare pull requests with conventional commit titles for clean release-please changelogs.**
 
 ## Install
 
@@ -24,22 +24,21 @@ rm -rf /tmp/dev-skills
 
 ## Use
 
-Run `/ds-pr`, or ask to create a pull request.
+Run `/ds-pr`, or ask to open a pull request.
 
 ## Flow
 
 1. Validate: git, gh, branch, upstream status
 2. History tidy: collapse WIP commits into clean atomic commits
-3. Quality gates: format, lint, test (entire project)
+3. Quality gates: format, lint, test (PR's changed files only)
 4. Analyze net diff → conventional commit type classification
-5. Build PR title + body from net diff
-6. Create + optional auto-merge setup
+5. Review the prepared title + body + version annotation
+6. Push and Create — each recorded `needs-human` by default, confirmed under `--ask`
 
 ## Features
 
 - **History tidy** — collapses WIP commits before publishing
 - **Net diff principle** — PR describes final state, not development journey
-- **Quality gates** — format + lint + test before creating PR
-- **Branch-protection-aware merge** — queries `gh api repos/.../branches/{base}/protection`; routes auto-merge / CI-check / hard-stop accordingly. Force-push to main is never proposed.
-- **Auto-merge** — squash merge + branch cleanup when CI passes
+- **Quality gates** — format + lint + test on changed files before preparing the PR
+- **Push and PR-create are needs-human by default** — publishing is never silent; `--ask` confirms and runs both
 - **Version annotation** — shows bump effect (feat → minor, fix → patch)

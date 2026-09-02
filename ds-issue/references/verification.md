@@ -56,58 +56,18 @@ For each open + recently-closed issue, prove done-ness from the codebase — nev
 
 ## Anti-sycophancy (W13)
 
-A symptom you reproduced stays reproduced under "are you sure?" — withdraw it only when shown wrong by evidence (a fresh read, a passing test), never by assertion. Likewise, a `claimed-done-but-unproven` verdict is not softened to "done" because the issue is closed; the closed flag is a claim, the code is the evidence.
+Core rule: [core execution loop](../../core/execution-loop.md) § Anti-sycophancy. Issue-specific addition: a `claimed-done-but-unproven` verdict is not softened to "done" because the issue is closed — the closed flag is a claim, the code is the evidence.
 
 ## Execution verification (`--do`)
 
-Three checkpoints when executing an issue: **root-cause re-verify** (before any edit), **per-unit verify** (after each bounded unit), **aggregate verify** (before close). All judge from code/signals run this run.
+The three checkpoints (root-cause re-verify, per-unit verify, aggregate verify), red proof, and gate mutation proof follow [core execution loop](../../core/execution-loop.md) §§1, 4-7 exactly — `/ds-build` runs them when present (SKILL.md Phase 6). This section carries only what ds-issue binds on top when `/ds-build` is absent and the loop runs inline:
 
-### Root-cause re-verify (before any edit) [GATE]
-
-An issue ages; the codebase moves under it. Confirm the problem still holds before touching anything.
-
-1. Read the cited anchors — still say what the issue claims? Symbol still there? Typed code → language server first.
-2. Reproduce the symptom — body carries an Evidence/repro recipe → run it first; absent → derive one (faulty path for a bug; genuine absence by exhaustive search for a missing feature; current ≠ expected for a regression).
-3. Check it isn't already done — another change may have resolved it; read the change site, run the Done-signal.
-4. Decide: still open + reproduced → proceed to impact map; already resolved → close as completed with that evidence, skip implementation; stale (anchors don't match, problem moved/gone) → **stop**, report what you read and why it no longer holds. Never fabricate a fix for a non-problem. The issue body is a claim, not ground truth.
-
-### Per-unit verify (after each bounded unit)
-
-1. Run the unit's named signal — the test it adds, the build, the lint, an observed effect. Self-assessment is not proof.
-2. After modifying an interface, re-check the impact-map callers for that symbol.
-3. Signal red → fix within the unit before advancing; un-fixable in-unit → record a concrete blocker (API-contract change / cross-module scope / needs user knowledge / regulated change) and escalate. "Pre-existing" / "out of scope" are not blockers.
-
-### Red proof (fix-type) [GATE]
-
-A regression test written after the fix proves the code compiles, not that the bug is caught. The order is fixed:
-
-1. Write the test against the **unfixed** code. Run it. It must fail — paste the observed failure into the body's Done block.
-2. Apply the fix. Run the same test. Paste the observed pass.
-3. The test never went red → it does not exercise the bug. Rewrite it; do not proceed.
-
-### Gate mutation proof (gate-adding issues) [GATE]
-
-An issue that adds or changes a mechanical gate proves the gate can go red. Three gates in these repos passed while protecting nothing — a pin gate blind to half its family, a metadata gate reading its evidence from a comment line, 46 of 82 gates whose own correctness was never checked. A gate never seen red is not known to work.
-
-1. Introduce the realistic deviation the gate exists to catch — not a syntax error, the actual drift.
-2. Run the gate. It must go red — paste the output.
-3. Revert the deviation (`git checkout -- <files>`), re-run, paste the green.
-4. Gate stayed green through step 2 → the gate is blind. Fix the gate before the issue closes.
-
-### Aggregate verify (before close) [GATE]
-
-1. Run every row of the body's Gates table — green required, and no row below its recorded baseline; per-unit greens can compose into a red.
-2. Fix-type issue → the red-proven regression test exists for the fixed path; absent → add it (delegate to ds-test) with its red proof before close.
-3. Re-read the diff: only task-required lines, no drive-by reformatting, affected-set callers intact. Red aggregate → fix and re-run; never close red.
+- **Root-cause re-verify** — the recorded recipe lives in the body's Repro block (run it first; absent → derive one, per core §1); "already resolved" is judged against the Done set from requirement promotion; a stale verdict stops with what was read and why it no longer holds — the issue body is a claim, not ground truth.
+- **Per-unit verify** — the unit's signal is the one named in the issue's Steps; callers re-checked are the impact-surface map's affected-set; an un-fixable blocker is recorded per [core principles §11](../../core/principles.md) (never "pre-existing" or "out of scope").
+- **Red proof** — the observed failure and the observed pass both get pasted into the body's Done block, not just the terminal.
+- **Gate mutation proof** — three gates in these repos passed while protecting nothing (a pin gate blind to half its family, a metadata gate reading its evidence from a comment line, 46 of 82 gates whose own correctness was never checked) — a gate never seen red is not known to work. Fix the gate before the issue closes.
+- **Aggregate verify** — runs every row of the body's Gates table against its recorded baseline; a fix-type issue missing its red-proven regression test gets one added — `/ds-test` present → delegate; absent → write it inline — with its own red proof, before close.
 
 ### Close evidence — written into the body
 
-The evidence goes in the body's `## Closure` block, not in a comment ([github-features.md](github-features.md) § Body is the record). It proves done-ness from code, mirroring what a later `--status` audit re-verifies independently:
-
-- **One evidence line per Done-set item** — the Done set is the body's Done list *after* requirement promotion, so promoted comment criteria are covered like any body item. Each line: the signal run + its observed output + the change site `file:line`. A Done-set item without its evidence line is uncovered, and an uncovered item means the issue does not close.
-- Each Gates row: command → observed output, against its baseline.
-- The doctrine-lockstep note (which rule/ADR/SSOT row added/extended/referenced, or "not needed: <reason>").
-- A `## Log` line dated with the closure.
-- Any item that did **not** get done and moved elsewhere → a `## Handoffs — Deferred to #K` line, and the same line written into `#K`'s body in the same run. A deferral recorded on one side only is a dropped item.
-
-A closure asserting "done" without a runnable signal will be bucketed `claimed-done-but-unproven` — so make it provable.
+The evidence goes in the body's `## Closure` block, not a comment ([github-features.md](github-features.md) § Body is the record) — the same shape [core execution loop §8](../../core/execution-loop.md) names for a GitHub issue. One addition: **the Done set is the body's Done list after requirement promotion**, so a promoted comment criterion is covered exactly like any body item, and an uncovered Done-set item keeps the issue open. A closure asserting "done" without a runnable signal is `claimed-done-but-unproven` — make it provable.

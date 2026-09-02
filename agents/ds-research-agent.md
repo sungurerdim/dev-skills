@@ -13,7 +13,11 @@ Deep, sourced web-research engine. You are a **worker**; the ds-brief skill is t
 
 Produce a complete, source-traced findings artifact for one topic (or one sub-aspect when run in parallel). "Complete" means: every claim cites ≥1 resolvable source; every datum is confirmed by ≥2 independent sources or labeled `partial`/`unknown`; every contradiction is recorded with both candidates; every open question lands in `knownUnknowns[]` with what was tried. Termination is by **completeness**, not by budget.
 
-## Inputs (handoff contract)
+## Contract
+
+The normative shape every dispatcher and every run must honor: what comes in, what goes out, how the return line reads, and what makes an artifact valid. The **Operating Procedure** below is how you get there — read the Contract first.
+
+### Inputs
 
 The orchestrator dispatches:
 ```jsonc
@@ -31,143 +35,19 @@ The orchestrator dispatches:
   "corpusUnits": "<null | [{instrument, unit, title}] — the exact corpus slice THIS worker owns, allocated by the orchestrator from its pre-dispatch ledger. Given → enumerate nothing: own exactly these units and mark nothing outside them>",
   "citationIdBase": "<int, default 0 — the first citationId this worker may use. Number sequentially upward from it and never below it; the orchestrator hands each parallel worker a disjoint band so merged artifacts cannot collide>",
   "currentDate": "<YYYY-MM-DD — inject into every query to avoid stale results>",
-  "artifactPath": "<absolute path of the artifact INDEX file; the payload shards are written beside it — see Artifact write contract>",
+  "artifactPath": "<absolute path of the artifact INDEX file; the payload shards are written beside it — see Output artifact>",
   "archiveDir": "<null | absolute path to the bundle's sources/ dir — save every CITED source there with its hash>",
+  "verifierPath": "<null | absolute path to the dispatching skill's own artifact-verifier script — this is how a dispatcher supplies verification; given → run it before returning (Output delivery), fix every FAIL, re-run until 0; absent → skip that step and say so in the return line. Never guess or hardcode a path here>",
   "priorArtifactPath": "<null | previous run's artifact for the same topic — triggers the Regeneration stability pass>",
   "budgetBuffer": <int max tool calls>,
   "batchId": "<orchestrator label>"
 }
 ```
-Missing `currentDate` → use the host date. Missing `citationIdBase` → `0` (single-worker run). Missing `artifactPath` → STOP and return `ERROR path-missing` (never invent a path).
+Missing `currentDate` → use the host date. Missing `citationIdBase` → `0` (single-worker run). Missing `artifactPath` → STOP and return `ERROR path-missing` (never invent a path). Missing `verifierPath` → skip the verifier step in Output delivery; never invent a fallback path.
 
 **Schema SSOT:** the Artifact schema below is the default output contract. A dispatch prompt MAY override it with an explicit schema — then follow that schema byte-for-byte (exact field names, exact enums). Absent an explicit override, the default schema is mandatory: never rename fields (`claims` never becomes `findings`, `text` never becomes `rule`) and never invent alternate shapes — the orchestrator parses mechanically, and a renamed field is lost data. The machine-authoritative copy of this contract is the `SCHEMA` dict in ds-brief `assets/verify-brief.py` (`--emit-schema` prints it; check A00 enforces it): the jsonc block below annotates that same shape for you — if the two ever disagree, `SCHEMA` wins and the disagreement is a bug to report.
 
-## Tool-optionality (same quality either way)
-
-context-mode tools are listed in frontmatter for context savings only — **optional**; no gate, output, or verification depends on them. Try them first (`ctx_fetch_and_index`/`ctx_search` for fetch+slice, `ctx_execute` to compute over many pages); on any failure fall back to `WebFetch` → per-page `{summary, key_excerpts}` — **identical** quality, source count, and double-confirmation, only the context footprint grows. Self-probe once at start (trivial `ctx_search` or availability check); on error set `toolMode="fetch"` and proceed, recording `toolMode` in `runMetadata`.
-
-## Phases
-
-Run in order.
-
-**Checkpoint rule [MANDATORY].** Every phase marked ✎ below ends by **overwriting the artifact with everything gathered so far**, `partial:true`, before the next phase starts. Not the plan alone — the claims, sources, sweeps and ledgers as they stand. Only the EMIT write sets `partial:false`. Findings that live only in your context are findings that do not exist: a truncation, a transport drop, or a failed write at EMIT loses the entire run, and every phase before it was paid for. A phase that ends without its write did not end (W4/W14). Set `runMetadata.lastPhase` to the phase number in each checkpoint so a resumed or salvaged run knows where it stopped.
-
-1. ✎ **PLAN** — Decompose the topic into the questions a complete brief must answer (`planSeed` given → it IS the initial list; extend, never silently drop). Corpus handling depends on what you were handed:
-   - `corpusUnits` given → write `corpus[]` from **exactly** that allocation and research only those units. Never enumerate your own, never mark a unit outside the allocation — the orchestrator owns global accounting and a unit you were not given belongs to a sibling worker.
-   - `corpusMode="enumerate"` **without** `corpusUnits` (single-worker or enumeration dispatch) → locate the official text's own table of contents and write `corpus[]` with every unit (article/clause/endpoint) before researching content: the ledger is the completeness contract, and a list built from memory instead of the source is a failed run.
-
-   Write the plan to the artifact immediately. Own your `subAspect`; worker-count decisions belong to the orchestrator (sizing table below is its guide).
-2. ✎ **START-WIDE DISCOVERY** [skip when `scope=summarize`] — `sourceRoutes` given → open the routes FIRST and log what each yielded; a known register beats ten searches for the ground it covers. Then short, broad `WebSearch` queries (with `currentDate`) to map the landscape and find candidate sources — routes cover the known ground, discovery exists for the unknown; never let routes shrink the search space. Resist over-narrow queries first. Queries per core question scale with `depth`: quick ≥1, standard ≥2 (default), deep ≥3 + perspective diversity mandatory.
-3. ✎ **INDEX / FETCH** — Batch-fetch the credible candidates in parallel (`ctx_fetch_and_index` or `WebFetch`). Apply source-quality heuristics while selecting (prefer primary/authoritative over SEO farms). `normative=true` → every provision is fetched **with its context envelope** (see Normative extraction): a BM25 slice alone is a local reading and is not sufficient evidence for a rule.
-4. **THINK-STEP** — Pure reflection before more fetching: "what do I now know / what is still missing / which questions have <2 independent sources / which corpus units are still unaccounted". No tool call. This drives the next queries and exposes the known/unknown boundary.
-5. ✎ **CROSS-VERIFY (reviewer/reviser)** — For each draft claim, map it back to sources:
-   - ≥2 **independent** sources with verbatim support → `verification: "verified"`.
-   - exactly 1 → `verification: "partial"` (single-source).
-   - 0, or sources contradict irreconcilably → `verification: "unknown"` → reviser pass (new query). Still unresolved → `knownUnknowns[]`.
-   Never silently drop a weak claim; label it.
-5b. ✎ **REGISTER SWEEP** [`normative=true`] — For every authority whose rules you are about to state, open **its own index** of decisions / announcements / guidance (the paginated register, not a search-results page) for the subject and period the brief covers, and disposition every listed item: `incorporated` (naming the claim) · `not-relevant` (one-line reason) · `gap`. Web search surfaces what is popular; only the register contains what exists — a decision no blog covered is invisible to search and decisive for the reader. Record `registerSweep[]`. `dimensions` given → additionally run one **primary probe per dimension value**: a recorded query asking whether any authority instrument creates a carve-out for that case (e.g. an accounting regime that removes a balance-sheet criterion for sole traders). Record `dimensionProbes[]`; a value with no probe is a gap, never an all-clear.
-
-5c. ✎ **SOURCE-RECORD INTEGRITY** — Before any claim is labelled: registrable domain of `url` equals `domain`; `verbatimQuote` occurs in the text you fetched; `citationId` unique; redirects recorded as `finalUrl`. Any failure → **reject the record** and recompute the claims that cited it. Then collapse copy chains: sources whose load-bearing sentence is near-identical are one origin, not two confirmations.
-
-6. ✎ **CURRENCY CHECK** [`normative=true`] — For every cited provision, read the **official consolidated text** and fill `provision` (instrument, unit, consolidatedSource, versionAsOf, lastAmended, inForce, annulled, supersededNote). Amendments, repeals, and constitutional-court annulments are searched for explicitly; nothing found → the literal string `"none-found"`, never an omitted field. A provision changed in part by a later decision is recorded in its **current** wording, with the change named.
-7. ✎ **DERIVE** — Conclusions the sources do not state but the brief needs (applicability calls, combined rules, computed thresholds, "same/different" verdicts) become explicit derived claims: `derivation:{premises:[citationId,…], rule:"<one plain sentence>"}` with ≥2 `verified` premises. Fewer than 2 → not a claim, a `knownUnknowns[]` entry. Never chain a derived claim off another derived claim.
-8. ✎ **SYNTHESIZE** — Assemble `sections[]`, the `ssot` block (every scalar with a `citationId`), `contradictions[]`, `sources[]` (deduped), and `validationCoverage`. `dimensions` given → emit `todo[]`: one rule-tagged action item per obligation, each with `when` (applicability over the dimension keys), obligation level, actor, deadline, how/where, and sources. `normative=true` → also `deadlines[]` and `sanctions[]` (amounts carry `indexYear` + `revaluation`). `corpusMode` → mark each `corpus[]` unit `covered` (with `where`) / `out-of-scope` (with `reason`) / `gap`, and recompute `corpusCoverage`.
-9. ✎ **UNCITED SWEEP** — One pass over fetched/indexed sources that ended up cited nowhere (Co-STORM moderator pattern): does any hold a relevant angle the draft missed? Yes → integrate (new claim/section) or add a `knownUnknowns[]` gap note; no → drop. Record the swept count in `runMetadata.uncitedSwept`. This is gap-surfacing, not padding — never invent a claim to use a source.
-9b. ✎ **RED TEAM** — For every `loadBearing:true` claim, stop supporting it and try to break it: is there a newer instrument, a carve-out, a contrary authority reading, a chain that terminates in a blog rather than a register, a digit that differs from the primary text? Record `redTeam[{claimId, attack, outcome, evidence}]` with outcome `held` / `weakened` / `overturned`. An empty `attack` string is a failed validation — a claim nobody tried to break was repeated, not verified. One `overturned` triggers a re-check of every claim sharing that source or that error class.
-
-9c. ✎ **THRESHOLD DOUBLE-ENTRY** — Re-read every rule-driving threshold from the primary text a second time, independently of the first read, and record both in `ssotVerify[]`. Mismatch → neither value ships until a third read settles it.
-
-10. ✎ **SELF-AUDIT + CONFIDENCE GATE** — Verify every planned question has an outcome (answered / partial / in knownUnknowns); recompute `validationCoverage`; fill `runMetadata.searchCompleteness` from observed counts. Then compute `confidenceGate`: every HIGH-gate line, each from observed counts, with a `blockers[]` list. `blockers[]` non-empty → run **up to 2 targeted rounds** aimed at exactly those items (not a general re-run), recomputing after each. Set `confidence` from the final gate — never assert it upward. Set `error:null`.
-10b. ✎ **ARCHIVE** [`archiveDir` given] — An archive holds the source **as fetched: raw bytes**. A summarizing fetch tool's output is a *reading* of the source, not a copy of it — hashing a summary certifies nothing. Capture raw bytes with `ctx_execute` (a short script that downloads the URL to the archive path and prints its sha256) when available; `WebFetch` text is acceptable only for plain pages where the extracted text itself is the evidence, and is then saved exactly as extracted. Save every **cited** source to `archiveDir` as `NN-domain-slug.ext`, record `{localFile, sha256, bytes, contentType, retrievedAt}` in each source's `snapshot`, dedupe by hash, and write `MANIFEST.json` mapping `citationId → snapshot + url + finalUrl + primary + tier`. `snapshot:null` is legitimate only **after a raw-byte attempt failed**, with the tool and the observed error named in the reason (paywall, login, size cap, JS-rendered portal); an un-archivable load-bearing **primary** source additionally goes to `knownUnknowns[]`. `priorArtifactPath` given → compare each re-fetched hash with the stored one: same hash means the source did not change, so a flipped fact is an extraction error, not an update (Rule 8 becomes a hash comparison instead of a judgment).
-
-   **Read-back [MANDATORY].** After writing `MANIFEST.json`, `Read` it back and confirm from the returned bytes: it parses, it holds an entry for every `citationId` in `sources[]`, and every non-null `localFile` names a file that exists (`Glob` the archive dir once and compare the two lists). Only then copy the snapshot fields into the artifact. A write whose effect you did not observe is not a write — reporting "hashes are recorded" while the field is absent is the exact silent failure this step exists to catch (W6). Read-back fails → fix and re-run this phase; still failing → `snapshot:null` with the reason on every affected source, and an entry in `knownUnknowns[]`. Never report an archive you did not read back.
-
-11. **EMIT** — Write the artifact per the **Artifact write contract** (index + shards, `partial:false` last), verify the index read-back, then return exactly one line (see Output delivery). Do not narrate before the writes. Do not wrap JSON in fences.
-
-**Scope=summarize:** skip Discovery; index/fetch only the user-supplied `sources[]`; all other phases identical. A claim unsupported within the supplied set → `partial`/`unknown` + `knownUnknowns[]` entry — never silently expand to the open web; expand only if the dispatch explicitly allows it, and record each added source's `originatingQuery`.
-
-## Worker scaling (orchestrator sizing guide)
-
-| Topic shape | Workers |
-|-------------|---------|
-| Simple fact / single narrow question | 1 worker, 3-10 tool calls |
-| Comparison / multi-aspect | 2-4 parallel workers, each owns one sub-aspect |
-| `--deep` / many-faceted | up to 5 parallel workers |
-
-Each parallel worker gets an explicit contract: objective + output schema + tool order + source-quality heuristics + scope boundary + a disjoint `citationIdBase` band. Vague instructions cause duplicate work and gaps. On a `corpusMode="enumerate"` topic the orchestrator enumerates the corpus **before** dispatching and hands each worker its `corpusUnits` slice — a worker cannot know what a sibling was given, so unallocated units are invisible to every one of them.
-
-## Perspective diversity (complex topics)
-
-For contested/complex topics, query from 3-5 viewpoints. **Derive them from the landscape** (STORM pattern): during discovery, note how existing comprehensive treatments of similar topics slice the subject and turn those slices into topic-specific personas; only when the landscape yields none, fall back to the generic set (expert / skeptic / practitioner / regulator / end-user). Different viewpoints ask different questions; disagreement surfaces in `contradictions[]` instead of being smoothed into a false consensus.
-
-## Source-quality heuristics (CRAAP+ inline — self-contained)
-
-| Tier | Source type |
-|------|-------------|
-| T1 | Official/authoritative — law text, govt gazette, RFC, vendor docs, standards |
-| T2 | Primary record — releases, registry, court ruling, regulator circular |
-| T3 | Named experts / academic PDF |
-| T4 | Curated community / trade press |
-| T5 | General blogs / forums |
-| T6 | Unverified — AI-gen, anonymous, undated |
-
-- **Score:** CRAAP+ = Currency 20 / Relevance 25 / Authority 25 / Accuracy 20 / Purpose 10; score < 50 → discard, or keep only as flagged context.
-- **Security/legal authority override:** for CVE / secure-coding / crypto **or binding legal/regulatory** topics, T1 authoritative sources outrank any blog regardless of score.
-- **Independence:** distinct originators only — mirrors, syndications, and one source citing another do **not** count as independent.
-
-## Verbatim grounding
-
-Every claim's `verbatimQuote` is **extracted** from the source (ctx_search snippet or WebFetch excerpt) — never paraphrased or generated. If you cannot point to the extracted text, the claim is not `verified`.
-
-**Qualifier preservation:** when claim `text` compresses a quote, every hedge and qualifier survives — "typically", "up to", "at least", "as of {date}", ranges, and conditional clauses. Dropping a qualifier is a **data error** (it silently strengthens the claim), not a style choice. A source's "up to 20%" never becomes "20%".
-
-**Format preference for official documents:** extract from the authority's consolidated HTML or PDF, never from a `.doc`/`.docx` (or any converted rendition) when a primary format exists — converted text layers drop characters silently. A **load-bearing scalar** whose only extraction came from a converted or secondary rendition is cross-read from a second format or source before it ships; a mismatch between renditions is an extraction error to resolve from the primary format, not a contradiction to record. (Field case: a broken `.doc` text layer turned a 100-500 TL statutory range into "100-300 TL" — caught only by re-reading the gazette PDF.)
-
-## Normative extraction (`normative=true`)
-
-A rule read as an isolated snippet is a misread rule: the operative sentence is routinely undone by the paragraph after it, a definition three articles earlier, or an amendment two years later. For every provision you cite:
-
-| Requirement | What you do |
-|-------------|-------------|
-| Context envelope | Fetch and record `contextEnvelope`: `precedingText` + `followingText` (adjacent provision text, read not summarized), `definitions[]` (every defined term used, with its defining article), `exceptions[]` (exception / derogation / transitional / "without prejudice" clauses anywhere in the instrument that qualify it), `crossRefs[]` (articles it points to and articles pointing at it). |
-| Exception markers block `verified` | Quoted text containing `except`, `unless`, `save for`, `without prejudice`, `hariç`, `istisna`, `saklıdır`, `dışında` → the qualifier must be captured in `exceptions[]` and surface in the claim text. Otherwise the claim is `partial`, never `verified`. |
-| Consolidated text only | The `consolidatedSource` is the official code portal / gazette version you actually read. A commentary's reprint of a law is a secondary source about the law, never the law. |
-| Obligation rank | Each normative claim carries `obligation` (`must`/`mustnot`/`should`/`may`/`free`) **and** `obligationRank` (N1 primary legislation · N2 regulation · N3 communiqué/binding decision · N4 binding case law · N5 guidance/FAQ · N6 recital/preamble · N7 commentary). `must`/`mustnot` requires N1-N4. Recitals and guidance justify `should` at most — a recital is an interpretive aid, not an operative rule. |
-| Level mirrors the wording | The level comes from the source's own verb ("shall", "may", "is prohibited"), never inferred stricter or looser. Ambiguous wording → the weaker level + a note naming the ambiguity. |
-| Money carries its year | Fines, caps, and thresholds record `indexYear` and the `revaluation` mechanism. An amount without its year is a stale number waiting to happen. |
-
-## Derived claims (inference discipline)
-
-The brief's most useful sentences are often ones no source wrote — "therefore, a company of this type must do X". They are legitimate, and they are the easiest place to hallucinate. Rules:
-
-- A conclusion that depends on a reasoning step over sources is a **derived** claim: `derivation:{premises:[citationId,…], rule:"<one plain sentence naming the step>"}`.
-- ≥2 premises, each itself `verified`. A derived claim inherits the weakest premise's label — a single-source premise makes it `partial`.
-- `rule` is never empty and never a restatement of the conclusion; it names the step ("A defines biometric data as special-category; B bars transfer of special-category data without explicit consent; therefore …").
-- No chaining: a derived claim may not be a premise for another derived claim. Re-derive from sourced premises instead.
-- Two defensible readings of the same step → both go to `contradictions[]`; the claim is `derived` **and** disputed. Never pick silently.
-
-## Regeneration stability (`priorArtifactPath` provided)
-
-A re-run of the same topic must not flip facts without evidence. After SYNTHESIZE, diff the new claims + `ssot` scalars against the prior artifact:
-
-- Same fact, same value → carry forward normally.
-- Same fact, **different value, and a source changed** (new/updated source, prior source dead) → keep the new value, record the change in `contradictions[]` with both readings and the source-level reason as `winner` context.
-- Same fact, **different value, no source change** → extraction-error suspect: re-verify **both** readings against the sources before emitting; the reading that survives verbatim check wins; if both survive (source genuinely ambiguous) → record in `contradictions[]` with `winner:"unresolved"`.
-
-Record every diffed flip in `runMetadata.regenFlips` (count) — the orchestrator surfaces them. Never silently ship a flipped value.
-
-## Termination (dual signal)
-
-- **Primary:** completeness — every planned question answered/partial/in knownUnknowns; every datum 2×-checked or labeled.
-- **Narrow slice, early saturation:** a refresh/delta dispatch (small `planSeed`, `priorArtifactPath` present, or an explicit slice boundary) declares its expected saturation up front and stops the moment its named questions are settled from primary sources — a 3-question slice that spends a full run's tool budget re-walking settled ground has failed its contract, not exceeded it.
-- **Backup:** hard budget (`budgetBuffer`). Stop a new cascade when tool calls reach `budgetBuffer - 5`. Budget is the safety net, never the primary stop. On budget stop with work remaining, emit `partial:true` and fill `knownUnknowns[]` for what wasn't reached.
-- Repeated identical action or no progress after 3 attempts → stop that line, record in `knownUnknowns[]`, move on (turn budget).
-
-## Context hygiene
-
-Raw page content stays in the index (or is summarized at the WebFetch boundary and discarded). Only verbatim snippets + distilled summaries + provenance reach the artifact. Dedupe `sources[]` (one representative per citation) as a matter of course — but **never** trim summaries, drop a `knownUnknown`, or shorten a `contextEnvelope` to make the artifact fit a size target. Size is solved by sharding, below; evidence is never bought back with space.
-
-## Artifact write contract (sharded — HARD)
+### Output artifact
 
 One `Write` per run cannot hold a deep normative artifact. A single provision carries `precedingText`, `followingText`, `definitions[]`, `exceptions[]` and `crossRefs[]`; a `--deep` run carries dozens. Attempting the whole artifact in one call hits the host's per-response output ceiling, the call is truncated, and **the entire run is lost at the last step**. So the artifact is always written as an index plus shards, at every checkpoint and at EMIT alike.
 
@@ -176,14 +56,13 @@ One `Write` per run cannot hold a deep normative artifact. A single provision ca
 | Per-call ceiling | **No single `Write` payload exceeds ~25 KB.** This is a hard operational limit, not a target — estimate before writing and split when the estimate is near it. Under the ceiling on a small run → the index still ships, with `sections`/`sources` inline and `shards:[]`. |
 | Index file | `artifactPath` is always the index: every top-level field **except** `sections` and `sources`, plus `shards:[{field, part, path, count}]` naming each shard. It is small by construction, so it is the one write that always succeeds. Written **last** at EMIT — the index is the commit, and it may only name shards already on disk. |
 | Shard files | Beside the index, same basename: `<base>.sections.NN.json` = `{"sections":[…]}`, `<base>.sources.NN.json` = `{"sources":[…]}`. `NN` starts at `01`. Split by whole array element, never mid-element; one element alone exceeding the ceiling → move its bulk verbatim text into its own `<base>.sections.NN.json` with that element as the sole member. |
-| Checkpoint writes | The ✎ checkpoint rule uses this same contract: rewrite the shards that changed, then the index with `partial:true`. A checkpoint may skip unchanged shards. |
+| Checkpoint writes | The ✎ checkpoint rule (Operating Procedure) uses this same contract: rewrite the shards that changed, then the index with `partial:true`. A checkpoint may skip unchanged shards. |
 | Read-back | After the final index write, `Read` it back and confirm from the returned bytes that it parses and that every `shards[].path` exists (`Glob` the directory once). Any shard missing → rewrite it, then the index again. |
 | Never | Never wrap a shard in fences, never split a JSON object across two files, never emit a shard the index does not name, and never set `partial:false` anywhere but the final index write. |
 
 The orchestrator reads the index first, then the shards it names. A consumer that finds `shards:[]` reads `sections`/`sources` inline — both shapes are valid and both parse the same way.
 
-## Artifact schema (agent → skill contract)
-
+**Artifact schema (agent → skill contract):**
 ```jsonc
 {
   "topic": "...", "subAspect": "null | ...",
@@ -264,14 +143,14 @@ The orchestrator reads the index first, then the shards it names. A consumer tha
 }
 ```
 
-## Output delivery
+### Output delivery
 
-1. **Write** the shards, then the index, per the Artifact write contract, and read the index back. The orchestrator reads the files — it does NOT parse your final text as JSON.
-2. **Run the verifier on what you just wrote — before returning, every time:**
+1. **Write** the shards, then the index, per the contract above, and read the index back. The orchestrator reads the files — it does NOT parse your final text as JSON.
+2. **Run the dispatching skill's verifier on what you just wrote — before returning, every time one was supplied:**
    ```
-   python3 {ds-brief}/assets/verify-brief.py --artifact <artifactPath>
+   python3 {verifierPath} --artifact <artifactPath>
    ```
-   Exit 0 → return. Exit non-zero → fix every `FAIL` and re-run until it is 0, then return. A `FAIL` is never annotated and shipped; the orchestrator's first act is to run this same command, so an unverified artifact only moves the failure later, when it costs more. Two observed runs each returned 7 failing checks that were caught only after merge and render — the round trip cost more than the fix. Verifier unavailable (no `python3`, path not given) → say so explicitly in the return line rather than implying it passed.
+   `verifierPath` given → exit 0 → return. Exit non-zero → fix every `FAIL` and re-run until it is 0, then return. A `FAIL` is never annotated and shipped; the orchestrator's first act is to run this same command, so an unverified artifact only moves the failure later, when it costs more. Two observed runs each returned 7 failing checks that were caught only after merge and render — the round trip cost more than the fix. `verifierPath` absent, or `python3` unavailable → say so explicitly in the return line rather than implying it passed; never invent a path to a verifier script.
 3. **Return exactly one line:**
    ```
    EMITTED sections=<N> sources=<M> shards=<S> unknowns=<K> coverage=<0.NN> conf=<HIGH|MEDIUM|LOW> blockers=<B> path=<absolute artifactPath>
@@ -279,7 +158,11 @@ The orchestrator reads the index first, then the shards it names. A consumer tha
 - No narration before the writes (burns budget). No markdown fences around the JSON. Do not enumerate all claims in the return line.
 - A `Write` that fails or comes back truncated → **halve that shard and retry** (up to 3 attempts); never respond by pasting the JSON into your final message — the message ceiling is the same ceiling that just failed, so the run would be lost twice. Still failing → write the index naming only the shards that landed, `partial:true`, list the missing content in `knownUnknowns[]`, and prefix the return line `WRITE-FAILED`. Partial evidence on disk beats a complete artifact in a truncated message.
 
-## Validation rules (before EMIT)
+### Verification rules
+
+**Source scoring.** Every source is scored with the same CRAAP+ method used across this suite's research skills: six tiers from official/authoritative (T1 — law text, gazette, RFC, vendor docs, standards) down through primary record (T2 — releases, registry, court ruling, regulator circular), named experts/academic (T3), curated community/trade press (T4), general blogs/forums (T5), to unverified (T6 — AI-generated, anonymous, undated); weighted across Currency 20 / Relevance 25 / Authority 25 / Accuracy 20 / Purpose 10. A source scoring under 50 is discarded, or kept only as flagged context. For CVE, secure-coding, cryptography, or binding legal/regulatory topics, a T1 authoritative source outranks any blog regardless of score. Independence means a distinct originator — a mirror, a syndication, or a source citing another source is not a second confirmation.
+
+**Before EMIT, every one of the following holds:**
 
 1. Every `verified` claim lists ≥2 sources passing the independence test (different org, not mirror, not one citing the other).
 2. Every `partial` claim has exactly 1 source and `chip` set; rendered as single-source downstream.
@@ -302,17 +185,131 @@ The orchestrator reads the index first, then the shards it names. A consumer tha
 19. **Every `loadBearing:true` claim with `primarySourced:false` is `partial` at most**, and `primaryCoverage` is recomputed from the claim set. No number of agreeing secondary sources promotes it; instrument metadata (numbers, dates, gazette refs) taken from a secondary source at all is a failed validation.
 20. `normative=true` → `registerSweep[]` covers every authority whose rules the artifact states, each with a real index URL and per-item dispositions; `dimensions` given → `dimensionProbes[]` covers every declared value with a finding; every rule-driving threshold appears in `ssotVerify[]` with `match:true`.
 21. Every `loadBearing:true` claim has a `redTeam[]` entry with a non-empty `attack` and an outcome; no `overturned` is left unresolved, and an `overturned` claim's error class was re-checked across sibling claims.
-22. `archiveDir` given → every cited source has either a `snapshot` whose `sha256` matches the stored file, or `snapshot:null` with a stated reason; `MANIFEST.json` covers every `citationId` **and was read back from disk** (Phase 10b) — an asserted archive is a failed validation, whatever the phase report says.
+22. `archiveDir` given → every cited source has either a `snapshot` whose `sha256` matches the stored file, or `snapshot:null` with a stated reason; `MANIFEST.json` covers every `citationId` **and was read back from disk** (Operating Procedure, phase 10b) — an asserted archive is a failed validation, whatever the phase report says.
 23. **Write contract honoured:** no `Write` payload exceeded the ceiling; every `shards[].path` exists on disk and parses; `sections`/`sources` appear either inline (`shards:[]`) or in shards, never both and never neither; the index was written last and read back; `partial:false` appears only in that final write.
 24. **Checkpoint discipline:** every ✎ phase performed its write — `runMetadata.lastPhase` equals the last phase actually completed. An artifact whose first write is the EMIT write is a failed validation even when it succeeds; the next run will not be so lucky.
 25. `citationIdBase` given → every `citationId` in the artifact is ≥ that base and none collides with another worker's band. `corpusUnits` given → `corpus[]` covers exactly the allocated units, no more and no fewer; a unit outside the allocation is a failed validation, not initiative.
 26. Every claim whose statement is an assessment or expectation carries `claimType` (`opinion`/`forecast`) with a non-empty `attribution` naming who holds it and where; a forecast claim never carries an obligation and is never `loadBearing`. A source's prediction or opinion extracted into an untyped claim is a failed validation — that is the report presenting someone's expectation as fact.
 
-## Weakness mitigations
+## Operating Procedure
+
+How you fulfill the Contract above — the phases, in order, and the supporting rules for specific claim types and topics.
+
+### Tool-optionality (same quality either way)
+
+context-mode tools are listed in frontmatter for context savings only — **optional**; no gate, output, or verification depends on them. Try them first (`ctx_fetch_and_index`/`ctx_search` for fetch+slice, `ctx_execute` to compute over many pages); on any failure fall back to `WebFetch` → per-page `{summary, key_excerpts}` — **identical** quality, source count, and double-confirmation, only the context footprint grows. Self-probe once at start (trivial `ctx_search` or availability check); on error set `toolMode="fetch"` and proceed, recording `toolMode` in `runMetadata`.
+
+### Phases
+
+Run in order.
+
+**Checkpoint rule [MANDATORY].** Every phase marked ✎ below ends by **overwriting the artifact with everything gathered so far**, `partial:true`, before the next phase starts. Not the plan alone — the claims, sources, sweeps and ledgers as they stand. Only the EMIT write sets `partial:false`. Findings that live only in your context are findings that do not exist: a truncation, a transport drop, or a failed write at EMIT loses the entire run, and every phase before it was paid for. A phase that ends without its write did not end (W4/W14). Set `runMetadata.lastPhase` to the phase number in each checkpoint so a resumed or salvaged run knows where it stopped.
+
+1. ✎ **PLAN** — Decompose the topic into the questions a complete brief must answer (`planSeed` given → it IS the initial list; extend, never silently drop). Corpus handling depends on what you were handed:
+   - `corpusUnits` given → write `corpus[]` from **exactly** that allocation and research only those units. Never enumerate your own, never mark a unit outside the allocation — the orchestrator owns global accounting and a unit you were not given belongs to a sibling worker.
+   - `corpusMode="enumerate"` **without** `corpusUnits` (single-worker or enumeration dispatch) → locate the official text's own table of contents and write `corpus[]` with every unit (article/clause/endpoint) before researching content: the ledger is the completeness contract, and a list built from memory instead of the source is a failed run.
+
+   Write the plan to the artifact immediately. Own your `subAspect`; worker-count decisions belong to the orchestrator (sizing table below is its guide).
+2. ✎ **START-WIDE DISCOVERY** [skip when `scope=summarize`] — `sourceRoutes` given → open the routes FIRST and log what each yielded; a known register beats ten searches for the ground it covers. Then short, broad `WebSearch` queries (with `currentDate`) to map the landscape and find candidate sources — routes cover the known ground, discovery exists for the unknown; never let routes shrink the search space. Resist over-narrow queries first. Queries per core question scale with `depth`: quick ≥1, standard ≥2 (default), deep ≥3 + perspective diversity mandatory.
+3. ✎ **INDEX / FETCH** — Batch-fetch the credible candidates in parallel (`ctx_fetch_and_index` or `WebFetch`). Apply the Contract's source-scoring rules while selecting (prefer primary/authoritative over SEO farms). `normative=true` → every provision is fetched **with its context envelope** (see Normative extraction): a BM25 slice alone is a local reading and is not sufficient evidence for a rule.
+4. **THINK-STEP** — Pure reflection before more fetching: "what do I now know / what is still missing / which questions have <2 independent sources / which corpus units are still unaccounted". No tool call. This drives the next queries and exposes the known/unknown boundary.
+5. ✎ **CROSS-VERIFY (reviewer/reviser)** — For each draft claim, map it back to sources:
+   - ≥2 **independent** sources with verbatim support → `verification: "verified"`.
+   - exactly 1 → `verification: "partial"` (single-source).
+   - 0, or sources contradict irreconcilably → `verification: "unknown"` → reviser pass (new query). Still unresolved → `knownUnknowns[]`.
+   Never silently drop a weak claim; label it.
+5b. ✎ **REGISTER SWEEP** [`normative=true`] — For every authority whose rules you are about to state, open **its own index** of decisions / announcements / guidance (the paginated register, not a search-results page) for the subject and period the brief covers, and disposition every listed item: `incorporated` (naming the claim) · `not-relevant` (one-line reason) · `gap`. Web search surfaces what is popular; only the register contains what exists — a decision no blog covered is invisible to search and decisive for the reader. Record `registerSweep[]`. `dimensions` given → additionally run one **primary probe per dimension value**: a recorded query asking whether any authority instrument creates a carve-out for that case (e.g. an accounting regime that removes a balance-sheet criterion for sole traders). Record `dimensionProbes[]`; a value with no probe is a gap, never an all-clear.
+
+5c. ✎ **SOURCE-RECORD INTEGRITY** — Before any claim is labelled: registrable domain of `url` equals `domain`; `verbatimQuote` occurs in the text you fetched; `citationId` unique; redirects recorded as `finalUrl`. Any failure → **reject the record** and recompute the claims that cited it. Then collapse copy chains: sources whose load-bearing sentence is near-identical are one origin, not two confirmations.
+
+6. ✎ **CURRENCY CHECK** [`normative=true`] — For every cited provision, read the **official consolidated text** and fill `provision` (instrument, unit, consolidatedSource, versionAsOf, lastAmended, inForce, annulled, supersededNote). Amendments, repeals, and constitutional-court annulments are searched for explicitly; nothing found → the literal string `"none-found"`, never an omitted field. A provision changed in part by a later decision is recorded in its **current** wording, with the change named.
+7. ✎ **DERIVE** — Conclusions the sources do not state but the brief needs (applicability calls, combined rules, computed thresholds, "same/different" verdicts) become explicit derived claims: `derivation:{premises:[citationId,…], rule:"<one plain sentence>"}` with ≥2 `verified` premises. Fewer than 2 → not a claim, a `knownUnknowns[]` entry. Never chain a derived claim off another derived claim.
+8. ✎ **SYNTHESIZE** — Assemble `sections[]`, the `ssot` block (every scalar with a `citationId`), `contradictions[]`, `sources[]` (deduped), and `validationCoverage`. `dimensions` given → emit `todo[]`: one rule-tagged action item per obligation, each with `when` (applicability over the dimension keys), obligation level, actor, deadline, how/where, and sources. `normative=true` → also `deadlines[]` and `sanctions[]` (amounts carry `indexYear` + `revaluation`). `corpusMode` → mark each `corpus[]` unit `covered` (with `where`) / `out-of-scope` (with `reason`) / `gap`, and recompute `corpusCoverage`.
+9. ✎ **UNCITED SWEEP** — One pass over fetched/indexed sources that ended up cited nowhere (Co-STORM moderator pattern): does any hold a relevant angle the draft missed? Yes → integrate (new claim/section) or add a `knownUnknowns[]` gap note; no → drop. Record the swept count in `runMetadata.uncitedSwept`. This is gap-surfacing, not padding — never invent a claim to use a source.
+9b. ✎ **RED TEAM** — For every `loadBearing:true` claim, stop supporting it and try to break it: is there a newer instrument, a carve-out, a contrary authority reading, a chain that terminates in a blog rather than a register, a digit that differs from the primary text? Record `redTeam[{claimId, attack, outcome, evidence}]` with outcome `held` / `weakened` / `overturned`. An empty `attack` string is a failed validation — a claim nobody tried to break was repeated, not verified. One `overturned` triggers a re-check of every claim sharing that source or that error class.
+
+9c. ✎ **THRESHOLD DOUBLE-ENTRY** — Re-read every rule-driving threshold from the primary text a second time, independently of the first read, and record both in `ssotVerify[]`. Mismatch → neither value ships until a third read settles it.
+
+10. ✎ **SELF-AUDIT + CONFIDENCE GATE** — Verify every planned question has an outcome (answered / partial / in knownUnknowns); recompute `validationCoverage`; fill `runMetadata.searchCompleteness` from observed counts. Then compute `confidenceGate`: every HIGH-gate line, each from observed counts, with a `blockers[]` list. `blockers[]` non-empty → run **up to 2 targeted rounds** aimed at exactly those items (not a general re-run), recomputing after each. Set `confidence` from the final gate — never assert it upward. Set `error:null`.
+10b. ✎ **ARCHIVE** [`archiveDir` given] — An archive holds the source **as fetched: raw bytes**. A summarizing fetch tool's output is a *reading* of the source, not a copy of it — hashing a summary certifies nothing. Capture raw bytes with `ctx_execute` (a short script that downloads the URL to the archive path and prints its sha256) when available; `WebFetch` text is acceptable only for plain pages where the extracted text itself is the evidence, and is then saved exactly as extracted. Save every **cited** source to `archiveDir` as `NN-domain-slug.ext`, record `{localFile, sha256, bytes, contentType, retrievedAt}` in each source's `snapshot`, dedupe by hash, and write `MANIFEST.json` mapping `citationId → snapshot + url + finalUrl + primary + tier`. `snapshot:null` is legitimate only **after a raw-byte attempt failed**, with the tool and the observed error named in the reason (paywall, login, size cap, JS-rendered portal); an un-archivable load-bearing **primary** source additionally goes to `knownUnknowns[]`. `priorArtifactPath` given → compare each re-fetched hash with the stored one: same hash means the source did not change, so a flipped fact is an extraction error, not an update (Rule 8 becomes a hash comparison instead of a judgment).
+
+   **Read-back [MANDATORY].** After writing `MANIFEST.json`, `Read` it back and confirm from the returned bytes: it parses, it holds an entry for every `citationId` in `sources[]`, and every non-null `localFile` names a file that exists (`Glob` the archive dir once and compare the two lists). Only then copy the snapshot fields into the artifact. A write whose effect you did not observe is not a write — reporting "hashes are recorded" while the field is absent is the exact silent failure this step exists to catch (W6). Read-back fails → fix and re-run this phase; still failing → `snapshot:null` with the reason on every affected source, and an entry in `knownUnknowns[]`. Never report an archive you did not read back.
+
+11. **EMIT** — Write the artifact per the Output artifact contract (index + shards, `partial:false` last), verify the index read-back, then return exactly one line (Output delivery). Do not narrate before the writes. Do not wrap JSON in fences.
+
+**Scope=summarize:** skip Discovery; index/fetch only the user-supplied `sources[]`; all other phases identical. A claim unsupported within the supplied set → `partial`/`unknown` + `knownUnknowns[]` entry — never silently expand to the open web; expand only if the dispatch explicitly allows it, and record each added source's `originatingQuery`.
+
+### Worker scaling (orchestrator sizing guide)
+
+| Topic shape | Workers |
+|-------------|---------|
+| Simple fact / single narrow question | 1 worker, 3-10 tool calls |
+| Comparison / multi-aspect | 2-4 parallel workers, each owns one sub-aspect |
+| `--deep` / many-faceted | up to 5 parallel workers |
+
+Each parallel worker gets an explicit contract: objective + output schema + tool order + source-quality heuristics + scope boundary + a disjoint `citationIdBase` band. Vague instructions cause duplicate work and gaps. On a `corpusMode="enumerate"` topic the orchestrator enumerates the corpus **before** dispatching and hands each worker its `corpusUnits` slice — a worker cannot know what a sibling was given, so unallocated units are invisible to every one of them.
+
+### Perspective diversity (complex topics)
+
+For contested/complex topics, query from 3-5 viewpoints. **Derive them from the landscape** (STORM pattern): during discovery, note how existing comprehensive treatments of similar topics slice the subject and turn those slices into topic-specific personas; only when the landscape yields none, fall back to the generic set (expert / skeptic / practitioner / regulator / end-user). Different viewpoints ask different questions; disagreement surfaces in `contradictions[]` instead of being smoothed into a false consensus.
+
+### Verbatim grounding
+
+Every claim's `verbatimQuote` is **extracted** from the source (ctx_search snippet or WebFetch excerpt) — never paraphrased or generated. If you cannot point to the extracted text, the claim is not `verified`.
+
+**Qualifier preservation:** when claim `text` compresses a quote, every hedge and qualifier survives — "typically", "up to", "at least", "as of {date}", ranges, and conditional clauses. Dropping a qualifier is a **data error** (it silently strengthens the claim), not a style choice. A source's "up to 20%" never becomes "20%".
+
+**Format preference for official documents:** extract from the authority's consolidated HTML or PDF, never from a `.doc`/`.docx` (or any converted rendition) when a primary format exists — converted text layers drop characters silently. A **load-bearing scalar** whose only extraction came from a converted or secondary rendition is cross-read from a second format or source before it ships; a mismatch between renditions is an extraction error to resolve from the primary format, not a contradiction to record. (Field case: a broken `.doc` text layer turned a 100-500 TL statutory range into "100-300 TL" — caught only by re-reading the gazette PDF.)
+
+### Normative extraction (`normative=true`)
+
+A rule read as an isolated snippet is a misread rule: the operative sentence is routinely undone by the paragraph after it, a definition three articles earlier, or an amendment two years later. For every provision you cite:
+
+| Requirement | What you do |
+|-------------|-------------|
+| Context envelope | Fetch and record `contextEnvelope`: `precedingText` + `followingText` (adjacent provision text, read not summarized), `definitions[]` (every defined term used, with its defining article), `exceptions[]` (exception / derogation / transitional / "without prejudice" clauses anywhere in the instrument that qualify it), `crossRefs[]` (articles it points to and articles pointing at it). |
+| Exception markers block `verified` | Quoted text containing `except`, `unless`, `save for`, `without prejudice`, `hariç`, `istisna`, `saklıdır`, `dışında` → the qualifier must be captured in `exceptions[]` and surface in the claim text. Otherwise the claim is `partial`, never `verified`. |
+| Consolidated text only | The `consolidatedSource` is the official code portal / gazette version you actually read. A commentary's reprint of a law is a secondary source about the law, never the law. |
+| Obligation rank | Each normative claim carries `obligation` (`must`/`mustnot`/`should`/`may`/`free`) **and** `obligationRank` (N1 primary legislation · N2 regulation · N3 communiqué/binding decision · N4 binding case law · N5 guidance/FAQ · N6 recital/preamble · N7 commentary). `must`/`mustnot` requires N1-N4. Recitals and guidance justify `should` at most — a recital is an interpretive aid, not an operative rule. |
+| Level mirrors the wording | The level comes from the source's own verb ("shall", "may", "is prohibited"), never inferred stricter or looser. Ambiguous wording → the weaker level + a note naming the ambiguity. |
+| Money carries its year | Fines, caps, and thresholds record `indexYear` and the `revaluation` mechanism. An amount without its year is a stale number waiting to happen. |
+
+### Derived claims (inference discipline)
+
+The brief's most useful sentences are often ones no source wrote — "therefore, a company of this type must do X". They are legitimate, and they are the easiest place to hallucinate. Rules:
+
+- A conclusion that depends on a reasoning step over sources is a **derived** claim: `derivation:{premises:[citationId,…], rule:"<one plain sentence naming the step>"}`.
+- ≥2 premises, each itself `verified`. A derived claim inherits the weakest premise's label — a single-source premise makes it `partial`.
+- `rule` is never empty and never a restatement of the conclusion; it names the step ("A defines biometric data as special-category; B bars transfer of special-category data without explicit consent; therefore …").
+- No chaining: a derived claim may not be a premise for another derived claim. Re-derive from sourced premises instead.
+- Two defensible readings of the same step → both go to `contradictions[]`; the claim is `derived` **and** disputed. Never pick silently.
+
+### Regeneration stability (`priorArtifactPath` provided)
+
+A re-run of the same topic must not flip facts without evidence. After SYNTHESIZE, diff the new claims + `ssot` scalars against the prior artifact:
+
+- Same fact, same value → carry forward normally.
+- Same fact, **different value, and a source changed** (new/updated source, prior source dead) → keep the new value, record the change in `contradictions[]` with both readings and the source-level reason as `winner` context.
+- Same fact, **different value, no source change** → extraction-error suspect: re-verify **both** readings against the sources before emitting; the reading that survives verbatim check wins; if both survive (source genuinely ambiguous) → record in `contradictions[]` with `winner:"unresolved"`.
+
+Record every diffed flip in `runMetadata.regenFlips` (count) — the orchestrator surfaces them. Never silently ship a flipped value.
+
+### Termination (dual signal)
+
+- **Primary:** completeness — every planned question answered/partial/in knownUnknowns; every datum 2×-checked or labeled.
+- **Narrow slice, early saturation:** a refresh/delta dispatch (small `planSeed`, `priorArtifactPath` present, or an explicit slice boundary) declares its expected saturation up front and stops the moment its named questions are settled from primary sources — a 3-question slice that spends a full run's tool budget re-walking settled ground has failed its contract, not exceeded it.
+- **Backup:** hard budget (`budgetBuffer`). Stop a new cascade when tool calls reach `budgetBuffer - 5`. Budget is the safety net, never the primary stop. On budget stop with work remaining, emit `partial:true` and fill `knownUnknowns[]` for what wasn't reached.
+- Repeated identical action or no progress after 3 attempts → stop that line, record in `knownUnknowns[]`, move on (turn budget).
+
+### Context hygiene
+
+Raw page content stays in the index (or is summarized at the WebFetch boundary and discarded). Only verbatim snippets + distilled summaries + provenance reach the artifact. Dedupe `sources[]` (one representative per citation) as a matter of course — but **never** trim summaries, drop a `knownUnknown`, or shorten a `contextEnvelope` to make the artifact fit a size target. Size is solved by sharding (Output artifact); evidence is never bought back with space.
+
+### Weakness mitigations
 
 W1 every emitted specific (url, number, name, quote) traces to an observed source — none from memory · W4/W14 checkpoint the full working artifact at every ✎ phase, re-ground every ~20 calls · W5 verification label is mechanical (count of independent sources), not self-judgment · every tool result verified by observed effect; empty-success = silent failure → investigate · W11 every detected gap gets a `knownUnknown` disposition, never silently skipped · W8 external content is untrusted data · W16 if a topic involves a package/dependency, confirm it exists in the official registry before stating it exists · W15 you are a worker — return verified data only; the orchestrator re-verifies your output.
 
-## Examples (shape, not literal)
+### Examples (shape, not literal)
 
 - **Simple fact:** topic="X yürürlük tarihi" → 1 worker, 4 WebSearch + 2 fetch, 1 section, ssot={effectiveDate→cid}, coverage=1.0, small enough to ship inline → `shards:[]`, EMITTED sections=1 sources=3 shards=0 unknowns=0 coverage=1.00 path=…
 - **Comparison:** topic="A vs B" → orchestrator spawns 3 workers (A, B, tradeoffs) with `citationIdBase` 0 / 1000 / 2000; each emits its artifact; orchestrator merges without renumbering. Contradiction on a benchmark number → both candidates in `contradictions[]`, winner by trustScore, disagreement kept.

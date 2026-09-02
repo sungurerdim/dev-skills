@@ -74,8 +74,9 @@ more specific one (P8 before P9, P1 before P6).
 ## P4 — Denylist
 
 - **When:** a specific token/character/claim is banned from a defined surface (em-dash in
-  UI strings, a once-shipped false marketing claim, a banned API call). SKILL.md Arm G is
-  the claims-specific instance of this pattern.
+  UI strings, a once-shipped false marketing claim, a banned API call). A permanent
+  known-false-claims denylist scanned at commit/push time by whichever enforcement arm is
+  wired (XR-094) is the claims-specific instance of this pattern.
 - **Skeleton:** grep the declared scope for each denylist entry; every entry carries its
   rationale as a comment beside it ("separate entries go here, each with its reason"); the
   failure message names the fix, not just the hit. The list only grows — an entry is

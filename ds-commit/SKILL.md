@@ -36,6 +36,7 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Exempt from state protocol:** atomic, git-diff-driven, seconds-long. Git staging area is the natural state. No `ds/audit/commit.json`.
+- **A commit never touches the remote.** No fetch, no pull, no push — this skill's write surface stops at the local repository.
 
 ## Arguments
 
@@ -44,44 +45,43 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 | `--preview` | Show commit plan only, don't execute |
 | `--single` | Force single commit |
 | `--staged-only` | Commit only staged changes |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
 Default scope: all uncommitted changes (staged + unstaged + untracked).
 
 ## Delegation
 
-**Owns:** git-commit, conventional-commits, commit-quality, commit-grouping | **Delegates:** ds-fix → format/lint/typecheck pre-commit gates | **Receives:** ds-deps → per-group upgrade commit; ds-simplify → post-approval delete commit; ds-review → fix commit; ds-issue → atomic commit grouping; ds-pr → staging before PR
+**Owns:** git-commit, conventional-commits, commit-quality, commit-grouping | **Delegates:** ds-fix → format/lint/typecheck pre-commit gates | **Receives:** ds-deps → per-group upgrade commit; ds-simplify → post-approval delete commit; ds-review → fix commit; ds-issue → atomic commit grouping; ds-pr → staging before PR; ds-build → per-unit commits; ds-debug → the fix commit; ds-release → the release commit (chore(release): x.y.z)
 
 ## Execution Flow
 
-Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
+Pre-checks → Analyze → Execute → Verify → Summary
 
 ### Phase 1: Pre-checks
 
-**Prerequisites (1, then 2-4 parallel):**
+**Prerequisites (1, then 2-3 parallel):**
 
 1. `git --version` → version string printed (git available)
 2. `git rev-parse --git-dir` → exit 0 (inside a git repo)
 3. `git branch --show-current` → non-empty branch name; empty output = detached HEAD → stop, suggest creating a branch first
-4. `git fetch origin` (best-effort); on main/master behind upstream → announce, then `git pull --ff-only origin {branch}`; fast-forward impossible (diverged) or working tree state blocks it → skip the pull, note "behind upstream by {n} — pull after committing", never merge/rebase silently
 
 **Branch management:**
 
-- **On main/master:** suggest feature branch (`{type}/{short-description}`); offer commit-on-main. If `release-please-config.json`, `.release-please-manifest.json`, `.releaserc*`, or a `semantic-release` config in `package.json` is present, mark commit-on-main as "Not recommended — bypasses changelog pipeline". **Under `--auto`:** no prompt — commit on main only when the repo's own convention already does so (prior history commits directly to main, no branch-protection signal); otherwise create the feature branch.
-- **On feature branch:** changes outside branch scope → ask: continue here (recommended) / create new branch. **Under `--auto`:** continue here (the recommended default), no prompt.
+- **On main/master:** Default: commit on main only when the repo's own convention already does so (prior history commits directly to main, no branch-protection signal); otherwise create the feature branch (`{type}/{short-description}`) — no prompt. `--ask`: offer feature branch (recommended) / commit-on-main; if `release-please-config.json`, `.release-please-manifest.json`, `.releaserc*`, or a `semantic-release` config in `package.json` is present, mark commit-on-main "Not recommended — bypasses changelog pipeline".
+- **On feature branch:** Default: continue here (the recommended default) — no prompt. `--ask`: changes outside branch scope → ask continue here (recommended) / create new branch.
 
 **Conflict check:** `git status --porcelain` shows `UU`/`AA`/`DD` entries → stop.
 
 **Quality Gates (changed files only):**
 
 - **Upstream artifacts:** Profile → Toolchain. Findings(commit-relevant) → context for grouping. Absent → own detection.
-- **Always:** secret scan + large file check.
-- **Always: repo completeness check** — untracked source files referenced by tracked code: list untracked (`git ls-files --others --exclude-standard`), filter to source extensions (`.ts/.tsx/.js/.jsx/.go/.py/.dart/.rs/.rb/.php/.ex/.scala/.cs/.c/.cpp/.h/.swift/.vue/.svelte`; exclude build output, lockfiles, generated), grep tracked files for filename references + relative path patterns. Referenced-but-untracked → ask **"Used by your code but not tracked — CI will fail. Stage them?"**: Stage all (recommended) / Review each / Skip. Approve → `git add`, include in commit. Skip → warn "CI will likely fail". **Under `--auto`:** no prompt — Stage all (the recommended default).
-- **Code files:** format + lint (no tests) on changed files only. Tool unavailable → offer install, ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`. **Under `--auto`:** no prompt — install and continue when installation is non-interactive and low-risk (a local dev-dependency); otherwise mark `⚠ Skipped (tool unavailable)` and continue.
+- **Always: secret scan + large-file check.** Content scan of the staged diff against the regexes in [../core/secret-patterns.md](../core/secret-patterns.md): `git diff --cached -U0 | grep -nE '{pattern}'` run once per regex in that file (AWS keys, generic `api_key`/`secret`/`password` assignments, private-key blocks, provider tokens, connection-string passwords, JWTs). Filename exclusion (always excluded from bulk staging, listed in the summary): `.env`, `.env.*`, `*.pem`, `*.key`, `credentials.*`, `secrets.*`. Large-file check: `git diff --cached --numstat` lists changed files, then `wc -c` each against a 1,000,000-byte (1 MB) threshold — well above any hand-written source file, catching accidentally committed binaries, archives, and build artifacts; files over it are unstaged (`git restore --staged {file}`) and reported in the summary as `needs-human: {file} ({size} bytes) — exceeds the 1 MB commit threshold, use Git LFS or split the change`. A confirmed secret match is never auto-fixed — rotate the credential, then add the variable name with a placeholder to `.env.example`; the run's status is FAIL until the owner acts.
+- **Always: repo completeness check** — untracked source files referenced by tracked code: list untracked (`git ls-files --others --exclude-standard`), filter to source extensions (`.ts/.tsx/.js/.jsx/.go/.py/.dart/.rs/.rb/.php/.ex/.scala/.cs/.c/.cpp/.h/.swift/.vue/.svelte`; exclude build output, lockfiles, generated), grep tracked files for filename references + relative path patterns. Referenced-but-untracked → Default: Stage all (the recommended default) — no prompt. `--ask`: ask "Used by your code but not tracked — CI will fail. Stage them?": Stage all (recommended) / Review each / Skip. Approve → `git add`, include in commit. Skip → warn "CI will likely fail".
+- **Code files:** format + lint (no tests) on changed files only. Default: install and continue when installation is non-interactive and low-risk (a local dev-dependency); otherwise mark `⚠ Skipped (tool unavailable)` and continue — no prompt. `--ask`: tool unavailable → ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`.
 - **Docs/config only:** skip code checks.
 - **Format/lint modifications:** include in the same commit, not separate.
-- **Mechanical Done Gate:** ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command IS the pre-commit check: run it on the changed files instead of the ad-hoc format+lint pass, and never bypass its hook. No arm → the format+lint pass above stands; no check tooling at all → Verification-Infrastructure Gap — note it once in the summary, offer `/ds-quality`.
-- **On failure:** ask "Fix first (recommended) / Commit anyway". "Commit anyway" records WARN + the red check output in the summary — a red commit is never reported as clean. **Under `--auto`:** no prompt — Fix first (the recommended default).
+- **Mechanical Done Gate:** ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → its gate command IS the pre-commit check: run it on the changed files instead of the ad-hoc format+lint pass, and never bypass its hook. No arm → the format+lint pass above stands, falling back to the stack-native chain from [../core/toolchains.md](../core/toolchains.md); no check tooling at all → Verification-Infrastructure Gap — note it once in the summary, offer `/ds-quality`.
+- **On failure:** Default: Fix first (the recommended default) — no prompt. `--ask`: ask "Fix first (recommended) / Commit anyway" — "Commit anyway" records WARN + the red check output in the summary; a red commit is never reported as clean.
 
 **Gate:** No merge conflicts; quality gates passed or user proceeded. If fails → conflicts present; stop, list conflicting files, instruct user to resolve and re-run; no partial auto-commit.
 
@@ -134,7 +134,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 No approval question — plan table was shown.
 
-**Secret-pattern exclusion:** when staging "all uncommitted changes" (default scope), auto-exclude files matching `.env`, `.env.*`, `*.pem`, `*.key`, `credentials.*`, `secrets.*` before `git add`; list excluded files in the Phase 6 summary. User can override a specific file by naming it explicitly (`git add {file}` / re-run with `--staged-only` after manually staging it) — the exclusion is filename-pattern-based, not content-based, and never silently drops a file the user explicitly asked to include.
+**Secret-pattern exclusion:** when staging "all uncommitted changes" (default scope), auto-exclude files matching `.env`, `.env.*`, `*.pem`, `*.key`, `credentials.*`, `secrets.*` before `git add`; list excluded files in the Phase 5 summary. User can override a specific file by naming it explicitly (`git add {file}` / re-run with `--staged-only` after manually staging it) — the exclusion is filename-pattern-based, not content-based, and never silently drops a file the user explicitly asked to include.
 
 Stage files → build message → commit.
 
@@ -191,25 +191,19 @@ Stage files → build message → commit.
 
 **Body — include only when** one holds: the title alone omits the "why"; a trade-off was made; a multi-file change has a non-obvious reason; a breaking change needs migration. Otherwise skip. Format: 1-3 lines, blank line after title, wrap at 72, explain WHY not WHAT; optional migration/config hint (e.g., "Requires migration {migration-id}").
 
-**Trailers/footers:** one `Co-Authored-By: {ai-model-name} <{provider-email}>`; breaking → `BREAKING CHANGE: {description}`; references → `Closes #{issue}`, `Fixes #{issue}`.
+**Trailers/footers:** `Co-Authored-By: {ai-model-name} <{provider-email}>` only when the repository already uses the trailer — `git log -20 --format=%b | grep -c 'Co-Authored-By'` > 0; count is 0 → no trailer. Breaking → `BREAKING CHANGE: {description}`; references → `Closes #{issue}`, `Fixes #{issue}`.
 
 **Message-format gate (advisory tool):** `commitlint.config.*` present → validate each proposed message with commitlint before committing; rejection → fix the message, retry. Absent → the format tables above are the fallback; repo has CI + multiple contributors → add summary note "commit format enforced only in this session — no commitlint gate for future contributors".
 
-**Gate:** Commits created in conventional format with `Co-Authored-By:`. If fails → pre-commit hook rejected; show its output, fix the cause it names, retry (≤3 attempts); still rejected → stop and report the blocker with that output. **`--no-verify` is never offered and never used** — this skill has no bypass path in any mode; a hook that blocks the commit is a finding to fix, not a flag to add ([references/principles.md §1](references/principles.md), theme 4). Secret-pattern file explicitly re-added by user → stage exactly that file, keep the rest of the pattern excluded. **Under `--auto`:** identical path with no prompt — fix and retry, stop and report after the third failure (hooks are never skipped, this is not on the irreversible-exception list).
+**Gate:** Commits created in conventional format (`Co-Authored-By:` included only when the repository-convention check above found it). If fails → pre-commit hook rejected; show its output, fix the cause it names, retry (≤3 attempts); still rejected → stop and report the blocker with that output — the same recovery path in every mode; hooks are never skipped, and this is not on the publish/irreversible exception list. **`--no-verify` is never offered and never used** — this skill has no bypass path in any mode; a hook that blocks the commit is a finding to fix, not a flag to add ([../core/principles.md §1](../core/principles.md), theme 4). Secret-pattern file explicitly re-added by user → stage exactly that file, keep the rest of the pattern excluded.
 
 ### Phase 4: Verify
 
 `git log --oneline -n {planned-count}` → every planned commit listed. `git status --porcelain` → empty output (unless `--staged-only`).
 
-**Gate:** `git log --oneline` shows the planned commits; `git status --porcelain` → empty. If fails → re-read `git status --porcelain` output, identify remaining untracked/modified, ask "Stage remaining and commit / Leave as-is". **Under `--auto`:** no prompt — leave as-is (the safer default, avoids committing unplanned drift) and note the remaining files in the summary.
+**Gate:** `git log --oneline` shows the planned commits; `git status --porcelain` → empty. If fails → Default: leave as-is (the safer default, avoids committing unplanned drift) and note the remaining files in the summary — no prompt. `--ask`: re-read `git status --porcelain` output, identify remaining untracked/modified, ask "Stage remaining and commit / Leave as-is".
 
-### Phase 5: Needs-Approval Review [needs_approval > 0]
-
-**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolve `skipped (needs-human)` instead.
-
-**Gate:** All needs_approval items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt per item (Apply / Skip); no response → mark `skipped (no response)` and proceed.
-
-### Phase 6: Summary
+### Phase 5: Summary
 
 `ds-commit: {OK|WARN|FAIL} | Commits: {n} | Files: {n} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
@@ -231,7 +225,7 @@ Zero-change run: `Nothing to commit — working tree clean`.
 - Commit rules from [references/rules-commit.md](references/rules-commit.md)
 - Every quality gate check (format, lint, secret scan) gets a disposition
 - Conventional type matches litmus test
-- **Secret scan covers message body + trailers ([references/principles.md §5](references/principles.md)):** same pattern detection on proposed message + body + footer. A leak in the message is as visible as one in source.
+- **Secret scan covers message body + trailers ([../core/principles.md §5](../core/principles.md)):** same pattern detection on proposed message + body + footer. A leak in the message is as visible as one in source.
 - W10: defer finding detection to a fresh `ds/audit/findings.md` when present — own scan only for scopes it does not cover.
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
@@ -240,10 +234,10 @@ Zero-change run: `Nothing to commit — working tree clean`.
 | Scenario | Behavior |
 |----------|----------|
 | No changes | Report "nothing to commit", exit |
-| All untracked | Ask which files to include. Under `--auto`: stage all (matches the default scope), no prompt. |
+| All untracked | Default: stage all (matches the default scope) — no prompt. `--ask`: ask which files to include. |
 | Merge conflict markers | Warn, do not commit until resolved |
 | Untracked file referenced by tracked code | Completeness gate catches it — stage prompt |
 | Untracked file with no tracked references | Ignore — not a completeness issue |
-| >20 untracked source files | Show count + top 5 referenced; ask "Stage referenced (N) / Review / Skip". Under `--auto`: stage referenced, no prompt. |
+| >20 untracked source files | Default: stage referenced (N) — no prompt. `--ask`: show count + top 5 referenced; ask "Stage referenced (N) / Review / Skip". |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->
