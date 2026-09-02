@@ -35,14 +35,12 @@ rm -rf /tmp/dev-skills
 
 | Scope | Detects |
 |-------|---------|
-| dead-code | Exports with 0 references |
+| dead-code | Exports with 0 references, plus unused/mismatched function params |
 | single-caller | Exports referenced exactly once |
-| fallback | Backward-compat branches with no live hit |
-| dead-branch | Feature flags whose value is constant across every config source — untaken branch is dead |
+| fallback | Backward-compat branches with no live hit, plus feature flags whose value is constant across every config source — dead either way |
 | premature-abstraction | Generics / base classes / wrappers on ≤3 usages |
 | quarantine | `// removed` / `// legacy` / `// deprecated` / `_unused` markers |
 | test-realism | Delegated to `/ds-test` when present; gap-noted otherwise |
-| io-drift | Function signature ≠ caller signature |
 | ssot-violation | Same constant / URL / regex duplicated |
 | orphan | Modules / assets with zero inbound references |
 

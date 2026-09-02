@@ -41,13 +41,13 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 
 | Flag | Effect |
 |------|--------|
-| `--mode={x}` | `audit`, `audit+fix`, `quick-fix` |
 | `--scope={list}` | security, privacy, regulatory, web, network, arch, perf, a11y, i18n, or `all` |
 | `--type={t}` | Override auto-detection: `web`, `api`, `cli`, `library` |
+| `--preview` | Analyze and report only — no file is written |
 | `--secrets-migrate` | Rotation / vault migration walkthrough for hardcoded secrets — always asks per secret (Secrets Migrate Mode), `--ask` or not |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
-Default: no disambiguating flag resolves to `--mode=audit` (recommended), recorded in the summary. `--ask`: present mode selection.
+Default: no disambiguating flag runs the full scan-and-fix pass, recorded in the summary. `--preview`: scan and report only, no fixes applied. `--ask`: present scope selection and per-phase confirmations.
 
 ### Secrets Migrate Mode (`--secrets-migrate`)
 
@@ -98,7 +98,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 ### Phase 1: Detect
 
-1. **Upstream artifacts:** Profile → Config.regulations, Config.data, Config.audience, Type+Stack. Findings(compliance scopes) → verify + use. Absent → own analysis.
+1. **Upstream artifacts:** Profile → `Regulations:`, `Data:`, `Audience:`, Type+Stack. Findings(compliance scopes) → verify + use. Absent → own analysis.
 
 2. **Project detection.** Search for config to identify type:
    - **Web frontend:** `package.json` with react/next/vue/nuxt/angular/svelte/astro
@@ -108,16 +108,14 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 3. **Stack detection.** Framework, language, architecture pattern, auth, DB, ORM, API style, testing, CI/CD, i18n, deployment.
 
-4. **Mode selection.** No `--mode` → present a menu of every mode: Audit Only (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / (Cancel). A disambiguating flag (e.g. `--mode`, `--secrets-migrate`) skips the menu.
+4. **Scope selection.** Default: all applicable domains, and regulatory frameworks detected from codebase patterns (GDPR, KVKK, CCPA, etc.) apply without confirmation. `--ask`, no `--scope`: ask which domains; confirm the detected regulatory frameworks.
 
-5. **Scope selection.** Default: all applicable domains, and regulatory frameworks detected from codebase patterns (GDPR, KVKK, CCPA, etc.) apply without confirmation. `--ask`, no `--scope`: ask which domains; confirm the detected regulatory frameworks.
-
-6. **Overlap routing (runtime enforcement of the overlap rules):**
+5. **Overlap routing (runtime enforcement of the overlap rules):**
    - **Mobile project detected** (`pubspec.yaml` with `flutter:` OR `Info.plist` OR `AndroidManifest.xml`) → `/ds-mobile` present → invoke `/ds-mobile --scope=security,privacy,regulatory`, wait for completion, read its `ds/audit/findings.md` updates, remove `security/privacy/regulatory` from active scope; keep only non-mobile-covered scopes (a11y, i18n, web, network, perf, arch) locally (ds-mobile authoritative; running both duplicates findings). `/ds-mobile` absent → keep `security/privacy/regulatory` active; load [rules-compliance.md](references/rules-compliance.md) as usual plus [references/scopes-conditional.md](references/scopes-conditional.md) § Mobile-Fallback Checks; gap-note "deeper mobile-specific coverage (13-domain release audit) requires /ds-mobile" so the reduced depth is visible, never silent.
    - **a11y scope active + project has frontend** (framework detected in `package.json` / equivalent) → `/ds-frontend` present → announce "a11y delegated to /ds-frontend; this run keeps regulatory framing only (ADA/EN301549)." Mark a11y `framing-only`; emit only regulatory-mapping findings. `/ds-frontend` absent → audit and CAT-1-fix the full a11y scope directly from [rules-a11y.md](references/rules-a11y.md) (A11Y-01–08) plus the regulatory-mapping findings; gap-note "deeper design-system a11y coverage requires /ds-frontend".
    - **Privacy scope active** → canonical owner. Announce: "/ds-launch --privacy narrows to store-label-correctness. This run emits canonical privacy findings, including event-property PII scanning."
 
-**Gate:** Project type identified; mode + scope confirmed; regulatory frameworks resolved; overlap routing applied. If fails → type undetected + no `--type` response → default `web`, announce, proceed; regulatory ambiguous after detection → default: apply the best-guess framework(s) from detected signals (audience, data locality, stack) and record the assumption in the summary; `--ask`: present detected signals, require explicit framework selection before proceeding.
+**Gate:** Project type identified; scope confirmed; regulatory frameworks resolved; overlap routing applied. If fails → type undetected + no `--type` response → default `web`, announce, proceed; regulatory ambiguous after detection → default: apply the best-guess framework(s) from detected signals (audience, data locality, stack) and record the assumption in the summary; `--ask`: present detected signals, require explicit framework selection before proceeding.
 
 ### Phase 2: Architecture Discovery
 
@@ -191,14 +189,14 @@ Architecture: {detected-summary}
 
 **Gate:** Report with findings + severities + summary. If fails → findings list empty because all domains `inconclusive` or `N/A` → print report with single section `"No verifiable findings — all domains inconclusive or reference files missing"`, list domains + skip reason, exit with status `WARN`.
 
-### Phase 6: Fix [SKIP if audit-only]
+### Phase 6: Fix [SKIP if --preview]
 
 **Checkpoint pre-step (before the first fix is written,** [core checkpoint protocol](../core/checkpoint-protocol.md)**):** `git status --porcelain` → empty → proceed. Non-empty and disjoint from this run's planned writes → proceed, list the dirty paths as untouched. Non-empty and a planned fix touches a dirty path → default: mark that fix `skipped (only you can do)`, continue with disjoint fixes. `--ask`: show the dirty files, ask Commit first (recommended) / Stash / Proceed anyway (the mechanical-gate revert path `git checkout -- {file}` also discards pre-existing edits in that file). Never run a bulk fix over uncommitted unrelated changes silently.
 
 **Overwrite prevention:** before generating/modifying any compliance document (Privacy Policy, DPIA, Breach Plan, Processor Registry), check if target exists. Default: Keep existing when it already has non-trivial content, otherwise update; the decision and diff are recorded in the summary. `--ask`: show diff between existing + proposed, ask "Update existing / Keep existing / Show diff".
 
 1. Present fix plan — one line per fix (`[severity] title — file:line`) grouped by category/severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
-2. Default: apply all (matches `quick-fix` behavior), summary only. `--ask`: `quick-fix` → apply all, summary only; `audit+fix` → show plan, offer Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / proceed / cancel; `audit` → ask which severities.
+2. Default: apply all, summary only. `--ask`: show plan, offer Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / proceed / cancel.
 3. Apply fixes grouped by file. Different files in parallel, same file sequential.
 
 **Gate:** All standard fixes attempted; each recorded. If fails → CAT-1 fix unappliable (file write error, merge conflict, generated doc exists + user chose "Keep existing") → record `failed` with specific error, continue with remaining, surface all failed IDs in Phase 8 summary.

@@ -92,7 +92,7 @@ Setup → Discover → [Analyze] → [Generate] → [Monitor Setup] → [Inciden
 
 ### Phase 1: Setup
 
-1. **Upstream artifacts:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
+1. **Upstream artifacts:** Profile → {`Deploy:`, `External:`, `Constraints:`, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
 2. A disambiguating flag skips this step. Without one: Audit runs directly (the default). `--ask` with no other flag: present the mode menu.
 3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`, `wrangler.toml`, `wrangler.jsonc`) + target: VPS, PaaS, serverless, container orchestration, or a container-less target (edge platform, static site, localhost-only — see [references/scopes-deployment.md](references/scopes-deployment.md) § Container-less targets). Absence of a container signal is itself a signal: it selects the container-less branch, it does not make the run a Docker audit with everything missing.
 

@@ -1,6 +1,6 @@
 # Rules: Architecture, Testing, Performance, Network & Internationalization
 
-Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
+Rules applied on every run (report-only under `--preview`). Each rule: ID, severity, title, detect pattern, fix action, platform notes.
 
 ## Table of Contents
 

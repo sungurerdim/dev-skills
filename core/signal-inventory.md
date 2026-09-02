@@ -49,7 +49,7 @@ Every skill with more than one scope carries a table mapping its scopes to signa
 |---------|---------|---------------|
 | ran | Signal present (or `unknown` — unknown never silently excludes; it runs the scope and reports the signal as unresolved) | `ran` |
 | N/A with reason | Signal detected absent | `N/A — {signal}=none` |
-| skipped — not part of this mode | Orchestrator mode leaves it out (`--mode=harden` excludes launch legs) | `skipped — not part of this mode` |
+| skipped — not part of this mode | Orchestrator mode leaves it out (`--mode=improve` excludes launch legs) | `skipped — not part of this mode` |
 | skipped — no signal (orchestrator) | ds-ship skipped a delegation because no signal justifies it | `skipped — no signal ({signal})` |
 
 `--scope=` overrides the table for the named scopes; `--ask` shows the resolved table before running.

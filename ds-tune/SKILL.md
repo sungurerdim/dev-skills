@@ -41,9 +41,8 @@ Manual optimization is slow — 8-10 experiments per day, subjective judgment, n
 | Flag | Effect |
 |------|--------|
 | (none) | Full setup: discover goal, analyze project, generate `ds/tune/`, measure baseline, start loop |
-| `--run` | Resume loop from existing `ds/tune/` setup + `ds/audit/tune.json` |
+| `--resume` | Resume loop from existing `ds/tune/` setup + `ds/audit/tune.json`, without prompt |
 | `--status` | Show results summary (experiments, hit rate, improvement) |
-| `--resume` | Equivalent to `--run` — force resume from state without prompt |
 | `--clean` | Delete `ds/audit/tune.json` (keeps `ds/tune/`), re-enter setup |
 | `--budget={n}` | Stop the loop after {n} experiments (default: run until user interrupt or context limit) |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
@@ -58,11 +57,11 @@ Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] �
 
 ### Phase 1: Discovery
 
-**Recovery check:** DETECT `ds/audit/tune.json`. Absent + no `--resume`/`--run` → fresh setup. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY: re-read `ds/tune/.autotune.json` + tail of `ds/tune/results.tsv`, skip `done` phases, enter Loop at next experiment. Announce `[TUN] Resuming from Phase {N}: {name}. Baseline {metric}={value}, {N} experiments recorded.` On user-triggered stop or context exhaustion, state persists; on graceful completion, delete state. Fresh start: `grep -qx 'ds/audit/' .gitignore` → exit 0; non-zero → append `ds/audit/` and report the addition.
+**Recovery check:** DETECT `ds/audit/tune.json`. Absent + no `--resume` → fresh setup. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY: re-read `ds/tune/.autotune.json` + tail of `ds/tune/results.tsv`, skip `done` phases, enter Loop at next experiment. Announce `[TUN] Resuming from Phase {N}: {name}. Baseline {metric}={value}, {N} experiments recorded.` On user-triggered stop or context exhaustion, state persists; on graceful completion, delete state. Fresh start: `grep -qx 'ds/audit/' .gitignore` → exit 0; non-zero → append `ds/audit/` and report the addition.
 
 **State `data`:** `{ target_file, metric, direction, secondary, bench_cmd, budget_sec, tag, tune_dir: "ds/tune/", baseline: {value, commit}, branch, experiment_count, last_experiment_idx }`.
 
-**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize. **Upstream artifacts:** Profile → Ideal Metrics, Type + Stack. Findings() → verify + use. Absent → own analysis.
+**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as baseline context for metric selection. **Upstream artifacts:** Profile → {`Scores:` — suggests which dimension to optimize, `Ideal:`, `Type:`, `Stack:`}. Findings() → verify + use. Absent → own analysis.
 
 Ask ONE question:
 
@@ -142,7 +141,7 @@ Execute the experiment loop defined in `ds/tune/program.md` (steps 1-9 of [refer
 
 Generated in Phase 4 with all placeholders filled — full template in [references/program-template.md](references/program-template.md) (loaded only during Phase 4 generation and Phase 7 loop).
 
-## `/ds-tune --run` — Resume
+## `/ds-tune --resume` — Resume
 
 1. Read `ds/audit/tune.json` — verify `skill: ds-tune`, `version: 1`, `git_hash` vs HEAD (prompt on mismatch).
 2. Verify `ds/tune/` folder exists; read `ds/tune/.autotune.json`, `ds/tune/program.md`, and `ds/tune/results.tsv` (current baseline = last `keep` entry).
@@ -192,7 +191,7 @@ Zero-improvement run: `{n} experiments ran, none beat baseline {baseline-value} 
 | Experiment exceeds time budget | Kill process, log as crash, move to next hypothesis |
 | Git conflict on reset | Stash changes, hard reset to last keep commit |
 | No improvement after 10 consecutive experiments | Re-read target file, analyze `results.tsv` patterns, try fundamentally different approaches |
-| `ds/tune/` folder missing (for `--run`) | Run full setup first |
+| `ds/tune/` folder missing (for `--resume`) | Run full setup first |
 
 ## Edge Cases
 

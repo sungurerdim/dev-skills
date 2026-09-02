@@ -298,14 +298,14 @@ Every SKILL.md's `Triggers` section MUST satisfy:
 1. **Explicit scope** — trigger phrases always specify the intent. `"improve"` alone is not a trigger; `"improve performance"` (→ ds-review --perf), `"improve test coverage"` (→ ds-test), `"clean up dead code"` (→ ds-simplify).
 2. **INVOKE / DON'T INVOKE table** — every SKILL.md MUST include a 3-5 row table contrasting valid vs invalid trigger phrases. Format:
 
-   ```markdown
+   ``markdown
    ### Triggers — INVOKE / DON'T INVOKE
 
    | INVOKE | DON'T INVOKE |
    |---------|----------|
    | "improve performance" | "improve" (too broad) |
    | "{specific intent}" | "{broad intent that belongs to another skill}" |
-   ```
+   ``
 
 3. **No skill claims an unscoped verb.** "improve", "fix", "clean up", "audit" are not standalone triggers — they must be combined with a domain that exactly one skill owns.
 4. **Cross-skill consistency** — when two skills could plausibly handle the same phrase, the DON'T INVOKE row in each lists the other's matching phrase as the disqualifier.
@@ -1164,20 +1164,20 @@ Producer skills MUST ensure their output is maximally useful for downstream cons
 
 1. **Blueprint profile completeness:** When ds-blueprint writes the profile, ALL sections must be populated — every field exists because specific consumers depend on it:
    - **Header** (Type, Stack, Target): used by all consumers for detection skip and severity calibration
-   - **Config.priorities**: ds-review (scope ordering), ds-docs (generation priority)
-   - **Config.constraints**: ds-deploy (infra limits), ds-repo (settings), ds-compliance (scope)
-   - **Config.data + regulations**: ds-compliance (regulation framework + PII types), ds-backend (auth), ds-mobile (store compliance)
-   - **Config.audience + deploy**: ds-docs (tone), ds-launch (store requirements), ds-deploy (target), ds-devops (pipeline)
-   - **Project Map.Toolchain**: ds-fix (formatter/linter), ds-test (test framework), ds-devops (CI platform)
-   - **Project Map.Modules + External**: ds-backend (API structure), ds-docs (what to document), ds-deploy (dependencies)
-   - **Ideal Metrics.Coverage**: ds-test (threshold target)
-   - **Current Scores**: ds-review (focus low dimensions), ds-mobile (focus low dimensions)
+   - `Priorities:`: ds-review (scope ordering), ds-docs (generation priority)
+   - `Constraints:`: ds-deploy (infra limits), ds-repo (settings), ds-compliance (scope)
+   - **`Data:` + regulations**: ds-compliance (regulation framework + PII types), ds-backend (auth), ds-mobile (store compliance)
+   - **`Audience:` + deploy**: ds-docs (tone), ds-launch (store requirements), ds-deploy (target), ds-devops (pipeline)
+   - `Toolchain:`: ds-fix (formatter/linter), ds-test (test framework), ds-devops (CI platform)
+   - **`Modules:` + External**: ds-backend (API structure), ds-docs (what to document), ds-deploy (dependencies)
+   - `Ideal: coverage=`: ds-test (threshold target)
+   - `Scores:`: ds-review (focus low dimensions), ds-mobile (focus low dimensions)
    An incomplete profile forces consumers to re-detect what blueprint already discovered.
 
 2. **Findings file scope coverage:** When writing `ds/audit/findings.md`, the `scopes` field in the meta header MUST list every scope that was analyzed — even if zero findings were found for that scope. This tells consumers "this scope was checked and is clean" vs "this scope was never analyzed." Example:
-   ```
+   ``
    scopes: security, code-quality, architecture, performance, resilience, testing, stack, dx, docs
-   ```
+   ``
    A consumer checking for `testing` findings and seeing `testing` in the scopes list with zero matching rows knows testing is clean. If `testing` is absent from scopes, the consumer must run its own testing analysis.
 
 3. **Finding actionability:** Every finding in `ds/audit/findings.md` must include enough context for a consumer to act:
@@ -1214,30 +1214,34 @@ Each cell specifies WHAT to read and HOW it changes behavior — not just field 
 
 | Consumer | Profile Field → Behavioral Change | Findings Scopes |
 |----------|----------------------------------|-----------------|
-| ds-review | **Config.priorities** → order scope execution by priority. **Config.quality** → prototype: skip LOW findings, enterprise: flag all. **Current Scores** → start with lowest-scoring dimensions. **Project Map.Toolchain** → know existing patterns, avoid suggesting incompatible tools. | security, hygiene, types, performance, architecture, patterns, contract-consistency |
-| ds-fix | **Project Map.Toolchain** → skip tool detection, use stated formatter/linter/typechecker directly. **Type + Stack** → select correct toolchain from references. | — (runs external tools) |
-| ds-test | **Ideal Metrics.Coverage** → set coverage threshold. **Project Map.Toolchain** → skip test framework detection. **Current Scores.Testing** → if low, prioritize coverage gaps. | testing |
-| ds-docs | **Config.audience** → tailor doc tone (public: user-friendly, developers: technical). **Project Map** → know modules/entry points to document. **Type** → select ideal doc set per project type. | docs |
-| ds-compliance | **Config.regulations** → skip regulation detection, use stated frameworks (GDPR, KVKK, etc.) directly. **Config.data** → know data types to scan for (PII, credentials). **Config.audience** → public: stricter compliance. | security, privacy, regulatory |
-| ds-deploy | **Config.deploy** → skip target detection, use stated method (Docker, VPS, PaaS). **Project Map.External** → know dependencies to configure (Redis, DB, etc.). **Config.constraints** → respect infra constraints. | deployment, infra, monitoring |
-| ds-devops | **Project Map.Toolchain** → skip CI detection, use stated CI platform. **Type + Stack** → select correct pipeline templates. | ci, signing, deps |
-| ds-mobile | **Config.data** → know privacy requirements for store compliance. **Config.deploy** → know build pipeline (CI, signing). **Current Scores** → focus on lowest dimensions. | mobile-specific scopes |
-| ds-backend | **Project Map.Modules** → know API structure, skip architecture discovery. **Config.data** → know auth/data requirements. **Project Map.External** → know existing DB/cache/queue. | api, db, auth, data-pipeline |
-| ds-launch | **Config.audience** → know store requirements. **Config.deploy** → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
-| ds-productize | **Type + Stack** → platform routing (store IAP vs web checkout). **Config.audience** → B2B/B2C calibration. **Config.deploy** → checkout surface detection. | monetization, pricing, gtm (producer); spec-alignment (consumer) |
-| ds-frontend | **Config.priorities** → order scope execution. **Type + Stack** → select framework-specific patterns. **Current Scores** → focus on lowest-scoring UX dimensions. | tokens, components, states, a11y, responsive, theming |
-| ds-build | **Type + Stack** → `{check-cmd}` resolution and unit signals. **Config.constraints** → automatic red lines for every unit. **Signals** → impact-map axes that apply. | — (context consumer, not scope producer) |
-| ds-debug | **Type + Stack** → reproduction runner and bisect signal. **Config.constraints** → fixes never cross a red line. | — (context consumer, not scope producer) |
-| ds-release | **Type + Stack** → version surfaces and registry publish command. **Config.deploy** → post-release smoke target. | — (context consumer, not scope producer) |
-| ds-simplify | **Config.constraints** → respect keep-constraints when proposing deletions. **Project Map.Toolchain** → verify deletions against build. | hygiene, simplify |
-| ds-deps | **Project Map.Toolchain** → package manager + lockfile directly. **Stack** → registry selection. | stack, stack-fitness, deps-upgrade |
-| ds-quality | **Project Map.Toolchain** → wire verify-loop commands without re-detection. | — (runs external tools) |
-| ds-benchmark | **Type + Stack + Ideal Metrics** → comparable selection + gap baseline. | ideal-gap (producer) |
+| ds-review | `Priorities:` → order scope execution by priority. `Target:` → prototype: skip LOW findings, enterprise: flag all. `Scores:` → start with lowest-scoring dimensions. `Toolchain:` → know existing patterns, avoid suggesting incompatible tools. | security, hygiene, types, performance, architecture, patterns, contract-consistency |
+| ds-fix | `Toolchain:` → skip tool detection, use stated formatter/linter/typechecker directly. **Type + Stack** → select correct toolchain from references. | — (runs external tools) |
+| ds-test | `Ideal: coverage=` → set coverage threshold. `Toolchain:` → skip test framework detection. `Scores: test=` → if low, prioritize coverage gaps. | testing |
+| ds-docs | `Audience:` → tailor doc tone (public: user-friendly, developers: technical). `Entry:`/`Modules:`/`Data Flow:` → know modules/entry points to document. **Type** → select ideal doc set per project type. | docs |
+| ds-compliance | `Regulations:` → skip regulation detection, use stated frameworks (GDPR, KVKK, etc.) directly. `Data:` → know data types to scan for (PII, credentials). `Audience:` → public: stricter compliance. | security, privacy, regulatory |
+| ds-deploy | `Deploy:` → skip target detection, use stated method (Docker, VPS, PaaS). `External:` → know dependencies to configure (Redis, DB, etc.). `Constraints:` → respect infra constraints. | deployment, infra, monitoring |
+| ds-devops | `Toolchain:` → skip CI detection, use stated CI platform. **Type + Stack** → select correct pipeline templates. | ci, signing, deps |
+| ds-mobile | `Data:` → know privacy requirements for store compliance. `Deploy:` → know build pipeline (CI, signing). `Scores:` → focus on lowest dimensions. | mobile-specific scopes |
+| ds-backend | `Modules:` → know API structure, skip architecture discovery. `Data:` → know auth/data requirements. `External:` → know existing DB/cache/queue. | api, db, auth, data-pipeline |
+| ds-launch | `Audience:` → know store requirements. `Deploy:` → know release pipeline. **Type** → select store-specific checklists (mobile vs desktop). | store, release, privacy-labels |
+| ds-productize | **Type + Stack** → platform routing (store IAP vs web checkout). `Audience:` → B2B/B2C calibration. `Deploy:` → checkout surface detection. | monetization, pricing, gtm (producer); spec-alignment (consumer) |
+| ds-frontend | `Priorities:` → order scope execution. **Type + Stack** → select framework-specific patterns. `Scores:` → focus on lowest-scoring UX dimensions. | tokens, components, states, a11y, responsive, theming |
+| ds-build | **Type + Stack** → `{check-cmd}` resolution and unit signals. `Constraints:` → automatic red lines for every unit. **Signals** → impact-map axes that apply. | — (context consumer, not scope producer) |
+| ds-debug | **Type + Stack** → reproduction runner and bisect signal. `Constraints:` → fixes never cross a red line. | — (context consumer, not scope producer) |
+| ds-release | **Type + Stack** → version surfaces and registry publish command. `Deploy:` → post-release smoke target. | — (context consumer, not scope producer) |
+| ds-simplify | `Constraints:` → respect keep-constraints when proposing deletions. `Toolchain:` → verify deletions against build. | hygiene, simplify |
+| ds-deps | `Toolchain:` → package manager + lockfile directly. **Stack** → registry selection. | stack, stack-fitness, deps-upgrade |
+| ds-quality | `Toolchain:` → wire verify-loop commands without re-detection. | — (runs external tools) |
+| ds-benchmark | **Type + Stack + `Ideal:`** → comparable selection + gap baseline. | ideal-gap (producer) |
 | ds-ship | Orchestrator — consumes the full profile + every findings scope (§10.3). | all scopes (consumer) |
-| ds-issue | **Type + Stack** → severity calibration on intake verification. Findings scopes → cross-check issue claims against code. | any scope (verification) |
-| ds-pipeline | **Type + Stack + Config.constraints** → planning context for the Spec Kit chain. | — (planning-only) |
-| ds-init, ds-commit, ds-pr, ds-research, ds-tune, ds-brief | — (no profile fields consumed beyond optional Type/Stack context) | — |
-| ds-repo | — (producer only) | — |
+| ds-issue | Findings scopes → cross-check issue claims against code. | any scope (verification) |
+| ds-pipeline | **Type + Stack + `Constraints:`** → planning context for the Spec Kit chain. | — (planning-only) |
+| ds-init | **Type + Stack** → scaffold selection (flag overrides it). `Signals: pii=` → whether the privacy block is generated. | — |
+| ds-commit, ds-pr | `Toolchain:` → run the project's own checks before staging, without re-detecting them. | — |
+| ds-repo | **Type + Stack** → repo metadata defaults. `Constraints:` → respect stated limits on protection rules. | — |
+| ds-research | **Type + Stack** → query context. `Constraints:` → hard limits a recommendation may not cross. | — |
+| ds-tune | `Scores:` + `Ideal:` → which dimension to optimize and the target. **Type + Stack** → experiment runner. | — |
+| ds-brief | — (no profile fields consumed — the topic or the supplied sources are the whole input) | — |
 | ds-blueprint | — (producer only, reads own profile for incremental updates) | — (producer only) |
 
 ### Vocabulary

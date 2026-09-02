@@ -15,7 +15,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 | Number | Meaning |
 |--------|---------|
 | **32 skills** | One per real lifecycle moment — equip, discover, build, improve, document, comply, monetize, track, ship. Each skill owns defined [taxonomy dimensions](SKILL-SPEC.md#appendix-dimension-coverage-map) (A1–D11: product, engineering, trust, operations) with automated coverage tracking in `/ds-ship` reports |
-| **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`core/software-best-practices.md`](core/software-best-practices.md) |
+| **136 engineering principles** | Drawn from 23 primary sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates, each row carrying either a mechanical detection signal or an explicit `judgment` tag — see [`core/principles.md`](core/principles.md) and [`core/software-best-practices.md`](core/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
 | **6 AI tools supported** | Claude Code, OpenCode, Cursor, GitHub Copilot, Windsurf (now Devin Desktop, 2026-06-02), Aider — skills follow the open [Agent Skills spec](https://agentskills.io) (`SKILL.md`), so any host that reads it works |
@@ -44,6 +44,19 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 |-----------------------------------|-----|
 | Idea, scaffold, half-built, feature-complete-but-unlaunched, or dormant project | [`/ds-ship`](ds-ship) — classifies the stage, plans the skill sequence, delegates each phase, consolidates one report. **The fastest path through the whole catalog.** |
 
+**Where is your project right now?** `/ds-ship` derives the mode from the repo and says so in the report; pass `--mode` only to override it. Nothing in any mode pushes, tags, publishes or submits — those come back to you with the exact command.
+
+| Your project | Mode | What runs | What does not |
+|--------------|------|-----------|---------------|
+| Not launched — still building, plenty to fix | `/ds-ship --mode=improve` | rule audit (blueprint → review → stack-specific → compliance/mobile → test → fix) · simplify · docs | every release and launch step |
+| Not launched — ready to cut a version, no store or public opening | `/ds-ship --mode=release` | improve + devops → deploy → release → repo (+ productize when billing exists) | benchmark · store · OSS readiness |
+| Not launched — going to a store or opening publicly | `/ds-ship --mode=launch` | release + benchmark · ds-launch (store / web / library publish readiness) · ds-repo --oss-ready for public repos | — |
+| Launched — routine upkeep | `/ds-ship --mode=maintain` | blueprint diff · ds-deps · ds-tune when a metric loop exists · ds-fix · ds-test | benchmark · release chain · launch legs |
+| Launched — live but far from ideal | `/ds-ship --mode=improve` | the full audit, without touching anything that ships | every release and launch step |
+| Launched — shipping the fixes you just made | `/ds-ship --mode=release` | improve + the release chain | store and OSS legs |
+
+Every leg is signal-gated on top of the mode: a library with no store or billing signal never runs the store or monetization legs, and the report states the reason for each one it skipped.
+
 ### Equip — set up the machine before the project
 
 | Question | Skill |
@@ -57,7 +70,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Has someone else solved this? What does the literature say?" | [`/ds-research`](ds-research) — searches, scores source reliability, cites file:line |
 | "What do the best projects in this space look like? Where do we fall short?" | [`/ds-benchmark`](ds-benchmark) — synthesizes the ideal from 5–10 comparables, produces gap table |
 | "How healthy is this codebase? What's the lowest-hanging fruit?" | [`/ds-blueprint`](ds-blueprint) — scores 9 dimensions, writes findings every other skill consumes |
-| "I have a feature idea — get me an executable, test-gated plan." | [`/ds-pipeline`](ds-pipeline) — conducts the Spec Kit chain with blocking gates; every task ships with a verify command |
+| "I have a feature idea — get me an executable, test-gated plan." | [`/ds-pipeline`](ds-pipeline) — runs specify → clarify → plan → tasks → analyze with blocking gates (Spec Kit optional); every task ships with a verify command, then `/ds-build` executes it |
 
 ### Build — start something new
 
@@ -66,7 +79,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | "Empty repo. Get me to a real project from zero." | [`/ds-init`](ds-init) — scaffold, CI, lint, tests from day one |
 | "Design my API + database + auth + data pipeline, end-to-end." | [`/ds-backend`](ds-backend) — four-layer design, no inconsistent naming, no double-processing jobs |
 | "I need design tokens, component states, theming, a11y baseline." | [`/ds-frontend`](ds-frontend) — design system audit + generation |
-| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 177 rules, 13 domains, release-readiness scoring |
+| "Audit my mobile app before submitting to a store." | [`/ds-mobile`](ds-mobile) — 181 rules, 13 domains, release-readiness scoring |
 | "The plan exists — an issue, a `tasks.md`, a request. Execute it with proof." | [`/ds-build`](ds-build) — bounded units, a verify signal per unit, red-proven tests, budgeted backtracking, code-proven close |
 
 ### Improve — fix what's already there
@@ -93,7 +106,7 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 
 | Question | Skill |
 |----------|-------|
-| "Am I privacy/regulatory compliant? GDPR, KVKK, CCPA, accessibility law?" | [`/ds-compliance`](ds-compliance) — 142 rules, file:line precision |
+| "Am I privacy/regulatory compliant? GDPR, KVKK, CCPA, accessibility law?" | [`/ds-compliance`](ds-compliance) — 158 rules, file:line precision |
 
 ### Monetize — turn it into a paid product
 
@@ -132,9 +145,12 @@ Each row picks one skill for one moment. Pick by the question, not by the noun.
 | **Resume any project** | `/ds-ship` (lets it pick the order for you) |
 | **New project** | `ds-init` → `ds-quality` → `ds-blueprint` → `ds-test` → `ds-commit` |
 | **Existing project hygiene** | `ds-blueprint` → `ds-review --tactical` → `ds-simplify` → `ds-fix` → `ds-test` → `ds-commit` |
-| **Pre-launch** | `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
-| **Pre-launch, scope too big** | `ds-freeze` → `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
-| **Paid product / SaaS** | `ds-productize` → `ds-devops` → `ds-deploy` → `ds-launch` → `ds-repo` |
+| **Pre-launch** | `ds-ship --mode=launch` (store/public) or `--mode=release` (version only) — it runs the chain below in order |
+| **Pre-launch, by hand** | `ds-devops` → `ds-deploy` → `ds-release` → `ds-launch` → `ds-repo` |
+| **Pre-launch, scope too big** | `ds-freeze` → `ds-ship --mode=release` |
+| **Paid product / SaaS** | `ds-productize` → `ds-ship --mode=launch` |
+| **Live product, far from ideal** | `ds-ship --mode=improve` → review the commits → `ds-ship --mode=release` |
+| **Live product, routine upkeep** | `ds-ship --mode=maintain` |
 | **Solo-dev daily loop** | `ds-build` or `ds-debug` → `ds-commit` → `ds-pr` |
 | **Stuck on a bug** | `ds-debug` |
 | **Idea → executable plan → done** | `ds-pipeline` → `ds-build` |

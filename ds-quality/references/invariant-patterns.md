@@ -83,7 +83,7 @@ more specific one (P8 before P9, P1 before P6).
   removed only with the owner decision that added it reversed.
 - **Red-proof:** fixture file containing exactly one banned token, scanned via the
   parameterized scope argument → red.
-- **Wiring:** commit-time arm (fast, staged files) plus the entry point (full scope).
+- **Wiring:** the before-commit arm (fast, staged files) plus the entry point (full scope).
 - **Live source:** SafeScribeAI/app `tool/check_text_style.sh` — U+2014 banned in ARB
   strings, rationale in-file, fixture-dir mode proven by `test/gates_test.dart`.
 

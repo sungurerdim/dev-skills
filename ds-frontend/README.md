@@ -25,12 +25,11 @@ rm -rf /tmp/dev-skills
 ## Use
 
 ```
-/ds-frontend                         # Audit all scopes
-/ds-frontend --mode=audit+fix        # Audit and auto-fix CAT-1
-/ds-frontend --mode=design           # Generate design system (tokens.json, catalog, a11y checklist)
+/ds-frontend                         # Audit & fix all scopes (default)
+/ds-frontend --generate              # Generate design system (tokens.json, catalog, a11y checklist)
 /ds-frontend --scope=a11y            # Accessibility audit only
 /ds-frontend --scope=tokens,theming  # Design token + dark mode audit
-/ds-frontend --check                 # Report only, no modifications
+/ds-frontend --preview                 # Report only, no modifications
 ```
 
 ## Scopes
@@ -51,7 +50,7 @@ Plus `solid`, `config`, `admin-ui`, and `scheduling` scopes — see SKILL.md for
 
 - 155 rules across 6 reference files (design system, components, accessibility, responsive, ux, scheduling — incl. Laws of UX, perceived performance, validation strategy, deceptive-pattern screening, UX writing, IA)
 - Supports all UI frameworks: React, Vue, Svelte, Angular, Flutter, RN, SwiftUI, Compose, Electron, Tauri
-- Design mode generates W3C DTCG 2025.10 tokens.json, component catalog, and WCAG checklist
+- `--generate` produces W3C DTCG 2025.10 tokens.json, component catalog, and WCAG checklist
 - Auto-fixes hardcoded colors, missing ARIA, contrast violations, focus indicators
 - AI-discoverable component documentation standard (progressive disclosure architecture)
 - Rendered-geometry verification (column symmetry, focus-not-obscured) via in-session browser automation when available

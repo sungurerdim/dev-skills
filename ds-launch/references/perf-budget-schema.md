@@ -1,6 +1,6 @@
 # Perf Budget Schema (`--perf-budget`)
 
-Loaded when `--perf-budget` runs. Written to `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational namespace). Keep only the sections fitting the project type; default values come from blueprint profile `Config.priorities` + industry baselines.
+Loaded when `--perf-budget` runs. Written to `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational namespace). Keep only the sections fitting the project type; default values come from blueprint profile `Priorities:` + industry baselines.
 
 ```json
 {

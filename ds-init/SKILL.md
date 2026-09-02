@@ -89,11 +89,11 @@ Setup → Detect → Generate → Verify → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
-**Upstream artifacts:** Profile → Type + Stack, Project Map.Toolchain. Findings() → verify + use. Absent → own analysis.
+**Upstream artifacts:** Profile → Type + Stack, Toolchain. Findings() → verify + use. Absent → own analysis.
 
 1. `--type` and `--stack` provided → proceed directly, skip resolution below.
-2. Working directory has existing files → scan for signals (`package.json`, `pubspec.yaml`, `go.mod`, `Cargo.toml`).
-3. Detect whether the project will handle personal data (`pii` signal per `../core/signal-inventory.md`: fields named email/phone/address/dob/ssn/national_id/ip, a user table, an analytics SDK, a contact form, or stated directly in the request) → `pii=yes`/`pii=no`/`unknown`, recorded for Phase 3's privacy-stub step.
+2. Profile has `Type`/`Stack` → use them. Absent → existing files → scan for signals (`package.json`, `pubspec.yaml`, `go.mod`, `Cargo.toml`).
+3. Profile `Signals: pii=` → use it; absent → detect (`../core/signal-inventory.md`: fields named email/phone/address/dob/ssn/national_id/ip, a user table, an analytics SDK, a contact form, or stated in the request) → `pii=yes`/`pii=no`/`unknown`, recorded for Phase 3's privacy-stub step.
 
 **Default:** type and stack resolve from existing signals when present (step 2); a genuinely empty, signal-less directory with no `--type`/`--stack` has no evidence to judge from, so it resolves to the lowest-blast-radius default — `library`, boring-technology stack for the detected language, or `Decided without asking — say if wrong: type=library` when even the language is unknown — recorded in the summary. `--minimal`/`--full` resolves to its stated default (`full`). **Boring-technology default (advisory):** absent an explicit stack choice, resolve to proven mainstream over novel — every company has roughly three "innovation tokens" to spend on unproven tech (McKinley); "boring" ≠ "bad".
 

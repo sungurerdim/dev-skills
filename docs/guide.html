@@ -59,7 +59,7 @@ footer a{color:var(--accent)}
 <h1>Production-Readiness Guide</h1>
 <p class="sub">Pick your project type and stage. You get the exact skill sequence — what each one does, what you gain, which gap it closes. Nothing else.</p>
 
-<div class="shortcut"><strong>Shortcut:</strong> run <code>/ds-ship</code> once — it classifies your project, proposes this same sequence, runs it with your approval, and consolidates one report. This guide is the map behind that command.</div>
+<div class="shortcut"><strong>Modes:</strong> <code>/ds-ship</code> derives one of four from the repo and states it in the report — <code>--mode=improve</code> (audit and fix, ships nothing) · <code>--mode=release</code> (improve + devops → deploy → release → repo) · <code>--mode=launch</code> (release + benchmark, store/web/library publish readiness, OSS readiness) · <code>--mode=maintain</code> (blueprint diff, deps, tune, fix, test). Push, tag, publish and store submission always come back to you with the exact command.<br><br><strong>Shortcut:</strong> run <code>/ds-ship</code> once — it classifies your project, proposes this same sequence, runs it with your approval, and consolidates one report. This guide is the map behind that command.</div>
 
 <div class="flabel">Project type</div>
 <div class="pills" id="types"></div>
@@ -78,7 +78,7 @@ footer a{color:var(--accent)}
 Dormant project? <code>/ds-blueprint</code> then <code>/ds-deps --security-only</code> first.
 </div>
 
-<footer>Part of <a href="https://github.com/sungurerdim/dev-skills">dev-skills</a> — 28 markdown-only skills, zero runtime dependencies. Sequences mirror the <code>/ds-ship</code> orchestration matrix.</footer>
+<footer>Part of <a href="https://github.com/sungurerdim/dev-skills">dev-skills</a> — 32 markdown-only skills, zero runtime dependencies. Sequences mirror the <code>/ds-ship</code> orchestration matrix.</footer>
 </main>
 
 <script>
@@ -91,8 +91,8 @@ const S = {
  "ds-test":{w:"Generates, updates, runs and fixes tests following your project's own patterns.",b:"Tests that assert real behavior and survive refactors.",g:"Mock-everything, assert-nothing AI test suites."},
  "ds-frontend":{w:"Design-system audit: tokens, component states, accessibility, responsive layout, theming.",b:"Consistent, accessible UI enforced in code.",g:"Hardcoded colors, missing focus states, broken dark mode."},
  "ds-backend":{w:"API design, database schema, auth architecture and data pipelines in one pass.",b:"Endpoints, schemas, auth and pipelines that survive the first migration.",g:"Inconsistent naming, missing pagination, no auth strategy, jobs that double-process on retry."},
- "ds-mobile":{w:"171 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin, React Native).",b:"Store-blocking issues caught before review, not during it.",g:"Permission abuse, missing accessibility, hardcoded keys."},
- "ds-compliance":{w:"98 rules across 8 domains: OWASP security, privacy law, data protection, i18n.",b:"Fines, breaches and rejections prevented with file:line precision.",g:"A missing privacy policy or unpatched XSS."},
+ "ds-mobile":{w:"181 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin, React Native).",b:"Store-blocking issues caught before review, not during it.",g:"Permission abuse, missing accessibility, hardcoded keys."},
+ "ds-compliance":{w:"158 rules across 8 domains: OWASP security, privacy law, data protection, i18n.",b:"Fines, breaches and rejections prevented with file:line precision.",g:"A missing privacy policy or unpatched XSS."},
  "ds-simplify":{w:"Detects dead exports, single-caller helpers, orphan modules, premature abstractions; you approve every deletion.",b:"A smaller, clearer codebase — zero silent deletion.",g:"Overengineering that doesn't pay rent."},
  "ds-fix":{w:"Format, lint, type-check, l10n and security scan — five passes in the correct order, results verified.",b:"Mechanical quality settled in one command.",g:"AI skipping formatters, lint errors and type checks."},
  "ds-docs":{w:"Detects doc gaps, verifies every claim against source code, generates only what's missing.",b:"Docs that match the code — drift surfaced, not shipped.",g:"Documentation drifting the moment it's written."},
@@ -103,8 +103,11 @@ const S = {
  "ds-repo":{w:"Audits and fixes repo settings: branch protection, CODEOWNERS, policies, metadata.",b:"A hardened, contributor-ready repository.",g:"Unprotected main, stale branches, missing CODEOWNERS."},
  "ds-tune":{w:"Runs 100+ autonomous experiments against a measurable metric, keeps only what improves it.",b:"Optimization with an audit trail instead of gut feeling.",g:"Slow, subjective manual tuning."},
  "ds-deps":{w:"Classifies every dependency safe-patch / safe-minor / review-major; applies safe groups with per-group commits and a rollback plan.",b:"Dependencies stay current without breakage roulette.",g:"Security advisories piling up in dormant projects."},
- "ds-pipeline":{w:"Spec Kit conductor: idea → gated spec/plan/tasks handoff (specify → clarify → plan → tasks → analyze).",b:"An executable, test-gated plan before a line of code is written.",g:"Feature work starting without acceptance criteria."},
+ "ds-pipeline":{w:"Idea → gated spec/plan/tasks: specify → clarify → plan → tasks → analyze, run natively (Spec Kit optional), handed to ds-build.",b:"An executable, test-gated plan before a line of code is written.",g:"Feature work starting without acceptance criteria."},
  "ds-quality":{w:"Local quality-gate enforcement (stop-time / edit-time / commit-time per host).",b:"Format/lint/type/test checks that can't be skipped.",g:"AI declaring 'done' before checks actually pass."},
+ "ds-build":{w:"Executes a plan — an issue, a specs/*/tasks.md, or a plain request — one bounded unit at a time, each proven by its own verify command.",b:"A plan that lands as verified, bisectable commits instead of a half-finished sweep.",g:"\"Done\" claimed for units that were never run, and no way to tell which ones."},
+ "ds-debug":{w:"Reproduces the failure as an observed red, localizes it (bisect, trace, logs), tests at most three hypotheses, lands the minimal fix behind a regression test seen failing first.",b:"The bug is fixed for the reason you can point at, and cannot come back unnoticed.",g:"Plausible edits that fix nothing and tests written after the fact that never went red."},
+ "ds-release":{w:"Version from the commits, dated CHANGELOG section, every version surface bumped together, project check green, local release commit + annotated tag.",b:"A release whose tag, changelog and manifests all say the same thing.",g:"A version bumped in one file but not the other, and a tag on a commit nobody checked."},
  "ds-issue":{w:"GitHub issue lifecycle: verified intake, dedup sweep, status audit, issue-bound execution.",b:"Issues that are real, deduped, and provably closed.",g:"Duplicate issues and false 'done' claims piling up."},
  "ds-brief":{w:"Sourced single-file HTML brief — every datum 2x-confirmed or flagged.",b:"A trustworthy report without manually chasing citations.",g:"Unsourced or unverifiable claims in a write-up."}
 };
@@ -112,23 +115,23 @@ const TYPES=["Web App","Backend / API","Mobile App","CLI Tool","Library / Packag
 const STAGES=["Kickstart","Development","Launch","Live"];
 const note=(s,n)=>({s,n});
 const P={
- "Kickstart":{all:[note("ds-research","ground the idea"),note("ds-benchmark","define the ideal"),note("ds-pipeline","turn the idea into a gated plan"),note("ds-init","scaffold CI + tests + lint"),note("ds-quality","enforce checks automatically"),note("ds-blueprint","baseline score"),note("ds-fix","clean first pass")]},
+ "Kickstart":{all:[note("ds-research","ground the idea"),note("ds-benchmark","define the ideal"),note("ds-pipeline","turn the idea into a gated plan"),note("ds-init","scaffold CI + tests + lint"),note("ds-build","execute the plan, unit by unit"),note("ds-quality","enforce checks automatically"),note("ds-blueprint","baseline score"),note("ds-fix","clean first pass")]},
  "Development":{
-  "Web App":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test","ds-frontend","ds-backend","ds-compliance","ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
-  "Backend / API":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test","ds-backend","ds-compliance","ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
-  "Mobile App":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test",note("ds-mobile","replaces ds-compliance on mobile"),note("ds-frontend","if UI-heavy"),"ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
-  "CLI Tool":[note("ds-blueprint","fresh findings first"),"ds-review","ds-test","ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
-  "Library / Package":[note("ds-blueprint","fresh findings first"),"ds-review",note("ds-test","aim high coverage"),"ds-simplify","ds-fix",note("ds-docs","API docs are the product"),note("ds-brief","optional: shareable sourced report")]},
+  "Web App":[note("ds-blueprint","fresh findings first"),note("ds-build","when a plan or issue is waiting"),note("ds-debug","when something is broken and the cause is unknown"),"ds-review","ds-test","ds-frontend","ds-backend","ds-compliance","ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
+  "Backend / API":[note("ds-blueprint","fresh findings first"),note("ds-build","when a plan or issue is waiting"),note("ds-debug","when something is broken and the cause is unknown"),"ds-review","ds-test","ds-backend","ds-compliance","ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
+  "Mobile App":[note("ds-blueprint","fresh findings first"),note("ds-build","when a plan or issue is waiting"),note("ds-debug","when something is broken and the cause is unknown"),"ds-review","ds-test",note("ds-mobile","replaces ds-compliance on mobile"),note("ds-frontend","if UI-heavy"),"ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
+  "CLI Tool":[note("ds-blueprint","fresh findings first"),note("ds-build","when a plan or issue is waiting"),note("ds-debug","when something is broken and the cause is unknown"),"ds-review","ds-test","ds-simplify","ds-fix","ds-docs",note("ds-brief","optional: shareable sourced report")],
+  "Library / Package":[note("ds-blueprint","fresh findings first"),note("ds-build","when a plan or issue is waiting"),note("ds-debug","when something is broken and the cause is unknown"),"ds-review",note("ds-test","aim high coverage"),"ds-simplify","ds-fix",note("ds-docs","API docs are the product"),note("ds-brief","optional: shareable sourced report")]},
  "Launch":{
-  "Web App":[note("ds-productize","if you charge for it"),"ds-devops","ds-deploy",note("ds-launch","web launch checks"),"ds-repo"],
-  "Backend / API":[note("ds-productize","if you charge for it"),"ds-devops","ds-deploy","ds-repo"],
-  "Mobile App":[note("ds-productize","if you charge for it"),"ds-devops",note("ds-deploy","only if you own the backend"),note("ds-launch","store submission"),"ds-repo"],
-  "CLI Tool":["ds-devops",note("ds-repo","--oss-ready if public")],
-  "Library / Package":["ds-devops",note("ds-repo","--oss-ready, then publish to the registry yourself")]},
+  "Web App":[note("ds-productize","if you charge for it"),"ds-devops","ds-deploy",note("ds-release","version, changelog, tag"),note("ds-launch","web launch checks"),"ds-repo"],
+  "Backend / API":[note("ds-productize","if you charge for it"),"ds-devops","ds-deploy",note("ds-release","version, changelog, tag"),"ds-repo"],
+  "Mobile App":[note("ds-productize","if you charge for it"),"ds-devops",note("ds-deploy","only if you own the backend"),note("ds-release","version, changelog, tag"),note("ds-launch","store submission"),"ds-repo"],
+  "CLI Tool":["ds-devops",note("ds-release","version, changelog, tag"),note("ds-repo","--oss-ready if public")],
+  "Library / Package":["ds-devops",note("ds-release","version, changelog, tag"),note("ds-repo","--oss-ready, then publish to the registry yourself")]},
  "Live":{
-  "Web App":["ds-tune","ds-deps",note("ds-issue","track work as GitHub issues")],
-  "Backend / API":["ds-tune","ds-deps",note("ds-issue","track work as GitHub issues")],
-  "Mobile App":["ds-tune","ds-deps",note("ds-issue","track work as GitHub issues")],
+  "Web App":["ds-debug","ds-tune","ds-deps",note("ds-issue","track work as GitHub issues")],
+  "Backend / API":["ds-debug","ds-tune","ds-deps",note("ds-issue","track work as GitHub issues")],
+  "Mobile App":["ds-debug","ds-tune","ds-deps",note("ds-issue","track work as GitHub issues")],
   "CLI Tool":[note("ds-tune","if you have a measurable metric"),"ds-deps",note("ds-issue","track work as GitHub issues")],
   "Library / Package":["ds-deps",note("ds-tune","if you have a measurable metric"),note("ds-issue","track work as GitHub issues")]}
 };

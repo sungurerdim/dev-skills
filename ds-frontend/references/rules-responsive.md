@@ -1,6 +1,6 @@
 # Rules: Responsive Design & Layout
 
-Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
+Rules applied during audit and fix runs. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
 
 ## Table of Contents
 

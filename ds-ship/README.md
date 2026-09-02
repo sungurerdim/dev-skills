@@ -2,7 +2,7 @@
 
 Projects accumulate gaps at every stage — broken promises in docs, outdated stacks, missing launch gates, overengineered abstractions that don't earn their keep. Picking the right ds-* skills in the right order is its own tax.
 
-Classifies the project, resolves a mode (harden / release / launch / maintain), plans the skill sequence from the project's signals, delegates each phase, consolidates `ds/audit/findings.md`, writes a single `ds/audit/report.md` (and optional offline HTML flow diagram + heatmap).
+Classifies the project, resolves a mode (improve / release / launch / maintain), plans the skill sequence from the project's signals, delegates each phase, consolidates `ds/audit/findings.md`, writes a single `ds/audit/report.md` (and optional offline HTML flow diagram + heatmap).
 
 ## Install
 
@@ -26,7 +26,7 @@ rm -rf /tmp/dev-skills
 
 ```bash
 /ds-ship                  # mode derived from stage + intent, sequence from signals, every decision by best judgment
-/ds-ship --mode=harden    # deep audit + fixes, no release/launch legs (also: release · launch · maintain)
+/ds-ship --mode=improve    # deep audit + fixes, no release/launch legs (also: release · launch · maintain)
 /ds-ship --ask            # mode-first menu, sequence confirmation, approval batches
 /ds-ship --preview        # classify + mode + plan with signal reasons, no delegations
 /ds-ship --html           # full run + offline visual report
@@ -60,7 +60,7 @@ rm -rf /tmp/dev-skills
 - `--html` produces self-contained, offline, ASCII-only visual report
 - Project-type-aware routing (mobile / web / backend / library / CLI)
 - **Milestone-gate triggers** — release-candidate, pre-launch, post-incident (not generic "audit everything")
-- **Mode axis** — harden / release / launch / maintain decides which legs exist; a leg outside the mode is `skipped — not part of this mode`, never run for completeness
+- **Mode axis** — improve / release / launch / maintain decides which legs exist; a leg outside the mode is `skipped — not part of this mode`, never run for completeness
 - **Signal-justified delegation** — every delegated skill states the signal that gives it a scope here (`billing=stripe`, `ui=none`); `skipped — no signal` is the primary exclusion, the stage matrix only orders what remains
 - **Measured instruction tokens** — the report states how many instruction tokens the run loaded (`wc -c` of every SKILL.md read ÷ 4)
 - **Target-based delegation routing** — App Store → `/ds-launch`, server/container/k8s → `/ds-deploy`, library → `/ds-repo --oss-ready`. ds-ship never decides between ds-deploy and ds-launch on its own.

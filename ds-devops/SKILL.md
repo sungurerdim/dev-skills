@@ -43,12 +43,11 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 
 | Flag | Effect |
 |------|--------|
-| `--mode={x}` | `audit`, `audit+fix`, `quick-fix` |
 | `--scope={x}` | Comma-separated: ci, signing, deps, release-pipeline, or `all` |
 | `--preview` | Dry run — show what would be checked without loading rules or scanning |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
-Without flags: mode resolves to `audit+fix` and scope resolves to `all`, both by best judgment and recorded in the summary. `--ask`: present the mode + scope selection menu.
+Without flags: scope resolves to `all`, by best judgment and recorded in the summary. `--ask`: present the scope selection menu.
 
 ## Scopes
 
@@ -82,7 +81,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 ### Phase 1: Detect
 
-1. **Upstream artifacts:** Profile → Project Map.Toolchain, Type + Stack, Config.deploy. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
+1. **Upstream artifacts:** Profile → `Toolchain:`, Type + Stack, `Deploy:`. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
 
 2. **Project type detection:**
 
@@ -100,10 +99,9 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 3. **CI detection.** Search for `.github/workflows/`, `.gitlab-ci.yml`, `bitrise.yml`, `Jenkinsfile`, `.circleci/`, `azure-pipelines.yml`, `codemagic.yaml`.
 4. **Dependency tooling.** Detect `dependabot.yml`, `renovate.json`, lockfiles, `.nvmrc`, `.tool-versions`.
-5. **Mode selection.** Default: `audit+fix` (best-judgment default: scan and fix autonomously) — no menu. `--ask`: present the full menu — Full Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan and auto-fix, summary only / (Cancel). A disambiguating `--mode` flag skips the menu in either case.
-6. **Scope selection.** Default: `all` — no menu. `--ask`: ask which scopes to audit (default: all). A disambiguating `--scope` flag skips the menu in either case.
+5. **Scope selection.** Default: `all` — no menu. `--ask`: ask which scopes to audit (default: all). A disambiguating `--scope` flag skips the menu in either case.
 
-**Gate:** Project type matched to a detection signal (step 2) and a CI platform config file found (step 3); mode and scope confirmed. If fails → Default: undetermined type/platform resolves to whatever manifest signals are present, or "no CI configured" (an Edge Case, not a blocker) when truly absent — recorded in the summary, no prompt. `--ask`: undetermined type → ask "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → ask "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce.
+**Gate:** Project type matched to a detection signal (step 2) and a CI platform config file found (step 3); scope confirmed. If fails → Default: undetermined type/platform resolves to whatever manifest signals are present, or "no CI configured" (an Edge Case, not a blocker) when truly absent — recorded in the summary, no prompt. `--ask`: undetermined type → ask "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → ask "Which CI platform do you use?"; unconfirmed scope after prompt → default all scopes, announce.
 
 ### Phase 2: Rule Loading
 
@@ -133,7 +131,7 @@ For each scope:
 
 **Confidence + skip patterns:** per [../core/severity-score-categories.md](../core/severity-score-categories.md).
 
-**Findings verification** (audit / audit+fix modes; quick-fix skips): HIGH → auto-include · MEDIUM → present for review · LOW → shown as potential issue.
+**Findings verification** (runs on every finding — no skip path): HIGH → auto-include · MEDIUM → auto-include by best judgment, recorded in the summary (`--ask` turns this into a review prompt) · LOW → shown as potential issue.
 
 **Gate:** Every in-scope domain scanned; all findings recorded with severity + confidence. If fails → unscan-able scope (file unreadable, tool unavailable, unexpected format) → mark scope `partial`, record MEDIUM "scan incomplete for scope {scope} — {reason}", continue to Report; do not silently omit scope.
 
@@ -159,21 +157,17 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 
 ### Phase 5: Post-Report
 
-| Mode | Default (no prompt) | `--ask` |
-|------|----------------------|---------|
-| `audit` | Report only — honors the explicit audit-only mode choice | Ask: Fix all / CRITICAL+HIGH only / Review each / Report only |
-| `audit+fix` | Auto-transition to fix | Auto-transition to fix (the mode already commits to fixing) |
-| `quick-fix` | Auto-apply all, summary only | Auto-apply all, summary only (the mode already commits to fixing) |
+Default: auto-transition to fix. `--preview`: report only — stop here (Phase 6 does not run). `--ask`: ask Fix all / CRITICAL+HIGH only / Review each / Report only.
 
-**Gate:** Post-report action determined per the table above. If fails → no response under `--ask` → default to the row's Default cell, announce, proceed to Summary.
+**Gate:** Post-report action determined. If fails → no response under `--ask` → default to auto-transition to fix, announce, proceed to Phase 6.
 
 **Approval-menu convention (Phases 6-7):** under `--ask`, present each item on one compact line (`[severity] title — file:line`), grouped by severity with counts; state the question; offer `Apply all` plus per-severity bulk (`Apply all HIGH`) alongside the total (CRITICAL bulk still confirms per item); `approve-all` excludes CRITICAL; `all` = exactly the displayed set.
 
-### Phase 6: Fix [SKIP if audit-only or --preview]
+### Phase 6: Fix [SKIP if --preview]
 
 0. **Checkpoint pre-step** (before the first file write, [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)): `git status --porcelain` → non-empty → Default: proceed only when the pre-existing dirty files are disjoint from the planned fix targets; a fix targeting a dirty file resolves `only you can do` — no prompt. `--ask`: ask Commit first (recommended) / Stash / Proceed anyway (risk stated). Tree cannot be checkpointed → apply no fix over uncommitted unrelated changes; report the blocker.
 1. Present fix plan per the approval-menu convention — one line per fix (rule, `[severity]`, file:line, action); question `Apply these N fixes?`.
-2. Confirmation: quick-fix proceeds automatically. `audit+fix` — Default: resolves by best judgment, no confirmation shown. `--ask`: ask Apply all / per-severity bulk / proceed / cancel.
+2. Confirmation: Default: resolves by best judgment, no confirmation shown. `--ask`: ask Apply all / per-severity bulk / proceed / cancel.
 3. Apply fixes grouped by file.
 4. Present fix summary.
 

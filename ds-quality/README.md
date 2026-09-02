@@ -15,8 +15,8 @@ One command per host — each wires the same Phase-3 entry point into that host'
 | Codex CLI | `/ds-quality --arm codex` | `.codex/hooks.json` `Stop` hook | Every Stop | Full — blocks "done" itself (loop-guarded) |
 | Gemini CLI | `/ds-quality --arm gemini` | `.gemini/settings.json` `AfterAgent` hook | Agent loop end | Full — forces retry/halt on red |
 | Aider | `/ds-quality --arm aider` | `.aider.conf.yml` `auto-lint`/`auto-test` + `lint-cmd`/`test-cmd` | After every edit | Full — Aider re-runs it inline |
-| GitHub Copilot | `/ds-quality --arm copilot` | `.github/hooks/*.json` `preToolUse` commit-deny + `agentStop` report | `git commit` tool call | Commit-time — `agentStop` cannot block, stated honestly |
-| Cursor, Windsurf, any other host | `/ds-quality --arm git-hook` | git `pre-commit` hook | `git commit` | Commit-time only — an agent can still claim "done" between an edit and the commit |
+| GitHub Copilot | `/ds-quality --arm copilot` | `.github/hooks/*.json` `preToolUse` commit-deny + `agentStop` report | `git commit` tool call | Before-commit — `agentStop` cannot block, stated honestly |
+| Cursor, Windsurf, any other host | `/ds-quality --arm git-hook` | git `pre-commit` hook | `git commit` | Before-commit only — an agent can still claim "done" between an edit and the commit |
 
 ## How it works
 

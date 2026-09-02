@@ -37,11 +37,11 @@ assert.equal(orderTotalCents(1999, 30), 56972);
 JS
 }
 apply_fix-autonomy-no-prompt() { cd "$1" && ruff format -q . && ruff check --fix -q .; }
-apply_ship-harden-no-launch() { cd "$1" && mkdir -p ds/audit && cat > ds/audit/report.md <<'MD'
+apply_ship-improve-no-launch() { cd "$1" && mkdir -p ds/audit && cat > ds/audit/report.md <<'MD'
 # Ship Report — slug-kit
 
 ## Summary
-- Mode: harden
+- Mode: improve
 - Stage: implementation
 | Skill | Status |
 |-------|--------|

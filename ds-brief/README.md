@@ -17,10 +17,8 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 ## Usage
 
 ```
-/ds-brief                         # asks depth + scope
+/ds-brief                         # resolves scope + audience by best judgment
 /ds-brief {topic}                 # research a topic → sourced HTML brief
-/ds-brief --deep {topic}          # parallel workers, all source tiers
-/ds-brief --quick {topic}         # fast, T1-T2 only
 /ds-brief --summarize <urls…>     # summarize given URLs/text (no discovery)
 /ds-brief --static {topic}        # static, print-pure output
 /ds-brief --ask {topic}           # interactive — menus and approval batches at every decision point

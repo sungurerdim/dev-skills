@@ -6,7 +6,7 @@ Extended reference for `/ds-ship` phase internals. Loaded only when a phase requ
 
 ```json
 {
-  "mode": "harden", "mode_reason": "stage=implementation, no store/public intent",
+  "mode": "improve", "mode_reason": "stage=implementation, no store/public intent",
   "stage": "implementation", "project_type": "web", "signals": {"ui": "web", "api": "rest", "billing": "none"},
   "value_proposition": "...",
   "skill_sequence": ["ds-blueprint", "ds-review"], "current_phase": 2,

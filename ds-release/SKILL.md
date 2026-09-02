@@ -32,7 +32,7 @@ Cutting a release by hand means a version bumped in one file but not the other, 
 **Dimensions:** D6 (release engineering)
 
 - Produces a local, verifiable release state: version files, CHANGELOG, a release commit and an annotated tag. Everything that publishes — `git push`, tags to a remote, `gh release create`, registry publish, store submission — is on the exception list ([../core/ask-exception-list.md](../core/ask-exception-list.md)): reported `only you can do` with the exact command by default; `--ask` may confirm and run it.
-- Standalone. Reads git history, the changelog and the version surfaces; CI status only through `gh` when present (absent → `not verified` for anything remote).
+- Standalone. Reads git history, the changelog and the version surfaces; blueprint profile's `Type`/`Stack`/`Deploy` narrow that search and pick the registry/smoke target when present, own detection otherwise. CI status only through `gh` when present (absent → `not verified` for anything remote).
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **The version comes from the commits.** Conventional Commits since the last tag decide the bump (`feat` → minor, `fix`/`perf` → patch, `!` or `BREAKING CHANGE:` → major, pre-1.0 → minor for breaking); `--bump` overrides with the reason recorded. No commit-type signal → `only you can do: state the bump` (default: patch, recorded under `Decided without asking`).
@@ -51,6 +51,7 @@ Cutting a release by hand means a version bumped in one file but not the other, 
 | `--notes={path}` | Additional release-notes source merged into the changelog section (e.g. `docs/release-notes/next.md`) |
 | `--verify={tag}` | Post-release verification only: tag exists on the remote, CI run for it green, attestation/provenance present, registry/store shows the version |
 | `--allow-red-baseline` | Tag even though `{check-cmd}` was red before the run (reported red-at-baseline in the summary); never silently |
+| `--scope={pkg}` | Monorepo with several versioned packages: release only the named package — its version surfaces, changelog and tag, not the others' |
 
 Without flags: version derived, changelog reconciled, surfaces bumped, check green, commit + annotated tag created locally, publishing commands printed as `only you can do`. `--ask`: confirm the version, the changelog section and each publishing step.
 
@@ -85,7 +86,7 @@ Assess → Version → Changelog → Bump → Check → Commit + tag → Publish
 ### Phase 1: Assess
 
 1. `git describe --tags --abbrev=0` → last tag (none → first release; the initial version comes from the manifest or `0.1.0`). `git log {last-tag}..HEAD --format='%s%n%b'` → commits since.
-2. Version surfaces: search for the current version string across tracked files (`git grep -n -F '{current}'` scoped to manifests, `__version__`, `version.txt`, `pubspec.yaml`, `Cargo.toml`, `*.csproj`, docs badges); list every hit.
+2. **Upstream artifact:** blueprint profile → `Type`/`Stack` (narrows the version-surface search below and selects the Phase 7 registry command) and `Deploy` (the Phase 8 smoke target); absent → own detection. Version surfaces: search for the current version string across tracked files (`git grep -n -F '{current}'` scoped to manifests, `__version__`, `version.txt`, `pubspec.yaml`, `Cargo.toml`, `*.csproj`, docs badges); list every hit.
 3. Changelog file and its `[Unreleased]` section; `--notes` source when given.
 4. Remote + `gh` availability → whether publish/post-release scopes can run.
 5. Resolve `{check-cmd}`, capture the baseline; Checkpoint pre-gate (dirty → stop-hard).
@@ -128,7 +129,7 @@ Run the full `{check-cmd}` → green required. Red → fix ≤ 3 attempts (same 
 
 ### Phase 7: Publish handoff
 
-Every publishing step is printed as a `only you can do` line with the exact command, in order, and nothing is executed: `git push origin main --follow-tags` (or the branch) · `gh release create v{next} --notes-file {rendered-section-file} --verify-tag` (or `--generate-notes`) · registry publish (`npm publish`, `cargo publish`, `dart pub publish`, `twine upload` — per stack) · store submission (ds-launch when present). `--ask`: each step is offered for confirmation and run only on an explicit yes, then verified (`git ls-remote --tags origin v{next}`, `gh release view v{next}`).
+Every publishing step is printed as a `only you can do` line with the exact command, in order, and nothing is executed: `git push origin main --follow-tags` (or the branch) · `gh release create v{next} --notes-file {rendered-section-file} --verify-tag` (or `--generate-notes`) · registry publish (`npm publish`, `cargo publish`, `dart pub publish`, `twine upload` — per profile `Stack`, else the manifest found) · store submission (ds-launch when present). `--ask`: each step is offered for confirmation and run only on an explicit yes, then verified (`git ls-remote --tags origin v{next}`, `gh release view v{next}`).
 
 **Gate:** Handoff list printed (or, under `--ask`, each confirmed step verified). If fails → a confirmed push is rejected (protected branch, diverged) → report the exact error, no force-push ever.
 

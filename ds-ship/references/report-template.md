@@ -11,7 +11,7 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 
 ## Summary
 
-- Mode: {harden | release | launch | maintain} — {derivation: --mode flag | stage=… + intent …}
+- Mode: {improve | release | launch | maintain} — {derivation: --mode flag | stage=… + intent …}
 - Stage: {stage} — {cited signals}
 - Signals: {the resolved Signals line}
 - Instruction tokens loaded: {n} (measured — wc -c of every SKILL.md read this run ÷ 4)
@@ -29,7 +29,7 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 | Skill | Status | Reason / signal | Findings (A / B) |
 |-------|--------|-----------------|------------------|
 | ds-blueprint | ran | findings absent | 12 / 3 |
-| ds-launch | skipped — not part of this mode | mode=harden | — |
+| ds-launch | skipped — not part of this mode | mode=improve | — |
 | ds-productize | skipped — no billing signal (billing=none) | | — |
 Status vocabulary: `ran` · `skipped — not part of this mode` · `skipped — no signal ({key}={value})` · `skipped — another skill owns it for this project type` · `skipped — removed by you` · `failed` · `skipped — not installed`. Every candidate skill appears exactly once.
 

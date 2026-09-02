@@ -40,7 +40,30 @@ Program: issue #38 (v7 — one-key autonomy, tailored scope, shared core, measur
 
 ### Measurements
 
-{{MEASURE}}
+| Measure | 1.2.0 (`69e7bd4`) | 2.0.0 | Note |
+|---------|-------------------|-------|------|
+| Skills | 30 | 32 | −ds-solve, +ds-build, +ds-debug, +ds-release |
+| SKILL.md total | 784,470 B | 702,069 B | −10.5% with more coverage |
+| SKILL.md median | 25,366 B | 19,460 B | −23% — what a run actually loads |
+| Largest SKILL.md | 43,979 B (ds-brief) | 33,802 B (ds-brief) | −23% |
+| Duplicated `principles.md` copies | 22 (≈293 KB) | 0 | one home in `core/` |
+| Unresolvable spec citations inside skills | 112 | 0 | canonical inline equivalents |
+| Consumer-less `docs/` guides | 13 (≈304 KB) | 0 | migrated into rules files |
+| Rules with a stated Impact | partial | 798/798 | `check_rule_impact` |
+| Gate checks (`check-consistency.sh`) | 33 | 39 | +9 new, −3 folded into `check_core_links` |
+| Self-test fixtures / mutation cases | 22 / 35 | 24 / 45 | every new check proven red |
+| Eval tasks | 8 | 13 | +autonomy, mode, build, debug, release |
+
+**Behavioural A/B** (same fixture, same harness, old text = `git archive 69e7bd4` installed lean, new text = `install.sh --profile claude`; score = `evals/tasks/*/score.sh`, claim = the agent's own `STATUS:` line):
+
+| Task | Old (Haiku) | New (Haiku) | Old (Fable) | New (Fable) |
+|------|-------------|-------------|-------------|-------------|
+| ship-harden-no-launch | FAIL 4/6 | **PASS 6/6** | FAIL 4/6 | **PASS 6/6** |
+| fix-autonomy-no-prompt | PASS 6/6 | PASS 6/6 | interrupted (quota) | PASS 6/6 |
+| the other 11 tasks | — | PASS 13/13 total | — | PASS 11/12 completed, 1 interrupted (quota) |
+
+The harden case is the design change made visible: the old text stops at a confirmation gate and runs launch/benchmark/productize legs on a library with no store or billing signal; the new text resolves the mode, records why each leg was skipped, and finishes the run. No false-done in any completed run (the 1.2.0 baseline had one: Haiku's fix-secret-report claimed OK while converting a live key to an env var and committing it).
+
 
 
 ## [1.2.0] - 2026-07-28

@@ -71,13 +71,13 @@ Four checks activate independent of `--scope`, gated on their own signal: Admin 
 
 ## Execution Flow
 
-Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval] → Summary
+Setup → Discover → Analyze → [Design/Spec] → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
 1. Flags → proceed directly. No flags → default to Audit, recorded in the summary; `--ask` → mode menu (see Arguments).
-2. **Upstream artifacts:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
-3. Detect project stack (framework, ORM, auth library) by scanning config files + dependencies.
+2. **Upstream artifacts:** Profile → {Modules, Data, External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
+3. Profile has `Stack` → use it for framework; absent, or ORM/auth library still unresolved → scan config files + dependencies.
 4. Resolve scopes against the scope-resolution table above; load each ran scope's reference file.
 
 **Gate:** Scope and mode confirmed. If fails → `--ask` menu with no response: default `--audit --scope=api,db,auth,data-pipeline` (+`llm` when detected), WARN, announce the defaulted scope before proceeding.

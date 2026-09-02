@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Small node library with tests and no UI / store / billing signals. A harden-mode
-# ship run must produce ds/audit/report.md with Mode: harden and must not run the
+# Small node library with tests and no UI / store / billing signals. An improve-mode
+# ship run must produce ds/audit/report.md with Mode: improve and must not run the
 # launch legs (ds-benchmark, ds-launch, ds-productize) — they are skipped — not part of this mode and
 # skipped — no signal here.
 set -euo pipefail

@@ -43,7 +43,7 @@ Codebases accumulate dead exports, single-caller helpers, fallback branches, orp
 | Flag | Effect |
 |------|--------|
 | `--preview` | Scan + report, no approval prompt, no deletion |
-| `--scope={x}` | Single scope: dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan, all |
+| `--scope={x}` | Single scope: dead-code, single-caller, fallback, premature-abstraction, quarantine, test-realism, ssot-violation, orphan, all |
 | `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without flags: mode resolves to Full Scan (all scopes), recorded in the summary. `--ask`: shows the mode menu (full scan / preview / single scope).
@@ -52,14 +52,12 @@ Without flags: mode resolves to Full Scan (all scopes), recorded in the summary.
 
 | Scope | What It Covers |
 |-------|---------------|
-| dead-code | Exports with zero references via LSP `findReferences` or cross-file grep |
+| dead-code | Exports with zero references (LSP/grep), plus unused/mismatched function params at call sites |
 | single-caller | Helpers, utilities, or components referenced from exactly one site — inline candidate |
-| fallback | Backward-compat branches, legacy import paths, defensive checks with no live hit |
-| dead-branch | Feature-flag branches whose flag value is constant across every config source (no runtime setter) — the untaken branch is dead |
+| fallback | Backward-compat branches / legacy import paths with no live hit, plus feature-flag branches constant across every config source (no runtime setter) — dead either way |
 | premature-abstraction | Generics, hooks, wrappers, base classes built on ≤3 concrete usages |
 | quarantine | `// removed`, `// legacy`, `// deprecated`, `// TODO delete`, `_unused` markers |
 | test-realism | Unrealistic test fixture data — delegated to `/ds-test` when present; gap-noted otherwise (not scanned locally) |
-| io-drift | Function signature vs caller signature mismatch — unused params, extra args at call site |
 | ssot-violation | Same constant, URL, regex, or rule duplicated across 2+ files |
 | orphan | Modules, assets, or images with zero inbound references from source, config, or docs |
 
@@ -68,11 +66,9 @@ Without flags: mode resolves to Full Scan (all scopes), recorded in the summary.
 | dead-code | any source | — |
 | single-caller | any source | — |
 | fallback | any source | — |
-| dead-branch | any source | — |
 | premature-abstraction | any source | — |
 | quarantine | any source | — |
 | test-realism | `tests`≠`none` | N/A — no test suite detected |
-| io-drift | any source | — |
 | ssot-violation | any source | — |
 | orphan | any source | — |
 
@@ -80,11 +76,11 @@ Without flags: mode resolves to Full Scan (all scopes), recorded in the summary.
 
 | Scope(s) | Reference | Loaded when |
 |----------|-----------|-------------|
-| dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan | [references/scopes-detection.md](references/scopes-detection.md) | Phase 2 runs |
+| dead-code, single-caller, fallback, premature-abstraction, quarantine, test-realism, ssot-violation, orphan | [references/scopes-detection.md](references/scopes-detection.md) | Phase 2 runs |
 
 ## Delegation
 
-**Owns:** dead-code, single-caller, fallback, dead-branch, premature-abstraction, quarantine, test-realism, io-drift, ssot-violation, orphan | **Delegates:** ds-commit → per-batch delete commit after approval | **Receives:** ds-review → overengineering findings routed here; ds-ship → Phase 3 simplify pass; ds-freeze → permanent deletion of hidden features (user-requested)
+**Owns:** dead-code, single-caller, fallback, premature-abstraction, quarantine, test-realism, ssot-violation, orphan | **Delegates:** ds-commit → per-batch delete commit after approval | **Receives:** ds-review → overengineering findings routed here; ds-ship → Phase 3 simplify pass; ds-freeze → permanent deletion of hidden features (user-requested)
 
 ## Execution Flow
 
@@ -92,11 +88,11 @@ Setup → Scan → Report → Approve → Execute → [Needs-Approval] → Summa
 
 ### Phase 1: Setup
 
-1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `dead-code`, `architecture/premature-abstraction`. Use as prior signal. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scan, appended with own `source` + current `git_hash`.
+1. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD`, current run-cycle; any prior-cycle counts drifted) → read entries with scopes `simplify`, `hygiene`, `ai-hygiene`, `architecture` as prior signal. Drifted: graded, not binary ([`../core/findings-and-profile-format.md` § Freshness](../core/findings-and-profile-format.md)) — incremental → reuse unaffected scopes, re-analyze only diff-touched; structural/large or absent → orchestrated: request `/ds-blueprint --refresh` and wait; standalone: own scan, appended with own `source` + current `git_hash`.
 
 2. **Mode selection.** `--preview` or `--scope=` passed → skip this step, that mode applies. Otherwise — default: mode resolves to Full Scan (all scopes), recorded in the summary, no menu shown. `--ask`: present a menu covering every mode, each with a one-line what-it-does: Full Scan (recommended) — all scopes / Preview — scan only, no approval / Single Scope — choose one scope / (Cancel).
 
-3. **Project detection.** Identify language(s) + LSP availability. LSP present (TypeScript, Go, Python, Dart, Rust) → use `findReferences` / `documentSymbol`. LSP absent → grep fallback.
+3. **Project detection.** Fresh profile → reuse `Stack`/`Toolchain`, skip language re-detection; absent/drifted → detect language(s) from manifests. Either way, probe LSP directly (profile can't say if the server is live this session): present (TypeScript, Go, Python, Dart, Rust) → `findReferences`/`documentSymbol`; absent → grep fallback.
 
 **Gate:** Mode selected, LSP availability determined, scope list locked. If fails → user does not select a mode → re-present once; still no selection → default Preview (no deletion) with WARN in state.data.mode, proceed.
 

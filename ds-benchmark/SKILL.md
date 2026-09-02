@@ -80,17 +80,17 @@ An `unknown` signal never excludes a scope — it still runs, reported `unknown 
 
 ## Execution Flow
 
-Setup → Define → Research → Synthesize → Gap → Approve → Record → Summary
+Setup → Define → Research → Synthesize → Gap → [Approve] → [Record] → Summary
 
 ### Phase 1: Setup
 
-1. **Blueprint profile check.** `grep -n '^## Blueprint Profile' {instruction-file(s)}` → ≥1 match. Match → read type, stack, audience, priorities. No match → own detection + prompt for problem definition.
+1. **Blueprint profile check.** Search instruction file(s) for `## Blueprint Profile`. Found → read type, stack, audience, priorities. Not found → own detection + prompt for problem definition.
 
-**Gate:** Blueprint-profile grep (step 1) returned ≥1 match, or a one-sentence problem definition is recorded. If fails → no profile + own detection insufficient (empty repo, no manifest) → default: infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `only you can do: no problem definition inferable`. `--ask`: prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition."
+**Gate:** Blueprint-profile check (step 1) found a match, or a one-sentence problem definition is recorded. If fails → no profile + own detection insufficient (empty repo, no manifest) → default: infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `only you can do: no problem definition inferable`. `--ask`: prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition."
 
 ### Phase 2: Define Problem Space
 
-1. Extract from blueprint profile: project name, one-sentence value proposition, target audience, stated constraints.
+1. Extract from blueprint profile: one-sentence value proposition, target audience, stated constraints.
 2. Profile missing → default: infer all three (one-sentence problem statement; target audience — public users / internal team / developers / operators; non-negotiable constraints — keep language, keep framework, keep primary DB) from repo signals (README, manifest, existing stack). `--ask`: ask the user for each instead.
 3. Default: proceed directly on the extracted definition, recorded in the summary. `--ask`: present extracted definition: `"Researching ideal for: {problem} for {audience} under {constraints} — confirm? [Y/n]"`. Accept affirmative (`y`/`yes`/`ok`/`confirmed`/`looks good`); suggested changes → apply, redisplay, re-confirm; decline/abort → exit cleanly.
 
@@ -98,7 +98,7 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 ### Phase 3: Research
 
-**Comparable-set framing.** When the problem space admits more than one reasonable comparable category (e.g. adjacent product classes), default: pick the single closest-matching category and proceed, stating the choice in the report header. `--ask`: present the candidate framings (each with a one-line what-it-covers) and let the user pick before dispatching research.
+**Comparable-set framing.** When the problem space admits more than one comparable category (e.g. adjacent product classes), default: pick the single closest-matching category and proceed, stating the choice in the report header. `--ask`: present the candidate framings (each with a one-line what-it-covers) and let the user pick before dispatching research.
 
 Invoke `/ds-research` with:
 
@@ -112,7 +112,7 @@ Target count from `--competitors` (default 7); insufficient-sources recovery is 
 
 Per competitor record: Name + URL (project identity); CRAAP+ tier — T1 (authoritative) / T2 (supporting) / T3 (inspirational); Strengths (concrete dimensions handled well); Weaknesses (concrete dimensions where they fall short); Architecture signal (public info on stack / module layout / data model).
 
-**Deterministic hygiene cross-check (advisory):** comparable is an open-source repo AND a repo-scorecard tool (e.g. OpenSSF Scorecard) is available in-session → run it against that repo and record the per-check scores alongside strengths/weaknesses — a machine-checked number beside the qualitative signal. Tool absent → qualitative signals only; no gate depends on it.
+**Deterministic hygiene cross-check (advisory):** comparable is an open-source repo AND a repo-scorecard tool (e.g. OpenSSF Scorecard) is available in-session → run it against that repo, record per-check scores alongside strengths/weaknesses — a machine-checked number beside the qualitative signal. Tool absent → qualitative signals only; no gate needs it.
 
 **Gate:** ≥3 competitors at T1+T2 each with strengths/weaknesses. If fails → `/ds-research` returned fewer than 3 T1+T2 sources → expand search with synonyms, retry once; still insufficient → proceed with available set, flag `low-sample-size: true`, note "Ideal synthesis may be speculative due to limited comparables" in report.
 
@@ -133,13 +133,13 @@ Record one ideal paragraph per active scope: `{"architecture": "{one-paragraph i
 
 For each resolved dimension, compare ideal vs current (current from blueprint profile + `ds/audit/findings.md`) and write one row per gap. Row schema, allowed values, row template, `gap_type` enum, aggregate-score caveat, and Category A/B rules: [references/gap-row-format.md](references/gap-row-format.md).
 
-Write gap entries to `ds/audit/findings.md` with `scope=ideal-gap` and `category` column set.
+Write gap entries to `ds/audit/findings.md` with `scope=ideal-gap` and `category` column set. `--preview`: print, don't write.
 
 **Gate:** Every dimension has at least one row (or explicit "no gap" entry). If fails → dimension marked `speculative` in Phase 4 + current state unknown (no profile, no findings) → insert `"current: unknown — insufficient data"` row with `gap_type: unknown`, `category: B`, `proposal: "Manual assessment required"` so consumers don't silently miss a dimension.
 
-### Phase 6: Approve
+### Phase 6: Approve [SKIP if --preview]
 
-**Default:** each Category B gap resolves to `close` or `defer` using the same impact/effort/risk reasoning an approval block would show (constraint-conflicting or low-confidence gaps default to `defer`), recorded in the summary; nothing here matches the irreversible-exception list since Category B here only closes findings, never mutates code directly.
+**Default:** each Category B gap resolves to `close` or `defer` using the same impact/effort/risk reasoning an approval block would show (constraint-conflicting or low-confidence gaps default to `defer`), recorded in the summary; nothing here matches the irreversible-exception list — Category B only closes findings, never mutates code.
 
 **`--ask`:** present every Category B gap in one block — one scannable line per gap (`dimension · gap_type · current → proposal`) grouped by dimension with counts, and state the question (`Decide these N gaps?`):
 
@@ -153,14 +153,14 @@ Category A gaps recorded as findings but not executed here — consumers (ds-shi
 
 **Gate:** Every B gap has a decision. If fails → user skipped one or more B gaps without choosing → re-present each undecided gap individually, require a choice; user still declines → record `decision: deferred (no response)` so no gap is left unknown.
 
-### Phase 7: Record
+### Phase 7: Record [SKIP if --preview]
 
 1. Update `ds/audit/findings.md` meta header scopes list to include `ideal-gap`.
 2. `close` decision → finding remains, `disposition=needs-execution`.
 3. `defer` decision → finding remains, `disposition=deferred`.
 4. `intentional-deviation` → finding `disposition=skipped (intentional)`; ADR written to `docs/adr/NNNN-{slug}.md` if user agreed — via `/ds-docs --adr` when present; absent → write a minimal ADR inline (Context / Decision / Consequences, same path + numbering).
 
-**Gate:** Every B gap persisted with its decision — `grep -c 'ideal-gap' ds/audit/findings.md` → ≥ the gap-row count written in Phase 5. If fails → `ds/audit/findings.md` write failed (file locked, disk error) → print the gap decisions inline as a fallback, surface write error with target path + OS error, ask user to resolve before re-running Phase 7. Zero gaps left undecided (resolved inline in Phase 6, including by default) — a gap left undecided → assign `decision: deferred (no response)` here before Summary.
+**Gate:** Every B gap persisted with its decision — findings file's `ideal-gap` row count ≥ the gap-row count written in Phase 5. If fails → `ds/audit/findings.md` write failed (file locked, disk error) → print the gap decisions inline as a fallback, surface write error with target path + OS error, ask user to resolve before re-running Phase 7. Zero gaps left undecided (resolved inline in Phase 6, including by default) — a gap left undecided → assign `decision: deferred (no response)` here before Summary.
 
 ### Phase 8: Summary
 

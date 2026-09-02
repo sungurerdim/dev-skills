@@ -55,6 +55,6 @@ Drop `.dev-skills/issue-ops.json` in the repo to sharpen the skill with your rep
 - **End-to-end execution** — `--do #N` first promotes comment-borne requirements into the body (or rejects them explicitly with a two-sided handoff — an undispositioned comment-criterion blocks close), re-verifies the root cause (stale → stops), maps the full impact surface (callers/consumers/sync/schema/i18n + project hazards), implements in bounded units, and closes by writing the evidence into the body; `--do --all` runs that same flow over the whole open backlog in priority order, confirming each issue, skipping blockers, and ending with a per-issue outcome table
 - **Bounded work** — over-large issues split into an epic + sub-issues; execution units stay ≤5 files
 - **No dead content** — body is functional only, and every Done criterion resolves to a command's output or an observed effect ("improved", "reviewed", "cleaned up" are rejected)
-- **Confirm-before-create/close** — nothing is created, edited, or closed without explicit confirmation
+- **Best judgment by default** — creates/edits/closes resolve by best judgment and are recorded in the summary; `--ask` confirms each one explicitly before it happens
 - **Zero local footprint (GitHub mode)** — writes no files; the GitHub issue body + git are the durable record (no `ds/audit/`, no temp files). No GitHub remote at all → last-resort local mode (root `tasks.md`), never chosen just for a missed `gh auth login`
 - **Standalone** — works with or without a project adapter

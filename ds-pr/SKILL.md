@@ -65,7 +65,7 @@ Validate → History Tidy → Quality Gates → Analyze → [Review Disposition]
 
 **Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → note relevant findings for PR body context. Stale → ignore.
 
-**Upstream artifacts:** Profile → {Project Map.Toolchain, Type + Stack}. Findings({pr}) → verify + use. Absent → own analysis.
+**Upstream artifacts:** Profile → {`Toolchain:`, Type + Stack}. Findings({pr}) → verify + use. Absent → own analysis.
 
 **Steps 1-4 are independent — run in parallel:**
 
@@ -173,15 +173,15 @@ Default: record `push: only you can do` with the exact command — `git push -u 
 Creating or updating a PR publishes it to reviewers — the publish clause of the ask-exception list.
 
 1. Default: record `pr: only you can do` with the exact command shown, stop — no `gh pr create` call made. Push above recorded `only you can do` (branch not yet pushed) → the recorded command is prefixed with the push command it depends on. `--ask`: confirm, then create with the body passed via heredoc — never interpolated into the shell string (W8):
-   ```bash
+   ``bash
    gh pr create --title "{title}" [--draft] --body-file - <<'EOF'
    {body}
    EOF
-   ```
+   ``
 2. `--request-review` → `gh pr edit {number} --add-reviewer "@copilot"`; command fails (Copilot review unavailable) → warn, continue.
 3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → this skill validates only its own titles; a CI gate catches non-agent PRs before they break the squash-merge → release-please chain. Default: generate the workflow file (reversible via git) and note it in the summary. `--ask`: accept → generate for review; decline → gap-note.
 
-**Auto-merge and post-merge cleanup are out of scope.** "Create PR only" is the only outcome this skill produces — merging is the human's decision (GitHub UI, `gh pr merge`, or a branch-protection auto-merge rule), and what happens after merge (branch deletion, cutting the release) is the human's call or a release workflow's, such as `/ds-release`.
+**Auto-merge and post-merge cleanup are out of scope.** "Create PR only" is the only outcome this skill produces — merging is the human's decision (GitHub UI, `gh pr merge`, or a branch-protection auto-merge rule); what happens after merge is the human's call or a release workflow's (e.g. `/ds-release`).
 
 **Gate:** PR created (`--ask`, confirmed), or `pr: only you can do` recorded with the exact command (default). If fails → `gh pr create` returned an error → stop, show the error, suggest checking `gh auth status` and that the branch was pushed; never fabricate a PR URL.
 

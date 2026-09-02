@@ -1,6 +1,6 @@
 # Rules: UX (Nielsen 10 + Interaction Laws + Perceived Performance + Forms + Error Presentation + Deceptive Patterns + Notifications + Writing + IA + Navigation Safety)
 
-Rules for audit/fix modes. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
+Rules applied during audit and fix runs. Each rule: ID, severity, title, detect pattern, fix action, platform notes.
 
 Applies to all UI platforms: web, mobile, desktop.
 

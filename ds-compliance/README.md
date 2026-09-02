@@ -26,7 +26,13 @@ rm -rf /tmp/dev-skills
 
 ## Use
 
-Run `/ds-compliance`, or ask to audit your project.
+```bash
+/ds-compliance                    # full scan + fix — best judgment, recorded in the summary
+/ds-compliance --ask              # full scan with interactive approval
+/ds-compliance --preview          # scan and report only, no fixes applied
+/ds-compliance --scope=security   # single domain
+/ds-compliance --secrets-migrate  # rotation / vault walkthrough for hardcoded secrets
+```
 
 ## Scopes
 
@@ -41,11 +47,3 @@ Run `/ds-compliance`, or ask to audit your project.
 | perf | Resource exhaustion, N+1 queries, memory leaks, graceful shutdown |
 | a11y | WCAG 2.2 AA, semantic labels, contrast, keyboard nav |
 | i18n | Internationalization, hardcoded strings |
-
-## Modes
-
-| Mode | What It Does |
-|------|-------------|
-| **Audit Only** | Scan and report |
-| **Audit & Fix** | Scan, review, then fix |
-| **Quick Fix** | Scan and auto-fix |

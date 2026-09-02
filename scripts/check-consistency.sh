@@ -716,29 +716,49 @@ $(sort -u "$hits")"
 #     copy the tracked tree to a temp dir, apply ONE known-bad mutation, run
 #     this whole script there, and assert it goes red. A check that stays green
 #     against its own mutation is a no-op and is reported. ---
+#     One tar pipeline builds the pristine copy: a per-file `mkdir -p`+`cp` loop
+#     measured 16m43s against this repo's tracked tree where tar takes 1.4s —
+#     process spawn, not I/O, is the cost. Cases then run in a bounded parallel
+#     pool (MUTATION_JOBS, default 4) because each one re-runs the whole gate;
+#     every case still gets its own fresh tree and exactly one mutation, and the
+#     results are printed in declaration order, so the suite reads identically.
 mutation_test() {
-  local pristine tmp mt_fail=0 name snippet work out rc
+  local pristine tmp mt_fail=0 jobs_max="${MUTATION_JOBS:-4}" n=0 i
   tmp=$(mktemp -d); pristine="$tmp/pristine"
   trap 'rm -rf "$tmp"' RETURN
   mkdir -p "$pristine"
-  git ls-files -z | while IFS= read -r -d '' f; do
-    mkdir -p "$pristine/$(dirname "$f")"; cp "$f" "$pristine/$f"
-  done
+  if ! git ls-files -z | tar --null -T - -cf - 2>/dev/null | ( cd "$pristine" && tar -xf - ); then
+    git ls-files -z | while IFS= read -r -d '' f; do
+      mkdir -p "$pristine/$(dirname "$f")"; cp "$f" "$pristine/$f"
+    done
+  fi
+  [ -f "$pristine/scripts/check-consistency.sh" ] || { echo "MUTATION FAIL: could not copy the tracked tree"; return 1; }
 
-  _mut() {
-    name="$1"; snippet="$2"
-    work="$tmp/w"; rm -rf "$work"; cp -R "$pristine" "$work"
+  _run_case() { # _run_case INDEX NAME SNIPPET — one fresh tree, one mutation, one full gate
+    local idx="$1" name="$2" snippet="$3" work out rc
+    work="$tmp/w$idx"; rm -rf "$work"; cp -R "$pristine" "$work"
     ( cd "$work" && eval "$snippet" ) >/dev/null 2>&1
     out=$(cd "$work" && bash scripts/check-consistency.sh 2>&1 </dev/null); rc=$?
+    rm -rf "$work"
     if [ "$rc" != "0" ] && printf '%s' "$out" | grep -q '^FAIL:'; then
-      echo "MUTATION OK:     $name"
+      echo "MUTATION OK:     $name" > "$tmp/r$idx"
     elif printf '%s' "$out" | grep -q '^FAIL:'; then
-      echo "MUTATION SURVIVED: $name — printed FAIL but exited 0 (fail flag lost in a subshell)"
-      mt_fail=1
+      echo "MUTATION SURVIVED: $name — printed FAIL but exited 0 (fail flag lost in a subshell)" > "$tmp/r$idx"
     else
-      echo "MUTATION SURVIVED: $name — the check did not go red (possible no-op)"
-      mt_fail=1
+      echo "MUTATION SURVIVED: $name — the check did not go red (possible no-op)" > "$tmp/r$idx"
     fi
+  }
+
+  # MUTATION_FILTER=<regex> runs only the matching cases — for proving one check
+  # after editing it, on a machine where a full sweep is hours (each case re-runs
+  # the whole gate). Unset = every case, which is what the release gate runs.
+  _mut() {
+    if [ -n "${MUTATION_FILTER:-}" ]; then
+      printf '%s' "$1" | grep -Eq "$MUTATION_FILTER" || return 0
+    fi
+    n=$((n+1))
+    while [ "$(jobs -rp | wc -l)" -ge "$jobs_max" ]; do wait -n 2>/dev/null || sleep 1; done
+    _run_case "$n" "$1" "$2" &
   }
 
   _mut "2 size ceiling"          "for i in \$(seq 1 20000); do echo 'padding line to blow the size ceiling'; done >> ds-fix/SKILL.md"
@@ -776,8 +796,15 @@ mutation_test() {
   _mut "18 done gate new member" "grep -v 'Mechanical Done Gate' ds-pr/SKILL.md > t && mv t ds-pr/SKILL.md"
   _mut "35 checkpoint new member" "grep -v 'git status --porcelain' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
 
+  wait
+  for i in $(seq 1 "$n"); do
+    [ -f "$tmp/r$i" ] || { echo "MUTATION SURVIVED: case $i produced no result"; mt_fail=1; continue; }
+    cat "$tmp/r$i"
+    grep -q '^MUTATION SURVIVED' "$tmp/r$i" && mt_fail=1
+  done
+
   if [ "$mt_fail" = "0" ]; then
-    echo "MUTATION PASS: every mutated check went red"
+    echo "MUTATION PASS: every mutated check went red ($n cases)"
   else
     echo "MUTATION FAIL: at least one check survived its mutation (see SURVIVED lines)"
   fi
