@@ -117,7 +117,7 @@ For each hypothesis: `H{n}: {cause} → predicts {observable}; falsified by {com
 ds-debug: {OK|WARN|FAIL} | Reproduced: {yes|no} | Cause: {file:line — mechanism} | Hypotheses: {tried}/3 | Fix: {commit} | Regression test: {red→green | absent} | Needs-human: {n}
 ```
 
-Then the verify-echo (reproduction command + red, test red→green, `{check-cmd}` output), `Assumed:` lines, every `needs-human` item in full ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)). Status: OK (fixed + red-proven + gate green), WARN (fixed but a related finding or a flaky-quarantine remains), FAIL (not reproduced, three hypotheses falsified, or gate red).
+Then the verify-echo (reproduction command + red, test red→green, `{check-cmd}` output), `Decided without asking` lines, every `needs-human` item in full ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)). Status: OK (fixed + red-proven + gate green), WARN (fixed but a related finding or a flaky-quarantine remains), FAIL (not reproduced, three hypotheses falsified, or gate red).
 
 **Gate:** Summary printed with the outputs. If fails → any output missing → re-run that command and paste it.
 

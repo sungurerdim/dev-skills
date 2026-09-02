@@ -60,20 +60,23 @@ Preamble (verbatim prefix in every SKILL.md):
 
 ## 5. Outcome Report (the last block of every run)
 
-```
-Task: {what was asked, restated so a reader returning from other work re-anchors instantly}
-Done: {what was actually done, in plain words}
-Gain: {the concrete effect — what got better and why it matters; never an activity count}
-```
+Owner: the always-on rules layer (dev-rules › Outcome Report and Decision Framing) when one is installed — the lean and claude profiles strip the copy below at install time and that layer's own rule closes the run. Portable installs carry the copy here so a host without such a layer closes every run the same way. The two texts stay identical through dev-rules' `check-cross-repo.sh` anchors, which this repo's gate runs whenever the sibling checkout exists.
 
-Then, when any exist:
+<!-- portable-only:start -->
+Labels exactly as written, technical detail above the block, never inside it; a line with nothing to say is omitted:
 
 ```
-Assumed: {default chosen without asking — one line each; "flag if wrong"}
-Needs-human: {each open item in full: what it is, what acting or not acting changes, the recommendation and its reason}
+Asked: {what was requested, restated so a reader returning from other work re-anchors instantly}
+Done: {what actually changed, in plain words}
+Effect: {what got better and why it matters — never an activity count ("fixed y in x files")}
+Decided without asking — say if wrong: {each default chosen by judgment that the user might want to reverse}
+Only you can do: {each open human-owned action, stated in full — what it is, what changes if it is or isn't done, the recommendation and its reason}
 ```
 
-An open item is never a bare title. Under `--ask` the same block closes the run; the difference is only that decisions were confirmed rather than assumed.
+The accounting's `needs-human` dispositions feed `Only you can do:`; every decision made by judgment feeds `Decided without asking — say if wrong:`. Under `--ask` the same block closes the run; the difference is only that decisions were confirmed rather than decided.
+
+**Presenting options** — an `--ask` menu, an open-items list, an offer of next steps: recommendation first, with its reason; then every option in the same shape — **name** — what it is in one plain sentence — what happens if it is picked. Written for a reader who remembers nothing of the session: an option explained earlier is explained again in full, never named by reference. Genuinely no recommendation → say why the options are balanced. Several inputs needed → one batched ask, a second round only when an answer depends on a prior one.
+<!-- portable-only:end -->
 
 ## 6. Orchestrator report (`ds/audit/report.md`, ds-ship only)
 

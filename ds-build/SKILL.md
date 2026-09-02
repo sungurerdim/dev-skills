@@ -65,7 +65,7 @@ Intake → Re-verify → Impact map → Plan units → Execute + verify each →
 
 ### Phase 1: Intake
 
-1. Resolve the source (Arguments). Issue → `gh issue view {N} --json body,title,comments`; `gh` absent or unauthenticated → the issue text pasted in the request, else `needs-human: gh not available — paste the issue body`. Tasks → read the file; every `- [ ]` line is a task, its `— verify:` clause is the signal. Request → restate as `→ [goal] | [files] | done: [criteria]`; missing criteria → derive the most conservative testable criterion and record it under `Assumed:`.
+1. Resolve the source (Arguments). Issue → `gh issue view {N} --json body,title,comments`; `gh` absent or unauthenticated → the issue text pasted in the request, else `needs-human: gh not available — paste the issue body`. Tasks → read the file; every `- [ ]` line is a task, its `— verify:` clause is the signal. Request → restate as `→ [goal] | [files] | done: [criteria]`; missing criteria → derive the most conservative testable criterion and record it under `Decided without asking`.
 2. Build the **done set**: issue → the body's Done list after comment-criteria promotion (each comment-borne criterion is promoted into the body or rejected with a reason — [../core/execution-loop.md](../core/execution-loop.md) § 0); tasks → every unchecked task; request → the done criteria.
 3. Every done-set item without a verify signal gets one now (a command → expected output), recorded beside the item.
 4. Resolve `{check-cmd}` and capture the baseline (Mechanical Done Gate). Run the Checkpoint pre-gate.
@@ -124,7 +124,7 @@ For each unit, in order:
 ds-build: {OK|WARN|FAIL} | Source: {issue #N | tasks:{path} | request} | Units: {done}/{total} | Blocked: {n} | Reverted: {n} | Needs-human: {n} | Commits: {n}
 ```
 
-Disposition accounting — totals balance. Then the verify-echo (each unit's signal + `{check-cmd}` aggregate output), `Assumed:` lines, and every `needs-human` item in full ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)). Status: OK (every unit done, aggregate green), WARN (blocked or needs-human items remain), FAIL (aggregate red or a revert left the record incomplete).
+Disposition accounting — totals balance. Then the verify-echo (each unit's signal + `{check-cmd}` aggregate output), `Decided without asking` lines, and every `needs-human` item in full ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)). Status: OK (every unit done, aggregate green), WARN (blocked or needs-human items remain), FAIL (aggregate red or a revert left the record incomplete).
 
 **Gate:** Summary printed with per-unit evidence. If fails → a unit's output is missing → run its signal again and paste it; never print a unit as done without it.
 
@@ -148,7 +148,7 @@ Zero-change run: `Nothing to build — every done-set item was already implement
 
 | Situation | Action |
 |-----------|--------|
-| Source ambiguous (several unchecked task files, no issue number) | Default: the most recently modified task file, recorded under `Assumed:`; `--ask`: menu of candidates |
+| Source ambiguous (several unchecked task files, no issue number) | Default: the most recently modified task file, recorded under `Decided without asking`; `--ask`: menu of candidates |
 | Verify command missing a tool | Verification-Infrastructure Gap: report it, offer `/ds-quality`, substitute the nearest stack-native check, never mark the unit done without a signal |
 | Same obstacle blocks 3 units | Stop, report the pattern with the recorded causes, propose 2–3 options with a recommendation |
 | Context gap / resumed run | Re-read the record (issue body or task file) and `git diff`; the record is the ledger, not memory |

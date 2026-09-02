@@ -260,6 +260,8 @@ See also: the spec's [AI Instruction Patterns appendix](SKILL-SPEC.md#appendix-a
 
 Always-on behavioral guardrails that prevent mistakes between skill invocations — scope control, complexity limits, security gates. One file, any AI tool: [dev-rules](https://github.com/sungurerdim/dev-rules).
 
+The two share one closing block (`Asked` / `Done` / `Effect` / `Decided without asking — say if wrong` / `Only you can do`) and a few process anchors. dev-rules owns them; `core/` carries the same text for hosts without an always-on layer, the `lean` and `claude` profiles strip that copy at install time, and dev-rules' `check-cross-repo.sh` — run by this repo's gate whenever a sibling `../dev-rules` checkout exists — keeps both sides identical.
+
 ## Versioning
 
 Releases use semantic versioning starting at **v1.0.0** (2026-07-15) — the point where the skill set reached release maturity. The `v2`–`v5` labels in older docs and commit messages are **spec-generation names** (internal design-doc lineage: v2 2026-05 → v5 2026-07-15), not release versions; they predate the release line and stay as historical labels.

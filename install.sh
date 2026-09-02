@@ -150,6 +150,17 @@ apply_profile() {
   return 0
 }
 
+# apply_core_profile DIR PROFILE — the same strip over the shared references: core/
+# carries the closing block and doctrine an always-on rules layer (dev-rules) already
+# supplies on lean/claude hosts, marked `<!-- portable-only:start/end -->` there.
+apply_core_profile() {
+  local d="$1" eff="$2" f
+  case "$eff" in
+    lean|claude) for f in "$d"/*.md; do [ -f "$f" ] && lean_strip "$f"; done ;;
+  esac
+  return 0
+}
+
 # Resolve effective profile: explicit flag wins; else the installed stamp; else portable.
 effective_profile() {
   if [ -n "$profile" ]; then echo "$profile"
@@ -169,6 +180,7 @@ expected_tree() {
     apply_profile "$dst/$s/SKILL.md" "$eff" "$s"
   done
   sync_tree core "$dst/core"
+  apply_core_profile "$dst/core" "$eff"
 }
 
 # drift_report — prints DRIFT/MISSING lines; returns 1 on any drift. Shared by
@@ -231,6 +243,7 @@ case "$mode" in
       n=$((n+1))
     done
     sync_tree core "$skills_dir/core"
+    apply_core_profile "$skills_dir/core" "$eff"
     if [ "$with_agents" = "1" ]; then
       mkdir -p "$agents_dir"
       for a in agents/*.md; do

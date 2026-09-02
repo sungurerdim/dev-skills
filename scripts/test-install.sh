@@ -95,6 +95,21 @@ else
 fi
 ./install.sh --target "$lean" --check >/dev/null 2>&1
 check "--check is clean on a lean install without re-passing --profile (guards: false drift)" "0" "$?"
+if grep -q 'portable-only' "$lean/core/report-and-outcome-templates.md" 2>/dev/null; then
+  bad "lean install strips the portable-only block in core/" "marker text survived in core/report-and-outcome-templates.md"
+else
+  ok "lean install strips the portable-only block in core/ (guards: lean shipping dev-rules' closing block twice)"
+fi
+if grep -q '^Owner: the always-on rules layer' "$lean/core/report-and-outcome-templates.md" 2>/dev/null; then
+  ok "lean install keeps the core/ owner pointer above the stripped block (guards: a dangling § 5 reference)"
+else
+  bad "lean install keeps the core/ owner pointer" "no owner line in lean core/report-and-outcome-templates.md"
+fi
+if grep -q 'portable-only:start' "$skills/core/report-and-outcome-templates.md"; then
+  ok "portable install keeps the core/ closing block (guards: a host without a rules layer losing its Outcome Report)"
+else
+  bad "portable install keeps the core/ closing block" "no portable-only:start marker in portable core/"
+fi
 if grep -q 'portable-only' "$skills/ds-commit/SKILL.md"; then
   ok "portable install ships the markers verbatim (guards: default install silently stripping)"
 else

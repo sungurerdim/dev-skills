@@ -120,4 +120,14 @@ fi
 # the only proof that its --delete and rm -rf stay scoped to dev-skills content.
 step "install.sh round-trip" "bash scripts/test-install.sh"
 
+# The always-on rules layer (dev-rules) owns the closing block and a few process
+# anchors that core/ mirrors for portable installs; its cross-repo check proves both
+# copies agree. No sibling checkout -> visibly skipped, never a silent pass.
+if [ -f ../dev-rules/scripts/check-cross-repo.sh ]; then
+  step "dev-rules cross-repo anchors" "bash ../dev-rules/scripts/check-cross-repo.sh ."
+else
+  printf '\n=== [quality] dev-rules cross-repo anchors ===\n'
+  printf '[quality] SKIPPED (not verified): no sibling checkout at ../dev-rules\n'
+fi
+
 printf '\n[quality] all checks passed\n'
