@@ -714,8 +714,10 @@ $(sort -u "$hits")"
 #     fixture-proven by --self-test. Checks 2-7 and 9-18 stay inline and
 #     entangled with full-repo state, so they are proven a different way:
 #     copy the tracked tree to a temp dir, apply ONE known-bad mutation, run
-#     this whole script there, and assert it goes red. A check that stays green
-#     against its own mutation is a no-op and is reported. ---
+#     this whole script there, and assert THAT check goes red: every case
+#     carries the ERE its own check's err() emits, so a gate that goes red for
+#     an unrelated reason reports MISPOINTED instead of passing. A check that
+#     stays green against its own mutation is a no-op and is reported. ---
 #     One tar pipeline builds the pristine copy: a per-file `mkdir -p`+`cp` loop
 #     measured 16m43s against this repo's tracked tree where tar takes 1.4s —
 #     process spawn, not I/O, is the cost. Cases then run in a bounded parallel
@@ -734,79 +736,121 @@ mutation_test() {
   fi
   [ -f "$pristine/scripts/check-consistency.sh" ] || { echo "MUTATION FAIL: could not copy the tracked tree"; return 1; }
 
-  _run_case() { # _run_case INDEX NAME SNIPPET — one fresh tree, one mutation, one full gate
-    local idx="$1" name="$2" snippet="$3" work out rc
+  _run_case() { # _run_case INDEX NAME SNIPPET EXPECT — one fresh tree, one mutation, one full gate
+    local idx="$1" name="$2" snippet="$3" expect="$4" work out rc fails
     work="$tmp/w$idx"; rm -rf "$work"; cp -R "$pristine" "$work"
     ( cd "$work" && eval "$snippet" ) >/dev/null 2>&1
     out=$(cd "$work" && bash scripts/check-consistency.sh 2>&1 </dev/null); rc=$?
     rm -rf "$work"
-    if [ "$rc" != "0" ] && printf '%s' "$out" | grep -q '^FAIL:'; then
+    fails=$(printf '%s\n' "$out" | grep '^FAIL:' || true)
+    if [ "$rc" = "0" ]; then
+      if [ -n "$fails" ]; then
+        echo "MUTATION SURVIVED: $name — printed FAIL but exited 0 (fail flag lost in a subshell)" > "$tmp/r$idx"
+      else
+        echo "MUTATION SURVIVED: $name — the check did not go red (possible no-op)" > "$tmp/r$idx"
+      fi
+    elif [ -z "$fails" ]; then
+      echo "MUTATION MISPOINTED: $name — exited $rc with no FAIL line (the gate itself broke)" > "$tmp/r$idx"
+    elif printf '%s\n' "$fails" | grep -Eq -- "$expect"; then
       echo "MUTATION OK:     $name" > "$tmp/r$idx"
-    elif printf '%s' "$out" | grep -q '^FAIL:'; then
-      echo "MUTATION SURVIVED: $name — printed FAIL but exited 0 (fail flag lost in a subshell)" > "$tmp/r$idx"
     else
-      echo "MUTATION SURVIVED: $name — the check did not go red (possible no-op)" > "$tmp/r$idx"
+      echo "MUTATION MISPOINTED: $name — gate went red elsewhere: $(printf '%s\n' "$fails" | head -1)" > "$tmp/r$idx"
     fi
   }
 
   # MUTATION_FILTER=<regex> runs only the matching cases — for proving one check
   # after editing it, on a machine where a full sweep is hours (each case re-runs
   # the whole gate). Unset = every case, which is what the release gate runs.
-  _mut() {
+  _mut() { # _mut NAME SNIPPET EXPECT
+    [ -n "${3:-}" ] || { echo "MUTATION FAIL: case \"$1\" has no expected pattern"; rm -rf "$tmp"; exit 1; }
     if [ -n "${MUTATION_FILTER:-}" ]; then
-      printf '%s' "$1" | grep -Eq "$MUTATION_FILTER" || return 0
+      printf '%s' "$1" | grep -Eq -- "$MUTATION_FILTER" || return 0
     fi
     n=$((n+1))
     while [ "$(jobs -rp | wc -l)" -ge "$jobs_max" ]; do wait -n 2>/dev/null || sleep 1; done
-    _run_case "$n" "$1" "$2" &
+    _run_case "$n" "$1" "$2" "$3" &
   }
 
-  _mut "2 size ceiling"          "for i in \$(seq 1 20000); do echo 'padding line to blow the size ceiling'; done >> ds-fix/SKILL.md"
-  _mut "3 delegation line"       "grep -v '^\*\*Owns:\*\*' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
-  _mut "4 producer uniqueness"   "sed -n 's/^\*\*Owns:\*\* \(.*\)\$/\1/p' ds-fix/SKILL.md | head -1 | awk '{print \"**Owns:** \" \$0 \" | **Delegates:** none | **Receives:** none\"}' >> ds-test/SKILL.md"
-  _mut "5 resumable state"       "echo 'DETECT \`ds/audit/docs.json\` on entry.' >> ds-docs/SKILL.md"
-  _mut "6 W-registry ceiling"    "echo 'See W42 for the rationale.' >> ds-fix/SKILL.md"
-  _mut "7 trigger discipline"    "grep -v \"DON'T INVOKE\" ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
-  _mut "9 dimension declaration" "grep -v '^\*\*Dimensions:\*\*' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
-  _mut "11 taxonomy membership"  "sed 's/^\*\*Dimensions:\*\*.*/**Dimensions:** ZZ99/' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
-  _mut "13 evidence band"        "grep -v '^> \*\*Completion Evidence — final gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
-  _mut "14 flag integrity"       "echo 'Run with \`--status\` to skip.' >> ds-repo/SKILL.md"
-  _mut "14r retired flag"        "echo 'Pass \`--dry-run\` to preview.' >> ds-repo/SKILL.md"
-  _mut "14r retired flag row"    "echo '| \`--no-interactive={x}\` | Retired flag smuggled into the Arguments table. |' >> ds-repo/SKILL.md"
-  _mut "15 severity vocabulary"  "echo '### ZZZ-01 [URGENT] bogus severity' >> ds-review/references/rules-quality.md"
-  _mut "17 rule-count claim"     "sed 's/[0-9][0-9]* rules across/9999 rules across/' ds-frontend/README.md > t && mv t ds-frontend/README.md"
-  _mut "18 mechanical done gate" "grep -v 'Mechanical Done Gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
-  _mut "25 rule heading level"   "sed 's/^### DP-01/## DP-01/' ds-backend/references/rules-data-pipeline.md > t && mv t ds-backend/references/rules-data-pipeline.md"
-  _mut "26 rule-id namespace"    "echo 'See ARC-13 for the rationale.' >> ds-backend/references/rules-api.md"
-  _mut "23 canonical --ask row"  "sed 's/^| \`--ask\` |.*/| \`--ask\` | Reworded locally. |/' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
-  _mut "10 advisory handoff"     "printf 'If the target skill is absent, hard-fail with \"skill not found\".\n' >> ds-fix/SKILL.md"
-  _mut "12 overlap authorization" "id=\$(sed -n 's/^\*\*Dimensions:\*\* *//p' ds-fix/SKILL.md | head -1 | cut -d, -f1 | sed 's/ *(.*//'); sed \"s/^\*\*Dimensions:\*\* none (carrier)/**Dimensions:** \$id/\" ds-commit/SKILL.md > t && mv t ds-commit/SKILL.md"
-  _mut "14b ask-row presence"    "grep -v '^| \`--ask\`' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
-  _mut "14r retired --auto"      "echo 'Under \`--auto\` skip the menu.' >> ds-repo/SKILL.md"
-  _mut "40 scope table"          "grep -v 'Runs when' ds-compliance/SKILL.md > t && mv t ds-compliance/SKILL.md"
-  _mut "41 rule impact"          "printf '### ZZ-99 [LOW] Bare rule\\n- **Detect:** x\\n' >> ds-backend/references/rules-api.md"
-  _mut "42 duplicate rule title" "printf '### API-98 [LOW] Twin\\n- **Impact:** a\\n### API-99 [LOW] Twin\\n- **Impact:** b\\n' >> ds-backend/references/rules-api.md"
-  _mut "16 list-table spacing"   "printf -- '- item\n| a | b |\n' >> ds-fix/SKILL.md"
-  _mut "14 discovered ghost flag" "echo 'Pass \`--turbo\` to go faster.' >> ds-repo/SKILL.md"
-  _mut "37 spec citation"        "echo 'Resolve per Unattended Mode rule 3.' >> ds-fix/SKILL.md"
-  _mut "21 core link missing"    "echo 'See [x](../core/does-not-exist.md).' >> ds-fix/SKILL.md"
-  _mut "21 sibling link"         "echo 'See [x](../ds-test/SKILL.md).' >> ds-fix/SKILL.md"
-  _mut "38 dead source"          "echo '**Source:** nowhere-to-be-found.md' >> ds-backend/references/rules-api.md"
-  _mut "39 readme count"         "echo 'Runs 99 scopes.' >> ds-repo/README.md"
-  _mut "18 done gate new member" "grep -v 'Mechanical Done Gate' ds-pr/SKILL.md > t && mv t ds-pr/SKILL.md"
-  _mut "35 checkpoint new member" "grep -v 'git status --porcelain' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
+  _mut "2 size ceiling"          "for i in \$(seq 1 20000); do echo 'padding line to blow the size ceiling'; done >> ds-fix/SKILL.md" \
+       "ds-fix/SKILL.md is .* \(ceiling"
+  _mut "3 delegation line"       "grep -v '^\*\*Owns:\*\*' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md" \
+       "delegation lines \(expected exactly 1\)"
+  _mut "4 producer uniqueness"   "sed -n 's/^\*\*Owns:\*\* \(.*\)\$/\1/p' ds-fix/SKILL.md | head -1 | awk '{print \"**Owns:** \" \$0 \" | **Delegates:** none | **Receives:** none\"}' >> ds-test/SKILL.md" \
+       "duplicate Owns tokens"
+  _mut "5 resumable state"       "echo 'DETECT \`ds/audit/docs.json\` on entry.' >> ds-docs/SKILL.md" \
+       "carries state recovery protocol"
+  _mut "6 W-registry ceiling"    "echo 'See W42 for the rationale.' >> ds-fix/SKILL.md" \
+       "bogus W-numbers"
+  _mut "7 trigger discipline"    "grep -v \"DON'T INVOKE\" ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md" \
+       "INVOKE / DON'T INVOKE table header"
+  _mut "9 dimension declaration" "grep -v '^\*\*Dimensions:\*\*' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md" \
+       "missing Dimensions: declaration"
+  _mut "11 taxonomy membership"  "sed 's/^\*\*Dimensions:\*\*.*/**Dimensions:** ZZ99/' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md" \
+       "declares unknown dimension"
+  _mut "13 evidence band"        "grep -v '^> \*\*Completion Evidence — final gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md" \
+       "Completion Evidence bands \(expected exactly 2\)"
+  _mut "14 flag integrity"       "echo 'Run with \`--status\` to skip.' >> ds-repo/SKILL.md" \
+       "Arguments table does not define it"
+  _mut "14r retired flag"        "echo 'Pass \`--dry-run\` to preview.' >> ds-repo/SKILL.md" \
+       "retired flag"
+  _mut "14r retired flag row"    "echo '| \`--no-interactive={x}\` | Retired flag smuggled into the Arguments table. |' >> ds-repo/SKILL.md" \
+       "retired flag"
+  _mut "15 severity vocabulary"  "echo '### ZZZ-01 [URGENT] bogus severity' >> ds-review/references/rules-quality.md" \
+       "non-canonical severity vocabulary"
+  _mut "17 rule-count claim"     "sed 's/[0-9][0-9]* rules across/9999 rules across/' ds-frontend/README.md > t && mv t ds-frontend/README.md" \
+       "claims '9999 rules across'"
+  _mut "18 mechanical done gate" "grep -v 'Mechanical Done Gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md" \
+       "ds-fix/SKILL.md missing Mechanical Done Gate"
+  _mut "25 rule heading level"   "sed 's/^### DP-01/## DP-01/' ds-backend/references/rules-data-pipeline.md > t && mv t ds-backend/references/rules-data-pipeline.md" \
+       "must be '### ID'"
+  _mut "26 rule-id namespace"    "echo 'See ARC-13 for the rationale.' >> ds-backend/references/rules-api.md" \
+       "foreign rule-id references"
+  _mut "23 canonical --ask row"  "sed 's/^| \`--ask\` |.*/| \`--ask\` | Reworded locally. |/' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md" \
+       "--ask row deviates from the SKILL-SPEC canonical text"
+  _mut "10 advisory handoff"     "printf 'If the target skill is absent, hard-fail with \"skill not found\".\n' >> ds-fix/SKILL.md" \
+       "contains hard-fail pattern"
+  _mut "12 overlap authorization" "id=\$(sed -n 's/^\*\*Dimensions:\*\* *//p' ds-fix/SKILL.md | head -1 | cut -d, -f1 | sed 's/ *(.*//'); sed \"s/^\*\*Dimensions:\*\* none (carrier)/**Dimensions:** \$id/\" ds-commit/SKILL.md > t && mv t ds-commit/SKILL.md" \
+       "declared by multiple skills"
+  _mut "14b ask-row presence"    "grep -v '^| \`--ask\`' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md" \
+       "mandatory --ask"
+  _mut "14r retired --auto"      "echo 'Under \`--auto\` skip the menu.' >> ds-repo/SKILL.md" \
+       "retired flag"
+  _mut "40 scope table"          "grep -v 'Runs when' ds-compliance/SKILL.md > t && mv t ds-compliance/SKILL.md" \
+       "no scope-resolution table"
+  _mut "41 rule impact"          "printf '### ZZ-99 [LOW] Bare rule\n- **Detect:** x\n' >> ds-backend/references/rules-api.md" \
+       "rule entries without an Impact line"
+  _mut "42 duplicate rule title" "printf '### API-98 [LOW] Twin\n- **Impact:** a\n### API-99 [LOW] Twin\n- **Impact:** b\n' >> ds-backend/references/rules-api.md" \
+       "duplicate rule titles"
+  _mut "16 list-table spacing"   "printf -- '- item\n| a | b |\n' >> ds-fix/SKILL.md" \
+       "table starts directly after a list item"
+  _mut "14 discovered ghost flag" "echo 'Pass \`--turbo\` to go faster.' >> ds-repo/SKILL.md" \
+       "uses .--turbo. but its Arguments table"
+  _mut "37 spec citation"        "echo 'Resolve per Unattended Mode rule 3.' >> ds-fix/SKILL.md" \
+       "spec citation inside a skill"
+  _mut "21 core link missing"    "echo 'See [x](../core/does-not-exist.md).' >> ds-fix/SKILL.md" \
+       "link a lone install cannot follow"
+  _mut "21 sibling link"         "echo 'See [x](../ds-test/SKILL.md).' >> ds-fix/SKILL.md" \
+       "link a lone install cannot follow"
+  _mut "38 dead source"          "echo '**Source:** nowhere-to-be-found.md' >> ds-backend/references/rules-api.md" \
+       "Source: line names a repo file"
+  _mut "39 readme count"         "echo 'Runs 99 scopes.' >> ds-repo/README.md" \
+       "README count claim not mirrored"
+  _mut "18 done gate new member" "grep -v 'Mechanical Done Gate' ds-pr/SKILL.md > t && mv t ds-pr/SKILL.md" \
+       "ds-pr/SKILL.md missing Mechanical Done Gate"
+  _mut "35 checkpoint new member" "grep -v 'git status --porcelain' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md" \
+       "missing the Checkpoint pre-step"
 
   wait
   for i in $(seq 1 "$n"); do
     [ -f "$tmp/r$i" ] || { echo "MUTATION SURVIVED: case $i produced no result"; mt_fail=1; continue; }
     cat "$tmp/r$i"
-    grep -q '^MUTATION SURVIVED' "$tmp/r$i" && mt_fail=1
+    grep -qE '^MUTATION (SURVIVED|MISPOINTED)' "$tmp/r$i" && mt_fail=1
   done
 
   if [ "$mt_fail" = "0" ]; then
     echo "MUTATION PASS: every mutated check went red ($n cases)"
   else
-    echo "MUTATION FAIL: at least one check survived its mutation (see SURVIVED lines)"
+    echo "MUTATION FAIL: a case survived its mutation, or the gate went red in a different check (see SURVIVED / MISPOINTED lines)"
   fi
   return "$mt_fail"
 }
