@@ -245,7 +245,7 @@ ds-test: {OK|WARN|FAIL} | Generated: {n} | Updated: {n} | Fixed: {n} | Skipped: 
 | Critical-flow wiring | {n}/{n} | flows verified mock-free (see ds/audit/findings.md for gaps) |
 ```
 
-Disposition accounting — totals balance. Closing shape (`Assumed:` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
+Disposition accounting — totals balance. Closing shape (`Decided without asking` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
 **Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 

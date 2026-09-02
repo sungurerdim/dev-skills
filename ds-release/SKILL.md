@@ -35,7 +35,7 @@ Cutting a release by hand means a version bumped in one file but not the other, 
 - Standalone. Reads git history, the changelog and the version surfaces; CI status only through `gh` when present (absent → `not verified` for anything remote).
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
-- **The version comes from the commits.** Conventional Commits since the last tag decide the bump (`feat` → minor, `fix`/`perf` → patch, `!` or `BREAKING CHANGE:` → major, pre-1.0 → minor for breaking); `--bump` overrides with the reason recorded. No commit-type signal → `needs-human: state the bump` (default: patch, recorded under `Assumed:`).
+- **The version comes from the commits.** Conventional Commits since the last tag decide the bump (`feat` → minor, `fix`/`perf` → patch, `!` or `BREAKING CHANGE:` → major, pre-1.0 → minor for breaking); `--bump` overrides with the reason recorded. No commit-type signal → `needs-human: state the bump` (default: patch, recorded under `Decided without asking`).
 - **One version, every surface.** Every version-carrying file in the repo is found and bumped together (manifest, lockfile entry, `__version__`, `pubspec.yaml`, `Cargo.toml`, `version.txt`, docs badge); a surface left behind is a finding.
 - **Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)): `git status --porcelain` before the first write; a dirty tree → stop-hard (`needs-human: commit or stash first`) — a release commit must contain only the release.
 - **Mechanical Done Gate:** `{check-cmd}` (ds-quality arm when installed, else the stack-native chain from [../core/toolchains.md](../core/toolchains.md)) captured at baseline and re-run after the bump; red → the release does not proceed to tagging; baseline red reported red-at-baseline and blocks the tag unless `--allow-red-baseline` is passed with the reason.
@@ -96,7 +96,7 @@ Assess → Version → Changelog → Bump → Check → Commit + tag → Publish
 
 Derive the bump from the commits (Contract rule) → `{next}`. Pre-release (`--bump=prerelease` or a `-rc`/`-beta` current version) increments the pre-release counter. `--preview` prints `{current} → {next}` with the deciding commits. `--ask` confirms.
 
-**Gate:** `{next}` is a valid SemVer greater than `{current}` and not an existing tag. If fails → tag exists → `needs-human: {next} already tagged — pass --bump` ; no conventional commits → default patch under `Assumed:`.
+**Gate:** `{next}` is a valid SemVer greater than `{current}` and not an existing tag. If fails → tag exists → `needs-human: {next} already tagged — pass --bump` ; no conventional commits → default patch under `Decided without asking`.
 
 ### Phase 3: Changelog
 
@@ -151,7 +151,7 @@ Every publishing step is printed as a `needs-human` line with the exact command,
 ds-release: {OK|WARN|FAIL} | Version: {current} → {next} | Changelog: {section written | created | N/A} | Surfaces: {n} bumped | Tag: v{next} on {hash} | Check: {green | red-at-baseline} | Publish: {needs-human (n steps) | confirmed (n)} | Post-release: {verified | N/A | FAIL}
 ```
 
-Then the verify-echo (`{check-cmd}` output, `git tag --points-at HEAD`, `git log -1`), `Assumed:` lines, and every `needs-human` step with its command ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)). Status: OK (commit + tag green, handoff printed), WARN (a surface or changelog entry needs a human), FAIL (check red or aborted).
+Then the verify-echo (`{check-cmd}` output, `git tag --points-at HEAD`, `git log -1`), `Decided without asking` lines, and every `needs-human` step with its command ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)). Status: OK (commit + tag green, handoff printed), WARN (a surface or changelog entry needs a human), FAIL (check red or aborted).
 
 **Gate:** Summary printed with the outputs. If fails → an output missing → re-run that command and paste it.
 

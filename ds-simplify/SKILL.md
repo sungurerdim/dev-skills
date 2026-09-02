@@ -231,7 +231,7 @@ Disposition accounting — totals balance.
 
 `ds-simplify: {OK|WARN|FAIL} | Removed: {n} | Deferred: {n} | Skipped: {n} | Failed: {n} | Total: {n}`
 
-Closing shape (`Assumed:` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
+Closing shape (`Decided without asking` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
 **Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 

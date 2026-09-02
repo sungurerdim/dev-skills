@@ -332,7 +332,7 @@ Every skill runs autonomously by default. `--ask` is the single, universal flag 
 3. **The ask-exception list is the only thing a default run does not decide** — [`core/ask-exception-list.md`](core/ask-exception-list.md): (a) genuinely irreversible actions, (b) publishing actions that move work off the local machine. They are skipped and recorded `needs-human` with the exact action the human can take. Committing is not publishing. The list does not grow ad hoc — a skill that must extend it does so in its own Contract, citing clause (a) or (b).
 4. **`--ask` asks at every decision point** — mode menu, scope table, approval batches, per-item CRITICAL confirmation, checkpoint choices — following Interaction Discipline, the All-Affordance Rule, the Up-Front Mode Menu and Selection Transparency, all of which apply only under `--ask`.
 5. **Propagation.** An orchestrator (`ds-ship`, `ds-pipeline`) invoked with `--ask` forwards `--ask` to every skill it delegates to (Orchestration Contract §10.3); a delegate never asks on its own when the orchestrator was not asked, and never falls back to prompting just because it was invoked as a child.
-6. **Summary is the record.** Every default run ends with the Outcome Report (`core/report-and-outcome-templates.md` § 5) listing every decision made by judgment under `Assumed:` and every `needs-human` item in full, so nothing silently vanishes.
+6. **Summary is the record.** Every default run ends with the Outcome Report (`core/report-and-outcome-templates.md` § 5): every decision made by judgment under `Decided without asking — say if wrong:` and every open human-owned action under `Only you can do:`, stated in full, so nothing silently vanishes. The labels are the always-on rules layer's (dev-rules › Outcome Report); core § 5 is the portable copy and is stripped from lean/claude installs.
 7. **`--auto` is retired.** It was the opt-in for what is now the default; a skill that still carries it fails `check-consistency.sh` (retired flags).
 
 **Canonical Arguments-table row** — every skill pastes this verbatim:
@@ -404,6 +404,7 @@ Every point where the skill asks the user to choose or approve (under `--ask`) M
 3. **Group long lists** by category with counts (`CRITICAL (2) · HIGH (5) · MEDIUM (5)`) so a large set stays readable; the per-item lines remain available under each group.
 4. **No hidden scope** — if "all" expands to items not shown, that is a spec violation; the set approved is exactly the set displayed.
 5. **Truncation is explicit** — if a list is genuinely too long to show in full, show the first N per group and state `(+M more — show all? )`; never silently drop items from the approval view.
+6. **Recommendation first, options in one shape** — every choice put to the user (a menu, an open-items list, an offer of next steps) opens with the recommended option and its reason, then lists every option as **name** — what it is in one plain sentence — what happens if it is picked, written for a reader who remembers nothing of the session: an option explained earlier is explained again in full, never named by reference. Genuinely no recommendation → say why the options are balanced. (Shape owned by `core/report-and-outcome-templates.md` § 5, identical to dev-rules › Decision Framing.)
 
 ---
 

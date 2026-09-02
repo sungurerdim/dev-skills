@@ -262,7 +262,7 @@ Disposition accounting — totals balance.
 
 `ds-deps: {OK|WARN|FAIL} | Bumped: {n} | Majors-pending: {n} | Skipped: {n} | Failed: {n} | Total: {n} | Advisories-closed: {n}`
 
-Closing shape (`Assumed:` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
+Closing shape (`Decided without asking` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
 **Gate:** Every dep has exactly one disposition; accounting balances. If fails → undisposed dep → assign `skipped (accounting gap)`; imbalanced → status `WARN` with note "{n} deps unaccounted — re-run to pick up the remainder from the last per-group commit".
 

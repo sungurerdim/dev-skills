@@ -223,7 +223,7 @@ Setup → Detect Current State → Generate → Release Management → [Needs-Ap
 2. **Upstream artifacts:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
 3. Detect platform from project signals (`pubspec.yaml` → mobile, `package.json` → web, Electron/Tauri config or macOS/MSIX packaging manifests → desktop, etc.) + current launch stage: pre-submission, in-review, post-launch. Desktop detected → activate the Desktop Distribution scope.
 
-**Gate:** Platform + mode confirmed. If fails → ambiguous platform → default: All (safest coverage), recorded under `Assumed:`. `--ask`: prompt iOS / Android / Web / Desktop / All; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
+**Gate:** Platform + mode confirmed. If fails → ambiguous platform → default: All (safest coverage), recorded under `Decided without asking`. `--ask`: prompt iOS / Android / Web / Desktop / All; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
 
 ### Phase 2: Detect Current State
 
