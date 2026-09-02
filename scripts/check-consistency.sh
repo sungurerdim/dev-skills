@@ -8,13 +8,9 @@ set -u
 fail=0
 err() { echo "FAIL: $*"; fail=1; }
 
-# --- Checks 1, 8, 19, 20, 21, 22, 23, 24 and the canonical --auto row are wrapped in
-#     functions so --self-test can fixture them; the inline checks are proven by --mutation-test
-#     them in isolation against a fixture directory; execution order/logic/
-#     messages are otherwise identical to a plain top-to-bottom script. Each
-#     function operates on $PWD, same as every other check in this file. The
-#     remaining checks stay inline (unwrapped) — see BP-007 self-test note at
-#     the bottom of this file for why they're not all fixture-tested. ---
+# --- Most checks are wrapped in functions so --self-test can fixture them; the
+#     inline checks are proven by --mutation-test. Each function operates on $PWD,
+#     same as every other check in this file. ---
 
 # 1. Skill count == README badge count
 check_skill_badge() {
@@ -66,22 +62,14 @@ check_delegates_receives_graph() {
   done
 }
 
-# 21. v6 — Standalone paths: a skill may never reference another skill's files by
-#     path. Prose handoffs are fine (check 10 guards hard-fail wording); a file
-#     path is not, because a lone install has no sibling directory to resolve it
-#     against. `../agents/` is exempt — install.sh ships agents separately.
-check_standalone_paths() {
-  hits=$(grep -rnoE '\]\((\.\./)?ds-[a-z-]+/[^)]*\)' ds-*/SKILL.md ds-*/references/*.md 2>/dev/null || true)
-  [ -z "$hits" ] || err "cross-skill file path — a lone install cannot resolve it (SKILL-SPEC Standalone Invariant):
-$hits"
-}
-
-# 22. v6 — Intra-skill link resolution: every relative .md link inside a skill
-#     must resolve AND stay inside that skill's own directory — a lone install
-#     ships one directory, so a link escaping it is dead even when the repo
+# 21. v7 — Core links: every relative .md link inside a skill must resolve AND land
+#     either inside that skill's own directory or inside core/ — the two places a
+#     lone install ships (install.sh copies core/ on every install). A link into a
+#     sibling skill or anywhere else is dead in a lone install even when the repo
 #     layout makes it look fine. Fenced code blocks are skipped: they hold
 #     illustrative links, not real ones. Escapes that land back inside the same
-#     skill (references/../SKILL.md) are legitimate and pass.
+#     skill (references/../SKILL.md) are legitimate and pass. Replaces the v6
+#     standalone-paths + intra-skill-links pair.
 norm_path() {
   local seg out=() IFS=/
   for seg in $1; do
@@ -93,9 +81,9 @@ norm_path() {
   done
   printf '%s' "${out[*]}"
 }
-check_intra_skill_links() {
+check_core_links() {
   bad=""
-  for f in ds-*/SKILL.md ds-*/references/*.md; do
+  for f in ds-*/SKILL.md ds-*/README.md ds-*/references/*.md; do
     [ -f "$f" ] || continue
     skill="${f%%/*}"; dir=$(dirname "$f")
     for l in $(awk '/^```/{fence=!fence; next} !fence' "$f" \
@@ -104,10 +92,12 @@ check_intra_skill_links() {
       case "$l" in http*|'') continue;; esac
       target=$(norm_path "$dir/$l")
       case "$target" in
-        "$skill"/*) [ -e "$target" ] || bad="$bad
+        "$skill"/*|core/*) [ -e "$target" ] || bad="$bad
   $f -> $l (no such file)" ;;
+        ds-*/*) bad="$bad
+  $f -> $l (points into a sibling skill — absent from a lone $skill install)" ;;
         *) bad="$bad
-  $f -> $l (escapes $skill/ — not present in a lone install)" ;;
+  $f -> $l (escapes $skill/ and core/ — not present in a lone install)" ;;
       esac
     done
   done
@@ -343,7 +333,7 @@ check_delegation_targets() {
 #     and infra-only skills are exempt by design.
 check_checkpoint_gate() {
   local s
-  for s in ds-backend ds-compliance ds-deploy ds-deps ds-devops ds-docs ds-fix ds-frontend ds-init ds-issue ds-mobile ds-review ds-simplify ds-solve ds-test ds-tune; do
+  for s in ds-backend ds-compliance ds-deploy ds-deps ds-devops ds-docs ds-fix ds-frontend ds-init ds-issue ds-mobile ds-pr ds-repo ds-review ds-simplify ds-solve ds-test ds-tune; do
     [ -f "$s/SKILL.md" ] || continue
     { grep -qi 'checkpoint' "$s/SKILL.md" && grep -q 'git status --porcelain' "$s/SKILL.md"; } \
       || err "$s/SKILL.md missing the Checkpoint pre-step (clean-tree gate via git status --porcelain before first write — SKILL-SPEC §4)"
@@ -364,6 +354,64 @@ check_secret_pattern_set() {
     done
     [ -z "$missing" ] || err "$f carries a filename secret-exclusion list but misses:$missing (SKILL-SPEC canonical set — partial copies drift)"
   done
+}
+
+# 37. v7 — Spec citations: a skill never cites the spec or its internal labels
+#     (SKILL-SPEC, Unattended Mode rule N, rule-4 exception, IDU, DSC, OVERLAP-n,
+#     `| VAR` status cells). A lone install has no spec to resolve them against,
+#     so the executor is left with a pointer and no rule. The canonical inline
+#     equivalents live in SKILL-SPEC §9 Prohibited Content. DSC-NN rule ids
+#     (ds-productize discount rules) are a namespace, not a citation, and pass.
+check_spec_citations() {
+  local bad
+  bad=$(grep -rnE 'SKILL-SPEC|Unattended Mode rule|rule-4 exception|(^|[^A-Za-z0-9_])IDU([^A-Za-z0-9_]|$)|(^|[^A-Za-z0-9_])DSC([^-A-Za-z0-9_]|$)|OVERLAP-[0-9]|\| VAR( |$)' ds-*/SKILL.md ds-*/README.md ds-*/references/*.md 2>/dev/null || true)
+  [ -z "$bad" ] || err "spec citation inside a skill (say the rule inline — SKILL-SPEC §9 canonical equivalents):
+$bad"
+}
+
+# 38. v7 — Dead Source pointers: a `Source:` line that names a file (bare token
+#     such as dev-rules.md or canonical-xr.json) which exists neither in the citing
+#     skill, nor in core/, nor at the repo root. URLs are not checked here (the
+#     link checks and the release-time curl sweep cover those).
+check_dead_sources() {
+  local bad="" f tok skill base
+  for f in ds-*/SKILL.md ds-*/references/*.md; do
+    [ -f "$f" ] || continue
+    skill="${f%%/*}"
+    # markdown links are removed first: a linked file is resolvable by definition
+    for tok in $(grep -E '^\*\*Source' "$f" 2>/dev/null | sed -E 's#\[[^]]*\]\([^)]*\)##g; s#https?://[^ )>]+##g' \
+                   | grep -oE '(^|[^A-Za-z0-9_./-])[A-Za-z0-9_./-]+\.(md|json|ya?ml|toml)([^A-Za-z0-9_./-]|$)' \
+                   | sed -E 's/^[^A-Za-z0-9_./-]//; s/[^A-Za-z0-9_./-]$//' | sort -u); do
+      if [ -e "$skill/$tok" ] || [ -e "$skill/references/$tok" ] || [ -e "core/$tok" ]; then continue; fi
+      # a name that exists elsewhere in this repo (docs/, another skill) is a pointer
+      # a lone install cannot follow; a name that exists nowhere here is an external
+      # citation (dev-rules.md) and passes, as do the generic project-file names a
+      # rule legitimately talks about (CLAUDE.md, README.md, CODEOWNERS, …)
+      base=$(basename "$tok")
+      case "$base" in CLAUDE.md|AGENTS.md|GEMINI.md|README.md|CHANGELOG.md|CONTRIBUTING.md|SECURITY.md|CODE_OF_CONDUCT.md|LICENSE.md|CODEOWNERS|copilot-instructions.md|SKILL.md|package.json|pyproject.toml|tsconfig.json|pubspec.yaml|Cargo.toml|go.mod) continue;; esac
+      [ -z "$(find . -path ./.git -prune -o -name "$base" -print 2>/dev/null | grep -v "^./$skill/" | head -1)" ] \
+        || bad="$bad
+  $f -> $tok"
+    done
+  done
+  [ -z "$bad" ] || err "Source: line names a repo file a lone install cannot follow (link it by URL or move it into core/):$bad"
+}
+
+# 39. v7 — README count claims mirror SKILL.md: a README saying "N scopes" /
+#     "N modes" / "N domains" / "N checks" / "N dimensions" must carry the same
+#     "N word" string as its SKILL.md — the README is a mirror, never a second
+#     source of counts (rule counts are check 17).
+check_readme_counts() {
+  local d s f claim bad=""
+  for d in ds-*/; do
+    s=${d%/}; f="$d/README.md"
+    [ -f "$f" ] && [ -f "$d/SKILL.md" ] || continue
+    for claim in $(grep -oE '[0-9]+ (scopes|modes|domains|checks|dimensions)' "$f" 2>/dev/null | tr ' ' '_' | sort -u); do
+      grep -qF "$(echo "$claim" | tr '_' ' ')" "$d/SKILL.md" || bad="$bad
+  $f claims '$(echo "$claim" | tr '_' ' ')' but $s/SKILL.md never states it"
+    done
+  done
+  [ -z "$bad" ] || err "README count claim not mirrored in SKILL.md:$bad"
 }
 
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
@@ -432,27 +480,29 @@ EOF
   printf '**Owns:** b | **Delegates:** none | **Receives:** ds-gamma -> unrelated\n' > "$tmp/f4/ds-beta/SKILL.md"
   assert_catches "check_delegates_receives_graph" "$tmp/f4" check_delegates_receives_graph
 
-  # Fixture: check_standalone_paths — ds-alpha reads ds-beta's reference file
-  mkdir -p "$tmp/f5/ds-alpha/references" "$tmp/f5/ds-beta/references"
-  printf 'See [beta rules](../ds-beta/references/rules.md) for detail.\n' > "$tmp/f5/ds-alpha/SKILL.md"
-  printf '# rules\n' > "$tmp/f5/ds-beta/references/rules.md"
-  assert_catches "check_standalone_paths" "$tmp/f5" check_standalone_paths
-
-  # Fixture: check_intra_skill_links — a missing reference file and a link that
-  # escapes the skill directory; the illustrative link inside a fence and the
-  # legitimate references/../SKILL.md escape-and-return must NOT be flagged
-  mkdir -p "$tmp/f6/ds-alpha/references" "$tmp/f6/agents"
-  cat > "$tmp/f6/ds-alpha/SKILL.md" <<'EOF'
-Real link: [gone](references/missing.md)
-Escaping link: [agent](../agents/worker.md)
+  # Fixture: check_core_links — a sibling-skill link, a missing core file and a
+  # missing own reference; the fenced illustrative link, the references/../SKILL.md
+  # escape-and-return and the existing ../core/ link must NOT be flagged
+  mkdir -p "$tmp/f5/ds-alpha/references" "$tmp/f5/ds-beta/references" "$tmp/f5/core"
+  cat > "$tmp/f5/ds-alpha/SKILL.md" <<'EOF'
+Sibling: [beta rules](../ds-beta/references/rules.md)
+Core ok: [principles](../core/principles.md)
+Core gone: [missing](../core/nope.md)
+Own gone: [gone](references/missing.md)
 
 ```markdown
 Illustrative only: [Configuration](./docs/config.md)
 ```
 EOF
-  printf 'Back to [/ds-alpha](../SKILL.md).\n' > "$tmp/f6/ds-alpha/references/ok.md"
-  printf '# worker\n' > "$tmp/f6/agents/worker.md"
-  assert_catches "check_intra_skill_links" "$tmp/f6" check_intra_skill_links
+  printf '# rules\n' > "$tmp/f5/ds-beta/references/rules.md"
+  printf '# principles\n' > "$tmp/f5/core/principles.md"
+  printf 'Back to [/ds-alpha](../SKILL.md).\n' > "$tmp/f5/ds-alpha/references/ok.md"
+  assert_catches "check_core_links" "$tmp/f5" check_core_links
+  out=$(cd "$tmp/f5" && fail=0 && check_core_links 2>&1)
+  case "$out" in
+    *"../core/principles.md"*|*"references/ok.md"*) echo "SELF-TEST BROKEN: check_core_links flagged a legitimate core/ or escape-and-return link"; st_fail=1 ;;
+    *) echo "SELF-TEST OK: check_core_links left the legitimate links alone" ;;
+  esac
 
   # Fixture: check_bare_repo_paths — a prose citation of a repo file that exists
   # outside the skill. The user-project path (docs/adr/), the URL-carrying line and
@@ -539,8 +589,43 @@ EOF
   printf 'Auto-exclude files matching `.env`, `.env.*`, `*.pem`, `credentials.*` before staging.\n' > "$tmp/f18/ds-alpha/SKILL.md"
   assert_catches "check_secret_pattern_set" "$tmp/f18" check_secret_pattern_set
 
+  # Fixture: check_spec_citations — a skill cites the spec; the DSC-01 rule id must pass
+  mkdir -p "$tmp/f19/ds-alpha/references"
+  printf 'Resolve per Unattended Mode rule 3.\n' > "$tmp/f19/ds-alpha/SKILL.md"
+  printf '### DSC-01 [LOW] discount rule\n' > "$tmp/f19/ds-alpha/references/rules-x.md"
+  assert_catches "check_spec_citations" "$tmp/f19" check_spec_citations
+  mkdir -p "$tmp/f19b/ds-alpha/references"
+  printf '### DSC-01 [LOW] discount rule\nSee DSC-02.\n' > "$tmp/f19b/ds-alpha/references/rules-x.md"
+  printf 'clean body\n' > "$tmp/f19b/ds-alpha/SKILL.md"
+  out=$(cd "$tmp/f19b" && fail=0 && check_spec_citations 2>&1)
+  case "$out" in
+    *FAIL*) echo "SELF-TEST BROKEN: check_spec_citations flagged a DSC-NN rule id"; st_fail=1 ;;
+    *) echo "SELF-TEST OK: check_spec_citations ignores DSC-NN rule ids" ;;
+  esac
+
+  # Fixture: check_dead_sources — Source: line names a docs/ guide that exists in
+  # the repo but not in the skill or core/; the external citation (dev-rules.md) and
+  # the linked core file must NOT be flagged
+  mkdir -p "$tmp/f20/ds-alpha/references" "$tmp/f20/core" "$tmp/f20/docs/backend"
+  printf '**Source:** [OWASP](https://owasp.org/), api-guide.md Section 2\n**Source:** dev-rules.md — Error Ownership Gate\n' > "$tmp/f20/ds-alpha/references/rules-y.md"
+  printf '**Source:** [principles](../core/principles.md)\n' > "$tmp/f20/ds-alpha/SKILL.md"
+  printf '# p\n' > "$tmp/f20/core/principles.md"
+  printf '# guide\n' > "$tmp/f20/docs/backend/api-guide.md"
+  assert_catches "check_dead_sources" "$tmp/f20" check_dead_sources
+  out=$(cd "$tmp/f20" && fail=0 && check_dead_sources 2>&1)
+  case "$out" in
+    *"dev-rules.md"*|*"principles.md"*) echo "SELF-TEST BROKEN: check_dead_sources flagged an external citation or a linked core file"; st_fail=1 ;;
+    *) echo "SELF-TEST OK: check_dead_sources left the external citation and the core link alone" ;;
+  esac
+
+  # Fixture: check_readme_counts — README claims 9 scopes, SKILL.md says 7
+  mkdir -p "$tmp/f21/ds-alpha"
+  printf 'Covers 9 scopes.\n' > "$tmp/f21/ds-alpha/README.md"
+  printf '## Scopes\n7 scopes in total.\n' > "$tmp/f21/ds-alpha/SKILL.md"
+  assert_catches "check_readme_counts" "$tmp/f21" check_readme_counts
+
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 19 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 22 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -645,6 +730,14 @@ mutation_test() {
   _mut "12 overlap authorization" "id=\$(sed -n 's/^\*\*Dimensions:\*\* *//p' ds-fix/SKILL.md | head -1 | cut -d, -f1 | sed 's/ *(.*//'); sed \"s/^\*\*Dimensions:\*\* none (carrier)/**Dimensions:** \$id/\" ds-commit/SKILL.md > t && mv t ds-commit/SKILL.md"
   _mut "14b auto-row presence"   "grep -v '^| \`--auto\`' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
   _mut "16 list-table spacing"   "printf -- '- item\n| a | b |\n' >> ds-fix/SKILL.md"
+  _mut "14 discovered ghost flag" "echo 'Pass \`--turbo\` to go faster.' >> ds-repo/SKILL.md"
+  _mut "37 spec citation"        "echo 'Resolve per Unattended Mode rule 3.' >> ds-fix/SKILL.md"
+  _mut "21 core link missing"    "echo 'See [x](../core/does-not-exist.md).' >> ds-fix/SKILL.md"
+  _mut "21 sibling link"         "echo 'See [x](../ds-test/SKILL.md).' >> ds-fix/SKILL.md"
+  _mut "38 dead source"          "echo '**Source:** nowhere-to-be-found.md' >> ds-backend/references/rules-api.md"
+  _mut "39 readme count"         "echo 'Runs 99 scopes.' >> ds-repo/README.md"
+  _mut "18 done gate new member" "grep -v 'Mechanical Done Gate' ds-pr/SKILL.md > t && mv t ds-pr/SKILL.md"
+  _mut "35 checkpoint new member" "grep -v 'git status --porcelain' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
 
   if [ "$mt_fail" = "0" ]; then
     echo "MUTATION PASS: every mutated check went red"
@@ -799,9 +892,17 @@ done
 #     force-approve/dry-run/no-interactive/confirm are retired (folded into --auto
 #     or renamed — see SKILL-SPEC.md Unattended Mode) and MUST NOT reappear.
 for f in ds-*/SKILL.md; do
-  for flag in auto preview resume clean status static run; do
-    grep -v '/ds-' "$f" | grep -q "\`--$flag\`" || continue
-    grep -qE "^\| *.?\`--$flag" "$f" || err "$f uses \`--$flag\` but its Arguments table does not define it"
+  # every backtick-delimited skill flag used in the body must appear in a table row
+  # (the Arguments table) — discovered, not a fixed list. Excluded: fenced blocks,
+  # /ds-* handoff lines, the delegation line (it names sibling skills' flags), and
+  # lines that carry a third-party command or tool (gh, git, npm, cargo, Knip,
+  # Vulture, the ds-brief verifier, CSS custom properties such as `--measure`)
+  # whose own flags are not this skill's vocabulary.
+  for flag in $(awk '/^```/{fence=!fence; next} !fence' "$f" | grep -v '/ds-' | grep -v '^\*\*Owns:' \
+                  | grep -vE '[Kk]nip|Vulture|verify-brief|CSS|[0-9]px|`(gh|git|npm|npx|pnpm|yarn|bun|pip|pipx|uv|cargo|go|dart|flutter|dotnet|mvn|gradlew?|composer|bundle|mix|sbt|docker|kubectl|helm|terraform|wrangler|clasp|gitleaks|trufflehog|syft|knip|actionlint|shellcheck|eslint|prettier|ruff|pytest|stryker|python3?|reset|rebase|push|commit) |\.(py|sh) |install\.sh' \
+                  | grep -oE '`--[a-z][a-z0-9-]*' | sed 's/^`--//' | sort -u); do
+    case "$flag" in no-verify|json|limit|state|reason|parent|add-blocked-by|add-sub-issue|body-file|web|fix|write|force|hard|mixed) continue;; esac
+    grep -qE "^\|.*\`--$flag" "$f" || err "$f uses \`--$flag\` but its Arguments table does not define it"
   done
   # Retired names are SKILL-flag vocabulary (SKILL-SPEC.md §Flag Vocabulary), so match
   # the shape a skill flag always has here: backtick-delimited on its own (`--preview`)
@@ -853,15 +954,14 @@ done
 # 18. v5 — Mechanical Done Gate: every code-modifying skill carries the gate
 #     (SKILL-SPEC section 4, Mechanical Done Gate). List = skills that create or
 #     modify project files; read-only/planning skills are exempt by design.
-for s in ds-compliance ds-freeze ds-init ds-backend ds-frontend ds-mobile ds-review ds-simplify ds-fix ds-test ds-deps ds-tune ds-solve ds-issue ds-commit; do
+for s in ds-compliance ds-freeze ds-init ds-backend ds-frontend ds-mobile ds-review ds-simplify ds-fix ds-test ds-deps ds-tune ds-solve ds-issue ds-commit ds-pr ds-repo ds-devops ds-docs; do
   grep -q "Mechanical Done Gate" "$s/SKILL.md" 2>/dev/null \
     || err "$s/SKILL.md missing Mechanical Done Gate (SKILL-SPEC section 4 — code-modifying skill)"
 done
 
 check_claude_md_counts
 check_delegates_receives_graph
-check_standalone_paths
-check_intra_skill_links
+check_core_links
 check_bare_repo_paths
 check_auto_row_canonical
 check_rule_heading_level
@@ -876,9 +976,12 @@ check_frontmatter_fields
 check_delegation_targets
 check_checkpoint_gate
 check_secret_pattern_set
+check_spec_citations
+check_dead_sources
+check_readme_counts
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, standalone-paths, intra-skill-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets, checkpoint-gate, secret-pattern-set all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, core-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets, checkpoint-gate, secret-pattern-set, spec-citations, dead-sources, readme-counts all consistent"
 else
   exit 1
 fi

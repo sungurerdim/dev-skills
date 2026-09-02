@@ -1,0 +1,13 @@
+# Normalize line endings: LF in the repo and in every checkout.
+# Shell and Python here run through bash/shellcheck/python3, all of which
+# choke on CRLF (shellcheck SC1017); Windows checkouts with core.autocrlf=true
+# were producing exactly that.
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.png binary
+*.jpg binary
+*.gif binary

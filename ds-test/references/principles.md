@@ -1,9 +1,9 @@
 <!-- variant: extends the shared principles baseline with the critical-flow wiring check (real dispatch exercised; only true external boundaries mocked) and the Mocks Aren't Stubs source; deliberate divergence from the majority copy -->
 # Engineering Principles (skill-bundled reference)
 
-This file is bundled with every skill that depends on these principles, so the skill works standalone — even when the user installs only this one skill without the rest of the suite or the SKILL-SPEC. Every claim cites the source it came from; verify upstream when in doubt.
+This file is bundled with every skill that depends on these principles, so the skill works standalone — even when the user installs only this one skill without the rest of the suite. Every claim cites the source it came from; verify upstream when in doubt.
 
-The eight sub-sections below cover only the principles that touch this skill's behavior. The full catalog (110 principles, 24 sources) is at https://github.com/sungurerdim/dev-skills/blob/main/references/software-best-practices.md.
+The eight sub-sections below cover only the principles that touch this skill's behavior. The full catalog (110 principles, 24 sources) is at https://github.com/sungurerdim/dev-skills/blob/main/core/software-best-practices.md.
 
 ---
 
@@ -169,4 +169,4 @@ Skills that produce or touch configuration MUST:
 | Refactoring.Guru | https://refactoring.guru/refactoring |
 | DORA Capabilities | https://docs.cloud.google.com/architecture/devops/technical |
 | NIST SP 800-218 (SSDF) | https://csrc.nist.gov/Projects/ssdf |
-| Software Best Practices (full curated catalog, 110 principles) | https://github.com/sungurerdim/dev-skills/blob/main/references/software-best-practices.md |
+| Software Best Practices (full curated catalog, 110 principles) | https://github.com/sungurerdim/dev-skills/blob/main/core/software-best-practices.md |

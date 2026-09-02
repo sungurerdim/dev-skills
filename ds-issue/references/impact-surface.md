@@ -2,7 +2,7 @@
 
 Before any code changes, enumerate the **touched · linked · affected** set. The output is a code-map contract: an explicit affected-set that every later phase is checked against. A change that breaks a node in this set is not done. Skipping this map is how a one-file "fix" silently breaks five callers.
 
-## The six axes (DSC — evaluate every axis every run)
+## The six axes (deterministic checklist — evaluate every axis every run)
 
 | Axis | What to enumerate | How to find it |
 |------|-------------------|----------------|

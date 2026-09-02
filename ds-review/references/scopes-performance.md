@@ -14,7 +14,7 @@ Deep performance analysis beyond the tactical `performance` scope. Loaded only w
 | Database | Query performance, N+1 detection, connection pooling, index usage |
 | Cost | Paid API/LLM call efficiency, cloud egress/cross-region transfer, oversized infra defaults, storage/log lifecycle policies, polling-vs-webhook waste |
 | Resource Economy | Payload size (API response, assets, HTML), compression ratio (gzip/brotli enabled), cache-hit rate (CDN, service worker, API cache), storage growth trend, data-saving patterns (lazy loading, image optimization, bundle splitting) |
-| Scale Envelope (D1, advisory) | Does the project document a measured scale limit for its critical flows — "works up to N users / M records on X architecture" — backed by a cited synthetic-fixture method (see ds-test scale-envelope fixture pattern)? No documented envelope → advisory finding "no declared scale envelope — measure critical flows against a synthetic max-size fixture and document the limit" (never a blocker, SKILL-SPEC §15) |
+| Scale Envelope (D1, advisory) | Does the project document a measured scale limit for its critical flows — "works up to N users / M records on X architecture" — backed by a cited synthetic-fixture method (see ds-test scale-envelope fixture pattern)? No documented envelope → advisory finding "no declared scale envelope — measure critical flows against a synthetic max-size fixture and document the limit" (never a blocker, the mandated-blocker test) |
 
 **Scope boundary:** performance-specific deep dive. Produces optimization recommendations with estimated impact. Fixes only low-risk items (const constructors, unused imports, memoization); high-impact changes (architecture, caching strategy) → `needs_approval`.
 

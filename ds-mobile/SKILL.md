@@ -33,7 +33,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 
 - Audits mobile app quality; every finding cites file:line — never fabricates. Only touches mobile code; platform rules only on detected platforms.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- State-qualifying (SKILL-SPEC § State Management): a 13-domain audit is a long autonomous loop whose domain-by-domain progress lives nowhere else — an interrupted run re-scans from zero. Progress persists to `ds/audit/mobile.json` with the run's `git_hash`; applied fixes still land in the working tree, where git remains the durable record. State is deleted when the Summary completes.
+- State-qualifying (state-qualifying: a resumable multi-scope audit whose progress exists nowhere else): a 13-domain audit is a long autonomous loop whose domain-by-domain progress lives nowhere else — an interrupted run re-scans from zero. Progress persists to `ds/audit/mobile.json` with the run's `git_hash`; applied fixes still land in the working tree, where git remains the durable record. State is deleted when the Summary completes.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
@@ -101,7 +101,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 2. **Platform confirmation.** Ambiguous → ask user. **Under `--auto`:** best-judgment default — `Cross-platform` when multiple indicators are present, else the single detected platform; never blocks.
 3. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching mobile scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
-4. **IDU:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
+4. **Upstream artifacts:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
 5. **Mode selection.** No flag → present a menu covering every mode, each with a one-line what-it-does: Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / Release Ready — 100-point scoring + manual gates / Custom — pick scopes / (Cancel). A disambiguating flag (e.g. `--mode`, `--release-ready`) skips the menu. `--auto` alone also skips the menu — defaults to `audit+fix` (scan, review, fix — the most complete unattended default) unless `--release-ready` is also passed.
 6. **Scope parsing.** Default: `audit` mode, all domains.
 7. **Custom scope** (if Custom): ask for domains + mode.
@@ -124,10 +124,10 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 1. **Detect architecture:** pattern (Clean/MVVM/MVC), auth, state management, navigation, backend, offline, design system, testing, CI/CD, i18n, DI.
 2. **Confirm with user.** Present for corrections. **Under `--auto`:** skip the confirmation — treat the detected architecture as confirmed.
 3. **Classify rules:** CAT-1 = universal best practice, existing pattern misused, bug, security flaw (auto-fixable). CAT-2 = new layer/structure not in current architecture (needs approval). Category depends on architecture — user has Riverpod → UDF violation is CAT-1; no state management → adding it is CAT-2.
-4. **Present ideal scenario.** Show CAT-1 + CAT-2 opportunities; ask which enhancements to include (default: none). **Under `--auto`:** skip the ask — CAT-2 opportunities are included per best-judgment impact/effort/risk reasoning (Unattended Mode rule 3) instead of defaulting to none.
+4. **Present ideal scenario.** Show CAT-1 + CAT-2 opportunities; ask which enhancements to include (default: none). **Under `--auto`:** skip the ask — CAT-2 opportunities are included per best-judgment impact/effort/risk reasoning (best judgment) instead of defaulting to none.
 5. **Finalize scope:** all CAT-1 + only approved CAT-2; scope is fixed for entire audit.
 
-**Critical rule:** CAT-2 fixes are NEVER applied without user approval. **Under `--auto`:** this is an interactive-mode floor only — CAT-2 items resolve automatically per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning the approval step would show), recorded in the summary, except items matching the rule-4 exception list.
+**Critical rule:** CAT-2 fixes are NEVER applied without user approval. **Under `--auto`:** this is an interactive-mode floor only — CAT-2 items resolve automatically by best judgment (applied, using the same impact/effort/risk reasoning the approval step would show), recorded in the summary, except items matching the publish/irreversible exception list.
 
 **Gate:** Architecture confirmed; every rule classified CAT-1 / CAT-2; scope finalized with approved enhancements. If fails → no user corrections + no enhancement selections after one re-prompt → treat detected architecture as confirmed, classify unclassified rules as CAT-1, include zero CAT-2, record the detected architecture, proceed with note that architecture was auto-confirmed.
 
@@ -217,14 +217,14 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 
 0. **Checkpoint.** `git status --porcelain` → non-empty → interactive: ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: fix edits interleave with uncommitted work, single-command rollback is lost); `--auto`: proceed only when the pre-existing dirty state stays untouched by this skill's writes — otherwise stop and record `needs-human`. Never run a bulk fix over uncommitted unrelated changes silently. Empty output → clean tree, proceed.
 1. **Plan.** Read findings, apply severity filter, group by file, identify dependencies. Present CAT-1 + CAT-2 (pre-approved) — one line per fix (`[severity] title — file:line`) grouped by severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
-2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask (Apply all / per-severity bulk `Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item); `release-ready` → show auto-fixable vs guidance split. **Under `--auto`:** skip the confirmation for every mode — apply all CAT-1 + pre-approved CAT-2 fixes automatically, including CRITICAL, per Unattended Mode rule 3.
+2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask (Apply all / per-severity bulk `Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item); `release-ready` → show auto-fixable vs guidance split. **Under `--auto`:** skip the confirmation for every mode — apply all CAT-1 + pre-approved CAT-2 fixes automatically, including CRITICAL, by best judgment.
 3. **Execute.** Apply grouped by file. Re-read before + after each edit. Record applied/failed/skipped.
 
 **Gate:** All standard fixes attempted; each recorded. If fails → fix unattempt-able (file unreadable, edit error) → record `failed` as the finding's disposition, revert any partial edit via re-read + restore, continue; list failed fixes in Phase 9 summary with reason.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — every item resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the rule-4 exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — every item resolves by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → record `pending-user-decision` as the finding's disposition, proceed to Summary with status WARN, list unresolved items prominently.
 

@@ -128,7 +128,7 @@ Setup → Analyze-Principles → [Criteria-Fit] → [Suggest-Paths] → Apply (g
 ### Phase 1: Setup [SKIP if --auto]
 
 1. Pre-flight: `git rev-parse --is-inside-work-tree` → `true` (non-zero exit → warn, continue — git optional).
-2. **IDU:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
+2. **Upstream artifacts:** Profile → Config.priorities, Config.quality, Current Scores, Toolchain, Type+Stack. Findings(security, hygiene, types, performance, architecture, patterns) → verify + use. Absent → own analysis.
 3. **Mode selection.** No mode flag → present a menu covering every mode, each with a one-line what-it-does: All (recommended) — tactical → strategic → meta-quality sequentially (skip --perf unless explicit) / Tactical — file-level quality fixes / Strategic — architecture-level assessment / Performance — deep perf profiling / Meta-Quality — principle-based whole-project audit / (Cancel). A disambiguating mode flag skips the menu.
 4. **Scope selection.** No `--scope` → ask which scopes (default: all for selected mode).
 5. **Checkpoint pre-gate:** `git status --porcelain` → non-empty → ask: Commit first (recommended) / Stash / Proceed anyway (state the risk: failed fixes are reverted via `git checkout -- {file}`, which also discards uncommitted edits in that file) / Cancel.
@@ -242,13 +242,13 @@ Per fix, include education: **why** (impact if unfixed), **avoid** (anti-pattern
 
 ### Phase 5a: Needs-Approval Review [CONDITIONAL]
 
-Items flagged `needs_approval` (cross-module changes, architectural decisions): **Interactive** → state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the Unattended Mode rule-4 exception list are skipped and recorded `needs-human` instead.
+Items flagged `needs_approval` (cross-module changes, architectural decisions): **Interactive** → state the question (`Approve these N items?`) and present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the publish/irreversible exception list are skipped and recorded `needs-human` instead.
 
 **Gate:** All resolved (applied, skipped, deferred). If fails → user declined → mark unresolved disposition `deferred (user did not respond)`, proceed.
 
 ### Phase 5b: CRITICAL Escalation
 
-Any CRITICAL → flag for manual review before auto-fixing. Interactive mode: show finding with full context, ask explicit confirmation. CRITICAL verified with extra scrutiny — re-read file section + surrounding context. Under `--auto`: no confirmation is shown — CRITICAL fixes resolve automatically per Unattended Mode rule 3, applied with the same scrutiny and recorded in the summary, unless the finding matches the rule-4 exception list, in which case it is skipped and recorded `needs-human`.
+Any CRITICAL → flag for manual review before auto-fixing. Interactive mode: show finding with full context, ask explicit confirmation. CRITICAL verified with extra scrutiny — re-read file section + surrounding context. Under `--auto`: no confirmation is shown — CRITICAL fixes resolve automatically by best judgment, applied with the same scrutiny and recorded in the summary, unless the finding matches the publish/irreversible exception list, in which case it is skipped and recorded `needs-human`.
 
 **Gate:** Every CRITICAL explicitly confirmed or downgraded. If fails (user doesn't respond to confirmation) → do NOT apply CRITICAL fix; mark disposition `deferred (awaiting manual review)`, include in Needs Approval section of summary, continue with non-CRITICAL.
 

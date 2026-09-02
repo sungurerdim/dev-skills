@@ -192,14 +192,14 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 **Review-major group (requires approval):**
 
 1. Present every entry — one line each (`name: current → proposed · breaking?`) grouped by package class with counts; state the question (`Upgrade which of these N majors?`). "All" = exactly the displayed set. Full detail (breaking notes, migration steps from changelog, rollback path) under each entry.
-2. Modes: **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**. **Under `--auto`:** no menu shown — every major resolves per Unattended Mode rule 3 (applied using the same impact/effort/risk reasoning the menu would have shown, recorded in the summary); nothing about a major version bump matches the irreversible-exception list, so none is stranded as `needs-human`.
+2. Modes: **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**. **Under `--auto`:** no menu shown — every major resolves by best judgment (applied using the same impact/effort/risk reasoning the menu would have shown, recorded in the summary); nothing about a major version bump matches the irreversible-exception list, so none is stranded as `needs-human`.
 3. Per approved major: apply bump, run **full** test suite (not quick); fail → revert + mark failed; pass → commit.
 4. One commit per major: `chore(deps): upgrade {name} to {major-version}`. Body: breaking notes + migration link.
 
 **Removal group (requires approval):**
 
 1. Present candidates with "0 source references" evidence.
-2. Approve → remove from manifest + lockfile, run quick tests, commit `chore(deps): remove unused {name}`. **Under `--auto`:** resolves automatically per Unattended Mode rule 3 — removed, quick-tested, and committed without approval (git history keeps this fully reversible).
+2. Approve → remove from manifest + lockfile, run quick tests, commit `chore(deps): remove unused {name}`. **Under `--auto`:** resolves automatically by best judgment — removed, quick-tested, and committed without approval (git history keeps this fully reversible).
 
 **Mechanical Done Gate:** the per-group test run above is the test arm — add lint/type: resolve `{check-cmd}` in Phase 1 (ds-quality enforcement arm installed — stop-hook / pre-commit hook / auto-lint → its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision) and capture the baseline before the first group — baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. A bump can break the type graph with tests still green (e.g. a types-package minor) — run `{check-cmd}` after each group before its commit; new red → same revert path as a test failure. After the last group: run the full `{check-cmd}` once — the aggregate run's exact command + observed output is the Completion Evidence; never report `OK` with a new red.
 
@@ -209,7 +209,7 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
 
 Covers ONLY items still undecided after Phase 5 (deferred majors/removals, `--auto`-skipped items) — items already decided in Phase 5's inline approval are never re-presented (no double-asking).
 
-**Under `--auto`:** no review step is shown — remaining items (deferred majors/removals) resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — remaining items (deferred majors/removals) resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** Every B item has a decision (applied → fixed/failed, or explicitly skipped). If fails → undecided after prompt (dismissed/timed out) → mark `skipped (no decision)` for the summary, continue to Summary; do not re-prompt.
 

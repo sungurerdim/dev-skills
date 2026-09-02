@@ -62,7 +62,7 @@ Discovery → Analysis → Plan → Generate → Baseline → [Needs-Approval] �
 
 **State `data`:** `{ target_file, metric, direction, secondary, bench_cmd, budget_sec, tag, tune_dir: "ds/tune/", baseline: {value, commit}, branch, experiment_count, last_experiment_idx }`.
 
-**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize. **IDU:** Profile → Ideal Metrics, Type + Stack. Findings() → verify + use. Absent → own analysis.
+**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as baseline context for metric selection. Blueprint scores can suggest which dimensions to optimize. **Upstream artifacts:** Profile → Ideal Metrics, Type + Stack. Findings() → verify + use. Absent → own analysis.
 
 Ask ONE question:
 
@@ -92,7 +92,7 @@ Determine these values:
 | `budget_sec` | Max seconds per experiment (based on eval duration) |
 | `noisy` | `true`/`false` — does the metric vary run-to-run under identical conditions? Wall-clock, latency, throughput, sampled-accuracy → `true`. Byte/line/file counts, bundle size, lint-error count → `false`. Uncertain → default `true` (OPT-05, conservative). |
 
-**Gate:** All fields determined; metric is mechanical (computable in seconds, deterministic). If fails (no mechanical metric inferrable) → present 2–3 candidate proxy metrics with suggested `bench_cmd` (e.g. lint error count, test pass rate, timing), ask user to confirm one; user declines all → exit with WARN "ds-tune: cannot proceed without a measurable metric — provide a benchmark command or choose one of the suggested proxies."
+**Gate:** All fields determined; metric is mechanical (computable in seconds, deterministic). If fails (no mechanical metric inferable) → present 2–3 candidate proxy metrics with suggested `bench_cmd` (e.g. lint error count, test pass rate, timing), ask user to confirm one; user declines all → exit with WARN "ds-tune: cannot proceed without a measurable metric — provide a benchmark command or choose one of the suggested proxies."
 
 ### Phase 3: Plan
 
@@ -156,7 +156,7 @@ Requirements: cd to project root, redirect ALL output to `ds/tune/run.log`, outp
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the Unattended Mode rule-4 exception list are skipped and recorded `needs-human` instead.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the publish/irreversible exception list are skipped and recorded `needs-human` instead.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails (no response) → mark unresolved `skipped (user did not respond)` in state.data, proceed to Loop.
 

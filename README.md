@@ -15,7 +15,7 @@ Your AI coding assistant will hallucinate an API that doesn't exist, break file 
 | Number | Meaning |
 |--------|---------|
 | **30 skills** | One per real lifecycle moment — equip, discover, build, improve, document, comply, monetize, track, ship. Each skill owns defined [taxonomy dimensions](SKILL-SPEC.md#appendix-dimension-coverage-map) (A1–D11: product, engineering, trust, operations) with automated coverage tracking in `/ds-ship` reports |
-| **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`references/software-best-practices.md`](references/software-best-practices.md) |
+| **110 engineering principles** | Drawn from 24 authoritative sources (12-Factor, SOLID + GRASP, Clean Code, Pragmatic Programmer, Martin Fowler, Google SRE, DORA, OWASP) and encoded as gates — see [`core/software-best-practices.md`](core/software-best-practices.md) |
 | **17 AI failure modes** | W1–W11 universal — hallucination, tunnel vision, scope creep, memory decay, confidence bias, skip tendency, redundancy blindness, injection risk, state hygiene, findings-SSOT drift, error-ownership skip. W12–W17 domain-specific — spec-gaming, sycophancy, context rot, subagent-handoff, dependency hallucination, duplication drift. Every skill carries the applicable mitigations (W1–W17) |
 | **0 runtime dependencies** | Skills are markdown — they run inside your AI tool, not as services |
 | **6 AI tools supported** | Claude Code, OpenCode, Cursor, GitHub Copilot, Windsurf (now Devin Desktop, 2026-06-02), Aider — skills follow the open [Agent Skills spec](https://agentskills.io) (`SKILL.md`), so any host that reads it works |
@@ -184,13 +184,18 @@ git clone https://github.com/sungurerdim/dev-skills.git && cd dev-skills
 ./install.sh --skills ds-review,ds-commit  # or only the ones you want
 ./install.sh --profile lean                 # Claude-5 host + always-on rules layer (e.g. dev-rules):
                                             #   strips the portable-only blocks at install time
+./install.sh --profile claude               # lean + Claude Code only: ds-ship runs each delegate as a
+                                            #   forked subagent (isolated context, summary returned)
 ./install.sh --project /path/to/other-repo  # install into that repo's .claude instead of ~/.claude
 ./install.sh --check                        # later: installed copy in sync with the repo?
-./install.sh --update                       # fast-forward the clone + re-install (keeps your profile)
+./install.sh --status                       # one screen: installed version, repo version, upstream, drift
+./install.sh --update                       # fast-forward the clone, show what changed, re-install (keeps your profile)
 ./install.sh --uninstall                    # remove installed dev-skills content
 ```
 
-The installer copies **only runtime files** (skill dirs + agents) — spec and docs never enter your context path. Re-running syncs: files removed from a skill in the repo are removed from the installed copy too. Update = `git pull && ./install.sh`.
+**Windows:** the same commands run in Git Bash (ships with [Git for Windows](https://git-scm.com/download/win)); from cmd.exe or PowerShell use `install.cmd` with the same flags — it is a ten-line launcher that hands off to `install.sh`. Nothing else is needed: no rsync, no WSL.
+
+The installer copies **only runtime files** (skill dirs + `core/` + agents) — spec and docs never enter your context path. `core/` holds the references every skill links to (`../core/principles.md` and friends) and ships on every install, so a single-skill install resolves its links. Re-running syncs: files removed from a skill in the repo are removed from the installed copy too. Update = `./install.sh --update` (or `git pull && ./install.sh`).
 
 **OpenCode — nothing extra:** OpenCode reads `.claude/skills/` directly, so `./install.sh` covers it too.
 
@@ -236,15 +241,16 @@ skill-name/
   SKILL.md        ← Instructions and execution flow (≤500 lines and ≤48KB, both gated)
   README.md       ← What it does, how to use it (≤80 lines)
   references/     ← Detailed rules, loaded on demand
+core/             ← Shared references (principles, severity, toolchains, secret patterns, …), linked as ../core/<file>.md
 ```
 
-Each skill is a multi-phase execution system. Phases have explicit entry conditions, quality gates, and error recovery. References are loaded on demand — an invoked skill costs its SKILL.md (≤12K tokens, gated) and nothing more until it asks for a reference.
+Each skill is a multi-phase execution system. Phases have explicit entry conditions, quality gates, and error recovery. References are loaded on demand — an invoked skill costs its SKILL.md (≤12K tokens, gated) and nothing more until it asks for a reference. Shared references live once, in `core/`, and every install ships that directory beside the skills.
 
 ## Build your own
 
 All skills follow [SKILL-SPEC.md](SKILL-SPEC.md) — a universal specification for building tool-agnostic, token-efficient AI coding skills.
 
-See also: [AI Instruction Patterns](references/ai-instruction-patterns.md) — research-backed best practices for writing effective AI agent instructions.
+See also: the spec's [AI Instruction Patterns appendix](SKILL-SPEC.md#appendix-ai-instruction-patterns--research-rationale) — research-backed best practices for writing effective AI agent instructions.
 
 ## Companion: dev-rules
 

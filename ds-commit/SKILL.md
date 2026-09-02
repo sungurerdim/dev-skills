@@ -74,7 +74,7 @@ Pre-checks → Analyze → Execute → Verify → [Needs-Approval] → Summary
 
 **Quality Gates (changed files only):**
 
-- **IDU:** Profile → Toolchain. Findings(commit-relevant) → context for grouping. Absent → own detection.
+- **Upstream artifacts:** Profile → Toolchain. Findings(commit-relevant) → context for grouping. Absent → own detection.
 - **Always:** secret scan + large file check.
 - **Always: repo completeness check** — untracked source files referenced by tracked code: list untracked (`git ls-files --others --exclude-standard`), filter to source extensions (`.ts/.tsx/.js/.jsx/.go/.py/.dart/.rs/.rb/.php/.ex/.scala/.cs/.c/.cpp/.h/.swift/.vue/.svelte`; exclude build output, lockfiles, generated), grep tracked files for filename references + relative path patterns. Referenced-but-untracked → ask **"Used by your code but not tracked — CI will fail. Stage them?"**: Stage all (recommended) / Review each / Skip. Approve → `git add`, include in commit. Skip → warn "CI will likely fail". **Under `--auto`:** no prompt — Stage all (the recommended default).
 - **Code files:** format + lint (no tests) on changed files only. Tool unavailable → offer install, ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`. **Under `--auto`:** no prompt — install and continue when installation is non-interactive and low-risk (a local dev-dependency); otherwise mark `⚠ Skipped (tool unavailable)` and continue.

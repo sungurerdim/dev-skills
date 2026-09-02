@@ -141,7 +141,7 @@ Setup → Discover → Analyze → [Generate] → Report → [Needs-Approval] �
 
 ### Phase 1: Setup
 
-1. **IDU:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
+1. **Upstream artifacts:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
 2. Flags → proceed directly. No flags → interactive menu.
 3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`, `wrangler.toml`, `wrangler.jsonc`) + target: VPS, PaaS, serverless, container orchestration, or a container-less target (edge platform, static site, localhost-only — see Scopes § Container-less targets). Absence of a container signal is itself a signal: it selects the container-less branch, it does not make the run a Docker audit with everything missing.
 
@@ -180,7 +180,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 1. **Dockerfile:** multi-stage, non-root, optimized layers, health check.
 2. **docker-compose.yml:** services, networking, volumes, health checks, restart policies.
 3. **Reverse proxy config:** SSL termination, security headers, rate limiting.
-4. **CI deploy step:** delegated to `/ds-devops` (OVERLAP-3). This skill does not audit or modify CI pipeline structure. Missing deploy-on-merge workflow → emit single finding `missing-ci-deploy-step → delegated to ds-devops`, continue. `/ds-devops` owns pipeline YAML; `/ds-deploy` owns deploy target (container, TLS, monitoring).
+4. **CI deploy step:** delegated to `/ds-devops` (pipeline audit belongs to ds-devops). This skill does not audit or modify CI pipeline structure. Missing deploy-on-merge workflow → emit single finding `missing-ci-deploy-step → delegated to ds-devops`, continue. `/ds-devops` owns pipeline YAML; `/ds-deploy` owns deploy target (container, TLS, monitoring).
 5. **Backup script:** automated DB + file backup with rotation.
 
 Present generated files for review before writing. **Under `--auto`:** no review pause — write directly and list every generated file in the summary.

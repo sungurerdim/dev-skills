@@ -191,7 +191,7 @@ Setup → Discover → Analyze → [Design/Spec] → Report → [Needs-Approval]
 ### Phase 1: Setup
 
 1. Flags → proceed directly. No flags → interactive menu.
-2. **IDU:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
+2. **Upstream artifacts:** Profile → {Project Map.Modules, Config.data, Project Map.External, Type + Stack}. Findings({api, db, auth}) → verify + use. Absent → own analysis.
 3. Detect project stack (framework, ORM, auth library) by scanning config files + dependencies.
 4. Load relevant reference docs by detected scope: [references/rules-api.md](references/rules-api.md), [references/rules-auth.md](references/rules-auth.md), [references/rules-database.md](references/rules-database.md), [references/rules-data-pipeline.md](references/rules-data-pipeline.md).
 

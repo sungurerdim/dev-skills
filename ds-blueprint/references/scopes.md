@@ -2,7 +2,7 @@
 
 Blueprint uses these scopes for signal counting and scoring. Per scope, blueprint searches codebase for described patterns and counts matches. Detailed pattern definitions in SKILL.md Phase 3 assessment table.
 
-All 24 analysis scopes used by `/ds-blueprint`, grouped into the 3 execution batches from Phase 2.5 (Parallel-Track Planning). A 25th scope, `ideal-gap`, is produced externally by `/ds-benchmark` (not scanned by blueprint itself) — Phase 4's completeness check expects 25 distinct scopes in `ds/audit/findings.md` once benchmark has run.
+The 23 scopes `/ds-blueprint` owns, grouped into the 3 execution batches Phase 3 plans. Two more scopes appear in `ds/audit/findings.md` when their owners have run and are consumed, never scanned here: `privacy` (ds-compliance, canonical — it feeds the Security & Privacy dimension) and `ideal-gap` (ds-benchmark). Phase 4's completeness check expects exactly the scopes that ran this cycle (Phase 3 scope-resolution table), plus those two when present.
 
 ## Read-Only Batch (parallel — pure grep/file-read, no AST)
 
@@ -36,7 +36,7 @@ All 24 analysis scopes used by `/ds-blueprint`, grouped into the 3 execution bat
 | Scope | ID Range | Focus |
 |-------|----------|-------|
 | security | ds-compliance:SEC-01 to SEC-12 | Secrets, injection, unsafe deserialization, eval, debug endpoints, weak crypto, CORS, path traversal, SSRF, auth bypass |
-| privacy | ds-compliance:PRV-01 to PRV-08 | PII exposure/logging, missing masking/consent/retention (canonical detail sourced from ds-compliance when available) |
+| privacy (consumed) | ds-compliance:PRV-01 to PRV-08 | Not scanned here — rows come from ds-compliance; absent → Security & Privacy scored from `security` alone, dashboard says `privacy: not scanned (ds-compliance)` |
 | ai-hygiene | AIH-01 to AIH-08 | AI boilerplate (verbose wrappers, unnecessary abstractions), placeholder comments ("This function does X"), redundant error layers, hallucinated APIs, dead feature flags, stale mocks |
 | robustness | ROB-01 to ROB-10 | Missing timeout/retry, unbounded collections, null checks, resource cleanup |
 | production-readiness | PRD-01 to PRD-07 | Health probes, graceful shutdown, config validation, observability, debug endpoints exposed |
@@ -65,4 +65,4 @@ For structural scopes (architecture, patterns): score reflects health on 0-100 s
 - Every finding cites file:line. Read actual code before reporting.
 - Uncertain → lower severity. Style → max LOW.
 - 3+ examples before concluding systemic pattern.
-- Skip: # noqa, # intentional, # safe:, _ prefix, TYPE_CHECKING, platform guards, test fixtures.
+- Skip patterns, confidence bands and the score formula are the shared ones in [../../core/severity-score-categories.md](../../core/severity-score-categories.md).
