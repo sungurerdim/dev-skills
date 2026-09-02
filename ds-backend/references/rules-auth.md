@@ -36,7 +36,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 **Why:** Fast hashes (MD5, SHA-family) allow billions of guesses per second on modern GPUs. Argon2id with proper memory cost limits attackers to few hundred attempts per second per GPU.
 
-**Source:** [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), auth-implementation-guide.md Password Security section
+**Source:** [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) Password Security section
 
 ---
 
@@ -71,7 +71,7 @@ Set-Cookie: session_id=<value>;
 
 **Why:** Tokens in localStorage are readable by any JavaScript on the page, including injected XSS payloads. httpOnly cookies inaccessible to JavaScript entirely.
 
-**Source:** [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), auth-implementation-guide.md JWT Best Practices and Session Management sections
+**Source:** [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) JWT Best Practices and Session Management sections
 
 ---
 
@@ -96,7 +96,7 @@ RFC 9700 compliance checklist:
 
 **Why:** Implicit and ROPC grants expose tokens in URLs or require password sharing. Authorization Code + PKCE prevents authorization code interception and works securely for all client types.
 
-**Source:** [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 9700 — Best Current Practice for OAuth 2.0 Security](https://datatracker.ietf.org/doc/rfc9700/) (OAuth 2.1 remains an IETF draft consolidating the same rules), auth-implementation-guide.md OAuth 2.0 section
+**Source:** [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 9700 — Best Current Practice for OAuth 2.0 Security](https://datatracker.ietf.org/doc/rfc9700/) (OAuth 2.1 remains an IETF draft consolidating the same rules), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) OAuth 2.0 section
 
 ---
 
@@ -126,7 +126,7 @@ Keep JWT payloads small: `sub`, `iss`, `aud`, `exp`, `iat`, `jti`, and role/scop
 
 **Why:** JWT algorithm confusion is CRITICAL vulnerability. Accepting `alg=none` or failing to verify signatures allows token forgery.
 
-**Source:** [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 8725 — JWT Best Current Practices](https://datatracker.ietf.org/doc/html/rfc8725) (a bis revision adding algorithm-confusion + JWE compression-DoS defenses is in IETF draft as of mid-2026), auth-implementation-guide.md JWT Best Practices section
+**Source:** [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 8725 — JWT Best Current Practices](https://datatracker.ietf.org/doc/html/rfc8725) (a bis revision adding algorithm-confusion + JWE compression-DoS defenses is in IETF draft as of mid-2026), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) JWT Best Practices section
 
 ---
 
@@ -157,7 +157,7 @@ PKCE replaces CSRF tokens in OAuth flows (per RFC 9700).
 
 **Why:** CSRF attacks trick authenticated users into performing unintended actions. Single missing CSRF check on sensitive endpoint enables account takeover or data manipulation.
 
-**Source:** [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), auth-implementation-guide.md Session Management section
+**Source:** [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) Session Management section
 
 ---
 
@@ -181,7 +181,7 @@ For solo dev with fewer than 5 roles: flat RBAC with `role` column on user table
 
 **Why:** Missing server-side authorization is most common API vulnerability (OWASP API1: BOLA accounts for 40% of all API attacks).
 
-**Source:** [NIST RBAC Model](https://csrc.nist.gov/projects/role-based-access-control), auth-implementation-guide.md RBAC and Permission Models section
+**Source:** [NIST RBAC Model](https://csrc.nist.gov/projects/role-based-access-control), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) RBAC and Permission Models section
 
 ---
 
@@ -205,7 +205,7 @@ Error messages must be generic: "Invalid credentials" rather than "Wrong passwor
 
 **Why:** Authentication endpoints are primary target for credential stuffing and brute-force attacks. Without rate limiting, attackers can attempt millions of passwords per hour.
 
-**Source:** [OWASP Credential Stuffing Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html), auth-implementation-guide.md Common Vulnerabilities section
+**Source:** [OWASP Credential Stuffing Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) Common Vulnerabilities section
 
 ---
 
@@ -235,7 +235,7 @@ Default for solo developers: server sessions with httpOnly cookies. Add JWT only
 
 **Why:** Wrong auth mechanism → unnecessary complexity (JWT for simple web app) or security gaps (sessions without shared store in distributed system).
 
-**Source:** [Auth0 Session vs JWT comparison](https://auth0.com/blog/), auth-implementation-guide.md Auth Decision Framework section
+**Source:** [Auth0 Session vs JWT comparison](https://auth0.com/blog/), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) Auth Decision Framework section
 
 ---
 

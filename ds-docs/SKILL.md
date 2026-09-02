@@ -85,9 +85,9 @@ Without flags: present mode selection to the user.
 **Operations (`--adr` mode):**
 
 1. **Inventory:** list existing ADRs, verify numbering contiguous, flag any missing status/date/sections. Spot-check each `accepted` ADR's referenced file paths/symbols against current code — a since-removed reference → flag `drifted`, propose a status review (deprecate / supersede); never silently trust an ADR the system has outgrown.
-2. **Proposal candidates:** every Category B decision surfaced in recent `ds/audit/findings.md` runs (scope `ideal-gap`, `architecture`, `stack-fitness`) without a matching ADR → propose a draft ADR. User approves each before writing. **Under `--auto`:** no approval shown — each draft resolves per Unattended Mode rule 3 (written using best-judgment synthesis of the finding), recorded in the summary.
+2. **Proposal candidates:** every Category B decision surfaced in recent `ds/audit/findings.md` runs (scope `ideal-gap`, `architecture`, `stack-fitness`) without a matching ADR → propose a draft ADR. User approves each before writing. **Under `--auto`:** no approval shown — each draft resolves by best judgment (written using best-judgment synthesis of the finding), recorded in the summary.
 3. **Supersedence:** new ADR contradicting an earlier one cites superseded ADR; earlier ADR updated to `status: superseded-by NNNN`.
-4. **No autonomous ADR writes.** Every new ADR is Category B — user approves title + draft before file creation. **Under `--auto`:** this gate resolves automatically per Unattended Mode rule 3 — nothing about drafting a documentation file (git-reversible, no credential, no business/legal call) matches the irreversible-exception list, so it is never left `needs-human`.
+4. **No autonomous ADR writes.** Every new ADR is Category B — user approves title + draft before file creation. **Under `--auto`:** this gate resolves automatically by best judgment — nothing about drafting a documentation file (git-reversible, no credential, no business/legal call) matches the irreversible-exception list, so it is never left `needs-human`.
 
 ### Harness scope (activated by `--scope=harness` or when `harness` scope is explicitly selected)
 
@@ -114,7 +114,7 @@ These files are re-injected into every session as low-trust background context, 
 
 **Gate:** Every present file inventoried and classified; every DOC-11 flag verified against source. If fails → source unreadable → mark item `inconclusive`, do not cut it.
 
-Never auto-apply. Category B: show the proposed diff (cuts + additions + one-line rationale each) and get approval before writing — a harness context file shapes every future session's behavior across the whole project, a higher blast radius than most doc edits. **Under `--auto`:** resolves automatically per Unattended Mode rule 3 — the diff applies using the same cut/keep judgment shown here, recorded in the summary; nothing about editing a harness file matches the irreversible-exception list.
+Never auto-apply. Category B: show the proposed diff (cuts + additions + one-line rationale each) and get approval before writing — a harness context file shapes every future session's behavior across the whole project, a higher blast radius than most doc edits. **Under `--auto`:** resolves automatically by best judgment — the diff applies using the same cut/keep judgment shown here, recorded in the summary; nothing about editing a harness file matches the irreversible-exception list.
 
 ## Delegation
 
@@ -126,9 +126,9 @@ Setup → Analysis → Gap Analysis → [Plan] → Generate → [Needs-Approval]
 
 ### Phase 0: Pre-flight [ALWAYS — never skip]
 
-**IDU:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis. Findings file fresh (meta `git_hash` equals `git rev-parse HEAD` output, current run-cycle) → target specific gaps (skip own analysis for covered areas); stale or absent → run own full analysis.
+**Upstream artifacts:** Profile → {Config.audience, Project Map, Type, Config.priorities}. Findings({docs}) → verify + use. Absent → own analysis. Findings file fresh (meta `git_hash` equals `git rev-parse HEAD` output, current run-cycle) → target specific gaps (skip own analysis for covered areas); stale or absent → run own full analysis.
 
-**Gate:** IDU complete, findings loaded or own analysis planned. If fails → findings unreadable or stale `git_hash` → discard, proceed with own full analysis; profile absent → continue + note "no blueprint profile — using own analysis" in run header.
+**Gate:** upstream artifacts read, findings loaded or own analysis planned. If fails → findings unreadable or stale `git_hash` → discard, proceed with own full analysis; profile absent → continue + note "no blueprint profile — using own analysis" in run header.
 
 ### Phase 1: Setup [SKIP if --auto]
 
@@ -233,7 +233,7 @@ Label map for orchestrated runs: ds-ship's promise census uses `promised-not-imp
 
 ### Phase 4: Plan Review (skip if --auto)
 
-Display plan (target files, sections, sources). Ask: Generate All / High Priority Only / Abort. **Under `--auto`:** this phase is skipped entirely — resolves to Generate All (best-judgment default: every detected gap is addressed) per Unattended Mode rule 2.
+Display plan (target files, sections, sources). Ask: Generate All / High Priority Only / Abort. **Under `--auto`:** this phase is skipped entirely — resolves to Generate All (best-judgment default: every detected gap is addressed) per a flag disambiguates every menu.
 
 **Gate:** User approved plan or `--auto`. If fails → Abort → exit cleanly `docs: ABORTED | Generated: 0`; High Priority Only → update scopes_selected to HIGH/CRITICAL only, proceed.
 
@@ -245,7 +245,7 @@ Principles: extract from code, don't invent — read source for actual signature
 
 **Compliance scope (when scope = compliance):**
 
-- **Overwrite prevention:** target file exists → do NOT overwrite. Show diff between existing + proposed, ask "Update / Keep / Show diff". **Under `--auto`:** no ask — resolves per Unattended Mode rule 3 (Update when the proposed version is more accurate/complete than the existing one, else Keep), decision recorded in the summary.
+- **Overwrite prevention:** target file exists → do NOT overwrite. Show diff between existing + proposed, ask "Update / Keep / Show diff". **Under `--auto`:** no ask — resolves by best judgment (Update when the proposed version is more accurate/complete than the existing one, else Keep), decision recorded in the summary.
 - **Infrastructure-detail safety:** compliance docs MUST NOT embed hardcoded server addresses, internal endpoints, secret-management tool names, or proprietary internal tool names. Use placeholders (`{your-domain}`, `{DPA-contact-email}`, `{your-cloud-region}`). Disclosing internal infra in a public privacy policy is itself a security finding.
 
 Compliance template structures (scan codebase for data flows, third-party SDKs, privacy configs, API patterns):
@@ -264,7 +264,7 @@ Compliance template structures (scan codebase for data flows, third-party SDKs, 
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — items resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue to Summary; do not retry.
 
@@ -296,6 +296,7 @@ Zero-finding run: `Documentation in sync with source — no drift detected`.
 - Generated / cross-surface numbers come from the generator or a drift check — a hand-copied figure is a finding while it is still correct; access dates are written only for sources opened this run
 - Only modify documentation files — never touch source code
 - Generated docs match project's existing documentation style
+- **Mechanical Done Gate:** resolve `{check-cmd}` once at setup — the ds-quality enforcement arm when installed, else the repo's doc checks (link checker, `markdownlint`, `typos`, a docs build such as `mkdocs build --strict` / `npm run docs:build`) from [../core/toolchains.md](../core/toolchains.md) when present; capture the baseline; re-run after each written doc batch and once in aggregate before reporting done. New red → fix (≤3 attempts, same command), then revert the offending file and record `reverted`; baseline red is reported red-at-baseline, never inherited; no doc tooling detectable → report the Verification-Infrastructure Gap and fall back to the source-verification gate above, never skip silently.
 - W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 

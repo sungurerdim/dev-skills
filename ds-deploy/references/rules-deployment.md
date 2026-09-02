@@ -41,7 +41,7 @@ app.example.com { reverse_proxy localhost:3000 }
 
 **Why:** Unencrypted traffic exposes credentials, session tokens, and user data. Modern browsers flag HTTP as insecure.
 
-**Source:** Let's Encrypt, Caddy docs, deployment-patterns.md
+**Source:** Let's Encrypt, Caddy docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md)
 
 ---
 
@@ -66,7 +66,7 @@ COPY --from=builder /app/node_modules ./node_modules
 
 **Why:** Reduces image size 60-90%, shrinks attack surface by excluding build tools, speeds up pulls and deploys.
 
-**Source:** Docker multi-stage build docs, deployment-patterns.md
+**Source:** Docker multi-stage build docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md)
 
 ---
 
@@ -83,7 +83,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Why:** Without health checks, orchestrators route traffic to unhealthy containers. Health-gated deploys prevent bad releases from reaching users.
 
-**Source:** Kubernetes probe patterns, deployment-patterns.md (Monitoring section)
+**Source:** Kubernetes probe patterns, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Monitoring section)
 
 ---
 
@@ -119,7 +119,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Why:** Without `.dockerignore`, build context includes everything (`.git` alone can be hundreds of MB). Reduces build time, image size, and secret leakage risk.
 
-**Source:** Docker build context optimization, deployment-patterns.md
+**Source:** Docker build context optimization, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md)
 
 ---
 
@@ -131,7 +131,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Why:** Users experience errors during deployment without graceful transitions. Health-gated rollouts ensure only verified containers receive traffic.
 
-**Source:** Kubernetes rolling update strategy, deployment-patterns.md (Zero-Downtime section)
+**Source:** Kubernetes rolling update strategy, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Zero-Downtime section)
 
 ---
 
@@ -143,7 +143,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Why:** Single runaway process without limits can consume all host resources and crash co-located services.
 
-**Source:** Kubernetes resource management, deployment-patterns.md (Docker Compose section)
+**Source:** Kubernetes resource management, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Docker Compose section)
 
 ---
 
@@ -173,7 +173,7 @@ COPY . .                                  # source code (changes frequently)
 
 **Why:** Dev/prod parity catches environment-specific bugs early. New contributors can run full stack with single command.
 
-**Source:** Docker Compose docs, deployment-patterns.md (Docker Compose for Production)
+**Source:** Docker Compose docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Docker Compose for Production)
 
 ### DEP-11 | HIGH | Insecure Production Defaults
 

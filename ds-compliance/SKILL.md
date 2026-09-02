@@ -40,7 +40,7 @@ Single missing privacy policy or unpatched XSS can mean fines, data breaches, or
 - State-exempt: single regenerable report/audit.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
-- **Mobile-project overlap-skip (OVERLAP-4 runtime enforce):** When project signals mobile (`pubspec.yaml` with `flutter:`, `package.json` with `react-native`, `*.xcodeproj`, or `build.gradle` with `android {}`), default-skip security/privacy/regulatory — owned by `/ds-mobile`. Announce: "Mobile project detected — security/privacy/regulatory delegated to /ds-mobile". Override with `--scope=security,privacy,regulatory`.
+- **Mobile-project overlap-skip (overlap rule, runtime enforcement):** When project signals mobile (`pubspec.yaml` with `flutter:`, `package.json` with `react-native`, `*.xcodeproj`, or `build.gradle` with `android {}`), default-skip security/privacy/regulatory — owned by `/ds-mobile`. Announce: "Mobile project detected — security/privacy/regulatory delegated to /ds-mobile". Override with `--scope=security,privacy,regulatory`.
 
 ## Arguments
 
@@ -112,7 +112,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 ### Phase 1: Detect
 
-1. **IDU:** Profile → Config.regulations, Config.data, Config.audience, Type+Stack. Findings(compliance scopes) → verify + use. Absent → own analysis.
+1. **Upstream artifacts:** Profile → Config.regulations, Config.data, Config.audience, Type+Stack. Findings(compliance scopes) → verify + use. Absent → own analysis.
 
 2. **Project detection.** Search for config to identify type:
    - **Web frontend:** `package.json` with react/next/vue/nuxt/angular/svelte/astro
@@ -126,7 +126,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 5. **Scope selection.** No `--scope` → ask which domains (default: all applicable). Regulatory scope: detect frameworks (GDPR, KVKK, CCPA, etc.) from codebase patterns, confirm. **Under `--auto`:** no prompts — default applies (all applicable domains); detected regulatory frameworks are used without confirmation.
 
-6. **Overlap routing (runtime enforcement — OVERLAP-1, -2, -4):**
+6. **Overlap routing (runtime enforcement of the overlap rules):**
    - **Mobile project detected** (`pubspec.yaml` with `flutter:` OR `Info.plist` OR `AndroidManifest.xml`) → invoke `/ds-mobile --scope=security,privacy,regulatory`, wait for completion, read its `ds/audit/findings.md` updates, remove `security/privacy/regulatory` from active scope. Keep only non-mobile-covered scopes (a11y, i18n, web, network, perf, arch) locally. Rationale: ds-mobile authoritative; running both duplicates findings.
    - **a11y scope active + project has frontend** (framework detected in `package.json` / equivalent) → announce delegation: "a11y implementation + fixes delegated to /ds-frontend. This run keeps regulatory framing only (ADA / EN301549 mapping)." Mark a11y `framing-only`; emit only regulatory-mapping findings.
    - **Privacy scope active** → canonical owner. Announce: "/ds-launch --privacy narrows to store-label-correctness. This run emits canonical privacy findings, including event-property PII scanning."

@@ -88,9 +88,12 @@ else
 fi
 
 # The repo's own executable code gets the same treatment as its markdown: checked,
-# or loudly unchecked. shellcheck is the only linter that applies here.
+# or loudly unchecked. shellcheck is the only linter that applies here. `-f gcc`
+# keeps the output ASCII-safe: the default tty format echoes source lines, and on a
+# Windows console that cannot encode an em-dash shellcheck aborts with exit 2
+# before reporting anything.
 if command -v shellcheck >/dev/null 2>&1; then
-  step "shellcheck" "shellcheck -S warning install.sh scripts/*.sh"
+  step "shellcheck" "shellcheck -S warning -f gcc install.sh scripts/*.sh evals/tasks/*/*.sh"
 else
   printf '\n=== [quality] shellcheck ===\n' >&2
   printf '[quality] FAILED: shellcheck not found.\n' >&2

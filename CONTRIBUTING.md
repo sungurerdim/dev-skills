@@ -22,7 +22,7 @@ ds-skill-name/
 
 - Prefix skill folders with `ds-` (dev-skills namespace)
 - Use kebab-case for folder names
-- No dependencies between skills — each one stands alone
+- No dependencies between skills — each one stands alone. Shared text lives once in `core/` and is linked as `../core/<file>.md`; never copy it into a skill
 
 ## Quality Standards
 

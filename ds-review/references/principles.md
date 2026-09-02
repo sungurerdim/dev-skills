@@ -1,9 +1,9 @@
 <!-- variant: extends the shared principles baseline with the "Anti-Overengineering Guard" 3-gate harm screen (canonical statement lives here); deliberate divergence from the majority copy -->
 # Engineering Principles (skill-bundled reference)
 
-This file is bundled with every skill that depends on these principles, so the skill works standalone — even when the user installs only this one skill without the rest of the suite or the SKILL-SPEC. Every claim cites the source it came from; verify upstream when in doubt.
+This file is bundled with every skill that depends on these principles, so the skill works standalone — even when the user installs only this one skill without the rest of the suite. Every claim cites the source it came from; verify upstream when in doubt.
 
-The eight sub-sections below cover only the principles that touch this skill's behavior. The full catalog (110 principles, 24 sources) is at https://github.com/sungurerdim/dev-skills/blob/main/references/software-best-practices.md.
+The eight sub-sections below cover only the principles that touch this skill's behavior. The full catalog (110 principles, 24 sources) is at https://github.com/sungurerdim/dev-skills/blob/main/core/software-best-practices.md.
 
 ---
 
@@ -172,7 +172,7 @@ When multiple detectors flag the same site, apply these rules before emitting fi
 
 Apply this pass after Phase 2 Analyze and again after Phase 3a Analyze-Principles (`--meta-quality` mode). The output of either phase must not contain duplicates by these rules.
 
-**Why:** Repeated reporting of the same site under different scope labels inflates counts, exhausts user attention, and breaks the FRC+DSC accounting (the same site cannot have two final dispositions).
+**Why:** Repeated reporting of the same site under different scope labels inflates counts, exhausts user attention, and breaks the disposition accounting (the same site cannot have two final dispositions).
 
 ---
 
@@ -225,4 +225,4 @@ Every `needs-approval` and `skipped` finding MUST cite a concrete blocker. The b
 | Refactoring.Guru | https://refactoring.guru/refactoring |
 | DORA Capabilities | https://docs.cloud.google.com/architecture/devops/technical |
 | NIST SP 800-218 (SSDF) | https://csrc.nist.gov/Projects/ssdf |
-| Software Best Practices (full curated catalog, 110 principles) | https://github.com/sungurerdim/dev-skills/blob/main/references/software-best-practices.md |
+| Software Best Practices (full curated catalog, 110 principles) | https://github.com/sungurerdim/dev-skills/blob/main/core/software-best-practices.md |

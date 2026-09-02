@@ -36,7 +36,7 @@ PR descriptions that list every commit instead of net change create noise, confu
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
 - Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
-- **Unattended carve-out (Unattended Mode rule 4, clause (b) — publishing):** under `--auto` this skill
+- **Unattended carve-out (publishing clause of the publish/irreversible exception list):** under `--auto` this skill
   runs Phases 1–3 only (validate, tidy, quality gates, net-diff analysis) and then stops. It never pushes,
   never creates or updates a PR, and never merges — every one of those publishes. It prints the prepared
   title and body, records `pr: needs-human`, and names the command the user can run.
@@ -69,7 +69,7 @@ Validate → History Tidy → Quality Gates → Analyze → [Review Disposition]
 
 **Findings file check:** `ds/audit/findings.md` with fresh `git_hash` → note relevant findings for PR body context. Stale → ignore.
 
-**IDU:** Profile → {Project Map.Toolchain, Type + Stack}. Findings({pr}) → verify + use. Absent → own analysis.
+**Upstream artifacts:** Profile → {Project Map.Toolchain, Type + Stack}. Findings({pr}) → verify + use. Absent → own analysis.
 
 **Steps 1-4 are independent — run in parallel:**
 
@@ -95,9 +95,10 @@ Validate → History Tidy → Quality Gates → Analyze → [Review Disposition]
 
 If `git rev-list --count origin/{base}..HEAD` → >3 unpushed commits, offer to tidy: squash into logical commits based on net diff.
 
+- **Checkpoint pre-gate (stop-hard, [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)):** `git status --porcelain` → non-empty → the tidy does not start in any mode: its failure path is `git reset --hard $ORIG_HEAD`, which would destroy uncommitted work. Interactive → show the dirty files, ask Commit first (recommended) / Stash / Skip tidy; `--auto` → skip the tidy, record `skipped (dirty working tree — commit or stash before tidying)`, continue with the PR as-is. Empty output → record `$ORIG_HEAD=$(git rev-parse HEAD)` and proceed.
 - Ask user: Tidy (recommended) or Keep as-is (--auto: tidy silently)
 - Execute: `git reset --mixed origin/{base}`, stage and commit per plan
-- On failure: `git reset --hard $ORIG_HEAD`
+- On failure: `git reset --hard $ORIG_HEAD` (safe only because the pre-gate proved a clean tree)
 - Push: `git push -u origin {branch}`
 
 **Gate:** Commits tidied (or skipped) and pushed to remote. If fails → if the tidy (git reset --mixed) fails, run `git reset --hard $ORIG_HEAD` to restore the branch and push the original commits as-is with a warning; if the push fails (rejected, no upstream), stop with error "Push failed — run `git push -u origin {branch}` manually and then retry /ds-pr".
@@ -145,7 +146,7 @@ Tests fail → stop. Only create PR when tests covering the changed files pass.
 Runs when Phase 1 found an existing PR and the user chose Update; skipped for a first-time PR (nothing has been reviewed yet).
 
 1. From the Phase 1 step 7 read, list every reviewer-borne item the update has to answer: `CHANGES_REQUESTED` reviews, unresolved review threads, and comment-borne requests (items posted after the last push are the prime suspects). This skill's own prior comments are not requirements.
-2. Each item gets exactly one disposition **before** the PR is updated or pushed: **addressed** — the net diff already carries it, cited `file:line`; **rejected** — replied to on its own thread with the reason (per-item confirm); **deferred** — a follow-up issue filed, its number quoted in the reply. Leaving an item with none of the three and still updating the PR is FORBIDDEN. **Under `--auto`:** the run stops at Phase 4 without publishing anyway — dispositions are still resolved per Unattended Mode rule 3 and printed with the prepared body, so the human sees what each review item got.
+2. Each item gets exactly one disposition **before** the PR is updated or pushed: **addressed** — the net diff already carries it, cited `file:line`; **rejected** — replied to on its own thread with the reason (per-item confirm); **deferred** — a follow-up issue filed, its number quoted in the reply. Leaving an item with none of the three and still updating the PR is FORBIDDEN. **Under `--auto`:** the run stops at Phase 4 without publishing anyway — dispositions are still resolved by best judgment and printed with the prepared body, so the human sees what each review item got.
 3. The rebuilt PR body states what changed since the last review round, one line per addressed item.
 
 **Gate:** every reviewer-borne item carries one of the three dispositions with its evidence. If fails → an item left undispositioned → stop before the update, list those items with their thread URLs, and ask for a decision; `gh api …/pulls/{n}/comments` unavailable (older `gh`, permissions) → disposition the review-level items, record the line-level gap in the summary, and mark the run WARN.
@@ -187,7 +188,7 @@ Under `--auto`: do NOT skip and do NOT proceed. Print the prepared title, body, 
    EOF
    ```
 2. `--request-review` → `gh pr edit {number} --add-reviewer "@copilot"`; command fails (Copilot review unavailable) → warn, continue.
-3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → offer once: this skill validates only its own PR titles — a CI title gate catches non-agent PRs before they break the squash-merge → release-please changelog chain. Accept → generate the workflow file for review; decline → gap-note in summary. Never write without confirmation. Under `--auto`: resolves automatically per Unattended Mode rule 3 — the workflow file is generated (reversible via git, not on the irreversible-exception list) and noted in the summary.
+3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → offer once: this skill validates only its own PR titles — a CI title gate catches non-agent PRs before they break the squash-merge → release-please changelog chain. Accept → generate the workflow file for review; decline → gap-note in summary. Never write without confirmation. Under `--auto`: resolves automatically by best judgment — the workflow file is generated (reversible via git, not on the irreversible-exception list) and noted in the summary.
 
 **Gate:** PR created successfully. `gh pr create` returned PR URL. If fails → stop with explicit error from `gh pr create` output; do not proceed to Merge Setup; suggest: check `gh auth status`, verify the branch was pushed, and re-run /ds-pr --no-tidy to skip the tidy step if the branch state changed.
 
@@ -221,7 +222,7 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the Unattended Mode rule-4 exception list are skipped and recorded `needs-human` instead.
+**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the publish/irreversible exception list are skipped and recorded `needs-human` instead.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → record unresolved item as `pending-user-decision`, proceed to Summary with WARN, list unresolved items.
 
@@ -245,6 +246,7 @@ After merge: `git checkout {base} && git pull origin {base} && git branch -d {br
 - PR description describes net diff — not journey of individual commits
 - **Update path: every reviewer-borne item dispositioned** (addressed with `file:line` / rejected with a thread reply / deferred to a filed issue) before the PR is updated — an unanswered requested change blocks the update (Phase 3.5)
 - Every quality gate check (format, lint, test) gets a disposition in summary
+- **Mechanical Done Gate:** resolve `{check-cmd}` once at setup — the ds-quality enforcement arm when installed, else the stack-native format → lint → type → test chain from [../core/toolchains.md](../core/toolchains.md); capture the baseline; re-run after each change batch and once in aggregate before reporting done. New red → fix (≤3 attempts, same command), then revert the offending change and record `reverted`; baseline red is reported red-at-baseline, never inherited; no tooling detectable → report the Verification-Infrastructure Gap, never skip silently.
 - Conventional commit type on PR title matches net diff classification
 - W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W13: the PR description reflects the verified net diff, not the author's claims about it; don't soften or inflate findings to match the PR narrative or reviewer authority.
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->

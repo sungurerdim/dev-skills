@@ -52,6 +52,8 @@ Without flags: present mode + scope selection to the user.
 
 ## Scopes
 
+40 rules across 15 domains, loaded per scope from `references/rules-*.md`.
+
 | Scope | What It Checks |
 |-------|---------------|
 | ci | CI/CD pipeline presence, quality gates, format / analyze / test / build stages, workflow lint layers (actionlint + zizmor), `pull_request_target` misuse |
@@ -69,7 +71,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 
 ### Phase 1: Detect
 
-1. **IDU:** Profile → Project Map.Toolchain, Type + Stack, Config.deploy. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
+1. **Upstream artifacts:** Profile → Project Map.Toolchain, Type + Stack, Config.deploy. Findings(ci, signing, deps, release-pipeline) → verify + use. Absent → own analysis.
 
 2. **Project type detection:**
 
@@ -90,7 +92,7 @@ Detect → Configure → Scan → Report → [Fix] → [Needs-Approval] → Summ
 5. **Mode selection.** No `--mode` → present the full menu: Full Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, summary only / (Cancel). A disambiguating flag skips the menu.
 6. **Scope selection.** No `--scope` → ask which scopes to audit (default: all).
 
-**Under `--auto`:** both menus are skipped — mode resolves to `audit+fix` (best-judgment default: scan and fix autonomously) and scope resolves to `all` (Unattended Mode rule 2).
+**Under `--auto`:** both menus are skipped — mode resolves to `audit+fix` (best-judgment default: scan and fix autonomously) and scope resolves to `all` (a flag disambiguates every menu).
 
 **Gate:** Project type matched to a detection signal (step 2) and a CI platform config file found (step 3); mode and scope confirmed. If fails → undetermined type → "What type of project? (Flutter / Node / Python / Go / Rust / Java / iOS / Android / Monorepo)"; undetected CI platform → "Which CI platform do you use?"; unconfirmed mode/scope after prompt → default Full Audit / all scopes, announce. **Under `--auto`:** no prompts — undetermined type/platform resolves to whatever manifest signals are present, or "no CI configured" (an Edge Case, not a blocker) when truly absent; recorded in the summary instead of asked.
 
@@ -156,7 +158,7 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 | `audit+fix` | Auto-transition to fix |
 | `quick-fix` | Auto-apply all, summary only |
 
-**Under `--auto`:** no prompt shown regardless of mode — every finding, including CRITICAL, resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning `Fix all` would have used), except items matching the irreversible-exception list, which become `needs-human`.
+**Under `--auto`:** no prompt shown regardless of mode — every finding, including CRITICAL, resolves by best judgment (applied, using the same impact/effort/risk reasoning `Fix all` would have used), except items matching the irreversible-exception list, which become `needs-human`.
 
 **Gate:** User selected post-report action; mode-specific next step determined. If fails → no response / dismissed prompt → default "Report only" (no fixes), announce default, proceed to Summary.
 
@@ -166,7 +168,7 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 
 0. **Checkpoint pre-step (before the first file write):** `git status --porcelain` → non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (explain risk). **Under `--auto`:** proceed only when the pre-existing dirty files are disjoint from the planned fix targets; a fix targeting a dirty file resolves `needs-human`. If the tree cannot be checkpointed → apply no fix over uncommitted unrelated changes; report the blocker.
 1. Present fix plan per the approval-menu convention — one line per fix (rule, `[severity]`, file:line, action); question `Apply these N fixes?`.
-2. Confirmation: quick-fix proceeds; audit+fix asks Apply all / per-severity bulk / proceed / cancel. **Under `--auto`:** no confirmation shown — resolves per Unattended Mode rule 3.
+2. Confirmation: quick-fix proceeds; audit+fix asks Apply all / per-severity bulk / proceed / cancel. **Under `--auto`:** no confirmation shown — resolves by best judgment.
 3. Apply fixes grouped by file.
 4. Present fix summary.
 
@@ -178,7 +180,7 @@ ds-devops: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — items resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue; do not retry.
 
@@ -199,7 +201,8 @@ Zero-finding run: `CI/CD scope clean — pipeline meets reviewed checks`.
 4. Stack consistency (correct CI syntax, valid config)
 5. **Shell quoting ([references/principles.md §5](references/principles.md)):** every shell line in generated CI configs uses double-quoted variable references (`"$VAR"`, `"${VAR}"`). Reject metacharacter injection in dynamic values. Flag unquoted user-data interpolation as CRITICAL.
 6. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
-7. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
+7. **Mechanical Done Gate:** resolve `{check-cmd}` once at setup — the ds-quality enforcement arm when installed, else the stack-native chain from [../core/toolchains.md](../core/toolchains.md) plus the CI-config linters this skill runs (`actionlint`, `yamllint` when present); capture the baseline; re-run after each change batch and once in aggregate before reporting done. New red → fix (≤3 attempts, same command), then revert the offending change and record `reverted`; baseline red is reported red-at-baseline, never inherited; no tooling detectable → report the Verification-Infrastructure Gap, never skip silently.
+8. W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 

@@ -49,7 +49,7 @@ Every feature stays "in scope" until someone explicitly says otherwise, so a rel
 | `--resume={#N}` | Resume from an existing tracking issue number; re-reads its checklists, unchecked items stay undecided |
 | `--skip-implement` | Stop after Phase 4 (manifest + filing) — implementation deferred to a separate `/ds-issue --do` pass |
 
-Without flags: present an up-front menu covering every mode — Full flow (recommended) — inventory through doc sync / Preview — inventory only, no mutation / Manifest only — triage + filing, no implementation (`--skip-implement`) / Resume — continue an existing tracking issue / (Cancel). A disambiguating flag skips the menu. `--auto` always disambiguates, selecting Full flow with every triage/approval decision made by best judgment (Unattended Mode rule 2).
+Without flags: present an up-front menu covering every mode — Full flow (recommended) — inventory through doc sync / Preview — inventory only, no mutation / Manifest only — triage + filing, no implementation (`--skip-implement`) / Resume — continue an existing tracking issue / (Cancel). A disambiguating flag skips the menu. `--auto` always disambiguates, selecting Full flow with every triage/approval decision made by best judgment (a flag disambiguates every menu).
 
 ## Scopes
 
@@ -103,7 +103,7 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 
 ### Phase 5: Implement Kept Set [SKIP if --skip-implement]
 
-1. For each `ship` item mapped to an open issue → delegate `/ds-issue --do #N`, wait for its completion signal, re-read the issue + `git diff` to verify the claimed outcome (W15) rather than trusting the delegate's summary. **Under `--auto`:** the delegate call forwards `--auto` (Unattended Mode rule 6) so its own execution proceeds without prompts too.
+1. For each `ship` item mapped to an open issue → delegate `/ds-issue --do #N`, wait for its completion signal, re-read the issue + `git diff` to verify the claimed outcome (W15) rather than trusting the delegate's summary. **Under `--auto`:** the delegate call forwards `--auto` (flag propagation to every delegate) so its own execution proceeds without prompts too.
 2. For each `defer-hidden` item → delegate a bounded flag-gate task to the owning build skill (advisory handoff: `/ds-backend`, `/ds-frontend`, or `/ds-review`, whichever owns that surface) — instruction: gate the feature behind a flag/toggle for this release, do not delete. Verify the feature is unreachable by default before marking done. **Under `--auto`:** same forwarding — the delegate runs with `--auto`.
 3. `defer-backlog` items get no code action this run — confirmed filed only (Phase 4).
 4. **Mechanical Done Gate:** resolve `{check-cmd}` — ds-quality enforcement arm installed (stop-hook / pre-commit hook / auto-lint) → use its gate command; else stack-native format/lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision, never silently skip. Capture the baseline before Phase 5 work starts; baseline red → done condition is "no *new* red", baseline reds reported as findings, never inherited as green.
@@ -114,7 +114,7 @@ Setup + Load → Inventory → Triage → Release Manifest → Implement Kept Se
 
 ### Phase 6: Documentation Sync
 
-1. Delegate to `/ds-docs`: update README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / specs so every `ship` item's promise matches its implementation, and every `defer-hidden`/`defer-backlog` item is either dropped from "current capabilities" framing or explicitly marked "planned — see #N", never left claiming a deferred feature is live. `ds-docs` absent → advisory handoff: inline-patch the obvious feature-list/README lines this run already touched, gap-note the rest for a manual doc pass. **Under `--auto`:** the `/ds-docs` delegate call forwards `--auto` (Unattended Mode rule 6).
+1. Delegate to `/ds-docs`: update README / AI-instruction file (CLAUDE.md/AGENTS.md-class) / specs so every `ship` item's promise matches its implementation, and every `defer-hidden`/`defer-backlog` item is either dropped from "current capabilities" framing or explicitly marked "planned — see #N", never left claiming a deferred feature is live. `ds-docs` absent → advisory handoff: inline-patch the obvious feature-list/README lines this run already touched, gap-note the rest for a manual doc pass. **Under `--auto`:** the `/ds-docs` delegate call forwards `--auto` (flag propagation to every delegate).
 2. Re-run the promise-census check from Phase 1: confirm zero `ship` items remain `promised-not-implemented` and zero deferred items remain claimed-live in docs.
 
 **Gate:** Promise-census re-check (step 2) reports zero deferred items claimed live and zero `ship` items undocumented. If fails → list the mismatches in the Phase 7 report under "Doc gaps remaining"; never block the run on this alone.

@@ -11,16 +11,31 @@ generated: {ISO 8601} | git_hash: {HEAD} | stage: {classified-stage} | type: {pr
 
 ## Summary
 
-- Stage: {stage}
+- Mode: {harden | release | launch | maintain} — {derivation: --mode flag | stage=… + intent …}
+- Stage: {stage} — {cited signals}
+- Signals: {the resolved Signals line}
+- Instruction tokens loaded: {n} (measured — wc -c of every SKILL.md read this run ÷ 4)
 - Value proposition: {paragraph}
 - Autonomous fixes applied (Category A): {N}
 - Awaiting user decision (Category B): {M}
-- Ship-ready: yes | no ({K} mandated blockers remain — cited sources in Awaiting User Decision; advisory items never counted)
+- Ship-ready: yes | no ({K} mandated blockers remain — cited sources in Awaiting User Decision; advisory items never counted) — release/launch only; harden/maintain print `Health: {before}→{after}/100` instead
 - Sequence gaps: {n} ({0 if none — a pre-launch/launched run with n > 0 cannot report Ship-ready: yes})
 - Doc token reduction: {before} → {after} ({%})
-- Security baseline ([principles.md §5](principles.md)): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
+- Security baseline ([../../core/principles.md](../../core/principles.md) §5): {n} secret-scan runs across delegated skills (ds-fix, ds-compliance, ds-pr); 0 unresolved leaks | gap: {skill X did not run secret scan}
 - PR: {url} | declined-this-run | not-applicable ({reason}) | muted
 - Tracking: {n} filed ({refs}) | declined-this-run | not-applicable (0 unresolved) | muted
+
+## Sequence
+| Skill | Status | Reason / signal | Findings (A / B) |
+|-------|--------|-----------------|------------------|
+| ds-blueprint | ran | findings absent | 12 / 3 |
+| ds-launch | mode-excluded | mode=harden | — |
+| ds-productize | signal-absent — billing=none | | — |
+Status vocabulary: `ran` · `mode-excluded` · `signal-absent — {key}={value}` · `project-type-exclusivity` · `user-trimmed` · `failed` · `missing-skill`. Every candidate skill appears exactly once.
+
+## Missing skills
+| Skill | Would have covered | Signal that justified it |
+Delegates the plan needed but the host does not have installed; omit the section when every planned skill was present.
 
 ## Architectural Changes (approved + applied)
 | Change | Rationale | Concrete benefit |
@@ -38,7 +53,7 @@ Empty table = every matrix-mandated skill for this stage+type either ran or carr
 ## Recommended Human Actions (advisory — not blocking)
 | Action | Why | Where |
 
-Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §15) lands here instead of Category B/blockers — cite the mandating source for any item kept as a blocker in Category B or Summary; omit this section when empty.
+Every human-required finding that fails the mandated-blocker test (mandated-blocker test: a citable external authority makes it a documented prerequisite whose omission causes rejection, legal exposure, or a broken production path) lands here instead of Category B/blockers — cite the mandating source for any item kept as a blocker in Category B or Summary; omit this section when empty.
 
 ## Intentional Deviations (kept as-is)
 | Item | Why it stays |
@@ -91,5 +106,5 @@ Every human-required finding that fails the mandated-blocker test (SKILL-SPEC §
 | D10 | {audited | owner-skipped | unowned} | ds-backend + ds-frontend + ds-deploy + ds-docs |
 | E | N/A (carrier) | ds-ship, ds-pipeline, etc. | Process carriers — not quality dimensions |
 
-Status values: `audited` (skill ran and produced findings), `owner-skipped: {reason}` (skill exists but was not invoked — the reason MUST cite the concrete Phase 0 signal or rule that justified it, e.g. `owner-skipped: monetization=internal, no billing surface detected (Phase 0 step 8)` — a bare `owner-skipped` with no cited reason is not a valid status; resolve it to `audited` (run the skill) or `unowned` (flag) before reporting), `unowned` (no skill claims this dimension). ⚠️ Unowned dimensions MUST be flagged with an explicit warning prefix in the report summary. A general impression ("looks fine", "not needed here") is never a substitute for a cited signal — every non-`audited` status traces to something read this run (a file, a Phase 0 answer, a rule name), never to overall judgment alone.
+Status values: `audited` (skill ran and produced findings), `mode-excluded` (its leg is outside this run's mode), `owner-skipped: {reason}` (skill exists but was not invoked — the reason MUST cite the concrete Phase 0 signal or rule that justified it, e.g. `owner-skipped: monetization=internal, no billing surface detected (Phase 0 step 8)` — a bare `owner-skipped` with no cited reason is not a valid status; resolve it to `audited` (run the skill) or `unowned` (flag) before reporting), `unowned` (no skill claims this dimension). ⚠️ Unowned dimensions MUST be flagged with an explicit warning prefix in the report summary. A general impression ("looks fine", "not needed here") is never a substitute for a cited signal — every non-`audited` status traces to something read this run (a file, a Phase 0 answer, a rule name), never to overall judgment alone.
 ```

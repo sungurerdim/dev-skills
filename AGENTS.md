@@ -4,7 +4,9 @@ Instructions for any coding agent working **on** this repository. `CLAUDE.md` ho
 essentials plus a Claude-Code-specific blueprint profile; nothing here needs to be read twice.
 
 dev-skills is a catalog of 30 Agent Skills — **pure markdown, zero runtime dependencies**. The
-only executable code is `install.sh`, `scripts/*.sh`, and `ds-brief/assets/verify-brief.py`.
+only executable code is `install.sh` (+ its `install.cmd` Windows launcher), `scripts/*.sh`,
+`evals/tasks/*/*.sh`, and `ds-brief/assets/verify-brief.py`. Shared references live in `core/`
+and are linked from skills as `../core/<file>.md`; the installer ships `core/` on every install.
 
 ## Commands
 
@@ -15,7 +17,9 @@ only executable code is `install.sh`, `scripts/*.sh`, and `ds-brief/assets/verif
 | Gate red | Fix what it names, re-run, then commit — the hook is never bypassed |
 | Install the skills into a host | `./install.sh` (or `--target <dir>`, `--project <dir>`, `--skills a,b`) |
 | Install for a Claude-5 host with an always-on rules layer | `./install.sh --profile lean` — strips the `portable-only`-marked blocks at install time; repo files always keep the full portable text |
+| Install for Claude Code specifically | `./install.sh --profile claude` — lean plus one Claude-only sentence injected into ds-ship's delegation step (delegates run as forked subagents); the repo file stays host-neutral |
 | Check an installed copy for drift | `./install.sh --check` (profile-aware — reads the profile from the version stamp) |
+| See installed vs repo vs upstream at a glance | `./install.sh --status` — read-only |
 | Update an existing install | `./install.sh --update` — `git pull --ff-only` + re-install with the stamped profile; never merges on your behalf |
 
 The gate needs `bash`, `python3`, `shellcheck`, and `typos`. A missing tool fails the run loudly

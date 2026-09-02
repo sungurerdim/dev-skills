@@ -32,7 +32,7 @@ Hardcoded colors, inconsistent spacing, missing focus states, broken dark mode �
 
 - Audits UI/UX design quality across web ({web-frameworks}), mobile ({mobile-frameworks}), desktop ({desktop-frameworks}) — only touches UI-layer code (styles, components, tokens, ARIA); business + backend untouched.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- State-qualifying (SKILL-SPEC § State Management): a multi-scope audit is a long autonomous loop whose scope-by-scope progress lives nowhere else — an interrupted run re-scans from zero. Progress persists to `ds/audit/frontend.json` with the run's `git_hash`; applied fixes still land in the working tree, where git remains the durable record. State is deleted when the Summary completes.
+- State-qualifying (state-qualifying: a resumable multi-scope audit whose progress exists nowhere else): a multi-scope audit is a long autonomous loop whose scope-by-scope progress lives nowhere else — an interrupted run re-scans from zero. Progress persists to `ds/audit/frontend.json` with the run's `git_hash`; applied fixes still land in the working tree, where git remains the durable record. State is deleted when the Summary completes.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
@@ -138,9 +138,9 @@ Detect → [Configure] → Scan → Report → [Fix] → [Needs-Approval] → [D
    | Plain HTML/CSS | `*.html` + `*.css` without framework |
 
 2. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching frontend scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
-3. **IDU:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
+3. **Upstream artifacts:** Profile → Type+Stack, Config.priorities, Current Scores. Findings(tokens, components, states, a11y, responsive, theming) → verify + use. Absent → own analysis.
 4. **Design system detection.** Search for: CSS custom properties (`:root { --color-* }`), Tailwind config, CSS modules theme; styled-components / Emotion / MUI / Chakra theme; Flutter `ThemeData`/`ColorScheme`; SwiftUI Color assets; Compose `MaterialTheme`; `tokens.json`/`tokens.yaml`/`design-tokens.*`.
-5. **Mode + scope.** Ask or use flags: Audit / Audit & Fix / Design / Custom; map scope selection to reference files (default: all). **Under `--auto`:** no ask — mode resolves to Audit & Fix, scope resolves to all (Unattended Mode rule 2).
+5. **Mode + scope.** Ask or use flags: Audit / Audit & Fix / Design / Custom; map scope selection to reference files (default: all). **Under `--auto`:** no ask — mode resolves to Audit & Fix, scope resolves to all (a flag disambiguates every menu).
 
 **Gate:** Framework identified; design system state cataloged (exists/partial/absent); mode + scope confirmed. If fails → framework undetectable → prompt "Which frontend framework?" (offer list); no response → fall back to plain HTML/CSS, announce; design system inconclusive → record `design_system: "unknown"`, proceed (missing tokens surface as findings).
 
@@ -191,7 +191,7 @@ Header: `## Frontend Design Quality Report — {project-name}` + `Framework: {fr
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — items resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → mark `skipped (no decision)`, proceed; do not retry.
 

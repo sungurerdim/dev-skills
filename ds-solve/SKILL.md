@@ -66,7 +66,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
 
 **Recovery check:** DETECT `ds/audit/solve.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, verify `git_hash` vs HEAD. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`). Resume → RE-VERIFY `in_progress` phase (re-read modified files from state), skip `done` phases, announce `[SOL] Resuming from Phase {N}: {name}. Phases 1-{N-1} complete.` On successful Summary, delete state.
 
-**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as context. **IDU:** Profile → Type + Stack, Config.constraints, Current Scores. Findings() → verify + use. Absent → own analysis.
+**Findings file check:** `ds/audit/findings.md` exists with fresh `git_hash` → use as context. **Upstream artifacts:** Profile → Type + Stack, Config.constraints, Current Scores. Findings() → verify + use. Absent → own analysis.
 
 1. **Parse objective.** Extract from user's invocation. `/ds-solve {description}` → use `{description}`. Ask only if no objective discernible from context.
 2. **Red line auto-detection.** Scan project docs silently, apply all detected constraints, show as output (not a question), merge with `--red-line` flags:
@@ -93,7 +93,7 @@ Setup → Plan → Research → Execute → [Backtrack] → [Re-plan] → [Needs
    | a build | `{build_command}` succeeds |
    | a behavior | construct a validation command or script |
 
-   No mechanical criterion inferrable → use the most conservative proxy and state the assumption; ask the user only when zero proxy is possible. Under `--auto`: never ask — always use the conservative proxy.
+   No mechanical criterion inferable → use the most conservative proxy and state the assumption; ask the user only when zero proxy is possible. Under `--auto`: never ask — always use the conservative proxy.
 4. **Quick check.** Run verification immediately. Already passes → report OK, skip to Summary.
 5. **Initialize.** Create `ds/audit/solve.json` with canonical envelope (`skill: ds-solve`, `prefix: SOL`, `version: 1`, `git_hash: {HEAD}`, `timestamp`, `phases`, `current_phase`, `data: {...}`). Schema in [references/backtrack-logic.md](references/backtrack-logic.md). `grep -qx 'ds/audit/' .gitignore` → exit 0; non-zero → append `ds/audit/` to root `.gitignore`, report addition.
 
@@ -179,7 +179,7 @@ State machine transitions in [references/backtrack-logic.md](references/backtrac
 
 **Fresh-context check (before presenting):** an approval presentation written by the same context that produced the attempts validates its own output (echo chamber). Fresh context available (a second pass that receives only the final diff + red-line list, none of the solving trajectory) → have it re-derive each item's risk and confirm every red line holds; unavailable → re-derive in-session from the diff + red lines re-read from disk, writing that assessment before consulting the attempt history. Assessments diverge → present the stricter one.
 
-**Interactive:** state the question (`Approve these N steps?`) and present each item compactly grouped by risk with counts (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply all / per-risk bulk (`Apply all {risk}` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the Unattended Mode rule-4 exception list are skipped and recorded `needs-human` instead.
+**Interactive:** state the question (`Approve these N steps?`) and present each item compactly grouped by risk with counts (`needs_approval: Step {n} {action} — Risk: {risk} — Affected: {paths}`), ask Apply all / per-risk bulk (`Apply all {risk}` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no review step is shown — every item resolves automatically using the same impact/effort/risk reasoning the interactive block would show, recorded in the summary; items matching the publish/irreversible exception list are skipped and recorded `needs-human` instead.
 
 **Gate:** All items resolved (applied → `fixed`/`failed`, declined → `skipped`). If fails (no response) → mark unresolved `skipped (user did not respond)` in state.data, continue.
 
@@ -294,7 +294,7 @@ Not a finding-based skill. Severity applies to issues discovered during executio
 | User changes red lines mid-run | Re-validate all completed steps against new lines. Violation found → backtrack to that step. |
 | Objective is vague | Infer most conservative measurable proxy and state the assumption. Example: "{vague_goal}" → use `{benchmark_command}` < {threshold}. Only ask if zero proxy possible. |
 | All steps pass but final verification fails | Plan decomposition missed something. Enter Re-plan with constraint: "individual step success insufficient". |
-| Irreversible change in a step | Flag as `needs-approval`. Under `--auto` → resolves per Unattended Mode rule 3 (applied, with reasoning recorded) unless it matches the rule-4 exception list, then skipped and recorded `needs-human`. |
+| Irreversible change in a step | Flag as `needs-approval`. Under `--auto` → resolves by best judgment (applied, with reasoning recorded) unless it matches the publish/irreversible exception list, then skipped and recorded `needs-human`. |
 | No project documentation found | Proceed with zero auto-detected red lines + any `--red-line` flags. Apply universal defaults: "existing tests pass", "no new errors introduced". |
 | Budget override too small | Warn if budget < 1x1x2. Clamp to minimum. |
 | Contradictory red lines | Apply more restrictive constraint. Log conflict in episodic memory. Restrictive choice blocks all alternatives → surface in Escalation report (not before). |

@@ -87,16 +87,28 @@ Extended reference for `/ds-ship` phase internals. Loaded only when a phase requ
 - ASCII-only: no non-ASCII characters anywhere in the HTML (print compatibility across viewers).
 - Opens offline: browser loads the file with network disabled → renders identically.
 
-## Phase 5 — Launch Chain Ordering
+## Phase 2 — Completion Detection per Delegate Class
+
+| Delegate class | Completion signal |
+|----------------|-------------------|
+| State-qualifying (ds-blueprint, ds-mobile, ds-frontend, ds-tune) | its `ds/audit/<skill>.json` disappears (deleted on its Summary) — or the Summary line / findings diff below |
+| State-exempt (every other skill) | its Summary line emitted, or `ds/audit/findings.md` gained rows with its `source` since the pre-delegation note; a missing state file means nothing for these skills |
+
+## Phase 5 — Release + Launch Chain Ordering
 
 ```
+release + launch:
 ds-devops (CI/CD integrity, signing, deps audit)
    ↓
-ds-deploy (container security, TLS, monitoring, runbook)
+ds-deploy (container security, TLS, monitoring, runbook)      [deploy ∉ {none, store}]
    ↓
-ds-launch (store submission OR web launch OR library publish; --perf-budget if missing)
+ds-release (version, changelog, tag, release notes; publishing → needs-human)
    ↓
-ds-repo (branch protection, CODEOWNERS, metadata, --oss-ready if public)
+ds-repo (branch protection, CODEOWNERS, metadata)
+
+launch only, after the chain:
+ds-launch (store submission OR web launch OR library publish readiness; --perf-budget if missing)
+ds-repo --oss-ready                                            [audience=public]
 ```
 
 Each skill in the chain consumes `ds/audit/findings.md` and adds its own scope's findings. ds-ship does not re-invoke an already-completed skill in the same pass.

@@ -5,7 +5,7 @@ description: Project health system — profile-based assessment, transformation,
 
 # /ds-blueprint
 
-Can't improve what you don't measure. Skill scores project across 9 dimensions and tells you exactly where to focus next.
+Can't improve what you don't measure. Skill scores project across 9 dimensions, writes the signal inventory every other skill scopes itself by, and tells you exactly where to focus next.
 
 **Project Health System** — Profile-based assessment, transformation, and progress tracking.
 
@@ -35,37 +35,37 @@ Can't improve what you don't measure. Skill scores project across 9 dimensions a
 **Dimensions:** B2, B4 (contributor), A9 (signal)
 
 - Scores project health across 9 dimensions — signal counting, not file:line finding lists. Only modifies the profile section of the instruction file; suggests next steps but never invokes other skills or fixes code.
-- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
+- Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent. Shared formats: [../core/findings-and-profile-format.md](../core/findings-and-profile-format.md); signal keys and detection: [../core/signal-inventory.md](../core/signal-inventory.md); severity and score: [../core/severity-score-categories.md](../core/severity-score-categories.md).
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Completeness requirement (SSOT):** `ds/audit/findings.md` is the single source of truth for every fix skill. Other skills skip their own detection when blueprint findings exist. Blueprint MUST detect ALL issues in each in-scope dimension — a missing finding will not be fixed downstream.
-- **SSOT runtime enforcement (W10):** Every downstream consumer (ds-review, ds-fix, ds-simplify, ds-compliance, ds-mobile, etc.) MUST defer to a fresh `ds/audit/findings.md` — **fresh = `git_hash == HEAD` AND produced in the current run-cycle** (this invocation or the orchestration run it executes under). Fresh → consumers verify + apply only; they do NOT re-detect within blueprint's owned scopes. From a previous cycle (however recent), stale, or missing → **orchestrated** consumer invokes `/ds-blueprint --refresh` or `--preview --scope=all` and waits before continuing; **standalone** consumer announces `findings stale — running own {scopes} analysis` and runs its own scoped analysis, appending results with its own `source` + current `git_hash` (next blueprint full run dedups) — prior-cycle findings serve only as diff baseline (previously-flagged → resolved?). Re-detection within a covered scope in the same cycle is a W10 violation; skipping a re-scan because a previous cycle ran recently is a W11-class violation.
-- **Overwrite-only persistence:** state, findings, profile rewritten every run — never appended. Run history lives in `git log -- <instruction-file>`, not in profile or any `ds/audit/` file. Append-only artifacts forbidden anywhere.
+- **SSOT runtime enforcement (W10):** every downstream consumer (ds-review, ds-fix, ds-simplify, ds-compliance, ds-mobile, …) defers to a fresh `ds/audit/findings.md` — **fresh = `git_hash == HEAD` AND produced in the current run-cycle** (this invocation or the orchestration run it executes under). Fresh → consumers verify + apply only; they do NOT re-detect within blueprint's owned scopes. Prior cycle, stale, or missing → an **orchestrated** consumer invokes `/ds-blueprint --refresh` and waits; a **standalone** consumer announces `findings stale — running own {scopes} analysis`, runs its own scoped analysis and appends with its own `source` + current `git_hash` — prior-cycle findings serve only as diff baseline. Re-detection within a covered scope in the same cycle is a W10 violation; skipping a re-scan because a previous cycle ran recently is a W11-class violation.
+- **Privacy has one owner.** `privacy` findings are produced by ds-compliance (canonical). Blueprint consumes them for the Security & Privacy dimension when present; absent → the dimension is scored from `security` alone and the dashboard says `privacy: not scanned (ds-compliance)`. Blueprint never writes `privacy` rows.
+- **Overwrite-only persistence:** state, findings, profile rewritten every run — never appended. Run history lives in `git log -- <instruction-file>`, not in profile or any `ds/audit/` file.
 - **Human-action items:** findings whose remediation requires human-only access (branch protection, CI/repo secrets, store or account setup, key rotation, purchases) are surfaced as a distinct `Human actions` block in Dashboard and repeated in Summary — never silently dropped, never marked fixed by the AI.
-- **Dev-Value Gate on every profile line:** the instruction file is re-read on every AI turn — every byte costs every future model read. A profile line is written only if it makes AI engineering measurably better on every turn for the next 6 months. Anything else (timestamps, score deltas, owner info, descriptions, philosophy) goes to README / CHANGELOG / git log / terminal summary instead.
+- **Dev-Value Gate on every profile line:** the instruction file is re-read on every AI turn. A profile line is written only if it makes AI engineering measurably better on every turn for the next 6 months; timestamps, deltas, owner info, descriptions, philosophy go to README / CHANGELOG / git log / terminal summary instead.
+- State: `ds/audit/blueprint.json` (a full 9-dimension scan holds its progress nowhere else; an interruption would restart it from zero).
 
 ## Arguments
 
 | Flag | Effect |
 |------|--------|
 | `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
-| `--preview` | Analyze + dashboard, no changes |
-| `--init` | Profile creation/refresh only (no analysis) — includes the Foundation pass |
-| `--refresh` | Re-scan profile (decisions preserved; foundation lines untouched) |
-| `--foundation` | Foundation pass alone: interrogate every normative profile decision (mission, target, priorities, constraints, red lines), propose better, perfect via user feedback |
-| `--scope={x}` | Comma-separated: any findings scope name (references/scopes.md — e.g. security, testing, architecture, stack-fitness) or a dimension name (maps to its component scopes per references/weights.md); default `all`. Exclusions recorded in `filters_applied` |
+| `--ask` | Interactive run — mode menu, per-line Foundation interrogation, and approval prompts at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary. |
+| `--preview` | Analyze + dashboard in chat only — writes nothing: no profile, no `ds/audit/findings.md`, no state |
+| `--init` | Profile creation (or re-creation) with the Foundation pass; no dimension analysis |
+| `--refresh` | Fast path: re-detect Type/Stack/Toolchain/`Signals:`, rescore, rewrite `Scores:` + `Signals:`; foundation lines untouched, no interrogation |
+| `--scope={x}` | Comma-separated: any findings scope name (references/scopes.md — e.g. security, testing, architecture, stack-fitness) or a dimension name (maps to its component scopes per references/weights.md); default = the scope-resolution table below. Exclusions recorded in `filters_applied` |
 | `--resume` | Resume from `ds/audit/blueprint.json` without prompting |
 | `--clean` | Delete existing state, start fresh |
-| `--memory-cleanup` | Optional phase: scan AI agent memory index (`MEMORY.md`) for stale `[[link]]` references + offer consolidation. Default OFF — opt-in only |
 
-Without flags: present mode selection.
+Without flags: profile absent → create it (Foundation derived from evidence, marked `derived`) and run Full Analysis; profile present → Full Analysis (incremental). `--ask` presents the mode menu instead: Full Analysis (recommended) / Preview only / Init profile / Refresh profile / (Cancel).
 
 ## Profile Storage
 
 Profile embedded in project's AI instruction file between `## Blueprint Profile` and `## End Blueprint Profile` heading markers — markdown headings are universally preserved by every tool.
 
-
-**Instruction file detection** — search for known AI instruction files (see [references/detection.md](references/detection.md) § Instruction Files). Use first match. None found: ask which tool user uses, create appropriate file. **Under `--auto`:** no prompt — default to `CLAUDE.md` (the most common AI instruction file) and create it.
+**Instruction file selection** (first match wins): an existing file from the list in [references/detection.md](references/detection.md) § Instruction Files. None found → pick by host evidence: `.claude/` directory or `~/.claude` present → `CLAUDE.md`; `.cursor/` → `.cursor/rules/blueprint.md`; `.github/` with Copilot signals → `.github/copilot-instructions.md`; `.windsurf/` or `.devin/` → that rules directory; otherwise `AGENTS.md` (the cross-tool standard). `--ask` → ask which tool the user runs before creating anything. The chosen file and the evidence for it are recorded in the summary.
 
 **Profile format** — minimal, AI-parseable, calibration-only. Run history, score deltas, status messages NEVER go here — they live in `git log -- <instruction-file>`, `ds/audit/findings.md`, terminal summaries.
 
@@ -74,9 +74,9 @@ Profile embedded in project's AI instruction file between `## Blueprint Profile`
 
 Type: {type} | Stack: {stack} | Target: {quality}
 Mission: {one line — who gets what outcome; the promise every downstream decision calibrates against}
+Signals: ui={…} api={…} db={…} auth={…} billing={…} pii={yes|no} i18n={yes|no} tests={…} ci={…} deploy={…} platforms={…} audience={…} jurisdiction={…} integrations={…} mobile={…}
 Priorities: {comma-list} | Constraints: {comma-list}
 Red lines: {comma-list of hard NOs — binding for every consumer}
-Integrations: {google-workspace|apple-ecosystem|none}
 Data: {data-types} | Regulations: {framework-or-none}
 Audience: {audience} | Deploy: {method}
 
@@ -93,7 +93,7 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 ## End Blueprint Profile
 ```
 
-**Format rules, read/write rules, and legacy-marker migration:** [references/profile-format.md](references/profile-format.md). Key-value pairs only, one value per line; only the `Scores:` line is rewritten on a normal run — foundation lines change only through the Foundation pass with per-line user confirmation.
+`Integrations:` is the comma list from detection.md § Step 4 (`none` when nothing matches); it is also mirrored inside `Signals:` as `integrations=`. Format rules, read/write rules, the 25-line ceiling and legacy-marker migration: [references/profile-format.md](references/profile-format.md). Only `Scores:` and `Signals:` are rewritten on a normal run — foundation lines change only through the Foundation pass.
 
 ## Delegation
 
@@ -101,149 +101,106 @@ Scores: sec={n} quality={n} arch={n} perf={n} resil={n} test={n} stack={n} dx={n
 
 ## Execution Flow
 
-Discovery → [Init Flow] → Assess → Consolidate → Dashboard → [Suggest] → Update Profile → [Needs-Approval] → Summary
+Discovery → [Foundation] → Assess → Consolidate → Dashboard → [Suggest] → [Update Profile] → [Needs-Approval] → Summary
 
-**Mandatory phases** (always execute, always produce output): Foundation Review, Assess, Consolidate, Dashboard, Update Profile, Summary. Skipping a mandatory phase is an execution bug.
+**Mandatory phases** (always execute, always produce output): Discovery, Assess, Consolidate, Dashboard, Summary. Update Profile is mandatory except under `--preview`. Skipping a mandatory phase is an execution bug.
 
 ### Phase 1: Discovery [PARALLEL]
 
-**Recovery check:** DETECT `ds/audit/blueprint.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently). Resume → RE-VERIFY `in_progress` phase (re-scan modified scopes, keep completed scopes), skip `done` phases, announce `[BP] Resuming from Phase {N}: {name}.` On successful Summary, delete state. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
+**Recovery check:** DETECT `ds/audit/blueprint.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → resume anyway (the in-progress phase re-verifies); `--ask` → prompt `Resume anyway? [Y/n]`. Resume → RE-VERIFY `in_progress` phase (re-scan modified scopes, keep completed scopes), skip `done` phases, announce `[BP] Resuming from Phase {N}: {name}.` On successful Summary, delete state. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line (never under `--preview`).
 
-**State `data`:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line}]}, profile_written: bool, scores: {dimension: score}, instruction_file }`.
+**State `data`:** `{ mode, scopes_selected, scopes_done[], findings_per_scope: {scope: [{id, severity, file, line}]}, signals: {key: value}, profile_written: bool, scores: {dimension: score}, instruction_file }`.
 
-1. **Mode selection.** No flags → present a menu covering every mode, each with a one-line what-it-does: Full Analysis (recommended) — detect + analyze every dimension / Preview Only — analyze, no profile write / Init Profile — seed a fresh profile (includes Foundation pass) / Refresh Profile — re-score an existing profile / Foundation — interrogate + perfect the profile's normative decisions / (Cancel). A disambiguating flag skips the menu.
-2. Search for `## Blueprint Profile` heading in known instruction files; read existing profile to detect incremental vs full run.
-3. Detect project via three-step process from [references/detection.md](references/detection.md): (1) stack from manifest files (pubspec.yaml, package.json, go.mod, etc.); (2) project type from secondary signals (framework deps, config, directory structure); (3) supplementary stacks (Docker, shell scripts, CI, task runners). Also: toolchain, tests, data sensitivity, git status, ecosystem integrations (references/detection.md § Step 4 — feeds `Integrations:` profile field).
+1. **Mode.** Resolve from flags and profile presence (Arguments table); `--ask` → menu.
+2. **Profile read.** Search for `## Blueprint Profile` in the known instruction files; existing profile → incremental run (Type/Stack/Toolchain reused, foundation lines reused), else full detection.
+3. **Detection** via [references/detection.md](references/detection.md): (1) stack from manifests; (2) project type from secondary signals; (3) supplementary stacks (Docker, shell, CI, task runners); (4) ecosystem integrations (§ Step 4) and transactional messaging (§ Step 5); toolchain, tests, data sensitivity, git posture.
+4. **Signal inventory.** Resolve every key in [../core/signal-inventory.md](../core/signal-inventory.md) from the detection results; unresolvable → `unknown`, never guessed. This is the `Signals:` line, and it drives the scope-resolution table in Phase 3.
+5. **Skillset stamp.** Read `.dev-skills-version` beside the host's installed skills directory (e.g. `~/.claude/skills/.dev-skills-version`); absent → `unknown`.
 
-**Decision tree** (every route through 1-2 runs the Foundation Review first — it is mandatory on every run):
-1. Profile exists + not --init/--refresh/--foundation → Foundation Review → Phase 3 (incremental)
-2. Profile exists + --refresh → Phase 2 (re-ask, preserve decisions; foundation lines untouched)
-3. Profile exists + --foundation → Phase 2 Foundation pass only (interrogate + perfect normative lines, stop after write)
-4. No profile + --init → Phase 2 (create with Foundation pass, stop)
-5. No profile + not --init → Phase 2 (create with Foundation pass, ask to continue)
+**Decision tree:**
+1. Profile exists + no `--init`/`--refresh` → Phase 3 (incremental); foundation lines missing from the profile → Phase 2 first, `derived` mode.
+2. Profile exists + `--refresh` → Phase 3 with fresh detection; Phase 7 rewrites `Scores:` + `Signals:` only.
+3. `--init` (profile present or not) → Phase 2 (Foundation pass), then stop after the profile write.
+4. No profile + no `--init` → Phase 2 in `derived` mode, then continue to Phase 3.
 
-**Gate:** Mode selected; project type detected; instruction file located or creation path determined. If fails → type undetectable (no manifest, empty repo) + no user response to type prompt → default `generic`, mode `Full Analysis`, instruction file `CLAUDE.md`, WARN `"Project type undetected — defaulted to generic"` in state.data, proceed.
+**Gate:** Mode resolved; project type detected; every signal key resolved or `unknown`; instruction file located or its creation path determined with evidence. If fails → type undetectable (no manifest, empty repo) → default `generic`, mode Full Analysis, instruction file per the host-evidence rule, WARN `"Project type undetected — defaulted to generic"` in state.data, proceed.
 
-### Phase 2: Init Flow + Foundation (no profile OR --init/--refresh/--foundation)
+### Phase 2: Foundation [--init | profile lacks foundation lines]
 
-**Foundation pass** (full interrogation on `--init`, `--foundation`, and first-time profile creation; **every other run — full analysis, `--refresh`, `--preview` — includes the Foundation Review step below**, because a more capable model may now derive a better foundation than the one confirmed earlier — model uplift is itself new evidence). The profile's normative lines calibrate every downstream skill — they are perfected deliberately, never form-filled:
+The profile's normative lines (`Mission`, `Target`, `Priorities`, `Constraints`, `Red lines`, `Audience`, `Deploy`) calibrate every downstream skill — they are derived deliberately, never form-filled.
 
-1. **Evidence sweep** — collect what the project *is* and *claims*: README/docs promises, code capabilities, git history, existing profile lines, prior user statements. Every proposed value in steps 2-3 cites its evidence; a gap is asked, never guessed.
-2. **Idealized draft** — synthesize the best-supported foundation: `Mission` (one line, who-gets-what-outcome), `Target`, ranked `Priorities`, and the constraint set split honestly into `Constraints` (soft preferences) vs `Red lines` (hard NOs). Where the evidence supports a sharper mission or a stronger target than currently stated, draft the sharper version — idealize from evidence, never from invention.
-3. **Decision interrogation** — for EVERY normative line (Type, Target, Mission, each Priority, each Constraint, each Red line, Audience, Deploy), existing or proposed: (a) state the current value and the rationale/evidence behind it; (b) challenge it — does the evidence still support it? does it earn its keep? A constraint with no identifiable protective value → removal proposal stating what it costs and what removing it frees; (c) when a better alternative exists, propose it with concrete rationale (what improves, at what cost). No line passes unexamined.
-4. **Approval + feedback loop** — present steps 2-3 as one per-line decision table: `current → proposed | evidence | rationale`, ask per line: accept / edit / keep-current. All foundation decisions are **Category B — never auto-applied**: under `--auto` keep detected/existing values and mark `foundation: unconfirmed` in the summary instead of deciding for the user. Apply feedback, re-present only the changed lines, iterate until every line is confirmed.
-5. **Decision durability** — a user-confirmed line is settled: it never silently flips, and it is re-raised only with named cause — new project evidence, or a materially better derivation from a more capable model (see Foundation Review). Re-litigating an unchanged conclusion is forbidden (W13); proposing a genuinely better one with stated rationale is the job.
+1. **Evidence sweep** — what the project *is* and *claims*: README/docs promises, code capabilities, git history, existing profile lines, prior user statements. Every proposed value cites its evidence.
+2. **Idealized draft** — `Mission` (one line, who-gets-what-outcome), `Target`, ranked `Priorities`, constraints split honestly into `Constraints` (soft) vs `Red lines` (hard NOs). Where the evidence supports a sharper mission or a stronger target than stated, draft the sharper version — from evidence, never from invention.
+3. **Decision interrogation** — for every normative line: (a) current value + evidence; (b) does the evidence still support it, does it earn its keep (a constraint with no protective value → removal proposal stating what it costs and what removing it frees); (c) a better alternative with concrete rationale when one exists.
+4. **Resolution.** Default (`derived` mode): write the best-evidenced value for every line, mark the profile write `foundation: derived-from-evidence` in the summary, and list every line whose evidence was thin as `needs-human: confirm {line}` — a thin-evidence line is written with the most conservative reading (private, free/internal, keep framework) and never invented. `--ask`: present one per-line table `current → proposed | evidence | rationale`, ask per line accept / edit / keep-current, iterate until every line is confirmed.
+5. **Decision durability** — a user-confirmed line is settled: it never silently flips, and it is re-raised only with named cause (new project evidence, or a materially better derivation on `--init --ask`). Re-litigating an unchanged conclusion is forbidden (W13).
 
-**Foundation Review (every run, mandatory, ~1 minute):** re-derive the ideal foundation from current evidence with the current model, then diff against the confirmed lines. Identical or merely-reworded → print one line `Foundation holds ({n} lines, last confirmed under model {m})` and continue — both values mandatory: `{n}` = count of foundation lines diffed, `{m}` read from `git log`; a holds verdict missing either value is an execution bug (it signals the re-derivation was skipped, not performed). Materially better on any line → present only those lines as `current → proposed | what improves | why` for user decision — a proposal must articulate a concrete improvement (sharper mission, unfounded constraint found, missing red line); rewording is not a proposal. Under `--auto`: run the review, list any proposals in the summary as `foundation-proposals: {n} (pending)`, apply nothing. The reviewing model is already recorded as `model=` on the `Scores:` line — "last confirmed under model {m}" reads from `git log -- <instruction-file>` for the commit that last changed a foundation line; no extra profile line (Dev-Value Gate).
+**Data fallback:** PII/credential scan finds nothing → `pii=no` with the note "PII scan negative — verify manually if the project handles user data indirectly (e.g. via external APIs)"; `--ask` → ask "Does this project process user data?".
 
-**Init questions** (fallback shell of the pass — each question's auto-detected value is the default; answers feed steps 2-3 as user evidence):
+Write the profile to the selected instruction file (`--preview` → print it in chat instead). Calculate ideal metrics from [references/weights.md](references/weights.md). Quality-level descriptions: [references/quality-levels.md](references/quality-levels.md).
 
-| Question | Options |
-|----------|---------|
-| Category | Frontend / Backend / Developer Tool / Infrastructure |
-| Quality level | Prototype / MVP / Production / Enterprise |
-| Data handled | Personal info / Sensitive data / Auth credentials / None |
-| Focus areas | Security / Code Quality / Architecture / Documentation |
-| Constraints | Keep framework / Preserve public APIs / Minimize new dependencies / None |
-| Users | Public / Internal team / Other developers / Local-undecided |
-
-**Data fallback:** PII/credential scan finds nothing → ask "Does this project process user data? (Yes — describe data types / No)" so `Config.data` is set explicitly, not by inference alone.
-
-**--auto Mode Defaults:**
-
-| Question | Default |
-|----------|---------|
-| Project type | Auto-detected |
-| Quality | Production |
-| Data | PII/credential scan; nothing → "No sensitive data" + note "PII scan negative — verify manually if project handles user data indirectly (e.g. via external APIs)" |
-| Priorities | Security + Code Quality |
-| Constraints | Keep framework/language |
-| Audience | Auto-detect (Dockerfile → container, CI → cloud, else local) |
-| Deployment | Auto-detect from Docker/cloud/serverless signals |
-
-Write profile to detected instruction file. Calculate ideal metrics from `references/weights.md`. Quality-level descriptions in [references/quality-levels.md](references/quality-levels.md).
-
-**Gate:** Profile block present between the `## Blueprint Profile` / `## End Blueprint Profile` markers with all sections; every foundation line either user-confirmed or explicitly marked `foundation: unconfirmed` (`--auto`) — a foundation line is never silently auto-decided. If fails → write failed (permissions, invalid path, tool doesn't support file creation) → save profile to `ds/audit/blueprint-profile-draft.md`, display full text in chat for manual paste, surface write error with target path.
-
-### Phase 2.5: Parallel-Track Planning [PARALLEL]
-
-Group 9 dimensions × 24 scopes by execution cost — plan concurrency consciously.
-
-| Batch | Scopes | Concurrency | Why |
-|-------|--------|-------------|-----|
-| **Read-only** | hygiene, types, doc-sync, dx, docs, spec-alignment, stack, stack-fitness, external-tooling | Parallel — pure grep/file-read, no AST | Cheapest scans, no shared state |
-| **AST** | architecture, patterns, cross-cutting, maintainability, simplify, ai-architecture, contract-consistency, performance | Parallel — shared LSP/AST cache | Share parse work across detectors |
-| **Cross-file** | security, privacy, ai-hygiene, robustness, production-readiness, testing, functional-completeness | Serial — each batch may modify findings index | Order matters for dedup |
-
-Plan batches up front (`state.data.batches`) and announce before starting. AI hosts route parallelism — the spec declares which scopes are safe to run together.
-
-**Gate:** Batches planned + announced. If fails (no detectable scopes) → mark plan empty, proceed to Summary with WARN.
+**Gate:** Profile block present between the markers with every line; every foundation line either user-confirmed (`--ask`) or marked `derived-from-evidence` with its evidence — never silently auto-decided. If fails → write failed (permissions, invalid path, tool cannot create files) → save the profile to `ds/audit/blueprint-profile-draft.md`, display the full text in chat for manual paste, surface the write error with the target path.
 
 ### Phase 3: Assess (scan, record, score — don't fix)
 
-Scan **entire codebase**, record every finding with file:line to `ds/audit/findings.md`, score dimensions from these findings — do NOT fix. Fix skills read `ds/audit/findings.md` and skip own detection (eliminates duplicate analysis) → blueprint must detect ALL issues within each dimension; missing finding = won't be fixed.
+**Scope resolution — signals decide what runs.** Every scope resolves before scanning and is echoed in the dashboard and summary as `ran` / `N/A — {signal}=none` / `unknown → ran`. `--scope=` overrides the table for the named scopes; an `unknown` signal never excludes a scope.
 
-**Dimension → Scope mapping**, **assessment patterns per dimension**, the **churn × complexity hotspot pass**, the **external hygiene cross-check**, and the **false-positive guard** every signal must clear: [references/assessment-patterns.md](references/assessment-patterns.md). Only HIGH and MEDIUM confidence signals are written to `ds/audit/findings.md`.
+| Scope(s) | Runs when | Otherwise |
+|----------|-----------|-----------|
+| security, hygiene, types, doc-sync, maintainability, patterns, architecture, cross-cutting, contract-consistency, simplify, robustness, testing, functional-completeness, stack, stack-fitness, docs, spec-alignment, dx | source files present (`size` ≠ empty) | N/A — no source |
+| ai-hygiene | always (AI-authored residue exists in every codebase touched by an assistant) | — |
+| ai-architecture | integrations contain an LLM SDK (`openai`, `anthropic`, `gemini`, `ollama`, `langchain`, `vercel/ai`) or prompt templates exist | N/A — no LLM surface |
+| performance | api ≠ none or db ≠ none or ui ≠ none | N/A — pure library/CLI without I/O paths (still scanned when `size=large`) |
+| production-readiness | deploy ≠ none or api ≠ none | N/A — nothing is deployed |
+| external-tooling | ci ≠ none or `.github/`/`.gitlab-ci.yml`/hooks present | N/A — no automation surface |
+| privacy | never here — consumed from ds-compliance findings when present | `privacy: not scanned (ds-compliance)` |
+
+Scan the **entire codebase** for every resolved scope, record every finding with file:line, score dimensions from these findings — do NOT fix. Fix skills read `ds/audit/findings.md` and skip their own detection, so blueprint must detect ALL issues within each dimension; a missing finding = won't be fixed.
+
+**Concurrency batches** — read-only (pure grep/file-read), AST (shared parse cache), cross-file (serial; each pass may modify the findings index): [references/scopes.md](references/scopes.md). Plan the batches in `state.data.batches` and announce them before starting.
+
+**Dimension → scope mapping**, the **assessment patterns per dimension**, the **churn × complexity hotspot pass**, the **external hygiene cross-check**, and the **false-positive guard** every signal must clear: [references/assessment-patterns.md](references/assessment-patterns.md). Only HIGH and MEDIUM confidence signals are written to `ds/audit/findings.md`. Principles behind the architecture, reliability, security and testing detectors: [../core/principles.md](../core/principles.md) §2, §4, §5, §7.
 
 Scoring formula from [references/scopes.md](references/scopes.md), dimension weights from [references/weights.md](references/weights.md).
 
-**User-facing project gate:** type is web, mobile, desktop, or game → additionally check: i18n setup present (framework-native catalog, ≥1 locale file); default locales configured (minimum: en + project owner's locale); a11y basics (semantic labels on interactive elements, contrast ratio, screen reader support); responsive layout (breakpoints or adaptive layout). Flag missing items as HIGH severity. Skip for cli, library, api, iac, devtool.
+**User-facing project gate:** `ui` ≠ none → additionally check: i18n setup present (framework-native catalog, ≥1 locale file); default locales configured (minimum: en + project owner's locale); a11y basics (semantic labels on interactive elements, contrast ratio, screen-reader support); responsive layout (breakpoints or adaptive layout). Flag missing items as HIGH severity. `ui=none` → N/A.
 
-**Gate:** All 9 dimensions scanned; every signal has file:line evidence; false-positive checks applied. If fails → dimension(s) un-scan-able (codebase too large, binary-only files, access denied) → mark each incomplete in state.data.findings_per_scope with `confidence: inconclusive`, continue scoring with available signals only, flag in dashboard with `[PARTIAL SCAN]` so user knows scores are lower-bound.
+**Gate:** Every resolved scope scanned; every signal has file:line evidence; false-positive checks applied. If fails → scope un-scan-able (codebase too large, binary-only files, access denied) → mark it `confidence: inconclusive` in state.data.findings_per_scope, continue scoring with available signals only, flag `[PARTIAL SCAN]` in the dashboard so scores read as lower bounds.
 
 ### Phase 3.1: Project Map
 
 Build from Discovery + Assess:
 
 1. **Entry point:** main entry file(s) + framework.
-2. **Modules:** each top-level module dir with role, file count, key files + responsibilities — enough for a new developer to understand, not full listing.
-3. **Data Flow:** trace primary user-facing flow end-to-end (e.g. {source}→auth→process→store→{sink}), including intermediate systems (queues, caches, external services).
+2. **Modules:** each top-level module dir with role, file count, key files + responsibilities — enough for a new developer to understand, not a full listing.
+3. **Data Flow:** trace the primary user-facing flow end-to-end (e.g. {source}→auth→process→store→{sink}), including intermediate systems (queues, caches, external services).
 4. **External:** runtime dependencies with purpose (not dev tools), grouped: databases, caches, queues, auth, third-party APIs.
 5. **Toolchain:** format/lint, test framework, CI platform, container.
 
-**Gate:** Project map generated with entry, modules, data flow, externals. If fails → entry or flow undeterminable (no main file, no framework signals, no import graph) → write map with `unknown` placeholders, WARN `"Project map incomplete — manual review required for: {list}"` in profile, continue with partial map.
+**Gate:** Project map generated with entry, modules, data flow, externals. If fails → entry or flow undeterminable → write the map with `unknown` placeholders, WARN `"Project map incomplete — manual review required for: {list}"` in the summary, continue with the partial map.
 
 ### Phase 4: Consolidate
 
-**Mandatory.** Always score dimensions AND write `ds/audit/findings.md`.
+**Mandatory.** Always score dimensions; write `ds/audit/findings.md` unless `--preview`.
 
 1. Apply dimension score aggregation + weight matrix from [references/weights.md](references/weights.md). Run calibration checks.
-2. **Score calibration checks** — verify sanity before presenting: overall in 20-95 for real projects (0 or 100 suspicious — re-verify); no individual dimension at 100 (re-check for missed signals); CRITICAL finding present → overall must be < 80 (else scoring error); adjacent dimension delta < 30 (e.g. architecture 90 but code quality 50 → investigate); Code Quality > 80 while Security & Privacy < 50 → re-verify both scans (the two signal sets correlate — a wide split suggests one scan missed signals). Any fail → re-read flagged dimension's signals + adjust.
-3. Write `ds/audit/findings.md` in this format:
-   ```
-   <!-- findings-meta
-   git_hash: {HEAD}
-   timestamp: {ISO 8601}
-   source: ds-blueprint
-   skillset: {dev-skills@hash | unknown}
-   scopes: security, privacy, hygiene, types, simplify, ai-hygiene, doc-sync, architecture, patterns, cross-cutting, maintainability, ai-architecture, contract-consistency, performance, robustness, production-readiness, testing, functional-completeness, stack, stack-fitness, dx, external-tooling, docs, spec-alignment
-   -->
-   ```
-   `skillset:` = the rule-set version that performed this scan — read `.dev-skills-version` beside the host's installed skills directory (e.g. `~/.claude/skills/.dev-skills-version`); absent → `unknown`. Prior-cycle findings carrying a **different** `skillset` → announce `rule-set delta: {old} → {new}` in the dashboard and summary: previously-clean scopes flagging now is expected new detection under upgraded rules, not project regression — never suppress such findings as "was clean last time".
-   ```
+2. **Score calibration checks** — overall in 20-95 for real projects (0 or 100 suspicious — re-verify); no individual dimension at 100 (re-check for missed signals); CRITICAL finding present → overall < 80 (else scoring error); adjacent dimension delta < 30; Code Quality > 80 while Security & Privacy < 50 → re-verify both scans. Any fail → re-read the flagged dimension's signals + adjust.
+3. Write `ds/audit/findings.md` in the shared format ([../core/findings-and-profile-format.md](../core/findings-and-profile-format.md) § 1): meta `git_hash`, `timestamp`, `source: ds-blueprint`, `skillset: {dev-skills@hash | unknown}`, `scopes:` = every scope that **ran** (Phase 3 table), `signals:` = the resolved Signals line, `filters_applied:` = N/A scopes with their signal reason + `--scope` exclusions. Every row carries file:line and Category A (conforms to the current architecture/plan) or B (changes architecture/scope/capability/user-promise/dependency). Prior-cycle findings carrying a **different** `skillset` → announce `rule-set delta: {old} → {new}` in the dashboard and summary: previously-clean scopes flagging now is expected new detection, not project regression.
+4. **Verify completeness mechanically:** `awk -F'|' '/^\|/{gsub(/ /,"",$7); print $7}' ds/audit/findings.md | sort -u` → the distinct Scope-column values (drop the header's literal `Scope`). Expected: exactly the scopes that ran. `ideal-gap` (ds-benchmark) and `privacy` (ds-compliance) are counted when present, never re-run for their absence. A scope that ran but is absent → re-run its assessment before proceeding.
 
-   ## Findings
-
-   | ID | Severity | Category | File | Line | Scope | Title |
-   |----|----------|----------|------|------|-------|-------|
-   | {id} | {severity} | {A|B} | {file} | {line} | {scope} | {title} |
-   ```
-   Every finding includes file:line so fix skills can act directly. Category A when fix conforms to current architecture/plan; B when it changes architecture/scope/capability/user-promise/dependency.
-4. **Verify completeness:** count distinct scopes mechanically — `awk -F'|' '/^\|/{gsub(/ /,"",$7); print $7}' ds/audit/findings.md | sort -u` → the distinct Scope-column values (drop the header row's literal `Scope`). Expected: the 24 blueprint-owned scopes above, minus any recorded in `filters_applied.skipped_scope` (quality-level or `--scope` exclusions — see references/detection.md § Audit Fields). `ideal-gap` is produced externally by `/ds-benchmark` — count it when present, never re-run for its absence. Blueprint-owned count below expectation → identify missing scopes and re-run assessment for those before proceeding. Missing scope = fix skills skip detection → missed issues.
-
-**Gate:** All 9 scores calculated; calibration passed; `ds/audit/findings.md` written with all 25 scopes verified. If fails → calibration suspicious score (dimension at 100, CRITICAL with overall ≥80) → re-read flagged signals + adjust; missing scopes → re-run assessment for each before writing; write fails → surface OS error, ask user to resolve.
+**Gate:** All 9 scores calculated; calibration passed; `ds/audit/findings.md` written with every ran scope verified (or, under `--preview`, the same table printed in chat). If fails → calibration suspicious → re-read flagged signals + adjust; missing scopes → re-run each before writing; write fails → surface the OS error, print the table in chat.
 
 ### Phase 5: Dashboard
 
-**Mandatory.** Always display, even in `--auto`.
+**Mandatory.** Always display.
 
-Render templates — score table, below-target findings list, score-drop explanation, human-actions block: [references/dashboard-format.md](references/dashboard-format.md). First run omits the Prev and Delta columns; the human-actions block is omitted when empty.
+Render the score table, the scope-resolution line (`Scopes: ran {n} · N/A {m} ({scope}={signal}=none …)`), below-target findings, score-drop explanation, and the human-actions block: [references/dashboard-format.md](references/dashboard-format.md). First run omits the Prev and Delta columns; the human-actions block is omitted when empty.
 
-**Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), gap analysis; `ds/audit/findings.md` write confirmed (`test -s ds/audit/findings.md` → exit 0; scope completeness already proven by Phase 4's count command — its observed output is the evidence, no re-scan here). If fails → write unconfirmed (filesystem error after Phase 4) → retry once; still failing → print dashboard with `[WARN: findings.md not written]` header so user sees scores but knows downstream consumers cannot use them until resolved.
+**Gate:** Dashboard displayed with all dimensions, scores, delta (if applicable), gap analysis, scope resolution; `test -s ds/audit/findings.md` → exit 0 (skipped under `--preview`). If fails → write unconfirmed → retry once; still failing → print the dashboard with `[WARN: findings.md not written]` so the user sees scores but knows downstream consumers cannot use them until resolved.
 
 ### Phase 6: Suggest [SKIP if --preview]
 
-List dimensions below target with signal counts. No skill-specific commands — findings file is interface.
+List dimensions below target with signal counts. No skill-specific commands — the findings file is the interface.
 
 ```
 Dimensions below target:
@@ -252,38 +209,23 @@ Dimensions below target:
 → ds/audit/findings.md written with {n} signals. Run your preferred fix tool/skill to resolve.
 ```
 
-In `--auto`: print as part of summary, no interaction.
-
 **Gate:** Suggestions generated for all below-target dimensions. If fails → all dimensions at/above target → print `"All dimensions at or above target — no suggestions needed"`, proceed.
 
-### Phase 7: Update Profile
+### Phase 7: Update Profile [SKIP if --preview]
 
-**Mandatory.** Always update.
+1. Rewrite the `Scores:` line (single line, key-value; `model={model-id}` = the model performing this assessment, `model=unknown` when not determinable) and the `Signals:` line. `--refresh` also rewrites `Type`/`Stack`/`Toolchain`/`Integrations` from fresh detection.
+2. Legacy `### Last Run`, `### Run History`, `### Current Scores` (table) blocks from a previous version → rewrite the entire profile to the minimal key-value format; report `{n} legacy lines rotated to git log`. Never re-inject historical run data.
+3. Previous scores existed → display the delta table in chat (Prev / Curr / Δ). Trend over >1 run → `git log -- <instruction-file>`, never an accumulated block.
+4. **Dev-Value Gate:** strip every forbidden line class (timestamps, deltas, run dates, owner info, descriptions, onboarding, philosophy, vendor notes, file-by-file notes) before the write; report `{n} dev-value-gate lines stripped`.
+5. **Context-budget guard:** `sed -n '/^## Blueprint Profile/,/^## End Blueprint Profile/p' {instruction-file} | wc -l` → ≤ 27 (25 content lines + 2 markers). Over → compress (merge multi-key lines, drop External entries without a purpose, drop Modules entries with role `(0)` or zero files), re-count; still over → WARN with the offending line indices.
 
-1. Rewrite the `Scores:` line — single line, key-value form. Include `model={model-id}` (model performing this assessment, from host/session context; `model=unknown` if not determinable).
-2. Legacy `### Last Run`, `### Run History`, `### Current Scores` (table) block exists from previous version → rewrite entire profile to current minimal key-value format. Report `{n} legacy lines rotated to git log` in summary. Never re-inject historical run data.
-3. Previous scores existed: display delta table in chat (Prev / Curr / Δ). Trend over >1 run → read from `git log -- <instruction-file>`, never from accumulated block.
-4. **Dev-Value Gate:** every existing profile line must answer "would an AI assistant, reading this on every turn for 6 months, do meaningfully better engineering because of it?" with yes. Check each line against forbidden patterns (timestamps, score deltas, run dates, owner info, descriptions, onboarding, philosophy, vendor notes, file-by-file change notes). Forbidden found → strip before write. Report `{n} dev-value-gate lines stripped`.
-5. **Context-budget guard:** after write, measure: `sed -n '/^## Blueprint Profile/,/^## End Blueprint Profile/p' {instruction-file} | wc -l` → ≤ 27 (25 content lines + the 2 marker lines). Over → compress: merge multi-key lines (e.g. Type + Stack + Target into one), drop External entries with no purpose, drop Modules entries with role `(0)` or zero files. Re-run the same count. Still over → surface WARN with offending line indices.
+**Gate:** Profile rewritten in minimal key-value format with fresh `Scores:` + `Signals:`; legacy blocks rotated; Dev-Value Gate applied; ≤ 25 lines. If fails → write failed or file read-only → print the updated lines in chat for manual paste, note the target file + marker positions, set state.data.profile_written false so subsequent runs know the profile is stale.
 
-**Gate:** Profile rewritten in minimal key-value format; legacy blocks rotated; no run-history in instruction file; Dev-Value Gate applied (forbidden lines stripped); profile ≤ 25 lines. If fails → write failed or file read-only → print updated `Scores:` line in chat for manual paste, note target file + marker positions, set state.data.profile_written false so subsequent runs know profile is stale; > 25 after compression → surface overshoot as WARN with offending line indices.
+### Phase 8: Needs-Approval Review [--ask, needs_approval > 0]
 
-### Phase 8: Needs-Approval Review [needs_approval > 0]
+Present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. Without `--ask` this phase does not run: every item resolves by the same impact/effort/risk reasoning, is recorded `fixed`/`failed` in the summary, and items on the publish/irreversible exception list ([../core/ask-exception-list.md](../core/ask-exception-list.md)) resolve `skipped (needs-human)`.
 
-**Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — every item, including CRITICAL, resolves via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolve `skipped (needs-human)` instead.
-
-**Gate:** All items resolved. If fails → unresolved → re-present each with forced binary prompt; user declines → mark `skipped (no response)`, proceed.
-
-### Phase 8.5: Memory Cleanup [--memory-cleanup]
-
-Optional phase. Scans AI agent memory index (`MEMORY.md` under host's project-memory directory — Claude Code: `~/.claude/projects/<hash>/memory/MEMORY.md`; equivalent for other hosts) and surfaces stale entries.
-
-1. Open `MEMORY.md`. Absent, or `wc -l < MEMORY.md` → under 200 → skip with note "Memory index under threshold — no cleanup needed".
-2. Parse `[[link]]` references; check each for a matching file in the memory directory.
-3. Group findings: **Broken links** (`[[name]]` with no matching file — likely deleted memory); **Stale entries** (files referenced by zero `[[link]]`s — orphans); **Truncated** (index over 200 lines — Claude Code truncation threshold).
-4. Present consolidation menu: `Delete broken links / Remove orphan files / Trim index / All / Skip`. Apply only what user approves. Every change reversible (memory dir is under user's home, not the repo). **Under `--auto`:** no menu — apply the full cleanup (delete broken links, remove orphans, trim index) since every change is reversible, and record it in the summary.
-
-**Gate:** Cleanup applied or user declined. If fails (memory dir not found) → skip silently, note "MEMORY.md not located — pass `--memory-cleanup` only when running inside a host that uses MEMORY.md".
+**Gate:** All items resolved. If fails → unresolved → re-present each with a forced binary prompt; user declines → mark `skipped (no response)`, proceed.
 
 ### Phase 9: Summary
 
@@ -291,20 +233,17 @@ Optional phase. Scans AI agent memory index (`MEMORY.md` under host's project-me
 
 ```
 blueprint: {OK|WARN|FAIL} | Health: {before}→{after}/{target} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n} | Score: {n}/100
+Scopes: ran {n} · N/A {m} · Signals: {the resolved line} · Profile: {file} ({written | preview — not written}) · Foundation: {confirmed | derived-from-evidence | unchanged}
 ```
 
-Disposition accounting — totals balance.
+Disposition accounting — totals balance. Status: OK (overall ≥ target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression). Open human-action items → `Human actions open: {n} — {comma-list of IDs}`; they carry over every run until the user resolves or dismisses them. Thin-evidence foundation lines → `needs-human: confirm {line}` listed in full. Closing shape: [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
-Status: OK (overall ≥ target), WARN (gap exists but progress), FAIL (CRITICAL unfixed or regression).
-
-Open human-action items exist → repeat them after the summary line (`Human actions open: {n} — {comma-list of IDs}`); they carry over every run until the user resolves or dismisses them.
-
-**Gate:** Summary printed with before/after + next steps. If fails → scores uncomputable (Phase 4 produced no scores, or previous scores absent from profile) → print with available scores, substitute `N/A` for missing, status `WARN`, note which phases need re-running.
+**Gate:** Summary printed with before/after + next steps + scope resolution. If fails → scores uncomputable → print with available scores, `N/A` for missing, status `WARN`, note which phases need re-running.
 
 **Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
 
-- `Project scored across 9 dimensions ({weakest-dim} {score}, target {target}) — focus is no longer guesswork; lowest-scoring dimension is the next investment`
-- `Foundation perfected: mission sharpened from evidence, {n} constraints challenged ({m} removed as unfounded), {k} red lines made explicit — every downstream skill now calibrates against a confirmed foundation instead of a form-fill`
+- `Project scored across 9 dimensions ({weakest-dim} {score}, target {target}) — focus is no longer guesswork; the lowest-scoring dimension is the next investment`
+- `Signal inventory written ({n} keys resolved, {m} unknown) — every later skill scans only the scopes this project actually has instead of everything`
 - `{n} signals written to ds/audit/findings.md — downstream skills (ds-review, ds-fix, ds-simplify) skip their own detection and act directly`
 - `Stack-fitness: {obsolete-or-oversized-dep} flagged — replacement candidate proposed with effort estimate`
 
@@ -315,6 +254,7 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 - Every signal cites file:line — skip signals without evidence
 - Only count signals from source code — exclude test, generated, vendored files
 - Score reflects verified signals only — uncertain signals reduce to 0.5 weight
+- `--preview` writes nothing — no profile, no findings, no state, no `.gitignore` edit; a preview that left a file behind is a bug
 - W9: `ds/audit/blueprint.json` updated per scope, gitignored, deleted on successful Summary
 - W10: SSOT producer — writes `ds/audit/findings.md` fresh every run; consumers MUST defer to it
 - W1: Cite file:line; never assume. W2: Check consumers after modify. W3: Touch only task-required lines. W4: Re-read after gap. W5: Uncertain → lower severity. W6: Verify all phases output. W7: Dedup file:line. W8: No raw shell interpolation. <!-- portable-only -->
@@ -323,8 +263,8 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 
 | Situation | Action |
 |-----------|--------|
-| Codebase too large for full scan | Apply saturation gate after 3 dimensions, extrapolate remaining |
-| Blueprint profile write fails | Save to temporary file, warn user, suggest manual placement |
+| Codebase too large for full scan | Apply saturation gate after 3 dimensions, extrapolate remaining, mark `[PARTIAL SCAN]` |
+| Blueprint profile write fails | Save to `ds/audit/blueprint-profile-draft.md`, warn user, suggest manual placement |
 | Previous profile format incompatible | Write new profile alongside, let user decide when to remove old |
 | Scoring dimension has zero signals | Score as N/A, exclude from overall calculation |
 
@@ -332,8 +272,9 @@ Zero-finding run: `All 9 dimensions at or above target — no investment needed 
 
 | Scenario | Behavior |
 |----------|----------|
-| Empty project | Report baseline scores, note no code to assess |
-| Monorepo | Score each workspace independently, aggregate in summary |
-| No instruction file found | Create new profile, ask user for target file location. Under `--auto`: default to `CLAUDE.md`, no prompt. |
+| Empty project | Report baseline scores, note no code to assess; every signal `none` or `unknown` |
+| Monorepo | Score each workspace independently, aggregate in summary; one `Signals:` line per workspace joined with `;` when they differ |
+| No instruction file found | Create the file chosen by the host-evidence rule (Profile Storage); `--ask` → ask which tool first |
+| Profile from an older version without `Signals:` | Add the line on the next run (a `--refresh` is not required) |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

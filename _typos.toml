@@ -6,7 +6,7 @@
 [files]
 # Turkish-language register — typos ships no Turkish dictionary, so every word in
 # this file reads as a misspelling (tema, sistem, paralel, parametre, ...).
-extend-exclude = ["references/experience-rules.md"]
+extend-exclude = ["core/experience-rules.md"]
 
 [default.extend-words]
 # Domain acronyms and rule prefixes
@@ -22,6 +22,7 @@ Hashi = "Hashi"             # from "HashiCorp Vault"
 Frase = "Frase"             # Frase.io, cited AEO source
 Wonderous = "Wonderous"     # the Google Flutter showcase app's actual name
 Canva = "Canva"             # the design tool
+testng = "testng"           # TestNG, the JVM test framework, as a lowercase dependency name (core/toolchains.md)
 
 # English usages typos mis-reads
 mis = "mis"                 # hyphenated prefix: mis-copied, mis-priced, mis-scoped

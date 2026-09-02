@@ -51,18 +51,18 @@ Anything this skill itself has to say goes in the body.
 
 | Capability | Status | How it is used here |
 |------------|--------|---------------------|
-| Sub-issues (`--parent`, `--add-sub-issue`) | VAR — native | Epic → sub-issue hierarchy (Phase 4) |
-| Sub-issue limits | VAR — 100 per parent, 8 nesting levels ([docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/adding-sub-issues)) | Epic wider than 100 children → split the epic |
-| Dependencies (`--add-blocked-by` / `--add-blocking`) | VAR — GA 2025-08-21 | Binding order between sub-issues |
-| Hierarchy in JSON (`parent`, `subIssues`, `subIssuesSummary`, `blockedBy`, `blocking`) | VAR | `--status` / `--sweep` read these, never re-derive from body text |
+| Sub-issues (`--parent`, `--add-sub-issue`) | Available — native | Epic → sub-issue hierarchy (Phase 4) |
+| Sub-issue limits | Available — 100 per parent, 8 nesting levels ([docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/adding-sub-issues)) | Epic wider than 100 children → split the epic |
+| Dependencies (`--add-blocked-by` / `--add-blocking`) | Available — GA 2025-08-21 | Binding order between sub-issues |
+| Hierarchy in JSON (`parent`, `subIssues`, `subIssuesSummary`, `blockedBy`, `blocking`) | Available | `--status` / `--sweep` read these, never re-derive from body text |
 | Issue types (`--type`) | Organization-only. `gh api /orgs/<org>/issue-types` → 404 on a user-owned repo (verified against `sungurerdim/uzengi`) | Probe first; on non-200 skip types entirely and use labels |
-| Labels, milestones, assignees | VAR | 1 type + 1 priority label; milestones only if the repo already uses them |
-| Body update via `gh issue edit --body-file` | VAR | The only way information is updated |
+| Labels, milestones, assignees | Available | 1 type + 1 priority label; milestones only if the repo already uses them |
+| Body update via `gh issue edit --body-file` | Available | The only way information is updated |
 | Body maximum length | 65536 characters, from the API error string — **not stated on any official docs page**, so treat it as an observed bound, not a documented one | Over ~40k → the issue is an epic, split it |
-| Body edit history | VAR, GraphQL only (`userContentEdits`) — never surfaced by a normal read | Why the body carries its own `## Log` |
+| Body edit history | Available, GraphQL only (`userContentEdits`) — never surfaced by a normal read | Why the body carries its own `## Log` |
 | Task lists (`- [ ] #123`) | Tasklist *blocks* are retired ([docs](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/about-tasklists)); a plain checkbox referencing an issue still renders and back-links, but is **not** a hierarchy | Portable fallback only, when native sub-issues are unavailable |
-| Projects v2 field writes (`gh project item-edit`) | VAR, but needs the `project` token scope (`gh auth refresh -s project`); the default `repo` scope is not enough | Out of scope for this skill — never assume the scope is present |
-| Issue templates / issue forms (YAML) | VAR (`--template`) | Not used: they shape human intake, and this skill composes the body itself |
+| Projects v2 field writes (`gh project item-edit`) | Available, but needs the `project` token scope (`gh auth refresh -s project`); the default `repo` scope is not enough | Out of scope for this skill — never assume the scope is present |
+| Issue templates / issue forms (YAML) | Available (`--template`) | Not used: they shape human intake, and this skill composes the body itself |
 
 Anything not in this table was not verified — do not build behavior on it.
 

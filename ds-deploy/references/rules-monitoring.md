@@ -40,7 +40,7 @@ slog.Info("request processed",
 
 **Why:** Structured logs → filtering, aggregation, and alerting in log management tools (Loki, Betterstack, Axiom). Unstructured text requires regex parsing and breaks on format changes.
 
-**Source:** OpenTelemetry Logging specification, deployment-patterns.md (Log aggregation)
+**Source:** OpenTelemetry Logging specification, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Log aggregation)
 
 ---
 
@@ -69,7 +69,7 @@ app.get('/readyz', async (req, res) => {
 
 **Why:** Liveness failures → container restarts; readiness failures → remove instance from load balancer. Combining into one endpoint → unnecessary restarts when a dependency is temporarily unavailable.
 
-**Source:** Kubernetes probe best practices, deployment-patterns.md (Health Endpoint)
+**Source:** Kubernetes probe best practices, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Health Endpoint)
 
 ---
 
@@ -91,7 +91,7 @@ sentry_sdk.init(dsn="https://...@sentry.io/...", traces_sample_rate=0.1)
 
 **Why:** Mean time to detection (MTTD) directly impacts mean time to recovery (MTTR). Automated alerts cut MTTD from hours to seconds for solo developers who cannot monitor dashboards continuously.
 
-**Source:** Sentry alerting docs, deployment-patterns.md (Incident Response: Detection phase)
+**Source:** Sentry alerting docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Incident Response: Detection phase)
 
 ---
 
@@ -132,7 +132,7 @@ Alert on downtime sustained longer than 1 minute. Configure a status page for tr
 
 **Why:** Internal health checks cannot detect network-level, DNS, or full-host failures. External monitoring provides user's perspective on availability.
 
-**Source:** UptimeRobot, Better Stack, cost-optimization.md (Monitoring section)
+**Source:** UptimeRobot, Better Stack, [cost-optimization.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/cost-optimization.md) (Monitoring section)
 
 ---
 
@@ -151,7 +151,7 @@ Alert on downtime sustained longer than 1 minute. Configure a status page for tr
 
 **Why:** Cloud services with usage-based pricing can generate unexpected bills. Free tier limits change without notice (SendGrid removed its free tier in May 2025, PlanetScale in April 2024). Proactive monitoring prevents surprise costs.
 
-**Source:** Cloud provider cost management docs, cost-optimization.md (Cost Scaling Thresholds)
+**Source:** Cloud provider cost management docs, [cost-optimization.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/cost-optimization.md) (Cost Scaling Thresholds)
 
 ---
 

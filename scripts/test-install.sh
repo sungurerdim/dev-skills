@@ -57,6 +57,23 @@ else
   bad "runtime files only" "SKILL-SPEC.md leaked into $skills, or README.md missing"
 fi
 
+if [ -f "$skills/core/principles.md" ] && [ ! -e "$skills/core/SKILL.md" ]; then
+  ok "install ships core/ beside the skills, without a SKILL.md (guards: every ../core/ link dead; core listed as a command)"
+else
+  bad "install ships core/ beside the skills" "no $skills/core/principles.md, or a SKILL.md inside core/"
+fi
+
+# --- 1b. a single-skill install still gets core/ -------------------------------
+one="$tmp/one-skill"
+./install.sh --target "$one" --skills ds-review >/dev/null 2>&1
+one_n=$(find "$one" -maxdepth 1 -type d -name 'ds-*' | wc -l | tr -d ' ')
+check "--skills installs only the named skill (guards: subset flag ignored)" "1" "$one_n"
+if [ -f "$one/core/principles.md" ]; then
+  ok "--skills subset still ships core/ (guards: a lone skill whose ../core/ links are dead)"
+else
+  bad "--skills subset still ships core/" "no core/principles.md under $one"
+fi
+
 # --- 2. --check on a clean install --------------------------------------------
 ./install.sh --target "$skills" --check >/dev/null 2>&1
 check "--check reports clean right after install (guards: false drift on every run)" "0" "$?"
@@ -84,6 +101,38 @@ else
   bad "portable install ships the markers verbatim" "no portable-only marker in portable ds-commit/SKILL.md"
 fi
 
+# --- 2c. claude profile: lean + the Claude-only fork line in ds-ship only -------
+cl="$tmp/claude-skills"
+./install.sh --target "$cl" --profile claude >/dev/null 2>&1
+check "claude install exits 0 (guards: a missing anchor sentence aborting every install)" "0" "$?"
+if grep -q 'portable-only' "$cl/ds-ship/SKILL.md" 2>/dev/null; then
+  bad "claude install strips portable-only blocks" "marker text survived in ds-ship/SKILL.md"
+else
+  ok "claude install strips portable-only blocks (guards: claude shipping the duplicate layer)"
+fi
+if grep -q 'run the delegate as a forked subagent' "$cl/ds-ship/SKILL.md" 2>/dev/null; then
+  ok "claude install injects the fork instruction into ds-ship (guards: profile silently equal to lean)"
+else
+  bad "claude install injects the fork instruction into ds-ship" "no fork sentence in $cl/ds-ship/SKILL.md"
+fi
+if grep -rq 'forked subagent' "$cl/ds-review/SKILL.md" "$cl/ds-commit/SKILL.md" 2>/dev/null; then
+  bad "claude injection stays inside ds-ship" "fork sentence leaked into a delegate's SKILL.md"
+else
+  ok "claude injection stays inside ds-ship (guards: host-specific text spreading to every skill)"
+fi
+if grep -q 'forked subagent' ds-ship/SKILL.md; then
+  bad "repo ds-ship/SKILL.md stays host-neutral" "fork sentence present in the repo file"
+else
+  ok "repo ds-ship/SKILL.md stays host-neutral (guards: install-time text landing in the repo)"
+fi
+if grep -q 'profile=claude' "$cl/.dev-skills-version" 2>/dev/null; then
+  ok "claude install stamps its profile (guards: --check comparing against lean)"
+else
+  bad "claude install stamps its profile" "no profile=claude in $cl/.dev-skills-version"
+fi
+./install.sh --target "$cl" --check >/dev/null 2>&1
+check "--check is clean on a claude install without re-passing --profile (guards: false drift)" "0" "$?"
+
 # --- 3. --check detects a mutated file ----------------------------------------
 printf '\nlocal edit that is not in the repo\n' >> "$skills/ds-commit/SKILL.md"
 out=$(./install.sh --target "$skills" --check 2>&1)
@@ -99,6 +148,17 @@ rm -f "$skills/ds-pr/SKILL.md"
 ./install.sh --target "$skills" --check >/dev/null 2>&1
 check "--check catches a deleted installed file (guards: silent partial install)" "1" "$?"
 
+# --- 4b. --check detects drift inside core/ -----------------------------------
+./install.sh --target "$skills" >/dev/null 2>&1
+printf '
+local edit
+' >> "$skills/core/principles.md"
+out=$(./install.sh --target "$skills" --check 2>&1)
+case "$out" in
+  *"DRIFT in core"*) ok "--check names drift inside core/ (guards: a stale shared reference passing as in sync)" ;;
+  *) bad "--check names drift inside core/" "no 'DRIFT in core' line in output" ;;
+esac
+
 # --- 5. re-install repairs both -----------------------------------------------
 ./install.sh --target "$skills" >/dev/null 2>&1
 ./install.sh --target "$skills" --check >/dev/null 2>&1
@@ -113,6 +173,12 @@ if [ -f "$skills/.dev-skills-version" ]; then
   bad "uninstall removes the version stamp" "stamp survived at $skills/.dev-skills-version"
 else
   ok "uninstall removes the version stamp (guards: --check claiming an install that is gone)"
+fi
+
+if [ -d "$skills/core" ]; then
+  bad "uninstall removes core/" "core/ survived at $skills/core"
+else
+  ok "uninstall removes core/ (guards: orphaned shared references after uninstall)"
 fi
 
 if [ -f "$skills/ds-not-from-this-repo/keep.txt" ] &&

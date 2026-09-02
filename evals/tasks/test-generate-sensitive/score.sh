@@ -12,8 +12,19 @@ r "test-file-created" "$rc"
 if [ -z "$tf" ]; then echo "OVERALL	FAIL	1/5"; exit 1; fi
 rc=1; grep -q 'orderTotalCents' "$tf" && rc=0
 r "targets-the-function" "$rc"
-rc=1; node "$tf" >/dev/null 2>&1 && rc=0
-r "green-on-correct-code" "$rc"
+# Run the generated file with whatever runner the agent wired up: a plain
+# `node` script, or jest/vitest/mocha declared in a package.json it created.
+# A jest suite run with bare `node` fails on `describe` and would score red on
+# every criterion at once — a scorer artifact, not a skill failure.
+runner="node"
+if [ -f package.json ]; then
+  grep -q '"vitest"' package.json && runner="npx --no-install vitest run --silent"
+  grep -q '"jest"'   package.json && runner="npx --no-install jest --silent"
+  grep -q '"mocha"'  package.json && runner="npx --no-install mocha"
+fi
+run_tests() { $runner "$tf" >/dev/null 2>&1; }
+rc=1; run_tests && rc=0
+r "green-on-correct-code($runner)" "$rc"
 cp src/pricing.js /tmp/pricing.eval.bak 2>/dev/null || cp src/pricing.js pricing.eval.bak
 mutate() { python3 - "$1" <<'PY'
 import sys
@@ -27,8 +38,8 @@ PY
 }
 restore() { cp pricing.eval.bak src/pricing.js 2>/dev/null || cp /tmp/pricing.eval.bak src/pricing.js; }
 cp src/pricing.js pricing.eval.bak
-mutate threshold; node "$tf" >/dev/null 2>&1; m1=$?; restore
-mutate rounding;  node "$tf" >/dev/null 2>&1; m2=$?; restore
+mutate threshold; run_tests; m1=$?; restore
+mutate rounding;  run_tests; m2=$?; restore
 rm -f pricing.eval.bak /tmp/pricing.eval.bak
 rc=1; [ "$m1" != "0" ] && rc=0
 r "red-on-threshold-mutant(assertions-cover-discount-boundaries)" "$rc"

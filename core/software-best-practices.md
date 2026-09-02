@@ -56,7 +56,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Localizes the blast radius of changes; a bug in billing logic cannot affect order logic. Reduces merge conflicts. Promotes high cohesion and prevents "god object" anti-patterns.
 - **When it applies:** Every project at every scale; especially valuable once a codebase exceeds one developer.
 - **Risk/downside:** Near-zero. Over-application to trivially small units is possible but easily corrected.
-- **Sources:** [ByteByteGo](https://bytebytego.com/guides/10-good-coding-principles-to-improve-code-quality/), [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994), [Clean Code (O'Reilly)](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)
+- **Sources:** [ByteByteGo](https://bytebytego.com/guides/10-good-coding-principles-to-improve-code-quality/), Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002), [Clean Code (O'Reilly)](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)
 - **Category:** Architecture
 
 ---
@@ -66,7 +66,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Adding features no longer risks breaking existing passing tests. Reduces regression risk on every new release.
 - **When it applies:** Any codebase that needs to evolve without destabilizing existing behavior; particularly important for shared libraries and plugin systems.
 - **Risk/downside:** Near-zero. Requires upfront thought about extension points; premature application on unstable APIs can over-engineer.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -76,7 +76,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Polymorphic designs work reliably. Prevents subtle runtime failures when a subclass silently violates parent postconditions.
 - **When it applies:** Any codebase using inheritance or polymorphism.
 - **Risk/downside:** Near-zero.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -86,7 +86,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Reduces coupling; changes to unrelated methods in a fat interface no longer break unaffected consumers. Simplifies mocking in tests.
 - **When it applies:** Any system with interfaces or abstract types, particularly in compiled languages.
 - **Risk/downside:** Near-zero.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -96,7 +96,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Enables seamless swapping of implementations (e.g., swapping a database, a payment provider, or a cache) without touching business logic. Dramatically simplifies unit testing via dependency injection.
 - **When it applies:** Any module with external collaborators (I/O, network, database, third-party services).
 - **Risk/downside:** Near-zero. Introduces indirection; manageable with a DI container or manual wiring.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -106,7 +106,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Produces modular, independently testable, and reusable components. A UI change does not require touching data access code.
 - **When it applies:** All projects; especially critical in web applications where presentation, logic, and data tiers commonly conflate.
 - **Risk/downside:** Near-zero.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -116,7 +116,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Reduces coupling between unrelated objects. Changes to internal object structures propagate to fewer call sites. Prevents `a.getB().getC().doSomething()` chains that encode implementation details.
 - **When it applies:** Object-oriented systems of any size.
 - **Risk/downside:** Near-zero. Can require adding delegate methods; judgment needed to avoid over-wrapping.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994), Pragmatic Programmer Tip #46
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002), Pragmatic Programmer Tip #46
 - **Category:** Architecture
 
 ---
@@ -126,7 +126,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Modules are easier to understand, reuse, and test in isolation. High cohesion naturally limits module size to a manageable level.
 - **When it applies:** All projects.
 - **Risk/downside:** Near-zero.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -136,7 +136,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Prevents side-effects from propagating across the system when a component changes. Enables independent deployment, testing, and replacement of components.
 - **When it applies:** All projects; the more components, the greater the benefit.
 - **Risk/downside:** Near-zero.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994), DORA/Google Cloud Architecture
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002), DORA/Google Cloud Architecture
 - **Category:** Architecture
 
 ---
@@ -176,7 +176,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Avoids deep, brittle inheritance hierarchies. Composed behavior can be changed at runtime; inherited behavior cannot. Reduces the "fragile base class" problem.
 - **When it applies:** Object-oriented codebases; especially when building reusable components.
 - **Risk/downside:** Near-zero.
-- **Sources:** Pragmatic Programmer Tip #53, [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Pragmatic Programmer Tip #53, Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -206,7 +206,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Eliminates build cost, carry cost, and delay cost of speculative features. Research shows roughly two-thirds of presumed future requirements either never arrive or are built incorrectly. Prevents premature abstraction.
 - **When it applies:** All feature development; especially during early product phases. Requires a malleable, well-tested codebase (so additions are cheap when actually needed).
 - **Risk/downside:** Near-zero, given good refactoring discipline.
-- **Sources:** [Martin Fowler — YAGNI](https://martinfowler.com/bliki/Yagni.html), [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** [Martin Fowler — YAGNI](https://martinfowler.com/bliki/Yagni.html), Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -236,7 +236,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Reduces the number of sites that must be modified when a business rule changes. Protects consumers from volatility.
 - **When it applies:** Any code that wraps business rules, third-party APIs, or I/O — things that change for reasons outside your control.
 - **Risk/downside:** Near-zero.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -246,7 +246,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Architectural resilience: third-party API changes, database migrations, and protocol upgrades touch only the wrapper, not the entire codebase.
 - **When it applies:** Any integration point with external dependencies.
 - **Risk/downside:** Near-zero.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002)
 - **Category:** Architecture
 
 ---
@@ -260,7 +260,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Bug fixes apply in one place. Requirement changes propagate automatically. Eliminates divergence between copies that causes subtle, hard-to-find bugs.
 - **When it applies:** All projects, all artifacts.
 - **Risk/downside:** Near-zero. Over-application (extracting coincidentally similar but semantically different code) is worse than duplication — use judgment.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994), Pragmatic Programmer Tip #15, [Refactoring.Guru](https://refactoring.guru/refactoring/what-is-refactoring)
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002), Pragmatic Programmer Tip #15, [Refactoring.Guru](https://refactoring.guru/refactoring/what-is-refactoring)
 - **Category:** Code Quality
 
 ---
@@ -270,7 +270,7 @@ These ten principles appear across the most authoritative sources, have the wide
 - **Concrete benefit:** Less code = fewer bugs, less maintenance, less cognitive load for future readers. Every unnecessary complexity is a permanent interest payment.
 - **When it applies:** Every design and implementation decision.
 - **Risk/downside:** Near-zero. Requires honest assessment of what "simple" means in context.
-- **Sources:** [Medium/20 Principles](https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994), Pragmatic Programmer Tip #72
+- **Sources:** Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (Prentice Hall, 2002), Pragmatic Programmer Tip #72
 - **Category:** Code Quality
 
 ---
@@ -1280,7 +1280,7 @@ The following practices were considered and excluded because they are methodolog
 |--------|-----|----------------------|-------------------|
 | ByteByteGo — 10 Coding Principles | https://bytebytego.com/guides/10-good-coding-principles-to-improve-code-quality/ | CQ-01 through CQ-05, CQ-22, CQ-23, A-18 | Code Quality |
 | The Twelve-Factor App | https://12factor.net/ | O-01, O-07, O-08, O-09, O-10, O-13, O-15, C-01, C-02, C-03, R-02, R-07 | Config, Operations, Reliability |
-| Medium — 20 Essential Principles | https://medium.com/@techievinay01/the-20-essential-principles-of-software-development-lod-soc-solid-and-beyond-6fd50774f994 | A-01 through A-09, A-16, A-19, A-20, CQ-01, CQ-02 | Architecture |
+| Robert C. Martin — *Agile Software Development: Principles, Patterns, and Practices* (print; replaces the Medium restatement, which is bot-blocked and secondary) | — | A-01 through A-09, A-16, A-19, A-20, CQ-01, CQ-02 | Architecture |
 | Google Engineering Practices | https://google.github.io/eng-practices/ | P-02, P-03, P-04 | Process |
 | Martin Fowler — Practical Test Pyramid | https://martinfowler.com/articles/practical-test-pyramid.html | T-01 through T-15 | Testing |
 | Martin Fowler — Continuous Integration | https://martinfowler.com/articles/continuousIntegration.html | O-01 through O-06, O-08, O-10, O-14, O-15 | Operations |

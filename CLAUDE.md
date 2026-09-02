@@ -23,8 +23,9 @@ Multi-phase AI coding assistant skills covering the full software lifecycle — 
 | `SKILL-SPEC.md` | Authoritative skill format spec — every `ds-*` must conform |
 | `agents/` | Shared agent definitions (`ds-research-agent` — worker for ds-research + ds-brief); install to the host agent dir, e.g. `~/.claude/agents/` |
 | `docs/` | Topic-organized references (backend, frontend, devops, compliance, business, launch, methodology, infrastructure) |
-| `references/` | Source material (`software-best-practices.md`, `launch-research.md`, `experience-rules.md`) |
-| `scripts/` | The gate: `quality.sh` (entry point), `check-consistency.sh` (23 checks + `--self-test`), `test-install.sh` |
+| `core/` | Shared runtime references every skill links to as `../core/<file>.md` — principles, severity/score, findings + profile format, signal inventory, ask-exception list, checkpoint protocol, execution loop, report templates, secret patterns, toolchains, CRAAP, plus the `software-best-practices.md` catalog and the `experience-rules.md` XR pointer map. Shipped on every install; no SKILL.md inside |
+| `scripts/` | The gate: `quality.sh` (entry point), `check-consistency.sh` (+ `--self-test`, `--mutation-test`), `test-install.sh` (installer round-trip) |
+| `install.sh` · `install.cmd` | The installer (bash + coreutils + git, no rsync) and its Windows launcher; `--check`, `--status`, `--update`, `--uninstall` |
 | `AGENTS.md` | Cross-host contributor instructions — the file Codex/Cursor/Copilot/Aider read; this file is the Claude-Code counterpart |
 | `.github/` | Issue + PR templates only — no workflows, the gate is local by design |
 | `specs/` | Spec Kit artifacts per feature; `001-v4-coverage-standalone/` is a superseded historical record, not a work queue |
@@ -124,9 +125,9 @@ Data: none | Regulations: none
 Audience: public, other-developers | Deploy: git-clone-plus-install-sh
 
 Entry: README.md (docs) ; install.sh (tooling)
-Modules: ds-*/=skill(30); agents/=shared-agent(1); docs/=reference-docs(9-dirs); references/=source-material(2); scripts/=gate-tooling(2)
+Modules: ds-*/=skill(30); core/=shared-references(14); agents/=shared-agent(1); docs/=reference-docs(9-dirs); scripts/=gate-tooling(3)
 Data Flow: repo-clone→install.sh→~/.claude/skills→AI-host-invocation
-External: rsync(sync-tool, system-only)
+External: none
 Toolchain: bash scripts/quality.sh | CI: none — local gate only (git pre-commit) | Container: none
 
 Ideal: coupling=low cohesion=high complexity=low coverage=n/a

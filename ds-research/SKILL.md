@@ -66,7 +66,7 @@ Setup → Parse Query → Research → Synthesize → [Needs-Approval] → Outpu
 
 ### Phase 2: Parse Query
 
-**IDU:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis. Findings file fresh → use project type and stack from metadata.
+**Upstream artifacts:** Profile → Type + Stack, Config.constraints. Findings() → verify + use. Absent → own analysis. Findings file fresh → use project type and stack from metadata.
 
 Extract from arguments: concepts, tech domain, comparison mode, search mode (troubleshoot / changelog / security).
 
@@ -119,7 +119,7 @@ Verify all claims cite sources; check contradictions; remove unsupported asserti
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — every item resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the rule-4 exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — every item resolves by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → record unresolved as `pending-user-decision`, proceed to Output with WARN, list at bottom.
 

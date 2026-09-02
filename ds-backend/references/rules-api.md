@@ -36,7 +36,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 **Note (2026):** For complex parameterized reads that outgrow GET's URL limits, `POST`-as-safe-read was the historical workaround — the HTTP `QUERY` method ([RFC 10008](https://datatracker.ietf.org/doc/rfc10008/), June 2026; safe, idempotent, cacheable, with a request body) is now the standard replacement. Adopt where the framework/infrastructure supports it; OpenAPI 3.2 models it natively.
 
-**Source:** [Google API Design Guide](https://cloud.google.com/apis/design), api-architecture-patterns.md Section 2
+**Source:** [Google API Design Guide](https://cloud.google.com/apis/design), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 2
 
 ---
 
@@ -68,7 +68,7 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 **Impact:** Clients parse one format. Monitoring tools detect errors reliably. `status` field in body must match HTTP status code.
 
-**Source:** [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html), api-architecture-patterns.md Section 6
+**Source:** [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 6
 
 ---
 
@@ -88,7 +88,7 @@ Rules: Increment major version only for breaking changes. Support at least two m
 
 **Impact:** Prevents breaking existing clients on deploy. Enables parallel migration windows.
 
-**Source:** [Stripe API versioning](https://stripe.com/docs/api/versioning), api-architecture-patterns.md Section 4
+**Source:** [Stripe API versioning](https://stripe.com/docs/api/versioning), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 4
 
 ---
 
@@ -109,7 +109,7 @@ Rules: Increment major version only for breaking changes. Support at least two m
 
 **Impact:** Prevents invalid data from reaching business logic or database. Reduces attack surface (injection, type confusion).
 
-**Source:** [OWASP Input Validation Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html), api-architecture-patterns.md Section 8 (API4)
+**Source:** [OWASP Input Validation Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 8 (API4)
 
 ---
 
@@ -147,7 +147,7 @@ The `X-RateLimit-*` family is the de-facto convention. The IETF standardization 
 
 **Impact:** Protects against abuse, credential stuffing, and denial-of-service. Required by OWASP API Top 10 (API4: Unrestricted Resource Consumption).
 
-**Source:** [IETF RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), [Stripe rate limiters](https://stripe.com/blog/rate-limiters), api-architecture-patterns.md Section 7
+**Source:** [IETF RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), [Stripe rate limiters](https://stripe.com/blog/rate-limiters), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 7
 
 ---
 
@@ -167,7 +167,7 @@ Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at 
 
 **Impact:** Eliminates performance degradation on large, actively-written tables. Prevents duplicate or skipped rows in paginated results.
 
-**Source:** [Slack API pagination](https://api.slack.com/docs/pagination), [Zendesk cursor vs offset](https://developer.zendesk.com/documentation/api-basics/pagination/comparing-cursor-pagination-and-offset-pagination/), api-architecture-patterns.md Section 5
+**Source:** [Slack API pagination](https://api.slack.com/docs/pagination), [Zendesk cursor vs offset](https://developer.zendesk.com/documentation/api-basics/pagination/comparing-cursor-pagination-and-offset-pagination/), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 5
 
 ---
 
@@ -190,7 +190,7 @@ Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at 
 
 **Impact:** Enables safe client retries for network failures, especially critical for payment and order flows.
 
-**Source:** [Stripe Idempotent Requests](https://stripe.com/docs/api/idempotent_requests), api-architecture-patterns.md Section 2
+**Source:** [Stripe Idempotent Requests](https://stripe.com/docs/api/idempotent_requests), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 2
 
 ---
 
@@ -214,7 +214,7 @@ Design-first (write YAML before code) produces cleaner contracts and enables fro
 
 **Impact:** Machine-readable API contracts enable code generation, automated testing, and accurate documentation.
 
-**Source:** [OpenAPI 3.1 Specification](https://swagger.io/specification/), [OpenAPI Best Practices](https://learn.openapis.org/best-practices.html), api-architecture-patterns.md Section 10
+**Source:** [OpenAPI 3.1 Specification](https://swagger.io/specification/), [OpenAPI Best Practices](https://learn.openapis.org/best-practices.html), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 10
 
 ---
 
@@ -240,7 +240,7 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 
 **Impact:** Reduces client-side URL construction. Enables API evolution without breaking existing consumers.
 
-**Source:** [Richardson Maturity Model Level 3](https://martinfowler.com/articles/richardsonMaturityModel.html), api-architecture-patterns.md Section 2
+**Source:** [Richardson Maturity Model Level 3](https://martinfowler.com/articles/richardsonMaturityModel.html), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Section 2
 
 ---
 
@@ -267,7 +267,7 @@ HATEOAS optional for internal APIs but valuable for public APIs to reduce client
 
 **Impact:** Prevents denial-of-service via deeply nested or expensive queries. Eliminates N+1 database access patterns in resolvers.
 
-**Source:** [Apollo GraphQL Best Practices](https://www.apollographql.com/docs/apollo-server/performance/), api-architecture-patterns.md Sections 1 and 8
+**Source:** [Apollo GraphQL Best Practices](https://www.apollographql.com/docs/apollo-server/performance/), [api-architecture-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/api-architecture-patterns.md) Sections 1 and 8
 
 ### API-11 SSRF Protection on URL Fetches [CRITICAL]
 

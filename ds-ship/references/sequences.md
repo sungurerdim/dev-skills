@@ -1,6 +1,41 @@
-# Phase 0 Default Plan — Stage and Type Routing
+# Phase 0 Default Plan — Mode, Signals, Stage and Type Routing
 
-The default skill sequence per stage signal, the three stage-independent branches (feature-planning, monetization, scope-freeze), and the per-project-type overrides. Loaded when Phase 0 builds the plan.
+Loaded when Phase 0 builds the plan. Order of precedence: **mode** decides which legs exist at all → **signals** decide which skills inside a leg have a scope here → the **stage matrix** orders what remains → **type rules** resolve exclusivity. A skill excluded at any step carries that step's reason in the report (`mode-excluded`, `signal-absent — key=value`, `project-type-exclusivity`, `user-trimmed`).
+
+## Modes and their legs
+
+| Mode | Legs that run | Legs that are `mode-excluded` |
+|------|---------------|-------------------------------|
+| harden | P2 rule audit (blueprint bootstrap, review, stack-specific, compliance/mobile, test, fix) · P3 simplify · P4 docs | P1 benchmark · productize · P5 release chain · launch legs · Ship-ready verdict (reports `Health:`) |
+| release | harden + P5 release chain: devops → deploy → release → repo; productize when `billing ≠ none` | P1 benchmark · ds-launch · OSS readiness · store legs |
+| launch | release + P1 benchmark · ds-launch (store / web / library publish readiness) · ds-repo --oss-ready when `audience=public` · productize when `billing ≠ none` or paid intent | — |
+| maintain | blueprint diff · ds-deps · ds-tune when a metric loop exists · ds-fix · ds-test | P1 benchmark · P3 simplify unless `size=large` · P5 chain · launch legs |
+
+## Signal justification per skill
+
+| Skill | Runs when (signal) | Otherwise |
+|-------|--------------------|-----------|
+| ds-blueprint | findings absent, stale (hash ≠ HEAD), lacking `Signals:`, or `--refresh-findings` | skipped (findings fresh at HEAD) |
+| ds-review --strategic | `size ≠ small` | signal-absent — size=small (tactical pass covers it) |
+| ds-review --tactical, ds-test, ds-fix | any source | signal-absent — no source |
+| ds-backend | `api ≠ none` or `db ≠ none` | signal-absent — api=none, db=none |
+| ds-frontend | `ui ∈ {web, desktop}` | signal-absent — ui=none |
+| ds-mobile | `mobile ≠ none` | signal-absent — mobile=none |
+| ds-compliance | `pii=yes` or `auth ≠ none` or `ui=web`; not when ds-mobile owns the overlapping scopes | signal-absent / project-type-exclusivity |
+| ds-productize | `billing ≠ none` or paid intent (release/launch modes) | signal-absent — billing=none |
+| ds-simplify | any source | — |
+| ds-docs | any docs or README | — |
+| ds-deps | maintain mode, or `stack` scope reports outdated majors | signal-absent — stack current |
+| ds-devops | release/launch (`ci=none` is itself the finding) | mode-excluded |
+| ds-deploy | release/launch and `deploy ∉ {none, store}` | signal-absent — deploy=none / store |
+| ds-release | release/launch | mode-excluded |
+| ds-repo | release/launch and (`public_repo ≠ no` or team signals) | signal-absent |
+| ds-launch | launch and (`platforms ∩ {ios, android}` or `ui=web` with `deploy ≠ none` or `platforms=library`) | signal-absent |
+| ds-repo --oss-ready | launch and `audience=public` or `public_repo=yes` | signal-absent — audience≠public |
+| ds-benchmark | launch | mode-excluded |
+| ds-tune | maintain and a `ds/tune/` loop or a measurable metric exists | signal-absent |
+
+## Stage default order (within the legs the mode allows)
 
 | Stage signal | Default sequence |
 |--------------|------------------|

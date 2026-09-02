@@ -70,7 +70,7 @@ Scope tool (formatter, linter, typecheck binary, l10n generator, audit command) 
 
 | Case | Action |
 |------|--------|
-| Installable tool missing | Show install command (e.g., `{install-command-for-tool}`), ask **"Install and continue?"** — accept → install + re-run scope; decline → mark scope `⚠ Skipped (tool unavailable, declined install)`, continue to next scope. **Under `--auto`:** no ask — resolves per Unattended Mode rule 3: install (after Trust Verification — registry-published, non-trivial age) and re-run the scope; install blocked by missing system/sudo permissions → `needs-human`, scope marked `skipped` |
+| Installable tool missing | Show install command (e.g., `{install-command-for-tool}`), ask **"Install and continue?"** — accept → install + re-run scope; decline → mark scope `⚠ Skipped (tool unavailable, declined install)`, continue to next scope. **Under `--auto`:** no ask — resolves by best judgment: install (after Trust Verification — registry-published, non-trivial age) and re-run the scope; install blocked by missing system/sudo permissions → `needs-human`, scope marked `skipped` |
 | System-level tool missing (e.g., `{compiler-or-runtime}`) | Show manual install instructions, skip scope |
 | Filesystem access error | Mark scope `WARN` with the specific OS error |
 
@@ -80,7 +80,7 @@ Detection → [L10n] → [Format] → [Lint] → [Typecheck] → [Security] → 
 
 ### Phase 1: Stack Detection
 
-1. **IDU:** Profile → Toolchain, Type+Stack. Absent → own detection.
+1. **Upstream artifacts:** Profile → Toolchain, Type+Stack. Absent → own detection.
 
 Detect stacks in two tiers. Multiple stacks may coexist (e.g., monorepo).
 
@@ -232,7 +232,7 @@ Look up typecheck tool from `references/toolchains.md`; detect if type checking 
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — items resolve per Unattended Mode rule 3 (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — items resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → forced binary re-prompt per item; no response → mark `skipped (no response)` and proceed.
 

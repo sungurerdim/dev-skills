@@ -36,7 +36,7 @@ db.query(`SELECT * FROM users WHERE name = '${name}'`)
 
 **Why:** SQL injection remains top-3 web vulnerability (OWASP Top 10). Single unparameterized query can expose or destroy entire database.
 
-**Source:** [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html), database-design-guide.md Schema Design section
+**Source:** [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
 
 ---
 
@@ -59,7 +59,7 @@ Column order matters in composite indexes: leftmost prefix queries are served. M
 
 **Why:** Missing indexes are most common cause of slow queries. Single index addition can reduce query time from seconds to milliseconds.
 
-**Source:** [Use The Index, Luke](https://use-the-index-luke.com/), database-design-guide.md Indexing section
+**Source:** [Use The Index, Luke](https://use-the-index-luke.com/), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Indexing section
 
 ---
 
@@ -89,7 +89,7 @@ Lint migrations in CI: **Squawk** — free Postgres migration linter (flags `CRE
 
 **Why:** Unsafe migrations cause downtime, data loss, or long-held table locks that block all queries.
 
-**Source:** [Zero-Downtime PostgreSQL Migrations](https://www.braintreepayments.com/blog/safe-operations-for-high-volume-postgresql/), [Squawk](https://squawkhq.com/), [Atlas](https://atlasgo.io/versioned/lint), database-design-guide.md Migration Strategies section
+**Source:** [Zero-Downtime PostgreSQL Migrations](https://www.braintreepayments.com/blog/safe-operations-for-high-volume-postgresql/), [Squawk](https://squawkhq.com/), [Atlas](https://atlasgo.io/versioned/lint), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Migration Strategies section
 
 ---
 
@@ -117,7 +117,7 @@ Pool size rule of thumb: `(2 * CPU cores) + 1` for NVMe storage. Keep total conn
 
 **Why:** Unbounded connections exhaust database resources and cause cascading failures under load.
 
-**Source:** [PgBouncer docs](https://www.pgbouncer.org/), [HikariCP](https://github.com/brettwooldridge/HikariCP), database-design-guide.md ORM Patterns section
+**Source:** [PgBouncer docs](https://www.pgbouncer.org/), [HikariCP](https://github.com/brettwooldridge/HikariCP), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) ORM Patterns section
 
 ---
 
@@ -142,7 +142,7 @@ Consistency matters more than which specific style is chosen.
 
 **Why:** Inconsistent naming increases cognitive load, causes ORM mapping bugs, and makes schema exploration harder.
 
-**Source:** [PostgreSQL naming conventions](https://www.postgresql.org/docs/current/sql-syntax-lexical.html), database-design-guide.md Schema Design section
+**Source:** [PostgreSQL naming conventions](https://www.postgresql.org/docs/current/sql-syntax-lexical.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
 
 ---
 
@@ -166,7 +166,7 @@ Detection tools: `django-debug-toolbar`, `bullet` (Ruby), `laravel-query-detecto
 
 **Why:** N+1 queries turn single page load into hundreds of database round trips, degrading response time linearly with data size.
 
-**Source:** ORM documentation (Django, SQLAlchemy, ActiveRecord, JPA), database-design-guide.md ORM Patterns section
+**Source:** ORM documentation (Django, SQLAlchemy, ActiveRecord, JPA), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) ORM Patterns section
 
 ---
 
@@ -196,7 +196,7 @@ Automate everything. Test restores monthly. Take backup before any destructive m
 
 **Why:** Untested backups = no backups. Data loss from hardware failure, migration errors, or accidental deletion requires proven restore procedures.
 
-**Source:** [AWS RDS backup docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html), [pg_dump best practices](https://www.postgresql.org/docs/current/app-pgdump.html), database-design-guide.md Backup and Recovery section
+**Source:** [AWS RDS backup docs](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_WorkingWithAutomatedBackups.html), [pg_dump best practices](https://www.postgresql.org/docs/current/app-pgdump.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Backup and Recovery section
 
 ---
 
@@ -225,7 +225,7 @@ Migrate from SQLite to PostgreSQL when: frequent `SQLITE_BUSY`, file size > 10 G
 
 **Why:** Choosing right database avoids premature complexity (over-engineering) or painful migrations later (under-engineering).
 
-**Source:** [DB-Engines comparison](https://db-engines.com/en/system/MySQL%3BPostgreSQL%3BSQLite), database-design-guide.md Database Selection section
+**Source:** [DB-Engines comparison](https://db-engines.com/en/system/MySQL%3BPostgreSQL%3BSQLite), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Database Selection section
 
 ---
 
@@ -253,7 +253,7 @@ Never trust a client-supplied `tenant_id`; derive it from the authenticated sess
 
 **Why:** A missing tenant filter lets one tenant read or modify another tenant's rows via a guessable/enumerable ID (IDOR at the data layer) — a full cross-tenant data breach, the most damaging class of bug in multi-tenant SaaS.
 
-**Source:** [OWASP: Insecure Direct Object References](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference), [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), database-design-guide.md Schema Design section
+**Source:** [OWASP: Insecure Direct Object References](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference), [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html), [database-design-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/database-design-guide.md) Schema Design section
 
 ### DB-10 Schema-Level Data Minimization & PII Log Hygiene [HIGH]
 

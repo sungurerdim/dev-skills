@@ -97,8 +97,8 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 ### Phase 1: Setup
 
 1. Flags → proceed directly. No flags → interactive menu.
-2. **IDU:** Profile → {Type + Stack, Config.audience, Config.deploy, Config.data}. Findings({monetization, pricing, gtm, spec-alignment}) → verify + use. Absent → own analysis.
-3. Ask the monetization-intent block once (single block, only unknowns): current/target model, target price range, B2B vs B2C vs prosumer, platforms (store IAP vs web checkout vs both). **Under `--auto`:** skip the ask — apply the same not-stated fallback as the Gate below without waiting; monetization intent is a business decision that Unattended Mode rule 4 does not let `--auto` invent where it isn't inferable from the repo, so unknowns are recorded `not-stated`/`needs-human` rather than guessed.
+2. **Upstream artifacts:** Profile → {Type + Stack, Config.audience, Config.deploy, Config.data}. Findings({monetization, pricing, gtm, spec-alignment}) → verify + use. Absent → own analysis.
+3. Ask the monetization-intent block once (single block, only unknowns): current/target model, target price range, B2B vs B2C vs prosumer, platforms (store IAP vs web checkout vs both). **Under `--auto`:** skip the ask — apply the same not-stated fallback as the Gate below without waiting; monetization intent is a business decision that the publish/irreversible exception list does not let `--auto` invent where it isn't inferable from the repo, so unknowns are recorded `not-stated`/`needs-human` rather than guessed.
 4. Load references by active scope: [references/rules-monetization.md](references/rules-monetization.md) (monetization + pricing surface), [references/rules-pricing.md](references/rules-pricing.md) (pricing method, channels, unit economics), [references/rules-gtm.md](references/rules-gtm.md) (gtm).
 
 **Gate:** Mode + scope + intent answers recorded. If fails → no response to intent block → proceed with `--audit --scope=monetization,pricing,gtm`, mark unknown intents `not-stated`, WARN, calibrate findings to "model not yet chosen" instead of guessing one.
@@ -132,7 +132,7 @@ Setup → Discover → Audit → [Plan] → [Needs-Approval] → Summary
 
 ### Phase 5: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — every item resolves per Unattended Mode rule 3 (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the rule-4 exception list, which become `skipped (needs-human)`. **Interactive:** state the question (`Decide these N items?`) and present each item compactly (one line `[severity] title — file:line or surface`) grouped by scope with counts; ask Apply all / per-scope bulk (`Apply all pricing` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Under `--auto`:** no review step is shown — every item resolves by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which become `skipped (needs-human)`. **Interactive:** state the question (`Decide these N items?`) and present each item compactly (one line `[severity] title — file:line or surface`) grouped by scope with counts; ask Apply all / per-scope bulk (`Apply all pricing` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → no response → `skipped (no response)`, proceed.
 
