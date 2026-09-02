@@ -11,7 +11,7 @@
 | `ask-exception-list.md` | The only decisions an autonomous run does not make: irreversible and publishing actions; what `--ask` changes | every skill; orchestrators forward it |
 | `checkpoint-protocol.md` | Clean-tree pre-gate before the first write, unit-level revert rules, stop-hard flows | every bulk-modifying skill |
 | `execution-loop.md` | Intake → re-verify → impact map → bounded units → red proof → mutation proof → aggregate gate → code-proven close | ds-build, ds-issue `--do`, ds-debug, ds-freeze |
-| `report-and-outcome-templates.md` | Completion Evidence bands, verify-echo, summary line and accounting, Value Delivered, Outcome Report, orchestrator report | every Summary phase |
+| `report-and-outcome-templates.md` | Completion Evidence bands, verify-echo, summary line and accounting, Effect, Outcome Report, orchestrator report | every Summary phase |
 | `secret-patterns.md` | Filename exclusion set and content regexes; never-auto-fix rule; scanner augmentation | ds-commit, ds-pr, ds-fix, ds-review, ds-compliance, ds-issue, ds-build |
 | `toolchains.md` | Per-stack detect / format / lint / type / test / audit commands, the composed `{check-cmd}`, bootstrap-if-missing, property and mutation testing tools | ds-fix, ds-quality, ds-test, ds-init, ds-build, ds-debug, every Mechanical Done Gate |
 | `craap.md` | Source tiers, modifiers, dimensions, bands, verification rules, normative ladder, confidence, contradiction resolution | ds-research, ds-brief, ds-benchmark, ds-productize, `--research` modes, ds-research-agent |

@@ -54,6 +54,9 @@ references/
   verification.md              sourcing + 2x-confirm + known/unknown discipline (this skill's stricter HIGH gate + independence test)
   report-template.md           HTML conventions (SSOT, chips, print/PDF, a11y)
   research-pipeline.md         collect→store→read; context-mode + completeness
+  build-report.md              Phase 4 slot manifest + fill rules (per-slot verifier check)
+  error-recovery.md            full situation → action table, all phases
+  manual-checklist.md          browser/judgment checks a parser can't see
 assets/
   brief-template.html          canonical offline print/PDF-safe skeleton (clone + fill)
   verify-brief.py              mechanical verifier (stdlib python3): artifact, report, cross, bundle

@@ -45,3 +45,10 @@ Ship date approaching with no pre-launch checklist.
 - **Fix:** Minimal plan: announcement channels list, waitlist or beta cohort, press-kit page (screenshots, one-liner, contact), staged-rollout note.
 - **Impact:** Launch attention is a one-time spike; unprepared launches spend it with no capture mechanism.
 - **Source:** 60-day pre-launch timeline patterns.
+
+### GTM-07 [LOW] Retention/engagement metrics not computable
+No way to compute DAU/MAU stickiness or D1/D7/D30 retention from existing data.
+- **Detect:** No analytics events or dashboard from which daily/monthly active users or day-N-return-rate can be derived; no retention-by-cohort view exists anywhere (provider dashboard, internal dashboard, or a query over raw events).
+- **Fix:** Instrument session-start events against a stable user/device ID; compute DAU/MAU and D1/D7/D30 return rate by weekly install cohort. Benchmarks are category-dependent, not universal — treat published ranges (e.g. B2B/utility DAU/MAU commonly 10-25%, social/messaging 50%+) as directional floors to sanity-check your own category against, never as a pass/fail bar.
+- **Impact:** Without a measurable retention curve, onboarding and core-value-delivery problems stay invisible until they surface as unexplained churn or a paid-acquisition budget with no way to be justified — retention is the leading indicator the revenue metrics in GTM-05 lag behind.
+- **Source:** UXCam — Mobile App Retention Benchmarks by Industry (2026) — https://uxcam.com/blog/mobile-app-retention-benchmarks/

@@ -3,7 +3,7 @@
 # since the last tag, no remote. Correct run: minor bump to 1.3.0 in package.json,
 # CHANGELOG gets a dated [1.3.0] section (Unreleased kept empty), a release commit
 # and an annotated local tag v1.3.0 on HEAD; tests green; publishing (push, GitHub
-# release, registry) is reported needs-human, never attempted — there is no remote.
+# release, registry) is reported only you can do, never attempted — there is no remote.
 set -euo pipefail
 d="${1:?target dir}"; rm -rf "$d"; mkdir -p "$d/src" "$d/test"
 cd "$d"; git init -q -b main; git config user.email eval@example.com; git config user.name "Eval Fixture"

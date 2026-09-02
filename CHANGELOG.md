@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-02
+
+Program: issue #38 (v7 — one-key autonomy, tailored scope, shared core, measured on two Claude tiers). Baseline commit `69e7bd4`.
+
+### Breaking
+
+- **Autonomous default.** No flag = every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list (`core/ask-exception-list.md`) is skipped and recorded `only you can do`. `--ask` restores menus, approval batches and confirmations at every decision point and propagates from ds-ship to its delegates. **`--auto` is removed without an alias**; the Up-Front Mode Menu, All-Affordance and Selection Transparency rules apply only under `--ask`.
+- **`core/` is the single home for shared references** (principles, severity/score categories, findings + profile format, signal inventory, ask-exception list, checkpoint protocol, execution loop, report + outcome templates, secret patterns, toolchains, CRAAP, best practices, experience rules). The 22 per-skill `references/principles.md` copies and the toolchain / CRAAP / secret-pattern duplicates are gone; skills link `../core/<file>.md`. A manual copy of one skill directory must now copy `core/` beside it — `install.sh` (including `--skills` subsets and `--target`) always does.
+- **ds-solve removed.** Its budgeted backtracking lives in ds-build, its hypothesis loop in ds-debug.
+- **ds-ship gains `--mode=harden|release|launch|maintain`.** Benchmark, launch, productize and Ship-ready legs run only in `release`/`launch`; every delegate is justified by a project signal (`signal-absent — key=value`, `skipped — not part of this mode`, `skipped — another skill owns it for this project type`, `skipped — removed by you`, `failed`, `skipped — not installed`).
+- **Closing block shares dev-rules' labels:** `Asked` / `Done` / `Effect` / `Decided without asking — say if wrong` / `Only you can do` (empty lines omitted); every choice put to the user is recommendation-first with options in one shape. `core/report-and-outcome-templates.md` § 5 is the portable copy; the `lean` and `claude` install profiles strip it because the always-on layer owns it.
+- **Installer rewritten without rsync** (bash + coreutils + git); `install.cmd` launches it from cmd.exe/PowerShell; profiles `portable` · `lean` · `claude` (lean + ds-ship delegates run as forked subagents on Claude Code); `--status`; profile-aware `--check`.
+- **Spec Kit artifacts removed** (`specs/`, `.specify/`, `.opencode/`); ds-pipeline runs `specify → clarify → plan → tasks → analyze` natively, Spec Kit optional when installed, and hands `tasks.md` to ds-build.
+- **`docs/` lifecycle guides removed** after a delta migration into the owning skills' rules files (every actionable item became a rule with Detect/Fix/Impact/Source, templates moved into ds-docs references); `docs/methodology/` and `docs/guide.html` remain.
+- **Spec citations banned inside skills** (`SKILL-SPEC`, `Unattended Mode rule`, `rule-4 exception`, `IDU`, `DSC`, `OVERLAP-n`, `VAR`) — 143 citations replaced by the canonical inline equivalents; a lone install has nowhere to resolve them.
+- Contributor-facing: `check-consistency.sh` checks 21/22/23 folded into `check_core_links`, check 28 removed; new checks `check_spec_citations`, `check_dead_sources`, `check_undefined_flags` (+ retired-flag list), `check_readme_counts`, `check_ask_row_canonical`, `check_scope_resolution_table`, `check_rule_impact`, `check_duplicate_rule_titles`, each with a self-test fixture and a mutation case.
+
+### Added
+
+- **ds-build** (prefix `BLD`) — plan executor: issue / `specs/{feature}/tasks.md` / plain request → bounded units, a verify signal per unit, regression tests seen red first, ≤ 3 attempts × ≤ 3 approaches with recorded causes, per-unit commits, code-proven close; `ds-issue --do`, ds-pipeline and ds-freeze hand off to it.
+- **ds-debug** (`DBG`) — reproduce the red → localize (`git bisect run`, trace, temporary logging, flaky split 3× isolated + 1× shuffled) → ≤ 3 falsifiable hypotheses → minimal fix behind a red-proven regression test; `not reproduced` is an honest outcome; tests are never weakened.
+- **ds-release** (`REL`) — version from Conventional Commits, dated CHANGELOG section with Unreleased kept, every version surface found by search and bumped together, check green before the tag, local release commit + annotated tag; push / GitHub release / registry / store handed back with the exact commands; `--verify` post-release (remote tag, CI run, attestation, registry, smoke, rollback path).
+- **Relevance First:** ds-blueprint produces a `Signals:` line (`has_ui`, `has_api`, `has_db`, `has_auth`, `has_billing`, `has_pii`, `platforms`, `audience`, `jurisdiction`, `integrations`, …; `core/signal-inventory.md`); every multi-scope skill carries a `| Scope | Runs when (signal) | Otherwise |` table; the three largest rules files tag every rule `applies_when:`.
+- **Mechanical Done Gate + Checkpoint** in ds-pr (closes the `reset --hard`-over-uncommitted-work path with an explicit Push phase), ds-repo, ds-devops, ds-docs; 21 code-modifying skills gated.
+- **Rules:** Impact line on every rule (≈ 400 added); ds-mobile Expo + Kotlin Multiplatform detection, per-platform release rules, staged rollout; ds-deps JVM/.NET/Swift rows, lockfile-integrity table, SBOM (`syft`); ds-init Bun/Hono/Astro/Expo; ds-frontend Svelte 5/Astro/Solid/htmx; ds-compliance EAA, DSA, age verification, Quebec Loi 25 (+ analytics-privacy and legal-checklist deltas); ds-productize chargeback and external-purchase-link rules; ds-deploy DNS/TLS/HSTS rules; ds-repo GitHub security toggles (secret scanning + push protection, Dependabot, private vulnerability reporting, code scanning) via `gh api`; ds-review gitleaks/semgrep as optional detectors with enumerated per-scope checklists; ds-test contract tests on API boundary artifacts.
+- **Evals:** 13 tasks (5 new: fix-autonomy-no-prompt, ship-harden-no-launch, build-tasks-md, debug-reproduce-fix, release-tag-changelog); `evals/validate-scorers.sh` proves every scorer red-before / green-after; results on #38.
+- **Gate:** `scripts/quality.sh` adds `typos`, the installer round-trip (32 assertions) and dev-rules' `check-cross-repo.sh` when a sibling `../dev-rules` checkout exists (visibly SKIPPED otherwise); `.gitattributes` pins LF; `_typos.toml` domain vocabulary.
+
+### Changed
+
+- ds-review: `--diff` is the default scope, bootstrap is an if/then table, simplify/yagni/duplicate detection handed to ds-simplify, `discarded (no harm signal): n` in the summary. ds-fix: `--diff` default, tracked secret = CRITICAL / untracked = HIGH via `git ls-files`. ds-test: input-state decision table, findings.md write scope, red-proof + flaky gate. ds-commit: secret/size commands stated, no fetch/pull, `Co-Authored-By` only when the repo already uses it. ds-devops: rules split into ci / signing / deps / release-pipeline, `actionlint` + `zizmor` in the done gate, monitoring owned by ds-deploy. ds-launch: SEO/email handed to ds-compliance, integrations audit keyed on the `integrations` signal, `ds/launch/` metadata directory. ds-compliance: ds-mobile and ds-frontend absence branches (no silently dropped scopes). ds-frontend: three fully defined presets. ds-blueprint: `--preview` writes nothing, Foundation questions only under `--init`/`--ask`, privacy single-owned. ds-brief: slot manifest, verifier path from the dispatcher. ds-research-agent: normative Contract split from the operating procedure. Frontmatter descriptions ≤ 300 chars; SKILL.md byte ceilings per skill with per-scope reference loading.
+
+### Measurements
+
+{{MEASURE}}
+
+
 ## [1.2.0] - 2026-07-28
 
 ### Added — release-cycle hardening: installer test, shell lint, path-citation check (2026-07-28)

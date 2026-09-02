@@ -34,20 +34,20 @@ description: Bug hunter — reproduce the failure as an observed red, localize i
 
 - Fixes the observed failure and nothing else; unrelated defects found on the way become findings with a disposition, never silent edits.
 - Standalone. Reads the repo, its tests, logs and git history; web lookups only under `--research` (ds-research when present, inline search otherwise), each fact cited.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **The red comes first.** No edit before the failure is reproduced by a command whose output is pasted; a report that cannot be reproduced ends as `not reproduced` with what was tried — never as a speculative fix.
 - **Tests are never weakened.** The regression test asserts the intended behavior from the report; an existing test that encodes the bug is corrected to the intended behavior and the change is stated. Assertion strength, expected values and coverage of the failing path never shrink.
-- **Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)): `git status --porcelain` before the first write; a dirty path the fix would touch → `needs-human` (commit or stash first); experiments are reverted per file with `git checkout -- {file}`, never a tree-wide reset. `git bisect` runs only on a clean tree and always ends with `git bisect reset`.
+- **Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)): `git status --porcelain` before the first write; a dirty path the fix would touch → `only you can do` (commit or stash first); experiments are reverted per file with `git checkout -- {file}`, never a tree-wide reset. `git bisect` runs only on a clean tree and always ends with `git bisect reset`.
 - **Mechanical Done Gate:** `{check-cmd}` (ds-quality arm when installed, else the stack-native chain from [../core/toolchains.md](../core/toolchains.md)) captured at baseline, re-run after the fix and once before close; new red → fix ≤ 3 attempts, then revert and record; baseline red reported red-at-baseline; no tooling → Verification-Infrastructure Gap surfaced.
 - **Hypothesis budget:** at most three hypotheses, each with a prediction, the test that would falsify it, and the observed result; a fourth is not tried — the run reports the three falsifications and stops with options.
-- Publishing (push, PR, release) is never done here — `needs-human` with the command ([../core/ask-exception-list.md](../core/ask-exception-list.md)). State-exempt: the failing test, the commit and the issue are the durable record.
+- Publishing (push, PR, release) is never done here — `only you can do` with the command ([../core/ask-exception-list.md](../core/ask-exception-list.md)). State-exempt: the failing test, the commit and the issue are the durable record.
 
 ## Arguments
 
 | Flag | Effect |
 |------|--------|
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 | `--issue=#N` | Take the bug report from a GitHub issue (`gh issue view N`); the fix commit references it and the closure evidence is written into the body |
 | `--test={id}` | Start from a named failing test instead of a report |
 | `--bisect` | Force `git bisect run {signal}` for localization when a last-known-good commit exists (default: bisect only when the red is newer than the last tag or the report names a regression) |
@@ -71,7 +71,7 @@ Reproduce → Localize → Hypothesize → Fix → Regression test → Done gate
 3. Not reproducible → try the report's exact input and environment (Node/Python version, locale, timezone, OS path separators) once each; still green → status `not reproduced`, list what was tried, stop before any edit.
 4. Resolve `{check-cmd}` and capture the baseline; run the Checkpoint pre-gate.
 
-**Gate:** A command whose observed output shows the failure. If fails → `not reproduced` reported with the attempts and the environment differences; `--ask` → ask for the missing input; default → `needs-human: provide a reproducing input or environment`.
+**Gate:** A command whose observed output shows the failure. If fails → `not reproduced` reported with the attempts and the environment differences; `--ask` → ask for the missing input; default → `only you can do: provide a reproducing input or environment`.
 
 ### Phase 2: Localize
 
@@ -107,21 +107,21 @@ For each hypothesis: `H{n}: {cause} → predicts {observable}; falsified by {com
 1. Full `{check-cmd}` once → green (or no new red vs a red baseline); new red → fix ≤ 3 attempts, then revert the fix and record `reverted` with the error.
 2. Commit locally (`fix({scope}): {what} (#N)` when an issue exists) via ds-commit or inline; hooks are never bypassed.
 3. `--issue` → write the evidence into the body (reproduction command + red, fix `file:line`, regression test red→green, `{check-cmd}` output) and close it with `gh issue close --reason completed` (`--ask` confirms).
-4. Related defects noticed on the way → findings with a disposition (`fixed inline` when same-file and trivial, else `filed`/`needs-human`), never silent edits.
+4. Related defects noticed on the way → findings with a disposition (`fixed inline` when same-file and trivial, else `filed`/`only you can do`), never silent edits.
 
 **Gate:** Aggregate green, commit present, record written. If fails → hook rejects the commit → fix what it names and retry (≤ 3); `gh` unavailable → print the closure block for manual paste.
 
 ### Phase 6: Summary
 
 ```
-ds-debug: {OK|WARN|FAIL} | Reproduced: {yes|no} | Cause: {file:line — mechanism} | Hypotheses: {tried}/3 | Fix: {commit} | Regression test: {red→green | absent} | Needs-human: {n}
+ds-debug: {OK|WARN|FAIL} | Reproduced: {yes|no} | Cause: {file:line — mechanism} | Hypotheses: {tried}/3 | Fix: {commit} | Regression test: {red→green | absent} | Only you can do: {n}
 ```
 
-Then the verify-echo (reproduction command + red, test red→green, `{check-cmd}` output), `Decided without asking` lines, every `needs-human` item in full ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)). Status: OK (fixed + red-proven + gate green), WARN (fixed but a related finding or a flaky-quarantine remains), FAIL (not reproduced, three hypotheses falsified, or gate red).
+Then the verify-echo (reproduction command + red, test red→green, `{check-cmd}` output), `Decided without asking` lines, every `only you can do` item in full ([../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md)). Status: OK (fixed + red-proven + gate green), WARN (fixed but a related finding or a flaky-quarantine remains), FAIL (not reproduced, three hypotheses falsified, or gate red).
 
 **Gate:** Summary printed with the outputs. If fails → any output missing → re-run that command and paste it.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `Bug {id} fixed at {file:line} and pinned by a test that was seen failing first — the same failure cannot ship again unnoticed`
 - `Root cause localized to commit {hash} by bisect in {n} steps — the fix touched {n} lines, not a rewrite`
@@ -143,7 +143,7 @@ Zero-change run: `Not reproduced — {attempts}; no edit made`.
 |-----------|--------|
 | No test runner in the repo | Reproduce with a one-line script in the project's language; the regression test uses the runner from `../core/toolchains.md` § the stack's section (zero-dependency runner when none is installed) |
 | `git bisect` cannot run (dirty tree, shallow clone) | Skip bisect, localize by trace/logging, record `bisect: unavailable — {reason}` |
-| Fix requires a credential or a production-only input | `needs-human` with the exact question; the diagnosis and the test are still committed |
+| Fix requires a credential or a production-only input | `only you can do` with the exact question; the diagnosis and the test are still committed |
 | Same failure after the fix in a second environment | Re-open Phase 1 in that environment; the first fix stays, the second cause gets its own hypothesis budget |
 
 ## Edge Cases
@@ -151,7 +151,7 @@ Zero-change run: `Not reproduced — {attempts}; no edit made`.
 | Scenario | Behavior |
 |----------|----------|
 | Report describes intended behavior that contradicts an existing test | Treat the existing test as the suspect: verify against docs/spec; correct the test only with that evidence stated |
-| Bug is in a dependency | Pin or upgrade with a changelog citation (ds-deps when present); a local patch is `needs-human` |
+| Bug is in a dependency | Pin or upgrade with a changelog citation (ds-deps when present); a local patch is `only you can do` |
 | Heisenbug (vanishes under instrumentation) | Use non-invasive signals (exit codes, file outputs, timing) and record the instrumentation effect |
 | Multiple independent bugs in one report | One reproduction + fix cycle per bug, each with its own regression test and commit |
 

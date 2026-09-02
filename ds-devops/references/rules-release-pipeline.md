@@ -6,7 +6,7 @@ Applies to all project types with a release or publish step. Loaded for the `rel
 |---------|-------|
 | **Build & Registry Provenance** | DOP-18, DOP-21 (2 HIGH) |
 | **Backup, DR & Resilience** | DOP-30–31 (1 HIGH, 1 MEDIUM) |
-| **Release Automation** | DOP-32–35, DOP-37 (3 HIGH, 2 MEDIUM) |
+| **Release Automation** | DOP-32–35, DOP-37, DOP-43, DOP-47 (4 HIGH, 3 MEDIUM) |
 | **Build Hygiene** | DOP-38–39 (2 MEDIUM) |
 
 ## Build & Registry Provenance
@@ -83,6 +83,23 @@ Task-runner/orchestration scripts are written in a tool already present on all p
 - **Fix:** Choose the runner from the intersection of default installs across target platforms (e.g. bash where Git-for-Windows is assumed, or the language runtime the project already requires); if a non-universal tool is genuinely warranted, gate it behind an explicit documented install step, not an assumption.
 - **Impact:** A runner missing on one platform silently forks the team into "can run the automation" and "pastes commands from chat" — the second group ships the mistakes the automation existed to prevent.
 - **Source:** XR-176 — cross-project experience registry (2026).
+
+### DOP-43 [HIGH] `GITHUB_TOKEN` Does Not Trigger Downstream Workflows
+A workflow run, push, or PR created using the default `GITHUB_TOKEN` does not trigger other `on: push`/`on: pull_request` workflows — a deliberate recursion guard, not a bug — so a release-automation chain that depends on one workflow's output triggering the next silently stalls.
+- **Detect:** A release/publish workflow (e.g. `googleapis/release-please-action`) whose output (tag push, release event) is expected to trigger a downstream workflow (publish, deploy, notify), authenticated only with the default `GITHUB_TOKEN`; the downstream workflow never runs and no error is logged anywhere.
+- **Fix:** Where a workflow's output must trigger another workflow, authenticate the triggering step with a PAT (fine-grained, minimal scope) or a GitHub App token instead of `GITHUB_TOKEN`. Alternative: use `workflow_run` to chain explicitly, or consolidate both steps into one workflow so no cross-workflow trigger is needed.
+- **Impact:** The failure is silent — no error, no failed job, just a downstream workflow that never starts — so the gap is usually discovered only when a release ships without its supposed-to-be-automatic follow-up action.
+- **Source:** [GitHub Actions — Triggering a workflow from a workflow](https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow)
+
+### DOP-47 [HIGH] Deploy Workflow Safety: Concurrency and Environment Gates
+A deploy workflow needs different concurrency and approval behavior than a PR/CI workflow — copying the same `cancel-in-progress: true` pattern, or skipping environment protection, turns a routine push into a partial deploy or an unreviewed production release.
+- **Detect:**
+  - Deploy workflow using `cancel-in-progress: true` (a second push mid-deploy cancels the first deploy partway through, leaving a mixed/partial release)
+  - Production deploy job with no `environment:` block, or an `environment:` with no required reviewers configured — any `workflow_dispatch` or auto-triggered job can ship to production unreviewed
+  - Staging and production sharing one workflow/job with no distinct gating between them
+- **Fix:** On deploy workflows, set `cancel-in-progress: false` (or omit `concurrency` entirely if deploys must never overlap — use a queue instead). Set `environment: { name: production, url: <url> }` on the production deploy job and configure required reviewers on that GitHub Environment. Keep staging auto-deploying on push to main with no approval; gate production behind `workflow_dispatch` or environment reviewers.
+- **Impact:** A cancelled mid-deploy leaves production in a mixed, half-updated state with no clear rollback point; an ungated production job means any triggering event — including an automation bug — can ship to users with zero human checkpoint.
+- **Source:** [GitHub Actions — Using concurrency](https://docs.github.com/en/actions/using-jobs/using-concurrency), [GitHub Actions — Using environments for deployment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment)
 
 ## Build Hygiene
 

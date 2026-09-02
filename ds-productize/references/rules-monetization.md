@@ -59,7 +59,7 @@ Opt-out trial converts to paid without clear pre-purchase disclosure or renewal 
 ### MON-08 [HIGH] Cancellation harder than subscription
 Cancel path longer than sign-up path, or requires contact/login hurdles sign-up did not.
 - **Detect:** Count steps: subscribe vs cancel. Cancel requiring support contact, hidden menu, or confirm-shaming copy.
-- **Fix:** Cancellation reachable in the same number of steps as subscription; Germany requires a no-login cancellation button; dark patterns (roach motel, misdirection) are actionable in EU (DSA/GDPR) and multiple US states.
+- **Fix:** Cancellation reachable in the same number of steps as subscription; Germany requires a no-login cancellation button; dark patterns (roach motel, misdirection) are actionable in EU (DSA/GDPR) and multiple US states. A retention offer (ask reason via 1-click choice, offer pause instead of cancel, provide data export) is legitimate only when it never adds a step or delay to completing the cancellation itself — present it alongside the cancel action, never gating it.
 - **Impact:** Legal exposure + refund/chargeback spikes + 1-star review pressure.
 - **Source:** State auto-renewal laws 2025-2026; EU DSA dark-pattern prohibitions.
 
@@ -119,6 +119,20 @@ Billing copy never leaves "whose fault gets charged" ambiguous — the policy is
 - **Impact:** Ambiguous billing language suppresses usage even when the actual policy is generous — users who fear surprise charges use less, churn silently, and never say why.
 - **Source:** XR-110 — cross-project experience registry (2026).
 
+### MON-17 [HIGH] Chargeback dispute response and refund-window handling absent
+Chargebacks (card-network-mediated disputes on an already-successful charge) are handled as a distinct process from renewal-failure dunning (MON-06), with evidence retained and store refund windows correctly represented.
+- **Detect:** No process or retained evidence for responding to a chargeback (proof of delivery/access, IP + device metadata, ToS-acceptance timestamp, support correspondence) within the card network's response window; chargeback handling conflated with MON-06's dunning/retry flow (different trigger: a completed charge disputed by the cardholder, not a failed renewal); no chargeback-rate monitoring against network dispute-ratio thresholds; store-distributed app's support copy claiming the developer controls or can block a refund the store's own policy adjudicates.
+- **Fix:** Maintain a chargeback response path separate from dunning: capture and retain compelling evidence per transaction at time of purchase/delivery (not reconstructed after a dispute arrives) so a response can be filed inside the processor's window; monitor chargeback rate and treat approaching a network's monitoring threshold as an operational alert, not just a revenue loss; for store-distributed apps, write support/cancellation copy that matches the platform's actual refund authority (Apple: user-initiated via reportaproblem.apple.com, decided by Apple; Google Play: policy-driven, self-serve within an initial window and Google/developer-mediated beyond it) rather than implying the developer decides.
+- **Impact:** An unanswered or evidence-less chargeback is an automatic loss plus a dispute fee on top of the refunded amount, and a dispute rate that crosses a card network's threshold risks the merchant account itself — a single point of failure for the whole business's ability to take payment.
+- **Source:** Stripe — Responding to disputes — https://stripe.com/docs/disputes ; Apple — Request a refund for apps or content — https://support.apple.com/en-us/118223 ; Google Play refund policy — https://support.google.com/googleplay/answer/2479637
+
+### MON-18 [MEDIUM] Free-tier gate design has no anti-pattern check
+Free/paywall gating mechanism chosen without checking it against the documented failure modes that either kill conversion or trigger backlash.
+- **Detect:** No documented rationale for the chosen gating mechanism (usage limit / feature lock / time limit / quality gate / capacity limit); free tier covers the entire core value loop with no upgrade reason (too generous); free tier cannot demonstrate the core value at all (too restrictive); a feature competitors ship free is gated here (table stakes); a previously-free, habit-forming feature moved behind the paywall in a later release (bait-and-switch); upgrade prompts fire on a fixed schedule or every session rather than at value-aligned moments (nagware).
+- **Fix:** Choose the gating mechanism deliberately and record why (usage limits for variable-cost/AI features, feature locks for advanced tools, time limits for full-access trials, quality gates for output tiers, capacity limits for storage/projects). Before shipping, check against all five failure modes: free users can complete the core loop at least once; a specific reason to upgrade still remains; no competitor-standard feature is gated; no shipped free feature is later removed; upgrade prompts are contextual and capped, never persistent.
+- **Impact:** An undocumented gate drifts into one of five well-documented failure modes, each with a distinct cost — no upgrade path loses revenue, no demonstrable value loses users, gating table-stakes loses to competitors, bait-and-switch triggers 1-star reviews and trust collapse, nagware drives uninstalls.
+- **Source:** RevenueCat — Freemium Tier Design Guide — https://www.revenuecat.com/blog/growth/freemium-tier-design
+
 ## Pricing & Packaging
 
 ### PRC-01 [MEDIUM] No target tier / decoy logic in packaging
@@ -162,3 +176,10 @@ Price/package/segment hypotheses are validated in a paid pilot with real busines
 - **Fix:** Run a paid pilot with on the order of 10 real businesses from the target segment at the hypothesized price/packaging; treat willingness-to-pay observed in real transactions as the gate for finalizing. Flag as human-only: this requires sales conversations and cannot be automated — surface it to the owner, never auto-pass.
 - **Impact:** Unvalidated pricing fails in the expensive direction: months of GTM built on a price point real customers reject — or one they'd have paid 3x for.
 - **Source:** XR-129 — cross-project experience registry (2026).
+
+### PRC-07 [MEDIUM] Per-day/comparison price framing obscures the actual charge
+Marketing copy reduces perceived cost via per-day or comparison framing ("$0.33/day", "less than a coffee") with no equally visible display of the real periodic charge.
+- **Detect:** Pricing/paywall/landing copy showing a per-day, per-use, or comparison-anchor price with no periodic (monthly/annual) price of equal or greater prominence in the same view; or a checkout flow that reveals mandatory fees only at the final step, never shown alongside the advertised price.
+- **Fix:** Always pair per-day/comparison framing with the real billed amount and cadence at equal or greater visual weight — "$0.33/day ($9.99/month, billed annually)," never the per-day figure alone; show all mandatory fees at first price display, not first at checkout. Layer this on top of, never as a substitute for, MON-07's pre-purchase disclosure requirement.
+- **Impact:** Per-day framing with no paired total is the same pattern total-price-disclosure rules exist to stop (ROSCA and its state analogs, already the basis for MON-07/MON-08) — and short of legal exposure, a user who does the math themselves experiences it as concealment, not persuasion.
+- **Source:** Capital One Shopping — Pricing Psychology Statistics — https://capitaloneshopping.com/research/pricing-psychology-statistics/ ; FTC — Negative Option Rule — https://www.ftc.gov/legal-library/browse/rules/negative-option-rule

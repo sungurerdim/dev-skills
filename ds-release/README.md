@@ -31,7 +31,7 @@ Any Agent Skills host: `./install.sh --target <that host's skills dir>` (ships `
 4. Bump — all surfaces together, re-search proves none left behind
 5. Check — the project's own chain green, else the release aborts and the bump is reverted
 6. Commit + tag — `chore(release): x.y.z` + annotated `vx.y.z` on HEAD
-7. Publish handoff — push / `gh release create` / registry / store printed as `needs-human`
+7. Publish handoff — push / `gh release create` / registry / store printed as `only you can do`
 8. Post-release verify — tag on remote, CI green, attestation, registry shows the version, smoke, rollback path
 9. Summary — verify-echo, assumptions, every human step with its command
 

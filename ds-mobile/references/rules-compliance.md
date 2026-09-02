@@ -8,7 +8,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect (search
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Security** | SEC-01–12 (5 CRITICAL, 7 HIGH) | ~12 |
+| **Security** | SEC-01–14 (5 CRITICAL, 9 HIGH) | ~12 |
 | **Privacy** | PRV-01–05 (5 HIGH) | ~111 |
 | **Regulatory Compliance** | PRV-06–18 (13 HIGH) | ~152 |
 | **Store Compliance** | STO-01–22 (4 CRITICAL, 17 HIGH, 1 MEDIUM) | ~340 |
@@ -18,6 +18,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect (search
 ## Security
 
 ### SEC-01 [CRITICAL] Secure Data Storage
+applies_when: always
 PII, credentials, tokens must not be in plaintext storage.
 - **Detect:**
   - Search: `**/SharedPreferences*.{java,kt}`, `**/UserDefaults*.swift`, `**/*.dart`
@@ -33,6 +34,7 @@ PII, credentials, tokens must not be in plaintext storage.
 - **Source:** OWASP MASVS-STORAGE
 
 ### SEC-02 [CRITICAL] No Hardcoded Credentials
+applies_when: always
 Zero secrets in source code.
 - **Detect:**
   - Search for: `**/.env`, `**/credentials*`, `**/secrets*` committed to git
@@ -61,6 +63,7 @@ Zero secrets in source code.
 - **Source:** OWASP M1
 
 ### SEC-03 [HIGH] Debug Mode Off in Release
+applies_when: always
 - **Detect:**
   - Android: `android:debuggable="true"` in AndroidManifest.xml
   - iOS: check build configuration for DEBUG symbols in release
@@ -70,6 +73,7 @@ Zero secrets in source code.
 - **Source:** OWASP M8
 
 ### SEC-04 [CRITICAL] TLS Enforced, No HTTP
+applies_when: always
 - **Detect:**
   - Android: `android:usesCleartextTraffic="true"` in AndroidManifest.xml, or missing `network_security_config.xml`
   - iOS: `NSAllowsArbitraryLoads` = YES in Info.plist
@@ -79,6 +83,7 @@ Zero secrets in source code.
 - **Source:** OWASP M5
 
 ### SEC-05 [HIGH] Certificate Pinning (Selective)
+applies_when: always
 Pin public keys for high-risk endpoints (auth, payment). Not recommended for all endpoints.
 - **Detect:** No pinning config for endpoints handling credentials or payment
 - **Fix:**
@@ -90,6 +95,7 @@ Pin public keys for high-risk endpoints (auth, payment). Not recommended for all
 - **Source:** OWASP Pinning Cheat Sheet
 
 ### SEC-06 [CRITICAL] Strong Cryptography
+applies_when: always
 AES-256-GCM symmetric. No MD5/SHA-1 for security. Platform crypto APIs only.
 - **Detect:**
   - Search for: `MD5`, `SHA1`, `SHA-1` in non-checksum context, `ECB` mode, `DES`, `RC4`, hardcoded IV/nonce
@@ -99,6 +105,7 @@ AES-256-GCM symmetric. No MD5/SHA-1 for security. Platform crypto APIs only.
 - **Source:** OWASP M10, MASVS-CRYPTO
 
 ### SEC-07 [HIGH] Code Obfuscation
+applies_when: always
 Release builds must be obfuscated.
 - **Detect:**
   - Flutter: missing `--obfuscate` in release build commands or CI scripts
@@ -113,6 +120,7 @@ Release builds must be obfuscated.
 - **Source:** OWASP M7, MASVS-RESILIENCE
 
 ### SEC-08 [HIGH] Supply Chain Security
+applies_when: always
 Dependencies audited, versions pinned, lockfile committed.
 - **Detect:**
   - Unpinned versions: `^`, `~`, `latest`, `>=` without upper bound in pubspec.yaml/package.json/build.gradle
@@ -122,6 +130,7 @@ Dependencies audited, versions pinned, lockfile committed.
 - **Source:** OWASP M2
 
 ### SEC-09 [CRITICAL] Server-Side Auth
+applies_when: always
 Auth and authorization validated server-side. Client-side checks are UX convenience only.
 - **Detect:** Auth state determined solely by local token existence without server validation. No token expiry check
 - **Fix:** Validate every API request server-side. Short-lived access tokens + refresh token rotation
@@ -129,6 +138,7 @@ Auth and authorization validated server-side. Client-side checks are UX convenie
 - **Source:** OWASP M3
 
 ### SEC-10 [HIGH] OAuth 2.1 + PKCE
+applies_when: always
 Authorization Code + PKCE for mobile. No implicit grant.
 - **Detect:**
   - Search for: `response_type=token` (implicit grant), missing `code_verifier`, missing `code_challenge`
@@ -138,12 +148,14 @@ Authorization Code + PKCE for mobile. No implicit grant.
 - **Source:** RFC 9700
 
 ### SEC-11 [HIGH] Backup Disabled (Android)
+applies_when: platforms∋android
 - **Detect:** `android:allowBackup` missing or `="true"` in AndroidManifest.xml
 - **Fix:** Set `android:allowBackup="false"`
 - **Impact:** With backup enabled, `adb backup` (or a cloud backup) can extract the app's private storage — including any data SEC-01 was supposed to keep off the device's reach — without root.
 - **Source:** MASVS-STORAGE
 
 ### SEC-12 [HIGH] Device Attestation Currency (SafetyNet → Play Integrity)
+applies_when: platforms∋android
 SafetyNet Attestation API was fully shut down 31 Jan 2025 — calls now return errors; any code path depending on it is broken in production.
 - **Detect:**
   - Search: `play-services-safetynet` in `build.gradle(.kts)`, `SafetyNetClient`, `SafetyNet.getClient`, `safetynet` imports
@@ -152,11 +164,26 @@ SafetyNet Attestation API was fully shut down 31 Jan 2025 — calls now return e
 - **Impact:** A broken attestation call fails silently or throws in production, either locking out legitimate users or leaving the app with no working device-integrity signal at all.
 - **Source:** developer.android.com/privacy-and-security/safetynet (deprecated → replaced by Play Integrity); Firebase App Check SafetyNet turndown
 
+### SEC-13 [HIGH] Entitlements Correctness (iOS)
+applies_when: platforms∋ios
+- **Detect:** `.entitlements` file declares a capability with no corresponding implementation (`com.apple.developer.applesignin` with no Sign in with Apple code path; push entitlement with no `UNUserNotificationCenter`/APNs registration; iCloud entitlement with no CloudKit/document usage; in-app-purchase entitlement with no StoreKit integration); or an implemented capability (Sign in with Apple, push, iCloud, IAP) with no matching entitlement declared.
+- **Fix:** Reconcile `.entitlements` against actual code: remove unused capability declarations, add missing ones for implemented features. Verify in Xcode's Signing & Capabilities tab matches the entitlements file and the provisioning profile.
+- **Impact:** A declared-but-unimplemented entitlement is dead attack surface and a provisioning-profile mismatch risk; an implemented-but-undeclared capability fails at runtime or is rejected at App Store review for missing capability configuration.
+- **Source:** [Apple Developer — Entitlements](https://developer.apple.com/documentation/bundleresources/entitlements)
+
+### SEC-14 [HIGH] google-services.json Hygiene (Android)
+applies_when: platforms∋android
+- **Detect:** `google-services.json` committed with an unrestricted API key (no application/API restrictions set in Google Cloud Console); `package_name` in the file not matching the app's actual `applicationId`; a debug and release `google-services.json` mismatch (wrong Firebase project or SHA-1 fingerprint for the build variant in use).
+- **Fix:** Restrict the API key in Google Cloud Console to the app's package name + SHA-1 (Android key restriction); verify `package_name` matches `applicationId` in `build.gradle`; confirm each build variant (debug/release) points to its correct Firebase project and has its SHA-1 fingerprint registered.
+- **Impact:** An unrestricted API key extracted from the APK lets an attacker call the project's Firebase services (or a Google API billed to the developer) from outside the app; a package-name/fingerprint mismatch silently breaks Firebase Auth, push, or Dynamic Links for the affected build.
+- **Source:** [Firebase — API keys for Firebase](https://firebase.google.com/docs/projects/api-keys)
+
 ---
 
 ## Privacy
 
 ### PRV-01 [HIGH] Runtime Consent UI
+applies_when: always
 Equal-weight Accept/Reject. Purpose-level granularity. Data deletion mechanism.
 - **Detect:**
   - No consent dialog/screen in app (search for consent/gdpr/privacy in codebase)
@@ -168,6 +195,7 @@ Equal-weight Accept/Reject. Purpose-level granularity. Data deletion mechanism.
 - **Source:** GDPR Art. 7, CNIL 2025
 
 ### PRV-02 [HIGH] OS Permission != Consent
+applies_when: always
 System permission prompts do not satisfy GDPR consent.
 - **Detect:** Permission request (camera, contacts, location) without separate GDPR consent when data processing extends beyond immediate feature use
 - **Fix:** Consent management alongside permission requests. Document purpose and legal basis
@@ -175,6 +203,7 @@ System permission prompts do not satisfy GDPR consent.
 - **Source:** CNIL January 2025 ruling
 
 ### PRV-03 [CRITICAL] Privacy Policy
+applies_when: always
 URL in store listing + accessible in-app. AI service usage disclosed.
 - **Detect:**
   - No privacy policy link in app (search settings/about screen)
@@ -184,6 +213,7 @@ URL in store listing + accessible in-app. AI service usage disclosed.
 - **Source:** App Store, Play Store requirements
 
 ### PRV-04 [HIGH] Data Minimization
+applies_when: always
 Collect only necessary data. No fingerprinting.
 - **Detect:**
   - Permissions requested beyond feature requirements
@@ -194,6 +224,7 @@ Collect only necessary data. No fingerprinting.
 - **Source:** MASVS-PRIVACY, GDPR Art. 25, Apple ATT
 
 ### PRV-05 [HIGH] Right to Erasure
+applies_when: always
 Complete data deletion including backend and backups.
 - **Detect:** No data deletion UI/endpoint. Deletion removes app access but retains backend data
 - **Fix:** Implement complete erasure: databases, backups, third-party services. Provide deletion UI in account settings
@@ -209,6 +240,7 @@ Rules in this section only checked when corresponding framework is in `ACTIVE_FR
 **Common detect strategy for PRV-06–13:** Each framework rule checks for absence of framework-specific compliance artifacts. Pattern: (1) Search compliance/privacy files for framework keywords, (2) verify consent mechanism meets framework requirements, (3) check cross-border transfer safeguards if applicable. Specific keywords per rule below.
 
 ### PRV-06 [HIGH] CCPA/CPRA Compliance [FRAMEWORK: CCPA]
+applies_when: always
 California Consumer Privacy Act + California Privacy Rights Act.
 Applies when: annual revenue > $28.8M, OR process data of 100K+ consumers, OR 50%+ revenue from selling/sharing personal information.
 - **Detect:**
@@ -223,6 +255,7 @@ Applies when: annual revenue > $28.8M, OR process data of 100K+ consumers, OR 50
 - **Source:** CCPA 1798.120, CPRA 2023 amendments
 
 ### PRV-07 [HIGH] LGPD Compliance [FRAMEWORK: LGPD]
+applies_when: always
 Brazil Lei Geral de Protecao de Dados.
 - **Detect:**
   - No legal basis declaration for each data processing activity
@@ -236,6 +269,7 @@ Brazil Lei Geral de Protecao de Dados.
 - **Source:** LGPD Lei 13.709/2018, ANPD regulations
 
 ### PRV-08 [HIGH] PIPL Compliance [FRAMEWORK: PIPL]
+applies_when: always
 China Personal Information Protection Law.
 - **Detect:**
   - No separate consent per processing purpose
@@ -249,6 +283,7 @@ China Personal Information Protection Law.
 - **Source:** PIPL 2021, CAC cross-border data flow regulations 2024
 
 ### PRV-09 [HIGH] UK GDPR Compliance [FRAMEWORK: UK_GDPR]
+applies_when: always
 UK General Data Protection Regulation (post-Brexit).
 - **Detect:**
   - No ICO registration for data processing activities
@@ -261,6 +296,7 @@ UK General Data Protection Regulation (post-Brexit).
 - **Source:** UK GDPR 2018, Data Protection Act 2018, ICO Age-Appropriate Design Code
 
 ### PRV-10 [HIGH] ePrivacy Compliance [FRAMEWORK: EPRIVACY]
+applies_when: always
 EU ePrivacy Directive (Cookie Law) + upcoming ePrivacy Regulation.
 - **Detect:**
   - Tracking cookies/SDKs loaded before user consent
@@ -273,6 +309,7 @@ EU ePrivacy Directive (Cookie Law) + upcoming ePrivacy Regulation.
 - **Source:** ePrivacy Directive 2002/58/EC, CNIL/DPA guidance
 
 ### PRV-11 [HIGH] KVKK Compliance [FRAMEWORK: KVKK]
+applies_when: always
 Turkey Kisisel Verilerin Korunmasi Kanunu.
 - **Detect:**
   - No VERBIS (Veri Sorumlulari Sicil Bilgi Sistemi) registration reference
@@ -286,6 +323,7 @@ Turkey Kisisel Verilerin Korunmasi Kanunu.
 - **Source:** KVKK 6698, KVKK Board decisions
 
 ### PRV-12 [HIGH] PIPA Compliance [FRAMEWORK: PIPA]
+applies_when: always
 South Korea Personal Information Protection Act.
 - **Detect:**
   - No separate consent per data collection purpose
@@ -299,6 +337,7 @@ South Korea Personal Information Protection Act.
 - **Source:** PIPA 2011 (amended 2023), PIPC guidelines
 
 ### PRV-13 [HIGH] PDPA Compliance [FRAMEWORK: PDPA]
+applies_when: always
 Thailand/Singapore Personal Data Protection Act.
 - **Detect:**
   - No consent mechanism for data collection
@@ -312,6 +351,7 @@ Thailand/Singapore Personal Data Protection Act.
 - **Source:** Thailand PDPA 2019, Singapore PDPA 2012 (amended 2021)
 
 ### PRV-14 [HIGH] Data Processing Agreement [FRAMEWORK: GDPR,UK_GDPR,LGPD,KVKK]
+applies_when: always
 Written agreement with all data processors covering scope, purpose, security measures, sub-processor controls.
 - **Detect:**
   - Third-party SDKs processing personal data without documented DPA
@@ -322,6 +362,7 @@ Written agreement with all data processors covering scope, purpose, security mea
 - **Source:** GDPR Art. 28, UK GDPR Art. 28, LGPD Art. 39, KVKK Art. 12
 
 ### PRV-15 [HIGH] Data Protection Impact Assessment [FRAMEWORK: GDPR,UK_GDPR,LGPD,PIPL]
+applies_when: always
 DPIA required for high-risk processing: large-scale profiling, systematic monitoring, sensitive data, new technologies.
 - **Detect:**
   - Large-scale processing of sensitive data (health, biometrics, location tracking) without documented DPIA
@@ -333,6 +374,7 @@ DPIA required for high-risk processing: large-scale profiling, systematic monito
 - **Source:** GDPR Art. 35, UK GDPR Art. 35, LGPD Art. 38, PIPL Art. 55
 
 ### PRV-16 [HIGH] Breach Notification [FRAMEWORK: GDPR,CCPA,LGPD,PIPL,UK_GDPR,KVKK,PIPA,PDPA]
+applies_when: always
 Timely notification to authority and affected individuals upon data breach.
 - **Detect:**
   - No breach notification procedure documented
@@ -356,6 +398,7 @@ Timely notification to authority and affected individuals upon data breach.
 - **Source:** GDPR Art. 33-34, CCPA 1798.150, LGPD Art. 48, PIPL Art. 57, KVKK Art. 12
 
 ### PRV-17 [HIGH] Data Portability [FRAMEWORK: GDPR,CCPA,UK_GDPR,LGPD,PIPA]
+applies_when: always
 Users can export data in machine-readable format.
 - **Detect:**
   - No data export feature in app
@@ -366,6 +409,7 @@ Users can export data in machine-readable format.
 - **Source:** GDPR Art. 20, CCPA 1798.100, UK GDPR Art. 20, LGPD Art. 18
 
 ### PRV-18 [HIGH] Consent Withdrawal [FRAMEWORK: GDPR,UK_GDPR,LGPD,PIPL,KVKK,PIPA,PDPA]
+applies_when: always
 Withdrawing consent must be as easy as giving it. Processing stops upon withdrawal.
 - **Detect:**
   - No consent withdrawal mechanism in app settings
@@ -381,6 +425,7 @@ Withdrawing consent must be as easy as giving it. Processing stops upon withdraw
 ## Store Compliance
 
 ### STO-01 [CRITICAL] Target API Level
+applies_when: platforms∋ios or platforms∋android
 Android: `targetSdkVersion` must meet current Play Store deadline. iOS: compile against latest Xcode SDK by Apple's deadline.
 - **Detect:**
   - Android: `targetSdkVersion` or `targetSdk` in `build.gradle(.kts)` < `POLICY.android_new_target_sdk` (new apps) or `POLICY.android_update_target_sdk` (updates)
@@ -393,6 +438,7 @@ Android: `targetSdkVersion` must meet current Play Store deadline. iOS: compile 
 - **Source:** Google Play SDK requirements, Apple Xcode release notes
 
 ### STO-02 [HIGH] Age Rating
+applies_when: platforms∋ios or platforms∋android
 Content must match declared age rating. Apple uses updated questionnaire with 13+/16+/18+ tiers.
 - **Detect:**
   - Missing age rating metadata in store configuration
@@ -404,6 +450,7 @@ Content must match declared age rating. Apple uses updated questionnaire with 13
 - **Source:** App Store 4.1, Play Store IARC
 
 ### STO-03 [CRITICAL] Privacy Labels (iOS)
+applies_when: platforms∋ios
 Every data type collected — directly or via SDKs — must be declared in App Store Connect privacy labels.
 - **Detect:**
   - Map each SDK to data practices:
@@ -425,6 +472,7 @@ Every data type collected — directly or via SDKs — must be declared in App S
 - **Source:** App Store 5.1.2, November 2025 enforcement
 
 ### STO-04 [HIGH] Data Safety (Android)
+applies_when: platforms∋android
 Play Store Data Safety section must accurately reflect all data collection including SDKs.
 - **Detect:**
   - SDK → data type mapping (same table as STO-03)
@@ -436,6 +484,7 @@ Play Store Data Safety section must accurately reflect all data collection inclu
 - **Source:** Google Play Data Safety
 
 ### STO-05 [HIGH] Restore Purchases
+applies_when: platforms∋ios or platforms∋android
 Subscription and IAP restoration must be functional with platform-correct APIs.
 - **Detect:**
   - No "Restore Purchases" button in subscription/paywall UI
@@ -455,6 +504,7 @@ Subscription and IAP restoration must be functional with platform-correct APIs.
 - **Source:** App Store 3.1.1, Play Store subscription policy
 
 ### STO-06 [HIGH] AI Disclosure
+applies_when: platforms∋ios or platforms∋android
 Third-party AI services must be disclosed. On-device ML (Core ML, ML Kit on-device) exempt.
 - **Detect:**
   - Cloud AI API usage: search for `openai`, `anthropic`, `gemini`, `claude`, `gpt`, `dall-e`, `whisper`, `stability.ai` in source and dependencies
@@ -466,6 +516,7 @@ Third-party AI services must be disclosed. On-device ML (Core ML, ML Kit on-devi
 - **Source:** App Store 5.1.2(i), November 2025
 
 ### STO-07 [HIGH] Age Verification API
+applies_when: platforms∋ios or platforms∋android
 Apps available to minors in US states with age verification laws must integrate platform APIs.
 - **Detect:**
   - No age verification integration when app targets general audience in US
@@ -483,6 +534,7 @@ Apps available to minors in US states with age verification laws must integrate 
 - **Source:** US State Laws, Apple WWDC 2024, Google Play Policy
 
 ### STO-08 [HIGH] COPPA
+applies_when: platforms∋ios or platforms∋android
 Kids-directed apps have strict restrictions on data collection, ads, and third-party SDKs.
 - **Detect:**
   - Kids Category (Apple) or Designed for Families (Google) app with:
@@ -497,6 +549,7 @@ Kids-directed apps have strict restrictions on data collection, ads, and third-p
 - **Source:** COPPA Rule 16 CFR 312, App Store Kids Category, Play Store Families Policy
 
 ### STO-09 [HIGH] Subscription Transparency
+applies_when: platforms∋ios or platforms∋android
 All auto-renewal terms, pricing, and trial conditions must be visible on purchase screen before user commits.
 - **Detect:**
   - Paywall/purchase screen missing any of:
@@ -512,6 +565,7 @@ All auto-renewal terms, pricing, and trial conditions must be visible on purchas
 - **Source:** App Store 3.1.2, Play Store Subscriptions Policy, EU Consumer Rights Directive
 
 ### STO-10 [HIGH] Subscription Cancellation
+applies_when: platforms∋ios or platforms∋android
 Users must be able to manage and cancel subscriptions easily. Apple requires in-app cancellation mechanism.
 - **Detect:**
   - iOS: no in-app subscription management or cancellation UI (required since StoreKit 2)
@@ -525,6 +579,7 @@ Users must be able to manage and cancel subscriptions easily. Apple requires in-
 - **Source:** App Store 3.1.2(a), Play Store Subscription Policy
 
 ### STO-11 [CRITICAL] Sign in with Apple
+applies_when: platforms∋ios
 If app offers third-party social login, Sign in with Apple must be offered alongside (iOS only).
 - **Detect:**
   - Search for third-party OAuth providers: `GoogleSignIn`, `google_sign_in`, `FacebookLogin`, `facebook_auth`, `TwitterLogin`, `GIDSignIn`, `ASAuthorizationAppleIDProvider`, `sign_in_with_apple`
@@ -536,6 +591,7 @@ If app offers third-party social login, Sign in with Apple must be offered along
 - **Source:** App Store 4.8, Apple Human Interface Guidelines
 
 ### STO-12 [HIGH] App Completeness
+applies_when: platforms∋ios or platforms∋android
 App must be fully functional with no placeholder content, broken features, or incomplete sections.
 - **Detect:**
   - Placeholder content patterns in UI strings and assets:
@@ -551,6 +607,7 @@ App must be fully functional with no placeholder content, broken features, or in
 - **Source:** App Store 2.1 and 4.3(b) (June 2026 update), Play Store Spam and Minimum Functionality Policy
 
 ### STO-13 [HIGH] Metadata Accuracy
+applies_when: platforms∋ios or platforms∋android
 Store listing metadata must accurately reflect app functionality. No misleading claims.
 - **Detect:**
   - Screenshots that don't reflect actual app UI (device mockups with fabricated screens)
@@ -564,6 +621,7 @@ Store listing metadata must accurately reflect app functionality. No misleading 
 - **Source:** App Store 2.3, Play Store Metadata Policy
 
 ### STO-14 [HIGH] Permission Justification
+applies_when: platforms∋ios or platforms∋android
 Every requested permission must have clear use case. Unused or unjustified permissions cause rejection.
 - **Detect:**
   - Declared permissions not used in code:
@@ -578,6 +636,7 @@ Every requested permission must have clear use case. Unused or unjustified permi
 - **Source:** App Store 5.1.1, Play Store Permissions Policy
 
 ### STO-15 [CRITICAL] ATT Compliance (iOS)
+applies_when: platforms∋ios
 App Tracking Transparency prompt must appear before any tracking occurs. IDFA access requires ATT.
 - **Detect:**
   - Tracking SDK initialization before ATT prompt:
@@ -591,6 +650,7 @@ App Tracking Transparency prompt must appear before any tracking occurs. IDFA ac
 - **Source:** App Store 5.1.2(i), Apple ATT Framework
 
 ### STO-16 [HIGH] Push Notification Consent
+applies_when: platforms∋ios or platforms∋android
 Apps should explain notification value before triggering OS permission prompt.
 - **Detect:**
   - OS notification permission requested at app launch without prior explanation
@@ -602,6 +662,7 @@ Apps should explain notification value before triggering OS permission prompt.
 - **Source:** Apple HIG Notifications, Play Store User Data Policy
 
 ### STO-17 [HIGH] Deep Linking
+applies_when: platforms∋ios or platforms∋android
 Universal Links (iOS) and App Links (Android) must be properly configured and validated.
 - **Detect:**
   - iOS: missing or invalid `apple-app-site-association` (AASA) file configuration
@@ -617,6 +678,7 @@ Universal Links (iOS) and App Links (Android) must be properly configured and va
 - **Source:** Apple Universal Links, Android App Links, Play Store Deep Linking Policy
 
 ### STO-18 [MEDIUM] Store Listing Localization
+applies_when: platforms∋ios or platforms∋android
 Store metadata should be localized for all languages app supports.
 - **Detect:**
   - App supports multiple locales (ARB files, `.lproj` directories, `values-xx/strings.xml`) but store metadata only in one language
@@ -628,6 +690,7 @@ Store metadata should be localized for all languages app supports.
 - **Source:** App Store Localization, Play Store Translation Best Practices
 
 ### STO-19 [HIGH] Background Mode Justification (iOS)
+applies_when: platforms∋ios
 Every declared `UIBackgroundModes` capability must have real functional usage. Unused background modes cause rejection.
 - **Detect:**
   - Search `Info.plist` for `UIBackgroundModes` array entries: `audio`, `location`, `voip`, `fetch`, `remote-notification`, `bluetooth-central`, `bluetooth-peripheral`, `external-accessory`, `processing`
@@ -648,6 +711,7 @@ Every declared `UIBackgroundModes` capability must have real functional usage. U
 - **Source:** App Store 2.5.4, Apple Background Execution Guide
 
 ### STO-20 [HIGH] Billing Library Version (Android)
+applies_when: platforms∋android
 Play Billing Library must meet minimum version requirement. Outdated versions are rejected.
 - **Detect:**
   - Search `build.gradle(.kts)` for: `com.android.billingclient:billing`, `com.android.billingclient:billing-ktx`
@@ -660,6 +724,7 @@ Play Billing Library must meet minimum version requirement. Outdated versions ar
 - **Source:** Play Billing Library Release Notes, Play Store Billing Policy
 
 ### STO-21 [HIGH] IAP Purchase Experience Quality
+applies_when: platforms∋ios or platforms∋android
 Every in-app purchase flow must provide clear product info, loading state, success confirmation, and specific error guidance.
 - **Detect:**
   - Purchase buttons without clear product description (icon-only or vague label without explaining what user gets)
@@ -676,6 +741,7 @@ Every in-app purchase flow must provide clear product info, loading state, succe
 - **Source:** Apple HIG Purchasing, Google Play Billing UX Guidelines, Amazon IAP Design Guidelines
 
 ### STO-22 [HIGH] Foreground Service Type Declarations (Android 14+)
+applies_when: platforms∋android
 Apps targeting API 34+ must declare a foreground service type per service — startForeground() without one throws `MissingForegroundServiceTypeException`; Play Console requires type declarations on the app-content page.
 - **Detect:**
   - `<service>` entries in AndroidManifest.xml with `android:foregroundServiceType` missing while the app calls `startForeground()`

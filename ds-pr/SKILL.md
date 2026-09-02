@@ -36,12 +36,12 @@ PR descriptions that list every commit instead of net change create noise, confu
 Run `git diff {base}...HEAD` and describe what that diff shows.
 
 - Standalone. Uses blueprint profile or ds/audit/findings.md when available; own analysis when absent.
-- **Push and PR-create are publishing — needs-human by default.** No flag: the skill validates, tidies, runs quality gates, and analyzes the net diff, then stops before Push with the prepared title, body, and the exact commands recorded `needs-human`. It never pushes, never creates or updates a PR, and never merges on its own, in any mode. `--ask`: the same preparation, then a confirmation at the Push phase and again at the Create phase before either command runs.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- **Push and PR-create are publishing — only you can do by default.** No flag: the skill validates, tidies, runs quality gates, and analyzes the net diff, then stops before Push with the prepared title, body, and the exact commands recorded `only you can do`. It never pushes, creates, updates, or merges a PR on its own. `--ask`: same preparation, then a confirmation at Push and again at Create before either command runs.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Exempt from state protocol:** git history is the natural state — `git diff {base}...HEAD` always provides full context. No `ds/audit/pr.json` written.
 
-**Pipeline:** `PR title → squash merge on main → release-please reads title → changelog + version bump`. PR title IS changelog entry. PR body becomes squash commit body. Everything must be accurate and minimal.
+**Pipeline:** `PR title → squash merge on main → release-please reads title → changelog + version bump`. PR title IS changelog entry; PR body becomes squash commit body.
 
 ## Arguments
 
@@ -51,11 +51,11 @@ Run `git diff {base}...HEAD` and describe what that diff shows.
 | `--draft` | Create as draft PR |
 | `--no-tidy` | Skip history tidy, push commits as-is |
 | `--request-review` | After creation, request an automated Copilot review (`gh pr edit --add-reviewer "@copilot"`) |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 ## Delegation
 
-**Owns:** pull-request, net-diff-analysis, pr-title, pr-description | **Delegates:** ds-fix → pre-PR gates; ds-commit → staging before PR | **Receives:** ds-issue → PR opening after issue execution
+**Owns:** pull-request, net-diff-analysis, pr-title, pr-description | **Delegates:** ds-fix → pre-PR gates; ds-commit → staging before PR | **Receives:** ds-issue → PR after issue execution
 
 ## Execution Flow
 
@@ -75,17 +75,9 @@ Validate → History Tidy → Quality Gates → Analyze → [Review Disposition]
 4. `git fetch origin {base}`
 5. `git rev-list --count origin/{base}..HEAD` → `0` → stop. `git rev-list --count HEAD..origin/{base}` → >0 (behind base) → Default: rebase automatically, no prompt. `--ask`: ask rebase.
 6. `gh pr view --json url,number,state` → URL printed (existing PR) → Default: show the URL, update automatically, no prompt. `--ask`: show URL, ask Update / Skip. Non-zero exit → no existing PR, continue.
-7. **Update path — canonical PR read:** `gh pr view {n} --json url,number,state,body,comments,reviews` **plus** the line-level threads (`gh api repos/{owner}/{repo}/pulls/{n}/comments`). Comments and reviews are NOT optional: a reviewer's requested change is part of the PR's contract, and a body-only read updates the PR while that request stays unanswered. Hand the result to Phase 3.5.
+7. **Update path — canonical PR read:** `gh pr view {n} --json url,number,state,body,comments,reviews` **plus** the line-level threads (`gh api repos/{owner}/{repo}/pulls/{n}/comments`) — not optional: a body-only read leaves a reviewer's requested change unanswered. Hand the result to Phase 3.5.
 
-**Gate:** All pre-checks passed; branch has commits ahead of base. If fails → stop with the specific check that failed:
-
-| Failed check | Error / next action |
-|-------------|---------------------|
-| `git` / `gh` missing | "Install git/gh CLI and run `gh auth login`" |
-| Not on a feature branch | "Checkout a feature branch first" |
-| No commits ahead | "Nothing to push — commit your changes first" |
-| `gh` unauthenticated | "Run `gh auth login` then retry" |
-| Behind base | Offer `git rebase origin/{base}`, stop until user confirms |
+**Gate:** All pre-checks passed; branch has commits ahead of base. If fails → stop, name the failed check, and show its next action from [references/rules-pr.md](references/rules-pr.md) Pre-flight Check Failures.
 
 ### Phase 1.5: History Tidy (skip if --no-tidy or --preview)
 
@@ -139,7 +131,7 @@ Tests fail → stop. Only prepare a PR when tests covering the changed files pas
 
 ### Phase 3.5: Review Disposition [Update path only] [GATE]
 
-Runs when Phase 1 found an existing PR and the user chose Update; skipped for a first-time PR (nothing has been reviewed yet).
+Runs on the Update path (Phase 1); skipped for a first-time PR — nothing has been reviewed yet.
 
 1. From the Phase 1 step 7 read, list every reviewer-borne item the update has to answer: `CHANGES_REQUESTED` reviews, unresolved review threads, and comment-borne requests (items posted after the last push are the prime suspects). This skill's own prior comments are not requirements.
 2. Each item gets exactly one disposition **before** the PR is updated or pushed: **addressed** — the net diff already carries it, cited `file:line`; **rejected** — replied to on its own thread with the reason (per-item confirm); **deferred** — a follow-up issue filed, its number quoted in the reply. Leaving an item with none of the three and still updating the PR is FORBIDDEN. Default: each item's disposition resolves by best judgment from the evidence (net diff, thread content) and is recorded — no prompt; the run still stops before Push, so the human reviews everything before anything publishes. `--ask`: confirm each item's disposition individually before the PR body is finalized.
@@ -164,7 +156,7 @@ Effects:
 | `feat!` / `fix!` | major bump |
 | anything else | no bump |
 
-Default: the prepared title, body, and version annotation print as-is; the branch is not yet pushed and no PR exists yet — both are handled by the next two phases, each recorded `needs-human` unless confirmed under `--ask` — no prompt here. `--ask`: same preview, plus a chance to change it before Push runs — Accept as shown (recommended) / Edit / (Cancel).
+Default: the prepared title, body, and version annotation print as-is; the branch is not yet pushed and no PR exists yet — both are handled by the next two phases, each recorded `only you can do` unless confirmed under `--ask` — no prompt here. `--ask`: same preview, plus a chance to change it before Push runs — Accept as shown (recommended) / Edit / (Cancel).
 
 **Gate:** Title, body, and version annotation prepared and shown. If fails → net diff produced no usable title (Phase 3's gate already covers an empty net diff) → stop, nothing to review; under `--ask`, the user selects Cancel → exit cleanly without pushing or creating a PR.
 
@@ -172,47 +164,46 @@ Default: the prepared title, body, and version annotation print as-is; the branc
 
 Pushing publishes local commits to the remote — the publish clause of the ask-exception list.
 
-Default: record `push: needs-human` with the exact command — `git push -u origin {branch}` — and stop before Create, no prompt. `--ask`: ask Push now (recommended) / Skip; confirmed → run `git push -u origin {branch}`.
+Default: record `push: only you can do` with the exact command — `git push -u origin {branch}` — and stop before Create, no prompt. `--ask`: ask Push now (recommended) / Skip; confirmed → run `git push -u origin {branch}`.
 
-**Gate:** Branch pushed, or `push: needs-human` recorded with the exact command. If fails → push rejected (remote diverged, no permission) → stop, show the `git push` error, suggest `git pull --rebase origin {branch}` then retry; never proceed to Create with an unpushed branch.
+**Gate:** Branch pushed, or `push: only you can do` recorded with the exact command. If fails → push rejected (remote diverged, no permission) → stop, show the `git push` error, suggest `git pull --rebase origin {branch}` then retry; never proceed to Create with an unpushed branch.
 
 ### Phase 6: Create
 
 Creating or updating a PR publishes it to reviewers — the publish clause of the ask-exception list.
 
-1. Default: record `pr: needs-human` with the exact command shown, stop — no `gh pr create` call made. Push above recorded `needs-human` (branch not yet pushed) → the recorded command is prefixed with the push command it depends on. `--ask`: confirm, then create with the body passed via heredoc — never interpolated into the shell string (W8):
+1. Default: record `pr: only you can do` with the exact command shown, stop — no `gh pr create` call made. Push above recorded `only you can do` (branch not yet pushed) → the recorded command is prefixed with the push command it depends on. `--ask`: confirm, then create with the body passed via heredoc — never interpolated into the shell string (W8):
    ```bash
    gh pr create --title "{title}" [--draft] --body-file - <<'EOF'
    {body}
    EOF
    ```
 2. `--request-review` → `gh pr edit {number} --add-reviewer "@copilot"`; command fails (Copilot review unavailable) → warn, continue.
-3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → offer once: this skill validates only its own PR titles — a CI title gate catches non-agent PRs before they break the squash-merge → release-please changelog chain. Default: the workflow file is generated (reversible via git, not on the publish/irreversible exception list) and noted in the summary. `--ask`: accept → generate the workflow file for review; decline → gap-note in summary.
+3. **Title-enforcement scaffold (advisory):** no workflow under `.github/workflows/` references `amannn/action-semantic-pull-request` → this skill validates only its own titles; a CI gate catches non-agent PRs before they break the squash-merge → release-please chain. Default: generate the workflow file (reversible via git) and note it in the summary. `--ask`: accept → generate for review; decline → gap-note.
 
 **Auto-merge and post-merge cleanup are out of scope.** "Create PR only" is the only outcome this skill produces — merging is the human's decision (GitHub UI, `gh pr merge`, or a branch-protection auto-merge rule), and what happens after merge (branch deletion, cutting the release) is the human's call or a release workflow's, such as `/ds-release`.
 
-**Gate:** PR created (`--ask`, confirmed), or `pr: needs-human` recorded with the exact command (default). If fails → `gh pr create` returned an error → stop, show the error, suggest checking `gh auth status` and that the branch was pushed; never fabricate a PR URL.
+**Gate:** PR created (`--ask`, confirmed), or `pr: only you can do` recorded with the exact command (default). If fails → `gh pr create` returned an error → stop, show the error, suggest checking `gh auth status` and that the branch was pushed; never fabricate a PR URL.
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Default: every item resolves by best judgment using the same impact/effort/risk reasoning an approval block would show, recorded in the summary; items matching the publish/irreversible exception list are skipped and recorded `needs-human` instead — no review step shown. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Default: every item resolves by best judgment using the same impact/effort/risk reasoning an approval block would show, recorded in the summary; items matching the publish/irreversible exception list are skipped and recorded `only you can do` instead — no review step shown. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed; declined → skipped). If fails → record unresolved item as `pending-user-decision`, proceed to Summary with WARN, list unresolved items.
 
 ### Phase 8: Summary
 
-`pr: {OK|FAIL} | {pr-url-or-needs-human} | {type} → {bump-effect}`
+`pr: {OK|FAIL} | {pr-url-or-only you can do} | {type} → {bump-effect}`
 
-`Dispositions: Fixed: {n} | Skipped: {n} | Failed: {n} | Needs-human: {n} | Total: {n}`
+`Dispositions: Fixed: {n} | Skipped: {n} | Failed: {n} | Only you can do: {n} | Total: {n}`
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `PR prepared from net-diff analysis ({type} → {bump-effect}) — release-please will produce a clean changelog entry without journey noise`
-- `{n} unpushed commits tidied into {m} logical groups — bisect can isolate any regression`
 - `{n} secret patterns intercepted in pre-PR scan — credentials never reached human reviewers`
 - `Push and PR-create commands prepared and verified — one confirmation away from publishing, with zero risk of an unreviewed push`
 
-**Gate:** Summary line + Value Delivered emitted. If fails → PR created → print its URL on its own line; PR not created (`needs-human`) → print the exact push + create commands the human can run; list any incomplete phases with the user's next manual action.
+**Gate:** Summary line + Effect emitted. If fails → PR created → print its URL on its own line; PR not created (`only you can do`) → print the exact push + create commands the human can run; list any incomplete phases with the user's next manual action.
 
 ## Quality Gates
 
@@ -221,15 +212,13 @@ Default: every item resolves by best judgment using the same impact/effort/risk 
 - Every quality gate check (format, lint, test) gets a disposition in summary
 - **Mechanical Done Gate:** resolve `{check-cmd}` once at setup — the ds-quality enforcement arm when installed, else the stack-native format → lint → type → test chain from [../core/toolchains.md](../core/toolchains.md); capture the baseline; re-run after each change batch and once in aggregate before reporting done. New red → fix (≤3 attempts, same command), then revert the offending change and record `reverted`; baseline red is reported red-at-baseline, never inherited; no tooling detectable → report the Verification-Infrastructure Gap, never skip silently.
 - Conventional commit type on PR title matches net diff classification
-- W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W13: the PR description reflects the verified net diff, not the author's claims about it; don't soften or inflate findings to match the PR narrative or reviewer authority.
+- W9: not applicable — exempt from state protocol (atomic, git-driven, see Contract). W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered. W13: PR description reflects the verified net diff, never softened to match the PR narrative or reviewer authority.
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
 ## Error Recovery
 
 | Situation | Action |
 |-----------|--------|
-| `gh` CLI not authenticated | Stop with clear error: "Run `gh auth login` first" |
-| Rebase conflict during history tidy | Abort rebase (`git reset --hard $ORIG_HEAD`); the original commits stand locally — the Push phase still governs whether/when they publish; note the fallback in the summary |
 | CI checks failing after PR creation | Warn user, suggest fixing and re-running — merging is the human's call regardless of CI state |
 | Remote branch already deleted | Create fresh remote branch from local, continue |
 
@@ -237,8 +226,6 @@ Default: every item resolves by best judgment using the same impact/effort/risk 
 
 | Scenario | Behavior |
 |----------|----------|
-| No commits ahead of base | Report "nothing to push", exit |
-| PR already exists for branch | Default: show the existing PR URL, update automatically. `--ask`: ask if update needed. Update reads the PR's comments + reviews + line-level threads and dispositions every reviewer item (Phase 3.5) before any push. |
-| CI checks failing | Warn user; PR creation is unaffected (this skill never auto-merges) — note the failing check in the summary |
+| PR already exists for branch | Update path (Phase 1 step 6): show URL, update automatically; `--ask` offers Skip. Phase 3.5 dispositions every reviewer item first. |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

@@ -34,25 +34,25 @@ Unprotected main branches, stale branches piling up, missing CODEOWNERS, no bran
 - Only manages repository settings and structure — not code quality.
 - Every recommendation cites a specific setting or file.
 - Standalone. Uses blueprint profile when available; `ds/audit/findings.md` only when fresh (`git_hash == HEAD` AND current run-cycle); own analysis otherwise.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
-- **publish/irreversible exception-list extension:** repo visibility changes (public↔private) and admin/permission changes are added to the exception list, citing "a business/legal decision not inferable from the repo" — these always resolve `needs-human`, never applied blind, whether or not `--ask` is set.
+- **publish/irreversible exception-list extension:** repo visibility changes (public↔private) and admin/permission changes are added to the exception list, citing "a business/legal decision not inferable from the repo" — these always resolve `only you can do`, never applied blind, whether or not `--ask` is set.
 
 ## Arguments
 
 | Flag | Effect |
 |------|--------|
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 | `--preview` | Audit only, no changes |
 | `--scope={x}` | Specific scope(s), comma-separated |
 | `--oss-ready` | OSS-readiness mode (see `oss-readiness` scope below) |
 
-Without flags: Full Audit & Fix runs directly — every scope scanned, Category A fixes applied, Category B fixes applied by best judgment and recorded (the publish/irreversible exception list resolves `needs-human` instead of applying blind). `--ask` presents a menu: Full Audit (recommended — scan every scope, report only) / Audit & Fix / Scoped (`--scope`) / OSS-ready (`--oss-ready`) / (Cancel).
+Without flags: Full Audit & Fix runs directly — every scope scanned, Category A fixes applied, Category B fixes applied by best judgment and recorded (the publish/irreversible exception list resolves `only you can do` instead of applying blind). `--ask` presents a menu: Full Audit (recommended — scan every scope, report only) / Audit & Fix / Scoped (`--scope`) / OSS-ready (`--oss-ready`) / (Cancel).
 
 ## Scopes
 
-8 scopes, each an explicit checklist. Every check evaluated on every run — no check silently omitted.
+8 scopes, each an explicit checklist. Every check evaluated on every run — no check silently omitted. Full per-check detect/fix detail: [references/rules-repo.md](references/rules-repo.md) Scope Checklists (`security` = RPO-12–15).
 
 | Scope | Runs when (signal) | Otherwise |
 |-------|---------------------|-----------|
@@ -65,87 +65,9 @@ Without flags: Full Audit & Fix runs directly — every scope scanned, Category 
 | security | any source | — |
 | oss-readiness | `--oss-ready`, `--scope=oss-readiness`, or `public_repo=yes` | N/A — private repo and flag/scope not given |
 
-### settings (5 checks)
-
-1. **Merge strategy** — squash-only (`allow_squash_merge=true`, `allow_merge_commit=false`, `allow_rebase_merge=false`)
-2. **Commit title format** — `PR_TITLE` (`squash_merge_commit_title`)
-3. **Commit message format** — `PR_BODY` (`squash_merge_commit_message`)
-4. **Delete branch on merge** — enabled (`delete_branch_on_merge=true`)
-5. **Auto-merge** — enabled (`allow_auto_merge=true`)
-
-### protection (9 checks)
-
-1. **Branch protection enabled** — default branch has protection rules
-2. **Required reviews** — solo repo → **N/A — solo** (detect: `git shortlog -sn | wc -l` = 1, or no CODEOWNERS/team signal); otherwise at least 1 required reviewer
-3. **Required status checks** — CI must pass before merge (required solo or team)
-4. **Dismiss stale reviews** — enabled when new commits pushed; N/A when check 2 is N/A (no reviewer to dismiss)
-5. **Ruleset coverage** — detect via `gh api repos/{owner}/{repo}/rulesets` alongside classic branch protection (`gh api repos/{owner}/{repo}/branches/{branch}/protection`); org plan supports repository rulesets and none exist → recommend migrating to rulesets (layered enforcement, bypass audit log); no ruleset support → classic branch protection is the valid fallback, not a finding
-6. **Ruleset bypass list** — ruleset lists admins/broad roles in its bypass list with no documented justification → HIGH finding; classic "do not allow bypassing" maps to an empty bypass list, and GitHub's auto-migration can pre-populate admins into it — silently weakening protection. Keep the bypass list empty unless a justification note exists. N/A when no ruleset exists
-7. **Push ruleset** — ruleset-only capability with no classic counterpart: blocks restricted file paths (`.env`, secret-pattern files), extensions, and oversized files at the push layer across the entire fork network; plan supports rulesets and none exists → LOW opportunity finding (complements the oss-readiness git-secret-history check); no ruleset support → N/A
-8. **Linear history** — `required_linear_history=true` on the default branch (mechanical protection — required solo or team)
-9. **Force-push disabled** — `allow_force_pushes=false` on the default branch (mechanical protection — required solo or team)
-
-### hygiene (4 checks)
-
-1. **Stale branches** — no open PR (`gh pr list --head {branch}` → empty output) + last commit > 30 days ago (`git log -1 --format=%cs {branch}`). UNMERGED work — deletion loses commits: always `needs-approval`, confirmed per item regardless of flags — matches the publish/irreversible exception list (permanent deletion with no backup); recorded `needs-human` by default rather than executed blind; `--ask` confirms per item; never bulk-deleted
-2. **Merged branches** — already merged into default but not deleted (`git branch -r --merged {default-branch}` lists them; commits preserved in base — safe to bulk-delete after one confirmation)
-3. **Orphan remotes** — remote-tracking refs whose upstream no longer exists (`git remote prune` — safe)
-4. **History bloat** — blobs > 10 MB in history inflating every clone (`git rev-list --objects --all` + `git cat-file --batch-check` size sort). Finding proposes `git filter-repo --strip-blobs-bigger-than <size>` (the recommended tool — not `git filter-branch` or BFG) + post-rewrite `git gc`, with LFS migration as the keep-the-file alternative. History rewrite is destructive and breaks every existing clone: always `needs-approval` with an explicit team-coordination + backup warning, never autonomous — same rule as the git-secret-history surgery (oss-readiness check 15). Matches the publish/irreversible exception list (history rewrite on a shared branch) — recorded `needs-human` by default, `--ask` confirms per item, never executed blind
-
-### metadata (7 checks)
-
-1. **Description** — non-empty repo description
-2. **Topics** — at least 3 relevant topics
-3. **License** — license file present (MEDIUM on public, LOW on private)
-4. **Homepage URL** — non-empty
-5. **README badges** — CI status badge present in README
-6. **Social preview** — custom social preview image (public repos only, N/A on private)
-7. **Tags/releases strategy** — semver tags, tag count matches release count
-
-### team (2 checks)
-
-1. **CODEOWNERS** — present for team repos (>1 contributor), N/A for solo (detect: `git shortlog -sn | wc -l` = 1, or no team signal)
-2. **CONTRIBUTING.md** — present for public repos, N/A for private solo
-
-### structure (3 checks)
-
-1. **`.gitignore` completeness** — IDE, OS, language-specific entries present
-2. **Config file sprawl** — no multiple competing configs for same tool
-3. **Codebase (Twelve-Factor #1)** — one repo tracks one deployable app across many deploys: repo hosts multiple unrelated deployable apps without workspace/monorepo tooling boundaries, or app code is duplicated across separate repos instead of shared via a package → flag
-
-### security (4 checks)
-
-GitHub-native security toggles, read and fixed via the API — each detailed as [references/rules-repo.md](references/rules-repo.md) RPO-12–15.
-
-1. **Secret scanning + push protection** — read: `gh api repos/{owner}/{repo} --jq '.security_and_analysis'`; fix: `gh api -X PATCH repos/{owner}/{repo} --input - <<< '{"security_and_analysis":{"secret_scanning":{"status":"enabled"},"secret_scanning_push_protection":{"status":"enabled"}}}'`
-2. **Dependabot alerts + security updates** — read: `gh api repos/{owner}/{repo}/vulnerability-alerts` (204=on, 404=off) and `gh api repos/{owner}/{repo}/automated-security-fixes`; fix: `gh api -X PUT repos/{owner}/{repo}/vulnerability-alerts` and `gh api -X PUT repos/{owner}/{repo}/automated-security-fixes`
-3. **Private vulnerability reporting** — read: `gh api repos/{owner}/{repo}/private-vulnerability-reporting --jq '.enabled'`; fix: `gh api -X PUT repos/{owner}/{repo}/private-vulnerability-reporting`
-4. **Code scanning default setup** — read: `gh api repos/{owner}/{repo}/code-scanning/default-setup --jq '.state'`; fix: `gh api -X PATCH repos/{owner}/{repo}/code-scanning/default-setup --input - <<< '{"state":"configured","query_suite":"default","languages":["{detected-language}"]}'`
-
-### oss-readiness (16 checks — activated by `--oss-ready` flag or explicit scope selection)
-
-Content generation for checks 3-5 below: `/ds-docs` present → delegate (LICENSE/CONTRIBUTING/SECURITY content); absent → this scope's own Fix text stands alone as the inline template.
-
-1. **LICENSE present** — file at repo root, SPDX-recognized identifier
-2. **LICENSE compatibility** — dependency licenses compatible with repo license (e.g., strong-copyleft dep under MIT → finding), evaluated against an explicit allow/review/deny policy where one exists (none → propose authoring one); full transitive-tree license scan + SBOM export delegated to ds-deps (advisory-handoff: absent → direct-dep spot check inline, gap-note for the tree)
-3. **CODE_OF_CONDUCT.md** — present, tailored (not stock Contributor Covenant copy with no customization)
-4. **CONTRIBUTING.md** — present, covers local setup + PR expectations + testing
-5. **SECURITY.md** — present, declares vulnerability reporting channel
-6. **Issue templates** — `bug_report.md` + `feature_request.md` under `.github/ISSUE_TEMPLATE/`
-7. **PR template** — `.github/pull_request_template.md` present
-8. **CODEOWNERS** — present, maps key paths to maintainers
-9. **README first impression** — problem statement, install, quick usage, screenshot/demo (where applicable), maintenance signal (last commit / release < 6 months)
-10. **Discoverability — topics** — ≥3 relevant GitHub topics
-11. **Discoverability — badges** — CI status + license badge minimum
-12. **Short description** — repo description populated, one sentence, ≤100 chars
-13. **Homepage URL** — populated when project has docs site / landing page
-14. **Dependabot or renovate** — `.github/dependabot.yml` or `renovate.json` present, enabled for supported stacks
-15. **Git secret history** — scan git history for hardcoded secrets (`git log -p -S"api_key"` / `git-secrets --scan-history` / `trufflehog`). Any hit → Category B finding with `git-filter-repo` surgery proposal; autonomous deletion is forbidden. Matches the publish/irreversible exception list (secret rotation/deletion + history rewrite) — recorded `needs-human` by default, never executed blind; `--ask` confirms per item.
-16. **SPDX file headers** — source files carry a case-sensitive `SPDX-License-Identifier: <expr>` comment at/near the top; the declared identifier matches the LICENSE file. Missing headers → LOW finding with bulk-add proposal (Category A — mechanical, no public-facing text change)
-
-OSS-readiness emits Category B findings for anything user-visible (README rewrites, LICENSE changes, trademark concerns). Templates, metadata, Dependabot config may be Category A when they don't alter public-facing text.
-
-**Trademark / name collision check (part of check 10):** Brief search for project name against USPTO / EUIPO common-term lookup. Ambiguous or conflicting → HIGH finding with "consult legal counsel" suggestion.
+| Scope | Reference | Loaded when |
+|-------|-----------|-------------|
+| settings, protection, hygiene, metadata, team, structure, security, oss-readiness | references/rules-repo.md | scope resolves to run |
 
 **Not in scope:** CI/CD pipelines and dependency management. Code-level security audit delegated to `/ds-compliance`.
 
@@ -188,7 +110,7 @@ Display findings table with ALL checks accounted:
 |---|------------|----------------------|-------------------------------------|
 | {n}| settings  | Merge strategy       | ✅ squash-only                      |
 | {n}| settings  | Commit title         | MEDIUM: {expected-format-not-set}   |
-| {n}| metadata  | Homepage URL         | needs-input: URL required           |
+| {n}| metadata  | Homepage URL         | only you can do: URL required           |
 | {n}| protection| Branch protection    | N/A ({plan-or-context-limitation})  |
 ```
 
@@ -200,9 +122,9 @@ Display findings table with ALL checks accounted:
 
 Default: proceed straight to Apply, resolving each finding by best judgment — Category A fixes applied automatically; Category B applied using the same impact/effort/risk reasoning an approval block would show, recorded in the summary; needs-approval items handled in Phase 6 under its own rule. Without `--ask` this phase does not run. `--ask`: ask user Fix All / By Severity / Review Each / Report Only.
 
-**needs-input findings:** before Apply, resolve each. Default: a value only a human can supply matches the publish/irreversible exception list — skip and record `needs-human`, never guessed. `--ask`: ask each one, e.g. "Homepage URL is empty — do you have a URL to set? (provide URL / skip)".
+**only you can do findings:** before Apply, resolve each. Default: a value only a human can supply matches the publish/irreversible exception list — skip and record `only you can do`, never guessed. `--ask`: ask each one, e.g. "Homepage URL is empty — do you have a URL to set? (provide URL / skip)".
 
-**Gate:** Action plan resolved (default or `--ask` selection); needs-input items resolved. If fails → `--ask` re-prompt exhausted with no selection → default Report Only (no changes); needs-input declined → record `skipped (user declined input)`, list prominently in Phase 7 summary.
+**Gate:** Action plan resolved (default or `--ask` selection); only you can do items resolved. If fails → `--ask` re-prompt exhausted with no selection → default Report Only (no changes); only you can do declined → record `skipped (user declined input)`, list prominently in Phase 7 summary.
 
 ### Phase 5: Apply [SKIP if --preview]
 
@@ -213,13 +135,13 @@ Per finding, assign disposition:
 - `fixed` — applied and verified: re-run the same `gh api` read → response shows the new value, or `test -f`/`grep` on the touched file → expected content present
 - `failed` — attempted but API/command returned error
 - `skipped` — user declined, platform limitation, or N/A (with reason)
-- `needs-approval` — protection changes affecting other contributors, CODEOWNERS modifications, visibility changes. Default: resolved immediately using the same impact/effort/risk reasoning an approval block would show — applied and disposition `fixed`, except exception-list items (repo visibility, admin/permission changes, unmerged-branch deletion, history rewrite), which resolve `needs-human`. `--ask`: held for Phase 6 instead.
+- `needs-approval` — protection changes affecting other contributors, CODEOWNERS modifications, visibility changes. Default: resolved immediately using the same impact/effort/risk reasoning an approval block would show — applied and disposition `fixed`, except exception-list items (repo visibility, admin/permission changes, unmerged-branch deletion, history rewrite), which resolve `only you can do`. `--ask`: held for Phase 6 instead.
 
 **Gate:** Every finding has a disposition. `fixed + failed + skipped + needs_approval = total`. If fails → missing disposition → assign `failed (disposition not recorded)`; API call error → record `failed` with API error message and continue.
 
 ### Phase 6: Needs-Approval Review [--ask, needs_approval > 0]
 
-Without `--ask` this phase does not run — every needs-approval item was already resolved in Phase 5 by best judgment or recorded `needs-human` per the exception list. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Without `--ask` this phase does not run — every needs-approval item was already resolved in Phase 5 by best judgment or recorded `only you can do` per the exception list. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → record `pending-user-decision`, proceed to Summary with WARN, list unresolved in disposition table.
 
@@ -245,7 +167,7 @@ Clean checks — scopes where all checks passed:
 Clean: settings ({n}/{n} ✅), structure ({n}/{n} ✅)
 ```
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `Branch protection wired (required reviews, status checks, dismiss-stale) — accidental main-branch overwrites and unreviewed merges blocked`
 - `Squash-only merge + delete-branch-on-merge enabled — commit history stays linear, stale branches no longer accumulate`
@@ -254,17 +176,17 @@ Clean: settings ({n}/{n} ✅), structure ({n}/{n} ✅)
 
 Zero-change run: `Repo settings already match policy — no changes applied`.
 
-**Gate:** Summary + Value Delivered rendered; accounting reconciles; every scope's checks present. If fails → counts don't reconcile → list all findings with dispositions inline to expose discrepancy, status `WARN` with "Disposition count mismatch — review the table above"; missing scope checks → reconstruct from state and append.
+**Gate:** Summary + Effect rendered; accounting reconciles; every scope's checks present. If fails → counts don't reconcile → list all findings with dispositions inline to expose discrepancy, status `WARN` with "Disposition count mismatch — review the table above"; missing scope checks → reconstruct from state and append.
 
 ## Quality Gates
 
 - Settings changes verified via API read-back
-- **Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)), before the first repo-file write (CODEOWNERS, templates, workflow files): `git status --porcelain` → empty → proceed; a dirty path the planned write touches → default: proceed only when disjoint from every dirty path, else record `needs-human` for that write; `--ask`: Commit first (recommended) / Stash / Proceed anyway. API-side settings changes need no checkpoint — verified by read-back, reverted by the same API call.
+- **Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)), before the first repo-file write (CODEOWNERS, templates, workflow files): `git status --porcelain` → empty → proceed; a dirty path the planned write touches → default: proceed only when disjoint from every dirty path, else record `only you can do` for that write; `--ask`: Commit first (recommended) / Stash / Proceed anyway. API-side settings changes need no checkpoint — verified by read-back, reverted by the same API call.
 - **Mechanical Done Gate:** resolve `{check-cmd}` once at setup — the ds-quality enforcement arm when installed, else the stack-native format → lint → type → test chain from [../core/toolchains.md](../core/toolchains.md); capture the baseline; re-run after each change batch and once in aggregate before reporting done. New red → fix (≤3 attempts, same command), then revert the offending change and record `reverted`; baseline red is reported red-at-baseline, never inherited; no tooling detectable → report the Verification-Infrastructure Gap, never skip silently.
 - Scope boundary — only modify what was requested
 - Every finding gets a disposition
 - Every scope check evaluated and accounted for
-- Destructive changes: merged-branch deletion + reversible settings resolve automatically by best judgment (Category A/B default); UNMERGED (stale) branch deletion, permission changes, and visibility changes always resolve `needs-human` by default and confirm per item under `--ask` — no flag bypasses this (the publish/irreversible exception list)
+- Destructive changes: merged-branch deletion + reversible settings resolve automatically by best judgment (Category A/B default); UNMERGED (stale) branch deletion, permission changes, and visibility changes always resolve `only you can do` by default and confirm per item under `--ask` — no flag bypasses this (the publish/irreversible exception list)
 - W9: state-exempt — audit is regenerable, working tree + git are the durable record. W10: defer detection to fresh `ds/audit/findings.md` — own scan only for scopes not covered.
 - W1: cite file:line, never assume. W2: check consumers after modify. W3: only task-required lines. W4: re-read after gap. W5: uncertain → lower severity. W6: verify all phases output. W7: dedup file:line. W8: no raw shell interpolation. <!-- portable-only -->
 
@@ -287,6 +209,6 @@ Zero-change run: `Repo settings already match policy — no changes applied`.
 | Fork repository | Note fork status, skip protection (forked from upstream) |
 | Empty repository | Skip hygiene, minimal metadata check |
 | Free private plan | Mark protection + auto-merge checks as N/A with reason |
-| needs-input, default (no `--ask`) run | Record `needs-human` (a value only a human can supply, e.g. homepage URL) — list prominently in summary |
+| only you can do, default (no `--ask`) run | Record `only you can do` (a value only a human can supply, e.g. homepage URL) — list prominently in summary |
 
 > **Completion Evidence — final gate (duplicate of the opening band by design):** Before the summary line, show the evidence for every gate that ran — command plus observed output; a phase with no visible output was not executed — execute it now. Report `done`/`OK` only with this evidence present; otherwise report `INCOMPLETE` plus what is missing. <!-- portable-only -->

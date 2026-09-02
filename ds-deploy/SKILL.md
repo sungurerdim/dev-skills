@@ -37,7 +37,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
   - Prefer minimal infra (Caddy over Nginx+certbot, SQLite over managed DB where suited)
   - Wire CI/CD integration, automated SSL, automated backups
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 
@@ -51,7 +51,7 @@ First deploy often means bloated Docker images, no health checks, no SSL, and no
 | `--monitor` | Set up monitoring, logging, alerting, crash reporting |
 | `--incident` | Incident response: detection, triage, mitigation, post-mortem |
 | `--cost` | Analyze infra costs — requires a stated input: a billing export path, or monthly usage figures given in the request. Without one the cost scope reports `N/A — no billing data` (never estimated from nothing). Identifies over-provisioned resources, suggests right-sizing, calculates cost at 1x/10x/100x scale from the supplied baseline. |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without a flag: Audit runs directly (the default — review existing deployment setup, report findings; any finding needing a decision resolves by best judgment and is recorded). `--ask` presents an up-front menu covering every mode, one row each.
 
@@ -77,69 +77,10 @@ Without a flag: Audit runs directly (the default — review existing deployment 
 | Admin & Support Operability | any source (advisory) | — |
 | Cost | `--cost` with a stated billing input | N/A — mode not selected, or `N/A — no billing data` when the mode runs with no input |
 
-### Deployment
-
-| Check Area | What It Covers |
-|------------|---------------|
-| Dockerfile | Multi-stage builds, image size, security (non-root user, minimal base) |
-| Docker Compose | Service configuration, networking, volumes, health checks |
-| Reverse proxy | SSL termination, caching, rate limiting, security headers |
-| SSL/TLS | Certificate automation (Let's Encrypt / Caddy), HSTS, cipher suites |
-| DNS | Record configuration, CDN setup, failover |
-
-### Container-less targets
-
-Not every deploy has an image, a host, or a process you own. When Phase 1 resolves the target to one of these, the Dockerfile / VPS-hardening / reverse-proxy areas are **N/A** — state that explicitly in the report instead of emitting "no Dockerfile" or "no firewall" as findings, and run this table instead. Everything below still applies: secrets, config separation, backups, and the failure path.
-
-| Target | Detected by | What replaces the container checks |
-|--------|-------------|-----------------------------------|
-| Cloudflare Workers | `wrangler.toml` / `wrangler.jsonc` with `main` | Build proven without publishing (`npx wrangler deploy --dry-run --outdir dist`) as the pre-deploy gate; `compatibility_date` pinned to a real date, never floating; every binding (KV, D1, R2, Queues, Durable Objects) declared per environment and mirrored in a committed `.dev.vars.example`; secrets set via `wrangler secret put` only — the config file is committed, so a secret in it is a leak; `observability` enabled or its absence recorded as accepted blindness; routes and cron triggers reviewed for catch-all patterns that capture traffic nobody intended |
-| Cloudflare Pages (+ Functions) | `wrangler.toml` with `pages_build_output_dir`, or a `functions/` directory in a Pages project | Same secrets and bindings rules; `npx wrangler pages functions build --outdir dist` as the build gate; preview and production environment variables separated (a preview deploy reaching production data is the recurring failure here); `_headers` and `_redirects` reviewed — on Pages the security headers live in `_headers`, not in a reverse proxy that does not exist |
-| Static site on any CDN | `index.html` + no server process | TLS + cache headers + immutable asset names + one rollback path; backend monitoring, health endpoints, and process supervision are N/A |
-| Localhost, single user | No remote target — the "deploy" is the user starting the app on their own machine | Reverse proxy, TLS, uptime monitoring, alerting, and rate limiting are N/A. What stays and is usually missing: a reproducible one-command start, an explicit statement of where the data lives, a backup that is not on the same disk, a tested restore path, the update procedure, and the documented behavior when the machine is simply off |
-
-### Infrastructure
-
-| Check Area | What It Covers |
-|------------|---------------|
-| VPS hardening (`deploy=vps` only) | SSH config, firewall, fail2ban, unattended upgrades, kernel hardening, AppArmor, audit logging, security scan. N/A for `deploy` ∈ {docker, k8s, serverless, paas, static} — their own hardening surface is the container/platform, not an OS the project owns |
-| Backup strategy | Database backups, file backups, backup testing, offsite storage |
-| Restore-drill proof (D3, advisory) | Backup existing is not resilience — require a documented restore runbook + evidence of ≥1 executed end-to-end drill (worst case: total account/environment loss, restored to a clean target). Missing evidence -> advisory finding "backup exists, restore unproven — run a drill and record the runbook" (never a blocker) |
-| Zero-downtime | Blue-green, rolling, canary deployment strategy |
-| Cost optimization | Resource right-sizing, free tier usage, unnecessary spend |
-| Backing services (12-Factor #4) | DB/cache/queue/mail attached as swappable resources via URL-style config (`DATABASE_URL`, `REDIS_URL`) — never hardwired to a specific instance |
-| Concurrency (12-Factor #8) | Scale-out via stateless process replicas behind a load balancer/orchestrator, not vertical single-process scaling |
-
-### Monitoring
-
-| Check Area | What It Covers |
-|------------|---------------|
-| Structured logging | Log format, log levels, PII redaction in logs |
-| Crash reporting | Sentry / equivalent setup, source maps, PII scrubbing |
-| Error-channel decision (D4, advisory) | Production has an explicit crash/error-reporting decision: consent-based opt-in PII-free aggregate channel (error class + app version + counter only), or a documented acceptance of "support-mail blindness" as a risk. Missing entirely -> advisory finding naming the blindness risk, never a blocker |
-| Uptime monitoring | Health check endpoints, external uptime monitoring |
-| Alerting | Alert thresholds, notification channels, escalation |
-| Metrics | Response time, error rate, resource utilization |
-
-### Incident
-
-| Check Area | What It Covers |
-|------------|---------------|
-| Detection | Monitoring triggers, anomaly detection |
-| Triage | Severity classification (P1-P3: down / degraded / minor), escalation rules |
-| Mitigation | Rollback procedure, feature flags, circuit breakers |
-| Recovery | Fix verification, health check confirmation, 30-min monitoring window |
-| Post-mortem | Root cause analysis, timeline, action items template |
-
-### Admin & Support Operability (D10, advisory)
-
-Advisory only — findings here are Category B, never blockers. Distinct from Incident (above): Incident covers infra-level SRE response to outages; this covers application-level tooling for support staff handling individual user-reported errors.
-
-| Check Area | What It Covers |
-|------------|---------------|
-| Diagnostic bundle | Support-facing log/diagnostic export exists (per-user or per-session bundle), scrubbed of secrets/PII before export |
-| Verbose mode | A support-triggerable verbose/debug mode exists for live troubleshooting without a redeploy |
-| Error-remediation runbook | Known-error records (KB-style: symptom → known cause → fix/workaround) exist for recurring user-reported errors, separate from the infra post-mortem template above |
+| Scope | Reference | Loaded when |
+|-------|-----------|-------------|
+| Deployment, Container-less targets | [references/scopes-deployment.md](references/scopes-deployment.md) | either scope resolves to run |
+| Infrastructure, Monitoring, Incident, Admin & Support | [references/scopes-operability.md](references/scopes-operability.md) | any of the four scopes resolves to run |
 
 ## Delegation
 
@@ -153,7 +94,7 @@ Setup → Discover → [Analyze] → [Generate] → [Monitor Setup] → [Inciden
 
 1. **Upstream artifacts:** Profile → {Config.deploy, Project Map.External, Config.constraints, Type + Stack}. Findings({deploy, infra}) → verify + use. Absent → own analysis.
 2. A disambiguating flag skips this step. Without one: Audit runs directly (the default). `--ask` with no other flag: present the mode menu.
-3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`, `wrangler.toml`, `wrangler.jsonc`) + target: VPS, PaaS, serverless, container orchestration, or a container-less target (edge platform, static site, localhost-only — see Scopes § Container-less targets). Absence of a container signal is itself a signal: it selects the container-less branch, it does not make the run a Docker audit with everything missing.
+3. Detect deployment signals (`Dockerfile`, `docker-compose.yml`, `Procfile`, `serverless.yml`, `fly.toml`, `vercel.json`, `wrangler.toml`, `wrangler.jsonc`) + target: VPS, PaaS, serverless, container orchestration, or a container-less target (edge platform, static site, localhost-only — see [references/scopes-deployment.md](references/scopes-deployment.md) § Container-less targets). Absence of a container signal is itself a signal: it selects the container-less branch, it does not make the run a Docker audit with everything missing.
 
 **Gate:** Mode selected (flag or menu response); deployment target identified. If fails → default: infer the target from the `deploy` signal ([../core/signal-inventory.md](../core/signal-inventory.md)) and repo evidence (Dockerfile, PaaS config files, serverless manifests, `wrangler.*`, a static `index.html` with no server process) — `deploy` ∈ {docker, k8s, serverless, paas, static}; `deploy=vps` or the request explicitly names a VPS/host → `vps`. Signal `unknown` and no repo evidence → report the deployment-target scope `N/A — no deploy target detected`, never default to `vps`, continue with target-independent scopes only (monitoring, incident, cost). `--ask`: ask "What is your deployment target? (VPS / PaaS / serverless / container / edge / static / localhost-only)" — abort with WARN if no response after 3 prompts.
 
@@ -169,10 +110,10 @@ Setup → Discover → [Analyze] → [Generate] → [Monitor Setup] → [Inciden
 
 Apply rules from [references/rules-deployment.md](references/rules-deployment.md) (container security, deployment patterns, release engineering) + [references/rules-monitoring.md](references/rules-monitoring.md) (observability, alerting).
 
-- **Dockerfile audit — deterministic tool first (advisory):** hadolint present → run it on every Dockerfile and map its findings; absent → gap-note "hadolint not installed — prose checks are this run's fallback" (never auto-install). Prose checks: base image uses specific tag (not `latest`); multi-stage build (separate build + runtime stages); non-root user in runtime stage; `.dockerignore` exists covering `.git`, `node_modules`, `.env`, test files; layer ordering — deps before source code (cache efficiency); no secrets in build args or environment (gitleaks present → run it for this check; absent → pattern-based fallback); image vulnerability scan step (Trivy or equivalent) exists in the build pipeline — absent → HIGH finding "no image CVE scan".
-- **Container-less audit (target from Phase 1 is edge / static / localhost-only):** run the Scopes § Container-less targets row for the detected target instead of the Dockerfile and VPS-hardening bullets, and mark those two areas `not_applicable` with the target as the reason. Build-validation command for the target exists and is wired to the deploy path → evidence; missing → HIGH "deploys without a build gate". Secret found in a committed platform config (`wrangler.toml`, `vercel.json`, `_headers`) → CRITICAL, same as a secret in a Docker image.
-- **Infrastructure audit:** SSH key-only auth, no root login; firewall rules — only required ports open; backup config exists + tested; SSL/TLS A+ on SSL Labs; no exposed debug endpoints or admin panels.
-- **Monitoring audit:** health check endpoint returns meaningful status; structured logging configured (not `console.log` in production); crash reporting has PII redaction; alerting on critical metrics.
+- **Dockerfile audit — deterministic tool first (advisory):** hadolint present → run it on every Dockerfile and map findings to DEP-IDs; absent → gap-note "hadolint not installed — prose checks are this run's fallback" (never auto-install), then apply DEP-01, DEP-03, DEP-05, DEP-06, DEP-09, DEP-17, DEP-26 from [references/rules-deployment.md](references/rules-deployment.md) (secrets check: gitleaks present → run it; absent → pattern-based fallback).
+- **Container-less audit (target from Phase 1 is edge / static / localhost-only):** run the detected target's row in [references/scopes-deployment.md](references/scopes-deployment.md) § Container-less targets instead of the Dockerfile and VPS-hardening bullets, and mark those two areas `not_applicable` with the target as the reason. Build-validation command for the target exists and is wired to the deploy path → evidence; missing → HIGH "deploys without a build gate". Secret found in a committed platform config (`wrangler.toml`, `vercel.json`, `_headers`) → CRITICAL, same as a secret in a Docker image.
+- **Infrastructure audit:** apply DEP-02, DEP-11, DEP-24, DEP-25, DEP-30, DEP-31 from rules-deployment.md, plus the restore-drill-proof advisory row ([references/scopes-operability.md](references/scopes-operability.md) § Infrastructure).
+- **Monitoring audit:** apply DEP-04, MON-01, MON-02, MON-03, MON-08 from rules-deployment.md / rules-monitoring.md, plus the error-channel-decision advisory row (references/scopes-operability.md § Monitoring).
 - **Cost audit (requires a stated input):** a billing export path, or monthly usage figures given in the request — present → current infrastructure costs analyzed against the supplied figures, over-provisioned resources identified, free tier alternatives suggested where applicable, cost calculated at different scale points from the supplied baseline; absent → cost scope reports `N/A — no billing data`, never estimated from nothing.
 
 **Twelve-Factor gates ([core principles §3](../core/principles.md)):** stateless processes (Factor 6) — no in-memory state survives restart, sessions in shared store; Build/Release/Run separation (Factor 5) — release artifact immutable, never recompiled between envs; backing services (Factor 4) — DB/cache/queue/mail attached as URL-config resources (`DATABASE_URL`, `REDIS_URL`), swappable without code change; concurrency (Factor 8) — scale-out via stateless process replicas, never vertical single-process scaling; dev/prod parity (Factor 10) — same backing service types (no SQLite-in-dev, Postgres-in-prod); logs to stdout (Factor 11) — no log file paths in app config, aggregator captures stream; port binding (Factor 7) — port from `$PORT`, never hardcoded; admin tasks (migrations, seeds) as one-off commands (Factor 12), never embedded in deploy job.
@@ -185,7 +126,7 @@ Apply rules from [references/rules-deployment.md](references/rules-deployment.md
 
 ### Phase 4: Generate [--generate]
 
-0. **Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)), before the first file write: `git status --porcelain` → empty → proceed. Non-empty → default: write only paths untouched by the pre-existing dirty state; a planned write targeting a dirty path resolves `needs-human`. `--ask`: Commit first (recommended) / Stash / Proceed anyway (risk stated). Tree cannot be checkpointed → generate nothing over uncommitted unrelated changes; report the blocker.
+0. **Checkpoint** ([../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)), before the first file write: `git status --porcelain` → empty → proceed. Non-empty → default: write only paths untouched by the pre-existing dirty state; a planned write targeting a dirty path resolves `only you can do`. `--ask`: Commit first (recommended) / Stash / Proceed anyway (risk stated). Tree cannot be checkpointed → generate nothing over uncommitted unrelated changes; report the blocker.
 0b. **Target branch (before any generation).** Container-less target → steps 1-3 below do not apply; generate the platform's own equivalents instead and record steps 1-3 `not_applicable` with the target as the reason: Workers/Pages → `wrangler.toml` binding + environment skeleton with a committed `.dev.vars.example` stub (secret *names* only, never values) and the build-gate command wired into the repo's check chain; Pages/static → `_headers` carrying the security header set the missing reverse proxy would have supplied; localhost-only → a one-command start script plus a backup script with its matching restore command, both runnable by the single user who owns the machine.
 1. **Dockerfile:** multi-stage, non-root, optimized layers, health check.
 2. **docker-compose.yml:** services, networking, volumes, health checks, restart policies.
@@ -211,7 +152,7 @@ Incident severity classification (P1-P4); detection → triage → mitigate → 
 
 ### Phase 7: Needs-Approval Review [--ask, needs_approval > 0]
 
-Without `--ask` this phase does not run — every item, including CRITICAL, was already resolved via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolved `skipped (needs-human)` instead. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Without `--ask` this phase does not run — every item, including CRITICAL, was already resolved via the same impact/effort/risk reasoning the review step would show, applied and recorded `fixed`/`failed`; items matching the irreversible-exception list resolved `skipped (only you can do)` instead. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue to Summary; do not retry.
 
@@ -225,7 +166,7 @@ ds-deploy: {OK|WARN|FAIL} | Mode: {audit|generate|checklist|monitor|incident} | 
 
 Default run (no `--ask`) → append `⚠ Generated without interactive review`.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `Dockerfile hardened: multi-stage build, non-root USER, HEALTHCHECK — image size reduced from {old-size} to {new-size}, attack surface narrowed`
 - `SSL automation wired ({tool} handling cert renewal) — TLS expiry incidents eliminated`
@@ -234,7 +175,7 @@ Default run (no `--ask`) → append `⚠ Generated without interactive review`.
 
 Audit-only run: `{n} infra findings (severity: {breakdown}) — actionable list returned, no live config touched`.
 
-**Gate:** Summary + Value Delivered emitted; counts balance; every finding/action has disposition. If fails → undisposed finding → assign `skipped (accounting gap)`, re-emit as WARN; report the run as incomplete so the user can re-invoke.
+**Gate:** Summary + Effect emitted; counts balance; every finding/action has disposition. If fails → undisposed finding → assign `skipped (accounting gap)`, re-emit as WARN; report the run as incomplete so the user can re-invoke.
 
 ## Quality Gates
 

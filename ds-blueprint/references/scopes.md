@@ -60,6 +60,10 @@ Caps: CRITICAL → max 40, 3+ HIGH → max 60.
 
 For structural scopes (architecture, patterns): score reflects health on 0-100 scale using judgment.
 
+## Completeness Verification (Phase 4)
+
+Mechanical check after writing `ds/audit/findings.md`: `awk -F'|' '/^\|/{gsub(/ /,"",$7); print $7}' ds/audit/findings.md | sort -u` → the distinct Scope-column values (drop the header's literal `Scope`). Expected: exactly the scopes that ran this cycle. `ideal-gap` (ds-benchmark) and `privacy` (ds-compliance) are counted when present, never re-run for their absence. A scope that ran but is absent from the output → re-run its assessment before proceeding.
+
 ## Judgment & Skip Rules
 
 - Every finding cites file:line. Read actual code before reporting.

@@ -109,6 +109,8 @@ When a gap > 40 is detected:
 | Delta sanity | Score change between runs < 30 per dimension | Major refactor or scoring drift |
 | Cross-dimension coherence | Related-dimension pairs (table above) within 40 points | Re-read evidence for both, adjust the one with weaker signals; persistent gap → flag as anomaly in dashboard |
 | Per-dimension penalty cap | Max -50 from any single severity class | Cap kicks in automatically; record in audit field |
+| Adjacent-dimension delta | < 30 points within this run | Re-read the flagged dimension's signals + adjust |
+| Code Quality vs Security & Privacy | Not Quality > 80 while Security & Privacy < 50 | Re-verify both scans |
 
 ## Status Thresholds
 

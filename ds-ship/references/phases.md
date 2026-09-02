@@ -2,6 +2,20 @@
 
 Extended reference for `/ds-ship` phase internals. Loaded only when a phase requires the full rule set.
 
+## Phase 0 — State Shape
+
+```json
+{
+  "mode": "harden", "mode_reason": "stage=implementation, no store/public intent",
+  "stage": "implementation", "project_type": "web", "signals": {"ui": "web", "api": "rest", "billing": "none"},
+  "value_proposition": "...",
+  "skill_sequence": ["ds-blueprint", "ds-review"], "current_phase": 2,
+  "delegation_queue": [{"phase": 2, "step": 1, "skill": "ds-blueprint", "status": "done", "reason": "findings absent"}],
+  "exclusions": [{"skill": "ds-launch", "status": "skipped — not part of this mode"}, {"skill": "ds-productize", "status": "skipped — no signal", "signal": "billing=none"}],
+  "category_A_count": 0, "category_B_batch": [], "approvals_resolved": false, "git_hash": "..."
+}
+```
+
 ## Phase 0 — Classification Signals
 
 | Stage | Primary signal | Secondary signal |
@@ -102,7 +116,7 @@ ds-devops (CI/CD integrity, signing, deps audit)
    ↓
 ds-deploy (container security, TLS, monitoring, runbook)      [deploy ∉ {none, store}]
    ↓
-ds-release (version, changelog, tag, release notes; publishing → needs-human)
+ds-release (version, changelog, tag, release notes; publishing → only you can do)
    ↓
 ds-repo (branch protection, CODEOWNERS, metadata)
 
@@ -112,6 +126,13 @@ ds-repo --oss-ready                                            [audience=public]
 ```
 
 Each skill in the chain consumes `ds/audit/findings.md` and adds its own scope's findings. ds-ship does not re-invoke an already-completed skill in the same pass.
+
+## Phase 7b — Handoff Offers
+
+| Handoff | Trigger (all must hold) | Default | `--ask` |
+|---------|--------------------------|---------|---------|
+| **PR via `/ds-pr`** | branch ≠ main/master · `git rev-list --count @{u}..HEAD` ≥ 1 · `gh auth status` exit 0 · state lacks `pr_suggestion: muted` | Never opens a PR (publishing): record `pr_suggested: only you can do` and print the branch + `/ds-pr` command in the report | `Open a PR via /ds-pr? (y/n/always-skip)` — `y` → delegate, record the URL; `n` → `declined (this run)`; `always-skip` → `pr_suggestion: muted` |
+| **Durable tracking via `/ds-issue`** | ≥ 1 unresolved B item, blocker or Sequence Gap · `/ds-issue` available · state lacks `tracking_handoff: muted` | Filing an issue is reversible → delegate to `/ds-issue` per item (severity + owning skill labels), record `tracking_handoff: auto-approved` and the refs; no GitHub remote → ds-issue's local `tasks.md` fallback | `File them via /ds-issue? (y/n/always-skip)` with the same three outcomes |
 
 ## Category A vs B — Examples
 

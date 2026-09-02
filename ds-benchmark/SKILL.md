@@ -33,7 +33,7 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 
 - Standalone; uses blueprint profile + `ds/audit/findings.md` when fresh (`git_hash == HEAD` AND current run-cycle) to skip re-detection.
 - State-exempt: single regenerable report/audit.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Research delegated to `/ds-research` when present — never re-implements CRAAP+ scoring. Absent → degraded inline search (Phase 3 fallback), all sources capped at T2 and labeled `untiered`.
 - Writes `ds/audit/findings.md` (`scope=ideal-gap`); contributes gap section to ds-ship report when invoked under it.
@@ -46,7 +46,7 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 | `--preview` | Research + synthesis + gap table, no approval block |
 | `--competitors={n}` | Target count of comparables (default 7; min 3, max 12) |
 | `--scope={x}` | Narrow to a single dimension: architecture, stack, data-model, ux, security, privacy, operational, all |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without flags: benchmark the dimensions resolved `ran` by the Scopes table below; `--scope=` narrows further.
 
@@ -86,7 +86,7 @@ Setup → Define → Research → Synthesize → Gap → Approve → Record → 
 
 1. **Blueprint profile check.** `grep -n '^## Blueprint Profile' {instruction-file(s)}` → ≥1 match. Match → read type, stack, audience, priorities. No match → own detection + prompt for problem definition.
 
-**Gate:** Blueprint-profile grep (step 1) returned ≥1 match, or a one-sentence problem definition is recorded. If fails → no profile + own detection insufficient (empty repo, no manifest) → default: infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `needs-human: no problem definition inferable`. `--ask`: prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition."
+**Gate:** Blueprint-profile grep (step 1) returned ≥1 match, or a one-sentence problem definition is recorded. If fails → no profile + own detection insufficient (empty repo, no manifest) → default: infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `only you can do: no problem definition inferable`. `--ask`: prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition."
 
 ### Phase 2: Define Problem Space
 
@@ -131,38 +131,7 @@ Record one ideal paragraph per active scope: `{"architecture": "{one-paragraph i
 
 ### Phase 5: Gap Table
 
-**Gap row schema** — every column, its meaning, and its allowed values:
-
-| Column | Meaning | Allowed values |
-|--------|---------|-----------------|
-| ID | Row identifier | `G{n}` |
-| Dimension | Which resolved scope this gap belongs to | one of the scopes marked `ran` |
-| Ideal | Synthesized ideal for this dimension (Phase 4) | one-paragraph text |
-| Current | Current-state summary | text from blueprint/findings, or `unknown — insufficient data` |
-| Gap | Type of divergence | `missing \| excess \| wrong \| partial-needs-extension` |
-| Evidence | Where Current was observed | `file:line`, or `n/a — no current implementation` |
-| Proposal | The closing action | one-sentence action |
-| Effort | Size of the closing change | `S` — single file, mechanical change · `M` — 2-5 files, one module · `L` — 6+ files or cross-module/cross-cutting |
-| Priority | Urgency of closing | `P1` — blocks core function or security · `P2` — meaningful quality gap · `P3` — nice-to-have |
-| Category | Fix classification | `A` (code-level, no architecture change) \| `B` (architecture/scope change) |
-| Decision | Resolution, set in Phase 6 | `close \| defer \| intentional-deviation` (absent until Phase 6 runs) |
-
-For each dimension, compare ideal vs current (current from blueprint profile + `ds/audit/findings.md`):
-
-```
-| ID    | Dimension    | Ideal              | Current            | Gap type             | Evidence            | Proposal             | Effort | Priority  | Category |
-|-------|--------------|--------------------|--------------------|-----------------------|----------------------|-----------------------|--------|-----------|----------|
-| G{n}  | {dim}        | {ideal-paragraph}  | {current-state}    | {gap-type}            | {file:line or n/a}  | {action-proposal}     | {S/M/L}| {P1/P2/P3}| {A/B}    |
-```
-
-`gap_type`: `missing | excess | wrong | partial-needs-extension`.
-
-**Aggregate-score caveat:** a row whose only competitor evidence is a scorecard-style aggregate number carries the note `aggregate score = heuristic signal, not ground truth — verify high/low outliers manually` in its Ideal cell.
-
-**Category rules:**
-
-- Code-level fix not altering architecture or scope → A.
-- Architecture / new dependency / new capability / user-facing promise change → B.
+For each resolved dimension, compare ideal vs current (current from blueprint profile + `ds/audit/findings.md`) and write one row per gap. Row schema, allowed values, row template, `gap_type` enum, aggregate-score caveat, and Category A/B rules: [references/gap-row-format.md](references/gap-row-format.md).
 
 Write gap entries to `ds/audit/findings.md` with `scope=ideal-gap` and `category` column set.
 
@@ -209,7 +178,7 @@ Competitors: {n} (T1: {x}, T2: {y}, T3: {z})
 
 `ds-benchmark: {OK|WARN|FAIL} | Gaps: {n} | Close: {n} | Defer: {n} | Intentional: {n} | Skipped: {n} | Total: {n}`
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} comparable projects benchmarked across {m} dimensions — "ideal" is now externally calibrated, not your internal taste`
 - `{n} gaps identified between project and ideal: {n} accepted (close), {n} deferred, {n} declared intentional with ADR — every architectural divergence is now a deliberate decision, not a forgotten one`

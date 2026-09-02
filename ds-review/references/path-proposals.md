@@ -87,4 +87,4 @@ The "all matching" affordance applies the same path letter to every finding with
 
 - A path marked `HIGH` risk MUST be classified Category B (approval-gated) in every mode.
 - A path that modifies more than 10 files MUST be classified Category B, even if scope-level risk is LOW.
-- A path whose rollback is `manual` resolves by best judgment without `--ask` (applied, not stranded) unless it independently matches the publish/irreversible exception list ([`../../core/ask-exception-list.md`](../../core/ask-exception-list.md): force-push, permanent deletion, secret rotation, human-only value) — then it is `skipped (needs-human)`.
+- A path whose rollback is `manual` resolves by best judgment without `--ask` (applied, not stranded) unless it independently matches the publish/irreversible exception list ([`../../core/ask-exception-list.md`](../../core/ask-exception-list.md): force-push, permanent deletion, secret rotation, human-only value) — then it is `skipped (only you can do)`.

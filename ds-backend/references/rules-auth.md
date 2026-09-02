@@ -6,14 +6,13 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **Authentication** | AUTH-01 to AUTH-16 (3 CRITICAL, 6 HIGH, 4 MEDIUM, 3 LOW) | ~12 |
+| **Authentication** | AUTH-01 to AUTH-25 (3 CRITICAL, 10 HIGH, 8 MEDIUM, 4 LOW) | ~12 |
 
 ---
 
 ## Authentication
 
-### AUTH-01 Password Hashing [CRITICAL]
-
+### AUTH-01 [CRITICAL] Password Hashing
 **Detect:** Passwords hashed with MD5, SHA-1, SHA-256, or any unsalted/fast hash. Plaintext password storage. Custom hashing schemes.
 
 **Fix:** Use Argon2id (preferred) or bcrypt (legacy systems) with OWASP-recommended parameters.
@@ -36,12 +35,10 @@ Rules for audit/design/spec modes. Each rule: ID, severity, detect pattern, fix 
 
 **Impact:** Fast hashes (MD5, SHA-family) allow billions of guesses per second on modern GPUs. Argon2id with proper memory cost limits attackers to few hundred attempts per second per GPU.
 
-**Source:** [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) Password Security section
-
+**Source:** [OWASP Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
 ---
 
-### AUTH-02 Token Storage [CRITICAL]
-
+### AUTH-02 [CRITICAL] Token Storage
 **Detect:** Auth tokens (JWTs, session IDs) stored in `localStorage`, `sessionStorage`, or cookies without `HttpOnly`/`Secure`/`SameSite` flags. Mobile apps storing tokens in plaintext shared preferences.
 
 **Fix:** Web: `httpOnly + Secure + SameSite` cookies. Mobile: platform keychain/keystore.
@@ -71,12 +68,10 @@ Set-Cookie: session_id=<value>;
 
 **Impact:** Tokens in localStorage are readable by any JavaScript on the page, including injected XSS payloads. httpOnly cookies inaccessible to JavaScript entirely.
 
-**Source:** [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) JWT Best Practices and Session Management sections
-
+**Source:** [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
 ---
 
-### AUTH-03 OAuth 2.0 / OIDC [HIGH]
-
+### AUTH-03 [HIGH] OAuth 2.0 / OIDC
 **Detect:** Custom authentication flows instead of OIDC for third-party login. Deprecated OAuth grants (Implicit, ROPC). PKCE missing from Authorization Code flow.
 
 **Fix:** Use Authorization Code + PKCE (S256) for all client types. RFC 9700 (January 2025) codifies this as only recommended flow.
@@ -96,12 +91,10 @@ RFC 9700 compliance checklist:
 
 **Impact:** Implicit and ROPC grants expose tokens in URLs or require password sharing. Authorization Code + PKCE prevents authorization code interception and works securely for all client types.
 
-**Source:** [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 9700 — Best Current Practice for OAuth 2.0 Security](https://datatracker.ietf.org/doc/rfc9700/) (OAuth 2.1 remains an IETF draft consolidating the same rules), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) OAuth 2.0 section
-
+**Source:** [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), [RFC 9700 — Best Current Practice for OAuth 2.0 Security](https://datatracker.ietf.org/doc/rfc9700/) (OAuth 2.1 remains an IETF draft consolidating the same rules)
 ---
 
-### AUTH-04 JWT Validation [HIGH]
-
+### AUTH-04 [HIGH] JWT Validation
 **Detect:** JWTs decoded without signature verification. `alg=none` accepted. Missing validation of `exp`, `iss`, or `aud` claims. Symmetric algorithm (HS256) used when asymmetric is appropriate.
 
 **Fix:** Validate all claims on every request. Maintain server-side algorithm allowlist.
@@ -126,12 +119,10 @@ Keep JWT payloads small: `sub`, `iss`, `aud`, `exp`, `iat`, `jti`, and role/scop
 
 **Impact:** JWT algorithm confusion is CRITICAL vulnerability. Accepting `alg=none` or failing to verify signatures allows token forgery.
 
-**Source:** [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 8725 — JWT Best Current Practices](https://datatracker.ietf.org/doc/html/rfc8725) (a bis revision adding algorithm-confusion + JWE compression-DoS defenses is in IETF draft as of mid-2026), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) JWT Best Practices section
-
+**Source:** [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519), [RFC 8725 — JWT Best Current Practices](https://datatracker.ietf.org/doc/html/rfc8725) (a bis revision adding algorithm-confusion + JWE compression-DoS defenses is in IETF draft as of mid-2026)
 ---
 
-### AUTH-05 CSRF Protection [HIGH]
-
+### AUTH-05 [HIGH] CSRF Protection
 **Detect:** State-changing endpoints (`POST`, `PUT`, `DELETE`) that accept requests without CSRF token validation or SameSite cookie protection.
 
 **Fix:** Use `SameSite=Lax` cookies (modern approach) combined with CSRF tokens for defense-in-depth.
@@ -157,12 +148,10 @@ PKCE replaces CSRF tokens in OAuth flows (per RFC 9700).
 
 **Impact:** CSRF attacks trick authenticated users into performing unintended actions. Single missing CSRF check on sensitive endpoint enables account takeover or data manipulation.
 
-**Source:** [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) Session Management section
-
+**Source:** [OWASP CSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
 ---
 
-### AUTH-06 RBAC / Authorization [MEDIUM]
-
+### AUTH-06 [MEDIUM] RBAC / Authorization
 **Detect:** Authorization checks missing on protected endpoints. All-or-nothing authentication (logged in = full access). Role checks performed only on client side.
 
 **Fix:** Implement middleware-based RBAC with server-side enforcement on every request. Deny by default — require explicit grants.
@@ -181,12 +170,10 @@ For solo dev with fewer than 5 roles: flat RBAC with `role` column on user table
 
 **Impact:** Missing server-side authorization is most common API vulnerability (OWASP API1: BOLA accounts for 40% of all API attacks).
 
-**Source:** [NIST RBAC Model](https://csrc.nist.gov/projects/role-based-access-control), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) RBAC and Permission Models section
-
+**Source:** [NIST RBAC Model](https://csrc.nist.gov/projects/role-based-access-control)
 ---
 
-### AUTH-07 Auth Rate Limiting [MEDIUM]
-
+### AUTH-07 [MEDIUM] Auth Rate Limiting
 **Detect:** Login, registration, password reset, and MFA endpoints without rate limiting. No account lockout or progressive delay on failed attempts.
 
 **Fix:** Apply per-endpoint rate limits with progressive delay on auth-related routes.
@@ -205,12 +192,10 @@ Error messages must be generic: "Invalid credentials" rather than "Wrong passwor
 
 **Impact:** Authentication endpoints are primary target for credential stuffing and brute-force attacks. Without rate limiting, attackers can attempt millions of passwords per hour.
 
-**Source:** [OWASP Credential Stuffing Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) Common Vulnerabilities section
-
+**Source:** [OWASP Credential Stuffing Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html)
 ---
 
-### AUTH-08 Session vs JWT Decision [LOW]
-
+### AUTH-08 [LOW] Session vs JWT Decision
 **Detect:** JWT used where server sessions would be simpler, or sessions used where JWT is required. Architecture mismatch between auth mechanism and application type.
 
 **Fix:** Use this decision tree:
@@ -235,12 +220,10 @@ Default for solo developers: server sessions with httpOnly cookies. Add JWT only
 
 **Impact:** Wrong auth mechanism → unnecessary complexity (JWT for simple web app) or security gaps (sessions without shared store in distributed system).
 
-**Source:** [Auth0 Session vs JWT comparison](https://auth0.com/blog/), [auth-implementation-guide.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/backend/auth-implementation-guide.md) Auth Decision Framework section
-
+**Source:** [Auth0 Session vs JWT comparison](https://auth0.com/blog/)
 ---
 
-### AUTH-09 Passkey Support (WebAuthn) [LOW]
-
+### AUTH-09 [LOW] Passkey Support (WebAuthn)
 **Detect:** Auth system relies solely on passwords with no passwordless option. No WebAuthn/FIDO2 integration. Users cannot register platform authenticators (biometrics, security keys).
 
 **Fix:** Add WebAuthn/passkey as secondary authentication method alongside existing password auth.
@@ -269,8 +252,7 @@ Implementation priority: offer passkeys as optional upgrade during login, not ma
 
 ---
 
-### AUTH-10 Social Login Integration [LOW]
-
+### AUTH-10 [LOW] Social Login Integration
 **Detect:** Custom social login flow not using standard OIDC/OAuth 2.0. Social auth implemented without platform SDK. Missing email scope in social login (no fallback identifier). Social login as sole auth method without account linking.
 
 **Fix:** Use platform SDKs with Authorization Code + PKCE flow. Require email scope minimum for account identification.
@@ -292,8 +274,7 @@ Implementation rules:
 
 **Source:** [Apple Sign In Guidelines](https://developer.apple.com/sign-in-with-apple/), [Google Identity Services](https://developers.google.com/identity), [App Store Review Guidelines 4.8](https://developer.apple.com/app-store/review/guidelines/#sign-in-with-apple)
 
-### AUTH-11 Object-Level Authorization (BOLA) — Cross-User Test [CRITICAL]
-
+### AUTH-11 [CRITICAL] Object-Level Authorization (BOLA) — Cross-User Test
 **Detect:** A handler loads a resource by an ID from the request without confirming it belongs to the authenticated user. Search: lookups by `id`/`uuid` from params/body with no ownership guard (`WHERE user_id = :current_user`) or policy check. This is the most common AI-introduced access flaw (OWASP API1).
 
 **Fix:** Enforce ownership (or RBAC/ABAC) on every object access, server-side. Add the cross-user regression test: as user A, create resource `R`; as user B, request `R` by its ID; assert `403`/`404`, never `200`. Apply equally to indirect references (filenames, storage keys, sequential IDs).
@@ -302,7 +283,7 @@ Implementation rules:
 
 **Source:** [OWASP API1: BOLA](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/), [CVE-2025-48757](https://nvd.nist.gov/vuln/detail/CVE-2025-48757)
 
-### AUTH-12 All Provider Binding Converges on One Post-Login Connect Hook [MEDIUM]
+### AUTH-12 [MEDIUM] All Provider Binding Converges on One Post-Login Connect Hook
 Every post-authentication provider-binding step (token storage, workspace discovery, initial sync kick-off) runs through one canonical connect hook.
 
 **Detect:** Provider-binding side effects scattered across login callbacks, route guards, and ad-hoc init code; a second login path (re-auth, added provider) that skips steps the first path performs.
@@ -313,7 +294,7 @@ Every post-authentication provider-binding step (token storage, workspace discov
 
 **Source:** XR-027 — cross-project experience registry (2026); complements AUTH-03 (PKCE).
 
-### AUTH-13 OAuth Robustness Envelope Is Pinned by Tests [HIGH]
+### AUTH-13 [HIGH] OAuth Robustness Envelope Is Pinned by Tests
 The OAuth client's operational envelope — provider-directed rate limiting, retry policy, scope minimization, token refresh — is enforced and protected by tests.
 
 **Detect:** Token-refresh logic with no test exercising expiry/refresh/failure paths; retry against the provider without backoff or budget; requested scopes exceeding what code actually uses.
@@ -324,7 +305,7 @@ The OAuth client's operational envelope — provider-directed rate limiting, ret
 
 **Source:** XR-148 — cross-project experience registry (2026).
 
-### AUTH-14 Routine Key Rotation Uses a Dual-Key Overlap Window [HIGH]
+### AUTH-14 [HIGH] Routine Key Rotation Uses a Dual-Key Overlap Window
 Routine admin/API key rotation is zero-downtime via dual-key overlap; confirmed leaks skip the overlap.
 
 **Detect:** Key rotation implemented as replace-in-place (old key dies the moment the new one lands); no secondary-key slot; or a leaked key rotated with an overlap window left open.
@@ -335,7 +316,7 @@ Routine admin/API key rotation is zero-downtime via dual-key overlap; confirmed 
 
 **Source:** XR-033 — cross-project experience registry (2026).
 
-### AUTH-15 Fine-Grained Roles Persist in an SSOT, Never Re-Derived at Login [HIGH]
+### AUTH-15 [HIGH] Fine-Grained Roles Persist in an SSOT, Never Re-Derived at Login
 Role assignments live in one persistent store; login never recomputes roles from a coarser signal.
 
 **Detect:** Roles derived at login from storage-provider permissions or group membership; fine-grained roles (manager, receptionist) that silently collapse to a coarse default after re-login.
@@ -346,7 +327,7 @@ Role assignments live in one persistent store; login never recomputes roles from
 
 **Source:** XR-142 — cross-project experience registry (2026).
 
-### AUTH-16 Role Taxonomies Stay Separate: Access Roles ≠ Domain Roles ≠ Per-Record Roles [MEDIUM]
+### AUTH-16 [MEDIUM] Role Taxonomies Stay Separate: Access Roles ≠ Domain Roles ≠ Per-Record Roles
 System RBAC roles, domain/service roles, and per-record contact roles are distinct taxonomies and are never conflated.
 
 **Detect:** A settings surface spawns a second taxonomy overlapping an existing one; one enum mixing access control (admin/member) with domain function (provider/client) or per-record tags; users unable to tell whether two role screens describe the same thing.
@@ -356,3 +337,94 @@ System RBAC roles, domain/service roles, and per-record contact roles are distin
 **Impact:** Conflated role taxonomies produce both privilege bugs (domain role accidentally grants access) and duplicate-taxonomy drift (two lists of "roles" no one dares edit).
 
 **Source:** XR-144 — cross-project experience registry (2026).
+
+---
+
+### AUTH-17 [MEDIUM] Session ID Regeneration (Fixation)
+**Detect:** Session ID unchanged across the login boundary (same cookie value before and after authentication) or across a privilege-escalation event (role/permission change mid-session). Session IDs generated with fewer than 128 bits of entropy or from a non-CSPRNG source.
+
+**Fix:** Generate session IDs with a CSPRNG at ≥128 bits of entropy (e.g. `crypto.randomBytes(32)` or equivalent). Regenerate the session ID immediately after successful authentication and again after any privilege escalation, invalidating the pre-escalation ID server-side.
+
+**Impact:** An attacker who fixes a victim's pre-auth session ID (or predicts a low-entropy one) inherits the authenticated session the moment the victim logs in, bypassing credential theft entirely.
+
+**Source:** [OWASP Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+---
+
+### AUTH-18 [HIGH] Password Policy Follows NIST 800-63B-4
+**Detect:** Password fields enforcing composition rules ("must include uppercase/number/symbol"), periodic forced rotation with no compromise signal, a maximum length under 64 characters, or no check against known-breached password lists. Distinct from AUTH-01 (hashing algorithm) — this rule covers the *policy*, not the hash.
+
+**Fix:** Apply NIST SP 800-63B-4 digital identity guidelines: minimum length 15 characters (8 with MFA enabled), support at least 64 characters and full Unicode/printable ASCII including spaces, do NOT enforce composition rules, do NOT require periodic rotation absent compromise evidence, screen new/changed passwords against a breached-password list (e.g. HaveIBeenPwned k-anonymity API or a bundled corpus), and prohibit password hints and security questions.
+
+**Impact:** Composition and rotation rules that contradict current NIST guidance push users toward predictable patterns (`Password1!` → `Password2!`) and password reuse, which is measurably weaker than a longer unrestricted passphrase — enforcing the outdated policy actively reduces security.
+
+**Source:** [NIST SP 800-63B-4 Digital Identity Guidelines](https://pages.nist.gov/800-63-4/sp800-63b.html)
+---
+
+### AUTH-19 [HIGH] TOTP/MFA Implementation Correctness
+**Detect:** TOTP verification with no clock-skew tolerance (exact-window match only) or a non-standard digit/period configuration undocumented to the user; MFA recovery codes stored in plaintext or without single-use enforcement; MFA failure messages that reveal which factor was wrong (e.g. "Invalid OTP" vs generic "Invalid credentials"); no phishing-resistant factor (WebAuthn/passkey) offered alongside OTP-based MFA.
+
+**Fix:** Implement TOTP per RFC 6238 (SHA-1, 6 digits, 30-second step) accepting the current window ±1 to absorb clock skew. Generate 8-10 single-use recovery codes at enrollment and store them hashed like passwords. Rate-limit MFA attempts (e.g. 5 failures per 15 minutes) and return generic failure messages that do not disclose which factor failed. Offer at least one phishing-resistant option (see AUTH-09) alongside OTP methods, and issue a fresh TOTP secret on any re-enrollment — never reuse an old seed.
+
+**Impact:** A missing clock-skew window locks out legitimate users on minor clock drift; plaintext or reusable recovery codes turn the MFA bypass path into the weakest link in the system; factor-specific error messages leak enumeration data to an attacker probing which second factor a target has configured.
+
+**Source:** [RFC 6238 — TOTP: Time-Based One-Time Password Algorithm](https://www.rfc-editor.org/rfc/rfc6238), [OWASP Multifactor Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html)
+---
+
+### AUTH-20 [MEDIUM] API Key Lifecycle Hygiene
+**Detect:** API keys stored in plaintext in the database; a single key per account with no rotation path (revoking it breaks every integration at once); keys with no identifying prefix, making leaked-key triage or scoping impossible from the value alone; full key value logged or displayed after initial creation.
+
+**Fix:** Prefix keys by environment/type (e.g. `sk_live_`, `sk_test_`, `pk_live_`); store only a hash of the key server-side (like a password) and show the full value exactly once at creation; support multiple concurrent keys per account so rotation never requires downtime; log only the key's prefix plus last 4 characters in audit trails; scope each key to the minimum permissions it needs.
+
+**Impact:** A key that cannot be identified from its prefix or rotated without breaking every caller forces an all-or-nothing incident response the moment one leaks — the exact failure mode key prefixing and multi-key support exist to avoid.
+
+**Source:** [OWASP REST Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html)
+---
+
+### AUTH-21 [HIGH] Password Reset Token Integrity
+**Detect:** Password-reset tokens with no expiry or an expiry longer than ~15 minutes; a reset token accepted more than once (not invalidated after use); a reset token passed in a URL query parameter that a browser would log to history/referrer/analytics rather than consumed via a POST body; a reset flow that reveals whether an email address has an account (different response for "found" vs "not found").
+
+**Fix:** Issue single-use, time-limited (≤15 minute) reset tokens sent only to the account's verified email address; invalidate the token immediately on use or expiry; accept the token via a POST request body, never rely on it living only in a GET query string; return an identical response regardless of whether the email exists, to prevent user enumeration.
+
+**Impact:** A long-lived or multi-use reset token is a standing account-takeover credential the moment it leaks via logs, browser history, or a referrer header; an enumerable reset endpoint hands attackers a list of valid accounts to target.
+
+**Source:** [OWASP Forgot Password Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html)
+---
+
+### AUTH-22 [MEDIUM] Auth Event Audit Logging
+**Detect:** No durable log of authentication events (login success/failure, MFA challenge, password change, session revocation); failed-login volume with no alerting threshold, so a credential-stuffing spike is invisible until a user reports account takeover.
+
+**Fix:** Log every authentication event (login, failure, MFA challenge/result, password change, token issuance/revocation) with timestamp, actor/account identifier, source IP, and outcome — never the credential itself. Wire an alert on anomalous patterns (e.g. 100+ failures/minute across accounts, or repeated failures against one account).
+
+**Impact:** Without an auth event trail, a breach is discovered only when a user notices unauthorized activity, and the incident-response team has no record to establish scope, timeline, or affected accounts.
+
+**Source:** [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
+---
+
+### AUTH-23 [MEDIUM] Open Redirect Prevention
+**Detect:** A post-login, post-logout, or OAuth `redirect_uri`/`return_to`-style parameter accepted from client input and used to build a redirect without validation against an allowlist; partial-match or prefix-match redirect validation (`startswith`) instead of exact match.
+
+**Fix:** Validate every redirect target against a server-side allowlist of exact, fully-qualified URIs — no wildcards, no partial/prefix matching, no trusting a client-supplied hostname. Reject or fall back to a fixed default path when the target does not match exactly.
+
+**Impact:** An unvalidated redirect parameter turns the application's own trusted domain into a phishing launchpad — the victim clicks a link to a real, trusted URL that silently forwards them to an attacker-controlled page after authenticating.
+
+**Source:** [OWASP Unvalidated Redirects and Forwards Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html)
+---
+
+### AUTH-24 [HIGH] Refresh Token Reuse Triggers Family Revocation
+**Detect:** Refresh token rotation implemented (AUTH-03) but a reused/replayed prior refresh token is silently accepted or merely rejected without revoking its sibling tokens; no mechanism ties a chain of rotated refresh tokens back to one "family" for revocation.
+
+**Fix:** On detecting reuse of an already-rotated refresh token, revoke the entire token family (every token descended from the same original grant) and force re-authentication — reuse of a superseded token is a reliable signal of token theft, not a race condition to tolerate.
+
+**Impact:** Without family revocation, a stolen refresh token lets an attacker and the legitimate user both stay silently logged in on parallel token chains indefinitely, since simple one-token rejection doesn't cut off the attacker's already-rotated copy.
+
+**Source:** [RFC 9700 — Best Current Practice for OAuth 2.0 Security](https://datatracker.ietf.org/doc/rfc9700/)
+---
+
+### AUTH-25 [LOW] Sender-Constrained Tokens (DPoP) for High-Value APIs
+**Detect:** Bearer tokens used for high-value operations (payments, admin actions, financial data) with no proof-of-possession binding — a stolen bearer token is fully usable by whoever holds it, from any client.
+
+**Fix:** For high-value scopes, issue DPoP-bound (RFC 9449) or mTLS-bound access tokens instead of plain bearer tokens, so a stolen token is unusable without the corresponding private key. Bearer tokens remain acceptable for lower-value, general-purpose API access.
+
+**Impact:** A plain bearer token is a bare credential — anyone who intercepts or exfiltrates it can replay it from anywhere; sender-constraining ties the token to the possessing client, closing the replay window even after leakage.
+
+**Source:** [RFC 9449 — OAuth 2.0 Demonstrating Proof of Possession (DPoP)](https://www.rfc-editor.org/rfc/rfc9449)

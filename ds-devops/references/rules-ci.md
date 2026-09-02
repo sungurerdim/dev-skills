@@ -8,8 +8,10 @@ Applies to all project types: web, API, CLI, library, mobile, monorepo. Loaded f
 | **Agent & Tool Security** | DOP-15–16 (2 HIGH) |
 | **Workflow Security & Lint** | DOP-19–20 (1 HIGH, 1 CRITICAL) |
 | **Container & Cloud Auth Hardening** | DOP-22–23 (2 HIGH) |
-| **Runner & Host Hygiene** | DOP-24–25 (2 MEDIUM) |
+| **Runner & Host Hygiene** | DOP-24–25, DOP-46 (3 MEDIUM) |
 | **Config Hygiene** | DOP-40 (1 LOW) |
+| **CI Performance & Cost** | DOP-41–42, DOP-45 (3 MEDIUM) |
+| **CI Secrets Hygiene** | DOP-44 (1 HIGH) |
 
 ## CI/CD & Workflow
 
@@ -192,3 +194,53 @@ Any YAML/front-matter string value containing `: ` (colon-space) mid-string is q
 - **Fix:** Quote every string value containing `: `; add a YAML linter to the local gate so the class is caught before any build runs — this error is invisible until something consumes the parsed value.
 - **Impact:** An unquoted colon silently truncates or restructures the value — the build may pass while a title, description, or command ships half-parsed.
 - **Source:** XR-108 — cross-project experience registry (2026).
+
+### DOP-46 [MEDIUM] macOS Runner Cost Minimization
+macOS runners bill at roughly 10x the per-minute rate of Linux runners — the highest-leverage CI cost lever on any project with an iOS build.
+- **Detect:** Linting, shared-code unit tests, or non-iOS-specific jobs running on a `macos-*` runner; a macOS job triggered on every push instead of path-filtered to `ios/**` (or the equivalent iOS/shared source paths); a macOS matrix building multiple OS/Xcode versions instead of one build + device-farm coverage.
+- **Fix:** Move linting and shared-code (non-platform) tests to Linux runners. Path-filter macOS jobs to trigger only on iOS/shared-source changes. Build once on macOS and use TestFlight (or a device farm) for multi-device coverage instead of a macOS build matrix. Cache CocoaPods/SPM/Xcode DerivedData to shrink the minutes that do run on macOS.
+- **Impact:** Unfiltered or unnecessary macOS runner usage multiplies the project's CI bill at the highest per-minute rate GitHub offers, for work that did not need a macOS runner at all.
+- **Source:** [GitHub — Actions runner pricing](https://docs.github.com/en/billing/reference/actions-runner-pricing)
+
+## CI Performance & Cost
+
+### DOP-41 [MEDIUM] CI Dependency & Build Caching
+Uncached dependency installs and Docker layer rebuilds burn minutes (and money) on every run; GitHub's setup actions and Docker Buildx both have built-in cache backends.
+- **Detect:**
+  - `actions/setup-node`/`setup-python`/`setup-java`/`setup-go` used without their `cache:` parameter
+  - Docker build step with no `cache-from`/`cache-to` (rebuilds every layer from scratch)
+  - Cache action pinned below `actions/cache@v4` (the v1 Cache API it depends on is deprecated)
+  - No `restore-keys` fallback, or a cache key with no OS/lockfile-hash/tool-version component (near-zero hit rate)
+- **Fix:** Pass `cache:` to the language setup action (`npm`/`pip`/`gradle`/module cache as applicable). For Docker: `cache-from: type=gha` + `cache-to: type=gha,mode=max` (mode=max caches all stages, not just the final one); set a per-image `scope` to avoid collisions between images built in the same workflow. Cache key includes OS + lockfile hash + tool version, with a broader `restore-keys` prefix for partial hits. GHA cache has a 10 GB per-repository limit — past that, fall back to `type=registry,ref=<registry>/<image>:cache`. Require `actions/cache@v4`+.
+- **Impact:** An uncached pipeline re-downloads every dependency and rebuilds every Docker layer on every run — the exact 20-minute feedback loop a solo developer cannot iterate against.
+- **Source:** [GitHub Actions — Caching dependencies](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows), [Docker Build — GitHub Actions cache backend](https://docs.docker.com/build/cache/backends/gha/)
+
+### DOP-42 [MEDIUM] Affected-Only CI for Monorepos
+A monorepo without change detection runs the full lint/test/build matrix on every PR, even when a change touches one leaf package.
+- **Detect:**
+  - Multiple independently-deployable packages/apps in one repo (workspace config: `pnpm-workspace.yaml`, `lerna.json`, `nx.json`, `turbo.json`, or multiple `package.json` under one root) with no affected/changed-package detection in CI
+  - Every job runs unconditionally regardless of which paths changed
+  - No `fetch-depth: 0` on checkout (affected-detection tools need full history to diff against the base branch)
+- **Fix:** Adopt one: Turborepo (`turbo run lint test build --filter='...[origin/main]'`, Vercel remote cache), Nx (`nx affected -t lint test build` + `nrwl/nx-set-shas`, Nx Cloud remote cache), or `dorny/paths-filter` for repos without a build orchestrator (glob-based job gating via `if: needs.detect.outputs.<name> == 'true'`). Set `fetch-depth: 0` on checkout. Run affected-only on PRs; run the full build nightly as a safety net against a missed dependency edge.
+- **Impact:** Every PR pays the full-repo build cost regardless of change size — CI time and cost scale with repo size instead of change size, and the slowdown compounds as the monorepo grows.
+- **Source:** [Turborepo — CI docs](https://turbo.build/repo/docs), [Nx — Affected](https://nx.dev/ci/features/affected), [dorny/paths-filter](https://github.com/dorny/paths-filter)
+
+### DOP-45 [MEDIUM] CI Test-Stage Time Budgeting
+An unbudgeted test stage grows until the whole pipeline is slow enough that developers stop trusting or waiting for it.
+- **Detect:** No stated time budget per test layer; a PR-blocking job (unit or integration) regularly exceeds ~15 minutes; E2E suite runs unsharded and un-budgeted on every PR instead of being scoped to the main branch or pre-deploy.
+- **Fix:** Budget by layer — unit tests under 5 minutes on every PR, integration tests 5-15 minutes on every PR, E2E 15-30 minutes gated to the main branch or pre-deploy rather than every PR. Over budget → shard the suite across parallel runners (e.g. Playwright's built-in `--shard`) rather than letting the single job grow unbounded.
+- **Impact:** A test stage with no time budget is the pipeline's slowest-growing cost — past ~15-20 minutes, developers start skipping local verification and merging on faith that CI will "probably" catch it.
+- **Source:** [Martin Fowler — TestPyramid](https://martinfowler.com/bliki/TestPyramid.html)
+
+## CI Secrets Hygiene
+
+### DOP-44 [HIGH] CI Secrets Hygiene: Never Logged, Rotated on Schedule
+GitHub's log masking matches the literal secret value — string manipulation (base64, substring, case change, concatenation) reliably defeats it — and a masked-but-still-present secret in a public log is one manipulation away from exposed.
+- **Detect:**
+  - Workflow step that `echo`s, `printf`s, or otherwise writes a secret-derived value to stdout/stderr without a masking-safe helper (`::add-mask::`) applied to every derived form, not just the original
+  - `set -x` / `ACTIONS_STEP_DEBUG` enabled on a job that handles secrets (debug/trace output bypasses masking)
+  - No documented rotation cadence for long-lived CI secrets (cloud keys already covered by DOP-23's OIDC migration; this covers everything else — webhook secrets, third-party API keys)
+  - Secret referenced at the organization level when only one repository/environment needs it (broadest scope that still works, not least-privilege)
+- **Fix:** Never echo a secret or a value derived from one; if a derived value must be logged for debugging, mask it explicitly with `::add-mask::` before it is ever printed. Disable step debug logging on jobs that touch secrets. Scope each secret to the narrowest level that works — Environment secret over Repository secret over Organization secret. Document and follow a rotation cadence for every long-lived secret that cannot move to OIDC.
+- **Impact:** A logged secret is compromised the moment the log is readable by anyone beyond the minimal trusted set — masking is a safety net, not a guarantee, and an unrotated long-lived secret stays valid for an attacker indefinitely after any undetected leak.
+- **Source:** [GitHub Actions — Security hardening for GitHub Actions](https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions)

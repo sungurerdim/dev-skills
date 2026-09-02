@@ -35,7 +35,7 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 - Every finding cites file and line — never infer or assume.
 - Only audits CI/CD, signing, dependencies, release pipelines.
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
 
@@ -46,20 +46,20 @@ Broken CI pipelines, unsigned builds, and outdated dependencies silently erode r
 | `--mode={x}` | `audit`, `audit+fix`, `quick-fix` |
 | `--scope={x}` | Comma-separated: ci, signing, deps, release-pipeline, or `all` |
 | `--preview` | Dry run — show what would be checked without loading rules or scanning |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Without flags: mode resolves to `audit+fix` and scope resolves to `all`, both by best judgment and recorded in the summary. `--ask`: present the mode + scope selection menu.
 
 ## Scopes
 
-35 rules across 13 domains, loaded per scope from `references/rules-*.md`.
+42 rules across 15 domains, loaded per scope from `references/rules-*.md`.
 
 | Scope | What It Checks |
 |-------|---------------|
-| ci | CI/CD pipeline presence, quality gates, format / analyze / test / build stages, workflow lint layers (actionlint + zizmor), `pull_request_target` misuse, agent/tool security, CI-built container + cloud-auth hardening |
+| ci | CI/CD pipeline presence, quality gates, format / analyze / test / build stages, workflow lint layers (actionlint + zizmor), `pull_request_target` misuse, agent/tool security, CI-built container + cloud-auth hardening, dependency/build caching, monorepo affected-detection, test-stage time budget, secrets hygiene, macOS runner cost |
 | signing | Code signing automation, certificate management, keystore security |
 | deps | Dependency audit gate, outdated detection, cross-dependency compatibility, breaking changes, supply-chain provenance (SCA) |
-| release-pipeline | Release automation, version bump workflow, registry publish auth (trusted publishing / OIDC — DOP-21), build provenance / artifact attestation, backup & DR posture |
+| release-pipeline | Release automation, version bump workflow, registry publish auth (trusted publishing / OIDC — DOP-21), build provenance / artifact attestation, backup & DR posture, `GITHUB_TOKEN` downstream-trigger gap, deploy concurrency + environment gates |
 
 | Scope | Runs when (signal) | Otherwise |
 |-------|---------------------|-----------|
@@ -171,7 +171,7 @@ Type: {project-type} | CI: {ci-platform} | Date: {today}
 
 ### Phase 6: Fix [SKIP if audit-only or --preview]
 
-0. **Checkpoint pre-step** (before the first file write, [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)): `git status --porcelain` → non-empty → Default: proceed only when the pre-existing dirty files are disjoint from the planned fix targets; a fix targeting a dirty file resolves `needs-human` — no prompt. `--ask`: ask Commit first (recommended) / Stash / Proceed anyway (risk stated). Tree cannot be checkpointed → apply no fix over uncommitted unrelated changes; report the blocker.
+0. **Checkpoint pre-step** (before the first file write, [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md)): `git status --porcelain` → non-empty → Default: proceed only when the pre-existing dirty files are disjoint from the planned fix targets; a fix targeting a dirty file resolves `only you can do` — no prompt. `--ask`: ask Commit first (recommended) / Stash / Proceed anyway (risk stated). Tree cannot be checkpointed → apply no fix over uncommitted unrelated changes; report the blocker.
 1. Present fix plan per the approval-menu convention — one line per fix (rule, `[severity]`, file:line, action); question `Apply these N fixes?`.
 2. Confirmation: quick-fix proceeds automatically. `audit+fix` — Default: resolves by best judgment, no confirmation shown. `--ask`: ask Apply all / per-severity bulk / proceed / cancel.
 3. Apply fixes grouped by file.
@@ -185,11 +185,11 @@ ds-devops: {OK|WARN|FAIL} | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 
 ### Phase 7: Needs-Approval Review [needs_approval > 0]
 
-Default: items resolve by best judgment (`fixed` or `failed`), except items matching the publish/irreversible exception list, which become `skipped (needs-human)` — no review step shown. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Default: items resolve by best judgment (`fixed` or `failed`), except items matching the publish/irreversible exception list, which become `skipped (only you can do)` — no review step shown. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → unresolved → mark `skipped (no decision)`, continue; do not retry.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `CI pipeline: {n} actions SHA-pinned (was `@v{x}` tag references) — supply-chain attack via action tag overwrite eliminated`
 - `Quality gates wired (lint → typecheck → test → build) with `concurrency` and `permissions: read` — broken releases caught before they hit users`

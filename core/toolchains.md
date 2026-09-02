@@ -359,7 +359,7 @@ The script **is** the project's `{check-cmd}` and its test command. Generate/cov
 No manifest above matched. A test suite cannot be fabricated for an unknown language.
 
 1. Wire only universally available checks that apply to files present and whose tools exist: `shellcheck` for `*.sh`, `prettier --check` for `*.json`/`*.md`/`*.yaml` when prettier is installed, `python3 -m py_compile` for stray `*.py`.
-2. Report the gap explicitly: "no recognized language toolchain; established only {X}; tests not established — human decision needed", and ask (or, autonomously, record `needs-human`) which toolchain to standardize on.
+2. Report the gap explicitly: "no recognized language toolchain; established only {X}; tests not established — human decision needed", and ask (or, autonomously, record `only you can do`) which toolchain to standardize on.
 3. Never mark the task green with an empty gate.
 
 ---

@@ -33,7 +33,7 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 **Commit message describes only what `git diff` shows.** Not session discussion, not what was tried and reverted, not what was planned. Read diff, describe diff.
 
 - Standalone. Uses blueprint profile for toolchain when available; own detection when absent.
-- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
+- Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / only you can do); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - **Exempt from state protocol:** atomic, git-diff-driven, seconds-long. Git staging area is the natural state. No `ds/audit/commit.json`.
 - **A commit never touches the remote.** No fetch, no pull, no push — this skill's write surface stops at the local repository.
@@ -45,7 +45,7 @@ AI commits are vague ("update code"), bundle unrelated changes, and skip pre-com
 | `--preview` | Show commit plan only, don't execute |
 | `--single` | Force single commit |
 | `--staged-only` | Commit only staged changes |
-| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `only you can do`. |
 
 Default scope: all uncommitted changes (staged + unstaged + untracked).
 
@@ -75,7 +75,7 @@ Pre-checks → Analyze → Execute → Verify → Summary
 **Quality Gates (changed files only):**
 
 - **Upstream artifacts:** Profile → Toolchain. Findings(commit-relevant) → context for grouping. Absent → own detection.
-- **Always: secret scan + large-file check.** Content scan of the staged diff against the regexes in [../core/secret-patterns.md](../core/secret-patterns.md): `git diff --cached -U0 | grep -nE '{pattern}'` run once per regex in that file (AWS keys, generic `api_key`/`secret`/`password` assignments, private-key blocks, provider tokens, connection-string passwords, JWTs). Filename exclusion (always excluded from bulk staging, listed in the summary): `.env`, `.env.*`, `*.pem`, `*.key`, `credentials.*`, `secrets.*`. Large-file check: `git diff --cached --numstat` lists changed files, then `wc -c` each against a 1,000,000-byte (1 MB) threshold — well above any hand-written source file, catching accidentally committed binaries, archives, and build artifacts; files over it are unstaged (`git restore --staged {file}`) and reported in the summary as `needs-human: {file} ({size} bytes) — exceeds the 1 MB commit threshold, use Git LFS or split the change`. A confirmed secret match is never auto-fixed — rotate the credential, then add the variable name with a placeholder to `.env.example`; the run's status is FAIL until the owner acts.
+- **Always: secret scan + large-file check.** Content scan of the staged diff against the regexes in [../core/secret-patterns.md](../core/secret-patterns.md): `git diff --cached -U0 | grep -nE '{pattern}'` run once per regex in that file (AWS keys, generic `api_key`/`secret`/`password` assignments, private-key blocks, provider tokens, connection-string passwords, JWTs). Filename exclusion (always excluded from bulk staging, listed in the summary): `.env`, `.env.*`, `*.pem`, `*.key`, `credentials.*`, `secrets.*`. Large-file check: `git diff --cached --numstat` lists changed files, then `wc -c` each against a 1,000,000-byte (1 MB) threshold — well above any hand-written source file, catching accidentally committed binaries, archives, and build artifacts; files over it are unstaged (`git restore --staged {file}`) and reported in the summary as `only you can do: {file} ({size} bytes) — exceeds the 1 MB commit threshold, use Git LFS or split the change`. A confirmed secret match is never auto-fixed — rotate the credential, then add the variable name with a placeholder to `.env.example`; the run's status is FAIL until the owner acts.
 - **Always: repo completeness check** — untracked source files referenced by tracked code: list untracked (`git ls-files --others --exclude-standard`), filter to source extensions (`.ts/.tsx/.js/.jsx/.go/.py/.dart/.rs/.rb/.php/.ex/.scala/.cs/.c/.cpp/.h/.swift/.vue/.svelte`; exclude build output, lockfiles, generated), grep tracked files for filename references + relative path patterns. Referenced-but-untracked → Default: Stage all (the recommended default) — no prompt. `--ask`: ask "Used by your code but not tracked — CI will fail. Stage them?": Stage all (recommended) / Review each / Skip. Approve → `git add`, include in commit. Skip → warn "CI will likely fail".
 - **Code files:** format + lint (no tests) on changed files only. Default: install and continue when installation is non-interactive and low-risk (a local dev-dependency); otherwise mark `⚠ Skipped (tool unavailable)` and continue — no prompt. `--ask`: tool unavailable → ask "Install and continue?"; decline → mark `⚠ Skipped (tool unavailable)`.
 - **Docs/config only:** skip code checks.
@@ -209,7 +209,7 @@ Stage files → build message → commit.
 
 Disposition accounting — totals balance. Commit hashes + branch + next-step hint (push or PR). Secret-pattern exclusions (if any): `{file}` list excluded from staging by filename pattern.
 
-**Value Delivered:** 1-5 concrete bullets, real changes only — each states the effect in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity. Example shapes (placeholders, not literal output):
+**Effect:** 1-5 concrete bullets, real changes only — each states what got better and why it matters, in plain language a non-technical reader understands (quantified when measurable), never the mechanical activity; they are the closing block's Effect line. Example shapes (placeholders, not literal output):
 
 - `{n} unrelated changes split into atomic commits — bisect can now isolate any regression to a single concern`
 - `{n} secret patterns intercepted in commit body — credentials no longer leak into git history`
@@ -217,7 +217,7 @@ Disposition accounting — totals balance. Commit hashes + branch + next-step hi
 
 Zero-change run: `Nothing to commit — working tree clean`.
 
-**Gate:** Summary line + Value Delivered emitted; disposition accounting balances. If fails → some planned commits did not land; list each (created/failed) with hashes of successes; instruct user to re-run on remaining changes.
+**Gate:** Summary line + Effect emitted; disposition accounting balances. If fails → some planned commits did not land; list each (created/failed) with hashes of successes; instruct user to re-run on remaining changes.
 
 ## Quality Gates
 

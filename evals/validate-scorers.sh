@@ -47,9 +47,9 @@ apply_ship-harden-no-launch() { cd "$1" && mkdir -p ds/audit && cat > ds/audit/r
 |-------|--------|
 | ds-blueprint | ran |
 | ds-review | ran |
-| ds-launch | mode-excluded |
-| ds-benchmark | mode-excluded |
-| ds-productize | signal-absent — billing=none |
+| ds-launch | skipped — not part of this mode |
+| ds-benchmark | skipped — not part of this mode |
+| ds-productize | skipped — no billing signal (billing=none) |
 MD
 }
 apply_build-tasks-md() { cd "$1" && cat > src/text.js <<'JS'

@@ -16,7 +16,7 @@ Exclude the skill's own artifacts (`ds/audit/`, `ds/<skill>/`) from the output. 
 |------------------|----------------------|---------|
 | Empty | Proceed. | Proceed. |
 | Non-empty, and the planned writes are **disjoint** from every dirty path | Proceed; list the dirty paths in the summary as untouched. | Show the dirty files; ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: edits interleave with uncommitted work; single-command rollback is lost). |
-| Non-empty, and a planned write **touches** a dirty path | Stop that unit; record `needs-human: uncommitted changes in {file} — commit or stash before this skill edits it`; continue with disjoint units. | Same menu; **Proceed anyway** is offered only when the flow has no revert/reset step. |
+| Non-empty, and a planned write **touches** a dirty path | Stop that unit; record `only you can do: uncommitted changes in {file} — commit or stash before this skill edits it`; continue with disjoint units. | Same menu; **Proceed anyway** is offered only when the flow has no revert/reset step. |
 
 **Stop-hard skills** — flows whose failure path resets or reverts tracked files in a loop (ds-tune's experiment ratchet, ds-build's budgeted backtracking, any `reset --hard`): a dirty tree stops the loop before it starts in every mode. `Proceed anyway` is never offered; the menu is Commit first (recommended) / Stash / Abort.
 
