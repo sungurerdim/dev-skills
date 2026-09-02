@@ -30,6 +30,7 @@ PR body describes final state difference from base branch, not journey of indivi
   - Description includes "then I changed", "next I fixed" narrative
   - Body does not explain what reviewer sees in diff
 - **Fix:** Describe net effect: what changed, why, and how to verify. Structure: Summary (1-3 bullets), motivation, test plan. Commit history tells journey; PR body tells destination
+- **Impact:** A commit-by-commit narrative forces the reviewer to reconstruct the final diff themselves, and pollutes the squash-commit body release-please turns into a changelog entry.
 - **Source:** dev-skills ds-pr skill design
 
 ### PR-03 [HIGH] Conventional Title
@@ -40,16 +41,18 @@ PR title follows conventional commit format. Becomes squash commit message on me
   - Title exceeds 72 characters
   - Title does not describe behavioral change
 - **Fix:** Format as `type(scope): imperative description`. Becomes squash merge commit message, driving changelog generation and semantic versioning
+- **Impact:** A non-conventional or malformed title becomes the squash-merge commit message, breaking release-please's version-bump and changelog parsing for this release.
 - **Source:** release-please, conventional-changelog, Conventional Commits 1.0
 
 ### PR-04 [MEDIUM] Test Evidence
 PR includes evidence that change works and does not break existing behavior.
 - **Detect:**
-  - No CI status checks on PR
-  - Code changes without corresponding test changes
-  - New feature without any test coverage
+  - No CI status checks on PR (`gh pr checks` / `gh pr view --json statusCheckRollup` returns empty)
+  - Code changes without corresponding test changes (`git diff {base}...HEAD --name-only` touches source paths with zero matching `test/`/`*.test.*`/`*.spec.*` paths)
+  - Net-diff type classification is `feat` (Phase 3) with zero test files touched
   - No manual test notes for UI or behavioral changes
 - **Fix:** Require passing CI as merge prerequisite. Add or update tests for changed behavior. Include test plan in PR body: what was tested, how to verify manually if applicable
+- **Impact:** A merged change with no test evidence has no proof it works and no regression guard — the next refactor can break it silently.
 - **Source:** Google Engineering Practices
 
 ### PR-05 [MEDIUM] Self-Review Before Submit
@@ -61,13 +64,15 @@ Author reviewed own diff before requesting review. Catches obvious issues that w
   - Unresolved merge conflict markers
   - Temporary test values or hardcoded credentials
 - **Fix:** Run self-review checklist before marking ready: no debug artifacts, no commented code, no unresolved TODOs, diff reads cleanly, tests pass locally
+- **Impact:** Debug artifacts and unresolved conflict markers that reach review waste reviewer time on issues the author could have caught in one read-through.
 - **Source:** Code review best practices, Google Engineering Practices
 
 ### PR-06 [LOW] Linked Issues
 PR references related issues for traceability and automatic issue management.
 - **Detect:**
   - No issue reference in PR body or title
-  - Issue reference uses wrong syntax (not recognized by GitHub)
-  - PR addresses an issue but does not link it
+  - Issue reference uses wrong syntax (not recognized by GitHub's closing-keyword list)
+  - PR body contains a bare issue mention (`#123`) with no closing/relating keyword in front of it
 - **Fix:** Add closing keyword + issue number: "Closes #123" or "Fixes #456" in PR body. For non-closing references: "Relates to #789". Multiple issues: one keyword per issue on separate lines
+- **Impact:** An unlinked PR breaks GitHub's automatic issue-closing on merge, leaving the issue open after the fix has already shipped.
 - **Source:** GitHub docs on linking PRs to issues

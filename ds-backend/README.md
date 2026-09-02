@@ -33,7 +33,6 @@ Run `/ds-backend`, or ask to review your API, database schema, or auth flow.
 | **Audit** | Review existing API/DB/auth for issues |
 | **Design** | Design new endpoints, schema, or auth flow |
 | **Spec** | Generate OpenAPI spec, migration files, auth docs |
-| **Migrate** | Generate or review database migrations |
 
 ## Scopes
 

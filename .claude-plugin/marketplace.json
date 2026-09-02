@@ -5,15 +5,15 @@
     "url": "https://github.com/sungurerdim"
   },
   "description": "Multi-phase AI coding-assistant skills covering the full software lifecycle — executable gates, error recovery, and systematic mitigation of 17 known AI failure modes.",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "plugins": [
     {
       "name": "dev-skills",
       "source": "./",
       "strict": false,
       "displayName": "dev-skills",
-      "description": "30 multi-phase skills — research, build, review, test, document, comply, and ship — as pure markdown with zero runtime dependencies.",
-      "version": "1.2.0",
+      "description": "32 multi-phase skills — research, build, debug, review, test, document, comply, release, and ship — autonomous by default, as pure markdown with zero runtime dependencies.",
+      "version": "2.0.0",
       "author": {
         "name": "sungurerdim",
         "url": "https://github.com/sungurerdim"

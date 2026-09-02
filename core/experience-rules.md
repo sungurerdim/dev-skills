@@ -110,7 +110,7 @@ Registry size: 198 rules. Statuses: `integrated` (added by the 2026-07-24 transf
 | XR-103 | Genel toplu-düzenleme motoru + batch-gruplu denetim ve geri-alma | integrated | ds-backend:DB-18 |  |
 | XR-104 | İki-katmanlı idempotency + idempotent iade (yeniden-teslim güvenliği) | integrated | ds-productize:MON-04 |  |
 | XR-105 | Teslim edilmemiş ücretli iş için durable-store SSOT'undan otomatik … | integrated | ds-productize:MON-14 |  |
-| XR-106 | Runtime pini build betiğiyle zorlanır | integrated | ds-devops:version-pinning rule at rules-devops.md:53-56 |  |
+| XR-106 | Runtime pini build betiğiyle zorlanır | integrated | ds-devops:DOP-03 CI/Local Parity at rules-ci.md:49 |  |
 | XR-107 | Sürüm-hassas ve ampirik-doğrulanmış bağımlılıklar gerekçeyle pinlenir | integrated | ds-deps:pin-handling section (the `# pinned` comment convention, ~line 264) |  |
 | XR-108 | Belirsiz YAML değerleri tırnaklanır/lint'lenir | integrated | ds-devops:DOP-40 |  |
 | XR-109 | Uygulama-ürettiği dosyalar kalıp-eşleşmesiyle güvenle silinir | integrated | ds-compliance:PRV-37 |  |

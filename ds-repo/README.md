@@ -2,7 +2,7 @@
 
 Unprotected main branches, stale branches piling up, missing CODEOWNERS, and no branch policies — most repos are misconfigured from day one. This skill audits and fixes it.
 
-**Repository structure, settings, and team configuration — audit and setup. 7 scopes.**
+**Repository structure, settings, and team configuration — audit and setup. 8 scopes.**
 
 ## Install
 
@@ -31,17 +31,19 @@ Run `/ds-repo`, or ask to audit your repo settings.
 | Scope | What It Checks |
 |-------|---------------|
 | settings | Squash merge, delete-on-merge, auto-merge, PR format |
-| protection | Branch protection rules, required reviews, status checks |
+| protection | Branch protection, required reviews (N/A solo), status checks, linear history, force-push |
 | hygiene | Stale branches, merged branch cleanup, history bloat (git-filter-repo) |
 | metadata | Description, topics, license, homepage, badges, social preview |
 | team | CODEOWNERS, contributor guidelines |
 | structure | .gitignore, directory conventions |
+| security | Secret scanning, push protection, Dependabot, private vuln reporting, code scanning |
+| oss-readiness | 16-check open-source launch readiness (`--oss-ready`) |
 
 ## Modes
 
 | Mode | What It Does |
 |------|-------------|
-| **Full Audit** | Scan all scopes, report findings |
-| **Audit & Fix** | Scan and apply fixes |
-| **Scoped** | Pick specific areas to audit |
+| **Audit & Fix (default)** | Scan every scope, apply fixes by best judgment |
+| **Full Audit** (`--ask` menu) | Scan all scopes, report only |
+| **Scoped** (`--scope`) | Pick specific areas to audit |
 

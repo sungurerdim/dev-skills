@@ -23,7 +23,7 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 /ds-brief --quick {topic}         # fast, T1-T2 only
 /ds-brief --summarize <urls…>     # summarize given URLs/text (no discovery)
 /ds-brief --static {topic}        # static, print-pure output
-/ds-brief --auto {topic}          # zero-interaction — depth + scope resolved by best judgment
+/ds-brief --ask {topic}           # interactive — menus and approval batches at every decision point
 /ds-brief --no-archive {topic}    # skip the evidence bundle (HTML + findings only)
 /ds-brief --from-artifact <findings.json>   # re-render from an existing artifact — zero research, works offline
 ```
@@ -39,7 +39,7 @@ Turn a topic (or a set of URLs) into a **single-file, offline, print/PDF-ready H
 
 Every fact is source-backed · every datum 2×-confirmed or flagged · every reference a live link · no guessing · unclear → researched deeper, then declared unknown · known vs unknown explicit · contradictions shown, not smoothed · every inference shows its premises · normative text read in context and in its current consolidated version · HIGH confidence is the target, never an assertion. See [references/verification.md](references/verification.md).
 
-The checks a parser can settle run as code (`python3 assets/verify-brief.py --artifact findings.json --report report.html --bundle sources/`), not as recall. Exit 0 is the run's completion evidence. It catches what reads as fine — a dropped action item, a citation id pointing nowhere, a coverage figure asserted rather than recomputed, an archived file whose hash no longer matches. `--self-test` proves the checks still fire, by running them against fixtures broken in named ways (the run prints its own defect count). Judgment-shaped checks (does the quote support the claim, does the PDF look right) stay manual by design.
+The checks a parser can settle run as code (`python3 assets/verify-brief.py --artifact findings.json --report report.html --bundle sources/`), not as recall. Exit 0 is the run's completion evidence. It catches what reads as fine — a dropped action item, a citation id pointing nowhere, a coverage figure asserted rather than recomputed, an archived file whose hash no longer matches. `--self-test` proves the checks still fire, by running them against fixtures broken in named ways (the run prints its own defect count). Judgment-shaped checks (does the quote support the claim, does the PDF look right) stay manual by design. No `python3` on the host → the run declares a Verification-Infrastructure Gap, names every check left unrun, and works them by hand instead of reporting the phase clean on checks nobody executed.
 
 ## Tool-optionality
 
@@ -49,9 +49,9 @@ context-mode and rtk are **optional** — they cut context footprint only, never
 
 ```
 SKILL.md                       orchestrator: phases, gates, scopes
+../core/craap.md                source tiers, scoring, normative ladder (shared method)
 references/
-  craap.md                     source reliability scoring (self-contained)
-  verification.md              sourcing + 2x-confirm + known/unknown discipline
+  verification.md              sourcing + 2x-confirm + known/unknown discipline (this skill's stricter HIGH gate + independence test)
   report-template.md           HTML conventions (SSOT, chips, print/PDF, a11y)
   research-pipeline.md         collect→store→read; context-mode + completeness
 assets/

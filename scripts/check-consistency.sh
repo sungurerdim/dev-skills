@@ -152,7 +152,7 @@ check_bare_repo_paths() {
 #     reference ("apply the approval-menu convention") loses that rule entirely,
 #     and a lone install has nowhere else to read it — which is how ds-devops
 #     dropped it. Scoped to blocks that actually grade by severity: ds-benchmark
-#     decides gaps, ds-solve decides steps, ds-brief decides claims — none of them
+#     decides gaps, ds-build decides steps, ds-brief decides claims — none of them
 #     has a CRITICAL severity to carve out, so none is required to mention it.
 check_approval_critical_carveout() {
   bad=""
@@ -172,24 +172,24 @@ check_approval_critical_carveout() {
   [ -z "$bad" ] || err "approval menu drops the CRITICAL carve-out (All-Affordance Rule):$bad"
 }
 
-# 23. v5 — Canonical --auto row (SKILL-SPEC Unattended Mode: "every skill pastes
-#     this verbatim"). Compares the EFFECT cell (last cell) of each skill's
-#     `--auto` Arguments row against the canonical text in SKILL-SPEC.md, so a
-#     table with an extra Default column still passes while reworded, narrowed
-#     or locally re-derived text fails. Per-skill carve-outs belong in the
-#     skill's Contract citing rule 4, never in this row.
-check_auto_row_canonical() {
+# 23. v7 — Canonical --ask row (SKILL-SPEC Autonomous Default: "every skill pastes
+#     this verbatim"). Compares the EFFECT cell (last cell) of each skill's `--ask`
+#     Arguments row against the canonical text in SKILL-SPEC.md, so a table with an
+#     extra Default column still passes while reworded, narrowed or locally
+#     re-derived text fails. Per-skill carve-outs belong in the skill's Contract,
+#     citing the ask-exception list, never in this row.
+check_ask_row_canonical() {
   local canon skill row effect
-  canon=$(grep -m1 '^| `--auto` | Zero-interaction run' SKILL-SPEC.md \
-          | sed 's/.*| \(Zero-interaction run.*\) |$/\1/')
-  [ -n "$canon" ] || { err "SKILL-SPEC.md: canonical --auto row not found"; return; }
+  canon=$(grep -m1 '^| `--ask` | Interactive run' SKILL-SPEC.md \
+          | sed 's/.*| \(Interactive run.*\) |$/\1/')
+  [ -n "$canon" ] || { err "SKILL-SPEC.md: canonical --ask row not found"; return; }
   for skill in ds-*/; do
     [ -f "$skill/SKILL.md" ] || continue
-    row=$(awk '/^\| `--auto` \|/{print; exit}' "$skill/SKILL.md")
-    [ -n "$row" ] || { err "$skill/SKILL.md missing the mandatory --auto Arguments row"; continue; }
-    effect=$(printf '%s' "$row" | sed 's/.*| \(Zero-interaction run.*\) |$/\1/')
+    row=$(awk '/^\| `--ask` \|/{print; exit}' "$skill/SKILL.md")
+    [ -n "$row" ] || { err "$skill/SKILL.md missing the mandatory --ask Arguments row"; continue; }
+    effect=$(printf '%s' "$row" | sed 's/.*| \(Interactive run.*\) |$/\1/')
     [ "$effect" = "$canon" ] \
-      || err "$skill/SKILL.md --auto row deviates from the SKILL-SPEC canonical text (carve-outs go in Contract, citing Unattended Mode rule 4)"
+      || err "$skill/SKILL.md --ask row deviates from the SKILL-SPEC canonical text (carve-outs go in Contract, citing the ask-exception list)"
   done
 }
 
@@ -218,27 +218,6 @@ check_portable_only_markers() {
     [ -z "$bad" ] || err "$f marks a table row portable-only (lean strip would corrupt the table):
 $bad"
   done
-}
-
-# 28. v6.1 — Shared principles.md sync: many skills carry a same-named copy on
-#     purpose (Standalone Invariant), synced only by hand. A copy that diverges
-#     from the majority hash must declare it with `<!-- variant: ... -->` in its
-#     first 5 lines — three copies had silently diverged before this check existed.
-check_principles_sync() {
-  local hashes major h f
-  hashes=$(for f in ds-*/references/principles.md; do
-    [ -f "$f" ] || continue
-    printf '%s %s\n' "$(cksum < "$f" | awk '{print $1"-"$2}')" "$f"
-  done)
-  [ -n "$hashes" ] || return 0
-  major=$(printf '%s\n' "$hashes" | awk '{print $1}' | sort | uniq -c | sort -rn | head -1 | awk '{print $2}')
-  while read -r h f; do
-    [ "$h" = "$major" ] && continue
-    head -5 "$f" | grep -q '<!-- variant:' \
-      || err "$f diverges from the majority principles.md without a '<!-- variant: ... -->' declaration in its first 5 lines (silent drift)"
-  done <<PRINEOF
-$hashes
-PRINEOF
 }
 
 # 29. v6.2 — Gate two-arm form: every phase gate names a failure arm as `If … →`
@@ -333,7 +312,7 @@ check_delegation_targets() {
 #     and infra-only skills are exempt by design.
 check_checkpoint_gate() {
   local s
-  for s in ds-backend ds-compliance ds-deploy ds-deps ds-devops ds-docs ds-fix ds-frontend ds-init ds-issue ds-mobile ds-pr ds-repo ds-review ds-simplify ds-solve ds-test ds-tune; do
+  for s in ds-backend ds-build ds-compliance ds-debug ds-deploy ds-deps ds-devops ds-docs ds-fix ds-frontend ds-init ds-issue ds-mobile ds-pr ds-release ds-repo ds-review ds-simplify ds-test ds-tune; do
     [ -f "$s/SKILL.md" ] || continue
     { grep -qi 'checkpoint' "$s/SKILL.md" && grep -q 'git status --porcelain' "$s/SKILL.md"; } \
       || err "$s/SKILL.md missing the Checkpoint pre-step (clean-tree gate via git status --porcelain before first write — SKILL-SPEC §4)"
@@ -414,6 +393,52 @@ check_readme_counts() {
   [ -z "$bad" ] || err "README count claim not mirrored in SKILL.md:$bad"
 }
 
+# 40. v7 — Scope-resolution table (SKILL-SPEC Relevance First): a skill whose
+#     Scopes section lists two or more scopes carries a `| Scope | Runs when …`
+#     table somewhere in SKILL.md, so what runs is decided by the project's signals,
+#     never by "scan everything".
+check_scope_resolution_table() {
+  local f n
+  for f in ds-*/SKILL.md; do
+    [ -f "$f" ] || continue
+    grep -q '^## Scopes' "$f" || continue
+    n=$(awk '/^## Scopes/{f=1; next} /^## /{f=0} f && (/^\| *`?[a-z][a-z0-9-]*`? *\|/ || /^### [a-z]/ || /^- \*\*[a-z]/) {c++} END{print c+0}' "$f")
+    [ "$n" -ge 2 ] || continue
+    grep -qE '^\| *Scope(\(s\))? *\| *Runs when' "$f" \
+      || err "$f has $n scopes but no scope-resolution table ('| Scope | Runs when (signal) | Otherwise |' — SKILL-SPEC Relevance First)"
+  done
+}
+
+# 41. v7 — Rule impact: every `### ID [SEVERITY] Title` entry in a rules file carries
+#     an Impact line (`- **Impact:**` or `**Impact:**`) before the next entry — the
+#     "why this matters" the Reference File Format mandates. A rule without it reads
+#     as a lint nit and gets skipped.
+check_rule_impact() {
+  local bad
+  bad=$(awk '
+    FNR==1 { if (open && !has) print cur; open=0 }
+    /^### [A-Z]/ { if (open && !has) print cur; open=1; has=0; cur=FILENAME":"FNR" "$0; next }
+    /^-? ?\*\*Impact/ { has=1 }
+    END { if (open && !has) print cur }' ds-*/references/rules-*.md 2>/dev/null | cut -c1-120)
+  [ -z "$bad" ] || err "rule entries without an Impact line (SKILL-SPEC Reference File Format):
+$bad"
+}
+
+# 42. v7 — Duplicate rule titles: within one skill, two rules with the same title
+#     text are one rule written twice (or one rule whose second copy drifted).
+check_duplicate_rule_titles() {
+  local d f dup bad=""
+  for d in ds-*/; do
+    f=$(ls "$d"references/rules-*.md 2>/dev/null) || true
+    [ -n "$f" ] || continue
+    # shellcheck disable=SC2086
+    dup=$(grep -h '^### [A-Z]' $f | sed -E 's/^### [A-Z-]+[0-9]+ \[[A-Z]+\] //' | sort | uniq -d)
+    [ -z "$dup" ] || bad="$bad
+  ${d%/}: $(printf '%s' "$dup" | tr '\n' ';')"
+  done
+  [ -z "$bad" ] || err "duplicate rule titles inside one skill:$bad"
+}
+
 # --- Self-test (BP-007): fixture-proves the checks above actually fail on
 #     broken input. Builds a temp dir per check, deliberately breaks one
 #     input, runs the real check function against it, asserts a FAIL: line
@@ -445,11 +470,26 @@ self_test() {
   tmp=$(mktemp -d)
   trap 'rm -rf "$tmp"' RETURN
 
-  # Fixture: check_auto_row_canonical — skill reworded the canonical --auto row
-  mkdir -p "$tmp/autorow/ds-x"
-  printf '| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |\n' > "$tmp/autorow/SKILL-SPEC.md"
-  printf '| `--auto` | Zero-interaction run but it also opens a PR. |\n' > "$tmp/autorow/ds-x/SKILL.md"
-  assert_catches "check_auto_row_canonical" "$tmp/autorow" check_auto_row_canonical
+  # Fixture: check_ask_row_canonical — skill reworded the canonical --ask row
+  mkdir -p "$tmp/askrow/ds-x"
+  printf '| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |\n' > "$tmp/askrow/SKILL-SPEC.md"
+  printf '| `--ask` | Interactive run but it also opens a PR. |\n' > "$tmp/askrow/ds-x/SKILL.md"
+  assert_catches "check_ask_row_canonical" "$tmp/askrow" check_ask_row_canonical
+
+  # Fixture: check_scope_resolution_table — three scopes, no resolution table
+  mkdir -p "$tmp/f22/ds-alpha"
+  printf '## Scopes\n\n| Scope | What |\n|---|---|\n| `a11y` | x |\n| `perf` | y |\n| `seo` | z |\n\n## Delegation\n' > "$tmp/f22/ds-alpha/SKILL.md"
+  assert_catches "check_scope_resolution_table" "$tmp/f22" check_scope_resolution_table
+
+  # Fixture: check_rule_impact — one rule with Impact, one without
+  mkdir -p "$tmp/f23/ds-alpha/references"
+  printf '### ZZ-01 [HIGH] Good rule\n- **Detect:** x\n- **Impact:** y\n\n### ZZ-02 [LOW] Bare rule\n- **Detect:** x\n' > "$tmp/f23/ds-alpha/references/rules-zz.md"
+  assert_catches "check_rule_impact" "$tmp/f23" check_rule_impact
+
+  # Fixture: check_duplicate_rule_titles — the same title under two ids
+  mkdir -p "$tmp/f24/ds-alpha/references"
+  printf '### ZZ-01 [HIGH] Rate limiting\n- **Impact:** a\n### ZZ-07 [LOW] Rate limiting\n- **Impact:** b\n' > "$tmp/f24/ds-alpha/references/rules-zz.md"
+  assert_catches "check_duplicate_rule_titles" "$tmp/f24" check_duplicate_rule_titles
 
   # Fixture: check_skill_badge — 2 skill dirs, README badge claims 99
   mkdir -p "$tmp/f1/ds-alpha" "$tmp/f1/ds-beta"
@@ -531,13 +571,6 @@ EOF
   mkdir -p "$tmp/f9/ds-alpha"
   printf -- '- Pre-existing / out-of-scope errors are NOT skipped. <!-- portable-only -->\n> **Completion Evidence — final gate:** evidence required.\n' > "$tmp/f9/ds-alpha/SKILL.md"
   assert_catches "check_portable_only_markers" "$tmp/f9" check_portable_only_markers
-
-  # Fixture: check_principles_sync — two majority copies, one silent divergence
-  mkdir -p "$tmp/f10/ds-alpha/references" "$tmp/f10/ds-beta/references" "$tmp/f10/ds-gamma/references"
-  printf '# Principles\nshared text\n' > "$tmp/f10/ds-alpha/references/principles.md"
-  printf '# Principles\nshared text\n' > "$tmp/f10/ds-beta/references/principles.md"
-  printf '# Principles\nshared text\nplus a silent local addition\n' > "$tmp/f10/ds-gamma/references/principles.md"
-  assert_catches "check_principles_sync" "$tmp/f10" check_principles_sync
 
   # Fixture: check_gate_two_arm — pass-only gate with no failure arm
   mkdir -p "$tmp/f11/ds-alpha"
@@ -625,7 +658,7 @@ EOF
   assert_catches "check_readme_counts" "$tmp/f21" check_readme_counts
 
   if [ "$st_fail" = "0" ]; then
-    echo "SELF-TEST PASS: all 22 fixtured checks correctly caught their deliberately-broken input"
+    echo "SELF-TEST PASS: all 24 fixtured checks correctly caught their deliberately-broken input"
   else
     echo "SELF-TEST FAIL: at least one check is a no-op against broken input (see SELF-TEST BROKEN lines above)"
   fi
@@ -725,10 +758,14 @@ mutation_test() {
   _mut "18 mechanical done gate" "grep -v 'Mechanical Done Gate' ds-fix/SKILL.md > t && mv t ds-fix/SKILL.md"
   _mut "25 rule heading level"   "sed 's/^### DP-01/## DP-01/' ds-backend/references/rules-data-pipeline.md > t && mv t ds-backend/references/rules-data-pipeline.md"
   _mut "26 rule-id namespace"    "echo 'See ARC-13 for the rationale.' >> ds-backend/references/rules-api.md"
-  _mut "23 canonical --auto row" "sed 's/^| \`--auto\` |.*/| \`--auto\` | Reworded locally. |/' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
+  _mut "23 canonical --ask row"  "sed 's/^| \`--ask\` |.*/| \`--ask\` | Reworded locally. |/' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
   _mut "10 advisory handoff"     "printf 'If the target skill is absent, hard-fail with \"skill not found\".\n' >> ds-fix/SKILL.md"
   _mut "12 overlap authorization" "id=\$(sed -n 's/^\*\*Dimensions:\*\* *//p' ds-fix/SKILL.md | head -1 | cut -d, -f1 | sed 's/ *(.*//'); sed \"s/^\*\*Dimensions:\*\* none (carrier)/**Dimensions:** \$id/\" ds-commit/SKILL.md > t && mv t ds-commit/SKILL.md"
-  _mut "14b auto-row presence"   "grep -v '^| \`--auto\`' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
+  _mut "14b ask-row presence"    "grep -v '^| \`--ask\`' ds-repo/SKILL.md > t && mv t ds-repo/SKILL.md"
+  _mut "14r retired --auto"      "echo 'Under \`--auto\` skip the menu.' >> ds-repo/SKILL.md"
+  _mut "40 scope table"          "grep -v 'Runs when' ds-compliance/SKILL.md > t && mv t ds-compliance/SKILL.md"
+  _mut "41 rule impact"          "printf '### ZZ-99 [LOW] Bare rule\\n- **Detect:** x\\n' >> ds-backend/references/rules-api.md"
+  _mut "42 duplicate rule title" "printf '### API-98 [LOW] Twin\\n- **Impact:** a\\n### API-99 [LOW] Twin\\n- **Impact:** b\\n' >> ds-backend/references/rules-api.md"
   _mut "16 list-table spacing"   "printf -- '- item\n| a | b |\n' >> ds-fix/SKILL.md"
   _mut "14 discovered ghost flag" "echo 'Pass \`--turbo\` to go faster.' >> ds-repo/SKILL.md"
   _mut "37 spec citation"        "echo 'Resolve per Unattended Mode rule 3.' >> ds-fix/SKILL.md"
@@ -796,7 +833,7 @@ $dups"
 #    ds-mobile (13 domains) and ds-frontend (multi-scope) joined the set: their
 #    scope-by-scope progress exists nowhere outside the run, so an interruption
 #    used to restart the scan from zero.
-allowed="ds-blueprint ds-frontend ds-mobile ds-ship ds-solve ds-tune"
+allowed="ds-blueprint ds-frontend ds-mobile ds-ship ds-tune"
 for f in $(grep -ln 'DETECT `ds/audit/' ds-*/SKILL.md); do
   skill=${f%%/*}
   case " $allowed " in *" $skill "*) ;; *) err "$skill carries state recovery protocol (only $allowed qualify)";; esac
@@ -889,8 +926,9 @@ done
 # 14. v5 — Flag integrity: a mode flag this skill uses in its own body must be
 #     defined in its Arguments table (ghost-flag class — found 9x in the 2026-07 audit).
 #     Lines referencing other skills (/ds-*) are excluded from the usage scan.
-#     force-approve/dry-run/no-interactive/confirm are retired (folded into --auto
-#     or renamed — see SKILL-SPEC.md Unattended Mode) and MUST NOT reappear.
+#     force-approve/dry-run/no-interactive/confirm/auto are retired (the autonomous
+#     default replaced --auto; the rest were folded or renamed — see SKILL-SPEC.md
+#     Autonomous Default / Flag Vocabulary) and MUST NOT reappear.
 for f in ds-*/SKILL.md; do
   # every backtick-delimited skill flag used in the body must appear in a table row
   # (the Arguments table) — discovered, not a fixed list. Excluded: fenced blocks,
@@ -910,16 +948,16 @@ for f in ds-*/SKILL.md; do
   # third-party CLI flag inside a command string (`npx wrangler deploy --dry-run
   # --outdir dist`) is not this skill's vocabulary; ds-fix's toolchain reference has
   # carried exactly that usage from the start.
-  for retired in force-approve dry-run no-interactive confirm; do
+  for retired in force-approve dry-run no-interactive confirm auto; do
     grep -q -- "\`--$retired\`" "$f" && err "$f uses retired flag \`--$retired\` (see SKILL-SPEC.md Unattended Mode / Flag Vocabulary)"
     grep -qE "^\| *.?\`--$retired" "$f" && err "$f Arguments table defines retired flag --$retired (see SKILL-SPEC.md Unattended Mode / Flag Vocabulary)"
   done
 done
 
-# 14b. v5 — Every skill's Arguments table MUST define --auto with the canonical
-#      contract (SKILL-SPEC.md §2 Unattended Mode) — no skill-local variant/omission.
+# 14b. v7 — Every skill's Arguments table MUST define --ask with the canonical
+#      contract (SKILL-SPEC.md §2 Autonomous Default) — no skill-local variant/omission.
 for f in ds-*/SKILL.md; do
-  grep -qE "^\| *.?\`--auto\`" "$f" || err "$f Arguments table missing mandatory --auto row (SKILL-SPEC.md Unattended Mode)"
+  grep -qE "^\| *.?\`--ask\`" "$f" || err "$f Arguments table missing mandatory --ask row (SKILL-SPEC.md Autonomous Default)"
 done
 
 # 15. v5 — Severity vocabulary: rule files use only the canonical set
@@ -954,7 +992,7 @@ done
 # 18. v5 — Mechanical Done Gate: every code-modifying skill carries the gate
 #     (SKILL-SPEC section 4, Mechanical Done Gate). List = skills that create or
 #     modify project files; read-only/planning skills are exempt by design.
-for s in ds-compliance ds-freeze ds-init ds-backend ds-frontend ds-mobile ds-review ds-simplify ds-fix ds-test ds-deps ds-tune ds-solve ds-issue ds-commit ds-pr ds-repo ds-devops ds-docs; do
+for s in ds-compliance ds-freeze ds-init ds-backend ds-frontend ds-mobile ds-review ds-simplify ds-fix ds-test ds-deps ds-tune ds-issue ds-commit ds-pr ds-repo ds-devops ds-docs ds-build ds-debug ds-release; do
   grep -q "Mechanical Done Gate" "$s/SKILL.md" 2>/dev/null \
     || err "$s/SKILL.md missing Mechanical Done Gate (SKILL-SPEC section 4 — code-modifying skill)"
 done
@@ -963,11 +1001,10 @@ check_claude_md_counts
 check_delegates_receives_graph
 check_core_links
 check_bare_repo_paths
-check_auto_row_canonical
+check_ask_row_canonical
 check_rule_heading_level
 check_rule_id_namespace
 check_portable_only_markers
-check_principles_sync
 check_gate_two_arm
 check_ambiguous_phrases
 check_marketing_words
@@ -979,9 +1016,12 @@ check_secret_pattern_set
 check_spec_citations
 check_dead_sources
 check_readme_counts
+check_scope_resolution_table
+check_rule_impact
+check_duplicate_rule_titles
 
 if [ "$fail" = "0" ]; then
-  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, core-links, bare-repo-paths, approval-critical-carveout, auto-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, principles-sync, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets, checkpoint-gate, secret-pattern-set, spec-citations, dead-sources, readme-counts all consistent"
+  echo "OK: $dirs skills — sizes, delegation, ownership, state policy, W-registry, triggers, v4 dimensions, advisory-handoff, taxonomy-membership, overlap, evidence-band, flag-integrity, severity-vocab, list-table-spacing, rule-count-claims, mechanical-done-gate, claude-md-count-reciprocity, delegates-receives-graph-reciprocity, core-links, bare-repo-paths, approval-critical-carveout, ask-row-canonical, rule-heading-level, rule-id-namespace, portable-only-markers, gate-two-arm, ambiguous-phrases, marketing-words, canonical-strings, frontmatter-fields, delegation-targets, checkpoint-gate, secret-pattern-set, spec-citations, dead-sources, readme-counts, scope-resolution-table, rule-impact, duplicate-rule-titles all consistent"
 else
   exit 1
 fi

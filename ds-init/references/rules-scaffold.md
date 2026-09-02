@@ -27,6 +27,7 @@ Project follows platform-conventional directory structure. Reviewers and tools e
   - **Flutter/Dart:** lib/ for source, test/ for tests, assets/ for resources
   - **Rust:** src/ for source, tests/ for integration tests, benches/ for benchmarks
   - **TS/JS monorepo:** packages/ + apps/ workspace; scaffold new packages/components with Turborepo generators (`@turbo/gen`, Plop-based) instead of ad-hoc template cloning
+- **Impact:** A non-standard layout confuses IDEs and tooling that assume the platform convention, and blocks generators (e.g. Turborepo) that require it.
 - **Source:** Platform project templates, official documentation, [Turborepo generators](https://vercel.com/academy/production-monorepos/turborepo-generators)
 
 ### SCF-02 [HIGH] CI From Day One
@@ -39,6 +40,7 @@ CI pipeline configured in initial commit. Catches issues before they accumulate.
 - **Platform:**
   - GitHub: .github/workflows/ci.yml with on: pull_request
   - GitLab: .gitlab-ci.yml with merge_request_pipelines
+- **Impact:** Without CI from day one, broken code merges silently and defects surface in production instead of on the PR.
 - **Source:** GitHub Actions documentation
 
 ### SCF-03 [MEDIUM] Editor Config
@@ -48,6 +50,7 @@ Consistent formatting across editors regardless of individual developer settings
   - Inconsistent indentation across files (tabs vs spaces mixed)
   - Different line endings across files
 - **Fix:** Add .editorconfig with: root = true, indent_style (space or tab per platform convention), indent_size, end_of_line = lf, charset = utf-8, trim_trailing_whitespace = true, insert_final_newline = true
+- **Impact:** Mixed indentation and line endings across contributors produce noisy diffs and merge conflicts unrelated to the actual change.
 - **Source:** editorconfig.org
 
 ### SCF-04 [MEDIUM] Gitignore Completeness
@@ -57,6 +60,7 @@ OS artifacts, IDE files, build outputs, and dependency directories excluded from
   - Missing entries for: OS files (.DS_Store, Thumbs.db), IDE (.idea/, .vscode/), dependencies (node_modules/, venv/), build output (dist/, build/, *.pyc)
   - Generated files tracked in git
 - **Fix:** Use gitignore.io or github/gitignore templates for project stack. Combine OS + IDE + language + framework ignores. Verify with `git status` that no generated files are tracked
+- **Impact:** Tracked build output, IDE files, or OS artifacts bloat the repo and cause spurious diffs and merge conflicts across every contributor's machine.
 - **Source:** github/gitignore repository
 
 ---
@@ -78,6 +82,7 @@ Lockfile committed from first install. → reproducible builds across environmen
   - **Rust:** Cargo.lock (for binaries; libraries may exclude)
   - **Flutter/Dart:** pubspec.lock
   - **Go:** go.sum
+- **Impact:** Without a committed lockfile, the same manifest resolves to different dependency versions across machines and CI, turning "works on my machine" into an unreproducible build.
 - **Source:** Package manager documentation, 12-Factor App
 
 ### SCF-06 [HIGH] Dependency Provenance
@@ -87,6 +92,7 @@ Every dependency added during scaffolding is real and trusted. → no hallucinat
   - A name one character off a popular package, or from the wrong ecosystem
   - Dependency added to the manifest but missing from the lockfile
 - **Fix:** Before adding, confirm the package exists in the official registry, predates the project, and has real download history; pin it in the lockfile with an integrity hash. Reject near-miss / cross-ecosystem names; prefer the maintained, widely-used option.
+- **Impact:** A hallucinated or typosquatted package becomes an unreviewed code-execution path the moment it installs — the fastest-growing AI-assisted supply-chain attack vector.
 - **Note:** Verify licensing/pricing state at scaffold time too, never from memory — tools go stale within a training window (e.g., Atlas moved `atlas migrate lint` out of its free tier in October 2025).
 - **Source:** [CSA — Slopsquatting (2026)](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/); USENIX Security '25 (19.7% package hallucination)
 
@@ -98,6 +104,7 @@ Every dependency added during scaffolding is real and trusted. → no hallucinat
   - .env.example missing variables that code references
   - Real secrets in .env.example
 - **Fix:** Create .env.example with every required variable using placeholder values (DATABASE_URL=postgresql://user:pass@localhost:5432/dbname). Add .env to .gitignore. Document which variables are required vs optional
+- **Impact:** Missing or undocumented env vars cause silent misconfiguration at deploy time and force new contributors to reverse-engineer required settings from source.
 - **Source:** 12-Factor App (III. Config)
 
 ### SCF-08 [MEDIUM] README From Day One
@@ -117,6 +124,7 @@ LICENSE file in repository root. Required for open source; clarifies terms for p
   - License referenced in README but file missing
   - License type incompatible with dependencies
 - **Fix:** Add LICENSE file. Common choices: MIT (permissive, libraries), Apache-2.0 (permissive + patent grant), GPL-3.0 (copyleft), AGPL-3.0 (copyleft + network use). Match license to project goals and dependency licenses
+- **Impact:** Without a LICENSE file, the default is "all rights reserved" — external contributors and downstream users have no legal basis to use, fork, or redistribute the code.
 - **Source:** choosealicense.com, OSI approved licenses
 
 ### SCF-10 [LOW] AI Skill Directory in Repo
@@ -125,4 +133,5 @@ Projects built with AI coding agents check project-level agent skills into the r
   - Repo intended for AI-assisted development with no committed skill/agent-config directory
   - Skill definitions living only in individual developers' home directories
 - **Fix:** Scaffold `.claude/skills/` (or `.agents/skills/`) with a README stub when the user confirms AI-assisted development; commit project-level skills there so the whole team shares them
+- **Impact:** Skills kept only in individual dotfiles never reach teammates or CI, so the same AI-assisted conventions get reinvented — or silently violated — per developer instead of shared once.
 - **Source:** [Superpowers marketplace guide (2026)](https://pasqualepillitteri.it/en/news/215/superpowers-claude-code-complete-guide), Developers Digest 2026 skills directory

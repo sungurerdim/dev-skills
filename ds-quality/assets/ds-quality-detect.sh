@@ -76,4 +76,90 @@ if [ -f Cargo.toml ]; then
   add "cargo test"
 fi
 
+# JVM (Kotlin/Java) via Gradle wrapper (Maven skipped: no cheap, reliable plugin-presence signal)
+if [ -f gradlew ] && { [ -f build.gradle ] || [ -f build.gradle.kts ]; }; then
+  grep -q spotless build.gradle* 2>/dev/null && add "./gradlew spotlessCheck"
+  { [ -f detekt.yml ] || [ -f config/detekt/detekt.yml ]; } && add "./gradlew detekt"
+  add "./gradlew test"
+fi
+
+# Swift
+if [ -f Package.swift ] && have swift; then
+  have swiftformat && add "swiftformat --lint ."
+  have swiftlint && add "swiftlint"
+  add "swift build"
+  add "swift test"
+fi
+
+# C# / .NET
+if { ls ./*.sln >/dev/null 2>&1 || ls ./*.csproj >/dev/null 2>&1; } && have dotnet; then
+  add "dotnet format --verify-no-changes"
+  add "dotnet build --no-restore"
+  add "dotnet test"
+fi
+
+# Ruby
+if [ -f Gemfile ]; then
+  have rubocop && add "rubocop"
+  grep -q rspec Gemfile 2>/dev/null && have bundle && add "bundle exec rspec"
+fi
+
+# PHP (vendor/bin binaries only — never invents a check whose tool wasn't installed)
+if [ -f composer.json ]; then
+  [ -x vendor/bin/pint ] && add "./vendor/bin/pint --test"
+  [ -x vendor/bin/phpstan ] && add "./vendor/bin/phpstan analyze"
+  [ -x vendor/bin/phpunit ] && add "./vendor/bin/phpunit"
+fi
+
+# Elixir (dialyzer skipped: first run builds the PLT, minutes-long — unfit for a per-Stop hook)
+if [ -f mix.exs ] && have mix; then
+  add "mix format --check-formatted"
+  grep -q credo mix.exs 2>/dev/null && add "mix credo --strict"
+  add "mix test"
+fi
+
+# Scala
+if [ -f build.sbt ] && have sbt; then
+  have scalafmt && [ -f .scalafmt.conf ] && add "scalafmt --check ."
+  add "sbt compile test"
+fi
+
+# C/C++ — static analysis only. Format/build are skipped here: matching the source-file glob
+# safely in POSIX sh needs find+xargs (fragile with zero matches on some xargs builds), and
+# `cmake --build` needs a pre-configured out-of-source build/ dir this detector cannot safely
+# assume or create inside a Stop hook.
+if have cppcheck && [ -d src ] && { ls src/*.c src/*.cpp src/*.cc >/dev/null 2>&1; }; then
+  add "cppcheck --enable=warning,performance --error-exitcode=1 src/"
+fi
+
+# Terraform / HCL — fmt only. validate/tflint/trivy need `terraform init`, a network
+# provider-plugin download, unsuitable for a credential-free, offline auto-gate.
+if ls ./*.tf >/dev/null 2>&1 && have terraform; then
+  add "terraform fmt -check -recursive ."
+fi
+
+# Shell / Bash
+if have shellcheck; then
+  SH_TARGETS=""
+  ls ./*.sh >/dev/null 2>&1 && SH_TARGETS="$SH_TARGETS ./*.sh"
+  ls scripts/*.sh >/dev/null 2>&1 && SH_TARGETS="$SH_TARGETS scripts/*.sh"
+  SH_TARGETS="${SH_TARGETS# }"
+  [ -n "$SH_TARGETS" ] && add "shellcheck -S warning $SH_TARGETS"
+fi
+
+# Docker — lint only, no format/type/test step exists for a Dockerfile
+[ -f Dockerfile ] && have hadolint && add "hadolint Dockerfile"
+
+# Vanilla JS — no bundler, no package.json (node:test, Node >= 20)
+if [ ! -f package.json ] && have node && { [ -d test ] || ls ./*.test.js >/dev/null 2>&1; }; then
+  add "node --test"
+fi
+
+# Not added, by design (core/toolchains.md sections with no safe zero-config auto-detect path):
+#   Google Apps Script (clasp) / Cloudflare Workers (wrangler) — their checks
+#   (`clasp show-file-status`, `wrangler deploy --dry-run`) need an authenticated,
+#   networked call; a credential-free Stop hook must never attempt one.
+#   Generic/unknown stack's ad-hoc prettier/py_compile sweep — no manifest to key off of;
+#   left to the explicit `/ds-quality` bootstrap flow, not the silent auto-arm.
+
 printf '%s' "$CMDS"

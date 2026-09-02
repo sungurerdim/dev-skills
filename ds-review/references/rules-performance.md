@@ -1,6 +1,6 @@
 # Rules: Performance & Network
 
-Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action. Severity scale: CRITICAL / HIGH / MEDIUM / LOW (matches the skill's score formula).
+Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern, fix action. Severity, confidence, score, and skip patterns: one home — [`../../core/severity-score-categories.md`](../../core/severity-score-categories.md).
 
 ## Table of Contents
 
@@ -26,6 +26,7 @@ API: p95 < 200ms. Page load: < 3s. Background jobs: bounded timeout.
 Application cold start < 5s. Serverless cold start < 1s. Defer non-critical initialization.
 - **Detect:** Heavy initialization on startup (loading all configs, prewarming all caches). Blocking I/O during boot. Large dependency trees slowing startup
 - **Fix:** Lazy-load non-critical modules. Defer cache warming. Use connection pooling (not connect-on-boot). Minimize dependency tree for serverless
+- **Impact:** Slow cold starts drive users to abandon before first render, and serverless cold starts multiply per-invocation cost.
 - **Source:** AWS Lambda Performance Optimization, Google Cloud Functions Cold Start Guide
 
 ### PRF-03 [HIGH] Bundle/Binary Size
@@ -37,12 +38,14 @@ Track and optimize output size. Remove unused dependencies.
   - Go: `go build -ldflags="-s -w"` for smaller binaries
   - Docker: multi-stage builds, distroless/alpine base images
   - Budget realism: derive the ceiling from the measured current size + ~10% margin, warn-only — never a fictional target. A hard budget bound to no gate, or already exceeded at adoption, is worse than none (it teaches everyone to ignore budgets); a measured-baseline trend gate that warns on +10% drift is the honest alternative. (XR-123)
+- **Impact:** Unpruned bundles slow every page load and CI artifact transfer; an unpinned or already-exceeded budget teaches the team to ignore size regressions.
 - **Source:** webpack Bundle Analysis Guide, esbuild/Vite Optimization, Docker Multi-Stage Builds
 
 ### PRF-04 [HIGH] Lazy Loading
 Load resources on demand. Defer non-critical work.
 - **Detect:** All modules imported eagerly. All images loaded at page init. Full dataset loaded when only summary needed
 - **Fix:** Dynamic imports for routes/features. Lazy load images (Intersection Observer). Paginate database queries. Stream large responses
+- **Impact:** Eager-loading everything delays time-to-interactive even when most of the loaded code or data is never used in the session.
 - **Source:** MDN Lazy Loading Guide, Intersection Observer API, HTTP Range Requests (RFC 7233)
 
 ### PRF-05 [HIGH] Efficient Data Queries
@@ -76,6 +79,7 @@ Bounded concurrency, connection pooling, file handle limits.
   - File handles not closed after read/write
   - No timeout on HTTP client requests
 - **Fix:** Limit concurrency (p-limit, semaphore). Use connection pools (pg pool, SQLAlchemy pool). Set timeouts on all I/O operations. Close resources in finally/defer/with blocks
+- **Impact:** Unbounded concurrency and unpooled connections exhaust file handles and DB connections under load, turning a traffic spike into an outage.
 - **Source:** Node.js p-limit, PostgreSQL Connection Pooling Guide, Go Context and Cancellation
 
 ---
@@ -106,6 +110,7 @@ UI components with unchanged inputs must not rebuild on every state change.
   - Mark immutable components: `const` (Flutter), `React.memo` (React/RN), `@Stable`/`@Immutable` (Compose), `EquatableView` (SwiftUI), `v-once` (Vue)
   - Use selective state observation: watch only needed fields, not entire state objects (Riverpod `select()`, Redux `useSelector`, Compose `derivedStateOf`, SwiftUI `@Observable` with access tracking)
   - Move expensive computations outside render/build cycle into memoized values or computed properties
+- **Impact:** Rebuilding unchanged subtrees on every state change burns CPU and battery and produces visible jank on lower-end devices.
 - **Source:** React.memo API Reference, Flutter const Widget Optimization, Jetpack Compose Stability, Vue v-once Directive
 
 ### PRF-09 [HIGH] Animation Layer Promotion
@@ -124,6 +129,7 @@ Animations must not trigger expensive layout recalculations or rebuild entire su
     - Web: animate `transform`/`opacity` only; `will-change` hint for known targets; `requestAnimationFrame` for frame sync
   - Extract static children outside animation scope
   - Sync animation lifecycle with display refresh (vsync, CADisplayLink, Choreographer, requestAnimationFrame)
+- **Impact:** Animating layout-triggering properties forces synchronous layout and paint on every frame — the dominant cause of visible jank.
 - **Source:** CSS Triggers (compositor-only properties), Flutter Animations Overview, Chrome Rendering Performance Guide
 
 ### PRF-10 [HIGH] Cold Start Optimization
@@ -180,24 +186,28 @@ Interaction handlers yield the main thread; no task blocks >50ms.
 Clear primary data source. Cache layers explicit and invalidatable.
 - **Detect:** UI/client reads from multiple inconsistent sources. No caching strategy. Cache invalidation undefined
 - **Fix:** Define source of truth per data type (DB, cache, external API). Cache with explicit TTL. Invalidate on writes. Document cache strategy
+- **Impact:** An undefined source of truth and invalidation strategy produces stale or inconsistent reads that are hard to reproduce and debug.
 - **Source:** HTTP Caching (MDN), Redis Caching Patterns, Stale-While-Revalidate (RFC 5861)
 
 ### NET-02 [HIGH] Exponential Backoff + Jitter
 Retry transient failures with backoff. Cap retries.
 - **Detect:** Fixed-interval retries. Immediate retry flooding. No max retry limit. No distinction between transient and permanent errors
 - **Fix:** delay * 2^attempt + random jitter. Max 3-5 retries. Cap at 30-60s. Only retry on transient errors (5xx, timeout, connection refused). Don't retry 4xx
+- **Impact:** Fixed-interval or uncapped retries synchronize into a thundering herd against an already-struggling downstream, deepening the outage.
 - **Source:** AWS Architecture Blog, Resilience Patterns
 
 ### NET-03 [HIGH] Circuit Breaker
 Stop calling failing services after threshold.
 - **Detect:** Repeated calls to failing endpoint without protection. No failure tracking. Cascading failures across services
 - **Fix:** Track failure rate. Open circuit after N failures. Half-open on cooldown. Close on success. Return fallback/cached data during open state
+- **Impact:** Unprotected repeated calls to a failing service cascade the failure upstream instead of containing it.
 - **Source:** Release It! (Michael Nygard), Resilience Patterns
 
 ### NET-04 [HIGH] Cache Strategy
 Multi-layer caching with clear TTL and invalidation.
 - **Detect:** No caching. Full DB query every request. No HTTP cache headers. No in-memory cache for hot data
 - **Fix:** L1: in-memory (LRU) for hot data. L2: Redis/Memcached for shared cache. L3: HTTP cache headers (Cache-Control, ETag). Stale-while-revalidate where appropriate. Cache invalidation on write
+- **Impact:** No caching layer forces a full DB query on every request, capping throughput far below what the data's actual change rate requires.
 - **Source:** HTTP Caching MDN, Redis Caching Patterns
 
 ### NET-05 [HIGH] API Design Consistency
@@ -220,6 +230,7 @@ Structured logging with correlation IDs. Request tracing across services.
   - No request duration tracking
   - No error rate monitoring
 - **Fix:** Generate unique request ID per request. Pass through all service calls. Log: request_id, method, path, status, duration, user_id (hashed). Use structured JSON logging. Integrate with APM (Datadog, New Relic, OpenTelemetry)
+- **Impact:** Without correlation IDs and duration tracking, a production incident cannot be traced across services, and latency regressions go unnoticed.
 - **Source:** OpenTelemetry Specification, Google SRE Book (Monitoring Distributed Systems), Datadog APM Guide
 
 ---

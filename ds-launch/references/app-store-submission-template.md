@@ -131,7 +131,7 @@ When `/ds-launch --submission-notes` is invoked:
 Skill MUST ask these — they cannot be reliably auto-detected:
 
 1. **Reviewer-only contact email** (different from public support)
-2. **Screen recording URL** (warn if missing — recording is high-leverage)
+2. **Screen recording URL** (warn if missing — the recording eliminates most reviewer follow-up requests)
 3. **For each detected AI service:** confirm hosting location ("our infrastructure" vs "third-party API"). License auto-detected from package metadata, but user must confirm.
 4. **Regional differences:** "Are there any?" Default → "consistent across all regions".
 5. **Regulated industry:** Default → "N/A". Prompt for credentials if user opts in.

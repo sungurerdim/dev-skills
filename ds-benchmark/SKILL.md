@@ -46,9 +46,9 @@ Teams drift toward internal tastes — architecture that made sense to the origi
 | `--preview` | Research + synthesis + gap table, no approval block |
 | `--competitors={n}` | Target count of comparables (default 7; min 3, max 12) |
 | `--scope={x}` | Narrow to a single dimension: architecture, stack, data-model, ux, security, privacy, operational, all |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
-Without flags: full benchmark across every dimension.
+Without flags: benchmark the dimensions resolved `ran` by the Scopes table below; `--scope=` narrows further.
 
 ## Scopes
 
@@ -62,29 +62,43 @@ Without flags: full benchmark across every dimension.
 | privacy | Data-collection scope, retention, user-rights endpoints, consent model |
 | operational | Deploy target, observability, incident runbook, cost envelope |
 
+| Scope | Runs when (signal) | Otherwise |
+|-------|---------------------|-----------|
+| architecture | any source | — |
+| stack | any source | — |
+| data-model | db ≠ none | N/A — no persistence layer detected |
+| ux | ui ≠ none | N/A — no UI surface |
+| security | auth ≠ none or api ≠ none | N/A — no auth/API surface detected |
+| privacy | pii=yes or integrations includes an analytics/tracking SDK | N/A — no personal-data path detected |
+| operational | deploy ≠ none | N/A — no deploy target detected |
+
+An `unknown` signal never excludes a scope — it still runs, reported `unknown → ran`. `--scope=` overrides this table for the named scope(s); `--ask` shows the resolved table before running.
+
 ## Delegation
 
 **Owns:** benchmark, ideal-synthesis, ideal-gap, competitive-analysis | **Delegates:** ds-research → 5–10 comparables with CRAAP+ tiering (absent → inline degraded search, tiers capped at T2); ds-docs → `--adr` to record every accepted gap decision as ADR (absent → minimal ADR written inline) | **Receives:** ds-ship → Phase 1 ideal-vs-current gap; ds-productize → competitor price-map scan (CPR-01)
 
 ## Execution Flow
 
-Setup → Define → Research → Synthesize → Gap → Approve → Record → [Needs-Approval] → Summary
+Setup → Define → Research → Synthesize → Gap → Approve → Record → Summary
 
 ### Phase 1: Setup
 
 1. **Blueprint profile check.** `grep -n '^## Blueprint Profile' {instruction-file(s)}` → ≥1 match. Match → read type, stack, audience, priorities. No match → own detection + prompt for problem definition.
 
-**Gate:** Blueprint-profile grep (step 1) returned ≥1 match, or a one-sentence problem definition is recorded. If fails → no profile + own detection insufficient (empty repo, no manifest) → prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition." **Under `--auto`:** no prompt — infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `needs-human: no problem definition inferable`.
+**Gate:** Blueprint-profile grep (step 1) returned ≥1 match, or a one-sentence problem definition is recorded. If fails → no profile + own detection insufficient (empty repo, no manifest) → default: infer the problem statement from README, package metadata, and directory structure; still insufficient (truly empty repo) → abort with `needs-human: no problem definition inferable`. `--ask`: prompt "No project profile found — describe the problem space in one sentence." User declines → abort: "Cannot benchmark without problem definition."
 
 ### Phase 2: Define Problem Space
 
 1. Extract from blueprint profile: project name, one-sentence value proposition, target audience, stated constraints.
-2. Profile missing → ask user: one-sentence problem statement; target audience (public users / internal team / developers / operators); non-negotiable constraints (keep language, keep framework, keep primary DB). **Under `--auto`:** infer all three from repo signals (README, manifest, existing stack) instead of asking.
-3. Present extracted definition: `"Researching ideal for: {problem} for {audience} under {constraints} — confirm? [Y/n]"`. Accept affirmative (`y`/`yes`/`ok`/`confirmed`/`looks good`); suggested changes → apply, redisplay, re-confirm; decline/abort → exit cleanly. **Under `--auto`:** skip confirmation — proceed directly on the extracted definition.
+2. Profile missing → default: infer all three (one-sentence problem statement; target audience — public users / internal team / developers / operators; non-negotiable constraints — keep language, keep framework, keep primary DB) from repo signals (README, manifest, existing stack). `--ask`: ask the user for each instead.
+3. Default: proceed directly on the extracted definition, recorded in the summary. `--ask`: present extracted definition: `"Researching ideal for: {problem} for {audience} under {constraints} — confirm? [Y/n]"`. Accept affirmative (`y`/`yes`/`ok`/`confirmed`/`looks good`); suggested changes → apply, redisplay, re-confirm; decline/abort → exit cleanly.
 
-**Gate:** User confirmed problem space. If fails (no response or ambiguous after 2 prompts) → treat as implicit confirmation of the auto-extracted statement, add WARN `"Problem space auto-confirmed — no explicit user confirmation"` to state, proceed. **Under `--auto`:** always treated as implicit confirmation — same WARN recorded in the summary.
+**Gate:** Problem space resolved (confirmed under `--ask`, or auto-extracted by default). If fails → under `--ask`, no response or ambiguous after 2 prompts → treat as implicit confirmation of the auto-extracted statement, add WARN `"Problem space auto-confirmed — no explicit user confirmation"` to state, proceed. Without `--ask` this is always the case (no prompt was shown) — same WARN recorded in the summary.
 
 ### Phase 3: Research
+
+**Comparable-set framing.** When the problem space admits more than one reasonable comparable category (e.g. adjacent product classes), default: pick the single closest-matching category and proceed, stating the choice in the report header. `--ask`: present the candidate framings (each with a one-line what-it-covers) and let the user pick before dispatching research.
 
 Invoke `/ds-research` with:
 
@@ -104,12 +118,12 @@ Per competitor record: Name + URL (project identity); CRAAP+ tier — T1 (author
 
 ### Phase 4: Synthesize Ideal
 
-Per dimension (architecture / stack / data-model / ux / security / privacy / operational):
+Per **resolved** dimension (the scopes marked `ran` in the Scopes table; `--scope=` overrides):
 
 1. Aggregate competitor signals — convergence vs divergence across T1/T2 sources.
 2. Adjust for stated constraints — if user pinned language/framework/DB, "ideal" respects those.
 3. Write one-paragraph ideal per dimension: concrete, opinionated, no hedging.
-4. **Security/privacy ideal ([references/principles.md §5](references/principles.md)):** the synthesized ideal MUST reflect the security baseline regardless of competitor convergence — boundary validation at every system boundary, least privilege for credentials, no secrets in source, defense in depth (never single-control), vetted crypto only (no custom, no MD5/SHA1/DES/ECB). Competitor consensus contradicts baseline → baseline wins; flag deviation as finding.
+4. **Security/privacy ideal ([../core/principles.md §5](../core/principles.md)):** the synthesized ideal MUST reflect the security baseline regardless of competitor convergence — boundary validation at every system boundary, least privilege for credentials, no secrets in source, defense in depth (never single-control), vetted crypto only (no custom, no MD5/SHA1/DES/ECB). Competitor consensus contradicts baseline → baseline wins; flag deviation as finding.
 
 Record one ideal paragraph per active scope: `{"architecture": "{one-paragraph ideal — concrete pattern + data flow}", "stack": "{one-paragraph ideal stack}", ...}`.
 
@@ -117,12 +131,28 @@ Record one ideal paragraph per active scope: `{"architecture": "{one-paragraph i
 
 ### Phase 5: Gap Table
 
+**Gap row schema** — every column, its meaning, and its allowed values:
+
+| Column | Meaning | Allowed values |
+|--------|---------|-----------------|
+| ID | Row identifier | `G{n}` |
+| Dimension | Which resolved scope this gap belongs to | one of the scopes marked `ran` |
+| Ideal | Synthesized ideal for this dimension (Phase 4) | one-paragraph text |
+| Current | Current-state summary | text from blueprint/findings, or `unknown — insufficient data` |
+| Gap | Type of divergence | `missing \| excess \| wrong \| partial-needs-extension` |
+| Evidence | Where Current was observed | `file:line`, or `n/a — no current implementation` |
+| Proposal | The closing action | one-sentence action |
+| Effort | Size of the closing change | `S` — single file, mechanical change · `M` — 2-5 files, one module · `L` — 6+ files or cross-module/cross-cutting |
+| Priority | Urgency of closing | `P1` — blocks core function or security · `P2` — meaningful quality gap · `P3` — nice-to-have |
+| Category | Fix classification | `A` (code-level, no architecture change) \| `B` (architecture/scope change) |
+| Decision | Resolution, set in Phase 6 | `close \| defer \| intentional-deviation` (absent until Phase 6 runs) |
+
 For each dimension, compare ideal vs current (current from blueprint profile + `ds/audit/findings.md`):
 
 ```
-| ID    | Dimension    | Ideal              | Current            | Gap type             | Proposal             | Category |
-|-------|--------------|--------------------|--------------------|----------------------|----------------------|----------|
-| G{n}  | {dim}        | {ideal-paragraph}  | {current-state}    | {gap-type}           | {action-proposal}    | {A/B}    |
+| ID    | Dimension    | Ideal              | Current            | Gap type             | Evidence            | Proposal             | Effort | Priority  | Category |
+|-------|--------------|--------------------|--------------------|-----------------------|----------------------|-----------------------|--------|-----------|----------|
+| G{n}  | {dim}        | {ideal-paragraph}  | {current-state}    | {gap-type}            | {file:line or n/a}  | {action-proposal}     | {S/M/L}| {P1/P2/P3}| {A/B}    |
 ```
 
 `gap_type`: `missing | excess | wrong | partial-needs-extension`.
@@ -140,11 +170,13 @@ Write gap entries to `ds/audit/findings.md` with `scope=ideal-gap` and `category
 
 ### Phase 6: Approve
 
-Present every Category B gap in one block — one scannable line per gap (`dimension · gap_type · current → proposal`) grouped by dimension with counts, and state the question (`Decide these N gaps?`):
+**Default:** each Category B gap resolves to `close` or `defer` using the same impact/effort/risk reasoning an approval block would show (constraint-conflicting or low-confidence gaps default to `defer`), recorded in the summary; nothing here matches the irreversible-exception list since Category B here only closes findings, never mutates code directly.
+
+**`--ask`:** present every Category B gap in one block — one scannable line per gap (`dimension · gap_type · current → proposal`) grouped by dimension with counts, and state the question (`Decide these N gaps?`):
 
 > "These gaps change architecture or scope. For each: **Close** (commit to fixing), **Defer** (note but leave for later), **Intentional deviation** (record as ADR — we chose not to match the ideal)."
 
-**Interactive:** per row, plus per-dimension bulk (`Close all <dimension>`) alongside a total `Close all`; "all" = exactly the displayed set. **Under `--auto`:** no approval block shown — each gap resolves to `close` or `defer` using the same impact/effort/risk reasoning the block would show (constraint-conflicting or low-confidence gaps default to `defer`), recorded in the summary; nothing here matches the irreversible-exception list since Category B here only closes findings, never mutates code directly.
+Ask per row, plus per-dimension bulk (`Close all <dimension>`) alongside a total `Close all`; "all" = exactly the displayed set.
 
 Per "Intentional deviation" → offer `/ds-docs --adr` to record rationale (so future contributors see *why*).
 
@@ -159,20 +191,15 @@ Category A gaps recorded as findings but not executed here — consumers (ds-shi
 3. `defer` decision → finding remains, `disposition=deferred`.
 4. `intentional-deviation` → finding `disposition=skipped (intentional)`; ADR written to `docs/adr/NNNN-{slug}.md` if user agreed — via `/ds-docs --adr` when present; absent → write a minimal ADR inline (Context / Decision / Consequences, same path + numbering).
 
-**Gate:** Every B gap persisted with its decision — `grep -c 'ideal-gap' ds/audit/findings.md` → ≥ the gap-row count written in Phase 5. If fails → `ds/audit/findings.md` write failed (file locked, disk error) → print the gap decisions inline as a fallback, surface write error with target path + OS error, ask user to resolve before re-running Phase 7.
+**Gate:** Every B gap persisted with its decision — `grep -c 'ideal-gap' ds/audit/findings.md` → ≥ the gap-row count written in Phase 5. If fails → `ds/audit/findings.md` write failed (file locked, disk error) → print the gap decisions inline as a fallback, surface write error with target path + OS error, ask user to resolve before re-running Phase 7. Zero gaps left undecided (resolved inline in Phase 6, including by default) — a gap left undecided → assign `decision: deferred (no response)` here before Summary.
 
-### Phase 8: Needs-Approval Review [needs_approval > 0]
-
-Resolved inline in Phase 6, including under `--auto` (rule 3 — resolved, not merely listed). This phase only surfaces the resulting counts.
-
-**Gate:** Every gap decided in Phase 6 has a disposition; zero left undecided. If fails → a gap was left undecided → list it here with its default disposition (`deferred`) before Summary.
-
-### Phase 9: Summary
+### Phase 8: Summary
 
 Disposition accounting — totals balance.
 
 ```
 Benchmark: {problem-space}
+Scopes: {ran: a, b, c} · {N/A: d — reason}
 Competitors: {n} (T1: {x}, T2: {y}, T3: {z})
 
 | Dimension     | Gaps  | Closed | Deferred | Intentional | Skipped | No-gap |

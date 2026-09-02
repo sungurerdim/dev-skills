@@ -1,13 +1,13 @@
 ---
 name: ds-mobile
-description: Mobile app quality audit — 183 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native, Capacitor). Use when auditing a mobile app for quality or release readiness.
+description: Mobile app quality audit — 177 rules across 13 domains with release-readiness scoring (Flutter, SwiftUI, Kotlin/Compose, React Native, Capacitor). Use when auditing a mobile app for quality or release readiness.
 ---
 
 # /ds-mobile
 
-Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 183 rules before you submit.
+Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, and store-blocking issues that only surface during review. This skill catches them across 177 rules before you submit.
 
-**Mobile App Quality Audit** — 183 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native, Capacitor.
+**Mobile App Quality Audit** — 177 rules across 13 domains with release readiness scoring. Flutter, SwiftUI, Kotlin/Compose, React Native, Capacitor.
 
 > **Completion Evidence — applies to every phase:** Report `done`/`OK` only with the machine-checkable evidence the gates name — the exact command run and its observed output (or `file:line` diff). Missing evidence → report `INCOMPLETE` plus what is missing. Self-assessment is never evidence. *(This band repeats at file end by design — both copies are normative.)*
 
@@ -35,7 +35,7 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 - Standalone. Uses blueprint profile or `ds/audit/findings.md` when available; own analysis when absent.
 - State-qualifying (state-qualifying: a resumable multi-scope audit whose progress exists nowhere else): a 13-domain audit is a long autonomous loop whose domain-by-domain progress lives nowhere else — an interrupted run re-scans from zero. Progress persists to `ds/audit/mobile.json` with the run's `git_hash`; applied fixes still land in the working tree, where git remains the durable record. State is deleted when the Summary completes.
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
-- Detected pre-existing / out-of-scope errors get a concrete disposition (W11), fixed inline or escalated with concrete blocker. <!-- portable-only -->
+- Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 
 ## Arguments
 
@@ -49,9 +49,9 @@ Mobile apps ship with permission abuse, missing accessibility, hardcoded keys, a
 | `--diff` | Compare with previous release report |
 | `--resume` | Resume from `ds/audit/mobile.json` without the confirmation prompt |
 | `--clean` | Delete `ds/audit/mobile.json` and start fresh |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
-No flags → present mode selection.
+Default: mode resolves to `audit+fix` (the most complete default — scan, review, fix), recorded in the summary, unless `--release-ready` is passed. `--ask` with no disambiguating flag: present mode selection.
 
 ## Modes
 
@@ -82,7 +82,7 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 
 ### Phase 1: Detect
 
-**Recovery check (first step, runs unconditionally — including under `--auto`):** DETECT `ds/audit/mobile.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → prompt `Resume anyway? [Y/n]` (honor `--resume`; `--auto` resumes silently — the re-verify step below catches real drift). Resume → RE-VERIFY the `in_progress` domain by re-reading the files its recorded findings cite, keep `done` domains, announce `[MOB] Resuming from Phase {N}: {name}.` On successful Summary, delete state; `ds/audit/` empty afterwards → remove it. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
+**Recovery check (first step, runs unconditionally on every invocation):** DETECT `ds/audit/mobile.json`. Absent + no `--resume` → fresh. Absent + `--resume` → warn, fresh. Present + `--clean` → delete, fresh. Present → READ, compare state `git_hash` against `git rev-parse HEAD` output. Mismatch → default: resume silently (best judgment — the re-verify step below catches real drift), recorded in the summary; `--ask`: prompt `Resume anyway? [Y/n]`. Resume → RE-VERIFY the `in_progress` domain by re-reading the files its recorded findings cite, keep `done` domains, announce `[MOB] Resuming from Phase {N}: {name}.` On successful Summary, delete state; `ds/audit/` empty afterwards → remove it. On fresh start: `grep -qxF 'ds/audit/' .gitignore` → exit 0; non-zero → append the `ds/audit/` line.
 
 **State `data`:** `{ mode, platform, scopes_selected, scopes_done[], architecture, cat2_approved[], findings_per_domain: {domain: [{id, severity, file, line, category, confidence, disposition}]}, release_score }`.
 
@@ -92,22 +92,26 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
    |----------|-----------|
    | Flutter | `pubspec.yaml` with `flutter:` |
    | React Native | `package.json` dep `react-native` |
+   | Expo | `app.json`/`app.config.*` with an `expo` key, plus `eas.json` present |
    | iOS Native | `*.xcodeproj` or `Package.swift` |
    | Android Native | `build.gradle` with `android {}` |
+   | Kotlin Multiplatform | `shared/` module directory containing `commonMain` |
    | Hybrid / WebView shell | `capacitor.config.{ts,js,json}` or `@capacitor/core` in `package.json`; Cordova `config.xml` |
    | Cross-platform | Multiple platform indicators |
 
+   Expo is a modifier on React Native (an Expo project is also a React Native project — `--platform=react-native` covers it; Expo-specific rules load from the REL-02/04/08 Expo/EAS branches). Kotlin Multiplatform is a modifier on Android Native for the shared module's cross-platform business logic — the `android {}` and iOS rows still apply to their respective native targets.
+
    Hybrid is a modifier, not an alternative: a Capacitor app is also an iOS and an Android app, so the native platform rows still apply to its `ios/` and `android/` directories. Detecting hybrid additionally activates the HYB rules (Phase 3).
 
-2. **Platform confirmation.** Ambiguous → ask user. **Under `--auto`:** best-judgment default — `Cross-platform` when multiple indicators are present, else the single detected platform; never blocks.
+2. **Platform confirmation.** Default: ambiguous detection resolves to `Cross-platform` when multiple indicators are present, else the single detected platform — best judgment, recorded in the summary, never blocks. `--ask`: ambiguous → ask user.
 3. **Findings file check:** `ds/audit/findings.md` fresh (`git_hash == HEAD` AND produced in the current run-cycle; prior-cycle — however recent — is stale, diff context only) → read findings matching mobile scopes, skip redundant analysis. Stale/absent → orchestrated run: request `/ds-blueprint --refresh` and wait; standalone: own scoped analysis, appended with own `source` + current `git_hash`.
 4. **Upstream artifacts:** Profile → Config.data, Config.deploy, Current Scores, Type+Stack. Findings(mobile scopes) → verify + use. Absent → own analysis.
-5. **Mode selection.** No flag → present a menu covering every mode, each with a one-line what-it-does: Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / Release Ready — 100-point scoring + manual gates / Custom — pick scopes / (Cancel). A disambiguating flag (e.g. `--mode`, `--release-ready`) skips the menu. `--auto` alone also skips the menu — defaults to `audit+fix` (scan, review, fix — the most complete unattended default) unless `--release-ready` is also passed.
+5. **Mode selection.** Default: resolves to `audit+fix` (scan, review, fix — the most complete default) unless `--release-ready` is passed, recorded in the summary. A disambiguating flag (e.g. `--mode`, `--release-ready`) selects that mode directly. `--ask` with no disambiguating flag: present a menu covering every mode, each with a one-line what-it-does: Audit (recommended) — scan + report, no changes / Audit & Fix — scan + review + fix / Quick Fix — scan + auto-fix, minimal review / Release Ready — 100-point scoring + manual gates / Custom — pick scopes / (Cancel).
 6. **Scope parsing.** Default: `audit` mode, all domains.
-7. **Custom scope** (if Custom): ask for domains + mode.
+7. **Custom scope** (if Custom, `--ask` only): ask for domains + mode.
 8. **Regulatory framework detection** (security/regulatory/store/all):
    - Auto-detect framework indicators (GDPR, KVKK, CCPA, LGPD, PIPL, etc.)
-   - Confirm with user. **Under `--auto`:** skip the confirmation — use every detected framework indicator as-is.
+   - Default: every detected framework indicator is used as-is, recorded in the summary. `--ask`: confirm with user.
    - Rules tagged `[FRAMEWORK: X,Y]` only checked if at least one active
 9. **Release-ready setup** (release-ready only):
    - Detect available platforms (`android/`, `ios/`); both → ask which
@@ -122,12 +126,12 @@ Detect → Configure → [Architecture Discovery] → Scan → Report → [Fix/S
 **When:** scope includes 3+ domains or `all`.
 
 1. **Detect architecture:** pattern (Clean/MVVM/MVC), auth, state management, navigation, backend, offline, design system, testing, CI/CD, i18n, DI.
-2. **Confirm with user.** Present for corrections. **Under `--auto`:** skip the confirmation — treat the detected architecture as confirmed.
+2. **Confirm architecture.** Default: the detected architecture is treated as confirmed, recorded in the summary. `--ask`: present for corrections.
 3. **Classify rules:** CAT-1 = universal best practice, existing pattern misused, bug, security flaw (auto-fixable). CAT-2 = new layer/structure not in current architecture (needs approval). Category depends on architecture — user has Riverpod → UDF violation is CAT-1; no state management → adding it is CAT-2.
-4. **Present ideal scenario.** Show CAT-1 + CAT-2 opportunities; ask which enhancements to include (default: none). **Under `--auto`:** skip the ask — CAT-2 opportunities are included per best-judgment impact/effort/risk reasoning (best judgment) instead of defaulting to none.
+4. **Present ideal scenario.** Show CAT-1 + CAT-2 opportunities. Default: CAT-2 opportunities are included per the same impact/effort/risk reasoning an approval block would show, recorded in the summary. `--ask`: ask which enhancements to include (default: none).
 5. **Finalize scope:** all CAT-1 + only approved CAT-2; scope is fixed for entire audit.
 
-**Critical rule:** CAT-2 fixes are NEVER applied without user approval. **Under `--auto`:** this is an interactive-mode floor only — CAT-2 items resolve automatically by best judgment (applied, using the same impact/effort/risk reasoning the approval step would show), recorded in the summary, except items matching the publish/irreversible exception list.
+**Critical rule:** CAT-2 fixes require the same approval discipline as any other decision point — per-item confirmation is an `--ask` floor only. Default: CAT-2 items resolve automatically by best judgment (applied, using the same impact/effort/risk reasoning the approval step would show), recorded in the summary, except items matching the publish/irreversible exception list. `--ask`: CAT-2 fixes are never applied without explicit per-item user approval.
 
 **Gate:** Architecture confirmed; every rule classified CAT-1 / CAT-2; scope finalized with approved enhancements. If fails → no user corrections + no enhancement selections after one re-prompt → treat detected architecture as confirmed, classify unclassified rules as CAT-1, include zero CAT-2, record the detected architecture, proceed with note that architecture was auto-confirmed.
 
@@ -154,13 +158,13 @@ Load only reference files matching scope:
 
 **Per domain:** search files → search violations → read context to verify → skip unverifiable rules.
 
-**arch scope mandatory checks ([references/principles.md §2](references/principles.md)):** evaluate widget / screen / view-model / repository layers against SOLID — SRP (widget changes for >1 reason: UI + state + I/O), OCP, LSP (subtype violates parent navigation contract), ISP (consumer forced to implement unused lifecycle hooks), DIP (UI imports concrete platform-channel instead of abstraction). GRASP — Information Expert, Low Coupling (>7 unrelated peer imports), High Cohesion. Cite principle by name.
+**arch scope mandatory checks ([../core/principles.md §2](../core/principles.md)):** evaluate widget / screen / view-model / repository layers against SOLID — SRP (widget changes for >1 reason: UI + state + I/O), OCP, LSP (subtype violates parent navigation contract), ISP (consumer forced to implement unused lifecycle hooks), DIP (UI imports concrete platform-channel instead of abstraction). GRASP — Information Expert, Low Coupling (>7 unrelated peer imports), High Cohesion. Cite principle by name.
 
 **arch scope hybrid checks [hybrid shell detected]:** run HYB-01–04 (rules-engineering.md § Hybrid & WebView Bridge) — WebView origin and bridge exposure in the committed `capacitor.config.*`, plugin dead-load audit (every plugin dependency needs at least one consumer, searched **repo-wide**: a scoped search misses root entry files and manufactures false "unused" findings), the web-build → `cap sync` → native-build chain, and the native behaviors the WebView does not supply. Not a hybrid project → skip silently, no findings, no N/A rows.
 
-**network + perf scope reliability checks ([references/principles.md §4](references/principles.md)):** flag missing — timeout on every API call, retry-with-exponential-backoff on transient failures, offline / slow-network graceful degradation, app-lifecycle handlers (background → foreground state restoration), idempotency keys on payment / order / write endpoints, structured logging surviving across app restart, fail-fast input validation at every boundary (deep links, push notifications, intent extras).
+**network + perf scope reliability checks ([../core/principles.md §4](../core/principles.md)):** flag missing — timeout on every API call, retry-with-exponential-backoff on transient failures, offline / slow-network graceful degradation, app-lifecycle handlers (background → foreground state restoration), idempotency keys on payment / order / write endpoints, structured logging surviving across app restart, fail-fast input validation at every boundary (deep links, push notifications, intent extras).
 
-**Confidence:** HIGH = match + context verified. MEDIUM = pattern, ambiguous. LOW = heuristic.
+**Confidence:** per [../core/severity-score-categories.md](../core/severity-score-categories.md) — HIGH = match + context verified. MEDIUM = pattern, ambiguous. LOW = heuristic.
 
 **False-positive prevention:** never flag `// noqa`, `// intentional`, `// safe:`, `_` prefix, `TYPE_CHECKING`, test fixtures.
 
@@ -211,20 +215,20 @@ Include: policy values used (fetched vs fallback), dimension breakdown with bar 
 | `quick-fix` | Auto-apply all |
 | `release-ready` | Ask: Fix plan / Save report only / Guidance for key findings |
 
-**Gate:** User selected post-report action; mode-specific next step determined. If no selection after one re-prompt → apply the mode default (`audit` → Report only; `audit+fix` → Fix all; `quick-fix` → Auto-apply all; `release-ready` → Save report only) and record that default choice. **Under `--auto`:** skip the ask entirely — apply this same mode default immediately, no prompt or wait.
+**Gate:** Post-report action determined — default: the mode default, applied immediately with no prompt and recorded in the summary (`audit` → Report only; `audit+fix` → Fix all; `quick-fix` → Auto-apply all; `release-ready` → Save report only); `--ask`: the user's selection. If fails → `--ask` gets no selection after one re-prompt → apply the same mode default and record that default choice.
 
 ### Phase 7: Fix [SKIP if audit-only or report-only]
 
-0. **Checkpoint.** `git status --porcelain` → non-empty → interactive: ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: fix edits interleave with uncommitted work, single-command rollback is lost); `--auto`: proceed only when the pre-existing dirty state stays untouched by this skill's writes — otherwise stop and record `needs-human`. Never run a bulk fix over uncommitted unrelated changes silently. Empty output → clean tree, proceed.
+0. **Checkpoint** (`../core/checkpoint-protocol.md`). `git status --porcelain` → empty → clean tree, proceed. Non-empty: default — proceed only when the pre-existing dirty state stays untouched by this skill's writes, otherwise stop and record `needs-human`; `--ask` — ask **Commit first (recommended) / Stash / Proceed anyway** (risk stated: fix edits interleave with uncommitted work, single-command rollback is lost). Never run a bulk fix over uncommitted unrelated changes silently.
 1. **Plan.** Read findings, apply severity filter, group by file, identify dependencies. Present CAT-1 + CAT-2 (pre-approved) — one line per fix (`[severity] title — file:line`) grouped by severity with counts; state the question (`Apply these N fixes?`). "All" = exactly the displayed set.
-2. **Confirmation:** `quick-fix` → summary + proceed; `audit+fix` → full plan + ask (Apply all / per-severity bulk `Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item); `release-ready` → show auto-fixable vs guidance split. **Under `--auto`:** skip the confirmation for every mode — apply all CAT-1 + pre-approved CAT-2 fixes automatically, including CRITICAL, by best judgment.
+2. **Confirmation.** Default: apply all CAT-1 + pre-approved CAT-2 fixes automatically for every mode, including CRITICAL, by best judgment, recorded in the summary. `--ask`: `quick-fix` → summary + proceed; `audit+fix` → full plan + ask (Apply all / per-severity bulk `Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item); `release-ready` → show auto-fixable vs guidance split.
 3. **Execute.** Apply grouped by file. Re-read before + after each edit. Record applied/failed/skipped.
 
 **Gate:** All standard fixes attempted; each recorded. If fails → fix unattempt-able (file unreadable, edit error) → record `failed` as the finding's disposition, revert any partial edit via re-read + restore, continue; list failed fixes in Phase 9 summary with reason.
 
 ### Phase 8: Needs-Approval Review [needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — every item resolves by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Default: every item resolves by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which become `skipped (needs-human)`; no review step is shown. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved (applied → fixed/failed, declined → skipped). If fails → unresolved → record `pending-user-decision` as the finding's disposition, proceed to Summary with status WARN, list unresolved items prominently.
 
@@ -269,7 +273,7 @@ Audit-only run: `{n} findings (severity: {breakdown}) — actionable list return
 | Scenario | Behavior |
 |----------|----------|
 | No project file found | Stop: "Mobile project not found in current directory." |
-| Platform ambiguous | Ask user to confirm (`--auto`: Cross-platform if multiple indicators, else the single detected platform) |
+| Platform ambiguous | Default: Cross-platform if multiple indicators, else the single detected platform. `--ask`: ask user to confirm. |
 | Hybrid shell, native dirs not committed (`ios/`/`android/` generated at build) | Run HYB rules against `capacitor.config.*` + `package.json`; report native-only checks `not_applicable` with that reason — never as missing-file findings |
 | Reference file fails to load | Skip domain, note as N/A |
 | Architecture Discovery: no corrections | Use detected values |

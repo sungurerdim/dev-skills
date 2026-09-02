@@ -16,7 +16,7 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 ## Security
 
-### CSEC-01 [BLOCKER] Secure Credential Storage
+### CSEC-01 [BLOCKER] Secure Credential Storage (CLI/Library)
 Credentials, tokens, and secrets must not be in plaintext files or unencrypted storage.
 - **Detect:**
   - Files: `**/.env`, `**/credentials*`, `**/secrets*` committed to git (not in `.gitignore`)
@@ -24,18 +24,20 @@ Credentials, tokens, and secrets must not be in plaintext files or unencrypted s
   - Plaintext secrets in config files
   - Exclude: `.env.example`, test fixtures with dummy values
 - **Fix:** Use environment variables loaded at runtime. Use secret managers (Vault, AWS Secrets Manager, GCP Secret Manager, Doppler). Add `.env` to `.gitignore`
+- **Impact:** A plaintext or committed credential is readable by anyone with repo/filesystem access — including in git history long after the file is 'fixed'.
 - **Source:** OWASP A07:2025 (Authentication Failures)
 
-### CSEC-02 [BLOCKER] No Hardcoded Credentials
+### CSEC-02 [BLOCKER] No Hardcoded Credentials (CLI/Library)
 Zero secrets in source code.
 - **Detect:**
   - Search: `apiKey\s*[:=]`, `api_key\s*[:=]`, `secret\s*[:=]`, `password\s*[:=]`, `bearer\s`, `sk-[a-zA-Z0-9]`, `AKIA[A-Z0-9]`, base64 patterns >20 chars in string literals
   - Files: `**/.env`, `**/credentials*`, `**/secrets*` committed to git
   - Exclude: `.env.example`, test fixtures with dummy values
 - **Fix:** Move to environment variables or secret manager. Add to `.gitignore`
+- **Impact:** A hardcoded secret ships inside the binary/source and leaks to every clone, fork, and build artifact — rotation requires a code change, not just a config change.
 - **Source:** OWASP A07:2025 (Authentication Failures)
 
-### CSEC-03 [BLOCKER] Debug Mode Off in Production
+### CSEC-03 [BLOCKER] Debug Mode Off in Production (CLI/Library)
 No debug features exposed in production builds.
 - **Detect:**
   - Python: `DEBUG = True` in settings, `FLASK_DEBUG=1`
@@ -43,9 +45,10 @@ No debug features exposed in production builds.
   - Go: `debug` flags in production configs
   - Verbose error output exposing internals
 - **Fix:** Environment-based config. Strip debug code in production builds. Never expose stack traces to users
+- **Impact:** Debug mode in production exposes stack traces, internal routes, and often a live code-execution console (e.g. Flask/Django debugger) directly to attackers.
 - **Source:** OWASP A02:2025 (Security Misconfiguration)
 
-### CSEC-05 [CRITICAL] Input Validation & Injection Prevention
+### CSEC-05 [CRITICAL] Input Validation & Injection Prevention (CLI/Library)
 All user input validated and sanitized. No raw interpolation in queries or commands.
 - **Detect:**
   - Raw user input in shell commands (`exec`, `os.system`, `child_process.exec`)
@@ -56,21 +59,23 @@ All user input validated and sanitized. No raw interpolation in queries or comma
 - **Impact:** Command injection through CLI arguments = full system compromise
 - **Source:** OWASP A05:2025 (Injection)
 
-### CSEC-06 [CRITICAL] Strong Cryptography
+### CSEC-06 [CRITICAL] Strong Cryptography (CLI/Library)
 AES-256-GCM symmetric. No MD5/SHA-1 for security. No custom crypto.
 - **Detect:**
   - Search: `MD5`, `SHA1`, `SHA-1` in non-checksum context, `ECB` mode, `DES`, `RC4`, hardcoded IV/nonce
   - Custom crypto implementations
   - Weak password hashing (plain SHA-256 without salt/iteration)
 - **Fix:** Use platform crypto libraries. Password hashing: bcrypt/scrypt/argon2. Encryption: AES-256-GCM. Use random IV/nonce per operation
+- **Impact:** Weak or custom cryptography (MD5/SHA-1 for security, ECB mode, hand-rolled ciphers) is breakable with known techniques — it protects nothing against a motivated attacker.
 - **Source:** OWASP A04:2025 (Cryptographic Failures)
 
-### CSEC-08 [CRITICAL] Supply Chain Security
+### CSEC-08 [CRITICAL] Supply Chain Security (CLI/Library)
 Dependencies audited, versions pinned, lockfile committed.
 - **Detect:**
   - Unpinned versions: `^`, `~`, `latest`, `>=` without upper bound
   - Missing lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, Pipfile.lock, poetry.lock, go.sum) in git
 - **Fix:** Pin exact versions. Commit lockfiles. Run `npm audit` / `pip audit` / `safety check` regularly
+- **Impact:** An unpinned dependency can silently pull a compromised or backdoored version on the next install — the exact supply-chain attack vector behind several major incidents.
 - **Source:** OWASP A03:2025 (Software Supply Chain Failures)
 
 ### CSEC-09 [MEDIUM] Controls Scale to the Real Threat Model; No Cargo-Cult Layers

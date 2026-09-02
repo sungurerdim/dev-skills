@@ -30,18 +30,20 @@ Run `/ds-deploy`, or ask to deploy your project or review infrastructure.
 
 | Mode | What It Does |
 |------|-------------|
-| **Audit** | Review existing Docker/infra setup |
+| **Audit (default)** | Review existing Docker/infra setup |
 | **Generate** | Create Dockerfile, compose, deploy configs |
 | **Checklist** | Pre-production readiness check |
 | **Monitor** | Set up logging, alerting, crash reporting |
 | **Incident** | Incident response procedure and templates |
-| **Cost** | Infrastructure cost analysis and optimization |
+| **Cost** | Infra cost analysis — requires a billing export path or stated usage figures |
+
+Deployment target defaults to whatever the project's `deploy` signal shows (Docker, Kubernetes, serverless, PaaS, static, or edge) — VPS only when the signal or the request says so. Run with `--ask` for the full mode menu and confirmation prompts.
 
 ## Features
 
 - Dockerfile audit: multi-stage, non-root, optimized layers
 - VPS hardening checklist (SSH, firewall, fail2ban)
-- SSL/TLS automation (Let's Encrypt, Caddy)
+- SSL/TLS automation (Let's Encrypt, Caddy), DNS record checks (A/AAAA/CNAME/CAA/DNSSEC), HSTS with a safe preload path
 - Zero-downtime deployment strategies
 - Monitoring with PII redaction
 - Incident response: P1-P4 severity, post-mortem template

@@ -38,7 +38,7 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - Test gate between upgrade and commit is non-negotiable. Test fail → revert batch.
 - Category A: safe-patch + safe-minor (no breaking changelog) → autonomous. Category B: every major, every upgrade with breaking notes, every removal → batched approval.
-- One `/ds-commit` per group. Never a single mega-commit.
+- One commit per group (`/ds-commit` when present, else committed inline). Never a single mega-commit; never leave an approved group uncommitted.
 - Lockfile is SSOT — every persisted upgrade carries a lockfile delta.
 
 ## Arguments
@@ -47,9 +47,9 @@ Dormant projects rot dependencies: security advisories accumulate, majors pile u
 |------|--------|
 | `--preview` | Classify + security scan + report only — no upgrade execution |
 | `--scope={x}` | Specific group: patch, minor, major, security, all |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
-Without flags: present an up-front menu — Upgrade safe groups (recommended: apply safe-patch + safe-minor, surface majors), plus each mode in the Arguments table (Preview / Scoped) and (Cancel). A disambiguating flag skips the menu.
+Without flags: default — apply safe-patch + safe-minor, surface majors, recorded in the summary. `--ask`: shows an up-front menu — Upgrade safe groups (recommended), plus each mode in the Arguments table (Preview / Scoped) and (Cancel).
 
 ## Scopes
 
@@ -60,6 +60,16 @@ Without flags: present an up-front menu — Upgrade safe groups (recommended: ap
 | review-major | Every major bump |
 | security | Versions flagged by `npm audit` / `pip-audit` / `cargo audit` / GitHub advisories |
 | removal | Dependencies no longer referenced in source — candidates to drop |
+
+| Scope | Runs when (signal) | Otherwise |
+|-------|---------------------|-----------|
+| safe-patch | a manifest + lockfile detected (Phase 1) | N/A — no manifest detected |
+| safe-minor | a manifest + lockfile detected | N/A — no manifest detected |
+| review-major | a manifest + lockfile detected | N/A — no manifest detected |
+| security | an audit tool available for the detected stack, or `osv-scanner` present | N/A — no audit tool available (gap-noted, not silently skipped) |
+| removal | any source | — |
+
+`--scope=` overrides the table for the named scope; `--ask` shows the resolved table before running.
 
 ## Delegation
 
@@ -82,6 +92,9 @@ Setup → Discover → Classify → Plan → Execute → [Needs-Approval] → Su
    | `Gemfile` | ruby |
    | `pubspec.yaml` | dart |
    | `composer.json` | php |
+   | `build.gradle*` / `pom.xml` | jvm (gradle / maven) |
+   | `*.csproj` / `*.sln` | dotnet |
+   | `Package.swift` | swift (spm) |
 
    Record every manifest — monorepos include all workspaces.
 
@@ -106,8 +119,12 @@ Per manifest:
    | rust | `cargo outdated --format json` |
    | ruby | `bundle outdated` |
    | dart | `dart pub outdated --json` |
+   | jvm (gradle) | `./gradlew dependencyUpdates` (needs the `com.github.ben-manes.versions` plugin; absent → gap-note) |
+   | jvm (maven) | `mvn versions:display-dependency-updates` (needs the versions-maven-plugin) |
+   | dotnet | `dotnet list package --outdated` |
+   | swift (spm) | no native outdated command — compare `Package.resolved` pinned versions against the registry; `swift package update` applies updates within `Package.swift`'s declared ranges |
 
-3. **Security advisories:** `npm audit --json` / `pip-audit --format=json` / `cargo audit --json` / `bundler-audit` / `pub audit`. Also Dependabot via `gh` CLI if available. Stack-native audit command unavailable → `osv-scanner` present → run it against the lockfile (V2: `osv-scanner scan --lockfile={lockfile}`; V1 syntax `osv-scanner --lockfile=` also accepted) as the cross-ecosystem fallback and record advisories per dep; absent → skip the advisory sub-step with warning `security advisories unchecked for {manifest} — no audit tool available`.
+3. **Security advisories:** `npm audit --json` / `pip-audit --format=json` / `cargo audit --json` / `bundler-audit` / `pub audit` / `./gradlew dependencyCheckAnalyze` (jvm/gradle) / `mvn verify -P owasp` (jvm/maven) / `dotnet list package --vulnerable` (dotnet). Also Dependabot via `gh` CLI if available. Stack-native audit command unavailable → `osv-scanner` present → run it against the lockfile (V2: `osv-scanner scan --lockfile={lockfile}`; V1 syntax `osv-scanner --lockfile=` also accepted) as the cross-ecosystem fallback and record advisories per dep; absent → skip the advisory sub-step with warning `security advisories unchecked for {manifest} — no audit tool available`.
 4. **Removal candidates:** grep source + config for `import {name}` / `require('{name}')` / stack equivalents. Zero in-source references → removal candidate.
 5. Record each dep's current / latest / advisory for the plan table.
 
@@ -126,13 +143,13 @@ Per dep, determine `bump_type` + `classification`:
 | major | `{x}.{y}.{z}` → `{x+n}.0.0` | Always `review-major` |
 | pre-1.0 | `0.{x}.{y}` → `0.{x+n}.{y}` | Treat minor bump as `review-major` (semver pre-1.0 convention) |
 
-**Supply-chain override ([references/principles.md §5](references/principles.md)):** any package introducing/expanding `postinstall` / `preinstall` / `prepare` lifecycle scripts (or non-npm equivalents) auto-promotes to `review-major` regardless of semver delta. New executable install hooks = known supply-chain attack surface.
+**Supply-chain override ([../core/principles.md §5](../core/principles.md)):** any package introducing/expanding `postinstall` / `preinstall` / `prepare` lifecycle scripts (or non-npm equivalents) auto-promotes to `review-major` regardless of semver delta. New executable install hooks = known supply-chain attack surface.
 
 **Release-age cooldown (advisory, default 7 days):** target version published less than 7 days ago (npm: `npm view {name} time --json` → the version's publish timestamp; other stacks: registry publish timestamp) → hold it out of the safe groups this run — classification stands, execution deferred with note `held (release-age {n}d < 7d cooldown)`; the previous in-cooldown-window version applies instead when it satisfies the same bump class. Security-advisory fixes override the cooldown (patching a known CVE beats worm-window caution). Rationale: recent registry worm/compromise events were detected within days of publication (xz-utils ~3 days; Shai-Hulud npm worm — CISA alert within the week) — a short quarantine window converts "first victim" into "warned bystander".
 
 **Provenance signal (advisory):** npm — run `npm audit signatures` (verifies registry signatures + provenance attestations; trusted-publishing/OIDC publishes carry provenance automatically since Jul 2025); PyPI — check attestation presence (PEP 740). A newly-added package with no provenance, or an upgrade where the publisher/repository identity changed vs the previous version → note as supply-chain signal, promote to `review-major`.
 
-**License scan + SBOM (advisory, on request or via ds-repo handoff):** walk the full transitive tree from the lockfile (not just direct deps) with a scanner when present (syft / ScanCode / FOSSA class), attach a license to every package, evaluate against the project's allow/review/deny policy (strong-copyleft entering a permissive/proprietary product → HIGH finding), and export an SPDX or CycloneDX SBOM artifact where CI expects one. No scanner installed → direct-dep license spot check from registry metadata + gap-note; never install tools unasked.
+**License scan + SBOM (advisory, on request or via ds-repo handoff):** walk the full transitive tree from the lockfile (not just direct deps) with a scanner when present (syft / ScanCode / FOSSA class), attach a license to every package, evaluate against the project's allow/review/deny policy (strong-copyleft entering a permissive/proprietary product → HIGH finding). `syft` present → generate `syft scan . -o cyclonedx-json=sbom.cdx.json` (CycloneDX SBOM at the repo root); other scanner present → export its native SPDX/CycloneDX format where CI expects one; no scanner installed → direct-dep license spot check from registry metadata + gap-note `SBOM not generated — requires syft or an equivalent scanner`; never install tools unasked.
 
 **Dependency-confusion defense (advisory — active attack vector, documented May 2026 npm campaign across ≥9 organizational scopes):** when the project uses internal/private packages, check the defense stack and report gaps: (1) internal packages use a claimed registry scope/namespace (`@org/…`) — unscoped internal names are hijackable from the public registry; (2) CI installs enforce the lockfile (`npm ci` / `pnpm install --frozen-lockfile` / `pip install --require-hashes`) — a mutable install can silently resolve a public lookalike; (3) registry resolution order pins the private registry for internal scopes (`.npmrc` scoped registry / `pip.conf` index priority) so public never shadows private; (4) where infrastructure allows, build servers restrict registry egress to the approved proxy. Missing layer → HIGH gap-note in the summary, never auto-reconfigured.
 
@@ -168,7 +185,7 @@ Write findings to `ds/audit/findings.md` with `scope=deps` and `category` column
 
 ### Phase 5: Execute [skip if --preview]
 
-**Checkpoint pre-step (before the first bump):** `git status --porcelain` → record the output as the baseline; empty → proceed. Non-empty → interactive: ask Commit first (recommended) / Stash / Proceed anyway (the revert path `git restore -- {manifest} {lockfile}` also discards pre-existing edits to those files); `--auto`: proceed only when the pre-existing dirty files stay untouched by this skill's writes — manifest or lockfile dirty at baseline → stop, record `needs-human`. Never run a bulk upgrade over uncommitted unrelated changes silently.
+**Checkpoint pre-step (before the first bump):** `git status --porcelain` — record the output as the baseline; clean, or every planned write is disjoint from dirty paths → proceed; manifest or lockfile dirty at baseline → stop, record `needs-human`. Full protocol: [../core/checkpoint-protocol.md](../core/checkpoint-protocol.md). Never run a bulk upgrade over uncommitted unrelated changes silently.
 
 Per group, in order: **security** → **safe-patch** → **safe-minor** → (approval) → **review-major** → **removal**.
 
@@ -185,31 +202,51 @@ Per group, in order: **security** → **safe-patch** → **safe-minor** → (app
    | python (poetry) | `poetry add {name}@{version}` |
    | python (pip) | `pip install {name}=={version}` then update the project's pin file per its own convention (pip-tools: `pip-compile`; plain pins: edit `requirements.txt` entry) — never invent a new lock filename |
    | cargo | `cargo update -p {name} --precise {version}` |
+   | jvm (maven) | `mvn versions:use-latest-releases` (scope to one package via `-Dincludes={groupId}:{artifactId}`) |
+   | jvm (gradle) | edit the version literal in `build.gradle(.kts)` or the `gradle/libs.versions.toml` catalog entry directly — no native single-package bump command |
+   | dotnet | `dotnet add package {name} --version {version}` |
+   | swift (spm) | edit the version requirement in `Package.swift`, then `swift package resolve` |
 
 2. Invoke `/ds-test --run` (advisory handoff — target absent → stack-native fast path directly: `npm test --bail`, `go test ./...`, `pytest -x`). Pass → proceed. Fail unresolved → revert manifest + lockfile, mark group `failed (tests broke)`, continue.
-3. Invoke `/ds-commit --single` with message: `chore(deps): bump {scope-or-group} ({n} packages)`. Body lists each dep `{name}: {current} → {latest}`. Record hash.
+3. `/ds-commit` present → invoke `/ds-commit --single` with message `chore(deps): bump {scope-or-group} ({n} packages)` (body lists each dep `{name}: {current} → {latest}`); absent → commit inline: `git add {manifest} {lockfile}` then `git commit -m "chore(deps): bump {scope-or-group} ({n} packages)"` with the same body. Record hash either way — never leave an approved group uncommitted.
 
 **Review-major group (requires approval):**
 
 1. Present every entry — one line each (`name: current → proposed · breaking?`) grouped by package class with counts; state the question (`Upgrade which of these N majors?`). "All" = exactly the displayed set. Full detail (breaking notes, migration steps from changelog, rollback path) under each entry.
-2. Modes: **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**. **Under `--auto`:** no menu shown — every major resolves by best judgment (applied using the same impact/effort/risk reasoning the menu would have shown, recorded in the summary); nothing about a major version bump matches the irreversible-exception list, so none is stranded as `needs-human`.
+2. Default: no menu shown — every major resolves by best judgment (applied using the same impact/effort/risk reasoning a menu would show, recorded in the summary); nothing about a major version bump matches the irreversible-exception list, so none is stranded as `needs-human`. `--ask`: modes — **Apply All** / **Apply all without breaking notes** (per-class bulk alongside the total — majors whose changelog shows zero breaking entries) / **Review Each** / **Skip All** / **Defer**.
 3. Per approved major: apply bump, run **full** test suite (not quick); fail → revert + mark failed; pass → commit.
-4. One commit per major: `chore(deps): upgrade {name} to {major-version}`. Body: breaking notes + migration link.
+4. One commit per major. `/ds-commit` present → invoke `/ds-commit --single` with message `chore(deps): upgrade {name} to {major-version}` (body: breaking notes + migration link); absent → commit inline: `git add {manifest} {lockfile}` then `git commit -m "chore(deps): upgrade {name} to {major-version}"` with the same body.
 
 **Removal group (requires approval):**
 
 1. Present candidates with "0 source references" evidence.
-2. Approve → remove from manifest + lockfile, run quick tests, commit `chore(deps): remove unused {name}`. **Under `--auto`:** resolves automatically by best judgment — removed, quick-tested, and committed without approval (git history keeps this fully reversible).
+2. Default: resolves automatically by best judgment — removed, quick-tested, and committed without approval (git history keeps this fully reversible). `--ask`: approve → remove from manifest + lockfile, run quick tests. Either way, commit: `/ds-commit` present → invoke `/ds-commit --single` with message `chore(deps): remove unused {name}`; absent → commit inline: `git add {manifest} {lockfile}` then `git commit -m "chore(deps): remove unused {name}"`.
 
 **Mechanical Done Gate:** the per-group test run above is the test arm — add lint/type: resolve `{check-cmd}` in Phase 1 (ds-quality enforcement arm installed — stop-hook / pre-commit hook / auto-lint → its gate command; else stack-native lint/type/test commands; none detectable → Verification-Infrastructure Gap: report it, offer `/ds-quality`, record the decision) and capture the baseline before the first group — baseline red → done condition is "no *new* red", baseline reds reported, never inherited as green. A bump can break the type graph with tests still green (e.g. a types-package minor) — run `{check-cmd}` after each group before its commit; new red → same revert path as a test failure. After the last group: run the full `{check-cmd}` once — the aggregate run's exact command + observed output is the Completion Evidence; never report `OK` with a new red.
+
+**Lockfile-integrity command (per ecosystem, run after each group before its commit):**
+
+| Ecosystem | Command |
+|-----------|---------|
+| npm | `npm ls --depth=0` + `git diff --quiet package-lock.json` |
+| pnpm | `pnpm install --frozen-lockfile` |
+| yarn | `yarn install --immutable --mode=skip-build` |
+| pip | `pip check` (+ `uv lock --check` when uv-managed) |
+| cargo | `cargo tree --locked` |
+| go | `go mod verify` |
+| dart | `dart pub get --enforce-lockfile` |
+| bundler | `bundle check` |
+| composer | `composer validate --no-check-publish` + `composer install --dry-run` |
+
+Non-zero exit → same revert path as a failed `{check-cmd}` run: restore the group's manifest + lockfile, mark `failed (lockfile integrity)`, continue to the next group.
 
 **Gate:** Every group has a commit or `failed`/`skipped` record. `git status --porcelain` output matches the checkpoint baseline (this skill's changes all committed or reverted). If fails → dirty tree (partial apply, no commit) → revert exactly the touched files via `git restore -- {manifest} {lockfile}` — never a tree-wide `git checkout -- .`, which would destroy the user's unrelated uncommitted work — mark `failed (dirty working tree)` for the summary, continue; revert itself fails → halt + surface conflict with modified-file list.
 
 ### Phase 6: Needs-Approval Review [needs_approval > 0]
 
-Covers ONLY items still undecided after Phase 5 (deferred majors/removals, `--auto`-skipped items) — items already decided in Phase 5's inline approval are never re-presented (no double-asking).
+Covers ONLY items still undecided after Phase 5 (deferred majors/removals) — items already decided in Phase 5's inline resolution are never re-presented (no double-asking).
 
-**Under `--auto`:** no review step is shown — remaining items (deferred majors/removals) resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+**Default:** no review step is shown — remaining items (deferred majors/removals) resolve by best judgment (`fixed` or `failed`), except items matching the irreversible-exception list, which become `skipped (needs-human)`. **`--ask`:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** Every B item has a decision (applied → fixed/failed, or explicitly skipped). If fails → undecided after prompt (dismissed/timed out) → mark `skipped (no decision)` for the summary, continue to Summary; do not re-prompt.
 
@@ -224,6 +261,8 @@ Disposition accounting — totals balance.
 ```
 
 `ds-deps: {OK|WARN|FAIL} | Bumped: {n} | Majors-pending: {n} | Skipped: {n} | Failed: {n} | Total: {n} | Advisories-closed: {n}`
+
+Closing shape (`Assumed:` lines, every `needs-human` item in full): [../core/report-and-outcome-templates.md](../core/report-and-outcome-templates.md).
 
 **Gate:** Every dep has exactly one disposition; accounting balances. If fails → undisposed dep → assign `skipped (accounting gap)`; imbalanced → status `WARN` with note "{n} deps unaccounted — re-run to pick up the remainder from the last per-group commit".
 
@@ -254,7 +293,7 @@ Zero-change run: `All deps already at safe-current — no upgrades applied`.
 |-----------|--------|
 | Registry unreachable | Retry once with 10s timeout; persistent → skip dep, continue |
 | Changelog URL missing | Treat as breaking unless SemVer patch with no release notes flag; classify `review-major` |
-| Test command not defined | Ask user for test command; offer to skip test gate with warning (marks group `unverified`). **Under `--auto`:** no ask — skips the test gate with warning and marks the group `unverified`, recorded in the summary |
+| Test command not defined | Default: skips the test gate with warning and marks the group `unverified`, recorded in the summary. `--ask`: asks for the test command, offers to skip the gate with warning instead |
 | Lockfile conflict after upgrade | Revert, mark `failed (lockfile conflict)`, continue |
 | Peer-dep incompatibility | Mark `failed (peer-dep conflict)` with conflicting pair in evidence |
 | Advisory with no fixed version | Report HIGH finding, mark `blocked (no fix available)` |

@@ -38,7 +38,7 @@ slog.Info("request processed",
     slog.Int("duration_ms", 42))
 ```
 
-**Why:** Structured logs → filtering, aggregation, and alerting in log management tools (Loki, Betterstack, Axiom). Unstructured text requires regex parsing and breaks on format changes.
+**Impact:** Structured logs → filtering, aggregation, and alerting in log management tools (Loki, Betterstack, Axiom). Unstructured text requires regex parsing and breaks on format changes.
 
 **Source:** OpenTelemetry Logging specification, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Log aggregation)
 
@@ -67,7 +67,7 @@ app.get('/readyz', async (req, res) => {
 });
 ```
 
-**Why:** Liveness failures → container restarts; readiness failures → remove instance from load balancer. Combining into one endpoint → unnecessary restarts when a dependency is temporarily unavailable.
+**Impact:** Liveness failures → container restarts; readiness failures → remove instance from load balancer. Combining into one endpoint → unnecessary restarts when a dependency is temporarily unavailable.
 
 **Source:** Kubernetes probe best practices, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Health Endpoint)
 
@@ -89,7 +89,7 @@ import sentry_sdk
 sentry_sdk.init(dsn="https://...@sentry.io/...", traces_sample_rate=0.1)
 ```
 
-**Why:** Mean time to detection (MTTD) directly impacts mean time to recovery (MTTR). Automated alerts cut MTTD from hours to seconds for solo developers who cannot monitor dashboards continuously.
+**Impact:** Mean time to detection (MTTD) directly impacts mean time to recovery (MTTR). Automated alerts cut MTTD from hours to seconds for solo developers who cannot monitor dashboards continuously.
 
 **Source:** Sentry alerting docs, [deployment-patterns.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/deployment-patterns.md) (Incident Response: Detection phase)
 
@@ -110,7 +110,7 @@ provider.register();
 registerInstrumentations({ instrumentations: [/* http, express, pg, etc. */] });
 ```
 
-**Why:** Without trace propagation, a single user request touching 3 services generates 3 unconnected log streams. Tracing connects them into a single timeline, reducing debugging time from hours to minutes.
+**Impact:** Without trace propagation, a single user request touching 3 services generates 3 unconnected log streams. Tracing connects them into a single timeline, reducing debugging time from hours to minutes.
 
 **Source:** OpenTelemetry specification, W3C Trace Context standard
 
@@ -130,7 +130,7 @@ registerInstrumentations({ instrumentations: [/* http, express, pg, etc. */] });
 
 Alert on downtime sustained longer than 1 minute. Configure a status page for transparency with users.
 
-**Why:** Internal health checks cannot detect network-level, DNS, or full-host failures. External monitoring provides user's perspective on availability.
+**Impact:** Internal health checks cannot detect network-level, DNS, or full-host failures. External monitoring provides user's perspective on availability.
 
 **Source:** UptimeRobot, Better Stack, [cost-optimization.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/cost-optimization.md) (Monitoring section)
 
@@ -149,7 +149,7 @@ Alert on downtime sustained longer than 1 minute. Configure a status page for tr
 | GitHub Actions | 2,000 min/mo | 1,600 min reached |
 | Cloudflare R2 | 10 GB storage | 8 GB reached |
 
-**Why:** Cloud services with usage-based pricing can generate unexpected bills. Free tier limits change without notice (SendGrid removed its free tier in May 2025, PlanetScale in April 2024). Proactive monitoring prevents surprise costs.
+**Impact:** Cloud services with usage-based pricing can generate unexpected bills. Free tier limits change without notice (SendGrid removed its free tier in May 2025, PlanetScale in April 2024). Proactive monitoring prevents surprise costs.
 
 **Source:** Cloud provider cost management docs, [cost-optimization.md](https://github.com/sungurerdim/dev-skills/blob/main/docs/infrastructure/cost-optimization.md) (Cost Scaling Thresholds)
 
@@ -163,6 +163,6 @@ A queue-consuming service's health endpoint checks the age of the oldest queued 
 
 **Fix:** Extend the health endpoint to compare queue-head wait time against a threshold (e.g. 180s) and return 503 on breach; document it as operations' first-look signal. Liveness says the process exists; queue-head staleness is the only cheap signal that work is actually flowing.
 
-**Why:** A wedged worker behind a green liveness check is an invisible outage — jobs pile up for hours while every dashboard says healthy.
+**Impact:** A wedged worker behind a green liveness check is an invisible outage — jobs pile up for hours while every dashboard says healthy.
 
 **Source:** XR-079 — cross-project experience registry (2026).

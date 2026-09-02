@@ -7,11 +7,11 @@
 | Dimension | Weight | Domains |
 |-----------|--------|---------|
 | D1 Security | 22 pts | SEC-01–12 from rules-compliance |
-| D2 Privacy & Compliance | 18 pts | PRV-01–05, REL-09–13 |
-| D3 Build Configuration | 18 pts | REL-01–08, REL-22 |
-| D4 Performance | 14 pts | REL-06–07, REL-17 |
+| D2 Privacy & Compliance | 18 pts | PRV-01–05, REL-09–10, REL-12–13 |
+| D3 Build Configuration | 18 pts | REL-02, REL-04, REL-07–08, REL-22, REL-26 |
+| D4 Performance | 14 pts | REL-07, REL-17 |
 | D5 Dependencies | 12 pts | REL-14–16 |
-| D6 Localization & Accessibility | 10 pts | REL-19–21, A11Y basics |
+| D6 Localization & Accessibility | 10 pts | REL-19–20, A11Y basics |
 | D7 Quality | 6 pts | Test suite, CI/CD, changelog, IAP restore |
 
 ## Dynamic N/A Handling

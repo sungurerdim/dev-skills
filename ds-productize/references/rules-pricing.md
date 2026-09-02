@@ -15,6 +15,7 @@ Pricing model and tiers designed before a value metric was selected.
 Public pricing page with more than 3-4 plans or more than two pricing axes.
 - **Detect:** 5+ public tiers; pricing requiring a calculator or sales conversation for the common purchase; tiers differentiated by raw feature count instead of buyer maturity/journey.
 - **Fix:** Good-Better-Best (3, max 4 public tiers), one or two pricing axes, tier boundaries mapped to buyer maturity (starter → pro → enterprise pattern). Complexity beyond that belongs in a sales-assisted tier, not the public page.
+- **Impact:** A page the buyer cannot parse in seconds stalls self-serve comparison and pushes the decision into a sales conversation the product was built to avoid.
 - **Source:** Stripe pricing guide; GBB packaging practice (2026).
 
 ### PLD-03 [MEDIUM] Seat-only pricing on an AI-agent product
@@ -22,6 +23,7 @@ Product where AI does work autonomously (one seat produces multi-human output) p
 - **Detect:** Agentic/automation product with per-seat-only pricing; no usage/outcome component.
 - **Fix:** Hybrid (base + metered) — Bessemer's 2026 tracking has pure per-seat falling 21%→15% of SaaS companies while seat+usage hybrid rose 27%→41% `[single-source for exact percentages]`. Per-seat stays valid when AI behaves as a copilot inside an existing per-user workflow. GitHub Copilot's 2026 move to layered usage billing is the reference case (transition date contested: April vs June 2026 — recorded, don't cite a specific date).
 - **Caution:** The circulating "Gartner: 70% prefer usage-based by 2026" stat does not trace to a locatable primary Gartner document (likely conflation of separate IDC/Gartner forecasts) — never cite it in findings.
+- **Impact:** Seat-only pricing on a product where one seat produces multi-human output caps revenue to headcount while usage scales independently — the vendor captures none of the value it creates.
 - **Source:** Bessemer AI pricing tracking; Stripe/Paddle hybrid-model guidance; MON-01 (hybrid default).
 
 ## Willingness to Pay
@@ -39,6 +41,7 @@ Prices invented without any structured WTP input.
 Pricing set without a structured scan of the competitive price landscape.
 - **Detect:** No competitor pricing inventory (plans, price points, fences, terms, monetization metrics) in docs/plan; own price fences (seat caps, usage walls, feature gates) chosen without reference to the category's norms.
 - **Fix:** Repeatable sequence — identify direct/indirect competitors → inventory plans/prices/fences/terms → normalize to per-unit economics (per seat / per 1k events / per GB) → benchmark own ladder → revisit at least annually. Delegate the scan to ds-benchmark when present (advisory-handoff: absent → inline scan of top 3-5 public pricing pages). Caveat: published list prices diverge from negotiated deal prices (a cited Fortune-500 case found a ~20-point gap `[single-source]`) — treat pricing pages as rack rate, not market truth, in enterprise segments.
+- **Impact:** Fences set with no competitive reference drift out of market norms unnoticed — either leaving revenue on the table or losing deals to sticker shock.
 - **Source:** Competitor pricing-analysis methodology (Aqute et al.).
 
 ## Channel & Commission Fit
@@ -47,6 +50,7 @@ Pricing set without a structured scan of the competitive price landscape.
 Self-serve-only at enterprise price points, or a sales team touching sub-$5K deals.
 - **Detect:** ACV vs motion mismatch — pure self-serve/PLG generally fits below ~$5K ACV; hybrid PLG+sales in the mid range; sales-led above roughly $25K-$50K (exact breakpoint contested across sources — treat as a range, adjust for time-to-value and buying-committee size, which can override ACV alone).
 - **Fix:** Match motion to CAC-payback math (at $50K ACV a $15K CAC pays back in months; at $5K ACV the same CAC takes years). Bessemer's primary metric is CAC payback against gross-margin-adjusted ARR — averaging ~15 months at the $1-10M ARR stage; the popular 12/18/24-month SMB/mid/enterprise thresholds are `[single-source]` (not on the primary Bessemer page — don't cite as Bessemer).
+- **Impact:** A motion/ACV mismatch burns CAC on deals too small to repay it, or under-serves large deals with a self-serve flow that cannot handle procurement.
 - **Source:** PLG-vs-sales decision frameworks (2026); Bessemer Scaling to $100 Million (CAC payback).
 
 ### CHN-02 [HIGH] Channel commission math stale or unclaimed
@@ -79,6 +83,7 @@ MRR/ARR projections with no benchmark-grounded assumptions.
 Trial configured on folklore (length-only) rather than the levers benchmarks support.
 - **Detect:** Trial length chosen with no rationale; no decision recorded on card-upfront vs opt-in; freemium conversion judged against a made-up bar; reverse trial adopted on the strength of a single quoted lift figure.
 - **Fix:** Decide with the 2026 evidence: 14 days is the modal length (62% of products) but length is a weak direct lever — onboarding quality drives most of the observed gains from shortening. Card-upfront (opt-out) trials convert ~30% vs ~8.9% opt-in — a >5x gap and the single strongest configuration lever (at the cost of top-of-funnel volume). Freemium→paid: 3-5% good / 8-12% great, distribution is bimodal (a quarter of products sit below 2.5%). Reverse trials: originator claim of 10-40% lift (Verna) vs 2026 ChartMogul benchmark of 4-12% — **contradiction recorded; treat the upside as unproven**, mechanism (loss aversion) is real but magnitude contested.
+- **Impact:** Tuning trial length instead of the levers with real leverage (card-upfront, onboarding) leaves a 3-5x conversion gap on the table.
 - **Source:** ChartMogul/ProductLed 2026 Conversion Report; Elena Verna (reverse trials); First Page Sage vertical data.
 
 ## Price Changes
@@ -87,12 +92,14 @@ Trial configured on folklore (length-only) rather than the levers benchmarks sup
 Price change planned without checking contract clauses and consumer-law notice duties.
 - **Detect:** Planned increase with no price-adjustment clause check on existing contracts; consumer subscriptions auto-renewing at a new price without conspicuous notice; no notice-period decision recorded.
 - **Fix:** B2B: a mid-term increase without a contract price-adjustment clause is a breach absent consent — check the clause first. Notice norms (no universal statute): ~30 days floor (monthly), 45-60 days (annual), 60-90+ days for large changes. Consumer: auto-renewal laws (California ARL, NY GBL §527, EU/UK equivalents) impose independent disclosure/notice duties — Spotify's $38M ARL class-action settlement is the reference risk `[single-source]`. Cross-ref MON-07/MON-08 for the disclosure/cancellation surfaces.
+- **Impact:** A price increase pushed without the contract/notice check risks a breach claim in B2B and auto-renewal-law penalties in consumer — the Spotify ARL settlement is the reference cost.
 - **Source:** SaaS pricing-terms legal analyses; state ARL statutes.
 
 ### CHG-02 [MEDIUM] Grandfathering without a sunset
 Legacy pricing kept open-ended "to be nice."
 - **Detect:** Existing customers left on old pricing indefinitely with no sunset date; grandfathering applied to trivial increases.
 - **Fix:** Cap grandfathering with an explicit sunset — commonly 6-12 months tied to next renewal; reserve grandfathering/phased migration for increases exceeding roughly 15-20% `[single-source threshold]`; long-standing customers moving off legacy terms warrant the longest notice (12-18 months per practitioner guidance — aligns with MON-13's migration safety window). Indefinite grandfathered tiers compound into pricing debt across cycles.
+- **Impact:** Open-ended grandfathering compounds into pricing and billing-logic debt every cycle while the legacy cohort never migrates.
 - **Source:** Grandfathering/pricing-migration practice guides; MON-13.
 
 ## Discount Discipline
@@ -101,10 +108,12 @@ Legacy pricing kept open-ended "to be nice."
 Ad-hoc discounting with no ceiling or tracking.
 - **Detect:** Discounts granted per-deal with no policy; discounts >20% routine; discount-attracted cohorts not tracked separately.
 - **Fix:** Paddle/ProfitWell: discounting lowers SaaS LTV by ~30% (discount-acquired customers churn more, expand less — note: underlying study published 2022, still the standard citation). Proposal-level data (Cacheflow, 10K proposals `[single-source, vendor discontinued]`): 1-20% discounts produced the best deal-size/close-speed outcomes; >40% correlated with smaller, slower deals. Set a ceiling (≤20%), require approval above it, and track discounted-cohort LTV separately. **Exception:** the standard annual-prepay discount is value-additive, not value-destructive — it buys twelve months of zero churn.
+- **Impact:** Undisciplined discounting depresses LTV by roughly 30% and trains the sales motion to expect ever-larger concessions.
 - **Source:** Paddle discounting study (2022, flagged); Cacheflow proposal study; SaaStr.
 
 ### DSC-02 [LOW] Annual discount outside segment norm
 Annual-prepay discount set without segment context.
 - **Detect:** B2B SaaS discounting annual at 30-40% (overpaying for commitment); consumer subscription app offering <15% (under-motivating the switch).
 - **Fix:** B2B SaaS norm: 15-20%, with 16.7% ("2 months free") the single most common figure; consumer subscription apps: 30-40% (RevenueCat SOSA — PRC-02). A 20% annual discount already implies a 44%+ cost of capital for the upfront cash — going deeper needs an explicit reason.
+- **Impact:** An annual discount off the segment norm either overpays for commitment (B2B too deep) or under-motivates the annual switch (consumer too shallow) — retained revenue is left on the table either way.
 - **Source:** SaaStr; Subscription Index; RevenueCat SOSA (segment split with PRC-02).

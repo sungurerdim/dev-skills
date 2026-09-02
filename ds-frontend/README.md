@@ -45,7 +45,7 @@ rm -rf /tmp/dev-skills
 | responsive | Layout overflow, breakpoints, container queries, fluid typography, multi-column symmetry, print styles, RTL-readiness, Core Web Vitals |
 | theming | Dark mode, light-dark(), color-scheme, semantic tokens |
 
-Plus `solid`, `config`, and `admin-ui` scopes — see SKILL.md for the full table.
+Plus `solid`, `config`, `admin-ui`, and `scheduling` scopes — see SKILL.md for the full table.
 
 ## Features
 

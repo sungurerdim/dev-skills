@@ -14,7 +14,7 @@
 |-------|--------------------|
 | Strong | A reader can predict which file holds a given behavior from the module name alone. Changing one product decision touches one module. |
 | Adequate | Boundaries hold for the core domain; utility and glue code drift into catch-all modules (`utils`, `helpers`, `common`). |
-| Weak | A single product change requires edits in 5+ unrelated files (shotgun surgery), or one module changes for more than one reason (SRP break, `principles.md §2`). |
+| Weak | A single product change requires edits in 5+ unrelated files (shotgun surgery), or one module changes for more than one reason (SRP break, [`../../core/principles.md` §2](../../core/principles.md)). |
 
 ### 2. Dependency direction
 

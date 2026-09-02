@@ -12,7 +12,7 @@
 # and verifier checks that must actually fire — those are the gate.
 #
 # The hook is not bypassed. A red gate is fixed first, then the commit goes in —
-# `--no-verify` is not an option here (ds-commit/references/principles.md rule 4).
+# `--no-verify` is not an option here (core/principles.md, the commit-hook row).
 # A check you would want to skip is a check to fix or delete, not to work around.
 
 set -uo pipefail

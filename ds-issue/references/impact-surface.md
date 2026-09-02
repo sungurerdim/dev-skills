@@ -1,6 +1,6 @@
 # Impact-surface map (ds-issue `--do`)
 
-Before any code changes, enumerate the **touched · linked · affected** set. The output is a code-map contract: an explicit affected-set that every later phase is checked against. A change that breaks a node in this set is not done. Skipping this map is how a one-file "fix" silently breaks five callers.
+Before any code changes, enumerate the **touched · linked · affected** set. This specializes the generic impact map ([core execution loop §2](../../core/execution-loop.md)) into six deterministic axes tailored to issue review. The output is a code-map contract: an explicit affected-set that every later phase is checked against. A change that breaks a node in this set is not done. Skipping this map is how a one-file "fix" silently breaks five callers.
 
 ## The six axes (deterministic checklist — evaluate every axis every run)
 

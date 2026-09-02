@@ -18,7 +18,7 @@ git clone https://github.com/sungurerdim/dev-skills.git /tmp/dev-skills
 | **Windsurf** | Append `SKILL.md` content to `.windsurfrules` |
 | **Aider** | Reference `SKILL.md` via `--read` flag |
 
-Requires [Spec Kit](https://github.com/github/spec-kit) initialized in the target repo (`specify init`).
+[Spec Kit](https://github.com/github/spec-kit) accelerates the run when initialized (`specify init`) — absent, the skill runs the same chain natively and writes the same artifacts.
 
 ## Use
 
@@ -43,3 +43,4 @@ Requires [Spec Kit](https://github.com/github/spec-kit) initialized in the targe
 - **Clean handoff** — one scoped `spec({feature})` commit plus a one-line executor instruction; nothing else touched
 - **Artifact-driven resume** — re-running continues from the first missing artifact; no state files
 - **Planning only** — writes exclusively under `specs/` and `.specify/`; source code is never modified
+- **Native mode** — Spec Kit absent → the skill performs the same chain inline, same output shape, same gates

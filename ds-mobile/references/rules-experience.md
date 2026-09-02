@@ -6,17 +6,18 @@ Rules for audit/fix/create modes. Each rule: ID, severity, title, detect pattern
 
 | Section | Rules | Line |
 |---------|-------|------|
-| **User Experience** | UX-01–27 (1 CRITICAL, 3 CRITICAL, 20 HIGH, 3 LOW) | ~15 |
-| **Visual Design** | VIS-01–25 (3 CRITICAL, 17 HIGH, 5 LOW) | ~185 |
-| **Accessibility** | A11Y-01–12 (5 CRITICAL, 7 HIGH) | ~370 |
+| **User Experience** | UX-01–27 (1 CRITICAL, 23 HIGH, 3 LOW) | ~15 |
+| **Visual Design** | VIS-01–25 (19 HIGH, 5 LOW; VIS-16 merged into A11Y-08 — duplicate) | ~185 |
+| **Accessibility** | A11Y-01–12 (1 CRITICAL, 11 HIGH) | ~370 |
 
 ---
 
 ## User Experience
 
-### UX-01 [CRITICAL] Bottom Navigation 3-5 Items
+### UX-01 [HIGH] Bottom Navigation 3-5 Items
 - **Detect:** Bottom navigation/tab bar with >5 or <3 items. Icon-only without labels. No active state differentiation
 - **Fix:** 3-5 destinations with icon+label. Active state visually distinct (filled icon + tint). Use drawer/more for 5+ destinations
+- **Impact:** More than 5 destinations forces icon-only or cramped labels that users can't parse at a glance, and fewer than 3 wastes the pattern entirely — both push users to the wrong tab repeatedly.
 - **Source:** Nielsen Norman Group, Material 3
 
 ### UX-02 [HIGH] Skeleton Screens Over Spinners
@@ -30,18 +31,21 @@ Use skeleton/shimmer for content loading areas. Spinners only for discrete actio
 Loading indicators must include descriptive text.
 - **Detect:** Bare progress indicator without context text. Spinner alone without label
 - **Fix:** Add descriptive label alongside indicator: "Purchasing...", "Syncing...", "Loading records..."
+- **Impact:** A bare spinner with no context leaves the user unable to tell whether the app is loading, frozen, or has silently failed.
 - **Source:** Material 3, WCAG (screen reader context)
 
 ### UX-04 [HIGH] Empty States with CTA
 Every empty screen: context + guidance + visual + CTA.
 - **Detect:** Blank screens when no data. "No data" text without action. Missing first-use/no-results/error/offline variants
 - **Fix:** Empty state widget: icon/illustration + title + subtitle + action button. Four variants: first-use, no-results, error, offline
+- **Impact:** A blank screen with no explanation or next step reads as broken, not empty — users can't tell if they did something wrong or the app has a bug.
 - **Source:** Nielsen Norman Group
 
 ### UX-05 [HIGH] Error Recovery with Retry
 Every error state offers concrete next action.
 - **Detect:** Error messages without retry/action. Toast for critical errors. Dialog for trivial warnings. "Something went wrong" without guidance
 - **Fix:** Inline retry for network errors. Toast (3-8s) for informational. Dialog only for blocking decisions. Clear, actionable error text
+- **Impact:** An error with no retry action forces the user to back out and restart the whole flow, or abandon it entirely.
 - **Source:** Nielsen Norman Group
 
 ### UX-06 [HIGH] Form Validation on Blur
@@ -55,33 +59,38 @@ Validate on blur/submit, not per-keystroke. Immediate only for critical format b
 Input fields trigger appropriate keyboard.
 - **Detect:** Generic text keyboard for email/phone/number/URL fields. No Done button on numeric keyboard
 - **Fix:** Set keyboardType per field: email, phone, number, url, decimal. Add input accessory for numeric Done button
+- **Impact:** A generic keyboard on a numeric or email field adds friction to every single entry — small per-field, compounding across a form.
 - **Source:** Baymard Institute
 
 ### UX-08 [HIGH] Gesture Discoverability
 Custom gestures have visual affordances. Alternative tap-based action always available.
 - **Detect:** Swipe actions without visual hint. Long-press without tooltip. Custom gesture with no affordance
 - **Fix:** Drag handles, swipe hint animations, contextual tooltips on first encounter. Always provide alternative tap action
+- **Impact:** A custom gesture with no visual hint and no tap alternative is invisible to users who don't already know it exists — the feature functions as if it isn't there.
 - **Source:** Material Design
 
 ### UX-09 [HIGH] Animation Duration 200-500ms
 State transition animations between 200-500ms. Must respect reduced motion.
 - **Detect:** Animations >500ms or <150ms. No reduced motion check. Decorative animations without purpose
 - **Fix:** 200-500ms for transitions. Check reduced motion setting. Replace scale/pan with opacity for reduced motion users
+- **Impact:** Animations outside 200-500ms read as either sluggish (too slow) or jarring (too fast), and ignoring reduced-motion settings can trigger real discomfort for vestibular-disorder users.
 - **Source:** Interaction Design Foundation
 
 ### UX-10 [HIGH] Search Bar at Top
 Prominent search with suggestions, recents, voice icon, no-results state.
 - **Detect:** Search hidden in menu/drawer. No recent searches. No suggestions. Missing no-results state
 - **Fix:** Search bar at top of screen. Real-time suggestions. Recent searches. Voice icon. Helpful no-results with alternatives
+- **Impact:** Search buried in a menu goes unused even when it's the fastest path to content, because users don't look for what they can't see.
 - **Source:** Nielsen Norman Group — Mobile Search Patterns, Material 3 Search Component
 
 ### UX-11 [HIGH] Progressive Onboarding
 Value-first. Defer advanced features. Skip always visible.
 - **Detect:** Full walkthrough before any interaction. Permission requests on first screen. Information overload at startup
 - **Fix:** Value-first screen. Contextual tooltips on user actions. Skip button visible. Permission priming before system prompt
+- **Impact:** A full walkthrough before any interaction is where the most new users abandon an app, before they've seen any value.
 - **Source:** Interaction Design Foundation
 
-### UX-12 [CRITICAL] Permission Priming
+### UX-12 [HIGH] Permission Priming
 Pre-permission screen explaining WHY before system prompt.
 - **Detect:** System permission dialog without preceding context screen. Permission request unrelated to current action
 - **Fix:** Custom priming UI: explain benefit → user taps Continue → system prompt. Denied → degrade gracefully + settings redirect
@@ -92,36 +101,42 @@ Pre-permission screen explaining WHY before system prompt.
 Infinite scroll for mobile lists. Lazy load images.
 - **Detect:** Pagination with page numbers. Loading entire list at once. No image lazy loading
 - **Fix:** Infinite scroll with lazy loading. Progressive image loading (placeholder → thumbnail → full). Pull-to-refresh
+- **Impact:** Numbered pagination on mobile adds a tap-and-wait cycle to browsing that infinite scroll eliminates, and loading full images up front spikes initial load time.
 - **Source:** Smashing Magazine
 
 ### UX-14 [HIGH] Keyboard Avoidance
 Content scrolls when keyboard appears. Fields not covered.
 - **Detect:** Input fields hidden behind keyboard. No scroll adjustment. Fixed elements overlapping keyboard
 - **Fix:** Scroll viewport to active field. Platform keyboard avoidance: iOS KeyboardAvoidingView, Android adjustResize, Flutter Scaffold resizeToAvoidBottomInset
+- **Impact:** A field hidden behind the keyboard is a field the user cannot fill in without first discovering they need to scroll manually.
 - **Source:** Apple HIG — Keyboard Management, Android Input Method Guide, Flutter Scaffold.resizeToAvoidBottomInset
 
 ### UX-15 [HIGH] Optimistic UI Updates
 Show expected result immediately. Reconcile asynchronously.
 - **Detect:** UI blocked during every server call. Spinner for every tap. List unchanged until API responds
 - **Fix:** Update UI on user action. Reconcile with server response. Revert on failure with feedback
+- **Impact:** Blocking the UI on every server round-trip makes the app feel as slow as its slowest network call, even when the eventual result was predictable.
 - **Source:** Facebook Engineering — Optimistic UI, Material Design Interaction Patterns
 
 ### UX-16 [LOW] Grouped Settings
 Categories for 15+ settings. Toggles for immediate-effect only. Destructive actions at bottom.
 - **Detect:** Flat settings list 15+ items. Toggles for irreversible actions. Delete/logout at top
 - **Fix:** Category headers. Toggles only for immediate, reversible changes. Destructive actions at bottom with confirmation
+- **Impact:** An unsorted flat list of 15+ settings makes a specific option something users must scan for every time instead of finding by category.
 - **Source:** Android Settings Guidelines
 
 ### UX-17 [LOW] Haptic Feedback
 Tactile feedback for critical actions.
 - **Detect:** No haptics on save/delete/purchase/toggle. Haptics on every tap (overuse)
 - **Fix:** Light for selections. Medium for confirmations. Heavy for destructive. Co-design with visual+audio. Optimal keyclick 10-20ms
+- **Impact:** No haptic feedback on save/delete/purchase leaves the user uncertain the tap registered; haptics on every tap desensitize the signal for when it matters.
 - **Source:** Apple HIG, Android Haptics Design
 
 ### UX-18 [HIGH] In-App Review Timing
 After positive experience. Frequency capped.
 - **Detect:** Review prompt on first launch. No frequency cap. Prompt after error
 - **Fix:** Trigger after successful task. Cap 3x/year. Use platform API (SKStoreReviewController / ReviewManager)
+- **Impact:** Prompting for a review right after a bad experience (or an uncapped number of times) collects negative reviews and trains users to dismiss the prompt on sight.
 - **Source:** Apple App Store Review Guidelines (Section 1.1.7), Google Play In-App Review API
 
 ### UX-19 [HIGH] Navigation Depth <= 3 Taps
@@ -173,7 +188,7 @@ Irreversible actions require confirmation or offer undo.
 - **Impact:** Irreversible data loss with no recovery path. Legal risk under GDPR Article 17
 - **Source:** Nielsen Norman Group, Material Design Confirmation Patterns
 
-### UX-26 [CRITICAL] Dark Pattern Prevention
+### UX-26 [HIGH] Dark Pattern Prevention
 No deceptive UI patterns that trick users into unintended actions.
 - **Detect:** Pre-checked consent checkboxes. Confirmshaming ("No, I don't want to save money"). Asymmetric button styling (accept prominent, reject hidden). Hidden unsubscribe. Forced continuity without clear cancellation. Misdirection in privacy settings
 - **Fix:** Equal visual weight for accept/reject. Unchecked opt-ins by default. Clear, neutral language for all choices. Easy-to-find cancellation. Transparent pricing and renewal terms
@@ -185,18 +200,19 @@ Apps handling sensitive data must show visible trust indicators on relevant scre
 - **Detect:** App handles sensitive data (auth, health, finance, encrypted storage, PII) but shows no visual trust indicators on relevant screens. No encryption/security status near sensitive operations. No data handling disclosure before permission prompts
 - **Fix:** Add contextual trust indicators: encryption badge on auth/data-entry screens. Data handling micro-text near sensitive operations (e.g., "Processed in memory only", "End-to-end encrypted"). Privacy transparency panel in settings showing what data is collected. Just-in-time disclosure before permission prompts (increases opt-in 12-19%)
 - **Conditional:** Only for apps with privacy/security/health/finance focus — detect via manifest permissions, API patterns, or compliance docs
+- **Impact:** Users handling sensitive data with no visible trust signal have no way to distinguish a careful implementation from a careless one, and will assume the worse of the two by default.
 - **Source:** Nielsen Norman Group — Trust in UX Design, Signal/Ente/Bitwarden Privacy UX Patterns
 
 ---
 
 ## Visual Design
 
-### VIS-01 [CRITICAL] Dynamic Type / Font Scaling
+### VIS-01 [HIGH] Dynamic Type / Font Scaling
 Support system font scaling. iOS: Dynamic Type. Android: sp (never dp for text).
 - **Detect:**
   - Android: text sized in `dp` instead of `sp`
   - iOS: fixed font sizes ignoring Dynamic Type
-  - Flutter: not using `MediaQuery.textScaleFactor` or TextTheme
+  - Flutter: not using `MediaQuery.textScalerOf(context)` (current API — `textScaleFactor` is deprecated) or TextTheme
   - Text truncated at 200% scale
 - **Fix:**
   - iOS: UIFontMetrics, Dynamic Type categories
@@ -209,45 +225,52 @@ Support system font scaling. iOS: Dynamic Type. Android: sp (never dp for text).
     - RN: `Text.defaultProps.maxFontSizeMultiplier = 1.3`
     - Web: `clamp(0.8rem, 1em, 1.3rem)` in CSS font-size
   - **Target:** Remove cap once all screens pass layout test at 200% scale
+- **Impact:** Text that doesn't scale with the system font setting is unreadable for the users who rely on that setting most — low-vision users who set 150-200% scaling.
 - **Source:** WCAG 1.4.4, Apple HIG, Material 3
 
-### VIS-02 [CRITICAL] Minimum Text Size
+### VIS-02 [HIGH] Minimum Text Size
 Body >= 16sp/17pt. Never below 11sp/12pt for any text.
 - **Detect:** Body text < 16sp. Any text < 11sp. Captions unreadable
 - **Fix:** Material 3 scale: Display 57-36, Headline 32-24, Title 22-16, Body 16-14, Label 14-11
+- **Impact:** Text below 11sp/12pt is unreadable at arm's length for a large share of users regardless of accessibility settings, not just an edge-case population.
 - **Source:** Material 3 Typography Scale, Apple Dynamic Type Sizes, WCAG 1.4.4
 
 ### VIS-03 [HIGH] Semantic Color Tokens
 Named colors (surface, primary, error), not hardcoded hex.
 - **Detect:** Hardcoded `Color(0xFF...)`, `#hex`, `UIColor(red:green:blue:)` outside theme. Colors not adapting to dark mode
 - **Fix:** Define via ColorScheme/ThemeData. Tokens: background, surface, onSurface, primary, onPrimary, error, outline, outlineVariant
+- **Impact:** Hardcoded hex colors don't respond to a dark-mode toggle, so a themed screen ships with one broken palette the moment the user switches modes.
 - **Source:** Material 3, Apple Color
 
 ### VIS-04 [HIGH] Dark Mode
 Respect system preference. Manual toggle. Test all screens.
 - **Detect:** No dark mode. Hardcoded colors not adapting. Images not adapted. No theme toggle
 - **Fix:** System-aware theme. Adapt images. Dark gray (#121212) for surfaces. Manual toggle in settings
+- **Impact:** Hardcoded light-only colors under a dark system theme produce low-contrast or inverted-looking screens the OS itself told the app were coming.
 - **Source:** Material 3, Apple HIG
 
 ### VIS-05 [LOW] Dark Gray Over Pure Black
 #121212 for surfaces. Pure black (#000000) → OLED smearing.
 - **Detect:** `#000000` or `Color(0xFF000000)` as dark mode background
 - **Fix:** #121212 or equivalent dark gray. Pure black only for decorative or user-requested high-contrast
+- **Impact:** Pure black on OLED panels causes visible smearing during scroll and motion, a display artifact users notice even without knowing the cause.
 - **Source:** Material Design Dark Theme Guide, OLED Display Smearing Research
 
 ### VIS-06 [HIGH] 8dp Grid Spacing
 All spacing in multiples of 8. Internal <= external.
 - **Detect:** Arbitrary spacing (7, 13, 22). Inconsistent padding. Internal spacing > external
 - **Fix:** 8dp multiples: 8, 16, 24, 32, 40, 48. Allow 4dp for compact. Internal <= external
+- **Impact:** Arbitrary spacing values compound into a visibly inconsistent layout as the app grows past a handful of screens, each one built to a slightly different rhythm.
 - **Source:** Material 3, 8-point grid
 
 ### VIS-07 [HIGH] Platform Icons
 SF Symbols (iOS), Material Icons (Android). Accessibility labels on all icons.
 - **Detect:** Custom icons where platform icons exist. Inconsistent sizes. Icons without a11y labels
 - **Fix:** SF Symbols (6900+, 9 weights, 3 scales). Material Icons (dp-based). Always label for screen readers
+- **Impact:** Custom icons where a platform icon exists break the visual vocabulary users already know from every other app on their device, adding a recognition tax to every screen.
 - **Source:** Apple SF Symbols, Material Icons
 
-### VIS-08 [CRITICAL] Safe Area Handling
+### VIS-08 [HIGH] Safe Area Handling
 Respect notch, Dynamic Island (44-58px), punch-hole, system bars.
 - **Detect:** Content behind system bars. Interactive elements under notch/Dynamic Island. No safe area padding
 - **Fix:**
@@ -255,6 +278,7 @@ Respect notch, Dynamic Island (44-58px), punch-hole, system bars.
   - Android: WindowInsetsCompat, edge-to-edge with inset handling
   - Flutter: SafeArea widget
   - Min 16-24pt edge distance
+- **Impact:** Interactive elements placed under the notch, Dynamic Island, or system bars are literally untappable on the affected device class.
 - **Source:** Apple HIG, Android 15 edge-to-edge
 
 ### VIS-09 [HIGH] Adaptive Layout
@@ -274,36 +298,42 @@ Phone, tablet, foldable support via window size classes.
   | Large tablet | 1024dp | Expanded | iPad Pro, desktop window |
 
   Also test: landscape orientation, font scale 1.3×, dark mode, RTL layout (if i18n supported)
+- **Impact:** A fixed phone layout on tablet or foldable either wastes most of the screen or clips content — both read as an unfinished, unmaintained app on that device class.
 - **Source:** Material 3 Adaptive Design
 
 ### VIS-10 [HIGH] Typography Scale
 Follow platform type scale. No ad-hoc sizes.
 - **Detect:** Random font sizes outside scale. Mixed families. Inconsistent weights
 - **Fix:** Define app type scale once using platform tokens. Material 3: 15 tokens. Apple: Dynamic Type categories
+- **Impact:** Ad-hoc font sizes outside the platform scale accumulate into a typography system with no internal consistency, undermining the visual hierarchy every screen depends on.
 - **Source:** Material 3 Typography
 
 ### VIS-11 [HIGH] RTL Layout Support
 Mirror layout for RTL languages. start/end not left/right.
 - **Detect:** `android:supportsRtl` missing. left/right instead of start/end. Directional icons not mirrored. Layout broken in RTL
 - **Fix:** `android:supportsRtl="true"`. Use start/end. Mirror directional icons. Test Arabic/Hebrew
+- **Impact:** A layout that doesn't mirror for RTL is unusable, not just unpolished, for Arabic/Hebrew users — reading order, icon direction, and navigation all point the wrong way.
 - **Source:** Android i18n, WCAG
 
 ### VIS-12 [LOW] Bottom Sheet Drag Handle
 Handle visible, >= 48dp wide. Snap points defined.
 - **Detect:** Bottom sheet without handle. Handle < 48dp. No snap points
 - **Fix:** Visible handle >= 48dp. Snap points: peek, half, full. Handle keyboard interaction
+- **Impact:** A bottom sheet with no visible or undersized drag handle leaves users unsure the sheet is draggable at all.
 - **Source:** Material 3
 
 ### VIS-13 [LOW] Launch Screen Transition
 Smooth splash-to-content transition. No blank flash.
 - **Detect:** Blank/white flash between splash and content. Splash > 2s. No transition
 - **Fix:** Platform splash API (Android 12+ SplashScreen, iOS launch storyboard). Fast transition to first content
+- **Impact:** A blank flash between splash and content reads as a stutter or crash-and-recover, even though nothing actually failed.
 - **Source:** Android 12 SplashScreen API, Apple Launch Storyboard Guide, Flutter Native Splash
 
 ### VIS-14 [HIGH] Adaptive Icons (Android)
 Foreground + background layers. 66dp safe zone.
 - **Detect:** Non-adaptive icon. Content outside safe zone. Single-layer icon
 - **Fix:** 108x108dp with 66dp safe zone. Vector preferred. Separate foreground/background
+- **Impact:** A non-adaptive icon renders with the wrong shape or clipped content across the different mask shapes Android launchers apply, looking broken on a portion of the Android install base.
 - **Source:** Android Adaptive Icons
 
 ### VIS-15 [HIGH] Color Palette Limit & Harmony
@@ -312,13 +342,6 @@ Maximum 6 distinct hues in app. All colors from theme tokens.
 - **Fix:** Define palette of max 6 hues (primary, secondary, tertiary, neutral, error, + 1 accent). All UI colors reference theme tokens. No arbitrary hex in widget code
 - **Impact:** Uncontrolled color use → visual noise and undermines brand identity
 - **Source:** Material 3 Color System, Color Theory
-
-### VIS-16 [HIGH] Color Blindness Safety
-Color is never sole differentiator. Shapes, icons, or text always accompany color.
-- **Detect:** Red-green as only distinction (e.g., success/error). Status indicators using color alone without icon or label. Charts relying solely on color
-- **Fix:** Pair every color indicator with icon, shape, or text label. Use colorblind-safe palettes. Test with deuteranopia/protanopia simulators
-- **Impact:** 8% of males have color vision deficiency — color-only UI excludes them
-- **Source:** WCAG 1.4.1, Material Design Accessibility
 
 ### VIS-17 [HIGH] Semantic Color Correctness
 Colors match semantic meaning. No misleading color usage.
@@ -394,6 +417,7 @@ Constrained layouts must protect against text/content overflow across all viewpo
   - Content that might exceed viewport height: wrap in scrollable container with min-height constraint
   - Replace hardcoded widths with responsive values (percentage, flex, weight)
   - Use targeted size queries (Flutter: `MediaQuery.sizeOf` not `.of`; Web: container queries not window resize; iOS: trait collections)
+- **Impact:** Unprotected text/content overflow clips or overlaps UI unpredictably across device sizes and font-scale settings, the exact combination real users run in and not just the design's reference viewport.
 - **Source:** Flutter Layout Overflow Debugging, CSS Overflow Module Level 3, Android ConstraintLayout Guide, Auto Layout Guide (Apple)
 
 ---
@@ -404,35 +428,40 @@ Constrained layouts must protect against text/content overflow across all viewpo
 EU apps must comply. EAA active since June 28, 2025 — enforcement is live (first EAA lawsuits filed November 2025). Fines up to EUR 100K or 4% revenue.
 - **Detect:** No accessibility audit. WCAG violations in core flows
 - **Fix:** Audit against WCAG 2.2 AA. Remediate by severity. Document conformance — in conformance claims for native mobile apps cite EN 301 549 Chapter 11 (WCAG criteria adapted for software plus mobile-specific requirements such as platform accessibility API usage), not raw WCAG: WCAG does not directly apply to native apps per the European Commission
+- **Impact:** EAA enforcement is live with the first lawsuits already filed (November 2025) — this is a current, active legal exposure with fines up to EUR 100K or 4% of revenue, not a future risk.
 - **Source:** WCAG 2.2, EAA 2019/882, EN 301 549 Chapter 11
 
-### A11Y-02 [CRITICAL] Touch Target >= 44dp
+### A11Y-02 [HIGH] Touch Target >= 44dp
 Every interactive element >= 44x44dp. Spacing >= 8dp between targets.
 - **Detect:**
   - Check for: `height: [0-3][0-9]`, `width: [0-3][0-9]` on interactive widgets
   - Tappable elements with no minimum size constraint
 - **Fix:** Set minWidth/minHeight 44dp. Add padding for hit area. 8dp+ spacing between targets
 - **Note:** WCAG minimum 24x24. Apple recommends 44pt. Material 3 recommends 48dp. Use 44dp as practical minimum
+- **Impact:** A touch target under 44dp is difficult or impossible to hit reliably for users with motor impairments, and increases mis-tap rate for every user on a moving vehicle or with cold hands.
 - **Source:** WCAG 2.5.8, Apple HIG, Material 3
 
-### A11Y-03 [CRITICAL] Semantic Labels
+### A11Y-03 [HIGH] Semantic Labels
 Every interactive widget has a11y label. Decorative elements hidden from tree.
 - **Detect:**
   - Interactive widgets without: `accessibilityLabel` (iOS), `contentDescription` (Android), `Semantics(label:)` (Flutter), `accessibilityLabel` (RN)
   - Images without `isAccessibilityElement=false` or `Semantics(excludeSemantics:true)` for decorative
 - **Fix:** Add descriptive labels. Mark decorative as excluded. Set traits/roles. Define custom actions
+- **Impact:** An interactive element with no semantic label is invisible or silent to a screen-reader user — they cannot identify or activate it at all.
 - **Source:** WCAG, Apple VoiceOver, Android a11y
 
-### A11Y-04 [CRITICAL] Text Contrast 4.5:1
+### A11Y-04 [HIGH] Text Contrast 4.5:1
 Normal text 4.5:1. Large text (18pt+ or 14pt+ bold) 3:1.
 - **Detect:** Low-contrast text. Light gray on white. Placeholder text too faint
 - **Fix:** Adjust colors. Never rely on color alone. 83.6% of websites fail contrast (WebAIM)
+- **Impact:** Text below the 4.5:1 contrast ratio is unreadable for the ~1 in 12 users with some form of color vision deficiency or low vision, in normal daylight conditions for everyone else.
 - **Source:** WCAG 1.4.3
 
-### A11Y-05 [CRITICAL] Non-Text Contrast 3:1
+### A11Y-05 [HIGH] Non-Text Contrast 3:1
 UI components, focus indicators, meaningful graphics.
 - **Detect:** Faint borders, outlines, or focus rings. Icons below 3:1
 - **Fix:** Adjust component colors. Ensure focus indicators visible. Exception: inactive controls
+- **Impact:** Low-contrast borders, icons, and focus indicators are the difference between a control a low-vision user can find and one they can't — the WCAG 3:1 minimum exists because this is a measured, common failure.
 - **Source:** WCAG 1.4.11
 
 ### A11Y-06 [HIGH] Respect Reduced Motion
@@ -442,30 +471,35 @@ All animations conditional on reduced motion setting.
   - Check: `prefers-reduced-motion` (web/RN), `UIAccessibility.isReduceMotionEnabled` (iOS), `Settings.Global.ANIMATOR_DURATION_SCALE` (Android)
   - Replace scale/pan with opacity crossfade
   - Max 5s duration, max 3 flashes/sec
+- **Impact:** Auto-play or parallax motion the user explicitly disabled via OS settings can trigger real physical symptoms (nausea, vertigo) for vestibular-disorder users, not just annoyance.
 - **Source:** WCAG 2.3.3
 
 ### A11Y-07 [HIGH] Focus Management
 Logical order. Focus moves to new content. Focus trapped in modals.
 - **Detect:** Random focus after screen change. Lost focus on dismiss. No trap in dialogs
 - **Fix:** iOS: @AccessibilityFocusState. Android: focusable + nextFocus. Move focus to new content. Restore on dismiss
+- **Impact:** Lost or untrapped focus after a screen change or modal leaves keyboard and screen-reader users unable to tell where they are or how to proceed.
 - **Source:** WCAG
 
 ### A11Y-08 [HIGH] Color Not Sole Indicator
 Pair color with text, icon, or pattern.
 - **Detect:** Error only by red. Status only by color dot. Required marked only by color
 - **Fix:** Icon + text alongside color. Shapes + labels in charts
+- **Impact:** Color-only status or error indicators are invisible to the ~8% of men with color vision deficiency, who see the same UI as everyone with no distinguishing signal at all. Absorbs the VIS-16 duplicate.
 - **Source:** WCAG 1.4.1
 
 ### A11Y-09 [HIGH] Both Orientations
 Portrait + landscape unless functionally essential.
 - **Detect:** Orientation locked without functional reason. Layout broken in landscape
 - **Fix:** Support both. Test all screens. Adaptive layout
+- **Impact:** A layout that locks to one orientation or breaks in landscape excludes users who mount their device (wheelchair, car mount, stand) in the orientation the app didn't test.
 - **Source:** WCAG 1.3.4
 
 ### A11Y-10 [HIGH] Accessible Error Messages
 Screen reader announced. Clear, actionable language. Associated with input.
 - **Detect:** Errors not announced. Vague text. Error not linked to field
 - **Fix:** iOS: UIAccessibility.post(.announcement). Android: accessibilityLiveRegion. Associate errors with inputs
+- **Impact:** An error that isn't announced to the screen reader, or isn't linked to its field, leaves a blind user unaware the submission failed at all.
 - **Source:** WCAG 4.1.3
 
 ### A11Y-11 [HIGH] Dragging Alternatives

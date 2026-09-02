@@ -52,15 +52,6 @@ Each path includes four fields:
 - **Path C:** Replace the algorithm with a simpler one (e.g., remove premature optimization, swap a hand-rolled state machine for a switch).
   - Effort: 2-4h | Impact: 1 file + tests | Risk: MEDIUM | Rollback: `git restore -- {files}`
 
-### YAGNI-USAGE
-
-- **Path A:** Delete the unused declaration.
-  - Effort: 0.5h | Impact: 1 file | Risk: LOW | Rollback: `git restore -- {files}`
-- **Path B:** Delete + remove related plumbing (config fields, env vars, doc references).
-  - Effort: 1h | Impact: 2-4 files | Risk: LOW | Rollback: `git restore -- {files}`
-- **Path C:** Audit the entire feature surface for additional dead siblings (often YAGNI clusters). Delete the cluster as a batch.
-  - Effort: 2-4h | Impact: 5+ files | Risk: MEDIUM | Rollback: `manual — restore files: {list}`
-
 ### SOC-ISOLATION
 
 - **Path A:** Document the scattered responsibility in one location (e.g., a doc-comment block). No code change.
@@ -69,19 +60,6 @@ Each path includes four fields:
   - Effort: 2-4h | Impact: {n+1} files | Risk: MEDIUM | Rollback: `git restore -- {files}`
 - **Path C:** Re-architect the responsibility as a cross-cutting concern (middleware, interceptor, aspect). All sites become declarative consumers.
   - Effort: 1-2d | Impact: project-wide | Risk: HIGH | Rollback: `manual — restore files: {list}`
-
-### OBSOLETE
-
-- **Path A:** Delete the dead code path.
-  - Effort: 0.5h | Impact: 1 file | Risk: LOW | Rollback: `git restore -- {files}`
-- **Path B:** Delete + remove all related compat shims (test guards, type aliases, deprecation comments).
-  - Effort: 1h | Impact: 2-4 files | Risk: LOW | Rollback: `git restore -- {files}`
-- **Path C:** Migration sweep: identify everywhere the legacy contract leaked (docs, tests, CI configs) and clean uniformly.
-  - Effort: 2-4h | Impact: 5+ files | Risk: MEDIUM | Rollback: `manual — restore files: {list}`
-
-### DUPLICATE
-
-Same as DRY-PATTERN, applied at function/module granularity.
 
 ## Presentation format
 
@@ -107,6 +85,6 @@ The "all matching" affordance applies the same path letter to every finding with
 
 ## Risk caps
 
-- A path marked `HIGH` risk MUST be classified Category B (approval-gated) regardless of `--auto`.
+- A path marked `HIGH` risk MUST be classified Category B (approval-gated) in every mode.
 - A path that modifies more than 10 files MUST be classified Category B, even if scope-level risk is LOW.
-- A path whose rollback is `manual` resolves under `--auto` per best judgment (applied by best judgment) unless it independently matches the rule-4 irreversible-exception list (force-push, permanent deletion, secret rotation, human-only value) — then it is `skipped (needs-human)`.
+- A path whose rollback is `manual` resolves by best judgment without `--ask` (applied, not stranded) unless it independently matches the publish/irreversible exception list ([`../../core/ask-exception-list.md`](../../core/ask-exception-list.md): force-push, permanent deletion, secret rotation, human-only value) — then it is `skipped (needs-human)`.

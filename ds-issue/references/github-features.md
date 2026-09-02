@@ -70,7 +70,7 @@ Anything not in this table was not verified — do not build behavior on it.
 
 **List calls truncate silently — always `--limit 1000`, then measure.** `gh issue list` and `gh search issues` return **30 items** when `--limit` is omitted. The 31st issue does not error, it just is not there: a 44-issue backlog reads as 30, dedup misses the duplicate, `--do --all` skips the tail, and `--status` reports a count that is simply wrong. Every list call passes `--limit 1000`, and the run **measures the returned count** (`… --json number --jq 'length'`) instead of eyeballing the list. Returned count == the limit → the set may still be truncated: raise the limit and re-read before quoting any number. A count that was never measured is never reported.
 
-**Read-phase command allowlist:** `--status`, `--sweep` classification, and every `--preview` restrict `gh` to `issue view` / `issue list` / `search issues` / `label list` (+ `repo view` for the slug). Mutating commands (`issue create/edit/close`, `label create`) run only after the per-item confirmation the SKILL gates require (or, under `--auto`, the best-judgment resolution the SKILL gates specify).
+**Read-phase command allowlist:** `--status`, `--sweep` classification, and every `--preview` restrict `gh` to `issue view` / `issue list` / `search issues` / `label list` (+ `repo view` for the slug). Mutating commands (`issue create/edit/close`, `label create`) resolve by the best-judgment rule the SKILL gates specify by default, or after the per-item confirmation the SKILL gates require under `--ask`.
 
 ## Dedup search (Phase 2) — run it, paste the output
 

@@ -34,6 +34,7 @@ description: Store and release management — store submission, listing optimiza
 - Full accounting enforced: every finding and planned check ends in an explicit disposition (fixed / skipped + reason / needs-human); summary totals balance.
 - Pre-existing / out-of-scope errors detected during work are NOT skipped — fixed inline or escalated with concrete blocker. <!-- portable-only -->
 - State-exempt: audit is regenerable; generated configs/fixes land in the working tree — git is the durable record.
+- **Metadata directory:** `ds/launch/` holds this skill's committed deliverables only — store listing text, privacy-label mappings, release notes, `perf-budget.json`, submission notes (`submission-notes-{apple,google}.txt`, `submission-meta.yml`). No other skill or scratch output writes there.
 
 ## Arguments
 
@@ -41,18 +42,18 @@ description: Store and release management — store submission, listing optimiza
 |------|--------|
 | `--setup` | Store account setup checklists + initial configuration |
 | `--listing` | Store listing metadata: description, keywords, screenshots |
-| `--privacy` | Privacy label declarations — **store-label-correctness only**. Canonical privacy audit delegated to `/ds-compliance --privacy` (privacy audit belongs to ds-compliance). Verifies store labels match actual code behavior; does not re-audit data collection or consent. |
+| `--privacy` | Privacy label declarations — **store-label-correctness only**, always runs inline regardless of `/ds-compliance`. `/ds-compliance` present → additionally delegate the canonical privacy audit (`--privacy`, data collection + consent); absent → gap-note `[privacy-canonical] not analyzed — requires /ds-compliance --privacy`, store-label check stands alone. |
 | `--review` | Pre-review checklist: common rejection prevention |
 | `--submission-notes` | **Proactive submission notes generator** — fills App Review Information Notes upfront so reviewer doesn't need to ask follow-ups (saves +24-48h per round-trip). See [references/app-store-submission-template.md](references/app-store-submission-template.md) |
 | `--aso` | App Store Optimization — keyword research + search ranking |
-| `--seo` | Web discoverability: meta/OG tags, sitemap, robots, canonicals, JSON-LD (web platform) |
-| `--email` | Email deliverability: SPF/DKIM/DMARC, one-click unsubscribe, spam-rate posture (sending domain detected) |
+| `--seo` | Advisory handoff to `/ds-compliance` (web scope, WEB-08) for SEO audit + generation (meta/OG, sitemap, robots, canonicals, JSON-LD) — this skill runs no local SEO detector |
+| `--email` | Advisory handoff to `/ds-compliance` for email-authentication audit (SPF/DKIM/DMARC, one-click unsubscribe, spam-rate posture) — this skill runs no local DNS detector |
 | `--release` | Release management: version, notes, staged rollout |
 | `--post-launch` | Post-launch monitoring checklist |
 | `--perf-budget` | Author a formal perf budget (LCP, INP, p99, bundle size, startup) + wire CI enforcement via `/ds-devops` |
-| `--auto` | Zero-interaction run — every decision resolved by best judgment; only the fixed irreversible-exception list is skipped and recorded `needs-human`. Ends in the standard summary only. |
+| `--ask` | Interactive run — menus, approval batches and confirmations at every decision point. Without it every decision resolves by best judgment from the evidence gathered and is recorded in the summary; only the publish/irreversible exception list is skipped and recorded `needs-human`. |
 
-No flags → present an up-front menu of every mode in the Arguments table (each with its one-line effect), Setup marked (recommended), plus (Cancel). A disambiguating flag skips the menu. `--auto` alone (no mode flag) also skips the menu — runs every mode in sequence, the skill's best-judgment default (a flag disambiguates every menu).
+Without flags: every mode runs in sequence, each decision resolved by best judgment and recorded (the skill's default). `--ask` alone (no mode flag) presents an up-front menu of every mode in the Arguments table (each with its one-line effect), Setup marked (recommended), plus (Cancel). A disambiguating flag skips the menu.
 
 ### Perf Budget Mode (`--perf-budget`)
 
@@ -69,6 +70,17 @@ Authors `ds/launch/perf-budget.json` (committed; `ds/<skill>/` operational names
 **CI enforcement:** delegate to `/ds-devops` to add a CI step running the project's native perf tool (Lighthouse CI, k6, Firebase Test Lab, etc.) + compare to `ds/launch/perf-budget.json`; over-budget → CI fails with offending metric(s) named. Budget authoring is Category B (commits project to enforceable numbers); CI wiring is Category A once budget exists.
 
 ## Scopes
+
+| Scope | Runs when (signal) | Otherwise |
+|-------|---------------------|-----------|
+| Store Setup, Listing, ASO, Privacy (store-label) | `platforms` ∩ {ios, android} ≠ ∅ | N/A — no store target (web/desktop-only project) |
+| Submission-Notes | `--submission-notes` | N/A — mode not selected |
+| Review | any source (individual store-only checks N/A when no store target) | — |
+| Release | any source | — |
+| SEO | `ui=web` (advisory handoff to `/ds-compliance` — no local detector) | N/A — `ui≠web` |
+| Email Deliverability | sending domain detected (advisory handoff to `/ds-compliance` — no local detector) | N/A — no sending domain detected |
+| Desktop Distribution | desktop project detected (Electron/Tauri config, `*.xcodeproj` macOS target, MSIX/WiX manifest) | N/A — no desktop target |
+| A9 Ecosystem | `integrations` signal or Blueprint Profile `Integrations:` names `google-workspace`/`apple-ecosystem` | N/A — neither source names it |
 
 **Store Setup:** verify store account setup complete — developer account active, app ID registered, signing configured.
 
@@ -124,7 +136,7 @@ Generates the **App Review Information → Notes** body upfront so reviewer neve
 | Regulated industry | default "N/A" | confirm or override |
 | Reviewer-only contact | — | required input |
 
-**Under `--auto`:** auto-detected fields (app purpose, test path, auth providers, payment processors, AI services, data handling, account deletion) still populate automatically; fields with no inferable value (demo credentials, reviewer-only contact) are never fabricated — they match the publish/irreversible exception list (a value only a human can supply) and are recorded `needs-human` in the summary instead of prompted for.
+Default and `--ask` alike: auto-detected fields (app purpose, test path, auth providers, payment processors, AI services, data handling, account deletion) populate automatically; fields with no inferable value (demo credentials, reviewer-only contact) are never fabricated — they match the publish/irreversible exception list (a value only a human can supply) and are recorded `needs-human` in the summary instead of guessed. `--ask` additionally prompts for these fields instead of leaving them `needs-human`.
 
 **Output:** `ds/launch/submission-notes-apple.txt` + `ds/launch/submission-notes-google.txt` + `ds/launch/submission-meta.yml` (audit trail, committed). Generic template + cookbook of pre-written reject replies in [references/app-store-submission-template.md](references/app-store-submission-template.md). **Pre-submission self-audit:** mode runs `--review` active-detection scan first — any CRITICAL → submission notes not generated until fixed; WARN if HIGH findings present but not blocking.
 
@@ -132,28 +144,28 @@ Generates the **App Review Information → Notes** body upfront so reviewer neve
 
 Each check scans codebase + produces PASS/FAIL with severity and file:line — not a manual checklist.
 
-| Check | Detection Method | Severity |
-|-------|-----------------|----------|
-| Privacy policy | Scan configs + metadata for URL; `curl -s -o /dev/null -w '%{http_code}' {url}` → `200` | CRITICAL |
-| Metadata completeness | Scan store metadata dirs for empty/placeholder content | CRITICAL |
-| Permission descriptions | Parse `Info.plist` / `AndroidManifest.xml` for missing descriptions | HIGH |
-| Privacy manifests + SDK compliance | Scan for `PrivacyInfo.xcprivacy`, flag SDKs without manifests | HIGH |
-| AI data consent | Check for consent modal if external AI services detected | HIGH |
-| Data deletion | Search for account deletion UI flow | HIGH |
-| Platform cross-references | Search listing text for competing platform mentions | MEDIUM |
-| Crash-prone patterns | Scan entry points for force-unwraps, unhandled exceptions | MEDIUM |
-| Age rating | Verify questionnaire completeness, new 13+/16+/18+ tiers | MEDIUM |
-| SDK + build requirements | Check minimum SDK version (iOS 26 SDK required from April 2026) | MEDIUM |
-| ATT + Privacy Manifests | App Tracking Transparency prompt, SDK `PrivacyInfo.xcprivacy` validation | HIGH |
-| IAP external-payment | StoreKit/Play Billing present alongside Stripe/PayPal/checkout URLs for digital content, or "pay on our website" / "subscribe at" strings pointing off-store. **Jurisdiction-split (post-Epic, verify-current):** US App Store storefront — external payment links are permitted without entitlement (Ninth Circuit Dec 11 2025: Apple may eventually charge a "reasonable" cost-based commission — rate not yet set — and may keep external links no more visually prominent than IAP); outside the US — StoreKit External Purchase Link Entitlement required in designated regions, otherwise IAP-only (Guideline 3.1.1). Play: alternative billing per settlement terms; third-party Android stores open from 22 Jul 2026. Flag as CRITICAL only where the pattern violates the target storefront's current rules — never blanket-flag US-storefront external links | CRITICAL (jurisdiction-conditional) |
-| Clone-category risk (4.3(b), Jun 2026) | App's category/concept matches Apple's named spam-prone classes (dating, flashlight, sound effects, wallpaper, simple timers, fortune telling) without a meaningfully differentiated feature set — new "indistinguishable" submissions in these categories are barred and existing low-quality apps may be removed | HIGH |
-| Live Activities misuse (4.5.3) | ActivityKit/Live Activities used for promotional/unsolicited content — 4.5.3 bars using Live Activities to spam, phish, or send unsolicited messages; random/anonymous-chat features additionally fall under Guideline 1.2 UGC duties (Feb 6 2026 revision) | MEDIUM |
-| Restore purchases | Non-consumable IAP or subscription imports detected but no restore-purchases call / UI entry point found (Guideline 3.1.2) | HIGH |
-| Sign in with Apple | Google/Facebook/Twitter auth SDK detected without `com.apple.developer.applesignin` entitlement or `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | HIGH |
-| Reviewer-access gap | Login/auth flow detected but `ds/launch/submission-notes-apple.txt` absent or missing demo-credentials section — reviewer will hit a login wall with no way through | HIGH |
-| App completeness / remote gating | Primary feature classes wrapped in remote-config / feature-flag conditions with no guaranteed-on default — app may appear non-functional to reviewer (Guideline 2.1; Play deceptive-behavior policy) | HIGH |
-| Content-vs-rating | Gambling SDK, loot-box pattern, open `WebView` with no URL restriction, or UGC text-input detected alongside an age-rating declaration of 4+ / Everyone — declared rating inconsistent with detected content signals | MEDIUM |
-| Review timing | Apple: 24-48h typical. Google: 1-7 days (first app longer). | INFO |
+| Check | Detection Method | Severity | Impact |
+|-------|-----------------|----------|--------|
+| Privacy policy | Scan configs + metadata for URL; `curl -s -o /dev/null -w '%{http_code}' {url}` → `200` | CRITICAL | Outright rejection — no review proceeds without a live policy URL |
+| Metadata completeness | Scan store metadata dirs for empty/placeholder content | CRITICAL | Outright rejection under Guideline 2.1 (App Completeness) |
+| Permission descriptions | Parse `Info.plist` / `AndroidManifest.xml` for missing descriptions | HIGH | Rejection or review delay — reviewer cannot verify permission purpose |
+| Privacy manifests + SDK compliance | Scan for `PrivacyInfo.xcprivacy`, flag SDKs without manifests | HIGH | Rejection — required-reason APIs undeclared |
+| AI data consent | Check for consent modal if external AI services detected | HIGH | Rejection under Guideline 5.1.1(i) |
+| Data deletion | Search for account deletion UI flow | HIGH | Rejection under Guideline 5.1.1(v) |
+| Platform cross-references | Search listing text for competing platform mentions | MEDIUM | Listing edit demand or takedown |
+| Crash-prone patterns | Scan entry points for force-unwraps, unhandled exceptions | MEDIUM | Reviewer hits a crash on first launch — instant rejection |
+| Age rating | Verify questionnaire completeness, new 13+/16+/18+ tiers | MEDIUM | Rating-questionnaire rejection, re-submission cycle |
+| SDK + build requirements | Check minimum SDK version (iOS 26 SDK required from April 2026) | MEDIUM | Build rejected as non-compliant at upload |
+| ATT + Privacy Manifests | App Tracking Transparency prompt, SDK `PrivacyInfo.xcprivacy` validation | HIGH | Rejection, or post-launch takedown on audit |
+| IAP external-payment | StoreKit/Play Billing present alongside Stripe/PayPal/checkout URLs for digital content, or "pay on our website" / "subscribe at" strings pointing off-store. **Jurisdiction-split (post-Epic, verify-current):** US App Store storefront — external payment links are permitted without entitlement (Ninth Circuit Dec 11 2025: Apple may eventually charge a "reasonable" cost-based commission — rate not yet set — and may keep external links no more visually prominent than IAP); outside the US — StoreKit External Purchase Link Entitlement required in designated regions, otherwise IAP-only (Guideline 3.1.1). Play: alternative billing per settlement terms; third-party Android stores open from 22 Jul 2026. Flag as CRITICAL only where the pattern violates the target storefront's current rules — never blanket-flag US-storefront external links | CRITICAL (jurisdiction-conditional) | Rejection under Guideline 3.1.1, or post-launch removal |
+| Clone-category risk (4.3(b), Jun 2026) | App's category/concept matches Apple's named spam-prone classes (dating, flashlight, sound effects, wallpaper, simple timers, fortune telling) without a meaningfully differentiated feature set — new "indistinguishable" submissions in these categories are barred and existing low-quality apps may be removed | HIGH | Submission barred outright, or existing listing removed |
+| Live Activities misuse (4.5.3) | ActivityKit/Live Activities used for promotional/unsolicited content — 4.5.3 bars using Live Activities to spam, phish, or send unsolicited messages; random/anonymous-chat features additionally fall under Guideline 1.2 UGC duties (Feb 6 2026 revision) | MEDIUM | Rejection under 4.5.3, compounding with 1.2 for UGC apps |
+| Restore purchases | Non-consumable IAP or subscription imports detected but no restore-purchases call / UI entry point found (Guideline 3.1.2) | HIGH | Rejection under Guideline 3.1.2 |
+| Sign in with Apple | Google/Facebook/Twitter auth SDK detected without `com.apple.developer.applesignin` entitlement or `ASAuthorizationAppleIDProvider` import (Guideline 4.8) | HIGH | Rejection under Guideline 4.8 |
+| Reviewer-access gap | Login/auth flow detected but `ds/launch/submission-notes-apple.txt` absent or missing demo-credentials section — reviewer will hit a login wall with no way through | HIGH | Automatic rejection — reviewer cannot proceed past login |
+| App completeness / remote gating | Primary feature classes wrapped in remote-config / feature-flag conditions with no guaranteed-on default — app may appear non-functional to reviewer (Guideline 2.1; Play deceptive-behavior policy) | HIGH | Rejection under Guideline 2.1 — app looks broken to the reviewer |
+| Content-vs-rating | Gambling SDK, loot-box pattern, open `WebView` with no URL restriction, or UGC text-input detected alongside an age-rating declaration of 4+ / Everyone — declared rating inconsistent with detected content signals | MEDIUM | Rating dispute, forced re-submission |
+| Review timing | Apple: 24-48h typical. Google: 1-7 days (first app longer). | INFO | Sets submission-timeline expectations, not a rejection risk |
 
 ### Release
 
@@ -161,33 +173,20 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 |---------|---------------|
 | Versioning | Semantic versioning, build number management |
 | Release notes | User-facing changelog, localization |
-| User-facing changelog (D6, advisory) | Distinct from dev/store release notes — a plain-language "what changed" surface exists, especially when an OTA/silent auto-update channel is detected (CodePush, Expo Updates, Electron auto-updater, or equivalent). OTA channel detected + no user-facing changelog surface -> advisory finding "silent OTA channel with no user-facing changelog" (never a blocker) |
+| User-facing changelog (D6, advisory) | Distinct from dev/store release notes — a plain-language "what changed" surface exists, especially when an OTA/silent auto-update channel is detected (CodePush, Expo Updates, Electron auto-updater, or equivalent). OTA channel detected + no user-facing changelog surface -> advisory finding "silent OTA channel with no user-facing changelog" (never a blocker) — impact: users get silently-changed behavior with no explanation, driving confused support tickets |
 | Staged rollout | Google Play: 1% → 5% → 20% → 50% → 100% (manual). Apple: 7-day phased 1% → 2% → 5% → 10% → 20% → 50% → 100% (can pause). |
-| Rollout automation (advisory) | Mobile project (`pubspec.yaml` / `*.xcodeproj` / `build.gradle` with `android {}`) with no `Fastfile` → MEDIUM finding "no fastlane automation — staged rollout percentages require manual store-console execution". `Fastfile` present → verify release lanes cover the staged-rollout steps above. |
+| Rollout automation (advisory) | Mobile project (`pubspec.yaml` / `*.xcodeproj` / `build.gradle` with `android {}`) with no `Fastfile` → MEDIUM finding "no fastlane automation — staged rollout percentages require manual store-console execution". `Fastfile` present → verify release lanes cover the staged-rollout steps above. — impact: manual percentage bumps get forgotten or delayed, so the staged rollout silently stalls at its first step |
 | Force update | Minimum version enforcement, update UX |
 | Rollback | Emergency rollback procedure |
-| Rollback narrative (D6, advisory) | Beyond the technical rollback procedure above — is there a documented plan for how users are informed when a bad release is rolled back (in-app notice, status page, email)? No documented rollback communication plan -> advisory finding "no rollback communication plan" (never a blocker) |
+| Rollback narrative (D6, advisory) | Beyond the technical rollback procedure above — is there a documented plan for how users are informed when a bad release is rolled back (in-app notice, status page, email)? No documented rollback communication plan -> advisory finding "no rollback communication plan" (never a blocker) — impact: users hit a silently-reverted feature with no explanation, mid-incident, when trust matters most |
 
-### SEO (`--seo` — web platform; auto-included for web-only projects; audit-rule counterpart: ds-compliance WEB-08 — generation/execution is canonical here)
+### SEO (`--seo` — advisory handoff only, no local detector)
 
-| Element | What It Covers |
-|---------|---------------|
-| Meta tags | Title, description, OG tags (og:title, og:description, og:image, og:url) per page |
-| Sitemap | XML sitemap generation, index coverage, lastmod/priority |
-| robots.txt | Disallow rules, sitemap directive, crawl-delay |
-| Canonical URLs | Self-referencing canonicals, duplicate-content prevention |
-| Structured data | JSON-LD (Organization, WebSite, BreadcrumbList, FAQ, Product) — validate against schema.org types, don't just emit |
-| Core Web Vitals link | CWV "Good" bands (LCP ≤2.5s, INP <200ms, CLS <0.1) act as a ranking tie-breaker among similar-quality pages — not a primary ranking driver; budget + enforcement via `--perf-budget` |
-| llms.txt | **Speculative, low signal** — no major AI provider (Google, OpenAI, Anthropic, Meta) uses it in production retrieval; Google confirmed non-support. Only worth adding (~half a day) when serving developer-tool docs to AI coding agents (Cursor/Claude Code class), never as an SEO lever |
+SEO audit and generation (meta/OG tags, sitemap.xml, robots.txt, canonical URLs, JSON-LD structured data, llms.txt posture) is canonical in `/ds-compliance` (web scope, WEB-08). `/ds-compliance` present → delegate; absent → gap-note `[seo] not analyzed — requires /ds-compliance --scope=web`, no local fallback generation. SEO copywriting/content-authoring may route through `/ds-docs` when present. `--perf-budget`'s Core Web Vitals bands stay this skill's own: CWV "Good" bands (LCP ≤2.5s, INP <200ms, CLS <0.1) act as a ranking tie-breaker among similar-quality pages, not a primary ranking driver.
 
-### Email Deliverability (`--email` — activates when a sending domain is detected: transactional/marketing email service config, SMTP creds, newsletter tooling)
+### Email Deliverability (`--email` — advisory handoff only, no local detector)
 
-| Check | What It Covers | Severity |
-|-------|---------------|----------|
-| SPF + DKIM + DMARC | DNS records present on the sending domain; DMARC at minimum `p=none`; RFC5322-From domain aligned to SPF or DKIM org domain. Bulk-sender rule (Gmail: ~5,000+ msgs/24h to personal Gmail) requires both SPF and DKIM + DMARC | HIGH |
-| One-click unsubscribe (RFC 8058) | Promotional messages carry `List-Unsubscribe` + `List-Unsubscribe-Post` headers with an HTTPS POST endpoint (idempotent, async-processed, responds inside Gmail's ~30s timeout; unsubscribes processed within ~2 days) | HIGH |
-| Spam-rate posture | Complaint rate monitored via Gmail Postmaster Tools; 0.3% is the hard blocking ceiling, <0.08% the safe operating target — approaching it → list hygiene + frequency reduction, not new domains | MEDIUM |
-| BIMI (optional) | Brand logo in supporting inboxes — requires DMARC at enforcement (`p=quarantine`/`reject`) + verified logo record; only after DMARC enforcement is stable | LOW (advisory) |
+Email authentication and deliverability (SPF + DKIM + DMARC alignment, RFC 8058 one-click unsubscribe, spam-rate posture, BIMI) is canonical in `/ds-compliance`. `/ds-compliance` present → delegate; absent → gap-note `[email-deliverability] not analyzed — requires /ds-compliance`, no local DNS query or record generation. Provider-credential hygiene for transactional sends (API keys, idempotency, opt-out-at-send-time) is `/ds-backend`'s Transactional Messaging scope when that skill is present — distinct from the deliverability/authentication check above.
 
 ### Desktop Distribution (conditional — desktop project detected: Electron/Tauri config, `*.xcodeproj` with macOS target, MSIX/WiX manifest)
 
@@ -201,7 +200,7 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 
 ### A9 — Google / Apple Ecosystem Rules (conditional)
 
-**Activate when:** blueprint profile `Integrations` field is `google-workspace` or `apple-ecosystem`. Zero checks when absent.
+**Activate when:** the `integrations` signal names it — `Signals: integrations=` contains `google-workspace` or `apple-ecosystem` ([../core/signal-inventory.md](../core/signal-inventory.md)), or the Blueprint Profile's `Integrations:` field states either. Never inferred from a guess (an OAuth client ID alone does not activate this — the integration must be named by one of the two sources). Zero checks when absent from both.
 
 | Provider | Rule | Scope |
 |----------|------|-------|
@@ -212,19 +211,19 @@ Each check scans codebase + produces PASS/FAIL with severity and file:line — n
 
 ## Delegation
 
-**Owns:** store, release, privacy-labels (store-label-correctness only), seo (web discoverability), email-deliverability, perf-budget (`--perf-budget` mode) | **Delegates:** ds-compliance → canonical privacy; ds-mobile → mobile-specific store compliance | **Receives:** ds-ship → Phase 5 launch pass; ds-productize → store/IAP listing + release execution
+**Owns:** store, release, privacy-labels (store-label-correctness only), perf-budget (`--perf-budget` mode) | **Delegates:** ds-compliance → canonical privacy, seo audit + generation (web scope), email-authentication audit; ds-mobile → mobile-specific store compliance | **Receives:** ds-ship → Phase 5 launch pass; ds-productize → store/IAP listing + release execution; ds-release → store submission after the release tag
 
 ## Execution Flow
 
-Setup → Detect → Analyze → Generate → Verify → [Needs-Approval] → Summary
+Setup → Detect Current State → Generate → Release Management → [Needs-Approval] → Summary
 
 ### Phase 1: Setup
 
-1. Flags → proceed directly. No flags → interactive menu.
+1. A disambiguating flag skips this step. Without one: every mode runs in sequence (the default). `--ask` with no other flag: present the mode menu.
 2. **Upstream artifacts:** Profile → Config.audience, Config.deploy, Type, Stack. Findings(store, review, privacy-labels, release) → verify + use. Absent → own analysis.
 3. Detect platform from project signals (`pubspec.yaml` → mobile, `package.json` → web, Electron/Tauri config or macOS/MSIX packaging manifests → desktop, etc.) + current launch stage: pre-submission, in-review, post-launch. Desktop detected → activate the Desktop Distribution scope.
 
-**Gate:** Platform + mode confirmed. If fails → ambiguous platform → prompt iOS / Android / Web / Desktop / All (**under `--auto`:** default to All — safest coverage, no prompt); no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
+**Gate:** Platform + mode confirmed. If fails → ambiguous platform → default: All (safest coverage), recorded under `Assumed:`. `--ask`: prompt iOS / Android / Web / Desktop / All; no mode after menu → re-prompt once then exit with WARN "No mode selected — run /ds-launch with a flag to proceed."
 
 ### Phase 2: Detect Current State
 
@@ -241,9 +240,9 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
   - Review notes for store review teams: special permission justifications, demo credentials (if needed), features requiring network, consumable vs subscription IAP model
   - Screenshot narrative (6 recommended, full journey): auth/onboarding → main list/home → core action → progress/processing → result/output → monetization/settings
 - **ASO mode:** competitor keyword analysis, title/subtitle optimization, category placement recommendation, A/B variant suggestions.
-- **SEO mode (web):** audit each §SEO element against the actual routes/pages (missing → generate: meta/OG per page, sitemap.xml, robots.txt, canonicals, JSON-LD validated against schema.org types); report CWV tie-breaker status from the perf budget when one exists.
-- **Email mode (sending domain detected):** query DNS (`dig +short TXT {domain}` → `v=spf1…`; `dig +short TXT {selector}._domainkey.{domain}` → DKIM key record; `dig +short TXT _dmarc.{domain}` → `v=DMARC1…`) and verify alignment; inspect outbound-mail code/config for RFC 8058 headers + unsubscribe endpoint; produce missing DNS record values and header/endpoint stubs as findings (DNS changes are Category B — user applies them at the registrar).
-- **Release automation safety ([references/principles.md §8](references/principles.md)):** any generated release-automation file (Fastlane, `Matchfile`, CI workflow, signing scripts) MUST externalize credentials to env vars. Generate `.env.example` placeholders for: keystore passwords, App Store Connect API keys, Play Console JSON keys, signing identities, OAuth client secrets. Never embed actual values in committed files. Commit message gate: `grep -E 'AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}|-----BEGIN.*PRIVATE KEY-----' {generated-files}` → no output, plus a high-entropy string review, before suggesting commit.
+- **SEO mode (web):** advisory handoff to `/ds-compliance --scope=web` (WEB-08) — this skill does not audit or generate SEO artifacts locally. `/ds-compliance` absent → gap-note `[seo] not analyzed — requires /ds-compliance --scope=web`. CWV tie-breaker status is still reported here from the perf budget when one exists.
+- **Email mode (sending domain detected):** advisory handoff to `/ds-compliance` — this skill does not query DNS or generate SPF/DKIM/DMARC records locally. `/ds-compliance` absent → gap-note `[email-deliverability] not analyzed — requires /ds-compliance`.
+- **Release automation safety ([core principles §8](../core/principles.md)):** any generated release-automation file (Fastlane, `Matchfile`, CI workflow, signing scripts) MUST externalize credentials to env vars. Generate `.env.example` placeholders for: keystore passwords, App Store Connect API keys, Play Console JSON keys, signing identities, OAuth client secrets. Never embed actual values in committed files. Commit message gate: scan `{generated-files}` against the content regexes in [core secret patterns](../core/secret-patterns.md) → no match, plus a high-entropy string review, before suggesting commit.
 - **Privacy labels:** scan codebase for data collection → map to Apple/Google categories → generate declaration guide → flag code/label discrepancies.
 - **Submission notes (`--submission-notes`):** run pre-submission self-audit (12-item checklist from references/app-store-submission-template.md); block on CRITICAL findings. Auto-detect AI services / auth providers / IAP presence; prompt user for license + hosting per AI service, reviewer-only contact, screen recording URL. Generate per-platform notes (`ds/launch/submission-notes-{apple,google}.txt`) following proactive template; persist `ds/launch/submission-meta.yml` (committed, audit trail). Include "Common Rejection Cookbook" (5 prewritten reply templates for Guidelines 2.1 / 5.1.1(v) / 3.1.1 / 4.8 / 5.1.2 / 5.1.1(i)) so re-submission is one-step.
 - **Review preparation (active scan — not just a checklist):** scan project for top rejection triggers; each check produces an evidence-cited PASS/FAIL finding with severity + file:line. Scope checks listed in §Review (Active Detection) above.
@@ -258,9 +257,9 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 
 **Gate:** Release artifacts generated. If fails → un-generatable release artifact (version bump, release notes, staged rollout, post-launch checklist) → log as `failed`, proceed with successful ones, list failures in summary with "manual action required".
 
-### Phase 5: Needs-Approval Review [needs_approval > 0]
+### Phase 5: Needs-Approval Review [--ask, needs_approval > 0]
 
-**Under `--auto`:** no review step is shown — every item resolves by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which become `skipped (needs-human)`. **Interactive:** present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
+Without `--ask` this phase does not run — every item was already resolved by best judgment (applied, using the same impact/effort/risk reasoning this review block would show), except items matching the publish/irreversible exception list, which became `skipped (needs-human)`. `--ask`: present each item compactly (one line `[severity] title — file:line`) grouped by severity with counts, and state the question (`Approve these N items?`); ask Apply all / per-severity bulk (`Apply all HIGH` … alongside the total, CRITICAL bulk still confirms per item) / Review Each / Skip All. `approve-all` excludes CRITICAL; "all" = exactly the displayed set.
 
 **Gate:** All items resolved. If fails → record unresolved as `pending-user-decision`, proceed to Summary with WARN, list prominently.
 
@@ -269,6 +268,8 @@ Search for store-related configs, version info, existing privacy policy / ToS, C
 ```
 ds-launch: {OK|WARN|FAIL} | Platform: {iOS|Android|Web|Desktop|All} | Ready: {n}/{n} checks | Missing: {n} items | Fixed: {n} | Skipped: {n} | Failed: {n} | Total: {n}
 ```
+
+`Scopes: ran {store, listing, aso, privacy, review, release} · N/A — {platforms=web, no store target} · {seo: ran | N/A — ui≠web} · {email: ran | N/A — no sending domain} · {desktop: ran | N/A — no desktop target} · {a9: ran | N/A — no ecosystem signal}`
 
 Include checklist of remaining items before submission. Disposition accounting — totals balance.
 
@@ -296,7 +297,7 @@ Zero-change run: `Submission package already complete — no missing fields`.
 | Situation | Action |
 |-----------|--------|
 | No store config found | Start from setup mode |
-| Platform ambiguous | Ask: iOS / Android / Web / All (`--auto`: default to All) |
+| Platform ambiguous | Default: All (safest coverage). `--ask`: ask iOS / Android / Web / All. |
 | Privacy label mismatch | Flag specific discrepancy, suggest correction |
 | Missing required metadata | List missing items, prioritize by blocking vs non-blocking |
 
