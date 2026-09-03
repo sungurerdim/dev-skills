@@ -831,7 +831,7 @@ mutation_test() {
        "link a lone install cannot follow"
   _mut "21 sibling link"         "echo 'See [x](../ds-test/SKILL.md).' >> ds-fix/SKILL.md" \
        "link a lone install cannot follow"
-  _mut "38 dead source"          "echo '**Source:** nowhere-to-be-found.md' >> ds-backend/references/rules-api.md" \
+  _mut "38 dead source"          "echo '**Source:** cross-host-program.md' >> ds-backend/references/rules-api.md" \
        "Source: line names a repo file"
   _mut "39 readme count"         "echo 'Runs 99 scopes.' >> ds-repo/README.md" \
        "README count claim not mirrored"
