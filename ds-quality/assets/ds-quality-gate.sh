@@ -26,8 +26,19 @@ if [ "$(printf '%s' "$INPUT" | jq -r '.stop_hook_active // false')" = "true" ]; 
   exit 0
 fi
 
+# Anchor on the session's project root, not the shell's current directory.
+# Hook input `cwd` follows the agent's last `cd` (see hook-contract.md), so a session
+# started in ~/projects that wandered into ~/projects/foo must NOT gate foo. Claude Code
+# exports CLAUDE_PROJECT_DIR = "the project root where the session started"; prefer it.
+# Exception: a worktree of the same repository (EnterWorktree) is gated where the work is.
 CWD="$(printf '%s' "$INPUT" | jq -r '.cwd // "."')"
-cd "$CWD" 2>/dev/null || exit 0
+ANCHOR="${CLAUDE_PROJECT_DIR:-$CWD}"
+if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "$CWD" ]; then
+  cwd_common="$(cd "$CWD" 2>/dev/null && git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+  prj_common="$(cd "$CLAUDE_PROJECT_DIR" 2>/dev/null && git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+  [ -n "$cwd_common" ] && [ "$cwd_common" = "$prj_common" ] && ANCHOR="$CWD"
+fi
+cd "$ANCHOR" 2>/dev/null || exit 0
 
 # Resolve the repo root so marker + detection are anchored at the project, not a subdir.
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PWD")"
