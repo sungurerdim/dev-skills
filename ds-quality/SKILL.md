@@ -139,7 +139,8 @@ Run all three and show output, for whichever arm(s) were wired:
 
 | Arm | Drive it | Failure → | Reverted → |
 |-----|----------|-----------|------------|
-| A Claude Code | `printf '{"stop_hook_active":false,"cwd":"%s"}' "$PWD" \| ~/.claude/hooks/ds-quality-gate.sh` | `{"decision":"block",…}` | emits nothing, `exit 0` |
+| A Claude Code | `printf '{"stop_hook_active":false,"cwd":"%s"}' "$PWD" \| CLAUDE_PROJECT_DIR="$PWD" ~/.claude/hooks/ds-quality-gate.sh` | `{"decision":"block",…}` | emits nothing, `exit 0` |
+| A′ cwd drift | same stdin with `"cwd"` pointing at an unrelated failing repo, `CLAUDE_PROJECT_DIR` at a non-repo dir | emits nothing, `exit 0` (the drifted repo is not gated) | same |
 | B Aider | `aider --help` / config dry-run confirms `.aider.conf.yml` parses | `lint-cmd`/`test-cmd` matches Phase-3 entry point | same |
 | C git pre-commit | `bash .git/hooks/pre-commit; echo "exit=$?"` | non-zero | zero |
 | D Copilot | synthetic `preToolUse` stdin JSON (a `git commit` call) piped into the hook script | decision `deny` | `allow` |

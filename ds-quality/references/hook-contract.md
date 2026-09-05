@@ -35,7 +35,14 @@ behavior ever diverges, re-verify the live docs; don't guess.
 }
 ```
 
-`cwd` is the project directory at stop time — use it to locate the project marker.
+`cwd` is **not** the project directory: per the official hooks reference it is "the current
+working directory when the hook is invoked" and "the new directory after Claude runs `cd`".
+The project root is the environment variable `CLAUDE_PROJECT_DIR` ("the project root where
+the session started"). Anchor the marker lookup and the gate command on `CLAUDE_PROJECT_DIR`;
+fall back to `cwd` only when the variable is absent (manual invocation, other harnesses), and
+use `cwd` when it is a worktree of the same repository. Verified 2026-09-05: a session started
+in a non-repo parent directory whose shell had `cd`-ed into an unrelated clean repo ran that
+repo's test suite and blocked the stop on failures the session never touched.
 
 ## Output JSON (to block)
 
