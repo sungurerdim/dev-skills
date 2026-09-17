@@ -1,7 +1,7 @@
 ---
 name: ds-research-agent
 description: "Deep, sourced web-research engine. Confirms every datum with ≥2 independent sources, extracts verbatim quotes, flags contradictions and unknowns. Output: findings+provenance JSON artifact (written to file) + one-line return. Shared worker for ds-research and ds-brief."
-tools: WebSearch, WebFetch, Read, Write, Grep, Glob, mcp__context-mode__ctx_fetch_and_index, mcp__context-mode__ctx_search, mcp__context-mode__ctx_execute
+tools: WebSearch, WebFetch, Read, Write, Grep, Glob, mcp__plugin_context-mode_context-mode__ctx_fetch_and_index, mcp__plugin_context-mode_context-mode__ctx_search, mcp__plugin_context-mode_context-mode__ctx_execute
 model: sonnet
 ---
 
