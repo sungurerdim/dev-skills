@@ -32,6 +32,8 @@ Policy classes, harness- AND OS-independent intent. **The intent class is the co
 | RC-15 Executable bits | `chmod +x` on downloaded files · running freshly downloaded binaries |
 | RC-16 Data migrations | schema migration apply · bulk data update/delete scripts |
 
+Reference implementation of RC-1..10 as a hook arm: [../assets/rc_deny.py](../assets/rc_deny.py) (stdlib python3, shell-aware, all OSes; `--claude-hook` = Claude Code `PreToolUse` adapter; corpus in `../assets/test_rc_deny.py`). It is a guard rail against mistakes, not a sandbox — scripts run by path, interpreters' own code and runtime-built strings stay opaque.
+
 ### Protected-path map (path-centric layer — complements the command classes)
 
 Writes/deletes/permission-changes targeting these paths are **deny** regardless of which command performs them; reads of the credential group are deny (RC-6). One intent row, instantiated per detected OS at apply time — never apply one OS's column to another:

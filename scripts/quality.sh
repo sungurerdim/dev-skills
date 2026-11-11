@@ -7,7 +7,7 @@
 #   bash scripts/quality.sh --install-hook  also run automatically on `git commit`
 #   bash scripts/quality.sh --remove-hook   uninstall that hook
 #
-# This repo is markdown + two shell scripts + one python asset, so there is no
+# This repo is markdown + shell scripts + python assets, so there is no
 # formatter/linter/type-checker to run. What it does have is a set of consistency
 # and verifier checks that must actually fire — those are the gate.
 #
@@ -79,6 +79,9 @@ step "consistency self-test" "bash scripts/check-consistency.sh --self-test"
 if command -v python3 >/dev/null 2>&1; then
   step "ds-brief verifier syntax"    "python3 -m py_compile ds-brief/assets/verify-brief.py && rm -rf ds-brief/assets/__pycache__"
   step "ds-brief verifier self-test" "python3 ds-brief/assets/verify-brief.py --self-test"
+  step "hook assets syntax"          "python3 -m py_compile ds-quality/assets/ds-quality.py ds-rig/assets/rc_deny.py && rm -rf ds-quality/assets/__pycache__ ds-rig/assets/__pycache__"
+  step "ds-quality self-test"        "python3 -B ds-quality/assets/ds-quality.py --self-test"
+  step "ds-rig rc_deny tests"        "python3 -B ds-rig/assets/test_rc_deny.py"
 else
   printf '\n=== [quality] ds-brief verifier ===\n' >&2
   printf '[quality] FAILED: python3 not found.\n' >&2
@@ -93,7 +96,7 @@ fi
 # Windows console that cannot encode an em-dash shellcheck aborts with exit 2
 # before reporting anything.
 if command -v shellcheck >/dev/null 2>&1; then
-  step "shellcheck" "shellcheck -S warning -f gcc install.sh scripts/*.sh evals/tasks/*/*.sh"
+  step "shellcheck" "shellcheck -S warning -f gcc install.sh scripts/*.sh ds-quality/assets/*.sh evals/tasks/*/*.sh"
 else
   printf '\n=== [quality] shellcheck ===\n' >&2
   printf '[quality] FAILED: shellcheck not found.\n' >&2

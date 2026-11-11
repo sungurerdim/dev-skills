@@ -64,7 +64,7 @@ via `../core/toolchains.md`.
 
 ## Requires
 
-`jq` for the Claude Code arm (payload parsing + JSON emit). Install with `brew install jq` if missing.
+Python 3.8+ (stdlib only) for the Claude Code arm — payload parsing, JSON emit, settings merge. No `jq`.
 
 ## Files
 
@@ -72,6 +72,7 @@ via `../core/toolchains.md`.
 - `../core/toolchains.md` — per-stack commands + minimal bootstrap (shipped beside every skill).
 - `references/hook-contract.md` — verified Claude Code Stop-hook contract + global install script.
 - `references/invariant-patterns.md` — nine field-proven invariant-gate patterns for `--invariant` mode.
-- `assets/ds-quality-gate.sh` — the Claude Code Stop hook (auto-arming).
-- `assets/ds-quality-detect.sh` — toolchain detector → quality command (used by every arm).
+- `assets/ds-quality.py` — the implementation (stdlib python3): `gate` (Stop hook, auto-arming), `detect` (toolchain → quality command, used by every arm), `install [--register]`, `--self-test`.
+- `assets/ds-quality-gate.sh` — thin launcher for `ds-quality.py gate` (the registered Stop hook command).
+- `assets/ds-quality-detect.sh` — thin launcher for `ds-quality.py detect`.
 - `assets/quality.sh.tmpl` — template for a per-project entry point (bootstrap).

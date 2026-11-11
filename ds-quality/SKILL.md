@@ -114,7 +114,7 @@ Detected host (Phase 1) picks a default; `--arm` always skips the menu. Otherwis
 **Two-tier local hooks.** Where the arm supports staged-vs-full scope, split by cost: pre-commit runs fast checks on staged files only (format, lint, l10n, secret scan); pre-push mirrors CI — full project + test suite. Release/automation scripts reuse these hooks instead of re-coding them, and verify the installed version matches the source each run — `.git/hooks/` isn't committed and silently goes stale. (XR-083)
 
 **Arm A — Claude Code (Stop hook, before-done).** Unchanged, existing mechanism:
-- Global gate, installed once (`--install`): `~/.claude/hooks/ds-quality-gate.sh`, registered in `~/.claude/settings.json` under `.hooks.Stop` (no matcher). Priority order per Stop: (1) explicit marker `<root>/.claude/ds-quality.json` (`enabled:false` = kill switch) → (2) auto-arm — no marker, repo under a trusted root (default `~/projects`): `ds-quality-detect.sh` builds the fail-fast command from existing tools/configs → (3) inert — nothing detectable, or repo outside trusted roots → `exit 0`.
+- Global gate, installed once (`--install`): `~/.claude/hooks/ds-quality-gate.sh`, registered in `~/.claude/settings.json` under `.hooks.Stop` (no matcher). Both `.sh` files are thin launchers over `ds-quality.py` (stdlib python3, identical on macOS/Linux/Windows; no jq); copy + register in one idempotent step: `python3 {assets-dir}/ds-quality.py install --register`. A green result is cached per working-tree fingerprint, so an unchanged tree is not re-checked on the next Stop. Priority order per Stop: (1) explicit marker `<root>/.claude/ds-quality.json` (`enabled:false` = kill switch) → (2) auto-arm — no marker, repo under a trusted root (default `~/projects`): `ds-quality-detect.sh` builds the fail-fast command from existing tools/configs → (3) inert — nothing detectable, or repo outside trusted roots → `exit 0`.
 - Green → allow stop; red → emit `{"decision":"block","reason":<failing output>}`, forcing the agent to keep working (loop-guarded via `stop_hook_active` so it cannot spin forever). Never edits your code. Config: `~/.claude/ds-quality.config.json` → `{ "mode":"auto"|"off", "roots":["~/projects"] }`. Full verified hook contract: [references/hook-contract.md](references/hook-contract.md).
 - Write/update the project marker `.claude/ds-quality.json` (schema + full install script in the same reference) with the resolved `command`. `--project-hook` registers the same hook in the repo's own `.claude/settings.json` instead of the global one, so it travels with the repo.
 - Mature repos (already have format/lint/test) are enforced with **zero** per-repo setup once the global gate is installed; `/ds-quality` with no flag is only needed to bootstrap missing tooling.
@@ -129,7 +129,7 @@ Detected host (Phase 1) picks a default; `--arm` always skips the menu. Otherwis
 
 **Arm F — Codex CLI (Stop hook, before-done).** Config path and schema verified in [references/hook-contract.md](references/hook-contract.md) (project layer loads only in trusted projects; otherwise use user-level `~/.codex/hooks.json`). Script mirrors Arm A: read stdin JSON; `stop_hook_active` true → exit 0 (loop guard); run the entry point; green → exit 0 no output; red → stdout `{"decision":"block","reason":<failing output>}` — Codex keeps working, using the reason as the continuation prompt. Plain-text stdout is invalid for `Stop`; JSON only.
 
-**Gate:** The correct arm for the detected host is selected and wired without clobbering existing config. If fails → `jq` missing (Arm A/D/F), `.aider.conf.yml` unwritable (Arm B), not a git repo (Arm C), untrusted project layer (Arm F) → report the blocker per Edge Cases, fall back to `--run`-only enforcement — never silently skip enforcement.
+**Gate:** The correct arm for the detected host is selected and wired without clobbering existing config. If fails → no `python3` >= 3.8 (Arm A/D/F), `.aider.conf.yml` unwritable (Arm B), not a git repo (Arm C), untrusted project layer (Arm F) → report the blocker per Edge Cases, fall back to `--run`-only enforcement — never silently skip enforcement.
 
 ### Phase 5 — Prove it works (demonstrate, don't claim)
 Run all three and show output, for whichever arm(s) were wired:
@@ -184,7 +184,7 @@ Report: detected stack + host · existed-vs-added per signal · the exact entry-
 | Scenario | Behavior |
 |----------|----------|
 | No tooling at all | Bootstrap minimal formatter/linter/type/test + a real starter test; mark thin coverage |
-| `jq` missing (Arm A) | Stop, tell user to install it (`brew install jq`) — needed for the idempotent settings merge |
+| `python3` >= 3.8 missing (Arm A) | Stop, tell user to install it — the launchers and the idempotent settings merge (`ds-quality.py install --register`) need it |
 | Repo outside trusted roots (Arm A auto-arm) | Gate is inert (`exit 0`); auto-arm never runs untrusted repo commands |
 | `enabled:false` marker (Arm A) | Per-repo kill switch — hook is a no-op, wins over auto-arm |
 | No tests exist | Create a small REAL starter suite (smoke + boundary), never fake tests |
