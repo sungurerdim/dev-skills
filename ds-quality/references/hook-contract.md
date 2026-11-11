@@ -65,43 +65,28 @@ To allow the stop: emit nothing and `exit 0`.
 ```
 
 - Add to `~/.claude/settings.json` for system-wide, or `<repo>/.claude/settings.json` for repo-local.
-- `timeout` is seconds (default 600). Merge with `jq`; never clobber existing `hooks.Stop` entries.
+- `timeout` is seconds (default 600). Merge with `ds-quality.py install --register`; it never clobbers existing `hooks.Stop` entries.
 - Idempotency: only append if no existing entry's `command` already equals the script path.
 
-## Global install script (idempotent)
-
-Copy both scripts, write the default config, and register the hook once, without clobbering existing hooks:
+## Global install (idempotent)
 
 Resolve `{assets-dir}` to the `assets/` directory beside this SKILL.md (the installed skill's own copy); a host that exposes a `${CLAUDE_SKILL_DIR}`-style variable may use it to build that path as an optional convenience, never as the only way to find it.
 
 ```bash
-mkdir -p ~/.claude/hooks
-cp "{assets-dir}/ds-quality-gate.sh"   ~/.claude/hooks/ds-quality-gate.sh
-cp "{assets-dir}/ds-quality-detect.sh" ~/.claude/hooks/ds-quality-detect.sh
-chmod +x ~/.claude/hooks/ds-quality-gate.sh ~/.claude/hooks/ds-quality-detect.sh
-
-# default auto config (only if absent — never overwrite the user's roots)
-CFG="$HOME/.claude/ds-quality.config.json"
-[ -f "$CFG" ] || printf '{\n  "mode": "auto",\n  "roots": ["~/projects"]\n}\n' > "$CFG"
-
-HOOK="$HOME/.claude/hooks/ds-quality-gate.sh"; S="$HOME/.claude/settings.json"
-[ -f "$S" ] || echo '{}' > "$S"
-cp "$S" "$S.bak.$(date +%Y%m%d%H%M%S)"
-tmp=$(mktemp)
-jq --arg cmd "$HOOK" '
-  .hooks //= {} | .hooks.Stop //= [] |
-  if any(.hooks.Stop[]?; ((.hooks // [])[]?.command) == $cmd)
-  then .
-  else .hooks.Stop += [{hooks:[{type:"command", command:$cmd, timeout:300}]}] end
-' "$S" > "$tmp" && mv "$tmp" "$S"
-jq -e . "$S" >/dev/null   # validate
+python3 "{assets-dir}/ds-quality.py" install --register          # add --dry-run to preview
 ```
 
-Re-running is a no-op when the entry already exists (only refreshes scripts). `jq` is required; if absent, stop and tell the user to install it (`brew install jq`). The scripts are **bash 3.2 compatible** (macOS default).
+One step: copies `ds-quality.py` and the two launchers to `~/.claude/hooks/` (or `$CLAUDE_CONFIG_DIR/hooks/`), writes the default
+`ds-quality.config.json` only if absent (never overwrites the user's roots), and registers the Stop hook in `settings.json` only if no
+entry's `command` already equals the script path — after backing the file up as `settings.json.bak.<timestamp>`. Re-running is a
+no-op once everything is current. Requires `python3` >= 3.8 (stdlib only; no `jq`); the launchers stay inert with a stderr notice
+when it is absent. The gate is identical on macOS, Linux and Windows (Git Bash runs the launcher); it skips an unchanged tree
+(green fingerprint in `.git/ds-quality.green`) and treats a timeout as a block, never a pass (marker `timeout`, default 270 s, under the
+hook's 300 s).
 
 ## `--project-hook` registration (repo-local, idempotent)
 
-Same `jq` merge, but against `<repo>/.claude/settings.json`, with the command pointing at the
+Same merge (`ds-quality.py install --project <repo> --register`), against `<repo>/.claude/settings.json`, with the command pointing at the
 copied-in script (`.claude/hooks/ds-quality-gate.sh` inside the repo) so it travels with the repo.
 
 ## Project marker schema — `.claude/ds-quality.json`
@@ -145,4 +130,4 @@ Verified against official docs on the dates noted; if behavior diverges, re-veri
 - Shape: `{ "version": 1, "hooks": { "<event>": [ { "type":"command", "bash":"…", "powershell":"…", "cwd":"…", "env":{…}, "timeoutSec":N } ] } }` — supply **both** `bash` and `powershell` for cross-OS.
 - Events: `sessionStart`, `sessionEnd`, `userPromptSubmitted`, `preToolUse`, `postToolUse`, `agentStop`, `subagentStop`, `errorOccurred`.
 - **Only `preToolUse` blocks** — it returns a decision `allow` / `deny` / `ask`. For other events non-zero exits are logged and execution continues (`agentStop` is report-only). For `preToolUse`, crashes and non-zero exits fail-closed (deny); timeouts fail-open.
-- **No matchers** — the script filters by inspecting `toolName` / `toolArgs` from stdin JSON; `toolArgs` is a JSON **string**, parse it (jq). `disableAllHooks` pauses all hooks without deleting config.
+- **No matchers** — the script filters by inspecting `toolName` / `toolArgs` from stdin JSON; `toolArgs` is a JSON **string**, parse it. `disableAllHooks` pauses all hooks without deleting config.

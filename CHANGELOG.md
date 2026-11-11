@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed
+
+- **ds-quality hook assets are one stdlib Python implementation.** `assets/ds-quality.py` (`gate`, `detect`, `install [--register]`, `--self-test`) replaces the bash gate and detector; `ds-quality-gate.sh` / `ds-quality-detect.sh` keep their names and paths as thin launchers, so every registered `~/.claude/hooks/ds-quality-gate.sh` entry keeps working. Identical on macOS, Linux and Windows (Git Bash); no `jq`. A green run is cached per working-tree fingerprint (HEAD + status + file stamps + command), a gate timeout (marker `timeout`, default 270 s) blocks instead of silently passing, and `install --register` does the idempotent settings merge that used to be a `jq` recipe.
+- **ds-rig ships its reference hook arm.** `assets/rc_deny.py` (shell-aware RC-1..10 classifier, `--claude-hook` adapter) and `assets/test_rc_deny.py` join the skill; `scripts/quality.sh` compiles and runs both new Python assets.
+
+### Fixed
+
+- **`enabled:false` in `.claude/ds-quality.json` was not a kill switch.** The jq expression `.enabled // true` treats `false` as absent, so the gate kept running; the Python gate tests `enabled is False`.
+- **ds-quality detector gaps:** Python projects with a `uv.lock` run their tools via `uv run` (a global pytest cannot import the project's dependencies); Dart/Flutter test runs exclude the `integration` tag (needs live services a local gate cannot supply).
+- **rc_deny path rules failed open on Windows** (`rm -rf /`, `~`, `~/.ssh` were not blocked: POSIX-only `os.path` handling) — paths are now normalised to POSIX form; Linux `/home`, `/root`, `/lib*` and Windows drive/system roots are protected like macOS `/Users`, `/System`.
+
 ## [2.0.0] - 2026-09-02
 
 Program: issue #38 (v7 — one-key autonomy, tailored scope, shared core, measured on two Claude tiers). Baseline commit `69e7bd4`.
