@@ -1,6 +1,7 @@
 ---
 name: ds-setup
 description: Set up and maintain the machine-level AI dev rig — install or update a pinned toolset, turn off telemetry in every tool and harness, apply allow/ask/deny permission profiles (risk-free work never prompts), and keep the MCP tool count within budget. Use for setting up or upgrading the AI dev environment, privacy hardening, or harness permissions.
+argument-hint: '[tools | update | privacy | perms | mcp | uninstall <tool|all>] [dry] [ask]'
 ---
 
 # /ds-setup

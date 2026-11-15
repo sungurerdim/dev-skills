@@ -1,6 +1,7 @@
 ---
 name: ds-research
 description: Research a topic or condense given sources into a fact-checked, single-file HTML brief — every datum confirmed by two independent sources or visibly flagged, load-bearing facts tied to a primary source, offline and print/PDF-ready, gated by a mechanical verifier. Use when the user wants a sourced report, guide or briefing, or (quick) a fast sourced answer and recommendation in chat.
+argument-hint: '[quick | sum <sources> | render <findings.json>] [static] [nobundle] [ask] <topic>'
 ---
 
 # /ds-research

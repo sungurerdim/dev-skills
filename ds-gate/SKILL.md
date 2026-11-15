@@ -1,6 +1,7 @@
 ---
 name: ds-gate
 description: Install a local quality gate that blocks "done" (or the commit) until format, lint, type and test checks pass — one entry point, wired into the host's hook. Also builds a gate for one custom invariant (inv). Use when checks should be enforced by a machine, not remembered.
+argument-hint: '[checks | arm [name] | prove | run | status | off | on | install | uninstall | inv "<text>"] [ask]'
 ---
 
 # /ds-gate

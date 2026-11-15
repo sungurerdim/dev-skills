@@ -41,15 +41,15 @@ def check_skills(root: Path, err):
         err("no ds-*/SKILL.md found")
     for d in skills:
         text = (d / "SKILL.md").read_text(encoding="utf-8")
-        m = re.match(r"---\nname: (.+)\ndescription: (.+)\n---\n", text)
+        m = re.match(r"---\nname: (.+)\ndescription: (.+)\n(?:argument-hint: '[^'\n]+'\n)?---\n", text)
         if not m:
-            err(f"{d.name}/SKILL.md: frontmatter must be name + description")
+            err(f"{d.name}/SKILL.md: frontmatter must be name + description (+ optional single-quoted argument-hint)")
             continue
         if m.group(1).strip() != d.name:
             err(f"{d.name}/SKILL.md: name '{m.group(1).strip()}' != directory")
         if not 20 <= len(m.group(2)) <= 1024:
             err(f"{d.name}/SKILL.md: description length {len(m.group(2))} outside 20-1024")
-        size = len(text.encode("utf-8"))
+        size = len(re.sub(r"(?m)^argument-hint: .*\n", "", text, count=1).encode("utf-8"))  # autocomplete hint, not skill text
         if size > SKILL_MAX:
             err(f"{d.name}/SKILL.md: {size} bytes > {SKILL_MAX}")
         if "kernel.md" not in text:

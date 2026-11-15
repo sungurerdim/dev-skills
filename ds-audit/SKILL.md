@@ -1,6 +1,7 @@
 ---
 name: ds-audit
 description: Audit and improve a project to production quality — detect what the project is, check every area that applies against named standards, fix what is safe, verify with the project's own checks, and report. Use to review and fix what the current branch changes (the default), for an end-to-end audit with `all` ("make this production ready"), or for named areas such as `sec a11y`.
+argument-hint: '[all] [sec|privacy|auth|api|db|arch|code|test|perf|web|a11y|ux|i18n|mobile|store|money|ci|ops|docs|repo ...] [dry] [ask] [<path>]'
 ---
 
 # /ds-audit
