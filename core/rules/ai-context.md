@@ -13,7 +13,7 @@ These files are re-injected into every session as low-trust background context, 
 
    | Category | Verdict | Rule |
    |----------|---------|------|
-   | Non-guessable commands, style rules diverging from tool defaults, non-obvious gotchas/rationale, repo etiquette | Keep — flag as gap if missing and the project clearly has one | DOC-15 |
+   | Non-guessable commands, style rules diverging from tool defaults, non-obvious gotchas/rationale, repo etiquette, human-stated intent and hard limits | Keep — flag as gap if missing and the project clearly has one | DOC-15 |
    | Directory layout, dependency lists, file-by-file descriptions, architecture overviews | Cut — agent derives this by reading code | DOC-11 |
    | Generic/self-evident advice ("write clean code") | Cut — measurably degrades output, not just wasted tokens | DOC-12 |
    | Pasted API docs, long tutorials, frequently-changing detail | Replace with a link | DOC-13 |

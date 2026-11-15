@@ -269,13 +269,13 @@ Literal file content (indented to keep this example's own headings out of this c
 
 ### DOC-15 | MEDIUM | Missing Recommended Content
 
-**Detect:** File lacks non-guessable build/test/lint commands, code-style rules that diverge from language/tool defaults, non-obvious gotchas or architecture rationale, or repo etiquette — despite the project clearly having them (custom scripts, non-default lint config, documented past incidents).
+**Detect:** File lacks non-guessable build/test/lint commands, code-style rules that diverge from language/tool defaults, non-obvious gotchas or architecture rationale, repo etiquette, or the project's intent and hard limits (who it serves; what a change must never do) — despite the project clearly having them (custom scripts, non-default lint config, documented past incidents).
 
-**Fix:** Add tersely, one line per item, each earning its place. Prefer a concrete before/after code example over an abstract rule statement.
+**Fix:** Add tersely, one line per item, each earning its place. Prefer a concrete before/after code example over an abstract rule statement. Intent and hard limits come from a person: propose them from evidence as `only you can do: confirm`, never write them as settled.
 
-**Impact:** These are the categories every major harness's own docs recommend, and agents will actually execute listed test/build commands automatically.
+**Impact:** These are the categories every major harness's own docs recommend, and agents will actually execute listed test/build commands automatically. Measured: context files help mainly through non-standard requirements not in the code; LLM-generated files and repository overviews did not improve task success and raised cost by over 20%.
 
-**Source:** [Anthropic best practices](https://code.claude.com/docs/en/best-practices); [agents.md](https://agents.md/) ("the agent will attempt to execute relevant programmatic checks"); [Gemini CLI GEMINI.md docs](https://geminicli.com/docs/cli/gemini-md/); [Aider conventions docs](https://aider.chat/docs/usage/conventions.html)
+**Source:** [Anthropic best practices](https://code.claude.com/docs/en/best-practices); [agents.md](https://agents.md/) ("the agent will attempt to execute relevant programmatic checks"); [Gemini CLI GEMINI.md docs](https://geminicli.com/docs/cli/gemini-md/); [Aider conventions docs](https://aider.chat/docs/usage/conventions.html); [Evaluating AGENTS.md (ETH Zurich, arXiv:2602.11988)](https://arxiv.org/abs/2602.11988)
 
 ### DOC-16 | LOW | Negative-Framed Instructions
 
