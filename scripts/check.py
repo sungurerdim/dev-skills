@@ -146,7 +146,7 @@ def check_versions(root: Path, err):
 
 
 def check_self_tests(root: Path, err):
-    for args in (["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"], ["ds-setup/assets/probe.py", "--self-test"],
+    for args in (["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"], ["ds-setup/assets/probe.py", "--self-test"], ["ds-setup/assets/perms.py", "--self-test"],
                  ["ds-research/assets/verify-brief.py", "--self-test"]):
         if not (root / args[0]).exists():
             err(f"{args[0]}: missing")

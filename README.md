@@ -52,7 +52,7 @@ Hosts without a skills loader (Aider, Windsurf) can reference a `SKILL.md` direc
 
 ## Contributing
 
-`python3 scripts/check.py` is the only gate (there is no CI): skill format and size, links, unique rule IDs, no near-duplicate rules, no line repeated across files, every core file has a consumer, version agreement, the three asset self-tests, and spelling when `typos` is installed. `python3 scripts/check.py --self-test` proves each check catches the defect it exists for; `--install-hook` runs both on every commit. Details: [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md).
+`python3 scripts/check.py` is the only gate (there is no CI): skill format and size, links, unique rule IDs, no near-duplicate rules, no line repeated across files, every core file has a consumer, version agreement, the five asset self-tests, and spelling when `typos` is installed. `python3 scripts/check.py --self-test` proves each check catches the defect it exists for; `--install-hook` runs both on every commit. Details: [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md).
 
 ## License
 

@@ -35,7 +35,7 @@ The entry point runs green; the wired arm is shown blocking on a failing probe f
 
 1. **Detect** stack and tooling from one `git ls-files` inventory (manifests, lockfiles, configs, test dirs; [toolchains.md](../core/toolchains.md)); the host from one listing of what is installed (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `.aider.conf.yml`). Print both before changing anything. Unknown stack → `Only you can do: name the toolchain`.
 2. **Checks exist and run** — formatter (check mode), linter, type checker where the language has one, test runner. Run each once and read the exit code; never infer from config. Missing → add the ecosystem default that is already in the lockfile, else the toolchains.md default. No tests at all → a small real starter suite (one core behavior + boundary cases), marked thin. Never a fake test.
-3. **One entry point**, fail-fast in the order format → lint → type → test, exit non-zero on the first failure:
+3. **One entry point**, fail-fast in the order format → lint → type → test, exit non-zero on the first failure. Start from `"{py}" "{gate}" detect` (the command the script resolves mechanically) and add what step 2 found:
 
    | Repo has | Entry point |
    |----------|-------------|

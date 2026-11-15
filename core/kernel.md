@@ -22,7 +22,7 @@ Optimizing or automating something that should not exist is the most expensive m
 - **Impact/effort order** — highest impact, lowest effort first; stop and report when the remaining value is below its cost.
 - **Cheapest check first** — format → lint → type → targeted test → full test → build; stop at the first decisive failure.
 - **Small reversible steps** — one change, one verification, one commit. Decide reversible things quickly; never perform the items in §5.
-- **Mechanical work goes to tools** — when grep, a linter, a type checker, a test or a script can answer, do not answer by judgment.
+- **Mechanical work goes to tools** — when grep, a formatter, a linter, a type checker, a test or a script can answer or fix it, it does, before any judgment: auto-fix first, then review only what the tools leave. A step a skill repeats on every run belongs in a script beside it, not in prose.
 - **Fewest calls, most data** — inventory first, in one call: `git ls-files` (or one directory walk) is the file list, `git status --porcelain=v2 --branch` gives branch, upstream, ahead/behind and every changed file at once; detect from that output instead of probing files one by one. Prefer machine-readable output (`--porcelain`, `--format`, `--json`) that answers several questions per call; chain independent probes into one command or one script; read each file and output once and reuse it; never re-derive known facts.
 - **Load context on demand** — read a `core/rules/*.md` file only when its signal applies (`core/rules/README.md`).
 - **Conflicts** — the higher item wins: correctness and data integrity > security and privacy > project rules and intended benefit > simplicity > automation > performance and cost > user and developer experience.

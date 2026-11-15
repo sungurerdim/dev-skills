@@ -136,7 +136,7 @@ ds-setup writes permission entries **exclusively to each harness's user/global-s
 
 1. Read the live permission doc for the harness; confirm the surface still matches the table.
 2. Backup the target config with a timestamped copy.
-3. Merge additively: RC-1..10 as deny, RC-11..16 as ask, the risk-free ALLOW set, each Bash entry mirrored per § Wrapper commands. Existing user entries always win on conflict — show the conflict, ask.
+3. Merge additively: RC-1..10 as deny, RC-11..16 as ask, the risk-free ALLOW set, each Bash entry mirrored per § Wrapper commands. Existing user entries always win on conflict — show the conflict, ask. Claude Code: [../assets/perms.py](../assets/perms.py) does steps 2, 3 and 6 and holds the exact entries; extend its lists, not a hand-written copy.
 4. Where the harness has a scriptable blocking hook, offer the hook-script arm (chain-resistant) in the same confirmation — recommended, per Honest limits.
 5. Validate: host's own config check when available, else strict JSON/TOML parse.
 6. Prove: diff backup→new shows only additions; record the diff summary in the manifest.

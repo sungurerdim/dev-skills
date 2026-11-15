@@ -9,7 +9,7 @@
 | Detect from manifests | Polyglot/monorepo → one ordered block per present stack. Never invent a check whose tool is absent; note the gap. |
 | Prefer what is already there | A tool in the lockfile or a config file beats the default column. Never introduce a second formatter, linter, or test framework. |
 | `{check-cmd}` | Check-mode commands only (no writes), fail-fast, chained with `&&` in the order format → lint → type → test. A missing optional type-checker is a gap-note, not a failure. |
-| Fix commands | Only when the run applies fixes, on a clean tree (`kernel.md` §3); never inside `{check-cmd}`. |
+| Fix commands | Run first, before any manual review, by ds-audit's auto-fix step: safe fixes only, files with user changes under `kernel.md` §3's snapshot; never inside `{check-cmd}`. |
 | Empty gate is a false signal | A `{check-cmd}` that runs nothing never passes green — report the Verification-Infrastructure Gap. |
 | Windows | `./gradlew` → `gradlew.bat`; `./vendor/bin/x` → `vendor\bin\x.bat`; `npx` works unchanged. |
 

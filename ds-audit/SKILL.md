@@ -12,23 +12,23 @@ Audit what the branch changes (or, with `all`, the whole project), fix what is s
 | Word | Effect |
 |------|--------|
 | *(none)* | Every area whose signal holds, on what this branch changes (below); fixes applied; decisions by judgment, recorded |
-| `all` | The whole project instead of the changes: the full audit, for a weekly, monthly or pre-release pass |
+| `all` | The whole project: the weekly, monthly or pre-release audit |
 | area words | Only those areas, each runnable alone: `sec` `privacy` `auth` `api` `db` `arch` `code` `test` `perf` `web` `a11y` `ux` `i18n` `mobile` `store` `money` `ci` `ops` `docs` `repo` ([rules/README.md](../core/rules/README.md)) |
 | `dry` | Detect and plan only; no file changes, no commits |
 | `ask` | Each decision point becomes a question with a recommended option (kernel §5) |
 | `<path>` | One package of a monorepo; without it, each package with its own manifest is a unit |
 
-**Changed scope (default)** — the files in `git diff --name-only {base}...HEAD`, plus uncommitted and untracked files (`git status --porcelain`), where `{base}` is the upstream (`@{upstream}`), else `origin/HEAD`, else the default branch; no remote and no other branch → uncommitted files only, said in the report. Findings are recorded only on lines these files changed, or on code a change there breaks (callers, contracts, tests that cover it); the baseline and verify checks still run whole-project, since a local change can break a distant check. No changed file → report `nothing changed — /ds-audit all audits the whole project` and stop. The run was asked to work on these files, so uncommitted ones are edited too, under kernel §3's snapshot; fixes in them stay uncommitted, mixed with the user's own edits, and the report lists them for review with `git diff`.
+**Changed scope (default)** — files changed in `{base}...HEAD` plus uncommitted and untracked ones; `{base}` = the freshly fetched upstream, else `origin/HEAD`; no remote → uncommitted files only, said in the report. Findings only on changed lines or code they break (callers, contracts, covering tests); checks still run whole-project. No changed file → report `nothing changed — /ds-audit all audits the whole project` and stop. Uncommitted files are edited too, under kernel §3's snapshot; fixes there stay uncommitted and are listed for review with `git diff`.
 
 ## Done when
 
-`ds/audit/report.md` exists; every area is `ran` or `N/A — reason`; every finding has a disposition (kernel §4) and the totals balance; `{check-cmd}` is no redder than at baseline, shown by its output.
+`ds/audit/report.md` exists; every fixer that applies has run (step 4); every area is `ran` or `N/A — reason`; every finding has a disposition (kernel §4) and the totals balance; `{check-cmd}` is no redder than at baseline, shown by its output.
 
 ## Steps
 
 ### 1. Prepare
 
-1. One inventory call: `git status --porcelain=v2 --branch -uall` (branch, upstream, ahead/behind, changed and untracked files) and, unless `all`, `git diff --name-status -M {base}...HEAD` in the same command. With `all`, files with uncommitted user changes are not edited (kernel §3).
+1. **Current code, one command:** `git fetch --prune` (read-only), then `git status --porcelain=v2 --branch -uall` (branch, upstream, ahead/behind, changed files) and, unless `all`, `git diff --name-status -M {base}...HEAD`. Behind and not diverged → `git merge --ff-only @{u}` (no history rewrite; git refuses rather than overwrite local edits). Diverged → never rebase or pull automatically (a pushed branch would need a force-push, kernel §5): audit against the fetched base, report `diverged: behind {n}, ahead {m}`, and list the files that would conflict from `git merge-tree --write-tree HEAD @{u}` (git ≥ 2.38; changes nothing). With `all`, files with uncommitted user changes are not edited (kernel §3).
 2. Read project rules first, in one batch: `AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, ADRs, specs. They override this file and the rule files where they differ.
 3. Previous run: `ds/audit/findings.md` exists → load it. Open findings in scope are re-verified, not re-detected; `fixed` ones are spot-checked once.
 4. Add `ds/audit/` to `.git/info/exclude` (not `.gitignore`) so the run leaves no tracked footprint.
@@ -43,11 +43,20 @@ Audit what the branch changes (or, with `all`, the whole project), fix what is s
 
 Resolve `{check-cmd}` from [toolchains.md](../core/toolchains.md) for each detected stack; run it once; record pass/fail per step with output. Red at baseline is reported as red-at-baseline, never inherited as green. No runnable check → a `Verification gap` finding (HIGH), and fixes in that unit are limited to Category A.
 
-### 4. Detect
+### 4. Auto-fix — tools first, judgment after
+
+1. **Fixers** — the project's own fix scripts (`format`, `lint:fix`, Makefile `fix`, `pre-commit run`), else the Fix column of toolchains.md: formatter, then the linter's safe autofix. Never `--unsafe-fixes`, `-A` or a dependency change.
+2. **Scope** — the changed files as arguments where the tool takes paths, else the project; uncommitted files under kernel §3's snapshot.
+3. **One commit per fixer** (`style: apply {tool} fixes`), then the baseline's test step again: a test that turned red → revert that fixer's commit and record it.
+4. **Re-run the checks**; what stays red feeds step 5's Tools pass.
+
+`dry` runs fixers in check mode and reports what they would fix.
+
+### 5. Detect
 
 Per area, in the README order, cheapest first:
 
-1. **Tools** — run what is already installed: linters and type checkers in check mode, the test suite, `npm audit`/`pip-audit`/`cargo audit`-class advisories, `gitleaks`/`semgrep` when present. Tool output is a finding source, not the verdict; confirm each hit by reading the line.
+1. **Tools** — what step 4 left red (lint, type and test output), plus installed scanners: `npm audit`/`pip-audit`/`cargo audit`-class advisories, `gitleaks`/`semgrep` when present. Tool output is a finding source, not the verdict; confirm each hit by reading the line.
 2. **Rules** — load the area's rule files; apply each rule's Detect to the project; skip a rule whose `applies_when:` fails.
 3. **Judgment** — what no rule names but breaks, misleads, or costs more than it gives. Cite the principle (kernel §7) or standard it rests on.
 
@@ -57,26 +66,26 @@ Every candidate passes kernel §1 steps 1-3 before it is recorded: real need? al
 | # | Sev | Area | Rule / principle | file:line | Finding | Plan | Disposition |
 ```
 
-### 5. Plan
+### 6. Plan
 
 Order by impact/effort (kernel §2). For each finding run all six steps of kernel §1 and write the simplest fix in the Plan column. Category A → apply; Category B → decide from impact, effort and risk and record why (kernel §4). Same root cause across findings → one fix.
 
 `dry` stops here and writes the report.
 
-### 6. Fix
+### 7. Fix
 
 One unit at a time: one change → the narrowest check that covers it (format → lint → type → targeted test) → one local commit (`type(scope): summary`, Conventional Commits); in a file that had uncommitted user edits, no commit (Changed scope above). A bug fix lands behind a test observed red on the unfixed code (kernel §3). Still red after 3 attempts → revert the unit (kernel §3), record `reverted` with the error, continue.
 
-### 7. Verify
+### 8. Verify
 
 Run the full `{check-cmd}`. Compare with the baseline step by step. A step that turned red → fix or revert the unit that caused it. Re-read the `file:line` of every `fixed` finding to confirm the change is there.
 
-### 8. Report
+### 9. Report
 
 Write `ds/audit/report.md`, then print its first block:
 
 ```
-ds-audit: OK|WARN|FAIL|INCOMPLETE | scope {changed: n files|all} | findings {n} · fixed {n} · open {n} · only-you {n}
+ds-audit: OK|WARN|FAIL|INCOMPLETE | scope {changed: n files|all} | auto-fixed {n} files | findings {n} · fixed {n} · open {n} · only-you {n}
 Signals: {line}
 Areas: {area} ran · {area} N/A — {reason} · …
 Checks: {check-cmd step} baseline→now (pass/fail) · …
@@ -87,6 +96,6 @@ Then the findings table grouped by severity, and the closing block of kernel §6
 
 ## Notes
 
-- Parallel areas: when the host can run subagents, one per area for steps 4-5, each given kernel.md and its rule files only; fixes stay sequential in this run.
+- Parallel areas: when the host can run subagents, one per area for steps 5-6, each given kernel.md and its rule files only; fixes stay sequential in this run.
 - No commit-time or stop-time gate in the project → a finding in the `ci` area; the `ds-gate` skill installs one.
 - Publishing, pushing, releases and anything needing a human-only value stay `Only you can do` with the exact command (kernel §5).
