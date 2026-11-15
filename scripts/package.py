@@ -8,7 +8,7 @@
 
 The repo keeps one shared core/ beside the skills; an uploaded skill sees only its own folder. So each zip
 holds `<skill>/` with `core/` copied inside it, and every Markdown link into core/ is rewritten to its new
-relative path. The repo itself is not changed. Each build is checked before it is zipped: frontmatter per the
+relative path; Claude Code-only frontmatter keys (argument-hint) are dropped, since claude.ai rejects them. The repo itself is not changed. Each build is checked before it is zipped: frontmatter per the
 Agent Skills rules, and every relative Markdown link must resolve inside the package. Python 3.8+ stdlib only.
 """
 from __future__ import annotations
@@ -27,6 +27,8 @@ IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc")
 LINK = re.compile(r"(\]\()([^)\s#]+)(#[^)\s]*)?(\))")
 NAME = re.compile(r"^[a-z0-9-]{1,64}$")
 FIXED_TIME = (2020, 1, 1, 0, 0, 0)
+# keys a claude.ai upload accepts (code.claude.com/docs/en/skills, "Using skill frontmatter outside Claude Code")
+UPLOAD_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
 CODE = re.compile(r"```.*?```|`[^`\n]*`", re.S)  # links shown as examples inside code are not links
 
 
@@ -42,8 +44,19 @@ def frontmatter(skill_md: Path) -> dict:
     return dict(re.findall(r"^([A-Za-z_-]+):\s*(.*)$", m.group(1), re.M))
 
 
+def strip_upload_keys(skill_md: Path) -> None:
+    """claude.ai rejects any frontmatter key outside UPLOAD_KEYS (e.g. Claude Code's argument-hint), so drop them."""
+    text = skill_md.read_text(encoding="utf-8")
+    m = re.match(r"^(---\r?\n)(.*?)(\r?\n---\r?\n)", text, re.S)
+    keep = [ln for ln in m.group(2).splitlines() if re.match(r"([A-Za-z_-]+):", ln).group(1) in UPLOAD_KEYS]
+    skill_md.write_text(m.group(1) + "\n".join(keep) + m.group(3) + text[m.end():], encoding="utf-8", newline="")
+
+
 def check_frontmatter(skill: str, fm: dict) -> list:
     errs = []
+    extra = set(fm) - UPLOAD_KEYS
+    if extra:
+        errs.append(f"frontmatter keys claude.ai rejects: {', '.join(sorted(extra))}")
     name, desc = fm.get("name", ""), fm.get("description", "")
     if name != skill:
         errs.append(f"name '{name}' must equal the folder name '{skill}'")
@@ -97,6 +110,7 @@ def build(skill: str, out: Path, stage: Path) -> Path:
     pkg = stage / skill
     shutil.copytree(src, pkg, ignore=IGNORE)
     shutil.copytree(REPO / SHARED, pkg / SHARED, ignore=IGNORE)
+    strip_upload_keys(pkg / "SKILL.md")
     for md in pkg.rglob("*.md"):
         rel = md.relative_to(pkg)
         if rel.parts[0] == SHARED:
