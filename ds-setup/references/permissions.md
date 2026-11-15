@@ -43,14 +43,14 @@ Writes/deletes/permission-changes targeting these paths are **deny** regardless 
 | System | `/etc` `/usr` `/bin` `/sbin` `/var` `/boot` `/opt` | same + `/System` `/Library` `/private` | `C:\Windows` `C:\Program Files*` `C:\ProgramData` |
 | User-critical (credentials) | `~/.ssh` `~/.gnupg` `~/.aws` `~/.config/gcloud` `~/.kube` · keyrings | same + Keychain (`~/Library/Keychains`) | `%USERPROFILE%\.ssh` `.aws` `.kube` · Credential Manager/DPAPI stores · `%APPDATA%` credential dirs |
 | Browser profiles | `~/.mozilla` `~/.config/{chromium,google-chrome}` | `~/Library/Application Support/{browser}` | `%LOCALAPPDATA%\{browser}\User Data` |
-| Harness + rig configs | `~/.claude` `~/.codex` `~/.gemini` `~/.copilot` `~/.config/ds-rig` + per-harness settings files (RC-10 — the permission model must not edit itself) — except the skill's own gated, backed-up, additive writes | same | `%USERPROFILE%\.claude` etc. + `%APPDATA%`/`%LOCALAPPDATA%` harness dirs |
+| Harness + rig configs | `~/.claude` `~/.codex` `~/.gemini` `~/.copilot` `~/.config/ds-setup` + per-harness settings files (RC-10 — the permission model must not edit itself) — except the skill's own gated, backed-up, additive writes | same | `%USERPROFILE%\.claude` etc. + `%APPDATA%`/`%LOCALAPPDATA%` harness dirs |
 | Shell/persistence | `~/.bashrc` `~/.zshrc` `~/.profile` outside the managed block · systemd user units · crontabs | same + `~/Library/LaunchAgents` | PowerShell `$PROFILE` outside the managed block · Registry Run keys · Startup folder · Scheduled Tasks |
 
 **OS instantiation rule:** path separators, home-dir notation (`~` vs `%USERPROFILE%`/`$env:USERPROFILE`), and case-sensitivity follow the detected OS; on WSL both the Linux column and mounted Windows paths (`/mnt/c/Windows`, `/mnt/c/Users/*/`) are protected.
 
 ### WORKSPACE AUTONOMY (allow — full permissions inside *whichever* project is open, written once, globally)
 
-The rule is expressed with **cwd-relative path matchers** (`./**`, unprefixed globs — never an absolute path baked to one repo) written a single time into the harness's **global/user-scope** config. Because the matcher is relative, it re-resolves against whatever directory the harness is currently running in — opening a different project the next day auto-inherits the same rule with zero new entry, zero per-project file, zero repeat run of this skill. This is the mechanism, not a description of an outcome: **ds-rig never writes a project-scoped or repo-local permission file, and never hardcodes a specific project path into a rule.** A harness whose surface cannot express a *relative* scope (only accepts absolute per-project paths) cannot host this rule — gap-note it instead of falling back to a project-local file.
+The rule is expressed with **cwd-relative path matchers** (`./**`, unprefixed globs — never an absolute path baked to one repo) written a single time into the harness's **global/user-scope** config. Because the matcher is relative, it re-resolves against whatever directory the harness is currently running in — opening a different project the next day auto-inherits the same rule with zero new entry, zero per-project file, zero repeat run of this skill. This is the mechanism, not a description of an outcome: **ds-setup never writes a project-scoped or repo-local permission file, and never hardcodes a specific project path into a rule.** A harness whose surface cannot express a *relative* scope (only accepts absolute per-project paths) cannot host this rule — gap-note it instead of falling back to a project-local file.
 
 Effect: **allow file creation/edit/delete, project-local commands, test/build/lint runs without prompts** inside the project root currently open (and its declared temp/build dirs) — friction-free by design, for every harness whose surface can express a relative path scope (Claude Code path-scoped permissions; Codex workspace-write sandbox mode; Kilo Sandbox write-confinement; others via matcher prefixes).
 
@@ -61,7 +61,7 @@ Still enforced INSIDE the workspace (command-class risks are not path risks):
 
 ### OFFICIAL HARNESS DIRECTORIES (allow — reads, everywhere, no ask)
 
-Reads of the harness's own config, skill, plugin, and agent directories — the same paths named in the **Harness + rig configs** protected-path row (`~/.claude` incl. `skills/`, `plugins/`, `agents/`; `~/.codex`; `~/.gemini`; `~/.copilot`; `~/.config/ds-rig`; per-OS equivalents) — are **ALLOW, never ask**. A harness reading its own shipped or installed skill/plugin/agent definitions is not a trust boundary; prompting on it is friction with no security value and must not be written into the profile. **Writes/deletes to these paths remain DENY (RC-10)** except this skill's own gated, backed-up, additive writes — read and write are governed independently; loosening this row never extends to write access.
+Reads of the harness's own config, skill, plugin, and agent directories — the same paths named in the **Harness + rig configs** protected-path row (`~/.claude` incl. `skills/`, `plugins/`, `agents/`; `~/.codex`; `~/.gemini`; `~/.copilot`; `~/.config/ds-setup`; per-OS equivalents) — are **ALLOW, never ask**. A harness reading its own shipped or installed skill/plugin/agent definitions is not a trust boundary; prompting on it is friction with no security value and must not be written into the profile. **Writes/deletes to these paths remain DENY (RC-10)** except this skill's own gated, backed-up, additive writes — read and write are governed independently; loosening this row never extends to write access.
 
 ### ALLOW — everything risk-free
 
@@ -105,7 +105,7 @@ The hook arm ([../assets/rc_deny.py](../assets/rc_deny.py)) unwraps all of the a
 
 ### GLOBAL-ONLY WRITE SCOPE (binding on every phase of this skill)
 
-ds-rig writes permission entries **exclusively to each harness's user/global-scope config file** — never to a project- or repo-scoped permission file, regardless of which project is open when the skill runs. This is what makes the rig machine-level: one write, every project inherits it via the cwd-relative matchers above. Concretely:
+ds-setup writes permission entries **exclusively to each harness's user/global-scope config file** — never to a project- or repo-scoped permission file, regardless of which project is open when the skill runs. This is what makes the rig machine-level: one write, every project inherits it via the cwd-relative matchers above. Concretely:
 
 - Target the global path in the table below; never `.claude/settings.local.json` or a project's `.claude/settings.json`, never `.github/hooks/*.json`, never a project-root `kilo.jsonc` — even if one already exists and looks like the natural place to add a rule.
 - A harness whose *only* documented permission surface is project/repo-scoped (no user-global file) cannot receive a workspace-autonomy write from this skill — gap-note it (see per-harness table) rather than writing the project file.
@@ -119,9 +119,9 @@ ds-rig writes permission entries **exclusively to each harness's user/global-sco
 
 ## Per-harness surfaces (verified state, 2026-07-15)
 
-**ds-rig writes only the Global config path column. The Project-local equivalent column exists for detection/documentation only — never a write target; a harness whose only surface is project-local gets a gap-note instead.**
+**ds-setup writes only the Global config path column. The Project-local equivalent column exists for detection/documentation only — never a write target; a harness whose only surface is project-local gets a gap-note instead.**
 
-| Harness | Global config path — macOS/Linux + Git Bash on Windows (ds-rig's only write target) | Global config path — native Windows (cmd/PowerShell, same file) | Project-local equivalent (never touched) | Mechanism | Notes |
+| Harness | Global config path — macOS/Linux + Git Bash on Windows (ds-setup's only write target) | Global config path — native Windows (cmd/PowerShell, same file) | Project-local equivalent (never touched) | Mechanism | Notes |
 |---------|------------------------------------------------------------------------------------|-------------------------------------------------------------------|-------------------------------------------|-----------|-------|
 | Claude Code | `~/.claude/settings.json` | `%USERPROFILE%\.claude\settings.json` | `.claude/settings.json`, `.claude/settings.local.json` | declarative allow/ask/deny + `PreToolUse` hooks + optional OS sandbox | syntax in § Claude Code rule syntax; merge with Python `json` read-modify-write; never clobber `hooks.*`; RC-1..10 also as the `rc_deny.py --claude-hook` arm; workspace autonomy as `Edit(./**)` |
 | Codex CLI | `~/.codex/hooks.json` | `%USERPROFILE%\.codex\hooks.json` | project-level hooks (need trusted project) | hook decisions | hooks are hash-pin trusted per user; `PreToolUse` intercepts simple shell + apply_patch + MCP, not every path — note the gap |
@@ -129,8 +129,8 @@ ds-rig writes permission entries **exclusively to each harness's user/global-sco
 | GitHub Copilot | `~/.copilot/hooks/` | `%USERPROFILE%\.copilot\hooks\` | `.github/hooks/*.json` (repo-scoped — out of scope for this skill) | `preToolUse` returns allow/deny/ask | only blocking event; no matchers — RC filtering lives in the script; provide bash+powershell; `toolArgs` is a JSON string — parse; if only the repo-scoped surface is available on this machine → gap-note, do not write it |
 | Kilo Code | global Kilo settings (verify current path at apply time) | same — verify current path at apply time | project-root `kilo.jsonc` (out of scope for this skill) | declarative patterns + OS-level Kilo Sandbox | the sandbox (global, machine-level) is the strongest deterministic guarantee in the thin-harness class; if only `kilo.jsonc` exists → gap-note |
 | OpenCode | plugin hooks + global config (verify current docs at apply time) | same — verify current docs at apply time | project config | block semantics UNVERIFIED at catalog time | reads `~/.claude/skills/` for skills — apply once, covers both |
-| Cursor / Windsurf (Devin Desktop) | no scriptable deny surface confirmed | no scriptable deny surface confirmed | — | — | gap-note; compensating control: ds-quality pre-commit arm + RC list in rules file (advisory only — say so) |
-| Aider | none | none | — | — | gap-note; compensating control: ds-quality Aider arm (edit-time) + git hooks |
+| Cursor / Windsurf (Devin Desktop) | no scriptable deny surface confirmed | no scriptable deny surface confirmed | — | — | gap-note; compensating control: ds-gate pre-commit arm + RC list in rules file (advisory only — say so) |
+| Aider | none | none | — | — | gap-note; compensating control: ds-gate Aider arm (edit-time) + git hooks |
 
 ## Apply procedure (every harness)
 

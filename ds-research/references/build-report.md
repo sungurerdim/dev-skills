@@ -1,6 +1,6 @@
 # Reference: Phase 4 Build Report — Slot Manifest & Fill Rules
 
-Consumer: ds-brief Phase 4 (Build Report). Build only by cloning `assets/brief-template.html` (never from scratch).
+Consumer: ds-research Phase 4 (Build Report). Build only by cloning `assets/brief-template.html` (never from scratch).
 
 ## Slot manifest
 
@@ -34,7 +34,7 @@ Full rule per slot in "Fill these slots" below.
 
 ## Fill these slots
 
-- Brand — baked into the CSS at build: default = `slate` preset; **a host project supplies its brand input instead** (token values + category color + `CONFIG.themeStorageKey`) and ds-brief bakes it as-is — no post-hoc canonicalization. Dark ships as a CSS block (JS-off safe). Rules: report-template.md § Theming
+- Brand — baked into the CSS at build: default = `slate` preset; **a host project supplies its brand input instead** (token values + category color + `CONFIG.themeStorageKey`) and ds-research bakes it as-is — no post-hoc canonicalization. Dark ships as a CSS block (JS-off safe). Rules: report-template.md § Theming
 - `CONFIG` SSOT — trust scalars (`confidence`, `coveragePct`, `sourceCount`, `officialCount`, `searchCompleteness`, dates) feed the trust strip + `#method` details
 - Nav links matching section ids · sections · source chips (official/secondary by tier) · semantic colors (hue-constant across themes; dark re-tunes lightness only)
 - Verbatim `.lawtext` blocks (extracted, not paraphrased) · badges (`single`/`unverified`/`disputed`) · Unknowns section · Sources table (+ collapsed `#method` details beside it) · trust strip as the first block of `main` — signals only, method prose never opens the report

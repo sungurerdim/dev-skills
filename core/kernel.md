@@ -54,7 +54,7 @@ Optimizing or automating something that should not exist is the most expensive m
 
 ## 5. Autonomy and its only exceptions
 
-**Arguments** — plain words, any order, space- or comma-separated: `/ds-ship all sec a11y dry`. No word runs every part of the skill, on its default scope. A part's word runs that part alone and by itself, even where its signal says it does not apply (the request wins; the report says so). Two words mean the same in every skill: `ask` and `dry` (detect and report only: no file changes, installs or commits). `--word` and `--word=a,b` spellings are read as the same words.
+**Arguments** — plain words, any order, space- or comma-separated: `/ds-audit all sec a11y dry`. No word runs every part of the skill, on its default scope. A part's word runs that part alone and by itself, even where its signal says it does not apply (the request wins; the report says so). Two words mean the same in every skill: `ask` and `dry` (detect and report only: no file changes, installs or commits). `--word` and `--word=a,b` spellings are read as the same words.
 
 Every decision is made from the evidence and recorded; the run does not stop to ask. `ask` turns each decision point into a question with a recommended option. These are never performed by a skill, in any mode — they are listed as `only you can do` with the exact command:
 

@@ -1,9 +1,9 @@
 ---
-name: ds-brief
+name: ds-research
 description: Research a topic or condense given sources into a fact-checked, single-file HTML brief — every datum confirmed by two independent sources or visibly flagged, load-bearing facts tied to a primary source, offline and print/PDF-ready, gated by a mechanical verifier. Use when the user wants a sourced report, guide or briefing, or (quick) a fast sourced answer and recommendation in chat.
 ---
 
-# /ds-brief
+# /ds-research
 
 A brief the reader can trust and check: every claim carries a source chip with its verbatim quote, every datum is confirmed twice or flagged, unknowns are named, and one HTML file opens offline and prints clean. Follows [kernel.md](../core/kernel.md); the verification contract is [verification.md](references/verification.md) (19 rules), and its gates run as code in [verify-brief.py](assets/verify-brief.py) — that script's output is the evidence, not this text.
 
@@ -70,7 +70,7 @@ Low-confidence claims, dead links and single-source datums resolve by impact, ef
 Run the full verifier (`--no-bundle` with `nobundle`). Exit 1 → fix every FAIL and re-run; exit 2 → blocker. No Python → say so, name the unrun checks, and work them by hand. Then the manual checklist. Print:
 
 ```
-ds-brief: OK|WARN|FAIL | Confidence {band} ({b} blockers) | Sources {n} | 2x-confirmed {pct}% | Primary {pp}% | Claims {v}/{p}/{u}/{d} | Red team {held}/{weakened}/{overturned} | Corpus {c}/{t} | Unknowns {k} | File {path}
+ds-research: OK|WARN|FAIL | Confidence {band} ({b} blockers) | Sources {n} | 2x-confirmed {pct}% | Primary {pp}% | Claims {v}/{p}/{u}/{d} | Red team {held}/{weakened}/{overturned} | Corpus {c}/{t} | Unknowns {k} | File {path}
 ```
 
 and the closing block of kernel §6. Failures and their recovery: [error-recovery.md](references/error-recovery.md).

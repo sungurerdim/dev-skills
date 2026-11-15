@@ -61,7 +61,7 @@ Finds lies in documentation. For every testable claim, search source to confirm 
 **Generated and cross-surface numbers — stack-independent rule.** A number a doc states has exactly two legal forms: **emitted by its generator** at build time, or **hand-written and covered by a drift check** that goes red when the owning source moves. This covers every number some tool produces (rule/test counts, coverage, bundle size, benchmark results) and every number repeated on a second surface (config, UI copy, site, store listing, another doc). A hand-copied figure that is correct today is still a finding — the finding is the missing wire, not the value. This is the doc-side, stack-independent form of the [ci.md](ci.md) build-hygiene pair DOP-38 (generated artifacts are regenerated at the gate, never hand-edited) and DOP-39 (a cross-surface fact gets one canonical owner plus a drift gate); it applies with no CI, no pipeline, and no particular stack. Dates obey the same discipline: an access/verification date is written only for a source actually opened in this run, and is never bumped to today because the line around it was edited.
 
 Report table: `| # | Type (Drift/Stale/Gap/Broken/SSOT-copy/Unwired-number/Unverified-date) | Doc File:Line | Claim | Actual | Severity |`
-Label map for orchestrated runs: ds-ship's promise census uses `promised-not-implemented` (= `Drift`/`Stale` here) and `implemented-not-documented` (= `Gap` here) — same classes, census-side names.
+Label map for orchestrated runs: ds-audit's promise census uses `promised-not-implemented` (= `Drift`/`Stale` here) and `implemented-not-documented` (= `Gap` here) — same classes, census-side names.
 
 ## Product-DX onboarding-curve check (when scope includes getting-started or API docs)
 

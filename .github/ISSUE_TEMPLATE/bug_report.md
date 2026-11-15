@@ -6,7 +6,7 @@ labels: bug
 assignees: ''
 ---
 
-**Affected skill** (e.g. `ds-ship`, `ds-quality`):
+**Affected skill** (e.g. `ds-audit`, `ds-gate`):
 
 **What happened:**
 

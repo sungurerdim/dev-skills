@@ -61,7 +61,7 @@ DENY = {
     # RC-10
     "claude --dangerously-skip-permissions": "RC-10", 'git commit --no-verify -m "wip"': "RC-10",
     "git commit -nm wip": "RC-10", "sed -i '' 's/a/b/' ~/.claude/settings.json": "RC-10",
-    "echo x > ~/.config/ds-rig/hooks/rc_deny.py": "RC-10",
+    "echo x > ~/.config/ds-setup/hooks/rc_deny.py": "RC-10",
     "claude --permission-mode bypassPermissions": "RC-10",
     # nested / heredoc into a shell
     "bash <<'EOF'\nrm -rf ~\nEOF": "RC-1", "bash -lc 'git push --force'": "RC-5",
@@ -84,7 +84,7 @@ ALLOW = [
     "dd if=/dev/zero of=/dev/null bs=1m count=10", "curl -fsS -m 5 http://127.0.0.1:8080/health",
     "curl -d @payload.json http://localhost:3000/api", "cat ~/.ssh/id_ed25519.pub",
     "ls -la ~/.ssh", "git branch -D old-feature", "git push origin --delete old-feature",
-    "rsync -a ds-rig/ ~/.claude/skills/ds-rig/", "docker system prune -f",
+    "rsync -a ds-setup/ ~/.claude/skills/ds-setup/", "docker system prune -f",
     "curl -s https://api.github.com/repos/x/y | jq .stargazers_count",
     "echo $(date) > build.log", "mv a.txt b.txt 2>&1 && echo done",  # fd prefix is not an argv path "for f in *.md; do wc -l \"$f\"; done",
 ]

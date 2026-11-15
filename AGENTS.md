@@ -2,7 +2,7 @@
 
 Instructions for any coding agent working **on** this repository.
 
-dev-skills ships four Agent Skills (`ds-ship`, `ds-quality`, `ds-rig`, `ds-brief`) and the shared `core/` they all load. Skills are Markdown; the only code is Python 3.8+ stdlib: `install.py`, `scripts/check.py`, `evals/*.py`, and each skill's `assets/*.py`.
+dev-skills ships four Agent Skills (`ds-audit`, `ds-gate`, `ds-setup`, `ds-research`) and the shared `core/` they all load. Skills are Markdown; the only code is Python 3.8+ stdlib: `install.py`, `scripts/check.py`, `evals/*.py`, and each skill's `assets/*.py`.
 
 ## Commands
 
@@ -26,4 +26,4 @@ There is no CI; the gate is the only enforcement. A red gate is fixed, never byp
 - **A new gate check needs a self-test case** in `scripts/check.py` that injects its defect and sees it go red.
 - **Versions:** `.claude-plugin/marketplace.json` and the top `CHANGELOG.md` entry must agree (semver).
 - **Conventional Commits.** `feat`/`fix` only when a user-visible capability changes.
-- `ds/audit/` is per-run scratch output of `ds-ship`; never commit it.
+- `ds/audit/` is per-run scratch output of `ds-audit`; never commit it.

@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""ds-quality — deterministic, local, no-CI quality gate for AI coding hosts.
+"""ds-gate — deterministic, local, no-CI quality gate for AI coding hosts.
 
 Stdlib only (Python 3.8+), identical on macOS, Linux and Windows. No jq, no network.
 
-  ds-quality.py gate [--exit2]        before-done hook: stdin JSON. Default (Claude Code / Codex Stop): block = stdout
+  ds-gate.py gate [--exit2]        before-done hook: stdin JSON. Default (Claude Code / Codex Stop): block = stdout
                                       {"decision":"block","reason":...}. --exit2 (Gemini AfterAgent): block = reason on
                                       stderr + exit 2. Allow = no output, exit 0.
-  ds-quality.py run [DIR]             run DIR's quality command now (marker, else detected); exit code = the command's.
+  ds-gate.py run [DIR]             run DIR's quality command now (marker, else detected); exit code = the command's.
                                       Used by git pre-commit, Aider lint-cmd/test-cmd, or by hand.
-  ds-quality.py detect [DIR]          print the quality command for DIR; nothing printed = nothing detectable
-  ds-quality.py install [--register] [--dry-run]
+  ds-gate.py detect [DIR]          print the quality command for DIR; nothing printed = nothing detectable
+  ds-gate.py install [--register] [--dry-run]
                                       copy this file into ~/.claude/hooks, write the default config if absent, remove
                                       files of older versions; --register merges the Stop hook into settings.json
-                                      (idempotent, backed up, replaces older ds-quality entries). Honors CLAUDE_CONFIG_DIR.
-  ds-quality.py --self-test           fixture checks (temp repos); exit 0 = green
+                                      (idempotent, backed up, replaces older ds-gate entries). Honors CLAUDE_CONFIG_DIR.
+  ds-gate.py --self-test           fixture checks (temp repos); exit 0 = green
 
 Resolution per Stop, in priority order:
-  1. <root>/.claude/ds-quality.json marker -> its `command` (enabled:false = kill switch; optional `timeout` seconds,
+  1. <root>/.claude/ds-gate.json marker -> its `command` (enabled:false = kill switch; optional `timeout` seconds,
      `cache:false`)
   2. else mode=auto and the repo is under a trusted root (config `roots`, default ~/projects) -> detect()
   3. else / nothing detectable -> inert (exit 0, no output)
@@ -42,8 +42,9 @@ WINDOWS = os.name == "nt"
 TAIL_CHARS = 4000
 DEFAULT_TIMEOUT = 270  # seconds; under the 300 s hook timeout so a slow gate reports instead of being killed
 DEFAULT_CONFIG = {"mode": "auto", "roots": ["~/projects"]}
-HOOK_FILES = ("ds-quality.py",)
-LEGACY_FILES = ("ds-quality-gate.sh", "ds-quality-detect.sh")  # pre-3.0 shell launchers
+HOOK_FILES = ("ds-gate.py",)
+LEGACY_FILES = ("ds-quality-gate.sh", "ds-quality-detect.sh", "ds-quality.py")  # earlier names of this hook
+OLD_MARKER, OLD_CONFIG = "ds-quality.json", "ds-quality.config.json"  # read when the new name is absent
 
 
 # --- small helpers ----------------------------------------------------------------------------------------
@@ -273,7 +274,7 @@ def detect(root) -> str:
         add("node --test")
 
     # Not added, by design: clasp / wrangler checks need an authenticated networked call, and a generic ad-hoc sweep has
-    # no manifest to key off — both stay with the explicit /ds-quality bootstrap, never the silent auto-arm.
+    # no manifest to key off — both stay with the explicit /ds-gate bootstrap, never the silent auto-arm.
     return " && ".join(cmds)
 
 
@@ -317,9 +318,20 @@ def fingerprint(root: Path, cmd: str):
     return Path(gitdir), h.hexdigest()
 
 
+def marker_path(root: Path) -> Path:
+    """The repo's marker: .claude/ds-gate.json, else the pre-rename .claude/ds-quality.json when only that exists."""
+    new, old = root / ".claude" / "ds-gate.json", root / ".claude" / OLD_MARKER
+    return old if old.is_file() and not new.is_file() else new
+
+
+def config_path(base: Path) -> Path:
+    new, old = base / "ds-gate.config.json", base / OLD_CONFIG
+    return old if old.is_file() and not new.is_file() else new
+
+
 def resolve(root: Path, auto: bool):
     """-> (command, timeout, cache) for root; command "" when disabled or nothing applies."""
-    marker = root / ".claude" / "ds-quality.json"
+    marker = marker_path(root)
     if marker.is_file():
         m = load_json(marker) or {}
         if m.get("enabled") is False:  # explicit opt-out wins
@@ -333,13 +345,13 @@ def run(argv) -> int:
     root = Path(git(["rev-parse", "--show-toplevel"], start) or start)
     cmd, timeout, _ = resolve(root, auto=True)
     if not cmd:
-        print(f"ds-quality: no quality command for {root} (add .claude/ds-quality.json)", file=sys.stderr)
+        print(f"ds-gate: no quality command for {root} (add .claude/ds-gate.json)", file=sys.stderr)
         return 0
-    print(f"ds-quality: {cmd}", file=sys.stderr)
+    print(f"ds-gate: {cmd}", file=sys.stderr)
     code, out = run_shell(cmd, root, timeout)
     sys.stdout.write(out)
     if code is None:
-        print(f"ds-quality: TIMED OUT after {int(timeout)}s — an unfinished check is not a pass", file=sys.stderr)
+        print(f"ds-gate: TIMED OUT after {int(timeout)}s — an unfinished check is not a pass", file=sys.stderr)
         return 1
     return code
 
@@ -353,15 +365,15 @@ def gate(payload: dict) -> str | None:
         return None
     root = Path(git(["rev-parse", "--show-toplevel"], anchor) or anchor)
 
-    cfg = {**DEFAULT_CONFIG, **(load_json(claude_dir() / "ds-quality.config.json") or {})}
+    cfg = {**DEFAULT_CONFIG, **(load_json(config_path(claude_dir())) or {})}
     auto = cfg.get("mode") == "auto" and in_roots(root, cfg.get("roots") or DEFAULT_CONFIG["roots"])
     cmd, timeout, cache = resolve(root, auto)
-    marker = root / ".claude" / "ds-quality.json"
+    marker = marker_path(root)
     if not cmd:  # nothing to check -> inert
         return None
 
     fp = fingerprint(root, cmd) if cache else None
-    stamp = (fp[0] / "ds-quality.green") if fp else None
+    stamp = (fp[0] / "ds-gate.green") if fp else None
     if stamp and stamp.is_file() and stamp.read_text(encoding="utf-8", errors="ignore").strip() == fp[1]:
         return None  # unchanged since the last green run
 
@@ -392,7 +404,7 @@ def gate(payload: dict) -> str | None:
 
 def hook_command(hooks: Path) -> str:
     """Absolute interpreter + script: no shell launcher, no PATH lookup, same on every OS."""
-    return f'"{Path(sys.executable).as_posix()}" "{(hooks / "ds-quality.py").as_posix()}" gate'
+    return f'"{Path(sys.executable).as_posix()}" "{(hooks / "ds-gate.py").as_posix()}" gate'
 
 
 def install(argv) -> int:
@@ -416,7 +428,11 @@ def install(argv) -> int:
             say(f"{'would remove' if dry else 'remove'}  old {name}")
             if not dry:
                 (hooks / name).unlink()
-    cfg = base / "ds-quality.config.json"
+    cfg = base / "ds-gate.config.json"
+    if (base / OLD_CONFIG).is_file() and not cfg.exists():
+        say(f"{'would rename' if dry else 'rename'}  {OLD_CONFIG} -> {cfg.name}")
+        if not dry:
+            (base / OLD_CONFIG).rename(cfg)
     if not cfg.exists():
         say(f"{'would write' if dry else 'write'}  default config {cfg}")
         if not dry:
@@ -430,7 +446,7 @@ def install(argv) -> int:
         say(f"settings.json is not valid JSON: {settings} — not touched")
         return 1
     stop = data.setdefault("hooks", {}).setdefault("Stop", [])
-    ours = lambda h: any(k in (h.get("command") or "") for k in ("ds-quality-gate.sh", "ds-quality.py"))
+    ours = lambda h: any(k in (h.get("command") or "") for k in ("ds-quality-gate.sh", "ds-quality.py", "ds-gate.py"))
     current = [h for g in stop for h in (g.get("hooks") or []) if ours(h)]
     if len(current) == 1 and current[0].get("command") == cmd:
         say("Stop hook already registered")
@@ -462,7 +478,7 @@ def self_test() -> int:
         subprocess.run(cmd, cwd=cwd, check=True, capture_output=True)
 
     keep = {k: os.environ.get(k) for k in ("CLAUDE_CONFIG_DIR", "CLAUDE_PROJECT_DIR")}
-    tmp = Path(tempfile.mkdtemp(prefix="ds-quality-test-"))
+    tmp = Path(tempfile.mkdtemp(prefix="ds-gate-test-"))
     try:
         os.environ["CLAUDE_CONFIG_DIR"] = str(tmp / "cfg")
         (tmp / "cfg").mkdir()
@@ -472,7 +488,7 @@ def self_test() -> int:
             sh(c, repo)
         os.environ["CLAUDE_PROJECT_DIR"] = str(repo)
         payload = {"cwd": str(repo)}
-        (tmp / "cfg" / "ds-quality.config.json").write_text(json.dumps({"mode": "auto", "roots": [str(tmp / "trusted")]}))
+        (tmp / "cfg" / "ds-gate.config.json").write_text(json.dumps({"mode": "auto", "roots": [str(tmp / "trusted")]}))
 
         # detect
         check("detect: empty repo -> nothing", detect(repo) == "")
@@ -494,7 +510,7 @@ def self_test() -> int:
 
         # gate
         check("gate: nothing detectable -> inert", gate(payload) is None)
-        marker = repo / ".claude" / "ds-quality.json"
+        marker = repo / ".claude" / "ds-gate.json"
         marker.parent.mkdir()
         marker.write_text(json.dumps({"command": "exit 3"}))
         out = gate(payload)
@@ -505,7 +521,7 @@ def self_test() -> int:
         check("gate: enabled:false is a real kill switch", gate(payload) is None)
         marker.write_text(json.dumps({"command": "echo ok"}))
         check("gate: passing command -> allow", gate(payload) is None)
-        green = list((repo / ".git").glob("ds-quality.green"))
+        green = list((repo / ".git").glob("ds-gate.green"))
         check("gate: green fingerprint stored", len(green) == 1)
         marker.write_text(json.dumps({"command": "echo ok", "timeout": 1}))
         check("gate: changed command invalidates the cache", gate(payload) is None)
@@ -525,6 +541,10 @@ def self_test() -> int:
         check("run: exit code is the command's", run([str(repo)]) == 4)
         marker.write_text(json.dumps({"command": "exit 0"}))
         check("run: green -> 0", run([str(repo)]) == 0)
+        old = marker.with_name(OLD_MARKER)
+        marker.rename(old)
+        check("pre-rename marker still read", resolve(repo, False)[0] == "exit 0")
+        old.rename(marker)
         marker.write_text(json.dumps({"command": "exit 5", "cache": False}))
         r = subprocess.run([sys.executable, __file__, "gate", "--exit2"], input=json.dumps({"cwd": str(repo)}),
                            capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(repo)))
@@ -537,6 +557,7 @@ def self_test() -> int:
         settings = tmp / "cfg" / "settings.json"
         settings.write_text(json.dumps({"hooks": {"Stop": [
             {"hooks": [{"type": "command", "command": "~/.claude/hooks/ds-quality-gate.sh"}]},
+            {"hooks": [{"type": "command", "command": "python ~/.claude/hooks/ds-quality.py gate"}]},
             {"hooks": [{"type": "command", "command": "other-hook"}]}]}}))
         import contextlib, io
         with contextlib.redirect_stdout(io.StringIO()):
@@ -545,7 +566,7 @@ def self_test() -> int:
         st = json.loads(settings.read_text())["hooks"]["Stop"]
         cmds = [h["command"] for g in st for h in g["hooks"]]
         check("install: legacy launcher removed", not (hooks / "ds-quality-gate.sh").exists())
-        check("install: one ds-quality entry, others kept", cmds.count(hook_command(hooks)) == 1 and "other-hook" in cmds and len(cmds) == 2)
+        check("install: one ds-gate entry, others kept", cmds.count(hook_command(hooks)) == 1 and "other-hook" in cmds and len(cmds) == 2)
     finally:
         for k, v in keep.items():
             if v is None:
@@ -553,7 +574,7 @@ def self_test() -> int:
             else:
                 os.environ[k] = v
         shutil.rmtree(tmp, ignore_errors=True)
-    print("ds-quality self-test:", "FAILED " + ", ".join(failures) if failures else "all checks passed")
+    print("ds-gate self-test:", "FAILED " + ", ".join(failures) if failures else "all checks passed")
     return 1 if failures else 0
 
 

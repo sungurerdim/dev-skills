@@ -1,6 +1,6 @@
 # Signals — what the project is, so a run loads only what applies
 
-Resolved once per run (by `ds-ship`, or by any skill that needs them) with the detection column below; never guessed. They decide which `core/rules/` files are read (`core/rules/README.md`).
+Resolved once per run (by `ds-audit`, or by any skill that needs them) with the detection column below; never guessed. They decide which `core/rules/` files are read (`core/rules/README.md`).
 
 ## The line
 

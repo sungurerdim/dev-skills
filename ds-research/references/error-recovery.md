@@ -1,6 +1,6 @@
 # Reference: Error Recovery
 
-Consumer: ds-brief, all phases — consult when a phase's own Gate fail-arm does not already cover the situation.
+Consumer: ds-research, all phases — consult when a phase's own Gate fail-arm does not already cover the situation.
 
 | Situation | Action |
 |-----------|--------|

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Eval: ds-ship on a small Node library with no UI, store, billing or mobile signals.
+"""Eval: ds-audit on a small Node library with no UI, store, billing or mobile signals.
 
   python3 evals/ship_library.py setup DIR     build the fixture repo
   python3 evals/ship_library.py score DIR     one `criterion<TAB>PASS|FAIL` line each, then OVERALL; exit 0 = all pass
@@ -51,7 +51,7 @@ def score(d: Path) -> int:
     areas = next((l for l in text.splitlines() if l.startswith("Areas:")), "")
     results = [
         ("report-written", bool(text)),
-        ("status-line", bool(re.search(r"^ds-ship: (OK|WARN|FAIL|INCOMPLETE) \|", text, re.M))),
+        ("status-line", bool(re.search(r"^ds-audit: (OK|WARN|FAIL|INCOMPLETE) \|", text, re.M))),
         ("signals-line", bool(re.search(r"^Signals: .*ui=none", text, re.M))),
         ("irrelevant-areas-N/A", all(re.search(rf"\b{a}\b[^·]*N/A", areas) for a in NOT_APPLICABLE)),
         ("closing-block", all(k in text for k in ("Asked:", "Done:"))),
@@ -72,7 +72,7 @@ def validate() -> int:
     (d / ".git" / "info" / "exclude").write_text("ds/audit/\n", encoding="utf-8")
     (d / "ds" / "audit").mkdir(parents=True)
     (d / "ds" / "audit" / "report.md").write_text(
-        "ds-ship: OK | findings 0 · fixed 0 · open 0 · only-you 0\n"
+        "ds-audit: OK | findings 0 · fixed 0 · open 0 · only-you 0\n"
         "Signals: ui=none api=none db=none tests=node platforms=library\n"
         "Areas: security ran · testing ran · store N/A — deploy=none · monetization N/A — billing=none · "
         "mobile N/A — mobile=none · a11y N/A — ui=none\n\nAsked: audit\nDone: nothing to change\n", encoding="utf-8")

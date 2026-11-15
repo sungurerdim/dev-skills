@@ -1,9 +1,9 @@
 ---
-name: ds-rig
+name: ds-setup
 description: Set up and maintain the machine-level AI dev rig — install or update a pinned toolset, turn off telemetry in every tool and harness, apply allow/ask/deny permission profiles (risk-free work never prompts), and keep the MCP tool count within budget. Use for setting up or upgrading the AI dev environment, privacy hardening, or harness permissions.
 ---
 
-# /ds-rig
+# /ds-setup
 
 Build the AI-dev environment deliberately: every tool pinned and recorded, nothing phoning home, permissions that never prompt for risk-free work and always stop the dangerous kind. Machine-level — writes nothing into any project. Follows [kernel.md](../core/kernel.md); this file adds only the rig specifics.
 
@@ -33,7 +33,7 @@ Recorded `Only you can do` by default, a per-item question under `ask`: unpinned
 
 ## Steps
 
-1. **Detect** from probes, never assumption: OS, architecture, package managers (brew, apt/dnf, winget/scoop, npm, uv/pip, cargo); harnesses (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.copilot/`, Aider, OpenCode, Cursor, Windsurf); catalog tools and versions (`{tool} --version`); MCP servers per harness, counted by parsing the config (`python3 -c "import json,sys; print(len(json.load(open(sys.argv[1])).get('mcpServers', {})))" {config}`); manifest `~/.config/ds-rig/manifest.json` (present = re-run). A probe that cannot run → `unknown`, excluded from automatic actions. Print the rig before changing anything.
+1. **Detect** from probes, never assumption: OS, architecture, package managers (brew, apt/dnf, winget/scoop, npm, uv/pip, cargo); harnesses (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.copilot/`, Aider, OpenCode, Cursor, Windsurf); catalog tools and versions (`{tool} --version`); MCP servers per harness, counted by parsing the config (`python3 -c "import json,sys; print(len(json.load(open(sys.argv[1])).get('mcpServers', {})))" {config}`); manifest `~/.config/ds-setup/manifest.json` (present = re-run; only the pre-3.0 `~/.config/ds-rig/manifest.json` present → move it there). A probe that cannot run → `unknown`, excluded from automatic actions. Print the rig before changing anything.
 2. **Select** from [catalog.md](references/catalog.md): every category whose signal holds, plus manifest tools with updates. For each MCP-class pick, name the CLI alternative if one exists. Project the MCP tool count; past ~20-30 tools definitions cost more context than they save.
 
    | Category | Runs when | Tools | Fallback |
@@ -53,13 +53,13 @@ Recorded `Only you can do` by default, a per-item question under `ask`: unpinned
    - RC-1..10 and the protected-path map → deny; RC-11..16 → ask; everything risk-free → allow; workspace autonomy through cwd-relative matchers.
    - Every Bash entry mirrored for wrappers the harness does not strip (rtk and others).
    - The `rc_deny.py` hook arm where the harness has a blocking hook (Claude Code: `"{py}" "{dir}/rc_deny.py" --claude-hook` under `PreToolUse` with matcher `Bash`).
-   - Harness with no global surface → gap-note with the compensating control (a ds-quality git pre-commit arm).
+   - Harness with no global surface → gap-note with the compensating control (a ds-gate git pre-commit arm).
    - Never remove or loosen an existing user entry; a conflict skips that file and is recorded.
 7. **Prove and record** — each tool's observed effect from the catalog's Verify line; MCP recount against the projection; run `python3 assets/test_rc_deny.py` when the hook arm was installed; write the manifest (tool, version, install method, privacy proof, permission entries, date) and parse it back.
 
 ## Report
 
-`ds-rig: OK|WARN|FAIL|INCOMPLETE | tools {n} installed · {m} updated | privacy {p}/{n} proven | permissions {h} harnesses | MCP {count}/{budget}`, then: rig detected, per-item table (action, version, evidence), privacy posture per item, permission diff per harness with the RC coverage table and the honest limits from permissions.md, gap-notes, and the closing block of kernel §6. A run where the user declines every install is valid: read-only report, `OK`.
+`ds-setup: OK|WARN|FAIL|INCOMPLETE | tools {n} installed · {m} updated | privacy {p}/{n} proven | permissions {h} harnesses | MCP {count}/{budget}`, then: rig detected, per-item table (action, version, evidence), privacy posture per item, permission diff per harness with the RC coverage table and the honest limits from permissions.md, gap-notes, and the closing block of kernel §6. A run where the user declines every install is valid: read-only report, `OK`.
 
 ## Edge cases
 

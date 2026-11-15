@@ -1,9 +1,9 @@
 ---
-name: ds-ship
+name: ds-audit
 description: Audit and improve a project to production quality — detect what the project is, check every area that applies against named standards, fix what is safe, verify with the project's own checks, and report. Use to review and fix what the current branch changes (the default), for an end-to-end audit with `all` ("make this production ready"), or for named areas such as `sec a11y`.
 ---
 
-# /ds-ship
+# /ds-audit
 
 Audit what the branch changes (or, with `all`, the whole project), fix what is safe, prove it with the project's own checks, and leave one report. Every step follows [kernel.md](../core/kernel.md) — read it first; this file adds only what is specific to an audit pass.
 
@@ -18,7 +18,7 @@ Audit what the branch changes (or, with `all`, the whole project), fix what is s
 | `ask` | Each decision point becomes a question with a recommended option (kernel §5) |
 | `<path>` | One package of a monorepo; without it, each package with its own manifest is a unit |
 
-**Changed scope (default)** — the files in `git diff --name-only {base}...HEAD`, plus uncommitted and untracked files (`git status --porcelain`), where `{base}` is the upstream (`@{upstream}`), else `origin/HEAD`, else the default branch; no remote and no other branch → uncommitted files only, said in the report. Findings are recorded only on lines these files changed, or on code a change there breaks (callers, contracts, tests that cover it); the baseline and verify checks still run whole-project, since a local change can break a distant check. No changed file → report `nothing changed — /ds-ship all audits the whole project` and stop. The run was asked to work on these files, so uncommitted ones are edited too (an exception to kernel §3): before the first write, `git stash create` records the untouched state and its hash goes in the report (`git checkout {hash} -- {file}` restores a file); fixes in them stay uncommitted, mixed with the user's own edits, and the report lists them for review with `git diff`.
+**Changed scope (default)** — the files in `git diff --name-only {base}...HEAD`, plus uncommitted and untracked files (`git status --porcelain`), where `{base}` is the upstream (`@{upstream}`), else `origin/HEAD`, else the default branch; no remote and no other branch → uncommitted files only, said in the report. Findings are recorded only on lines these files changed, or on code a change there breaks (callers, contracts, tests that cover it); the baseline and verify checks still run whole-project, since a local change can break a distant check. No changed file → report `nothing changed — /ds-audit all audits the whole project` and stop. The run was asked to work on these files, so uncommitted ones are edited too (an exception to kernel §3): before the first write, `git stash create` records the untouched state and its hash goes in the report (`git checkout {hash} -- {file}` restores a file); fixes in them stay uncommitted, mixed with the user's own edits, and the report lists them for review with `git diff`.
 
 ## Done when
 
@@ -76,7 +76,7 @@ Run the full `{check-cmd}`. Compare with the baseline step by step. A step that 
 Write `ds/audit/report.md`, then print its first block:
 
 ```
-ds-ship: OK|WARN|FAIL|INCOMPLETE | scope {changed: n files|all} | findings {n} · fixed {n} · open {n} · only-you {n}
+ds-audit: OK|WARN|FAIL|INCOMPLETE | scope {changed: n files|all} | findings {n} · fixed {n} · open {n} · only-you {n}
 Signals: {line}
 Areas: {area} ran · {area} N/A — {reason} · …
 Checks: {check-cmd step} baseline→now (pass/fail) · …
@@ -88,5 +88,5 @@ Then the findings table grouped by severity, and the closing block of kernel §6
 ## Notes
 
 - Parallel areas: when the host can run subagents, one per area for steps 4-5, each given kernel.md and its rule files only; fixes stay sequential in this run.
-- No commit-time or stop-time gate in the project → a finding in the `ci` area; the `ds-quality` skill installs one.
+- No commit-time or stop-time gate in the project → a finding in the `ci` area; the `ds-gate` skill installs one.
 - Publishing, pushing, releases and anything needing a human-only value stay `Only you can do` with the exact command (kernel §5).

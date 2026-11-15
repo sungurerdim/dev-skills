@@ -1,6 +1,6 @@
 # Quick mode — a sourced answer in the chat, no HTML
 
-`/ds-brief quick <question>` answers a "which one / is it safe / what changed / how do I" question in minutes. It keeps every evidence rule of [craap.md](craap.md) (tiers, scores, triangulation, dating, rule 8) and drops only the deliverable: no `report.html`, no `findings.json`, no `sources/` bundle, no verifier run. A question that turns out to need tables, branches or a printable record → say so and offer the full run.
+`/ds-research quick <question>` answers a "which one / is it safe / what changed / how do I" question in minutes. It keeps every evidence rule of [craap.md](craap.md) (tiers, scores, triangulation, dating, rule 8) and drops only the deliverable: no `report.html`, no `findings.json`, no `sources/` bundle, no verifier run. A question that turns out to need tables, branches or a printable record → say so and offer the full run.
 
 ## Tracks
 
@@ -27,4 +27,4 @@ In this order, in the language of the question:
 4. **Gaps** — what was not found or could not be verified.
 5. **Sources** — `[{band}] T{n}|{score}|{domain}|{title}|{pub-date or unknown}|accessed {date}`.
 
-Status line: `ds-brief quick: OK|WARN|FAIL | verdict {v} | sources {n} · T1-T2 {m} | 2x-confirmed {pct}% | gaps {g}` (WARN when no T1-T2 source exists), then the closing block of kernel §6.
+Status line: `ds-research quick: OK|WARN|FAIL | verdict {v} | sources {n} · T1-T2 {m} | 2x-confirmed {pct}% | gaps {g}` (WARN when no T1-T2 source exists), then the closing block of kernel §6.

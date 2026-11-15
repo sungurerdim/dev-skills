@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ds-rig RC-1..10 command classifier (shell-aware, stdlib only).
+"""ds-setup RC-1..10 command classifier (shell-aware, stdlib only).
 
 Parses the command like a shell would (quotes, escapes, $(...), `...`,
 <(...), heredocs, pipelines, chains) and judges each simple command by its
@@ -56,7 +56,7 @@ SYSTEM_OK = ("/usr/local", "/opt/homebrew", "/private/tmp", "/private/var/folder
 CRED = (".ssh", ".gnupg", ".aws", ".config/gcloud", ".kube", "Library/Keychains", ".netrc")
 PROTECTED_HOME_DOTDIRS = {".ssh", ".gnupg", ".aws", ".kube", ".config", ".claude", ".codex",
                           ".gemini", ".copilot", ".local"}
-HARNESS = (".claude/settings.json", ".claude/settings.local.json", ".claude/hooks", ".config/ds-rig")
+HARNESS = (".claude/settings.json", ".claude/settings.local.json", ".claude/hooks", ".config/ds-setup", ".config/ds-rig")
 PROFILES = (".zshrc", ".zprofile", ".zshenv", ".bashrc", ".bash_profile", ".profile")
 
 
@@ -647,7 +647,7 @@ def main():
         except Exception as e:  # classifier bug: hand to the human, never silently allow
             hit = Hit("RC-?", f"classifier error ({type(e).__name__}); confirm manually", ask=True)
         if hit:
-            reason = f"ds-rig {hit.rc}: {hit.reason}."
+            reason = f"ds-setup {hit.rc}: {hit.reason}."
             if not hit.ask:
                 reason += " If the user really wants this, they can run it themselves with `! <command>`."
             json.dump({"hookSpecificOutput": {"hookEventName": "PreToolUse",

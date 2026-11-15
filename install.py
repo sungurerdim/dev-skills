@@ -10,7 +10,7 @@
   python3 install.py --dry-run           print what would change
 
 Every install is a clean replace: everything the previous version installed (from its stamp), every skill
-that earlier versions shipped, and pre-3.0 ds-quality hook launchers are removed first, so no old file can
+that earlier versions shipped, and the old ds-quality hook files are removed first, so no old file can
 shadow a new one. Only paths dev-skills owns are touched; any other skill in DIR is left alone.
 """
 from __future__ import annotations
@@ -30,7 +30,7 @@ OLD_STAMP = ".dev-skills-version"
 LEGACY_SKILLS = (
     "ds-backend ds-benchmark ds-blueprint ds-brief ds-build ds-commit ds-compliance ds-debug ds-deploy ds-deps "
     "ds-devops ds-docs ds-fix ds-freeze ds-frontend ds-init ds-issue ds-launch ds-mobile ds-pipeline ds-pr "
-    "ds-productize ds-quality ds-release ds-repo ds-research ds-review ds-rig ds-ship ds-simplify ds-solve ds-test ds-tune"
+    "ds-productize ds-quality ds-release ds-repo ds-review ds-rig ds-ship ds-simplify ds-solve ds-test ds-tune"
 ).split()
 AGENTS = ("ds-research-agent.md",)
 IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc")
@@ -53,7 +53,7 @@ def agents_dir(skills_dir: Path):
 def owned(skills_dir: Path) -> set:
     """Every path a previous dev-skills install may have left in skills_dir (and its agents dir)."""
     paths = {skills_dir / "core", skills_dir / STAMP, skills_dir / OLD_STAMP}
-    paths |= {skills_dir / s for s in LEGACY_SKILLS}
+    paths |= {skills_dir / s for s in LEGACY_SKILLS + repo_skills()}  # current names too: 2.x shipped a ds-research
     stamp = skills_dir / STAMP
     if stamp.is_file():
         try:
@@ -76,11 +76,12 @@ def remove(p: Path, dry: bool):
 
 
 def migrate_hooks(skills_dir: Path, dry: bool):
-    """Pre-3.0 ds-quality ran through shell launchers; re-register the hook through Python if one was installed."""
+    """ds-gate was ds-quality before 3.0 (shell launchers, then ds-quality.py); re-register an installed hook as ds-gate."""
     hooks = skills_dir.parent / "hooks"
-    if skills_dir.parent.name == ".claude" and (hooks / "ds-quality-gate.sh").exists():
-        args = [sys.executable, str(skills_dir / "ds-quality" / "assets" / "ds-quality.py"), "install", "--register"]
-        print(f"{'would run' if dry else 'run'}  {' '.join(args)}  (replaces the old ds-quality shell launchers)")
+    old = [n for n in ("ds-quality-gate.sh", "ds-quality.py") if (hooks / n).exists()]
+    if skills_dir.parent.name == ".claude" and old and (skills_dir / "ds-gate").is_dir():
+        args = [sys.executable, str(skills_dir / "ds-gate" / "assets" / "ds-gate.py"), "install", "--register"]
+        print(f"{'would run' if dry else 'run'}  {' '.join(args)}  (replaces the old ds-quality hook)")
         if not dry:
             env = dict(os.environ, CLAUDE_CONFIG_DIR=str(skills_dir.parent))
             subprocess.run(args, check=False, env=env)
@@ -96,7 +97,7 @@ def install(skills_dir: Path, skills: list, dry: bool) -> int:
             shutil.copytree(REPO / name, skills_dir / name, ignore=IGNORE)
         paths.append(name)
     ad = agents_dir(skills_dir)
-    if ad and "ds-brief" in skills:
+    if ad and "ds-research" in skills:
         for a in AGENTS:
             print(f"{'would copy' if dry else 'copy'}  agents/{a} -> {ad}")
             if not dry:

@@ -58,21 +58,21 @@ To allow the stop: emit nothing and `exit 0`.
 {
   "hooks": {
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "\"/usr/bin/python3\" \"/home/me/.claude/hooks/ds-quality.py\" gate", "timeout": 300 } ] }
+      { "hooks": [ { "type": "command", "command": "\"/usr/bin/python3\" \"/home/me/.claude/hooks/ds-gate.py\" gate", "timeout": 300 } ] }
     ]
   }
 }
 ```
 
 - Add to `~/.claude/settings.json` for system-wide, or `<repo>/.claude/settings.json` for repo-local.
-- `timeout` is seconds (default 600). Merge with `ds-quality.py install --register`; it never clobbers existing `hooks.Stop` entries.
-- Idempotency: one ds-quality entry; `install --register` replaces older ds-quality entries (incl. pre-3.0 `ds-quality-gate.sh`) and keeps all others.
+- `timeout` is seconds (default 600). Merge with `ds-gate.py install --register`; it never clobbers existing `hooks.Stop` entries.
+- Idempotency: one ds-gate entry; `install --register` replaces older ds-gate entries (incl. pre-3.0 `ds-quality-gate.sh`) and keeps all others.
 
 ## Global install (idempotent)
 
-`python3 "{assets-dir}/ds-quality.py" install --register` (add `--dry-run` to preview): copies `ds-quality.py` to `~/.claude/hooks/` (or `$CLAUDE_CONFIG_DIR/hooks/`), removes pre-3.0 shell launchers, writes `ds-quality.config.json` only if absent, and registers the Stop hook with the absolute interpreter and script paths after backing up `settings.json`. Re-running is a no-op once current.
+`python3 "{assets-dir}/ds-gate.py" install --register` (add `--dry-run` to preview): copies `ds-gate.py` to `~/.claude/hooks/` (or `$CLAUDE_CONFIG_DIR/hooks/`), removes pre-3.0 shell launchers, writes `ds-gate.config.json` only if absent, and registers the Stop hook with the absolute interpreter and script paths after backing up `settings.json`. Re-running is a no-op once current.
 
-## Project marker schema — `.claude/ds-quality.json`
+## Project marker schema — `.claude/ds-gate.json`
 
 ```json
 {
@@ -80,7 +80,7 @@ To allow the stop: emit nothing and `exit 0`.
   "command": "make quality",
   "stack": ["node"],
   "checks": ["format", "lint", "type", "test"],
-  "createdBy": "ds-quality"
+  "createdBy": "ds-gate"
 }
 ```
 

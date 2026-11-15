@@ -1,6 +1,6 @@
 # Toolchains — detect, check, fix, test, and the composed `{check-cmd}` per stack
 
-**Consumers:** ds-quality (gate wiring) and ds-ship (`{check-cmd}` resolution, fixes). Load only the section matching the detected stack.
+**Consumers:** ds-gate (gate wiring) and ds-audit (`{check-cmd}` resolution, fixes). Load only the section matching the detected stack.
 
 **Rules that hold for every section**
 

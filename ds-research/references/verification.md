@@ -1,4 +1,4 @@
-# Verification Discipline (ds-brief core)
+# Verification Discipline (ds-research core)
 
 The non-negotiable contract: every fact in the brief is source-backed, every datum is double-confirmed or visibly flagged, every conclusion the brief *derives* shows its premises, and uncertainty is named — not hidden. Applied on the agent side as artifact fields, and on the skill side as the Verify gate. Both sides enforce the same rules so the skill works even if the agent is absent.
 

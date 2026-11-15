@@ -1,6 +1,6 @@
 # Engineering rules — project-wide detect signals
 
-Loaded by `ds-ship` for every project with source code. Reliability, security, testing and secrets rules live in their domain files (`README.md`). Each row carries a **Detect** signal or the tag **judgment**; process rules for the run itself live in [kernel](../kernel.md).
+Loaded by `ds-audit` for every project with source code. Reliability, security, testing and secrets rules live in their domain files (`README.md`). Each row carries a **Detect** signal or the tag **judgment**; process rules for the run itself live in [kernel](../kernel.md).
 
 ## Seven Cross-Cutting Themes
 

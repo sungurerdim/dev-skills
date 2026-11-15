@@ -1,9 +1,9 @@
 ---
-name: ds-quality
+name: ds-gate
 description: Install a local quality gate that blocks "done" (or the commit) until format, lint, type and test checks pass — one entry point, wired into the host's hook. Also builds a gate for one custom invariant (inv). Use when checks should be enforced by a machine, not remembered.
 ---
 
-# /ds-quality
+# /ds-gate
 
 Make the project's checks a machine signal: one entry point, run automatically before the agent may stop or commit. Follows [kernel.md](../core/kernel.md); this file adds only the gate specifics. Owns the gate, not the fixes — a red gate is fixed at its cause, never weakened.
 
@@ -17,15 +17,15 @@ Make the project's checks a machine signal: one entry point, run automatically b
 | `prove` | Step 5 only: show the wired arm block on an injected failure and pass after revert |
 | `run` | Run this repo's entry point now and report; no setup |
 | `status` | Report the marker, what the gate resolves here, which arms are wired |
-| `off` / `on` | Set `"enabled"` in `.claude/ds-quality.json` (per-repo kill switch) |
-| `install` | One-time global install of the Claude Code Stop hook (`ds-quality.py install --register`) |
+| `off` / `on` | Set `"enabled"` in `.claude/ds-gate.json` (per-repo kill switch) |
+| `install` | One-time global install of the Claude Code Stop hook (`ds-gate.py install --register`) |
 | `uninstall` | Remove the global hook entry and file, or this repo's arm |
 | `inv "<text>"` | Build a gate for one invariant no tool ships (below) |
 | `ask` | Questions with a recommended option at each decision (kernel §5) |
 
 Every part runs alone: it does step 1's detection itself and reads the marker when it needs the entry point. The gate always runs the whole project's checks, never only changed files: a local change can break a check anywhere.
 
-`{py}` below = the absolute path of a Python ≥ 3.8 interpreter; `{gate}` = `~/.claude/hooks/ds-quality.py` after `install`, else `assets/ds-quality.py` beside this file. Stdlib only, same on macOS, Linux and Windows; no shell launcher.
+`{py}` below = the absolute path of a Python ≥ 3.8 interpreter; `{gate}` = `~/.claude/hooks/ds-gate.py` after `install`, else `assets/ds-gate.py` beside this file. Stdlib only, same on macOS, Linux and Windows; no shell launcher.
 
 ## Done when
 
@@ -43,12 +43,12 @@ The entry point runs green; the wired arm is shown blocking on an injected failu
    | `package.json` | `"quality"` script → `npm run quality` |
    | neither | the `&&`-chained command itself |
 
-   Write it to the marker `.claude/ds-quality.json` as `{"command": "...", "timeout": 270}` (`timeout` in seconds; `enabled:false` disables). Coverage, both mechanical: every existing check (`scripts/`, package scripts, Makefile targets, `.pre-commit-config.yaml`, test dirs the runner misses) is called by the entry point or listed excluded with the condition under which it runs; every step names the file set it scans, and zero files matched fails.
+   Write it to the marker `.claude/ds-gate.json` as `{"command": "...", "timeout": 270}` (`timeout` in seconds; `enabled:false` disables). Coverage, both mechanical: every existing check (`scripts/`, package scripts, Makefile targets, `.pre-commit-config.yaml`, test dirs the runner misses) is called by the entry point or listed excluded with the condition under which it runs; every step names the file set it scans, and zero files matched fails.
 4. **Wire the arm** — strongest available for the host; merge, never clobber; back up a config before editing it:
 
    | Arm | When it blocks | Wiring |
    |-----|----------------|--------|
-   | `claude-code` | before done | `{py} {gate} install --register` → Stop hook `"{py}" "{gate}" gate` in `~/.claude/settings.json`; auto-detects trusted repos (`roots` in `~/.claude/ds-quality.config.json`) |
+   | `claude-code` | before done | `{py} {gate} install --register` → Stop hook `"{py}" "{gate}" gate` in `~/.claude/settings.json`; auto-detects trusted repos (`roots` in `~/.claude/ds-gate.config.json`) |
    | `codex` | before done | `~/.codex/hooks.json` → `hooks.Stop[].hooks[] = {"type":"command","command":"\"{py}\" \"{gate}\" gate"}` (same block JSON) |
    | `gemini` | before done | `~/.gemini/settings.json` → `hooks.AfterAgent[]` with command `"{py}" "{gate}" gate --exit2` (exit 2 + reason) |
    | `aider` | on edit | `.aider.conf.yml`: `lint-cmd` and `test-cmd` = `"{py}" "{gate}" run`, `auto-lint: true`, `auto-test: true` |
@@ -72,11 +72,11 @@ All four — gate, red-proof, wiring (or stated unwired), scope note — or the 
 
 ## Report
 
-`ds-quality: OK|WARN|FAIL|INCOMPLETE | stack {s} · host {h} · arm {a} {installed|present|unproven} · proof green→red→green`, then: each check existed/added, the entry-point command, checks wired vs excluded-with-reason, gaps, and the closing block of kernel §6.
+`ds-gate: OK|WARN|FAIL|INCOMPLETE | stack {s} · host {h} · arm {a} {installed|present|unproven} · proof green→red→green`, then: each check existed/added, the entry-point command, checks wired vs excluded-with-reason, gaps, and the closing block of kernel §6.
 
 ## Limits
 
 - Local only: never creates or edits CI pipelines.
 - Every arm runs the marker command as code on each trigger — never enable one in a repo you do not trust. Outside the trusted roots the Claude Code gate is inert.
-- The gate never edits code; it blocks so the fix gets made. A green result is cached per tree state (`.git/ds-quality.green`); a timeout is a block, never a pass.
+- The gate never edits code; it blocks so the fix gets made. A green result is cached per tree state (`.git/ds-gate.green`); a timeout is a block, never a pass.
 - Hook formats drift — re-check the host's live hook docs before wiring; [hook-contract.md](references/hook-contract.md) holds the verified contracts.

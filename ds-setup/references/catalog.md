@@ -48,7 +48,7 @@ Language-agnostic hook manager with `rev:`-pinned hooks (the pinning discipline 
 - **Verify:** `pre-commit run --all-files` executes in a test repo.
 - **Uninstall:** `pre-commit uninstall` + package remove.
 - **Fallback:** native `.git/hooks/pre-commit` shell script (zero tooling).
-- **Handoff:** wiring a project's quality gate is ds-quality's job — this entry only makes the framework available.
+- **Handoff:** wiring a project's quality gate is ds-gate's job — this entry only makes the framework available.
 
 ## RIG-06 [HIGH] Security scanners — gitleaks · osv-scanner · actionlint · zizmor · hadolint · typos
 

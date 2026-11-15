@@ -1,6 +1,6 @@
 # Secret Patterns — filename exclusions and content regexes
 
-**Consumers:** ds-ship (secrets scan, staging exclusion) and any skill that stages files or scans source.
+**Consumers:** ds-audit (secrets scan, staging exclusion) and any skill that stages files or scans source.
 
 ## Filename set — always excluded from bulk staging
 

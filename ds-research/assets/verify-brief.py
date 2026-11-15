@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""ds-brief mechanical verifier — the Phase 3 and Phase 6 checks as executable code.
+"""ds-research mechanical verifier — the Phase 3 and Phase 6 checks as executable code.
 
-Consumer: ds-brief SKILL.md Phase 6 (Output). Run it, quote its output as the
+Consumer: ds-research SKILL.md Phase 6 (Output). Run it, quote its output as the
 Completion Evidence for the run. Prose checks degrade silently on a long run;
 these do not.
 
@@ -20,12 +20,12 @@ contract for the findings artifact. The agent definition (ds-research-agent.md)
 carries an annotated jsonc description of the same shape for the agent to follow;
 when the two disagree, SCHEMA wins — check A00 enforces it on every artifact and
 the self-test holds the fixtures to it. External consumers (an orchestrating app
-mapping its fields onto ds-brief's) read `--emit-schema`, never a hand-copied list.
+mapping its fields onto ds-research's) read `--emit-schema`, never a hand-copied list.
 
 File length: this file exceeds the common 500-line file ceiling and does so
 deliberately. It is one self-contained verifier that ships with `--self-test`
 (assertion suite over named injected defects — the run prints its own counts,
-so no number here can drift), and a lone ds-brief install must be able to
+so no number here can drift), and a lone ds-research install must be able to
 copy exactly one file to get the whole gate. Splitting it would buy a smaller
 number at the cost of the property that makes it trustworthy — it proves itself
 in one place. Revisit if the self-test stops covering a section.
@@ -1211,7 +1211,7 @@ def _run_case(d, bundle=True):
 def self_test():
     import shutil
     import tempfile
-    root = tempfile.mkdtemp(prefix="ds-brief-selftest-")
+    root = tempfile.mkdtemp(prefix="ds-research-selftest-")
     results = []
     try:
         # 1. a clean brief passes, and passes completely
@@ -1291,7 +1291,7 @@ def self_test():
 
 def main():
     global VERBOSE
-    ap = argparse.ArgumentParser(description="ds-brief mechanical verifier")
+    ap = argparse.ArgumentParser(description="ds-research mechanical verifier")
     ap.add_argument("--self-test", action="store_true",
                     help="prove the checks fail on deliberately broken input")
     ap.add_argument("--emit-schema", action="store_true",
@@ -1359,7 +1359,7 @@ def main():
     tail = f" — {len(failures)} FAILED" if failures else ""
     if skipped and not failures:
         tail = " — " + ", ".join(f"{g} SKIPPED ({n})" for g, n, _w in skipped)
-    print(f"ds-brief verify: {len(CHECKS) - len(failures)}/{len(CHECKS)} checks passed" + tail)
+    print(f"ds-research verify: {len(CHECKS) - len(failures)}/{len(CHECKS)} checks passed" + tail)
     return 1 if failures else 0
 
 

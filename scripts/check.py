@@ -23,7 +23,8 @@ RULE = re.compile(r"^### (\S+) \[([A-Z]+)\] (.+)$")
 LINK = re.compile(r"\]\(([^)#\s]+\.(?:md|py|html))(?:#[^)]*)?\)")
 RETIRED = ("ds-backend ds-benchmark ds-blueprint ds-build ds-commit ds-compliance ds-debug ds-deploy ds-deps ds-devops "
            "ds-docs ds-fix ds-freeze ds-frontend ds-init ds-issue ds-launch ds-mobile ds-pipeline ds-pr ds-productize "
-           "ds-release ds-repo ds-research ds-review ds-simplify ds-solve ds-test ds-tune").split()
+           "ds-release ds-repo ds-review ds-simplify ds-solve ds-test ds-tune "
+           "ds-ship ds-quality ds-rig ds-brief").split()  # the last four were renamed in 3.0.0
 STOP = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "no", "not", "is", "are", "by"}
 
 
@@ -127,7 +128,8 @@ def check_consumers(root: Path, err):
 
 
 def check_retired(root: Path, err):
-    pat = re.compile(r"(?<![\w-])(" + "|".join(map(re.escape, RETIRED)) + r")(?![\w-])")
+    # a file or path name (ds-quality.json, .config/ds-rig) is a compatibility reference, not a skill mention
+    pat = re.compile(r"(?<![\w/-])(" + "|".join(map(re.escape, RETIRED)) + r")(?![\w-]|\.\w)")
     for p, text in shipped(root):
         for n, line in enumerate(text.splitlines(), 1):
             m = pat.search(line)
@@ -144,8 +146,8 @@ def check_versions(root: Path, err):
 
 
 def check_self_tests(root: Path, err):
-    for args in (["ds-quality/assets/ds-quality.py", "--self-test"], ["ds-rig/assets/test_rc_deny.py"],
-                 ["ds-brief/assets/verify-brief.py", "--self-test"]):
+    for args in (["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"],
+                 ["ds-research/assets/verify-brief.py", "--self-test"]):
         if not (root / args[0]).exists():
             err(f"{args[0]}: missing")
             continue
@@ -186,23 +188,23 @@ def run(root: Path, checks=CHECKS, quiet=False) -> list:
 def self_test() -> int:
     """Each case injects the defect one check exists to catch into a copy; that check must go red."""
     cases = [
-        (check_skills, "ds-ship/SKILL.md", lambda s: s.replace("name: ds-ship", "name: other")),
-        (check_skills, "ds-ship/SKILL.md", lambda s: s + "x" * SKILL_MAX),
-        (check_links, "ds-ship/SKILL.md", lambda s: s + "\n[x](../core/missing.md)\n"),
-        (check_links, "ds-ship/SKILL.md", lambda s: s + "\n[x](../ds-rig/SKILL.md)\n"),
+        (check_skills, "ds-audit/SKILL.md", lambda s: s.replace("name: ds-audit", "name: other")),
+        (check_skills, "ds-audit/SKILL.md", lambda s: s + "x" * SKILL_MAX),
+        (check_links, "ds-audit/SKILL.md", lambda s: s + "\n[x](../core/missing.md)\n"),
+        (check_links, "ds-audit/SKILL.md", lambda s: s + "\n[x](../ds-setup/SKILL.md)\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-01 [HIGH] Again\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-99 [BLOCKER] Severity\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-98 [HIGH] Exponential Backoff + Jitter\n"),
         (check_duplicate_lines, "core/rules/web.md", lambda s: s + "\nAnimations must not trigger expensive layout recalculations; this line now has two homes.\n" * 1),
         (check_consumers, "core/orphan.md", lambda s: "# orphan\n"),
-        (check_retired, "ds-ship/SKILL.md", lambda s: s + "\nDelegate to ds-review.\n"),
+        (check_retired, "ds-audit/SKILL.md", lambda s: s + "\nDelegate to ds-review.\n"),
         (check_versions, ".claude-plugin/marketplace.json", lambda s: s.replace('"version": "', '"version": "9', 1)),
     ]
     failures = 0
     for check, rel, mutate in cases:
         tmp = Path(tempfile.mkdtemp(prefix="ds-check-"))
         try:
-            for part in ("ds-brief", "ds-quality", "ds-rig", "ds-ship", "core", "agents", ".claude-plugin"):
+            for part in ("ds-audit", "ds-gate", "ds-research", "ds-setup", "core", "agents", ".claude-plugin"):
                 if (ROOT / part).exists():
                     shutil.copytree(ROOT / part, tmp / part)
             shutil.copy(ROOT / "CHANGELOG.md", tmp / "CHANGELOG.md")

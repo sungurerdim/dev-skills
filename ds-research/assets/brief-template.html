@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- ds-brief canonical skeleton. Single-file, offline, print/PDF-safe.
+<!-- ds-research canonical skeleton. Single-file, offline, print/PDF-safe.
      SSOT = the CONFIG object near the bottom. Fill {placeholder} slots; never load anything over the network.
      Security: text goes in via textContent / DOM nodes only. No innerHTML with data. No inline on* handlers.
      All colors are static CSS baked at build (palette-validated then); JS only toggles the data-theme
@@ -1114,7 +1114,7 @@ const CONFIG = {
   diffCountLabel:"{n}/{m} {rows differ}",    /* ds-opt:matrix */
   prevVersionDate:"{YYYY-MM-DD}",            /* ds-opt:changed — the version this diff is against */
   glossaryCount:"{n}",                       /* ds-opt:glossary */
-  themeStorageKey:"ds-brief-theme",   // localStorage key for the light/dark choice; a report collection sets its shared key here so every report and its dashboard remember one preference
+  themeStorageKey:"ds-research-theme",   // localStorage key for the light/dark choice; a report collection sets its shared key here so every report and its dashboard remember one preference
   disclaimer:"Informational only; not binding or professional advice.",
   footer:"Sources as of access date | Single file, fully offline",
   someValue:"{N}",   // topic scalars referenced by [data-cfg]
@@ -1151,7 +1151,7 @@ const CONFIG = {
 // ---- theme: light/dark only, attribute-driven. Every color lives in the CSS baked at build; JS never
 //      applies a color value, so no runtime color input exists to guard. Dark also works with JS off via
 //      the prefers-color-scheme block; this wiring exists only to persist an explicit reader choice. ----
-const THEME_KEY = CONFIG.themeStorageKey || "ds-brief-theme";
+const THEME_KEY = CONFIG.themeStorageKey || "ds-research-theme";
 function applyTheme(name){
   const root = document.documentElement;
   if (name === "dark" || name === "light") root.setAttribute("data-theme", name);
@@ -1482,12 +1482,12 @@ function wireBranches(){
   }
   groups.forEach(function(g){
     const k = g.getAttribute("data-key");
-    try { const s = localStorage.getItem("ds-brief-sel-" + k); if (s) sel[k] = s; } catch(e){}
+    try { const s = localStorage.getItem("ds-research-sel-" + k); if (s) sel[k] = s; } catch(e){}
     g.addEventListener("click", function(ev){
       const b = ev.target.closest(".choice"); if (!b || !g.contains(b)) return;
       const v = b.getAttribute("data-val") || "";
       sel[k] = v;
-      try { v ? localStorage.setItem("ds-brief-sel-" + k, v) : localStorage.removeItem("ds-brief-sel-" + k); } catch(e){}
+      try { v ? localStorage.setItem("ds-research-sel-" + k, v) : localStorage.removeItem("ds-research-sel-" + k); } catch(e){}
       apply();
       const live = document.getElementById("branchLive");
       if (live) live.textContent = b.textContent.trim();   // announce the (already localized) choice

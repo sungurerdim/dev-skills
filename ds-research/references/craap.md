@@ -1,6 +1,6 @@
 # CRAAP+ Source Reliability — the shared scoring method
 
-**Consumers:** ds-brief and `ds-research-agent`. ds-brief adds its own stricter HIGH gate and independence test in its verification reference; everything scored here is the floor.
+**Consumers:** ds-research and `ds-research-agent`. ds-research adds its own stricter HIGH gate and independence test in its verification reference; everything scored here is the floor.
 
 ## Source tiers
 

@@ -12,7 +12,7 @@
       "source": "./",
       "strict": false,
       "displayName": "dev-skills",
-      "description": "4 skills — ds-ship, ds-quality, ds-rig, ds-brief — on one shared kernel and rule set; Markdown plus Python stdlib, no runtime dependencies.",
+      "description": "4 skills — ds-audit, ds-gate, ds-setup, ds-research — on one shared kernel and rule set; Markdown plus Python stdlib, no runtime dependencies.",
       "version": "3.0.0",
       "author": {
         "name": "sungurerdim",
