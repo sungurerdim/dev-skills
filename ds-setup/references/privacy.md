@@ -37,8 +37,6 @@ Seed data for SKILL.md step 5 (Privacy) — every entry traced to official docs/
 | Tool | Mechanism | Note |
 |------|-----------|------|
 | rtk | disabled by default (since 2026-04 fix, issue #1154); belt-and-braces: `RTK_TELEMETRY_DISABLED=1` | local tracking DB (`~/.local/share/rtk/tracking.db`) is local-only, 90-day default (`tracking.history_days`) |
-| context-mode | vendor states no telemetry/accounts/tracking (local-only) | vendor claim, not independently audited — mark `vendor-claimed` |
-| basic-memory (OSS) | **telemetry ON by default** → `basic-memory telemetry disable`; verify `basic-memory telemetry status` | Cloud tier is account-linked, separate policy |
 | agent-lsp | no telemetry documentation either way | mark `unverified` — probe or ask upstream |
 | Serena | `record_tool_usage_stats` in `~/.serena/serena_config.yml`; anonymous startup ping by default | verify the template default at install time |
 | pre-commit | no telemetry in the framework | third-party hooks may differ — note per hook |
