@@ -72,7 +72,7 @@ All four — gate, red-proof, wiring (or stated unwired), scope note — or the 
 
 ## Report
 
-`ds-gate: OK|WARN|FAIL|INCOMPLETE | stack {s} · host {h} · arm {a} {installed|present|unproven} · proof green→red→green`, then: each check existed/added, the entry-point command, checks wired vs excluded-with-reason, gaps, and the closing block of kernel §6.
+Closing message (kernel §6) with counts `stack {s} · host {h} · arm {a} {installed|present|unproven} · proof green→red→green`; findings rows = each check (existed / added / excluded with reason) and each gap; Effect = what now blocks, and when (before done, on edit, before commit); the entry-point and fix commands verbatim under it.
 
 ## Limits
 

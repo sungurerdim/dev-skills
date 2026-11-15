@@ -82,20 +82,16 @@ Run the full `{check-cmd}`. Compare with the baseline step by step. A step that 
 
 ### 9. Report
 
-Write `ds/audit/report.md`, then print its first block:
+Write `ds/audit/report.md`: the closing message first, then `Signals: {line}`, `Areas: {word} ran · {word} N/A — {reason} · …`, each check baseline → now, every finding, and since the last run: new · fixed · still open. Print the closing message (kernel §6):
 
-```
-ds-audit: OK|WARN|FAIL|INCOMPLETE | scope {changed: n files|all} | auto-fixed {n} files | findings {n} · fixed {n} · open {n} · only-you {n}
-Signals: {line}
-Areas: {area} ran · {area} N/A — {reason} · …
-Checks: {check-cmd step} baseline→now (pass/fail) · …
-Since last run: new {n} · fixed {n} · still open {n}      (omit on first run)
-```
+- counts: `scope {changed: n files|all} · auto-fixed {n} files · findings {n} · fixed {n} · open {n} · only-you {n}`
+- Change table: an `auto-fix` row, then the rest of the code
+- Effect: each check baseline → now; new / fixed / still open since the last run
 
-Then the findings table grouped by severity, and the closing block of kernel §6. `OK` = no open CRITICAL/HIGH and checks no redder than baseline; `WARN` = open HIGH or a verification gap; `FAIL` = open CRITICAL or a check newly red; `INCOMPLETE` = a step did not run.
+`OK` = no open CRITICAL/HIGH and checks no redder than baseline; `WARN` = open HIGH or a verification gap; `FAIL` = open CRITICAL or a check newly red; `INCOMPLETE` = a step did not run.
 
 ## Notes
 
-- Parallel areas: when the host can run subagents, one per area for steps 5-6, each given kernel.md and its rule files only; fixes stay sequential in this run.
+- Parallel areas: with subagents, one per area for steps 5-6, given kernel.md and its rule files only; fixes stay sequential.
 - No commit-time or stop-time gate in the project → a finding in the `ci` area; the `ds-gate` skill installs one.
 - Publishing, pushing, releases and anything needing a human-only value stay `Only you can do` with the exact command (kernel §5).

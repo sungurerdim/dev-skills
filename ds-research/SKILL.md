@@ -69,11 +69,7 @@ Low-confidence claims, dead links and single-source datums resolve by impact, ef
 
 Run the full verifier (`--no-bundle` with `nobundle`). Exit 1 → fix every FAIL and re-run; exit 2 → blocker. No Python → say so, name the unrun checks, and work them by hand. Then the manual checklist. Print:
 
-```
-ds-research: OK|WARN|FAIL | Confidence {band} ({b} blockers) | Sources {n} | 2x-confirmed {pct}% | Primary {pp}% | Claims {v}/{p}/{u}/{d} | Red team {held}/{weakened}/{overturned} | Corpus {c}/{t} | Unknowns {k} | File {path}
-```
-
-and the closing block of kernel §6. Failures and their recovery: [error-recovery.md](references/error-recovery.md).
+the closing message (kernel §6) with counts `confidence {band} ({b} blockers) · sources {n} · 2x-confirmed {pct}% · primary {pp}% · claims {v}/{p}/{u}/{d} · red team {held}/{weakened}/{overturned} · corpus {c}/{t} · unknowns {k}`; Change table = the output files and their sizes; findings rows = blockers, disputed and single-source datums; the report path last. Failures and their recovery: [error-recovery.md](references/error-recovery.md).
 
 ## Edge cases
 

@@ -27,4 +27,4 @@ In this order, in the language of the question:
 4. **Gaps** — what was not found or could not be verified.
 5. **Sources** — `[{band}] T{n}|{score}|{domain}|{title}|{pub-date or unknown}|accessed {date}`.
 
-Status line: `ds-research quick: OK|WARN|FAIL | verdict {v} | sources {n} · T1-T2 {m} | 2x-confirmed {pct}% | gaps {g}` (WARN when no T1-T2 source exists), then the closing block of kernel §6.
+It ends with the closing message of kernel §6 (counts `verdict {v} · sources {n} · T1-T2 {m} · 2x-confirmed {pct}% · gaps {g}`; WARN when no T1-T2 source exists; no Change table, since nothing is written).

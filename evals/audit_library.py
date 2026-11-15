@@ -28,7 +28,7 @@ FILES = {
     "README.md": "# slug-kit\n\nTiny slug helpers.\n\n## Install\n\n`npm install slug-kit`\n",
     ".gitignore": "node_modules/\n",
 }
-NOT_APPLICABLE = ("store", "monetization", "mobile", "a11y")
+NOT_APPLICABLE = ("store", "money", "mobile", "a11y")  # area words, core/rules/README.md
 
 
 def git(d, *a):
@@ -51,10 +51,10 @@ def score(d: Path) -> int:
     areas = next((l for l in text.splitlines() if l.startswith("Areas:")), "")
     results = [
         ("report-written", bool(text)),
-        ("status-line", bool(re.search(r"^ds-audit: (OK|WARN|FAIL|INCOMPLETE) \|", text, re.M))),
+        ("status-line", bool(re.search(r"^ds-audit: (OK|WARN|FAIL|INCOMPLETE) [|·]", text, re.M))),
         ("signals-line", bool(re.search(r"^Signals: .*ui=none", text, re.M))),
         ("irrelevant-areas-N/A", all(re.search(rf"\b{a}\b[^·]*N/A", areas) for a in NOT_APPLICABLE)),
-        ("closing-block", all(k in text for k in ("Asked:", "Done:"))),
+        ("closing-message", "Asked:" in text and ("| Change |" in text or "No findings" in text)),
         ("tests-green", subprocess.run(["node", "--test"], cwd=d, capture_output=True).returncode == 0),
         ("clean-tree", git(d, "status", "--porcelain").stdout.strip() == ""),
     ]
@@ -72,10 +72,10 @@ def validate() -> int:
     (d / ".git" / "info" / "exclude").write_text("ds/audit/\n", encoding="utf-8")
     (d / "ds" / "audit").mkdir(parents=True)
     (d / "ds" / "audit" / "report.md").write_text(
-        "ds-audit: OK | findings 0 · fixed 0 · open 0 · only-you 0\n"
+        "ds-audit: OK · 4m · scope all · findings 0 · fixed 0 · open 0 · only-you 0\n"
         "Signals: ui=none api=none db=none tests=node platforms=library\n"
-        "Areas: security ran · testing ran · store N/A — deploy=none · monetization N/A — billing=none · "
-        "mobile N/A — mobile=none · a11y N/A — ui=none\n\nAsked: audit\nDone: nothing to change\n", encoding="utf-8")
+        "Areas: sec ran · test ran · store N/A — deploy=none · money N/A — billing=none · "
+        "mobile N/A — mobile=none · a11y N/A — ui=none\n\nAsked: audit\nNo findings\n", encoding="utf-8")
     green = score(d) == 0
     print(f"validate: {'OK' if red and green else 'BROKEN'} (red before: {red}, green after: {green})")
     shutil.rmtree(d.parent, ignore_errors=True)

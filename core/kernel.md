@@ -64,19 +64,37 @@ Every decision is made from the evidence and recorded; the run does not stop to 
 
 Committing locally is allowed and expected; publishing is not.
 
-## 6. Report
+**Unattended by design** — a run started and left alone finishes on its own:
 
-End every run with these lines, empty ones omitted:
+- Nothing waits for input: non-interactive forms only (`git commit -m`, `--no-edit`, `GIT_EDITOR=true`, `GIT_PAGER=cat`, `CI=1`, a tool's `--yes` only for a step this file already allows); no editor, pager, prompt or watch mode.
+- Every command has a timeout; a hung or failed step is recorded as a blocker and the run continues with everything that does not depend on it.
+- Progress lives in the skill's state file (`ds/audit/findings.md`, the ds-setup manifest, the ds-research artifact), so a run cut short by context or time resumes there instead of starting over.
+- Without `ask`, a run never ends on a question: open choices become `Decided without asking` or `Only you can do` in the closing message. Permission prompts of the host are the one wait a skill cannot remove; the ds-setup `perms` part allows all risk-free work so they do not occur.
+
+## 6. Closing message
+
+Every run ends with one closing message in this shape, the same in every skill; empty parts are omitted, nothing else is added. Full detail goes to the skill's own file; this is what a person reads on return.
 
 ```
-Asked: <the request in one line>
-Done: <what changed, with evidence pointers>
-Effect: <1-5 concrete outcomes in plain language, measured where possible>
-Decided without asking — say if wrong: <decisions made by judgment>
-Only you can do: <exact actions and commands>
+{skill}: OK|WARN|FAIL|INCOMPLETE · {duration} · {counts the skill defines}
+Asked: {the request in one line}
+
+| Change | Files | Lines | Commits |
+|--------|------:|------:|--------:|
+| code   | {n}   | +{a} −{d} | {c} |
+| {other kind, e.g. config, installs} | {n} | — | — |
+
+| # | Sev | Where | Finding | Outcome | Prevents / gains |
+|---|-----|-------|---------|---------|------------------|
+
+Effect: {1-3 measured before → after lines: checks red → green, advisories 4 → 0, …}
+Decided without asking — say if wrong: {decision · reason}
+Only you can do: {exact action or command}
 ```
 
-Before it, one status line: `{skill}: OK|WARN|FAIL|INCOMPLETE | <counts the skill defines>`. No change made → say so in one line.
+- **Numbers are measured, never estimated.** Record `{start}` = `git rev-parse HEAD` and the start time in the first call; the code row is `git diff --shortstat {start}` (commits and uncommitted together) plus `git rev-list --count {start}..HEAD`. Non-git changes (global configs, installed tools, generated files) get their own row from the skill's own record.
+- **Findings rows:** severity first, then fixed before open; at most 15, then `+{n} more in {file}`. `Where` = `file:line` or the item; `Outcome` = a kernel §4 disposition with the commit hash when fixed; `Prevents / gains` = what goes wrong without it, for whom, in plain words (or what is now faster, cheaper, clearer). A run with no findings says `No findings` instead of the table.
+- `{duration}` is wall-clock from start to this message; `INCOMPLETE` names the step that did not run.
 
 ## 7. Named principles — apply each by name
 

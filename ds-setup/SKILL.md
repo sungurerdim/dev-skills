@@ -59,7 +59,7 @@ Recorded `Only you can do` by default, a per-item question under `ask`: unpinned
 
 ## Report
 
-`ds-setup: OK|WARN|FAIL|INCOMPLETE | tools {n} installed · {m} updated | privacy {p}/{n} proven | permissions {h} harnesses | MCP {count}/{budget}`, then: rig detected, per-item table (action, version, evidence), privacy posture per item, permission diff per harness with the RC coverage table and the honest limits from permissions.md, gap-notes, and the closing block of kernel §6. A run where the user declines every install is valid: read-only report, `OK`.
+Closing message (kernel §6) with counts `tools {n} installed · {m} updated · privacy {p}/{n} proven · permissions {h} harnesses · MCP {count}/{budget}`. Change table rows: installs, config files (entries added per list from `perms.py` output), shell profile. Findings rows: one per item acted on (action, version, proof) and per gap-note, with the honest limits from permissions.md as the last row. The manifest holds the full detail. A run where the user declines every install is valid: read-only report, `OK`.
 
 ## Edge cases
 
