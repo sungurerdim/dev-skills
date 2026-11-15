@@ -12,7 +12,7 @@ dev-skills ships four Agent Skills (`ds-audit`, `ds-gate`, `ds-setup`, `ds-resea
 | Prove every gate check still catches its defect | `python3 scripts/check.py --self-test` |
 | Run both on every commit | `python3 scripts/check.py --install-hook` |
 | Install / check drift / uninstall | `python3 install.py` · `--check` · `--uninstall` |
-| Validate the eval scorer | `python3 evals/ship_library.py validate` |
+| Validate the eval scorer | `python3 evals/audit_library.py validate` |
 
 There is no CI; the gate is the only enforcement. A red gate is fixed, never bypassed (`--no-verify` is never used). A check that cannot run says so; it is never reported as passing.
 

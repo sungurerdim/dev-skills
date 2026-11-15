@@ -7,8 +7,8 @@ Stdlib only (Python 3.8+), identical on macOS, Linux and Windows. No jq, no netw
   ds-gate.py gate [--exit2]        before-done hook: stdin JSON. Default (Claude Code / Codex Stop): block = stdout
                                       {"decision":"block","reason":...}. --exit2 (Gemini AfterAgent): block = reason on
                                       stderr + exit 2. Allow = no output, exit 0.
-  ds-gate.py run [DIR]             run DIR's quality command now (marker, else detected); exit code = the command's.
-                                      Used by git pre-commit, Aider lint-cmd/test-cmd, or by hand.
+  ds-gate.py run [--staged] [DIR]  run DIR's quality command now (marker, else detected); exit code = the command's.
+                                      Used by git pre-commit (--staged), Aider lint-cmd/test-cmd, or by hand.
   ds-gate.py detect [DIR]          print the quality command for DIR; nothing printed = nothing detectable
   ds-gate.py install [--register] [--dry-run]
                                       copy this file into ~/.claude/hooks, write the default config if absent, remove
@@ -22,13 +22,21 @@ Resolution per Stop, in priority order:
   2. else mode=auto and the repo is under a trusted root (config `roots`, default ~/projects) -> detect()
   3. else / nothing detectable -> inert (exit 0, no output)
 
+Auto-fix: a marker `fix` command (safe fixers only, e.g. "ruff format {files} && ruff check --fix {files}") runs
+before the check, on the changed files ({files} = their quoted paths; without {files} it runs as written). With
+--staged only fully staged files are fixed and re-staged; a file that also has unstaged edits is never touched, so no
+unstaged work can slip into the commit. Fixer exit codes are ignored — the check that follows decides.
+
 A green result is remembered per repo fingerprint (HEAD + working-tree status + file stamps + command): an unchanged
-tree is not re-checked on the next Stop. Never edits your code — it blocks so the fix gets made.
+tree is not re-checked on the next Stop. Beyond the marker's `fix`, it never edits code — it blocks so the fix gets made.
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import io
 import json
+import shlex
 import os
 import re
 import shutil
@@ -340,10 +348,55 @@ def resolve(root: Path, auto: bool):
     return (detect(root) if auto else ""), DEFAULT_TIMEOUT, True
 
 
+def lines0(out) -> list:
+    return [x for x in (out or "").split("\0") if x]
+
+
+def changed_files(root: Path, staged: bool) -> tuple:
+    """-> (files to fix, files skipped). staged: fully staged files only; else modified + untracked."""
+    if staged:
+        idx = set(lines0(git(["diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR"], root)))
+        partial = idx & set(lines0(git(["diff", "--name-only", "-z"], root)))
+        return sorted(idx - partial), sorted(partial)
+    out = git(["status", "--porcelain", "-z", "-uall"], root) or ""
+    files, entries = [], out.split("\0")
+    i = 0
+    while i < len(entries):
+        e = entries[i]
+        if len(e) > 3 and e[0] != "D" and e[1] != "D":
+            files.append(e[3:])
+        i += 2 if e[:1] in ("R", "C") else 1  # a rename/copy is followed by its source path
+    return sorted(f for f in files if (root / f).is_file()), []
+
+
+def auto_fix(root: Path, staged: bool, timeout: float) -> None:
+    m = load_json(marker_path(root)) or {}
+    fix = m.get("fix") if m.get("enabled") is not False else None
+    if not fix:
+        return
+    files, skipped = changed_files(root, staged)
+    for f in skipped:
+        print(f"ds-gate: not auto-fixing {f} (it also has unstaged edits)", file=sys.stderr)
+    if "{files}" in fix:
+        if not files:
+            return
+        fix = fix.replace("{files}", " ".join(shlex.quote(f) for f in files))
+    elif staged:
+        print("ds-gate: fix has no {files}; skipped at commit time so unstaged files stay untouched", file=sys.stderr)
+        return
+    print(f"ds-gate: fix: {fix}", file=sys.stderr)
+    run_shell(fix, root, timeout)
+    if staged and files:
+        git(["add", "--", *files], root)
+
+
 def run(argv) -> int:
+    staged = "--staged" in argv
+    argv = [a for a in argv if a != "--staged"]
     start = Path(argv[0]) if argv else Path(".")
     root = Path(git(["rev-parse", "--show-toplevel"], start) or start)
     cmd, timeout, _ = resolve(root, auto=True)
+    auto_fix(root, staged, timeout)
     if not cmd:
         print(f"ds-gate: no quality command for {root} (add .claude/ds-gate.json)", file=sys.stderr)
         return 0
@@ -376,6 +429,9 @@ def gate(payload: dict) -> str | None:
     stamp = (fp[0] / "ds-gate.green") if fp else None
     if stamp and stamp.is_file() and stamp.read_text(encoding="utf-8", errors="ignore").strip() == fp[1]:
         return None  # unchanged since the last green run
+    if (load_json(marker) or {}).get("fix"):
+        auto_fix(root, False, timeout)
+        fp = fingerprint(root, cmd) if cache else None  # the fixers changed the tree
 
     code, out = run_shell(cmd, root, timeout)
     if code == 0:
@@ -550,6 +606,32 @@ def self_test() -> int:
                            capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(repo)))
         check("gate --exit2: block -> exit 2 + reason on stderr", r.returncode == 2 and "exit 5" in r.stderr and not r.stdout)
 
+        # auto-fix at commit time: fully staged files fixed and re-staged; partly staged and unstaged files untouched
+        fx = tmp / "trusted" / "fixrepo"
+        fx.mkdir()
+        for c in (["git", "init", "-q"], ["git", "config", "user.email", "t@t"], ["git", "config", "user.name", "t"]):
+            sh(c, fx)
+        for n in ("a.txt", "b.txt", "c.txt"):
+            (fx / n).write_text("v1\n")
+        sh(["git", "add", "."], fx)
+        sh(["git", "commit", "-qm", "init"], fx)
+        (tmp / "fixer.py").write_text("import sys\nfor f in sys.argv[1:]:\n    open(f, 'a').write('FIXED\\n')\n")
+        (fx / ".claude").mkdir()
+        (fx / ".claude" / "ds-gate.json").write_text(json.dumps(
+            {"command": "exit 0", "fix": f'"{Path(sys.executable).as_posix()}" "{(tmp / "fixer.py").as_posix()}" {{files}}'}))
+        (fx / "a.txt").write_text("v2\n")                      # fully staged
+        (fx / "b.txt").write_text("v2\n")
+        sh(["git", "add", "a.txt", "b.txt"], fx)
+        (fx / "b.txt").write_text("v2\nunstaged\n")           # partly staged
+        (fx / "c.txt").write_text("v2\n")                      # unstaged only
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc = run(["--staged", str(fx)])
+        staged_a = subprocess.run(["git", "show", ":a.txt"], cwd=fx, capture_output=True, text=True).stdout
+        staged_b = subprocess.run(["git", "show", ":b.txt"], cwd=fx, capture_output=True, text=True).stdout
+        check("fix --staged: fully staged file fixed and re-staged", rc == 0 and staged_a == "v2\nFIXED\n")
+        check("fix --staged: partly staged file untouched", staged_b == "v2\n" and (fx / "b.txt").read_text() == "v2\nunstaged\n")
+        check("fix --staged: unstaged file untouched", (fx / "c.txt").read_text() == "v2\n")
+
         # install: legacy launcher + legacy Stop entry replaced, idempotent
         hooks = tmp / "cfg" / "hooks"
         hooks.mkdir()
@@ -559,7 +641,6 @@ def self_test() -> int:
             {"hooks": [{"type": "command", "command": "~/.claude/hooks/ds-quality-gate.sh"}]},
             {"hooks": [{"type": "command", "command": "python ~/.claude/hooks/ds-quality.py gate"}]},
             {"hooks": [{"type": "command", "command": "other-hook"}]}]}}))
-        import contextlib, io
         with contextlib.redirect_stdout(io.StringIO()):
             install(["--register"])
             install(["--register"])

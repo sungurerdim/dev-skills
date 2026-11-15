@@ -22,6 +22,7 @@ Rebuilt from scratch around one decision order (question → reuse → delete �
 ### Added
 
 - **No work is lost, by rule** (kernel §3): files with user changes are snapshotted with `git stash create` before a skill edits them, reverts reverse-apply the run's own diff, no `checkout`/`reset`/`clean`/`stash push` over files the run did not write, outputs are never overwritten, and ds-gate's proof uses a new probe file instead of editing an existing one.
+- **ds-gate auto-fixes before it checks:** a marker `fix` command (safe fixers, `{files}` = changed paths) runs on the changed files at every arm; the git pre-commit arm (`run --staged`) fixes only fully staged files and re-stages them, so a file with unstaged edits is never touched and no unstaged work enters the commit (self-test proves all three cases).
 - **Tools before judgment** (kernel §2): `ds-audit` runs every safe auto-fixer (the project's own fix scripts, else formatter and linter `--fix`) and commits each before reviewing, so it never spends review on what a tool fixes; it fetches first, fast-forwards when possible, and on a diverged branch reports the files that would conflict instead of rebasing. `ds-setup/assets/perms.py` applies the Claude Code permission profile mechanically: additive merge, backup, wrapper mirrors, conflict report, optional rc_deny hook. `ds-gate` builds its entry point from `ds-gate.py detect`.
 - **Fewest calls, most data** (kernel §2): one inventory call (`git ls-files`, `git status --porcelain=v2 --branch`) before any per-file probe; `ds-setup/assets/probe.py` reports OS, package managers, harnesses, tool versions, MCP counts and the manifest as JSON in one call.
 - **Arguments are plain words** in any order, shared by all four skills (kernel §5): no word runs every part, a part's word runs it alone even where its signal does not apply, `dry` only reports, `ask` asks. `--word` spellings are still read. Parts: ds-audit's 20 areas; ds-gate `checks` `arm` `prove` `run` `status` `off`/`on` `install` `uninstall` `inv`; ds-setup `tools` `update` `privacy` `perms` `mcp` `uninstall`; ds-research `quick` `sum` `render` `static` `nobundle`.
@@ -29,7 +30,7 @@ Rebuilt from scratch around one decision order (question → reuse → delete �
 - `ds-research quick`: the retired 2.x ds-research's sourced chat answer with a DO / AVOID / CONDITIONAL verdict and local, release and advisory tracks, under the full brief's evidence rules. CRAAP rule 8: for security topics T1 sources outrank disagreeing lower tiers.
 - ds-setup permissions: Claude Code rule syntax verified against the official docs (2026-11-15); a definition of "risk-free" and an allow set covering all of it; mirroring of every Bash rule for wrappers the harness does not strip (`rtk`, `rtk proxy`, `direnv exec`, `mise exec`, `devbox run`, …); optional OS sandbox as a recorded decision.
 - `rc_deny.py` unwraps `noglob`, `ionice`, `setsid`, `direnv exec`, `mise exec|x`, `devbox run`.
-- `evals/ship_library.py`: setup, score and a red→green scorer validation in one Python file.
+- `evals/audit_library.py`: setup, score and a red→green scorer validation in one Python file.
 
 ### Fixed
 

@@ -43,7 +43,7 @@ The entry point runs green; the wired arm is shown blocking on a failing probe f
    | `package.json` | `"quality"` script → `npm run quality` |
    | neither | the `&&`-chained command itself |
 
-   Write it to the marker `.claude/ds-gate.json` as `{"command": "...", "timeout": 270}` (`timeout` in seconds; `enabled:false` disables). Coverage, both mechanical: every existing check (`scripts/`, package scripts, Makefile targets, `.pre-commit-config.yaml`, test dirs the runner misses) is called by the entry point or listed excluded with the condition under which it runs; every step names the file set it scans, and zero files matched fails.
+   Write it to the marker `.claude/ds-gate.json` as `{"command": "...", "fix": "...", "timeout": 270}` (`timeout` in seconds; `enabled:false` disables). `fix` = the safe fixers from toolchains.md's Fix column (formatter, linter `--fix`; never unsafe modes) with `{files}` where the tool takes paths; every arm runs it on the changed files before the check, and at commit time only on fully staged files, re-staged after. Coverage, both mechanical: every existing check (`scripts/`, package scripts, Makefile targets, `.pre-commit-config.yaml`, test dirs the runner misses) is called by the entry point or listed excluded with the condition under which it runs; every step names the file set it scans, and zero files matched fails.
 4. **Wire the arm** — strongest available for the host; merge, never clobber; back up a config before editing it:
 
    | Arm | When it blocks | Wiring |
@@ -52,7 +52,7 @@ The entry point runs green; the wired arm is shown blocking on a failing probe f
    | `codex` | before done | `~/.codex/hooks.json` → `hooks.Stop[].hooks[] = {"type":"command","command":"\"{py}\" \"{gate}\" gate"}` (same block JSON) |
    | `gemini` | before done | `~/.gemini/settings.json` → `hooks.AfterAgent[]` with command `"{py}" "{gate}" gate --exit2` (exit 2 + reason) |
    | `aider` | on edit | `.aider.conf.yml`: `lint-cmd` and `test-cmd` = `"{py}" "{gate}" run`, `auto-lint: true`, `auto-test: true` |
-   | `git-hook` | before commit (Copilot, Cursor, Windsurf, terminal) | `.git/hooks/pre-commit`: `#!/bin/sh` + `exec "{py}" "{gate}" run`; a hook manager (husky, pre-commit) present → add it as a step there instead |
+   | `git-hook` | before commit (Copilot, Cursor, Windsurf, terminal) | `.git/hooks/pre-commit`: `#!/bin/sh` + `exec "{py}" "{gate}" run --staged`; a hook manager (pre-commit, husky + lint-staged) present → add the fix and check as its steps instead, since it already handles partial staging |
 
    Aider skips git hooks by default (`git-commit-verify: false`), so it needs its own arm. Before-commit arms are weaker than before-done ones: the report says which one was installed, never more.
 5. **Prove** — run the entry point (green) → add one new file the checks reject (a failing test, or a lint error in a new source file; never an edit to an existing file, kernel §3) → drive the arm directly and show it block (`"{py}" -c "import json,os; print(json.dumps({'cwd': os.getcwd()}))" | "{py}" "{gate}" gate`, the same on every shell; or run the pre-commit hook) → delete the file → show it pass. An arm not seen blocking is reported `wired, unproven`.
@@ -78,5 +78,5 @@ All four — gate, red-proof, wiring (or stated unwired), scope note — or the 
 
 - Local only: never creates or edits CI pipelines.
 - Every arm runs the marker command as code on each trigger — never enable one in a repo you do not trust. Outside the trusted roots the Claude Code gate is inert.
-- The gate never edits code; it blocks so the fix gets made. A green result is cached per tree state (`.git/ds-gate.green`); a timeout is a block, never a pass.
+- The gate edits code only through the marker's `fix`, never a file with unstaged edits at commit time; everything else it blocks so the fix gets made. A green result is cached per tree state (`.git/ds-gate.green`); a timeout is a block, never a pass.
 - Hook formats drift — re-check the host's live hook docs before wiring; [hook-contract.md](references/hook-contract.md) holds the verified contracts.

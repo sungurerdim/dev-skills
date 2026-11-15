@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT
 """Eval: ds-audit on a small Node library with no UI, store, billing or mobile signals.
 
-  python3 evals/ship_library.py setup DIR     build the fixture repo
-  python3 evals/ship_library.py score DIR     one `criterion<TAB>PASS|FAIL` line each, then OVERALL; exit 0 = all pass
-  python3 evals/ship_library.py validate      prove the scorer: red on the untouched fixture, green on a hand-made report
+  python3 evals/audit_library.py setup DIR     build the fixture repo
+  python3 evals/audit_library.py score DIR     one `criterion<TAB>PASS|FAIL` line each, then OVERALL; exit 0 = all pass
+  python3 evals/audit_library.py validate      prove the scorer: red on the untouched fixture, green on a hand-made report
 
 Request given to the agent: "Audit and improve this project." Score the repo afterwards, never the agent's claim.
 """
