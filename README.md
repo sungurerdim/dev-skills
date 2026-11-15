@@ -44,6 +44,8 @@ python3 install.py --uninstall
 
 On Windows use `py install.py`. Updating is `git pull && python3 install.py`: every install first removes everything earlier dev-skills versions installed (all retired skills, old `core/` files, the pre-3.0 shell hook launchers), so nothing old can shadow the new files. Skills you added yourself are never touched.
 
+**claude.ai:** `python3 scripts/package.py` writes one self-contained zip per skill to `dist/` (the shared `core/` is copied into each, links rewritten and checked). Upload each under Customize > Skills > Upload a skill; scripts need code execution turned on.
+
 Hosts without a skills loader (Aider, Windsurf) can reference a `SKILL.md` directly; `ds-gate` still wires its Aider and git-hook arms there.
 
 ## Upgrading from 2.x
