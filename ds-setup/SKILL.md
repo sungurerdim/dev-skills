@@ -39,8 +39,6 @@ Recorded `Only you can do` by default, a per-item question under `ask`: unpinned
    | Category | Runs when | Tools | Fallback |
    |----------|-----------|-------|----------|
    | Token-reducing CLI proxy | always | rtk | truncate output (`head`, `wc -l`) |
-   | Sandboxed execution MCP | offered; escape caveat accepted per item | context-mode | temp file + summary |
-   | Persistent memory | always | basic-memory | Markdown notes |
    | LSP bridge | a language server exists for a project language | agent-lsp, Serena | native search |
    | Git hook manager | a git repo is in use | pre-commit | `.git/hooks/*` |
    | Security scanners | always | gitleaks, osv-scanner, actionlint, zizmor, hadolint, typos | rule-file checks |

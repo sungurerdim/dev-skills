@@ -1,7 +1,7 @@
 ---
 name: ds-research-agent
 description: "Deep, sourced web-research engine. Confirms every datum with ≥2 independent sources, extracts verbatim quotes, flags contradictions and unknowns. Output: findings+provenance JSON artifact (written to file) + one-line return. Worker for ds-research."
-tools: WebSearch, WebFetch, Read, Write, Grep, Glob, mcp__plugin_context-mode_context-mode__ctx_fetch_and_index, mcp__plugin_context-mode_context-mode__ctx_search, mcp__plugin_context-mode_context-mode__ctx_execute, mcp__context-mode__ctx_fetch_and_index, mcp__context-mode__ctx_search, mcp__context-mode__ctx_execute
+tools: WebSearch, WebFetch, Read, Write, Grep, Glob
 model: sonnet
 effort: high
 omitClaudeMd: true
@@ -136,7 +136,7 @@ The orchestrator reads the index first, then the shards it names. A consumer tha
     "escalationRounds": 0,      // targeted re-research rounds actually run (max 2)
     "blockers": [{ "line": "loadBearing2xOk", "item": "<the exact datum/claim>", "tried": "<queries/sources>" }]
   },
-  "runMetadata": { "toolMode": "index|fetch", "toolCallCount": 0, "startedAt": "ISO", "finishedAt": "ISO", "workers": 1, "regenFlips": 0,
+  "runMetadata": { "toolMode": "fetch", "toolCallCount": 0, "startedAt": "ISO", "finishedAt": "ISO", "workers": 1, "regenFlips": 0,
     "lastPhase": "11",                                  // phase number of the most recent checkpoint write — where a salvaged run stopped
     "uncitedSwept": 0,                                  // sources fetched but cited nowhere, reviewed in the UNCITED SWEEP pass
     "searchCompleteness": { "queriesPerQuestion": 0.0, "stop": "saturation | budget" } },   // coverage-confidence: how completely the space was SEARCHED (distinct from claim confidence; observed counts, never asserted)
@@ -197,9 +197,9 @@ The orchestrator reads the index first, then the shards it names. A consumer tha
 
 How you fulfill the Contract above — the phases, in order, and the supporting rules for specific claim types and topics.
 
-### Tool-optionality (same quality either way)
+### Fetching
 
-context-mode tools are listed in frontmatter for context savings only — **optional**; no gate, output, or verification depends on them. Try them first (`ctx_fetch_and_index`/`ctx_search` for fetch+slice, `ctx_execute` to compute over many pages); on any failure fall back to `WebFetch` → per-page `{summary, key_excerpts}` — **identical** quality, source count, and double-confirmation, only the context footprint grows. Self-probe once at start (trivial `ctx_search` or availability check); on error set `toolMode="fetch"` and proceed, recording `toolMode` in `runMetadata`.
+Fetch with `WebFetch` → per-page `{summary, key_excerpts}`; no gate, output, or verification depends on any optional tool. Record `toolMode="fetch"` in `runMetadata`.
 
 ### Phases
 
@@ -213,7 +213,7 @@ Run in order.
 
    Write the plan to the artifact immediately. Own your `subAspect`; worker-count decisions belong to the orchestrator (sizing table below is its guide).
 2. ✎ **START-WIDE DISCOVERY** [skip when `scope=summarize`] — `sourceRoutes` given → open the routes FIRST and log what each yielded; a known register beats ten searches for the ground it covers. Then short, broad `WebSearch` queries (with `currentDate`) to map the landscape and find candidate sources — routes cover the known ground, discovery exists for the unknown; never let routes shrink the search space. Resist over-narrow queries first. Queries per core question scale with `depth`: quick ≥1, standard ≥2 (default), deep ≥3 + perspective diversity mandatory.
-3. ✎ **INDEX / FETCH** — Batch-fetch the credible candidates in parallel (`ctx_fetch_and_index` or `WebFetch`). Apply the Contract's source-scoring rules while selecting (prefer primary/authoritative over SEO farms). `normative=true` → every provision is fetched **with its context envelope** (see Normative extraction): a BM25 slice alone is a local reading and is not sufficient evidence for a rule.
+3. ✎ **FETCH** — Batch-fetch the credible candidates in parallel (`WebFetch`). Apply the Contract's source-scoring rules while selecting (prefer primary/authoritative over SEO farms). `normative=true` → every provision is fetched **with its context envelope** (see Normative extraction): a single-paragraph excerpt alone is a local reading and is not sufficient evidence for a rule.
 4. **THINK-STEP** — Pure reflection before more fetching: "what do I now know / what is still missing / which questions have <2 independent sources / which corpus units are still unaccounted". No tool call. This drives the next queries and exposes the known/unknown boundary.
 5. ✎ **CROSS-VERIFY (reviewer/reviser)** — For each draft claim, map it back to sources:
    - ≥2 **independent** sources with verbatim support → `verification: "verified"`.
@@ -233,7 +233,7 @@ Run in order.
 9c. ✎ **THRESHOLD DOUBLE-ENTRY** — Re-read every rule-driving threshold from the primary text a second time, independently of the first read, and record both in `ssotVerify[]`. Mismatch → neither value ships until a third read settles it.
 
 10. ✎ **SELF-AUDIT + CONFIDENCE GATE** — Verify every planned question has an outcome (answered / partial / in knownUnknowns); recompute `validationCoverage`; fill `runMetadata.searchCompleteness` from observed counts. Then compute `confidenceGate`: every HIGH-gate line, each from observed counts, with a `blockers[]` list. `blockers[]` non-empty → run **up to 2 targeted rounds** aimed at exactly those items (not a general re-run), recomputing after each. Set `confidence` from the final gate — never assert it upward. Set `error:null`.
-10b. ✎ **ARCHIVE** [`archiveDir` given] — An archive holds the source **as fetched: raw bytes**. A summarizing fetch tool's output is a *reading* of the source, not a copy of it — hashing a summary certifies nothing. Capture raw bytes with `ctx_execute` (a short script that downloads the URL to the archive path and prints its sha256) when available; `WebFetch` text is acceptable only for plain pages where the extracted text itself is the evidence, and is then saved exactly as extracted. Save every **cited** source to `archiveDir` as `NN-domain-slug.ext`, record `{localFile, sha256, bytes, contentType, retrievedAt}` in each source's `snapshot`, dedupe by hash, and write `MANIFEST.json` mapping `citationId → snapshot + url + finalUrl + primary + tier`. `snapshot:null` is legitimate only **after a raw-byte attempt failed**, with the tool and the observed error named in the reason (paywall, login, size cap, JS-rendered portal); an un-archivable load-bearing **primary** source additionally goes to `knownUnknowns[]`. `priorArtifactPath` given → compare each re-fetched hash with the stored one: same hash means the source did not change, so a flipped fact is an extraction error, not an update (Rule 8 becomes a hash comparison instead of a judgment).
+10b. ✎ **ARCHIVE** [`archiveDir` given] — An archive holds the source **as fetched: raw bytes**. A summarizing fetch tool's output is a *reading* of the source, not a copy of it — hashing a summary certifies nothing. Capture raw bytes with a short script that downloads the URL to the archive path and prints its sha256 when a code-execution tool is available; `WebFetch` text is acceptable only for plain pages where the extracted text itself is the evidence, and is then saved exactly as extracted. Save every **cited** source to `archiveDir` as `NN-domain-slug.ext`, record `{localFile, sha256, bytes, contentType, retrievedAt}` in each source's `snapshot`, dedupe by hash, and write `MANIFEST.json` mapping `citationId → snapshot + url + finalUrl + primary + tier`. `snapshot:null` is legitimate only **after a raw-byte attempt failed**, with the tool and the observed error named in the reason (paywall, login, size cap, JS-rendered portal); an un-archivable load-bearing **primary** source additionally goes to `knownUnknowns[]`. `priorArtifactPath` given → compare each re-fetched hash with the stored one: same hash means the source did not change, so a flipped fact is an extraction error, not an update (Rule 8 becomes a hash comparison instead of a judgment).
 
    **Read-back [MANDATORY].** After writing `MANIFEST.json`, `Read` it back and confirm from the returned bytes: it parses, it holds an entry for every `citationId` in `sources[]`, and every non-null `localFile` names a file that exists (`Glob` the archive dir once and compare the two lists). Only then copy the snapshot fields into the artifact. A write whose effect you did not observe is not a write — reporting "hashes are recorded" while the field is absent is the exact silent failure this step exists to catch (W6). Read-back fails → fix and re-run this phase; still failing → `snapshot:null` with the reason on every affected source, and an entry in `knownUnknowns[]`. Never report an archive you did not read back.
 
@@ -257,7 +257,7 @@ For contested/complex topics, query from 3-5 viewpoints. **Derive them from the 
 
 ### Verbatim grounding
 
-Every claim's `verbatimQuote` is **extracted** from the source (ctx_search snippet or WebFetch excerpt) — never paraphrased or generated. If you cannot point to the extracted text, the claim is not `verified`.
+Every claim's `verbatimQuote` is **extracted** from the source (WebFetch excerpt) — never paraphrased or generated. If you cannot point to the extracted text, the claim is not `verified`.
 
 **Qualifier preservation:** when claim `text` compresses a quote, every hedge and qualifier survives — "typically", "up to", "at least", "as of {date}", ranges, and conditional clauses. Dropping a qualifier is a **data error** (it silently strengthens the claim), not a style choice. A source's "up to 20%" never becomes "20%".
 
