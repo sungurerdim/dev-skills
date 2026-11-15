@@ -1,57 +1,29 @@
 # AGENTS.md
 
-Instructions for any coding agent working **on** this repository. `CLAUDE.md` holds the same
-essentials plus a Claude-Code-specific blueprint profile; nothing here needs to be read twice.
+Instructions for any coding agent working **on** this repository.
 
-dev-skills is a catalog of 30 Agent Skills — **pure markdown, zero runtime dependencies**. The
-only executable code is `install.sh` (+ its `install.cmd` Windows launcher), `scripts/*.sh`,
-`evals/tasks/*/*.sh`, and `ds-brief/assets/verify-brief.py`. Shared references live in `core/`
-and are linked from skills as `../core/<file>.md`; the installer ships `core/` on every install.
+dev-skills ships four Agent Skills (`ds-audit`, `ds-gate`, `ds-setup`, `ds-research`) and the shared `core/` they all load. Skills are Markdown; the only code is Python 3.8+ stdlib: `install.py`, `scripts/check.py`, `evals/*.py`, and each skill's `assets/*.py`.
 
 ## Commands
 
 | Task | Command |
 |------|---------|
-| Run the quality gate (do this before every commit) | `bash scripts/quality.sh` |
-| Make the gate run on every commit | `bash scripts/quality.sh --install-hook` |
-| Gate red | Fix what it names, re-run, then commit — the hook is never bypassed |
-| Install the skills into a host | `./install.sh` (or `--target <dir>`, `--project <dir>`, `--skills a,b`) |
-| Install for a Claude-5 host with an always-on rules layer | `./install.sh --profile lean` — strips the `portable-only`-marked blocks at install time; repo files always keep the full portable text |
-| Install for Claude Code specifically | `./install.sh --profile claude` — lean plus one Claude-only sentence injected into ds-ship's delegation step (delegates run as forked subagents); the repo file stays host-neutral |
-| Check an installed copy for drift | `./install.sh --check` (profile-aware — reads the profile from the version stamp) |
-| See installed vs repo vs upstream at a glance | `./install.sh --status` — read-only |
-| Update an existing install | `./install.sh --update` — `git pull --ff-only` + re-install with the stamped profile; never merges on your behalf |
+| Quality gate (before every commit) | `python3 scripts/check.py` |
+| Prove every gate check still catches its defect | `python3 scripts/check.py --self-test` |
+| Run both on every commit | `python3 scripts/check.py --install-hook` |
+| Install / check drift / uninstall | `python3 install.py` · `--check` · `--uninstall` |
+| Validate the eval scorer | `python3 evals/audit_library.py validate` |
 
-The gate needs `bash`, `python3`, `shellcheck`, and `typos`. A missing tool fails the run loudly
-and names what went unverified — never treat a skipped check as a passing one. There is no CI;
-this gate is the only enforcement, by design.
+There is no CI; the gate is the only enforcement. A red gate is fixed, never bypassed (`--no-verify` is never used). A check that cannot run says so; it is never reported as passing.
 
-## Conventions that are not guessable from the code
+## Rules that are not guessable from the code
 
-- **Standalone Invariant.** Every skill directory must work when installed alone. A skill may not
-  reference another skill's files by path, may not link outside its own directory, and may not cite
-  an in-repo file in prose — a lone install ships one directory. Cross-skill *prose* handoffs are
-  correct and expected. Enforced by consistency checks 21, 22, 23; point at repo files with a full
-  GitHub URL instead.
-- **Completion Evidence band** appears verbatim at both the top and the bottom of every `SKILL.md`
-  in the repo. Both copies are normative — do not "de-duplicate" them in repo files. The repeat is
-  deliberate: model attention is position-biased, and the portable profile supports six hosts. The
-  lean install profile (`--profile lean`) strips the closing copy and the other
-  `<!-- portable-only -->`-marked blocks at install time only (SKILL-SPEC §1).
-- **Size ceilings**, both gated: `SKILL.md` ≤ 500 lines and ≤ 48000 bytes; `README.md` ≤ 80 lines.
-- **`SKILL-SPEC.md` is authoritative.** Every `ds-*` directory must satisfy it; changing a skill's
-  contract usually means changing the spec and the consistency checks in the same commit.
-- **Counts are mechanically checked.** `README.md`'s badge, `CLAUDE.md`'s skill heading, count line,
-  and flat list must all agree with the actual number of `ds-*/` directories.
-- **A new check needs a fixture.** Checks factored into functions in `scripts/check-consistency.sh`
-  carry a self-test that proves they fail on deliberately broken input. Add one with your check.
-- **Conventional Commits**, and `feat`/`fix` only when a user-visible capability changes. Docs,
-  tests, tooling, and CI get their own type. Direct push to `main` is the deliberate workflow here.
-
-## Gotchas
-
-- `ds/audit/` is gitignored scratch space for skill runs — never commit it, never rely on it.
-- Editing a skill's contract line (`**Owns:** … **Delegates:** … **Receives:** …`) breaks the
-  reciprocity check unless the delegation target names the delegator back.
-- `_typos.toml` exists because `typos` otherwise reports ~90 false hits on this repo's domain
-  vocabulary. Add a checked entry rather than silencing the tool.
+- **One home per fact.** Shared guidance lives once in `core/`; a skill links `../core/<file>.md` and adds only what is specific to it. The gate fails on a long line repeated in two shipped files and on near-duplicate rule titles.
+- **Standalone skills.** A link from a skill may resolve only inside its own directory or `core/` (what one install ships). Mentioning another skill by name in prose is fine.
+- **`core/kernel.md` is loaded by every skill.** Change it only for something every skill needs; section numbers (§1-§7) are cited from skills and rule files.
+- **Rules:** `### ID [CRITICAL|HIGH|MEDIUM|LOW] Title`, then Detect / Fix / Impact / Source; IDs are unique across `core/rules/`. A new rule file needs a row in `core/rules/README.md` (area, load signal, ID prefix, standards).
+- **Sizes:** `SKILL.md` ≤ 8 KB; anything situational goes to the skill's `references/`.
+- **A new gate check needs a self-test case** in `scripts/check.py` that injects its defect and sees it go red.
+- **Versions:** `.claude-plugin/marketplace.json` and the top `CHANGELOG.md` entry must agree (semver).
+- **Conventional Commits.** `feat`/`fix` only when a user-visible capability changes.
+- `ds/audit/` is per-run scratch output of `ds-audit`; never commit it.

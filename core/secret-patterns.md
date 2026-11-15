@@ -1,6 +1,6 @@
 # Secret Patterns — filename exclusions and content regexes
 
-**Consumers:** ds-commit and ds-pr (staging exclusion), ds-fix and ds-review (content scan), ds-compliance (secrets scope), ds-issue and ds-build (pre-commit scan), any skill that stages files or scans source.
+**Consumers:** ds-audit (secrets scan, staging exclusion) and any skill that stages files or scans source.
 
 ## Filename set — always excluded from bulk staging
 
@@ -35,7 +35,7 @@ Exclude `.git/`, `node_modules/`, `build/`, `dist/`, `.dart_tool/`, `vendor/`, `
 | `eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}` | JWT literal (flag in source and config only; ignore in tests named `*jwt*`) |
 | `(?i)-----BEGIN CERTIFICATE-----` | Certificate — LOW unless paired with a key |
 
-A match is CRITICAL after the second pass in `severity-score-categories.md` (re-read ±20 lines; skip fixtures, `*.example`, documented placeholders such as `sk-live-0000…`). Secrets are **never auto-fixed** — the finding reports the site, states "rotate this credential now, then add the variable name with a placeholder value to `.env.example`", and the run's status is FAIL until the owner acts.
+A match is CRITICAL after the CRITICAL second pass in `kernel.md` §4 (re-read ±20 lines; skip fixtures, `*.example`, documented placeholders such as `sk-live-0000…`). Secrets are **never auto-fixed** — the finding reports the site, states "rotate this credential now, then add the variable name with a placeholder value to `.env.example`", and the run's status is FAIL until the owner acts.
 
 ## Scanner augmentation (advisory, zero-dependency baseline stays)
 

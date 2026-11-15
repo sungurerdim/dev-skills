@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Propose a new skill, scope, or capability
+about: Propose a rule, a scope, or a capability
 title: ''
 labels: enhancement
 assignees: ''
@@ -8,8 +8,8 @@ assignees: ''
 
 **What workflow or lifecycle moment does this cover?**
 
-**Why can't an existing skill cover it?** (see the skill table in README.md)
+**Why can't the existing skills or rules cover it?** (see README.md)
 
-**Proposed scope** (Owns / Delegates / Receives, per SKILL-SPEC.md):
+**Proposed scope:**
 
 **Alternatives considered:**

@@ -4,16 +4,16 @@
     "name": "sungurerdim",
     "url": "https://github.com/sungurerdim"
   },
-  "description": "Multi-phase AI coding-assistant skills covering the full software lifecycle — executable gates, error recovery, and systematic mitigation of 17 known AI failure modes.",
-  "version": "2.0.0",
+  "description": "Agent Skills for shipping production-quality software: whole-project audit and fix, a machine-enforced quality gate, a hardened AI-dev rig, and fact-checked research briefs.",
+  "version": "3.0.0",
   "plugins": [
     {
       "name": "dev-skills",
       "source": "./",
       "strict": false,
       "displayName": "dev-skills",
-      "description": "32 multi-phase skills — research, build, debug, review, test, document, comply, release, and ship — autonomous by default, as pure markdown with zero runtime dependencies.",
-      "version": "2.0.0",
+      "description": "4 skills — ds-audit, ds-gate, ds-setup, ds-research — on one shared kernel and rule set; Markdown plus Python stdlib, no runtime dependencies.",
+      "version": "3.0.0",
       "author": {
         "name": "sungurerdim",
         "url": "https://github.com/sungurerdim"
@@ -25,15 +25,19 @@
         "skills",
         "agent-skills",
         "code-review",
-        "testing",
-        "documentation",
-        "compliance",
-        "ci-cd",
-        "release"
+        "quality-gate",
+        "security",
+        "accessibility",
+        "privacy",
+        "research"
       ],
       "category": "development",
-      "skills": ["./"],
-      "agents": ["./agents/ds-research-agent.md"]
+      "skills": [
+        "./"
+      ],
+      "agents": [
+        "./agents/ds-research-agent.md"
+      ]
     }
   ]
 }
