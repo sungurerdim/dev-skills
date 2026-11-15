@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [3.0.0] - 2026-11-15
 
-Rebuilt from scratch around one decision order (question → reuse → delete → simplify → accelerate → automate) with one home for every rule. Measured on the files an install ships: 202 files / 2.68 MB → 80 files / 1.44 MB; SKILL.md total 704 KB across 32 skills → 26 KB across 4; a `ds-ship` run now loads 14 KB (its SKILL.md + `core/kernel.md`) before rules, which load only for areas whose project signal holds; rule headings 812 → 681 after removing duplicates.
+Rebuilt from scratch around one decision order (question → reuse → delete → simplify → accelerate → automate) with one home for every rule. Measured on the files an install ships: 202 files / 2.68 MB → 80 files / 1.44 MB; SKILL.md total 704 KB across 32 skills → 29 KB across 4; a `ds-audit` run now loads 17 KB (its SKILL.md + `core/kernel.md`) before rules, which load only for areas whose project signal holds; rule headings 812 → 681 after removing duplicates.
 
 ### Breaking
 
