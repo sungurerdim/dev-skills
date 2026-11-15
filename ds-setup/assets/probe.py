@@ -17,7 +17,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-TOOLS = ("rtk", "basic-memory", "context-mode", "agent-lsp", "serena", "pre-commit", "gitleaks", "osv-scanner",
+TOOLS = ("rtk", "agent-lsp", "serena", "pre-commit", "gitleaks", "osv-scanner",
          "actionlint", "zizmor", "hadolint", "typos", "gh", "rg", "jq", "fd", "git", "python3", "node", "uv")
 PACKAGE_MANAGERS = ("brew", "apt", "dnf", "pacman", "winget", "scoop", "choco", "npm", "pnpm", "uv", "pipx", "pip",
                     "cargo", "go")

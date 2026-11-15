@@ -74,7 +74,7 @@ A command or tool call is **risk-free** when all four hold: it writes nothing ou
 | Git, local and reversible | `status` `log` `diff` `show` `blame` `branch` (list/create) `rev-parse` `ls-files` `grep` `fetch` `add` `commit` `stash` `switch` `checkout -b` `tag` (local) `worktree add/list` |
 | Build / test / check | the project's own test, build, lint, format, type-check and run scripts (`npm test`, `npm run *`, `pytest`, `cargo build/test/check/clippy`, `go build/test/vet`, `make` targets, `{check-cmd}`) — workspace autonomy |
 | Workspace files | create / edit / delete under the open workspace (`./**`) |
-| Rig tools | read and status forms of tools this skill installed (`rtk gain`, `ctx_doctor`, …) |
+| Rig tools | read and status forms of tools this skill installed (`rtk gain`, `pre-commit --version`, …) |
 
 **Not risk-free, so not in ALLOW:** `WebFetch` to arbitrary hosts (prompt-injection input and URL-borne exfiltration — ask; allow named documentation domains only), `git push`/publish (RC-11), installs (RC-13), `git reset --hard` / `checkout -- {file}` / `clean -f` (discard uncommitted work — ask), anything in RC-1..10.
 

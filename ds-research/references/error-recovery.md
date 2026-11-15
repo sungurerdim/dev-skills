@@ -10,7 +10,6 @@ Consumer: ds-research, all phases — consult when a phase's own Gate fail-arm d
 | Worker returns `WRITE-FAILED` / `partial:true` | Use the shards that landed, route the missing content to `knownUnknowns[]`, continue WARN — partial evidence on disk beats discarding a run |
 | Index names a shard that is not on disk | Ask that worker to rewrite the shard, then the index; unavailable → treat its content as unreached, record it in Unknowns, and recompute coverage without it |
 | Merged artifact has a dangling `citationId` | The `citationIdBase` bands overlapped or the dedup rewrite missed a reference — stop before rendering; a chip pointing nowhere under confident prose is the failure this check exists for |
-| context-mode MCP absent | Fall back to WebFetch + per-page summary; identical quality, larger footprint |
 | No web results | Fall back to user-supplied sources / local docs; if none, LOW confidence + populate Unknowns |
 | Datum has only 1 source | Keep with "single source" badge; never present as confirmed |
 | Contradictory high-tier sources | Show both with tier+CRAAP+URL; recommend argmax(trustScore); keep disagreement visible |
