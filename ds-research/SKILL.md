@@ -21,7 +21,7 @@ A brief the reader can trust and check: every claim carries a source chip with i
 
 ## Deliverable
 
-`report.html` (all CSS/JS/data inline, system fonts, no network) + `findings.json` + `sources/` (every cited source as fetched, SHA-256 and retrieval time in `MANIFEST.json`). Language follows the request; schema keys stay English. Every scalar lives once in `CONFIG` and is read through `[data-cfg]`.
+`report.html` (all CSS/JS/data inline, system fonts, no network) + `findings.json` + `sources/` (every cited source as fetched, SHA-256 and retrieval time in `MANIFEST.json`). Written to a new directory named from the topic and date; an existing one is never overwritten (a re-run gets a suffix and diffs against it, Phase 3). Language follows the request; schema keys stay English. Every scalar lives once in `CONFIG` and is read through `[data-cfg]`.
 
 ## Done when
 

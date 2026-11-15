@@ -33,7 +33,7 @@ Recorded `Only you can do` by default, a per-item question under `ask`: unpinned
 
 ## Steps
 
-1. **Detect** from probes, never assumption: OS, architecture, package managers (brew, apt/dnf, winget/scoop, npm, uv/pip, cargo); harnesses (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.copilot/`, Aider, OpenCode, Cursor, Windsurf); catalog tools and versions (`{tool} --version`); MCP servers per harness, counted by parsing the config (`python3 -c "import json,sys; print(len(json.load(open(sys.argv[1])).get('mcpServers', {})))" {config}`); manifest `~/.config/ds-setup/manifest.json` (present = re-run; only the pre-3.0 `~/.config/ds-rig/manifest.json` present → move it there). A probe that cannot run → `unknown`, excluded from automatic actions. Print the rig before changing anything.
+1. **Detect** in one call, never by assumption: `"{py}" assets/probe.py` prints JSON with OS, architecture, package managers, harnesses (Claude Code, Codex, Gemini, Copilot, OpenCode, Cursor, Windsurf, Aider), every catalog tool's version, MCP server counts per harness config and the manifest (`~/.config/ds-setup/manifest.json`; present = re-run; only the pre-3.0 `~/.config/ds-rig/manifest.json` present → move it there). A probe that cannot run → `unknown`, excluded from automatic actions. No Python → the same probes by hand, batched into one shell command. Print the rig before changing anything.
 2. **Select** from [catalog.md](references/catalog.md): every category whose signal holds, plus manifest tools with updates. For each MCP-class pick, name the CLI alternative if one exists. Project the MCP tool count; past ~20-30 tools definitions cost more context than they save.
 
    | Category | Runs when | Tools | Fallback |

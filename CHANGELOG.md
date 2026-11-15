@@ -21,6 +21,8 @@ Rebuilt from scratch around one decision order (question → reuse → delete �
 
 ### Added
 
+- **No work is lost, by rule** (kernel §3): files with user changes are snapshotted with `git stash create` before a skill edits them, reverts reverse-apply the run's own diff, no `checkout`/`reset`/`clean`/`stash push` over files the run did not write, outputs are never overwritten, and ds-gate's proof uses a new probe file instead of editing an existing one.
+- **Fewest calls, most data** (kernel §2): one inventory call (`git ls-files`, `git status --porcelain=v2 --branch`) before any per-file probe; `ds-setup/assets/probe.py` reports OS, package managers, harnesses, tool versions, MCP counts and the manifest as JSON in one call.
 - **Arguments are plain words** in any order, shared by all four skills (kernel §5): no word runs every part, a part's word runs it alone even where its signal does not apply, `dry` only reports, `ask` asks. `--word` spellings are still read. Parts: ds-audit's 20 areas; ds-gate `checks` `arm` `prove` `run` `status` `off`/`on` `install` `uninstall` `inv`; ds-setup `tools` `update` `privacy` `perms` `mcp` `uninstall`; ds-research `quick` `sum` `render` `static` `nobundle`.
 - `ds-audit` checks only what the branch changes by default: files changed against the upstream (else `origin/HEAD`) plus uncommitted and untracked ones; checks still run whole-project; `all` is the full audit.
 - `ds-research quick`: the retired 2.x ds-research's sourced chat answer with a DO / AVOID / CONDITIONAL verdict and local, release and advisory tracks, under the full brief's evidence rules. CRAAP rule 8: for security topics T1 sources outrank disagreeing lower tiers.

@@ -129,7 +129,7 @@ def check_consumers(root: Path, err):
 
 def check_retired(root: Path, err):
     # a file or path name (ds-quality.json, .config/ds-rig) is a compatibility reference, not a skill mention
-    pat = re.compile(r"(?<![\w/-])(" + "|".join(map(re.escape, RETIRED)) + r")(?![\w-]|\.\w)")
+    pat = re.compile(r"(?<![\w/-])(" + "|".join(map(re.escape, RETIRED)) + r")(?![\w/-]|\.\w)")
     for p, text in shipped(root):
         for n, line in enumerate(text.splitlines(), 1):
             m = pat.search(line)
@@ -146,7 +146,7 @@ def check_versions(root: Path, err):
 
 
 def check_self_tests(root: Path, err):
-    for args in (["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"],
+    for args in (["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"], ["ds-setup/assets/probe.py", "--self-test"],
                  ["ds-research/assets/verify-brief.py", "--self-test"]):
         if not (root / args[0]).exists():
             err(f"{args[0]}: missing")

@@ -18,7 +18,7 @@ Audit what the branch changes (or, with `all`, the whole project), fix what is s
 | `ask` | Each decision point becomes a question with a recommended option (kernel §5) |
 | `<path>` | One package of a monorepo; without it, each package with its own manifest is a unit |
 
-**Changed scope (default)** — the files in `git diff --name-only {base}...HEAD`, plus uncommitted and untracked files (`git status --porcelain`), where `{base}` is the upstream (`@{upstream}`), else `origin/HEAD`, else the default branch; no remote and no other branch → uncommitted files only, said in the report. Findings are recorded only on lines these files changed, or on code a change there breaks (callers, contracts, tests that cover it); the baseline and verify checks still run whole-project, since a local change can break a distant check. No changed file → report `nothing changed — /ds-audit all audits the whole project` and stop. The run was asked to work on these files, so uncommitted ones are edited too (an exception to kernel §3): before the first write, `git stash create` records the untouched state and its hash goes in the report (`git checkout {hash} -- {file}` restores a file); fixes in them stay uncommitted, mixed with the user's own edits, and the report lists them for review with `git diff`.
+**Changed scope (default)** — the files in `git diff --name-only {base}...HEAD`, plus uncommitted and untracked files (`git status --porcelain`), where `{base}` is the upstream (`@{upstream}`), else `origin/HEAD`, else the default branch; no remote and no other branch → uncommitted files only, said in the report. Findings are recorded only on lines these files changed, or on code a change there breaks (callers, contracts, tests that cover it); the baseline and verify checks still run whole-project, since a local change can break a distant check. No changed file → report `nothing changed — /ds-audit all audits the whole project` and stop. The run was asked to work on these files, so uncommitted ones are edited too, under kernel §3's snapshot; fixes in them stay uncommitted, mixed with the user's own edits, and the report lists them for review with `git diff`.
 
 ## Done when
 
@@ -28,8 +28,8 @@ Audit what the branch changes (or, with `all`, the whole project), fix what is s
 
 ### 1. Prepare
 
-1. `git status --porcelain` → with `all`, files with uncommitted user changes are not edited (kernel §3); the changed scope handles them as above.
-2. Read project rules first: `AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, ADRs, specs. They override this file and the rule files where they differ.
+1. One inventory call: `git status --porcelain=v2 --branch -uall` (branch, upstream, ahead/behind, changed and untracked files) and, unless `all`, `git diff --name-status -M {base}...HEAD` in the same command. With `all`, files with uncommitted user changes are not edited (kernel §3).
+2. Read project rules first, in one batch: `AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, ADRs, specs. They override this file and the rule files where they differ.
 3. Previous run: `ds/audit/findings.md` exists → load it. Open findings in scope are re-verified, not re-detected; `fixed` ones are spot-checked once.
 4. Add `ds/audit/` to `.git/info/exclude` (not `.gitignore`) so the run leaves no tracked footprint.
 
@@ -37,7 +37,7 @@ Audit what the branch changes (or, with `all`, the whole project), fix what is s
 
 1. Resolve the `Signals:` line per [signals.md](../core/signals.md) from files and manifests only.
 2. Map signals to areas with [rules/README.md](../core/rules/README.md); area words narrow the set; a named area runs even when its signal does not hold. Each excluded area gets one line: `N/A — {key}=none`. Without `all`, an area runs only if a changed file falls in it.
-3. `size=large` → order work by hotspots: files with the most commits in the last year (`git log --since=1.year --name-only`) × size. Read the hottest first; stop an area when new findings stop appearing.
+3. `size=large` → order work by hotspots: files with the most commits in the last year (one call: `git log --since=1.year --name-only --format=`) × size. Read the hottest first; stop an area when new findings stop appearing.
 
 ### 3. Baseline
 
@@ -65,7 +65,7 @@ Order by impact/effort (kernel §2). For each finding run all six steps of kerne
 
 ### 6. Fix
 
-One unit at a time: one change → the narrowest check that covers it (format → lint → type → targeted test) → one local commit (`type(scope): summary`, Conventional Commits); in a file that had uncommitted user edits, no commit (Changed scope above). A bug fix lands behind a test observed red on the unfixed code (kernel §3). Still red after 3 attempts → revert the unit by reverse-applying its own diff (never a checkout over user edits), record `reverted` with the error, continue.
+One unit at a time: one change → the narrowest check that covers it (format → lint → type → targeted test) → one local commit (`type(scope): summary`, Conventional Commits); in a file that had uncommitted user edits, no commit (Changed scope above). A bug fix lands behind a test observed red on the unfixed code (kernel §3). Still red after 3 attempts → revert the unit (kernel §3), record `reverted` with the error, continue.
 
 ### 7. Verify
 

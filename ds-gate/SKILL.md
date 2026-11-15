@@ -14,7 +14,7 @@ Make the project's checks a machine signal: one entry point, run automatically b
 | *(none)* | Full setup of this repo: steps 1-5 below |
 | `checks` | Steps 1-2 only: make sure each check exists and runs |
 | `arm [name]` | Steps 3-4 only: entry point (written if missing) and the host's arm; a name forces one: `claude-code` · `codex` · `gemini` · `aider` · `git-hook` |
-| `prove` | Step 5 only: show the wired arm block on an injected failure and pass after revert |
+| `prove` | Step 5 only: show the wired arm block on a failing probe file and pass after it is deleted |
 | `run` | Run this repo's entry point now and report; no setup |
 | `status` | Report the marker, what the gate resolves here, which arms are wired |
 | `off` / `on` | Set `"enabled"` in `.claude/ds-gate.json` (per-repo kill switch) |
@@ -29,11 +29,11 @@ Every part runs alone: it does step 1's detection itself and reads the marker wh
 
 ## Done when
 
-The entry point runs green; the wired arm is shown blocking on an injected failure and passing after revert; every existing repo check is wired or listed excluded-with-reason.
+The entry point runs green; the wired arm is shown blocking on a failing probe file and passing after it is deleted; `git status` matches its state before the run apart from the setup's own files; every existing repo check is wired or listed excluded-with-reason.
 
 ## Steps
 
-1. **Detect** stack and tooling from manifests and lockfiles ([toolchains.md](../core/toolchains.md)); the host from what is installed (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `.aider.conf.yml`). Print both before changing anything. Unknown stack → `Only you can do: name the toolchain`.
+1. **Detect** stack and tooling from one `git ls-files` inventory (manifests, lockfiles, configs, test dirs; [toolchains.md](../core/toolchains.md)); the host from one listing of what is installed (`~/.claude/`, `~/.codex/`, `~/.gemini/`, `.aider.conf.yml`). Print both before changing anything. Unknown stack → `Only you can do: name the toolchain`.
 2. **Checks exist and run** — formatter (check mode), linter, type checker where the language has one, test runner. Run each once and read the exit code; never infer from config. Missing → add the ecosystem default that is already in the lockfile, else the toolchains.md default. No tests at all → a small real starter suite (one core behavior + boundary cases), marked thin. Never a fake test.
 3. **One entry point**, fail-fast in the order format → lint → type → test, exit non-zero on the first failure:
 
@@ -55,7 +55,7 @@ The entry point runs green; the wired arm is shown blocking on an injected failu
    | `git-hook` | before commit (Copilot, Cursor, Windsurf, terminal) | `.git/hooks/pre-commit`: `#!/bin/sh` + `exec "{py}" "{gate}" run`; a hook manager (husky, pre-commit) present → add it as a step there instead |
 
    Aider skips git hooks by default (`git-commit-verify: false`), so it needs its own arm. Before-commit arms are weaker than before-done ones: the report says which one was installed, never more.
-5. **Prove** — run the entry point (green) → inject a trivial reversible failure → drive the arm directly and show it block (`printf '{"cwd":"%s"}' "$PWD" | "{py}" "{gate}" gate`, or run the pre-commit hook) → revert → show it pass. An arm not seen blocking is reported `wired, unproven`.
+5. **Prove** — run the entry point (green) → add one new file the checks reject (a failing test, or a lint error in a new source file; never an edit to an existing file, kernel §3) → drive the arm directly and show it block (`"{py}" -c "import json,os; print(json.dumps({'cwd': os.getcwd()}))" | "{py}" "{gate}" gate`, the same on every shell; or run the pre-commit hook) → delete the file → show it pass. An arm not seen blocking is reported `wired, unproven`.
 
 ## Invariant mode
 
@@ -65,7 +65,7 @@ For one rule no tool checks (parity, absence, generated-file sync, count floor, 
 2. Pick the pattern from [invariant-patterns.md](references/invariant-patterns.md) (P1-P9); none fits → nearest skeleton, gap recorded.
 3. Copy the repo's existing gate shape (language, exit codes, registration); none → the skeleton.
 4. Generate: scope named, red on zero files matched, exemptions with a reason, reports and never rewrites.
-5. Red-proof: inject the exact violation → non-zero shown → revert → green shown (kernel §3).
+5. Red-proof: inject the exact violation, in a new file when the scope admits one, else in a file with no user changes → non-zero shown → undo it (kernel §3) → green shown.
 6. Wire into the entry point and prove the chain red then green; no chain → deliver it unwired and say so.
 
 All four — gate, red-proof, wiring (or stated unwired), scope note — or the run is `INCOMPLETE`.
