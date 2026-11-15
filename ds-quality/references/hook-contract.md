@@ -58,7 +58,7 @@ To allow the stop: emit nothing and `exit 0`.
 {
   "hooks": {
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "~/.claude/hooks/ds-quality-gate.sh", "timeout": 300 } ] }
+      { "hooks": [ { "type": "command", "command": "\"/usr/bin/python3\" \"/home/me/.claude/hooks/ds-quality.py\" gate", "timeout": 300 } ] }
     ]
   }
 }
@@ -66,28 +66,11 @@ To allow the stop: emit nothing and `exit 0`.
 
 - Add to `~/.claude/settings.json` for system-wide, or `<repo>/.claude/settings.json` for repo-local.
 - `timeout` is seconds (default 600). Merge with `ds-quality.py install --register`; it never clobbers existing `hooks.Stop` entries.
-- Idempotency: only append if no existing entry's `command` already equals the script path.
+- Idempotency: one ds-quality entry; `install --register` replaces older ds-quality entries (incl. pre-3.0 `ds-quality-gate.sh`) and keeps all others.
 
 ## Global install (idempotent)
 
-Resolve `{assets-dir}` to the `assets/` directory beside this SKILL.md (the installed skill's own copy); a host that exposes a `${CLAUDE_SKILL_DIR}`-style variable may use it to build that path as an optional convenience, never as the only way to find it.
-
-```bash
-python3 "{assets-dir}/ds-quality.py" install --register          # add --dry-run to preview
-```
-
-One step: copies `ds-quality.py` and the two launchers to `~/.claude/hooks/` (or `$CLAUDE_CONFIG_DIR/hooks/`), writes the default
-`ds-quality.config.json` only if absent (never overwrites the user's roots), and registers the Stop hook in `settings.json` only if no
-entry's `command` already equals the script path — after backing the file up as `settings.json.bak.<timestamp>`. Re-running is a
-no-op once everything is current. Requires `python3` >= 3.8 (stdlib only; no `jq`); the launchers stay inert with a stderr notice
-when it is absent. The gate is identical on macOS, Linux and Windows (Git Bash runs the launcher); it skips an unchanged tree
-(green fingerprint in `.git/ds-quality.green`) and treats a timeout as a block, never a pass (marker `timeout`, default 270 s, under the
-hook's 300 s).
-
-## `--project-hook` registration (repo-local, idempotent)
-
-Same merge (`ds-quality.py install --project <repo> --register`), against `<repo>/.claude/settings.json`, with the command pointing at the
-copied-in script (`.claude/hooks/ds-quality-gate.sh` inside the repo) so it travels with the repo.
+`python3 "{assets-dir}/ds-quality.py" install --register` (add `--dry-run` to preview): copies `ds-quality.py` to `~/.claude/hooks/` (or `$CLAUDE_CONFIG_DIR/hooks/`), removes pre-3.0 shell launchers, writes `ds-quality.config.json` only if absent, and registers the Stop hook with the absolute interpreter and script paths after backing up `settings.json`. Re-running is a no-op once current.
 
 ## Project marker schema — `.claude/ds-quality.json`
 
@@ -105,7 +88,7 @@ copied-in script (`.claude/hooks/ds-quality-gate.sh` inside the repo) so it trav
 
 ---
 
-# Other host hook contracts (verified 2026-07-15)
+# Other host hook contracts (verified 2026-07-15; Copilot is served by the git pre-commit arm)
 
 Verified against official docs on the dates noted; if behavior diverges, re-verify the live docs — don't guess.
 
@@ -123,11 +106,3 @@ Verified against official docs on the dates noted; if behavior diverges, re-veri
 - Exit codes: `0` = success, stdout parsed as JSON (intentional block via `{"decision":"deny"}`); `2` = critical block — the target action (tool, turn, or stop) is aborted, stderr is the rejection reason; other = warning, interaction proceeds.
 - `AfterAgent` fires when the agent loop ends; impact class "Retry / Halt" — review output, force retry or halt.
 - Transition note: unpaid-tier Gemini CLI is being replaced by Antigravity CLI (announced for 2026-06-18) — re-verify the config surface at install time.
-
-## GitHub Copilot — hooks (before-commit enforcement; docs.github.com/copilot: use-hooks + hooks-configuration)
-
-- Config: `.github/hooks/*.json` (repo; default branch required for cloud agent, cwd for CLI) or `~/.copilot/hooks/*.json` (user; `$COPILOT_HOME/hooks/` if set). Loaded at CLI start.
-- Shape: `{ "version": 1, "hooks": { "<event>": [ { "type":"command", "bash":"…", "powershell":"…", "cwd":"…", "env":{…}, "timeoutSec":N } ] } }` — supply **both** `bash` and `powershell` for cross-OS.
-- Events: `sessionStart`, `sessionEnd`, `userPromptSubmitted`, `preToolUse`, `postToolUse`, `agentStop`, `subagentStop`, `errorOccurred`.
-- **Only `preToolUse` blocks** — it returns a decision `allow` / `deny` / `ask`. For other events non-zero exits are logged and execution continues (`agentStop` is report-only). For `preToolUse`, crashes and non-zero exits fail-closed (deny); timeouts fail-open.
-- **No matchers** — the script filters by inspecting `toolName` / `toolArgs` from stdin JSON; `toolArgs` is a JSON **string**, parse it. `disableAllHooks` pauses all hooks without deleting config.

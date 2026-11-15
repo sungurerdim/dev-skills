@@ -4,12 +4,16 @@
 
 Stdlib only (Python 3.8+), identical on macOS, Linux and Windows. No jq, no network.
 
-  ds-quality.py gate                  Claude Code Stop hook: stdin JSON -> stdout JSON (launched by ds-quality-gate.sh)
+  ds-quality.py gate [--exit2]        before-done hook: stdin JSON. Default (Claude Code / Codex Stop): block = stdout
+                                      {"decision":"block","reason":...}. --exit2 (Gemini AfterAgent): block = reason on
+                                      stderr + exit 2. Allow = no output, exit 0.
+  ds-quality.py run [DIR]             run DIR's quality command now (marker, else detected); exit code = the command's.
+                                      Used by git pre-commit, Aider lint-cmd/test-cmd, or by hand.
   ds-quality.py detect [DIR]          print the quality command for DIR; nothing printed = nothing detectable
-  ds-quality.py install [--register] [--project DIR] [--dry-run]
-                                      copy the hook files into ~/.claude/hooks (or DIR/.claude/hooks), write the default
-                                      config if absent; --register merges the Stop hook into settings.json (idempotent,
-                                      backed up). Honors CLAUDE_CONFIG_DIR.
+  ds-quality.py install [--register] [--dry-run]
+                                      copy this file into ~/.claude/hooks, write the default config if absent, remove
+                                      files of older versions; --register merges the Stop hook into settings.json
+                                      (idempotent, backed up, replaces older ds-quality entries). Honors CLAUDE_CONFIG_DIR.
   ds-quality.py --self-test           fixture checks (temp repos); exit 0 = green
 
 Resolution per Stop, in priority order:
@@ -38,7 +42,8 @@ WINDOWS = os.name == "nt"
 TAIL_CHARS = 4000
 DEFAULT_TIMEOUT = 270  # seconds; under the 300 s hook timeout so a slow gate reports instead of being killed
 DEFAULT_CONFIG = {"mode": "auto", "roots": ["~/projects"]}
-HOOK_FILES = ("ds-quality.py", "ds-quality-gate.sh", "ds-quality-detect.sh")
+HOOK_FILES = ("ds-quality.py",)
+LEGACY_FILES = ("ds-quality-gate.sh", "ds-quality-detect.sh")  # pre-3.0 shell launchers
 
 
 # --- small helpers ----------------------------------------------------------------------------------------
@@ -312,6 +317,33 @@ def fingerprint(root: Path, cmd: str):
     return Path(gitdir), h.hexdigest()
 
 
+def resolve(root: Path, auto: bool):
+    """-> (command, timeout, cache) for root; command "" when disabled or nothing applies."""
+    marker = root / ".claude" / "ds-quality.json"
+    if marker.is_file():
+        m = load_json(marker) or {}
+        if m.get("enabled") is False:  # explicit opt-out wins
+            return "", DEFAULT_TIMEOUT, True
+        return m.get("command") or "", float(m.get("timeout") or DEFAULT_TIMEOUT), m.get("cache") is not False
+    return (detect(root) if auto else ""), DEFAULT_TIMEOUT, True
+
+
+def run(argv) -> int:
+    start = Path(argv[0]) if argv else Path(".")
+    root = Path(git(["rev-parse", "--show-toplevel"], start) or start)
+    cmd, timeout, _ = resolve(root, auto=True)
+    if not cmd:
+        print(f"ds-quality: no quality command for {root} (add .claude/ds-quality.json)", file=sys.stderr)
+        return 0
+    print(f"ds-quality: {cmd}", file=sys.stderr)
+    code, out = run_shell(cmd, root, timeout)
+    sys.stdout.write(out)
+    if code is None:
+        print(f"ds-quality: TIMED OUT after {int(timeout)}s — an unfinished check is not a pass", file=sys.stderr)
+        return 1
+    return code
+
+
 def gate(payload: dict) -> str | None:
     """-> JSON string to print (block), or None (allow the stop)."""
     if payload.get("stop_hook_active") is True:  # loop guard: already blocked once without progress
@@ -322,17 +354,9 @@ def gate(payload: dict) -> str | None:
     root = Path(git(["rev-parse", "--show-toplevel"], anchor) or anchor)
 
     cfg = {**DEFAULT_CONFIG, **(load_json(claude_dir() / "ds-quality.config.json") or {})}
-    cmd, timeout, cache = "", DEFAULT_TIMEOUT, True
+    auto = cfg.get("mode") == "auto" and in_roots(root, cfg.get("roots") or DEFAULT_CONFIG["roots"])
+    cmd, timeout, cache = resolve(root, auto)
     marker = root / ".claude" / "ds-quality.json"
-    if marker.is_file():
-        m = load_json(marker) or {}
-        if m.get("enabled") is False:  # explicit opt-out wins
-            return None
-        cmd = m.get("command") or ""
-        timeout = float(m.get("timeout") or timeout)
-        cache = m.get("cache") is not False
-    elif cfg.get("mode") == "auto" and in_roots(root, cfg.get("roots") or DEFAULT_CONFIG["roots"]):
-        cmd = detect(root)
     if not cmd:  # nothing to check -> inert
         return None
 
@@ -366,13 +390,15 @@ def gate(payload: dict) -> str | None:
 
 # --- install ----------------------------------------------------------------------------------------------
 
+def hook_command(hooks: Path) -> str:
+    """Absolute interpreter + script: no shell launcher, no PATH lookup, same on every OS."""
+    return f'"{Path(sys.executable).as_posix()}" "{(hooks / "ds-quality.py").as_posix()}" gate'
+
+
 def install(argv) -> int:
     register = "--register" in argv
     dry = "--dry-run" in argv
-    project = None
-    if "--project" in argv:
-        project = Path(argv[argv.index("--project") + 1]).expanduser()
-    base = (project / ".claude") if project else claude_dir()
+    base = claude_dir()
     hooks = base / "hooks"
     src = Path(__file__).resolve().parent
     say = print
@@ -385,34 +411,40 @@ def install(argv) -> int:
             hooks.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(src / name, dst)
             dst.chmod(0o755)
+    for name in LEGACY_FILES:
+        if (hooks / name).exists():
+            say(f"{'would remove' if dry else 'remove'}  old {name}")
+            if not dry:
+                (hooks / name).unlink()
     cfg = base / "ds-quality.config.json"
-    if not project and not cfg.exists():
+    if not cfg.exists():
         say(f"{'would write' if dry else 'write'}  default config {cfg}")
         if not dry:
             cfg.write_text(json.dumps(DEFAULT_CONFIG, indent=2) + "\n", encoding="utf-8")
-    if register:
-        if project:
-            cmd = ".claude/hooks/ds-quality-gate.sh"
-        elif base == Path.home() / ".claude":
-            cmd = "~/.claude/hooks/ds-quality-gate.sh"
-        else:
-            cmd = (hooks / "ds-quality-gate.sh").as_posix()
-        settings = base / "settings.json"
-        data = load_json(settings) if settings.exists() else {}
-        if data is None:
-            say(f"settings.json is not valid JSON: {settings} — not touched")
-            return 1
-        stop = data.setdefault("hooks", {}).setdefault("Stop", [])
-        if any(h.get("command") == cmd for g in stop for h in (g.get("hooks") or [])):
-            say("Stop hook already registered")
-        else:
-            say(f"{'would register' if dry else 'register'}  Stop hook {cmd}")
-            if not dry:
-                if settings.exists():
-                    shutil.copyfile(settings, settings.with_name(f"settings.json.bak.{time.strftime('%Y%m%d%H%M%S')}"))
-                stop.append({"hooks": [{"type": "command", "command": cmd, "timeout": 300}]})
-                settings.parent.mkdir(parents=True, exist_ok=True)
-                settings.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if not register:
+        return 0
+    cmd = hook_command(hooks)
+    settings = base / "settings.json"
+    data = load_json(settings) if settings.exists() else {}
+    if data is None:
+        say(f"settings.json is not valid JSON: {settings} — not touched")
+        return 1
+    stop = data.setdefault("hooks", {}).setdefault("Stop", [])
+    ours = lambda h: any(k in (h.get("command") or "") for k in ("ds-quality-gate.sh", "ds-quality.py"))
+    current = [h for g in stop for h in (g.get("hooks") or []) if ours(h)]
+    if len(current) == 1 and current[0].get("command") == cmd:
+        say("Stop hook already registered")
+        return 0
+    for g in stop:
+        g["hooks"] = [h for h in (g.get("hooks") or []) if not ours(h)]
+    stop[:] = [g for g in stop if g.get("hooks")]
+    stop.append({"hooks": [{"type": "command", "command": cmd, "timeout": 300}]})
+    say(f"{'would register' if dry else 'register'}  Stop hook {cmd}" + (f" (replacing {len(current)} older)" if current else ""))
+    if not dry:
+        if settings.exists():
+            shutil.copyfile(settings, settings.with_name(f"settings.json.bak.{time.strftime('%Y%m%d%H%M%S')}"))
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return 0
 
 
@@ -487,6 +519,33 @@ def self_test() -> int:
         (outside / "go.mod").write_text("module y\n")
         os.environ["CLAUDE_PROJECT_DIR"] = str(outside)
         check("gate: repo outside trusted roots -> inert", gate({"cwd": str(outside)}) is None)
+
+        # run
+        marker.write_text(json.dumps({"command": "exit 4"}))
+        check("run: exit code is the command's", run([str(repo)]) == 4)
+        marker.write_text(json.dumps({"command": "exit 0"}))
+        check("run: green -> 0", run([str(repo)]) == 0)
+        marker.write_text(json.dumps({"command": "exit 5", "cache": False}))
+        r = subprocess.run([sys.executable, __file__, "gate", "--exit2"], input=json.dumps({"cwd": str(repo)}),
+                           capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(repo)))
+        check("gate --exit2: block -> exit 2 + reason on stderr", r.returncode == 2 and "exit 5" in r.stderr and not r.stdout)
+
+        # install: legacy launcher + legacy Stop entry replaced, idempotent
+        hooks = tmp / "cfg" / "hooks"
+        hooks.mkdir()
+        (hooks / "ds-quality-gate.sh").write_text("old")
+        settings = tmp / "cfg" / "settings.json"
+        settings.write_text(json.dumps({"hooks": {"Stop": [
+            {"hooks": [{"type": "command", "command": "~/.claude/hooks/ds-quality-gate.sh"}]},
+            {"hooks": [{"type": "command", "command": "other-hook"}]}]}}))
+        import contextlib, io
+        with contextlib.redirect_stdout(io.StringIO()):
+            install(["--register"])
+            install(["--register"])
+        st = json.loads(settings.read_text())["hooks"]["Stop"]
+        cmds = [h["command"] for g in st for h in g["hooks"]]
+        check("install: legacy launcher removed", not (hooks / "ds-quality-gate.sh").exists())
+        check("install: one ds-quality entry, others kept", cmds.count(hook_command(hooks)) == 1 and "other-hook" in cmds and len(cmds) == 2)
     finally:
         for k, v in keep.items():
             if v is None:
@@ -509,9 +568,14 @@ def main(argv) -> int:
         except ValueError:
             payload = {}
         out = gate(payload if isinstance(payload, dict) else {})
+        if out and "--exit2" in argv:
+            print(json.loads(out)["reason"], file=sys.stderr)
+            return 2
         if out:
             print(out)
         return 0
+    if cmd == "run":
+        return run(argv[1:])
     if cmd == "detect":
         print(detect(argv[1] if len(argv) > 1 else "."), end="")
         return 0

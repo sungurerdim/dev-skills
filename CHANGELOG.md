@@ -4,18 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [3.0.0] - 2026-11-15
 
-### Changed
+Rebuilt from scratch around one decision order (question → reuse → delete → simplify → accelerate → automate) with one home for every rule. Measured on the files an install ships: 202 files / 2.68 MB → 80 files / 1.44 MB; SKILL.md total 704 KB across 32 skills → 26 KB across 4; a `ds-ship` run now loads 14 KB (its SKILL.md + `core/kernel.md`) before rules, which load only for areas whose project signal holds; rule headings 812 → 681 after removing duplicates.
 
-- **ds-quality hook assets are one stdlib Python implementation.** `assets/ds-quality.py` (`gate`, `detect`, `install [--register]`, `--self-test`) replaces the bash gate and detector; `ds-quality-gate.sh` / `ds-quality-detect.sh` keep their names and paths as thin launchers, so every registered `~/.claude/hooks/ds-quality-gate.sh` entry keeps working. Identical on macOS, Linux and Windows (Git Bash); no `jq`. A green run is cached per working-tree fingerprint (HEAD + status + file stamps + command), a gate timeout (marker `timeout`, default 270 s) blocks instead of silently passing, and `install --register` does the idempotent settings merge that used to be a `jq` recipe.
-- **ds-rig ships its reference hook arm.** `assets/rc_deny.py` (shell-aware RC-1..10 classifier, `--claude-hook` adapter) and `assets/test_rc_deny.py` join the skill; `scripts/quality.sh` compiles and runs both new Python assets.
+### Breaking
+
+- **28 skills removed:** ds-backend, ds-benchmark, ds-blueprint, ds-build, ds-commit, ds-compliance, ds-debug, ds-deploy, ds-deps, ds-devops, ds-docs, ds-fix, ds-freeze, ds-frontend, ds-init, ds-issue, ds-launch, ds-mobile, ds-pipeline, ds-pr, ds-productize, ds-release, ds-repo, ds-research, ds-review, ds-simplify, ds-test, ds-tune. Their rules moved to `core/rules/`; `ds-ship --focus=<area>` runs any one area. Kept: ds-ship, ds-quality, ds-rig, ds-brief.
+- **`ds-ship` rewritten** as a direct audit-and-improve pass (no delegation): signals → areas → baseline checks → detect (tools, rules, judgment) → plan → fix in small committed units → verify → `ds/audit/report.md` with a diff against the previous run. `--mode` is replaced by `--focus`; `--preview` reports without changing files.
+- **`core/kernel.md` replaces** principles, severity-score-categories, findings-and-profile-format, ask-exception-list, checkpoint-protocol, execution-loop, report-and-outcome-templates, software-best-practices and experience-rules. Every skill loads it. It ends with the named principles every finding cites (YAGNI, KISS, DRY/SSOT, SOLID, Chesterton's fence, Gall's law, least privilege, …). `core/signal-inventory.md` → `core/signals.md`; the CRAAP method moved into ds-brief.
+- **Rules consolidated:** one accessibility file (AXE-01..25), one security file (SEC-01..17, CLI/library specifics merged in), privacy split from security, mobile rules that copied general ones merged into them with their platform lines kept. IDs are unique across all files; renamed prefixes: mobile `MARC/MNET/MPRF/MTST/MUX/MPRV/MSEC`, monitoring `OBS`, security architecture `SAR`, network `NWK`, runtime performance `RTP`. Severity scale is CRITICAL/HIGH/MEDIUM/LOW (BLOCKER → CRITICAL, ADVISORY → LOW). `core/rules/README.md` maps each area to its files, load signal and named standards.
+- **Installer is `install.py`** (Python 3.8+ stdlib, all OSes). `install.sh`, `install.cmd` and the `portable`/`lean`/`claude` profiles are gone. Every install removes what earlier versions installed first, including retired skills and the old ds-quality shell launchers.
+- **ds-quality hooks run through Python directly.** `ds-quality-gate.sh`, `ds-quality-detect.sh` and `quality.sh.tmpl` are removed; the Stop hook command is the absolute interpreter + `ds-quality.py gate`. `install --register` replaces older ds-quality entries; `install.py` migrates an existing one automatically. New `run` (git pre-commit, Aider) and `gate --exit2` (Gemini AfterAgent). The Copilot-specific arm and `--project-hook` are removed; Copilot is covered by the git pre-commit arm.
+- **Repository gate is `scripts/check.py`** (with `--self-test` and `--install-hook`); the bash scripts, SKILL-SPEC.md, docs/ and the bash evals are removed. CLAUDE.md imports AGENTS.md.
+
+### Added
+
+- ds-rig permissions: Claude Code rule syntax verified against the official docs (2026-11-15); a definition of "risk-free" and an allow set covering all of it; mirroring of every Bash rule for wrappers the harness does not strip (`rtk`, `rtk proxy`, `direnv exec`, `mise exec`, `devbox run`, …); optional OS sandbox as a recorded decision.
+- `rc_deny.py` unwraps `noglob`, `ionice`, `setsid`, `direnv exec`, `mise exec|x`, `devbox run`.
+- `evals/ship_library.py`: setup, score and a red→green scorer validation in one Python file.
 
 ### Fixed
 
-- **`enabled:false` in `.claude/ds-quality.json` was not a kill switch.** The jq expression `.enabled // true` treats `false` as absent, so the gate kept running; the Python gate tests `enabled is False`.
-- **ds-quality detector gaps:** Python projects with a `uv.lock` run their tools via `uv run` (a global pytest cannot import the project's dependencies); Dart/Flutter test runs exclude the `integration` tag (needs live services a local gate cannot supply).
-- **rc_deny path rules failed open on Windows** (`rm -rf /`, `~`, `~/.ssh` were not blocked: POSIX-only `os.path` handling) — paths are now normalised to POSIX form; Linux `/home`, `/root`, `/lib*` and Windows drive/system roots are protected like macOS `/Users`, `/System`.
+- `rc_deny.py` treated everything under the home directory as a system path when the home is `/root` (containers), denying `rm -rf ~/.cache/pip`.
+- `enabled:false` in `.claude/ds-quality.json` is a real kill switch; Python projects with `uv.lock` run tools through `uv run`; Flutter test runs exclude the `integration` tag; `rc_deny` path rules no longer fail open on Windows.
 
 ## [2.0.0] - 2026-09-02
 

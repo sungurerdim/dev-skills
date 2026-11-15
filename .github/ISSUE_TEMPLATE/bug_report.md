@@ -6,7 +6,7 @@ labels: bug
 assignees: ''
 ---
 
-**Affected skill** (e.g. `ds-review`, `ds-blueprint`):
+**Affected skill** (e.g. `ds-ship`, `ds-quality`):
 
 **What happened:**
 
@@ -18,4 +18,4 @@ assignees: ''
 
 **Actual behavior:**
 
-**Host** (Claude Code / Cursor / Copilot / Windsurf / Aider):
+**Host** (Claude Code / Codex / Gemini / OpenCode / Cursor / Copilot / Windsurf / Aider):

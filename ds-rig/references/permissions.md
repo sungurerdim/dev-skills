@@ -1,6 +1,6 @@
 # Rules: Harness Permission Surfaces & Safe-Default Profile
 
-Per-harness allow/ask/deny surfaces verified 2026-07-15 against official docs (sources in [dev-skills cross-host research](https://github.com/sungurerdim/dev-skills/blob/main/docs/methodology/cross-host-program.md)). **Surfaces drift — re-verify against the harness's live docs at apply time; this file is the starting map, not the authority.** All writes: backup first, additive merge only, parse-validate after, diff must show only additions.
+Per-harness allow/ask/deny surfaces verified against official docs (Claude Code rule syntax 2026-11-15 from code.claude.com/docs/en/permissions; other harnesses 2026-07-15). **Surfaces drift — re-verify against the harness's live docs at apply time; this file is the starting map, not the authority.** All writes: backup first, additive merge only, parse-validate after, diff must show only additions.
 
 ## Risk-command taxonomy (safe-default profile)
 
@@ -63,11 +63,45 @@ Still enforced INSIDE the workspace (command-class risks are not path risks):
 
 Reads of the harness's own config, skill, plugin, and agent directories — the same paths named in the **Harness + rig configs** protected-path row (`~/.claude` incl. `skills/`, `plugins/`, `agents/`; `~/.codex`; `~/.gemini`; `~/.copilot`; `~/.config/ds-rig`; per-OS equivalents) — are **ALLOW, never ask**. A harness reading its own shipped or installed skill/plugin/agent definitions is not a trust boundary; prompting on it is friction with no security value and must not be written into the profile. **Writes/deletes to these paths remain DENY (RC-10)** except this skill's own gated, backed-up, additive writes — read and write are governed independently; loosening this row never extends to write access.
 
-### ALLOW (read-only + rig tools, everywhere)
+### ALLOW — everything risk-free
 
-File reads within workspace · official harness directories (above) · `git status/log/diff/show` · `{rig tool} --version` · rtk-wrapped read commands · LSP queries · linters/formatters in check mode.
+A command or tool call is **risk-free** when all four hold: it writes nothing outside the open workspace, sends no local data off the machine, reads no credential path (RC-6 / protected-path map), and its effect is undone by git or a re-run. Everything that passes is ALLOW — a prompt on it is friction with no security value. Anything that fails one test stays in its RC class.
+
+| Group | Seed set (instantiate for the detected stack and OS) |
+|-------|------------------------------------------------------|
+| Read and search | file reads everywhere except credential paths · official harness directories (above) · search/grep/glob tools · `WebSearch` · LSP queries |
+| Inspect | `ls` `cat` `head` `tail` `wc` `file` `stat` `du` `df` `which` `type` `tree` `rg` `fd` `jq` `diff` · `{tool} --version` / `--help` · package listing (`npm ls`, `pip list`, `cargo tree`, `go list`) |
+| Git, local and reversible | `status` `log` `diff` `show` `blame` `branch` (list/create) `rev-parse` `ls-files` `grep` `fetch` `add` `commit` `stash` `switch` `checkout -b` `tag` (local) `worktree add/list` |
+| Build / test / check | the project's own test, build, lint, format, type-check and run scripts (`npm test`, `npm run *`, `pytest`, `cargo build/test/check/clippy`, `go build/test/vet`, `make` targets, `{check-cmd}`) — workspace autonomy |
+| Workspace files | create / edit / delete under the open workspace (`./**`) |
+| Rig tools | read and status forms of tools this skill installed (`rtk gain`, `ctx_doctor`, …) |
+
+**Not risk-free, so not in ALLOW:** `WebFetch` to arbitrary hosts (prompt-injection input and URL-borne exfiltration — ask; allow named documentation domains only), `git push`/publish (RC-11), installs (RC-13), `git reset --hard` / `checkout -- {file}` / `clean -f` (discard uncommitted work — ask), anything in RC-1..10.
 
 **Loosening any existing deny → never automatic; flag as needs-user-decision.**
+
+### Wrapper commands (rtk and others)
+
+A wrapper runs another command, so a rule written for the bare command misses the wrapped form unless the harness strips the wrapper first. Coverage rule: **every Bash allow, ask and deny entry is mirrored for each wrapper the harness does not strip and the rig installs or detects.**
+
+| Wrapper | Claude Code strips it? | Mirror required |
+|---------|------------------------|-----------------|
+| `timeout` `time` `nice` `nohup` `stdbuf` · builtins `command` `builtin` · zsh `noglob` · bare `xargs` (no flags) | yes (built in, not configurable) | no |
+| leading `VAR=value` | deny/ask: always · allow: known-safe variables only | allow entries that need custom variables |
+| `rtk` (incl. `rtk proxy`, `rtk run`) | no — `rtk init -g` installs a hook that rewrites shell calls to `rtk {cmd}`, so after rtk is installed most commands arrive wrapped | yes: `Bash(rtk {cmd} *)` for allow, ask and deny; `rtk proxy {cmd}` for ask and deny |
+| `direnv exec` `devbox run` `mise exec` `npx` `docker exec` · `xargs` with flags | no | deny/ask only (allowing them would allow everything they wrap) |
+| `watch` `setsid` `ionice` `flock` · `find -exec/-delete` | cannot be approved by prefix rules | none — they always prompt |
+
+The hook arm ([../assets/rc_deny.py](../assets/rc_deny.py)) unwraps all of the above before classifying, so it covers wrapped forms even where a declarative mirror is missing.
+
+### Claude Code rule syntax (verified 2026-11-15)
+
+- **Shape:** `Tool` or `Tool(specifier)` in `permissions.allow` / `ask` / `deny` of `~/.claude/settings.json`. Evaluation is deny → ask → allow; the first match wins, specificity never reorders it, and a deny in any scope beats an allow in any scope. A `PreToolUse` hook's "allow" does not bypass deny/ask; a hook exit 2 blocks before rules run.
+- **Bash:** write the space form `Bash(git status *)` (what the harness itself saves); `Bash(git status:*)` is equivalent but `:*` only works at the end. Put `*` after the subcommand. No `*` = exact match. Compound commands split on `&&` `||` `;` `|` `|&` `&` and newlines; every subcommand must match an allow rule, and deny/ask match any subcommand, including ones inside `$(…)` and subshells. Alternate forms are separate commands: `Bash(git push *)` does not match `git -C . push`, so the hook arm stays recommended.
+- **Paths:** `//abs/path` = filesystem root · `~/path` = home · `/path` = relative to the settings file's root (user settings → `~/.claude/`) · `./path` or `path` = current directory. Use `Read(...)` and `Edit(...)` only — `Write(...)`, `NotebookEdit(...)`, `Glob(...)` path rules never match. A `Read` deny also blocks edits there. Windows: `//c/**/.env`, or `//**/.env` for every drive. A deny/ask pattern starting with `!` is a gitignore-style negation.
+- **WebFetch / MCP:** `WebFetch(domain:docs.example.com)` exact host · `domain:*.example.com` subdomains only. `mcp__{server}__*` or `mcp__{server}__{tool}`; an allow of `mcp__*` is ignored, parenthesized MCP rules are ignored in settings files.
+- **Never written by this skill:** `defaultMode: "bypassPermissions"`, `disableAllHooks`, or `permissions.additionalDirectories` (RC-10). Project `allow` entries only take effect after workspace trust, which is one more reason to write globally.
+- **Sandbox (macOS, Linux, WSL2):** `sandbox.enabled: true` with `autoAllowBashIfSandboxed` (default true) runs sandboxed Bash without prompts while writes stay confined and content-scoped asks such as `Bash(git push *)` still prompt. It is the strongest arm, but its network allowlist (`sandbox.network.allowedDomains`) can break installs, so default: recommend it in the report as a decision with the domain list it would need; `--ask`: offer it.
 
 ### GLOBAL-ONLY WRITE SCOPE (binding on every phase of this skill)
 
@@ -79,7 +113,7 @@ ds-rig writes permission entries **exclusively to each harness's user/global-sco
 
 ## Honest limits (state these in the report)
 
-1. **Pattern lists are not a sandbox.** Chaining (`a && b`), subshells, `sh -c`, base64 pipes, and aliases can evade naive matchers. Declarative lists raise the floor; they do not guarantee containment.
+1. **Pattern lists are not a sandbox.** `sh -c`, base64 pipes, aliases, alternate forms (`git -C . push`) and unstripped wrappers can evade matchers; Claude Code splits chains and subshells, other harnesses may not. Declarative lists raise the floor; they do not guarantee containment.
 2. **Strength order — install the strongest arm the harness offers:** OS-level sandbox (e.g. Kilo Sandbox write-confinement) > scriptable blocking hook that parses the command (Claude Code/Codex/Gemini/Copilot `PreToolUse`-class) > declarative allow/ask/deny lists > prose rules. When a hook surface exists, mirror RC-1..RC-10 into a deny hook script, not just the list.
 3. **The deny list must not become a wall:** over-denying trains users to bypass the profile. RC classes above are calibrated deny=irreversible, ask=consequential; keep that line when extending.
 
@@ -89,7 +123,7 @@ ds-rig writes permission entries **exclusively to each harness's user/global-sco
 
 | Harness | Global config path — macOS/Linux + Git Bash on Windows (ds-rig's only write target) | Global config path — native Windows (cmd/PowerShell, same file) | Project-local equivalent (never touched) | Mechanism | Notes |
 |---------|------------------------------------------------------------------------------------|-------------------------------------------------------------------|-------------------------------------------|-----------|-------|
-| Claude Code | `~/.claude/settings.json` | `%USERPROFILE%\.claude\settings.json` | `.claude/settings.json`, `.claude/settings.local.json` | declarative allow/deny/ask lists + `PreToolUse` hooks | merge with jq (no jq → `python3 -c "import json,sys; d=json.load(open(sys.argv[1])); ..."` read-modify-write); never clobber `hooks.*` entries; mirror RC-1..10 in a hook for chain-resistance; workspace-autonomy rules use cwd-relative matchers here, not per-project files |
+| Claude Code | `~/.claude/settings.json` | `%USERPROFILE%\.claude\settings.json` | `.claude/settings.json`, `.claude/settings.local.json` | declarative allow/ask/deny + `PreToolUse` hooks + optional OS sandbox | syntax in § Claude Code rule syntax; merge with Python `json` read-modify-write; never clobber `hooks.*`; RC-1..10 also as the `rc_deny.py --claude-hook` arm; workspace autonomy as `Edit(./**)` |
 | Codex CLI | `~/.codex/hooks.json` | `%USERPROFILE%\.codex\hooks.json` | project-level hooks (need trusted project) | hook decisions | hooks are hash-pin trusted per user; `PreToolUse` intercepts simple shell + apply_patch + MCP, not every path — note the gap |
 | Gemini CLI | `~/.gemini/settings.json` | `%USERPROFILE%\.gemini\settings.json` | project `.gemini/settings.json` | `BeforeTool` block/rewrite hooks | exit 0+`{"decision":"deny"}` or exit 2; Antigravity-CLI transition for unpaid tiers — re-verify surface |
 | GitHub Copilot | `~/.copilot/hooks/` | `%USERPROFILE%\.copilot\hooks\` | `.github/hooks/*.json` (repo-scoped — out of scope for this skill) | `preToolUse` returns allow/deny/ask | only blocking event; no matchers — RC filtering lives in the script; provide bash+powershell; `toolArgs` is a JSON string — parse; if only the repo-scoped surface is available on this machine → gap-note, do not write it |
@@ -102,7 +136,7 @@ ds-rig writes permission entries **exclusively to each harness's user/global-sco
 
 1. Read the live permission doc for the harness; confirm the surface still matches the table.
 2. Backup the target config with a timestamped copy.
-3. Merge additively: RC-1..10 as deny, RC-11..16 as ask, allow-list entries for this run's installed tools. Existing user entries always win on conflict — show the conflict, ask.
+3. Merge additively: RC-1..10 as deny, RC-11..16 as ask, the risk-free ALLOW set, each Bash entry mirrored per § Wrapper commands. Existing user entries always win on conflict — show the conflict, ask.
 4. Where the harness has a scriptable blocking hook, offer the hook-script arm (chain-resistant) in the same confirmation — recommended, per Honest limits.
 5. Validate: host's own config check when available, else strict JSON/TOML parse.
 6. Prove: diff backup→new shows only additions; record the diff summary in the manifest.

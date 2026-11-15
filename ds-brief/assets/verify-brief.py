@@ -22,7 +22,7 @@ when the two disagree, SCHEMA wins — check A00 enforces it on every artifact a
 the self-test holds the fixtures to it. External consumers (an orchestrating app
 mapping its fields onto ds-brief's) read `--emit-schema`, never a hand-copied list.
 
-File length: this file exceeds ds-fix's default 500-line ceiling and does so
+File length: this file exceeds the common 500-line file ceiling and does so
 deliberately. It is one self-contained verifier that ships with `--self-test`
 (assertion suite over named injected defects — the run prints its own counts,
 so no number here can drift), and a lone ds-brief install must be able to

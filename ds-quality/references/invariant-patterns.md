@@ -1,6 +1,6 @@
 # Invariant patterns — the catalog Invariant Mode classifies against
 
-Consumed by SKILL.md **Invariant Mode** steps 2 (classify) and 4 (generate). Nine patterns,
+Consumed by SKILL.md **Invariant mode** steps 2 and 4. Nine patterns,
 every one distilled from a gate running in a production repo (verified 2026-08-12; sources
 named per pattern — project + file, so the skeleton can be traced to a live original).
 Each entry: **when** it applies · **skeleton** the generated gate follows · **red-proof**
@@ -134,7 +134,7 @@ more specific one (P8 before P9, P1 before P6).
 - **Red-proof:** a fixture pair where test A poisons a cache test B reads → reversed run
   red, normal run green.
 - **Wiring:** the entry point's test step, or pre-push when the double run is slow —
-  a documented-but-manual reversed run is unwired and counts as absent (ds-review TST-14).
+  a documented-but-manual reversed run is unwired and counts as absent (TST-14 in core/rules/architecture-testing.md).
 - **Live source:** trade `tests/onbellek.py --ters` — reversed `unittest` discovery over
   the identical test set, plus the `ONBELLEKLER` central cache registry.
 
@@ -173,7 +173,7 @@ more specific one (P8 before P9, P1 before P6).
 
 ## Cross-cutting rules (every generated gate)
 
-1. **Scope is declared and non-empty** (ds-review TST-13): the gate names the set it scans
+1. **Scope is declared and non-empty** (TST-13 in core/rules/architecture-testing.md): the gate names the set it scans
    (explicit paths/globs, or a printed file count), exits red on zero files matched, and —
    for repo-wide rules — compares its scope against `git ls-files` so new directories join
    the scan or break the gate. Deliberate narrowing is stated beside the scope with its
@@ -183,7 +183,7 @@ more specific one (P8 before P9, P1 before P6).
 3. **Exemptions by name, with reason, in the gate file** — never a bare skip.
 4. **Non-destructive:** a gate reports; it never rewrites the tree it scans (restore-on-exit
    when it must touch files, as P3 does).
-5. **Red-proof forms, strongest first** (ds-review TST-11 — a gate is only enforcing
+5. **Red-proof forms, strongest first** (TST-11 in core/rules/architecture-testing.md — a gate is only enforcing
    something if a fixture exists that makes it fail):
    - **parameterized scope** — the gate accepts its scan target as an argument and a suite
      test aims it at a violating fixture on every run (SafeScribeAI/app `test/gates_test.dart`);
@@ -191,7 +191,7 @@ more specific one (P8 before P9, P1 before P6).
      worktree/copy by a runner that requires non-zero exit; a spec that no longer applies
      is a hard error, never a skip (akis `scripts/audit-mutations.mjs`); assemble payloads
      at runtime so the registry file cannot trip the gates it feeds;
-   - **one-time green→red→green** at delivery (SKILL.md Phase 5 form) — the floor, used
+   - **one-time green→red→green** at delivery (SKILL.md step 5) — the floor, used
      only when neither standing mechanism exists in the repo.
-6. **Exit code propagates** (ds-review TST-14): the chain step that calls the gate fails
+6. **Exit code propagates** (TST-14 in core/rules/architecture-testing.md): the chain step that calls the gate fails
    when the gate fails; a discarded return value is an unwired gate.

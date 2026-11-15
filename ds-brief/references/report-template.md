@@ -1,6 +1,6 @@
 # Report Template Conventions
 
-Distilled from four hand-built guides (gvk-20b, vergi-kilavuzu ×2, is-hukuku) and a reference firm-site design system (token palette + compact/density conventions). `assets/brief-template.html` is the concrete, working skeleton of these rules — clone and fill it; never generate the HTML from scratch (lowers hallucination risk). These conventions are the *why*; the skeleton is the *what*. All visible label strings here are canonical English — localized to the request language at build (SKILL.md Contract). This is the brief-specific HTML/CSS/JS layer; verification and sourcing method lives in [core craap](../../core/craap.md) and [verification.md](verification.md) — this file never restates scoring, tiers, or the independence test.
+Distilled from four hand-built guides (gvk-20b, vergi-kilavuzu ×2, is-hukuku) and a reference firm-site design system (token palette + compact/density conventions). `assets/brief-template.html` is the concrete, working skeleton of these rules — clone and fill it; never generate the HTML from scratch (lowers hallucination risk). These conventions are the *why*; the skeleton is the *what*. All visible label strings here are canonical English — localized to the request language at build (SKILL.md Contract). This is the brief-specific HTML/CSS/JS layer; verification and sourcing method lives in [craap.md](craap.md) and [verification.md](verification.md) — this file never restates scoring, tiers, or the independence test.
 
 ## Hard requirements (every brief)
 
@@ -188,7 +188,7 @@ Any brief whose content is law, regulation, or official procedure ships these, i
 | **Deadlines table** | Every period in the brief in one table: trigger event → period → counted from (calendar/business days, from notification/from awareness) → consequence of missing it → source. Scattered deadlines are missed deadlines; the action list's deadline chips link here. |
 | **Sanctions table** | Consequence → who imposes it → range → appeal path → **index year of the amounts** and the revaluation rule. An amount without its year is stale-in-waiting (verification.md Skill-side gate). |
 | **Escalation triggers** | The honest counterpart to the "informational only" notice: a short list of situations where the reader must stop and get professional or regulator input, each with the concrete signal that triggers it. A brief cannot make a lawyer unnecessary; it can tell the reader exactly when one becomes necessary — and cover everything else completely. |
-| **Obligation rank** | Every `must`/`mustnot` badge traces to an N1-N4 instrument ([core craap](../../core/craap.md) § Normative source ladder). Guidance and recitals justify `should` at most. |
+| **Obligation rank** | Every `must`/`mustnot` badge traces to an N1-N4 instrument ([craap.md](craap.md) § Normative source ladder). Guidance and recitals justify `should` at most. |
 
 ## Obligation levels (`ds-opt:oblg` — legal/official/rules content)
 

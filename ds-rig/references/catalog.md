@@ -58,9 +58,9 @@ Deterministic scanners the Improve/Ship skills prefer over prose checks (each na
 - **Verify:** each `{tool} --version`.
 - **Fallback:** the consuming skills' prose checks.
 
-## RIG-07 [MEDIUM] Skill distribution — npx skills (Vercel) · dev-skills install.sh --target
+## RIG-07 [MEDIUM] Skill distribution — npx skills (Vercel) · dev-skills install.py
 
-Cross-harness skill installation. `npx skills` telemetry: anonymous usage data collected, disabled in CI — **opt out explicitly per its current docs, or prefer `install.sh --target` (zero telemetry, this repo).**
+Cross-harness skill installation. `npx skills` telemetry: anonymous usage data collected, disabled in CI — **opt out explicitly per its current docs, or prefer dev-skills `install.py` (zero telemetry).**
 - **Verify:** installed skill dir listing per target harness.
 - **Fallback:** manual copy into host skill dirs.
 

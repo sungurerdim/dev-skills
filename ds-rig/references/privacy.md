@@ -1,6 +1,6 @@
 # Rules: Privacy Opt-Out Seed Map (verified 2026-07-15)
 
-Seed data for Phase 5 — every entry traced to official docs/changelogs/issues on the date above. **Mechanisms drift between versions: the live official source wins on conflict; this map only seeds the lookup.** Full provenance: [dev-skills cross-host research](https://github.com/sungurerdim/dev-skills/blob/main/docs/methodology/cross-host-program.md) artifacts.
+Seed data for SKILL.md step 5 (Privacy) — every entry traced to official docs/changelogs/issues on the date above. **Mechanisms drift between versions: the live official source wins on conflict; this map only seeds the lookup.** Full provenance: [dev-skills cross-host research](https://github.com/sungurerdim/dev-skills/blob/5480013/docs/methodology/cross-host-program.md) artifacts.
 
 **Effectiveness discipline:** a documented opt-out is a claim, not a result. Prove by (1) config/env read-back, (2) status command where one exists, and (3) for items with documented-broken opt-outs (marked ⚠ below), network observation where feasible — otherwise record `setting-applied-effect-unverified`, never `proven`.
 
@@ -45,7 +45,7 @@ Seed data for Phase 5 — every entry traced to official docs/changelogs/issues 
 | gh CLI | telemetry ON by default since v2.91.0 → `GH_TELEMETRY=false` or `gh config set telemetry disabled`; honors `DO_NOT_TRACK` | update checks separate: `GH_NO_UPDATE_NOTIFIER=1` |
 | gitleaks · ripgrep · jq · fd | fully local, no network code | `no-telemetry-by-default` |
 | osv-scanner | OSV/deps.dev queries are the function | `--offline` for air-gapped; classify `functional-network` |
-| npx skills (Vercel) | no manual opt-out documented (CI auto-disabled) | prefer `install.sh --target` (zero telemetry) |
+| npx skills (Vercel) | no manual opt-out documented (CI auto-disabled) | prefer dev-skills `install.py` (zero telemetry) |
 
 ## DO_NOT_TRACK
 

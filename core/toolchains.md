@@ -1,6 +1,6 @@
 # Toolchains — detect, check, fix, test, and the composed `{check-cmd}` per stack
 
-**Consumers:** ds-fix (fix commands), ds-quality (gate wiring), ds-test (runners), ds-init (scaffold defaults), ds-build / ds-debug / ds-issue / ds-commit and every Mechanical Done Gate (`{check-cmd}` resolution). Load only the section matching the detected stack.
+**Consumers:** ds-quality (gate wiring) and ds-ship (`{check-cmd}` resolution, fixes). Load only the section matching the detected stack.
 
 **Rules that hold for every section**
 
@@ -9,7 +9,7 @@
 | Detect from manifests | Polyglot/monorepo → one ordered block per present stack. Never invent a check whose tool is absent; note the gap. |
 | Prefer what is already there | A tool in the lockfile or a config file beats the default column. Never introduce a second formatter, linter, or test framework. |
 | `{check-cmd}` | Check-mode commands only (no writes), fail-fast, chained with `&&` in the order format → lint → type → test. A missing optional type-checker is a gap-note, not a failure. |
-| Fix commands | Only in a fix-mode skill (ds-fix) on a clean tree (`checkpoint-protocol.md`); never inside `{check-cmd}`. |
+| Fix commands | Only when the run applies fixes, on a clean tree (`kernel.md` §3); never inside `{check-cmd}`. |
 | Empty gate is a false signal | A `{check-cmd}` that runs nothing never passes green — report the Verification-Infrastructure Gap. |
 | Windows | `./gradlew` → `gradlew.bat`; `./vendor/bin/x` → `vendor\bin\x.bat`; `npx` works unchanged. |
 
@@ -327,7 +327,7 @@ No formatter or type step. **Install:** `brew install hadolint trivy` / `scoop i
 **Install:** `npm install -D @google/clasp eslint eslint-plugin-googleappsscript prettier typescript @types/google-apps-script`.
 **V8 lint path:** Apps Script runs on V8 but is not Node — no `require`, no ESM, no `process`; every service (`SpreadsheetApp`, `UrlFetchApp`, `DriveApp`, `Logger`) is an implicit global. Without the plugin's globals `no-undef` fires on every service call and gets switched off, hiding real misspellings. eslintrc: `"plugins": ["googleappsscript"]` + `"env": { "googleappsscript/googleappsscript": true }`; flat config: spread `require('eslint-plugin-googleappsscript').environments.googleappsscript.globals` into `languageOptions.globals`. Set `sourceType: "script"`; keep `no-undef` and `no-unused-vars` on (an unused function is often an orphaned trigger handler).
 **Typecheck path:** clasp 3.x no longer transpiles TypeScript — a TS project bundles (Rollup/esbuild) before `clasp push`, so typecheck runs on the pre-bundle source with the project's `tsc`; plain JS gets `// @ts-check` headers + `@types/google-apps-script` + the command above.
-**Push is a deploy:** `clasp push` overwrites the live script, `clasp pull` overwrites the working tree — both sit on the ask-exception list. Repo-vs-remote parity = `clasp pull` into a scratch clone plus a diff, never over the working tree.
+**Push is a deploy:** `clasp push` overwrites the live script, `clasp pull` overwrites the working tree — both are publishing steps (`kernel.md` §5). Repo-vs-remote parity = `clasp pull` into a scratch clone plus a diff, never over the working tree.
 
 ---
 
@@ -342,7 +342,7 @@ No formatter or type step. **Install:** `brew install hadolint trivy` / `scoop i
 | type | TypeScript | `npx tsc --noEmit` |
 | build validation | wrangler | `npx wrangler deploy --dry-run --outdir dist` (compiles without publishing — the only build check that never touches the live Worker); Pages Functions `npx wrangler pages functions build --outdir dist` |
 
-**`{check-cmd}`:** JS/TS chain `&& npx wrangler types --check && npx wrangler deploy --dry-run --outdir dist`. Bare `wrangler deploy` is a publish (ask-exception list). The Worker runtime is not Node — scope Node globals (`process`, `Buffer`, `fs`) to build tooling, never to Worker source. **Install:** `npm install -D wrangler` (local install over global, per Cloudflare).
+**`{check-cmd}`:** JS/TS chain `&& npx wrangler types --check && npx wrangler deploy --dry-run --outdir dist`. Bare `wrangler deploy` is a publish (`kernel.md` §5). The Worker runtime is not Node — scope Node globals (`process`, `Buffer`, `fs`) to build tooling, never to Worker source. **Install:** `npm install -D wrangler` (local install over global, per Cloudflare).
 
 ---
 

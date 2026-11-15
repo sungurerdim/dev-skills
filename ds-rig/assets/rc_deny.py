@@ -292,6 +292,8 @@ def is_harness(p):
 
 
 def is_system(p):
+    if HOME not in ("", "/") and under(p, HOME):   # root's home is /root: still a user home, not a system dir
+        return False
     return any(under(p, d) for d in SYSTEM_DIRS) and not any(under(p, o) for o in SYSTEM_OK)
 
 
@@ -344,14 +346,24 @@ def strip_wrappers(argv):
                 argv = argv[2:] if argv[0] in ("-u", "-C", "-S") else argv[1:]
             if not argv:
                 return ["env"]   # bare `env` dumps the environment
-        elif b in ("nohup", "command", "builtin", "exec", "caffeinate", "stdbuf", "nice", "timeout", "xargs"):
+        elif b in ("nohup", "command", "builtin", "exec", "caffeinate", "stdbuf", "nice", "timeout", "xargs",
+                   "noglob", "ionice", "setsid"):
             argv = argv[1:]
             takes = {"nice": {"-n"}, "xargs": {"-I", "-n", "-P", "-L", "-d", "-E", "-s", "-a"},
-                     "timeout": {"-s", "-k"}}.get(b, set())
+                     "timeout": {"-s", "-k"}, "ionice": {"-c", "-n", "-p", "-P", "-u"}}.get(b, set())
             while argv and argv[0].startswith("-"):
                 argv = argv[2:] if argv[0] in takes else argv[1:]
             if b == "timeout" and argv:
                 argv = argv[1:]
+        elif b in ("direnv", "devbox", "mise") and len(argv) > 1 and argv[1] in ("exec", "x", "run"):
+            # direnv exec DIR cmd · devbox run cmd · mise exec|x [tools] -- cmd
+            rest = argv[2:]
+            if b == "direnv":
+                argv = rest[1:]
+            elif "--" in rest:
+                argv = rest[rest.index("--") + 1:]
+            else:
+                argv = rest
         elif b == "rtk":
             argv = argv[1:]
             if argv and argv[0] in ("run", "proxy"):

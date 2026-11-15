@@ -12,8 +12,9 @@ We will acknowledge receipt within 48 hours and provide a fix timeline.
 
 ## Scope
 
-- All `SKILL.md` files and `references/*.md` rule definitions
-- Install commands documented in README files
+- All `SKILL.md` files, `core/` and `references/*.md` rule definitions
+- `install.py` and every bundled Python script (hooks, verifiers)
+- Install commands documented in README.md
 - Any code generation templates within skills
 
 ## Out of Scope
