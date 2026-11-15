@@ -1,6 +1,6 @@
 ---
 name: ds-brief
-description: Research a topic or condense given sources into a fact-checked, single-file HTML brief — every datum confirmed by two independent sources or visibly flagged, load-bearing facts tied to a primary source, offline and print/PDF-ready, gated by a mechanical verifier. Use when the user wants a sourced report, guide or briefing.
+description: Research a topic or condense given sources into a fact-checked, single-file HTML brief — every datum confirmed by two independent sources or visibly flagged, load-bearing facts tied to a primary source, offline and print/PDF-ready, gated by a mechanical verifier. Use when the user wants a sourced report, guide or briefing, or (quick) a fast sourced answer and recommendation in chat.
 ---
 
 # /ds-brief
@@ -9,14 +9,15 @@ A brief the reader can trust and check: every claim carries a source chip with i
 
 ## Input
 
-| Flag | Effect |
+| Word | Effect |
 |------|--------|
-| *(none)* | Topic → research → verify → build → output. Scope auto: sources given and no open topic → `summarize`, else `research` |
-| `--summarize <sources>` | Force summarize: index and condense the given URLs/text, no discovery |
-| `--from-artifact <findings.json>` | Re-render without research; integrity from the bundle's SHA-256 |
-| `--static` | Everything expanded, minimal JS |
-| `--no-archive` | No evidence bundle (HTML + findings only) |
-| `--ask` | Ask scope, audience, research plan and dimensions with a recommended option (kernel §5) |
+| *(none)* | Topic → research → verify → build → output. Sources given and no open topic → `sum`, else research |
+| `quick` | A sourced answer in the chat with a DO / AVOID / CONDITIONAL verdict; same evidence rules, no HTML ([quick.md](references/quick.md)) |
+| `sum <sources>` | Force summarize: index and condense the given URLs/text, no discovery |
+| `render <findings.json>` | Re-render without research; integrity from the bundle's SHA-256 |
+| `static` | Everything expanded, minimal JS |
+| `nobundle` | No evidence bundle (HTML + findings only) |
+| `ask` | Ask scope, audience, research plan and dimensions with a recommended option (kernel §5) |
 
 ## Deliverable
 
@@ -62,11 +63,11 @@ Clone [brief-template.html](assets/brief-template.html), never build from scratc
 
 ### Phase 5: Needs-approval items
 
-Low-confidence claims, dead links and single-source datums resolve by impact, effort and risk and are recorded; under `--ask` they are shown grouped by type with bulk options.
+Low-confidence claims, dead links and single-source datums resolve by impact, effort and risk and are recorded; under `ask` they are shown grouped by type with bulk options.
 
 ### Phase 6: Output
 
-Run the full verifier (`--no-bundle` with `--no-archive`). Exit 1 → fix every FAIL and re-run; exit 2 → blocker. No Python → say so, name the unrun checks, and work them by hand. Then the manual checklist. Print:
+Run the full verifier (`--no-bundle` with `nobundle`). Exit 1 → fix every FAIL and re-run; exit 2 → blocker. No Python → say so, name the unrun checks, and work them by hand. Then the manual checklist. Print:
 
 ```
 ds-brief: OK|WARN|FAIL | Confidence {band} ({b} blockers) | Sources {n} | 2x-confirmed {pct}% | Primary {pp}% | Claims {v}/{p}/{u}/{d} | Red team {held}/{weakened}/{overturned} | Corpus {c}/{t} | Unknowns {k} | File {path}
@@ -78,7 +79,7 @@ and the closing block of kernel §6. Failures and their recovery: [error-recover
 
 | Case | Behavior |
 |------|----------|
-| Topic too broad | Research the literal topic, warn, record; `--ask` → one clarifying question |
+| Topic too broad | Research the literal topic, warn, record; `ask` → one clarifying question |
 | Thin or private-data topic | Mostly partial/unknown, confidence LOW, gaps shown — no invented consensus |
 | Dead URL in summarize | Summarize the reachable sources, flag the gap |
 | Over ~1.5 MB | Prune unused blocks, move bulk verbatim text into collapsed `<details>`; never split the file or cut sources, unknowns or the ledger |

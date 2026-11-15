@@ -9,16 +9,19 @@ Build the AI-dev environment deliberately: every tool pinned and recorded, nothi
 
 ## Input
 
-| Flag | Effect |
+| Word | Effect |
 |------|--------|
-| *(none)* | Detect → select → trust gate → install/update → privacy → permissions → prove |
-| `--check` | Read-only: version drift, privacy posture, permission posture, MCP budget |
-| `--update` | Only manifest-tracked tools that have a newer version |
-| `--privacy-only` | Research, apply and prove telemetry opt-outs; no installs |
-| `--permissions-only` | Apply or refresh permission profiles only |
-| `--budget` | MCP tool count and token cost only |
-| `--uninstall <tool>\|--all` | Each tool's own uninstall, its privacy/permission entries removed, manifest updated |
-| `--ask` | Questions with a recommended option at each decision (kernel §5) |
+| *(none)* | Every part, in step order: tools → privacy → perms → prove |
+| `tools` | Steps 1-4: detect, select, trust gate, install/update |
+| `update` | Only manifest-tracked tools that have a newer version |
+| `privacy` | Step 5 only: research, apply and prove telemetry opt-outs |
+| `perms` | Step 6 only: apply or refresh permission profiles and the deny hook |
+| `mcp` | MCP tool count and token cost against the budget only |
+| `uninstall <tool\|all>` | Each tool's own uninstall, its privacy/permission entries removed, manifest updated |
+| `dry` | Read-only report for the named parts (all when none): version drift, privacy and permission posture, MCP budget |
+| `ask` | Questions with a recommended option at each decision (kernel §5) |
+
+Every part runs alone: it probes what it needs (step 1) itself and ends with its own proof (step 7).
 
 ## Done when
 
@@ -26,7 +29,7 @@ Every selected tool shows its pinned version and an observed effect; every tool 
 
 ## Never without the user
 
-Recorded `Only you can do` by default, a per-item question under `--ask`: unpinned `npx -y` / `curl | sh`, MCP servers that receive credentials, self-updating tools, MCP additions past the budget, flags that disable a sandbox or permission checks, and loosening any existing deny rule.
+Recorded `Only you can do` by default, a per-item question under `ask`: unpinned `npx -y` / `curl | sh`, MCP servers that receive credentials, self-updating tools, MCP additions past the budget, flags that disable a sandbox or permission checks, and loosening any existing deny rule.
 
 ## Steps
 
@@ -63,7 +66,7 @@ Recorded `Only you can do` by default, a per-item question under `--ask`: unpinn
 | Case | Behavior |
 |------|----------|
 | No package manager (bare Windows) | Catalog's prebuilt binary with checksum; none → gap-note |
-| Offline or registry unreachable | Trust gate cannot verify → no installs; `--check` report |
+| Offline or registry unreachable | Trust gate cannot verify → no installs; `dry` report |
 | MDM-managed machine reverts writes | Detected at read-back → `managed-environment` gap |
 | Two harnesses share a surface (OpenCode reads `~/.claude/skills/`) | Apply once, note the shared coverage |
 | Manifest missing on an existing rig | Build it by adoption from probed versions |

@@ -1,6 +1,6 @@
 ---
 name: ds-quality
-description: Install a local quality gate that blocks "done" (or the commit) until format, lint, type and test checks pass — one entry point, wired into the host's hook. Also builds a gate for one custom invariant (--invariant). Use when checks should be enforced by a machine, not remembered.
+description: Install a local quality gate that blocks "done" (or the commit) until format, lint, type and test checks pass — one entry point, wired into the host's hook. Also builds a gate for one custom invariant (inv). Use when checks should be enforced by a machine, not remembered.
 ---
 
 # /ds-quality
@@ -9,19 +9,23 @@ Make the project's checks a machine signal: one entry point, run automatically b
 
 ## Input
 
-| Flag | Effect |
+| Word | Effect |
 |------|--------|
-| *(none)* | Set up this repo: make sure each check exists and runs, write the entry point, wire the host's arm, prove it |
-| `--install` | One-time global install of the Claude Code Stop hook (`ds-quality.py install --register`) |
-| `--run` | Run this repo's entry point now and report; no setup |
-| `--status` | Report the marker, what the gate resolves here, which arms are wired |
-| `--disable` | Write `{"enabled": false}` to `.claude/ds-quality.json` (per-repo kill switch) |
-| `--uninstall` | Remove the global hook entry and file, or this repo's arm |
-| `--arm <name>` | Force an arm: `claude-code` · `codex` · `gemini` · `aider` · `git-hook` |
-| `--invariant "<text>"` | Build a gate for one invariant no tool ships (below) |
-| `--ask` | Questions with a recommended option at each decision (kernel §5) |
+| *(none)* | Full setup of this repo: steps 1-5 below |
+| `checks` | Steps 1-2 only: make sure each check exists and runs |
+| `arm [name]` | Steps 3-4 only: entry point (written if missing) and the host's arm; a name forces one: `claude-code` · `codex` · `gemini` · `aider` · `git-hook` |
+| `prove` | Step 5 only: show the wired arm block on an injected failure and pass after revert |
+| `run` | Run this repo's entry point now and report; no setup |
+| `status` | Report the marker, what the gate resolves here, which arms are wired |
+| `off` / `on` | Set `"enabled"` in `.claude/ds-quality.json` (per-repo kill switch) |
+| `install` | One-time global install of the Claude Code Stop hook (`ds-quality.py install --register`) |
+| `uninstall` | Remove the global hook entry and file, or this repo's arm |
+| `inv "<text>"` | Build a gate for one invariant no tool ships (below) |
+| `ask` | Questions with a recommended option at each decision (kernel §5) |
 
-`{py}` below = the absolute path of a Python ≥ 3.8 interpreter; `{gate}` = `~/.claude/hooks/ds-quality.py` after `--install`, else `assets/ds-quality.py` beside this file. Stdlib only, same on macOS, Linux and Windows; no shell launcher.
+Every part runs alone: it does step 1's detection itself and reads the marker when it needs the entry point. The gate always runs the whole project's checks, never only changed files: a local change can break a check anywhere.
+
+`{py}` below = the absolute path of a Python ≥ 3.8 interpreter; `{gate}` = `~/.claude/hooks/ds-quality.py` after `install`, else `assets/ds-quality.py` beside this file. Stdlib only, same on macOS, Linux and Windows; no shell launcher.
 
 ## Done when
 

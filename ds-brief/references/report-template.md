@@ -128,7 +128,7 @@ Chrome is everything that is not the report: header, nav, tools, trust strip, di
 | `.whochip` on every branch block | Names the block's branch at all times — the reader (and the printout) always knows whose rule a block states. |
 | A11y | Buttons carry `aria-pressed`; each group `role="group"` + `aria-label`; a visually-hidden `aria-live` region (`#branchLive`) announces the choice. |
 | Persistence | Selection persists per key via `localStorage` (try/catch); "Show all" clears it. |
-| `--static` | Drop the `.choices` controls, keep every branch expanded with its `.whochip` label. |
+| `static` | Drop the `.choices` controls, keep every branch expanded with its `.whochip` label. |
 
 ### Many-dimension topics (3+ decisions)
 
@@ -161,7 +161,7 @@ Each value's row in the report states the two things that actually differ: **who
 | Every item is complete on its own | An item carries: obligation badge (`must`/`mustnot`/`should`/`may`), the action in plain imperative language, **who** it falls on, **by when** (deadline chip, linked to the deadline table), **where/how** it is done (portal, form, filing), and ≥1 source chip. An item missing the "by when" or the "how" is half an instruction. |
 | Applicability is a datum | The `when` condition is itself sourced. Where applicability is the brief's own inference rather than a source's statement, the item carries the `derived` badge with its premises (verification.md Rule 9). |
 | Profile line + count | The list opens with the reader's resolved profile in words ("Limited company · processes special-category data · transfers abroad") and the count ("14 obligations apply to you"), plus the unanswered-questions note when any decision is unset. |
-| No selection = everything, labeled | JS-off, print, or no selection → every item is present with its condition label. Nothing is ever *only* reachable through the selector, and `--static` needs no special case: the list is already static markup, only the controls drop. |
+| No selection = everything, labeled | JS-off, print, or no selection → every item is present with its condition label. Nothing is ever *only* reachable through the selector, and `static` needs no special case: the list is already static markup, only the controls drop. |
 | Personal print is opt-in and labeled | An explicit "print only my items" toggle narrows **the action list section only**; the printout carries the profile line so the page is never ambiguous. Default print = every item with its conditions, per the branch-layer accuracy rule. |
 | Copy-out | A "copy list" control writes the resolved list as plain text via the async clipboard API inside try/catch; on failure it reveals a pre-selected `<textarea>` instead. No network, no dependency. |
 
@@ -244,7 +244,7 @@ Kept, because each is a signal: reading-progress bar (position), scrollspy (posi
 
 ## Evidence bundle (what ships beside the HTML)
 
-Default output is a directory, not a lone file: `report.html` · `findings.json` · `sources/` (every **cited** source as fetched — page text or the original PDF) · `sources/MANIFEST.json` (`citationId → localFile, url, finalUrl, sha256, bytes, retrievedAt, primary, tier`). The Sources table gains a **local copy** column (path + short hash); drop that column under `--no-archive`.
+Default output is a directory, not a lone file: `report.html` · `findings.json` · `sources/` (every **cited** source as fetched — page text or the original PDF) · `sources/MANIFEST.json` (`citationId → localFile, url, finalUrl, sha256, bytes, retrievedAt, primary, tier`). The Sources table gains a **local copy** column (path + short hash); drop that column under `nobundle`.
 
 Why it earns its place: a citation to a page that later changes is unverifiable, and on a re-run the stored hash decides *mechanically* whether the source changed or the reading did (verification.md Rules 8, 18). Not archivable (paywall, login, size cap) → recorded as such, and an un-archivable load-bearing primary source goes to Unknowns. **The HTML stays fully self-sufficient with or without the bundle.**
 
@@ -274,7 +274,7 @@ The most visible line between a professional report and a long web page. Non-neg
 **Always on:** sticky one-row nav with **condensed report title** (appears when the header scrolls out; hidden ≤900px), **scrollspy** (`aria-current` on the active section's nav button), **reading-progress bar** (2px gradient under the nav), **back-to-top** button (appears after 400px), theme switcher, live search with `<mark>` highlight (auto-opens any `<details>` containing a match), source chips, verbatim-text toggles.
 **Collapsibles = native `<details>/<summary>`** (work with zero JS; `id` + hash deep-link opens the target on load/`hashchange`). **Disclosure depth ≤ 2 levels** (NN/g: beyond two, readers get lost) — deeper structure becomes sections + xrefs, not nested accordions.
 **Topic-dependent (only if it genuinely helps, e.g. tax / labor / pricing):** interactive calculator, scenario wizard. Don't add a calculator to a topic that has nothing to compute.
-**`--static`:** minimal JS, document-pure output (everything expanded, no toggles) — safest for archival/printing.
+**`static`:** minimal JS, document-pure output (everything expanded, no toggles) — safest for archival/printing.
 
 ## Mobile discipline (the report is read on a phone first)
 

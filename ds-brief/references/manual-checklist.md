@@ -12,7 +12,7 @@ Consumer: SKILL.md Phase 6 (Output), after a green `assets/verify-brief.py` run.
 - Ornament sweep: no scalar rendered twice across prose, tables and the trust strip.
 - Confidence reading: the trust strip's plain-language sentence actually explains the band, in the request language.
 - 60-second test: from a cold open, one selection answers "what applies to me, what must I do, by when" within one screen — otherwise the spine is wrong, not the reader.
-- Bundle independence (unless `--no-archive`): the HTML still opens and works with the `sources/` directory removed.
+- Bundle independence (unless `nobundle`): the HTML still opens and works with the `sources/` directory removed.
 
 ## When the layer shipped
 

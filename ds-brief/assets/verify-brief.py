@@ -1299,7 +1299,7 @@ def main():
     ap.add_argument("--artifact", help="findings artifact index JSON")
     ap.add_argument("--report", help="built single-file HTML report")
     ap.add_argument("--bundle", help="evidence bundle sources/ directory")
-    ap.add_argument("--no-bundle", action="store_true", help="run was --no-archive")
+    ap.add_argument("--no-bundle", action="store_true", help="run was nobundle (no evidence bundle)")
     ap.add_argument("-v", "--verbose", action="store_true", help="show passing checks too")
     args = ap.parse_args()
     VERBOSE = args.verbose

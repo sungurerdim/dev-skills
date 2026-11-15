@@ -1,21 +1,24 @@
 ---
 name: ds-ship
-description: Audit and improve a whole project to production quality — detect what the project is, check every area that applies against named standards, fix what is safe, verify with the project's own checks, and report. Use for an end-to-end project review, "make this production ready", or a focused pass with --focus.
+description: Audit and improve a project to production quality — detect what the project is, check every area that applies against named standards, fix what is safe, verify with the project's own checks, and report. Use to review and fix what the current branch changes (the default), for an end-to-end audit with `all` ("make this production ready"), or for named areas such as `sec a11y`.
 ---
 
 # /ds-ship
 
-Audit the whole project, fix what is safe, prove it with the project's own checks, and leave one report. Every step follows [kernel.md](../core/kernel.md) — read it first; this file adds only what is specific to a project-wide pass.
+Audit what the branch changes (or, with `all`, the whole project), fix what is safe, prove it with the project's own checks, and leave one report. Every step follows [kernel.md](../core/kernel.md) — read it first; this file adds only what is specific to an audit pass.
 
 ## Input
 
-| Flag | Effect |
+| Word | Effect |
 |------|--------|
-| *(none)* | Every area whose signal holds; fixes applied; decisions by judgment, recorded |
-| `--focus=<area>[,<area>]` | Only the named areas from [rules/README.md](../core/rules/README.md) (e.g. `security,a11y`) |
-| `--preview` | Detect and plan only; no file changes, no commits |
-| `--ask` | Each decision point becomes a question with a recommended option (kernel §5) |
-| `<path>` | Run on one package of a monorepo; without it, each package with its own manifest is a unit |
+| *(none)* | Every area whose signal holds, on what this branch changes (below); fixes applied; decisions by judgment, recorded |
+| `all` | The whole project instead of the changes: the full audit, for a weekly, monthly or pre-release pass |
+| area words | Only those areas, each runnable alone: `sec` `privacy` `auth` `api` `db` `arch` `code` `test` `perf` `web` `a11y` `ux` `i18n` `mobile` `store` `money` `ci` `ops` `docs` `repo` ([rules/README.md](../core/rules/README.md)) |
+| `dry` | Detect and plan only; no file changes, no commits |
+| `ask` | Each decision point becomes a question with a recommended option (kernel §5) |
+| `<path>` | One package of a monorepo; without it, each package with its own manifest is a unit |
+
+**Changed scope (default)** — the files in `git diff --name-only {base}...HEAD`, plus uncommitted and untracked files (`git status --porcelain`), where `{base}` is the upstream (`@{upstream}`), else `origin/HEAD`, else the default branch; no remote and no other branch → uncommitted files only, said in the report. Findings are recorded only on lines these files changed, or on code a change there breaks (callers, contracts, tests that cover it); the baseline and verify checks still run whole-project, since a local change can break a distant check. No changed file → report `nothing changed — /ds-ship all audits the whole project` and stop. The run was asked to work on these files, so uncommitted ones are edited too (an exception to kernel §3): before the first write, `git stash create` records the untouched state and its hash goes in the report (`git checkout {hash} -- {file}` restores a file); fixes in them stay uncommitted, mixed with the user's own edits, and the report lists them for review with `git diff`.
 
 ## Done when
 
@@ -25,15 +28,15 @@ Audit the whole project, fix what is safe, prove it with the project's own check
 
 ### 1. Prepare
 
-1. `git status --porcelain` → files with uncommitted user changes are not edited (kernel §3).
+1. `git status --porcelain` → with `all`, files with uncommitted user changes are not edited (kernel §3); the changed scope handles them as above.
 2. Read project rules first: `AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, ADRs, specs. They override this file and the rule files where they differ.
-3. Previous run: `ds/audit/findings.md` exists → load it. Open findings are re-verified, not re-detected; `fixed` ones are spot-checked once.
+3. Previous run: `ds/audit/findings.md` exists → load it. Open findings in scope are re-verified, not re-detected; `fixed` ones are spot-checked once.
 4. Add `ds/audit/` to `.git/info/exclude` (not `.gitignore`) so the run leaves no tracked footprint.
 
 ### 2. Signals and areas
 
 1. Resolve the `Signals:` line per [signals.md](../core/signals.md) from files and manifests only.
-2. Map signals to areas with [rules/README.md](../core/rules/README.md); `--focus` narrows the set. Each excluded area gets one line: `N/A — {key}=none`.
+2. Map signals to areas with [rules/README.md](../core/rules/README.md); area words narrow the set; a named area runs even when its signal does not hold. Each excluded area gets one line: `N/A — {key}=none`. Without `all`, an area runs only if a changed file falls in it.
 3. `size=large` → order work by hotspots: files with the most commits in the last year (`git log --since=1.year --name-only`) × size. Read the hottest first; stop an area when new findings stop appearing.
 
 ### 3. Baseline
@@ -58,11 +61,11 @@ Every candidate passes kernel §1 steps 1-3 before it is recorded: real need? al
 
 Order by impact/effort (kernel §2). For each finding run all six steps of kernel §1 and write the simplest fix in the Plan column. Category A → apply; Category B → decide from impact, effort and risk and record why (kernel §4). Same root cause across findings → one fix.
 
-`--preview` stops here and writes the report.
+`dry` stops here and writes the report.
 
 ### 6. Fix
 
-One unit at a time: one change → the narrowest check that covers it (format → lint → type → targeted test) → one local commit (`type(scope): summary`, Conventional Commits). A bug fix lands behind a test observed red on the unfixed code (kernel §3). Still red after 3 attempts → revert the unit, record `reverted` with the error, continue.
+One unit at a time: one change → the narrowest check that covers it (format → lint → type → targeted test) → one local commit (`type(scope): summary`, Conventional Commits); in a file that had uncommitted user edits, no commit (Changed scope above). A bug fix lands behind a test observed red on the unfixed code (kernel §3). Still red after 3 attempts → revert the unit by reverse-applying its own diff (never a checkout over user edits), record `reverted` with the error, continue.
 
 ### 7. Verify
 
@@ -73,7 +76,7 @@ Run the full `{check-cmd}`. Compare with the baseline step by step. A step that 
 Write `ds/audit/report.md`, then print its first block:
 
 ```
-ds-ship: OK|WARN|FAIL|INCOMPLETE | findings {n} · fixed {n} · open {n} · only-you {n}
+ds-ship: OK|WARN|FAIL|INCOMPLETE | scope {changed: n files|all} | findings {n} · fixed {n} · open {n} · only-you {n}
 Signals: {line}
 Areas: {area} ran · {area} N/A — {reason} · …
 Checks: {check-cmd step} baseline→now (pass/fail) · …

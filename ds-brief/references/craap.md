@@ -61,6 +61,7 @@ Irrelevant → discard. Duplicate or mirror → skip; it never counts toward ind
 5. **Bias** — flag commercial interest in the conclusion; apply the vendor modifier.
 6. **Dating** — every source record carries a publication date and an access date; undated → `pubDate: unknown`, stated visibly, never inferred.
 7. **AI output is T6 until verified** — a generator never reviews its own output; a second model or a human verifies; every AI-cited package, API, paper, or URL is resolved before inclusion.
+8. **Security truth is authoritative, not democratic** — for CVEs, secure coding, threat models and cryptography, T1 sources (OWASP, NIST, CVE/NVD, the vendor's advisory) outrank any number of T3+ sources that disagree, whatever their scores.
 
 ## Normative source ladder — legal, regulatory, standards topics
 
