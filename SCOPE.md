@@ -21,4 +21,4 @@ Budget: units ≤ 9 · deps ≤ 0 · docs ≤ 82 KB · product ≤ 667 KB
 
 Budget set to the `audit.py lean` budget line (2026-11-17): measured + 10 %; the zero-headroom budget turned lean-check red on the next doc commit, and the skills' Markdown now counts as product, not docs.
 
-Rules reviewed: 2026-11-17 (74d03eb)
+Rules reviewed: 2026-11-17 (6b2e0df)
