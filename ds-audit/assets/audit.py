@@ -184,13 +184,53 @@ def keep_previous(root: Path, old) -> None:
             cur.replace(d / f"report-{stamp}{ext}")
 
 
+def dirty_files(root: Path) -> list:
+    """Uncommitted and untracked files (git-excluded ones such as ds/audit/ are not listed)."""
+    out, parts = [], git(root, "status", "--porcelain=v1", "-z", "-uall").split("\0")
+    it = iter(parts)
+    for entry in it:
+        if len(entry) > 3:
+            out.append(entry[3:])
+            if entry[0] in "RC":
+                next(it, None)  # a rename's second path is the old name
+    return sorted(out)
+
+
+def fetch(root: Path) -> bool:
+    return subprocess.run(["git", "-C", str(root), "fetch", "--prune", "--quiet"], capture_output=True, env=ENV,
+                          timeout=90).returncode == 0
+
+
+def resume(root: Path, state: dict, text: str) -> dict:
+    """Continue an open run: fetch, back onto the run's branch, what the open phase has done, whose files are dirty."""
+    notes = [] if fetch(root) else ["decided: git fetch failed (offline or no remote) — resumed on local refs"]
+    if state.get("branch") == BRANCH and git(root, "rev-parse", "--abbrev-ref", "HEAD").strip() != BRANCH:
+        r = subprocess.run(["git", "-C", str(root), "switch", BRANCH], capture_output=True, text=True, env=ENV,
+                           timeout=60)
+        notes.append(f"decided: switched back to {BRANCH} to resume" if r.returncode == 0 else
+                     f"only-you: could not switch back to {BRANCH} ({r.stderr.strip()[-160:]}) — commit or stash, rerun")
+    for n in notes:
+        save_state(root, state, n)
+    nxt = next(n for n in PHASES if state["phases"].get(n, {}).get("status") in ("pending", "running"))
+    counts = {}
+    for r in rows(text):
+        if r["Phase"] == nxt:
+            counts[r["Disposition"]] = counts.get(r["Disposition"], 0) + 1
+    now, before = dirty_files(root), set(state.get("dirty", []))
+    return {"resume": True, "report": str(REPORT), "next": nxt, "plan": state["phases"], "signals": state["signals"],
+            "check": state["check"], "branch": git(root, "rev-parse", "--abbrev-ref", "HEAD").strip(),
+            "open_phase": {"name": nxt, "rows": counts,
+                           "commits": int(git(root, "rev-list", "--count", f"{state['start']}..HEAD").strip() or 0)
+                           if state.get("start") else 0},
+            "run_files": [f for f in now if f not in before], "user_files": [f for f in now if f in before],
+            "notes": notes}
+
+
 def init(root: Path, words) -> dict:
     state, text = load(root)
     old = state
     if state and any(p["status"] in ("pending", "running") for p in state["phases"].values()):
-        nxt = next(n for n in PHASES if state["phases"].get(n, {}).get("status") in ("pending", "running"))
-        return {"resume": True, "report": str(REPORT), "next": nxt, "plan": state["phases"],
-                "signals": state["signals"], "check": state["check"]}
+        return resume(root, state, text)
     w = parse_words(words)
     if w["unknown"]:
         raise SystemExit(f"audit.py init: unknown word(s) {w['unknown']} — expected all, dry, ask, a phase "
@@ -205,8 +245,7 @@ def init(root: Path, words) -> dict:
         notes.append("decided: no git repository — run is dry (no commits possible, no changed scope)")
     start = git(root, "rev-parse", "HEAD").strip()
     if is_git:
-        if subprocess.run(["git", "-C", str(root), "fetch", "--prune", "--quiet"], capture_output=True, env=ENV,
-                          timeout=90).returncode != 0:
+        if not fetch(root):
             notes.append("decided: git fetch failed (offline or no remote) — audited against the local upstream ref")
         st = git(root, "status", "--porcelain=v2", "--branch", "-uall")
         ab = re.search(r"^# branch\.ab \+(\d+) -(\d+)", st, re.M)
@@ -271,7 +310,8 @@ def init(root: Path, words) -> dict:
     state = {"v": 1, "words": {k: w[k] for k in ("phases", "areas")}, "sig": sig, "start": start,
              "home": home, "branch": branch, "started": int(time.time()), "base": base, "scope": scope, "changed": changed,
              "dry": w["dry"], "ask": w["ask"], "auto": w["auto"], "carried": 0, "signals": line(sig), "check": cmd,
-             "check_from": check_from, "checks": {}, "phases": plan}
+             "check_from": check_from, "checks": {}, "phases": plan,
+             "dirty": dirty_files(root) if is_git else []}
     carried = [r for r in rows(text) if not r["Disposition"].startswith(CLOSED)] if text else []
     findings = "| " + " | ".join(COLS) + " |\n|" + "|".join("---" for _ in COLS) + "|\n" + "".join(
         "| " + " | ".join([str(i)] + [r[c] for c in COLS[1:9]] + ["open", "—"]) + " |\n"
@@ -1063,9 +1103,20 @@ def self_test() -> int:
 
         # a run: init, findings, validate, phase, report
         start = git(tmp, "rev-parse", "HEAD").strip()
+        w("user-notes.txt", "mine\n")  # the owner's uncommitted file, there before the run
         res = init(tmp, ["all"])
         expect(res["next"] == "lean" and not res["resume"], f"init next {res.get('next')}")
-        expect(init(tmp, [])["resume"], "second init resumes the open run")
+        w("run-made.txt", "x\n")  # a file the run wrote and has not committed yet
+        subprocess.run(["git", "-C", str(tmp), "switch", "-q", load(tmp)[0]["home"]], check=True, env=gitenv)
+        again = init(tmp, [])
+        expect(again["resume"] and again.get("branch") == BRANCH
+               and git(tmp, "rev-parse", "--abbrev-ref", "HEAD").strip() == BRANCH
+               and again.get("user_files") == ["user-notes.txt"] and again.get("run_files") == ["run-made.txt"]
+               and again.get("open_phase", {}).get("rows") == {},
+               f"resume does not switch back to {BRANCH}, tell run files from user files, or report the open phase: "
+               f"{ {k: again.get(k) for k in ('branch', 'user_files', 'run_files', 'open_phase')} }")
+        (tmp / "user-notes.txt").unlink()
+        (tmp / "run-made.txt").unlink()
         try:
             init(Path(tempfile.mkdtemp(prefix="ds-audit-x-")), ["ask", "auto"])
             fails.append("init accepted ask together with auto")

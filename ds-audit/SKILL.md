@@ -29,7 +29,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 
 | Command | Does |
 |---------|------|
-| `A init [words]` | Fetch, fast-forward when safe, scope, signals, check command, phase plan; resumes an open run |
+| `A init [words]` | Fetch, fast-forward when safe, scope, signals, check command, phase plan; resumes an open run (back on `ds/audit`, the open phase's rows, run-written vs your uncommitted files) |
 | `A signal KEY VALUE [why]` | Confirm or correct a judged signal (`?` in the Signals line); re-plans phases not started; notes it as `decided:` |
 | `A check CMD` | Sets the check command explicitly, noted as `decided:` (init takes the ds-gate marker, else the gate the project's agent docs name, else stack defaults) |
 | `A checks baseline\|now` | Runs each check step, records pass / fail / timeout |
