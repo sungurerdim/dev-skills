@@ -170,6 +170,13 @@ def self_test() -> int:
         r2 = apply(["--hook"])
         check("idempotent", not any(r2["added"].values()) and not r2["hook"] and r2["backup"] is None)
         check("no duplicates", all(len(v) == len(set(v)) for v in p.values()))
+        (tmp / "settings.json").unlink()
+        import contextlib
+        import io
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            codes = [main(["--help"]), main(["--dryrun"])]
+        check("--help and an unknown flag change nothing (exit 0, 2)",
+              codes == [0, 2] and not (tmp / "settings.json").exists())
         (tmp / "settings.json").write_text("{broken")
         try:
             apply([])
@@ -186,7 +193,20 @@ def self_test() -> int:
     return 1 if fails else 0
 
 
+def main(argv) -> int:
+    if "-h" in argv or "--help" in argv:
+        print(__doc__)
+        return 0
+    unknown = [a for a in argv if a not in ("--dry-run", "--hook")]
+    if unknown:
+        print(f"perms.py: unknown argument(s) {' '.join(unknown)}; usage: perms.py [--dry-run] [--hook] | --self-test",
+              file=sys.stderr)
+        return 2
+    print(json.dumps(apply(argv), indent=2))
+    return 0
+
+
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         sys.exit(self_test())
-    print(json.dumps(apply(sys.argv[1:]), indent=2))
+    sys.exit(main(sys.argv[1:]))

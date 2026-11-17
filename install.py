@@ -177,6 +177,11 @@ def self_test() -> int:
         left = sorted(p.name for p in skills_dir.iterdir())
         if left != ["other-skill"] or other.read_text(encoding="utf-8") != "not ours\n":
             fails.append(f"uninstall left {left} or touched another skill")
+        fresh = tmp / "typo"
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = main(["--no-such-flag", "--dir", str(fresh)])
+        if code != 2 or fresh.exists():
+            fails.append(f"an unknown flag installed anyway (exit {code}); it must print usage and exit 2")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     for f in fails:
@@ -195,6 +200,12 @@ def main(argv) -> int:
     if "-h" in argv or "--help" in argv:
         print(__doc__)
         return 0
+    values = {i + 1 for i, a in enumerate(argv) if a in ("--dir", "--skills")}
+    unknown = [a for i, a in enumerate(argv) if i not in values and a not in
+               ("--dir", "--skills", "--check", "--uninstall", "--dry-run")]
+    if unknown:
+        print(f"install.py: unknown argument(s) {' '.join(unknown)}; see python3 install.py --help", file=sys.stderr)
+        return 2
     if sys.version_info < (3, 8):
         print("Python 3.8+ required")
         return 1
