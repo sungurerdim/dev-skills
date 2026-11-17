@@ -25,7 +25,7 @@ Loaded for command-line and terminal products (`ui∋cli-tui` or `platforms∋cl
 
 ### CLI-04 [MEDIUM] Colour and animation not gated on a terminal
 - **Detect:** ANSI escapes, spinners and progress bars emitted unconditionally; no `isatty` check on the stream being written; `NO_COLOR` not honoured; no `--no-color` flag; animation still drawn when `TERM=dumb` or in CI logs.
-- **Mech:** T `git grep -nIE '\\033\[|\\x1b\[|\\u001b\[|\\e\[' -- ':!*.md'` · `git grep -nIE 'NO_COLOR|isatty|IsTerminal|is_terminal|stdout\.isTTY|supportsColor'`
+- **Mech:** T `git grep -lIE '\\033\[|\\x1b\[|\\u001b\[|\\e\[' -- ':!*.md' ':!*test*' | while read -r f; do grep -qE 'NO_COLOR|isatty|IsTerminal|is_terminal|isTTY|supportsColor' "$f" || echo "$f"; done`
 - **Fix:** enable colour and animation only when the stream is a TTY, `NO_COLOR` is unset and `TERM` is not `dumb`; offer `--no-color` and a quiet mode.
 - **Impact:** logs and files fill with escape codes, and users who need plain output (screen readers, colour-blind users, CI) cannot get it.
 - **Source:** NO_COLOR (https://no-color.org/); clig.dev, Output.

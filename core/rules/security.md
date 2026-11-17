@@ -42,7 +42,7 @@ applies_when: api≠none or deploy≠none or mobile≠none
 ### NWK-03 [HIGH] HSTS missing or weak
 applies_when: ui∋web or api≠none
 - **Detect:** HTTPS responses without `Strict-Transport-Security`, or `max-age` below 31536000 or without `includeSubDomains` where subdomains are served over HTTPS. Preload submission and rollout are DEP-25.
-- **Mech:** T `git grep -nI 'Strict-Transport-Security'` · `git grep -nIiE 'hsts'`
+- **Mech:** T `git grep -qIiE 'Strict-Transport-Security|hsts' -- ':!*.md' || echo 'no HSTS header in tracked code'` · `git grep -nIiE 'max-age=([0-9]{1,7}|[0-2][0-9]{7})([^0-9]|$)' -- ':!*.md' | grep -i 'strict-transport'`
 - **Fix:** `Strict-Transport-Security: max-age=31536000; includeSubDomains` at minimum (63072000 is the OWASP recommendation); ramp up from a short `max-age` on a first rollout.
 - **Impact:** the first request, or any after a cleared cache, can be downgraded to HTTP and intercepted before the redirect.
 - **Source:** Secure / private by default; RFC 6797; OWASP HTTP Strict Transport Security Cheat Sheet; hstspreload.org (preload needs max-age ≥ 31536000).
@@ -50,7 +50,7 @@ applies_when: ui∋web or api≠none
 ### NWK-04 [HIGH] No certificate pinning where the threat model needs it
 applies_when: mobile≠none or ui∋desktop
 - **Detect:** a native app handling payments, health or account credentials calling its own API with no pin set (`network_security_config.xml` `<pin-set>`, OkHttp `CertificatePinner`, iOS `NSPinnedDomains` or a `URLSession` delegate); a pin set with a single pin and no backup.
-- **Mech:** T `git grep -nIE 'pin-set|CertificatePinner|NSPinnedDomains|TrustKit|evaluateServerTrust'`
+- **Mech:** T `git grep -qIE 'pin-set|CertificatePinner|NSPinnedDomains|TrustKit|evaluateServerTrust' -- ':!*.md' || echo 'no certificate pinning in tracked code'`
 - **Fix:** pin the public-key hash of the leaf or intermediate with at least one backup pin and an expiry; ship a pin update before rotating keys.
 - **Impact:** a coerced CA or a user-installed root lets an attacker read sensitive API traffic undetected.
 - **Source:** Defense in depth; OWASP MASVS-NETWORK-2; Android, Network security configuration.
@@ -87,7 +87,7 @@ applies_when: api≠none or ui≠none
 ### SEC-07 [HIGH] Security response headers missing
 applies_when: ui∋web or api≠none
 - **Detect:** no header middleware or proxy config setting the baseline: `Content-Security-Policy` (strictness is SEC-20), `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` and CSP `frame-ancestors` (or `X-Frame-Options`); authenticated or personal-data responses without `Cache-Control: no-store`. An API that returns only JSON needs `nosniff` and no framing, not a page CSP.
-- **Mech:** T `git grep -nIE 'helmet|Content-Security-Policy|X-Content-Type-Options|Referrer-Policy|Permissions-Policy|frame-ancestors|X-Frame-Options|SecurityMiddleware|secure_headers|no-store'`
+- **Mech:** T `git grep -qIE 'helmet|secure_headers' -- ':!*.md' || for h in Content-Security-Policy X-Content-Type-Options Referrer-Policy 'frame-ancestors|X-Frame-Options'; do git grep -qIiE "$h" -- ':!*.md' || echo "no $h in tracked code"; done`
 - **Fix:** set the baseline once in middleware or at the proxy, with `Cache-Control: no-store` on every authenticated or personal response; add COOP/COEP/CORP only when cross-origin isolation is needed.
 - **Impact:** missing headers turn an HTML injection into script execution, allow clickjacking and MIME sniffing, and leave private responses in shared caches and browser history.
 - **Source:** Defense in depth; OWASP Secure Headers Project; OWASP HTTP Headers Cheat Sheet.
@@ -172,7 +172,7 @@ applies_when: ui∋web
 ### NWK-06 [HIGH] Request body or message size unbounded
 applies_when: api≠none
 - **Detect:** no body-size limit in the framework or proxy (`express.json` without `limit`, `client_max_body_size` absent, `DATA_UPLOAD_MAX_MEMORY_SIZE`, `MaxRequestBodySize`, `http.MaxBytesReader` absent), no per-endpoint upload cap, no WebSocket message size limit; an app limit above the fronting proxy or CDN's documented limit.
-- **Mech:** T `git grep -nIE 'client_max_body_size|LimitRequestBody|DATA_UPLOAD_MAX_MEMORY_SIZE|MaxRequestBodySize|MaxBytesReader|bodyParser|express\.json\(|maxPayload|max_size|MAX_CONTENT_LENGTH'`
+- **Mech:** T `git grep -qIE 'client_max_body_size|LimitRequestBody|DATA_UPLOAD_MAX_MEMORY_SIZE|MaxRequestBodySize|MaxBytesReader|maxPayload|max_size|MAX_CONTENT_LENGTH|limit:[[:space:]]*.?[0-9]+[kKmM]?b' -- ':!*.md' || echo 'no request body size limit in tracked code'`
 - **Fix:** an explicit small default for JSON, a larger explicit cap per upload endpoint with streaming, a WebSocket message cap; check the proxy's current documented limit when setting the app limit.
 - **Impact:** one oversized request exhausts memory and takes the process down.
 - **Source:** Fail fast; OWASP API4:2023 Unrestricted Resource Consumption; CWE-770.

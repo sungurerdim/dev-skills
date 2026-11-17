@@ -6,7 +6,7 @@ A local gate (a git hook or one check command) counts as CI; no rule here assume
 
 ### DOP-01 [CRITICAL] No automated gate before merge
 - **Detect:** no hosted pipeline and no local gate (pre-commit or pre-push hook, `make check`, a check script a hook calls); a gate that skips format, lint, type check (where the language has one) or test; local and hosted runs calling different commands or unpinned tool versions; a gate needing a tool a supported OS lacks (`make` on Windows); a CI opt-out that left workflows, badges or docs claiming checks still run.
-- **Mech:** T `git ls-files | grep -E '^\.github/workflows/|^\.gitlab-ci\.yml$|^\.circleci/|^azure-pipelines\.yml$|^Jenkinsfile$|^bitrise\.yml$|^codemagic\.yaml$|^\.pre-commit-config\.yaml$|^lefthook\.ya?ml$|^\.husky/'` · `git config --get core.hooksPath` · `find .git/hooks -type f ! -name '*.sample'`
+- **Mech:** T `git ls-files | grep -qE '^\.github/workflows/|^\.gitlab-ci\.yml$|^\.circleci/|^azure-pipelines\.yml$|^Jenkinsfile$|^bitrise\.yml$|^codemagic\.yaml$|^\.pre-commit-config\.yaml$|^lefthook\.ya?ml$|^\.husky/' || git config --get core.hooksPath >/dev/null || find .git/hooks -type f ! -name '*.sample' 2>/dev/null | grep -q . || echo 'no CI config, hook manager or git hook'`
 - **Fix:** one entry point runs the check-mode commands of toolchains.md in the order format → lint → type → test; the hook and any hosted pipeline call that same entry point (ds-gate installs one); tool versions pinned in a file the entry point reads (`.tool-versions`, `.nvmrc`, `.python-version`, `rust-toolchain.toml`). Dropping hosted CI: delete its workflows, badges and docs in one change and name the local gate in README or CONTRIBUTING.
 - **Impact:** regressions merge unseen; a stale badge tells contributors checks ran when none did.
 - **Source:** Fowler, "Continuous Integration"; Twelve-Factor X (dev/prod parity); DORA capabilities (continuous integration).
@@ -51,8 +51,8 @@ A local gate (a git hook or one check command) counts as CI; no rule here assume
 ## Dependencies
 
 ### DOP-06 [HIGH] Known-vulnerable dependencies or images
-- **Detect:** the one home of dependency advisory scanning. The stack's audit (toolchains.md `dep audit` row, or `osv-scanner scan source -r .` for any lockfile) reports an advisory at HIGH or above, or no audit runs in the gate or release step; a built container image never scanned (`trivy image {image}`); host advisory alerts (RPO-12) left open. Audits query advisory databases over the network, so the scan below only finds where an audit is wired.
-- **Mech:** T `git grep -nIE 'npm audit|pnpm audit|yarn (npm )?audit|pip-audit|govulncheck|cargo (audit|deny)|osv-scanner|bundle-?audit|composer audit|mix deps\.audit|dependencyCheck|list package --vulnerable|trivy|grype' -- ':!*.md'`
+- **Detect:** the one home of dependency advisory scanning. The stack's audit (toolchains.md `dep audit` row, or `osv-scanner scan source -r .` for any lockfile) reports an advisory at HIGH or above, or no audit runs in the gate or release step; a built container image never scanned (`trivy image {image}`); host advisory alerts (RPO-12) left open. Audits query advisory databases over the network, so the scan below only reports that none is wired.
+- **Mech:** T `git grep -qIE 'npm audit|pnpm audit|yarn (npm )?audit|pip-audit|govulncheck|cargo (audit|deny)|osv-scanner|bundle-?audit|composer audit|mix deps\.audit|dependencyCheck|list package --vulnerable|trivy|grype' -- ':!*.md' || echo 'no dependency audit wired in tracked code'`
 - **Fix:** run the audit in the gate or release step and fail on HIGH or CRITICAL with a fix available; upgrade, or record an accepted advisory with its reason and expiry in the tool's ignore file; rescan the shipped image on each release.
 - **Impact:** a published exploit for a shipped dependency reaches every user of every deploy.
 - **Source:** OWASP A03:2025 Software Supply Chain Failures; NIST SSDF (SP 800-218) PW.4, RV.1; OSV (osv.dev).
@@ -66,7 +66,7 @@ A local gate (a git hook or one check command) counts as CI; no rule here assume
 
 ### DOP-11 [HIGH] Dependencies drift with no update process
 - **Detect:** dependencies a major version or more behind, or past end of life, with no update process: neither one update bot (Dependabot, Renovate) covering every ecosystem in the repo nor a written cadence; two general-purpose update bots on one repo. The outdated commands read the registry: `npm outdated`, `pip list --outdated`, `cargo outdated`, `go list -u -m all`, `dart pub outdated`, `bundle outdated`, `composer outdated`, `dotnet list package --outdated`. CocoaPods trunk becomes read-only on 2 Dec 2026: Pods projects plan the move to Swift Package Manager.
-- **Mech:** T `git ls-files | grep -E '(^|/)(dependabot\.ya?ml|renovate\.json5?|\.renovaterc(\.json)?)$'`
+- **Mech:** T `git ls-files | grep -qE '(^|/)(dependabot\.ya?ml|renovate\.json5?|\.renovaterc(\.json)?)$' || echo 'no Dependabot or Renovate config tracked'`
 - **Fix:** one bot, or one written cadence (each release), covering every ecosystem; patch and minor grouped, majors through DOP-10; hold a version published under 7 days unless it fixes an advisory (Renovate `minimumReleaseAge`); a human merges after the gate passes.
 - **Impact:** the gap to current grows until one upgrade is a rewrite, and security fixes cannot be taken quickly.
 - **Source:** Renovate docs; GitHub Docs, Dependabot version updates; NIST SSDF (SP 800-218) PW.4.
@@ -118,7 +118,7 @@ applies_when: mobile≠none or platforms∋desktop or platforms∋ios or platfor
 ### DOP-18 [HIGH] Published binaries cannot be verified
 applies_when: platforms∋cli or platforms∋desktop or deploy=docker
 - **Detect:** release binaries, archives or images published without a checksum file and a signature (minisign, Sigstore cosign, GPG); where CI builds the release, no provenance attestation (`actions/attest-build-provenance` with `attestations: write` and `id-token: write`, or another SLSA provenance generator); release notes without a verify command.
-- **Mech:** T `git grep -nIE 'sha256sum|shasum -a 256|SHA256SUMS|checksums\.txt|minisign|cosign|attest-build-provenance|gpg --detach-sign' -- ':!*.md'`
+- **Mech:** T `git grep -qIE 'sha256sum|shasum -a 256|SHA256SUMS|checksums\.txt|minisign|cosign|attest-build-provenance|gpg --detach-sign' -- ':!*.md' || echo 'no checksum or signature step in tracked code'`
 - **Fix:** the release step writes `SHA256SUMS`, signs it (minisign, or cosign keyless), publishes both beside the artifacts and states the verify command; CI-built releases add a provenance attestation (SLSA Build L2; L3 from an isolated reusable workflow).
 - **Impact:** an artifact swapped on a compromised account, mirror or build step reaches users undetected.
 - **Source:** SLSA v1.0 (Build track, Provenance); Sigstore cosign; minisign; GitHub Docs, Artifact attestations.

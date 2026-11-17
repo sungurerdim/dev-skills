@@ -187,7 +187,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 
 ### THM-03 [MEDIUM] Theme ignores the system setting
 - **Detect:** light or dark forced with no system option; web pages without `color-scheme` (native controls and scrollbars stay light in dark mode) and no `prefers-color-scheme`; native apps not following `ThemeMode.system`, `UITraitCollection` or `isSystemInDarkTheme()`; the user's explicit choice not persisted.
-- **Mech:** T `git grep -nIE 'prefers-color-scheme|color-scheme|ThemeMode\.|isSystemInDarkTheme|userInterfaceStyle|AppCompatDelegate\.setDefaultNightMode' -- ':!*.md'`
+- **Mech:** T `git grep -qIE 'prefers-color-scheme|color-scheme|ThemeMode\.system|isSystemInDarkTheme|userInterfaceStyle|AppCompatDelegate\.setDefaultNightMode' -- ':!*.md' || echo 'no system theme handling in tracked code'` · `git grep -nIE 'ThemeMode\.(light|dark)|color-scheme:[[:space:]]*(light|dark)[[:space:]]*;|overrideUserInterfaceStyle' -- ':!*.md'`
 - **Fix:** default to the system theme, offer light/dark/system, persist the choice; declare `color-scheme` on the root.
 - **Impact:** a bright screen at night, or mismatched native controls, on every visit.
 - **Source:** Least astonishment; MDN, prefers-color-scheme and color-scheme; Apple HIG, Dark Mode; Material Design, Dark theme.
@@ -222,7 +222,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 
 ### RSP-16 [LOW] Numbers misaligned in tables and lists
 - **Detect:** numeric columns (amounts, counts, dates) left- or centre-aligned or in proportional figures; headers aligned differently from their column.
-- **Mech:** T `git grep -nIE 'tabular-nums|tnum|FontFeature\.tabularFigures|monospacedDigit' -- ':!*.md'`
+- **Mech:** T `git grep -qIE 'tabular-nums|tnum|FontFeature\.tabularFigures|monospacedDigit' -- ':!*.md' || git grep -lIE '<(table|td)[[:space:]>]|DataTable' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte' '*.dart'`
 - **Fix:** right-align numbers with tabular figures; align headers with their data.
 - **Impact:** users misread magnitudes when digits do not line up.
 - **Source:** Butterick, Practical Typography (tabular figures).

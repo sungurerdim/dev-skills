@@ -40,7 +40,7 @@ Loaded for apps shipped through an app store. Listing content (name, description
 ### LCH-09 [HIGH] Account cannot be deleted in the app
 applies_when: auth≠none
 - **Detect:** the app creates accounts but offers no in-app path that deletes the account and its data (deactivation or "email us" is not deletion); no web deletion URL for Google Play; deletion that leaves the store subscription running with no notice.
-- **Mech:** T `git grep -nIiE 'delete.?account|deleteUser|account.?deletion|close.?account' -- ':!*.md'`
+- **Mech:** T `git grep -qIiE 'delete.?account|deleteUser|account.?deletion|close.?account' -- ':!*.md' || echo 'no account deletion path in tracked code'`
 - **Fix:** a delete action in account settings that removes the account and its data server-side (PRV-04), a public web deletion URL for Play, and a note to cancel the store subscription.
 - **Impact:** review rejects the build, and users cannot leave.
 - **Source:** Apple App Review Guideline 5.1.1(v); Google Play, Account deletion requirements.
@@ -63,7 +63,7 @@ applies_when: billing≠none
 ### STO-05 [HIGH] No restore-purchases path
 applies_when: billing≠none
 - **Detect:** in-app purchases with no visible restore action; entitlements kept only as a local flag instead of re-derived from the store (StoreKit 2 `Transaction.currentEntitlements`, Play Billing `queryPurchasesAsync`, the RevenueCat customer info).
-- **Mech:** T `git grep -nIE 'restorePurchases|restoreCompletedTransactions|currentEntitlements|queryPurchasesAsync|getAvailablePurchases|AppStore\.sync' -- ':!*.md'`
+- **Mech:** T `git grep -qIE 'restorePurchases|restoreCompletedTransactions|currentEntitlements|queryPurchasesAsync|getAvailablePurchases|AppStore\.sync' -- ':!*.md' || echo 'no restore-purchases call in tracked code'`
 - **Fix:** a restore button on the paywall and in settings; derive entitlements from the store at start and on restore.
 - **Impact:** paying users on a new device lose what they bought, and review rejects the build.
 - **Source:** DRY / single source of truth; Apple App Review Guideline 3.1.1; Google Play Billing, Process purchases.
