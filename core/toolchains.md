@@ -10,6 +10,7 @@
 | Prefer what is already there | A tool in the lockfile or a config file beats the default column. Never introduce a second formatter, linter, or test framework. |
 | `{check-cmd}` | Check-mode commands only (no writes), fail-fast, chained with `&&` in the order format → lint → type → test. A missing optional type-checker is a gap-note, not a failure. |
 | Fix commands | Run first, before any manual review, by ds-audit's auto-fix step: safe fixes only, files with user changes under `kernel.md` §3's snapshot; never inside `{check-cmd}`. |
+| Install and Bootstrap lines | Applied only by ds-gate's bootstrap. ds-audit installs nothing and adds no tool config: an absent formatter or linter is `decided: no formatter configured`, plus a `ci` finding that recommends this section's default. |
 | Empty gate is a false signal | A `{check-cmd}` that runs nothing never passes green — report the Verification-Infrastructure Gap. |
 | Windows | `./gradlew` → `gradlew.bat`; `./vendor/bin/x` → `vendor\bin\x.bat`; `npx` works unchanged. |
 
@@ -70,7 +71,7 @@
 
 ## Python
 
-**Detect:** `pyproject.toml` / `requirements*.txt` / `setup.py`. `[tool.ruff]` → Ruff · `[tool.black]` → Black · `[tool.mypy]` → mypy · `[tool.pyright]`/`pyrightconfig.json` → Pyright · no type config → no typecheck (never force typing onto an untyped project; report `type-check: not configured (gap)`). `uv.lock` → run every command below through `uv run` (`uv run pytest -q`).
+**Detect:** `pyproject.toml` / `requirements*.txt` / `setup.py`, or tracked `*.py` with none of them (a stdlib-only project: the same tools, when installed). `[tool.ruff]` → Ruff · `[tool.black]` → Black · `[tool.mypy]` → mypy · `[tool.pyright]`/`pyrightconfig.json` → Pyright · no type config → no typecheck (never force typing onto an untyped project; report `type-check: not configured (gap)`). `uv.lock` → run every command below through `uv run` (`uv run pytest -q`).
 
 | Step | Default | Alternatives | Check | Fix |
 |------|---------|--------------|-------|-----|
