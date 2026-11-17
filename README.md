@@ -23,7 +23,7 @@ core/kernel.md        loaded by every skill: decision order, working rules, evid
                       and the named principles every finding cites (YAGNI, KISS, SOLID, Chesterton's fence, …)
 core/signals.md       what the project is (ui, api, db, pii, mobile, …), detected from files
 core/rules/README.md  area → rule files → when they load → the standards they check against (OWASP, WCAG, GDPR, …)
-core/rules/*.md       the rules, unique IDs, each with Detect / Fix / Impact / Source
+core/rules/*.md       the rules, unique IDs, each with Detect / Mech / Fix / Impact / Source
 core/toolchains.md    per-stack format, lint, type and test commands
 ds-*/SKILL.md         one job per skill, ≤ 8 KB, details in its own references/
 ```
