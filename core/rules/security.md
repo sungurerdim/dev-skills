@@ -1,187 +1,160 @@
-# Rules: Security
+# Sec — secrets, transport, injection, exposure, resilience bounds
 
-Applies to every project type (web, API, mobile, CLI, library). Platform-specific detects sit in each rule; CLI/library specifics are marked.
+Applies to every project type. OWASP Top 10 IDs are the 2025 edition (owasp.org/Top10/2025); ASVS is 5.0.0 — label a tool's output with the ASVS version the tool itself cites. Secret file names and content regexes live once in [../secret-patterns.md](../secret-patterns.md). Dependency audit, lockfiles, pinning, licences and SBOM are the `ci` area (DOP-06, DOP-11, DOP-14, DOP-17); sessions and object-level access are AUTH-02, AUTH-11; SQL is DB-01.
 
-> **Edition note (2026-07-17):** Category IDs below cite OWASP Top 10 **2025** (first revision since 2021; distinct from the API Security Top 10 2023) — verified against [owasp.org/Top10/2025](https://owasp.org/Top10/2025/). Remap applied: A02:2021→A04:2025 (Crypto), A03:2021→A05:2025 (Injection), A05:2021→A02:2025 (Misconfig), A06:2021→A03:2025 (Software Supply Chain Failures), A07:2021→A07:2025 (Authentication Failures); SSRF (A10:2021) absorbed into A01:2025.
+### SEC-01 [CRITICAL] Secret in source or a tracked file
+- **Detect:** a tracked file from the filename set or a content-regex match in [../secret-patterns.md](../secret-patterns.md); credentials in config (`settings.py`, `application.yml`, `config/*.json`), Dockerfile `ENV` or a connection string. Skip `*.example`, documented placeholders and test fixtures with dummy values; every hit gets the history check from that file.
+- **Mech:** T `git ls-files | grep -E '(^|/)(\.env(\.[^/]*)?|credentials\.[^/]*|secrets\.[^/]*|id_rsa|id_ed25519)$|\.(pem|key|p12|pfx|jks|keystore)$' | grep -vE '\.(example|sample|template)$'` · `git grep -nIE 'AKIA[0-9A-Z]{16}|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|sk_live_[A-Za-z0-9]{10,}|gh[pousr]_[A-Za-z0-9]{36}|xox[baprs]-|glpat-|npm_[A-Za-z0-9]{36}' -- ':!*.lock' ':!*lock.json'` · `gitleaks dir . --no-banner --redact=60`
+- **Fix:** never auto-fixed — rotate the credential first, then load it at runtime from the environment or a secret manager, ignore the file and keep a placeholder in `.env.example`; a third-party key a client must not hold moves behind a server-side proxy.
+- **Impact:** a committed secret reaches every clone, fork, build artefact and the git history; removing the line does not revoke it.
+- **Source:** OWASP A07:2025; CWE-798; Gitleaks (github.com/gitleaks/gitleaks).
 
-## Security
+### SEC-04 [CRITICAL] Cleartext transport
+applies_when: api≠none or deploy≠none or mobile≠none
+- **Detect:** `http://` endpoints in source or config other than loopback, private ranges and XML/schema namespaces; no HTTP→HTTPS redirect; Android `usesCleartextTraffic="true"` or a network security config permitting cleartext; iOS `NSAllowsArbitraryLoads` true.
+- **Mech:** T `git grep -nIE 'http://' -- ':!*.md' ':!*test*' ':!*.lock' | grep -vE 'http://(localhost|127\.|0\.0\.0\.0|10\.|192\.168\.|\[::1\]|www\.w3\.org|schemas\.|json-schema\.org|xmlns)'` · `git grep -nIE 'usesCleartextTraffic="true"|cleartextTrafficPermitted="true"|NSAllowsArbitraryLoads'`
+- **Fix:** HTTPS everywhere outside loopback; redirect HTTP to HTTPS and send HSTS (NWK-03); remove platform cleartext exceptions or scope them to a named debug domain.
+- **Impact:** any network intermediary reads or alters credentials, tokens and personal data in transit.
+- **Source:** OWASP A04:2025; OWASP MASVS-NETWORK-1; CWE-319.
 
-Baseline: OWASP ASVS 5.0.0 (May 2025 — ~350 requirements, 17 categories). OSS DAST tools (ZAP, Nikto) still emit 4.0.3-tagged findings as of mid-2026 — label tool output with the tool's ASVS version; never present 4.0.3 tool findings as ASVS 5.0 coverage.
+### NWK-01 [CRITICAL] TLS below 1.2 allowed
+- **Detect:** TLS 1.0/1.1 or SSL enabled, or a minimum version left below 1.2, in code (`PROTOCOL_TLSv1`, `MinVersion: tls.VersionTLS10`, `SslProtocols.Tls`) or proxy config (`ssl_protocols`).
+- **Mech:** S `git grep -nIE 'TLSv1([^._0-9]|$)|TLSv1[._][01]([^0-9]|$)|VersionTLS1[01]([^0-9]|$)|SslProtocols\.Tls(11)?([^0-9]|$)|SSLv[23]' -- ':!*.md' | grep -viE 'NO_TLSv1|NO_SSLv|-TLSv1|!TLSv1'`
+- **Fix:** minimum TLS 1.2 (1.3 preferred) through the platform default client or an explicit minimum; drop legacy protocols from proxy config.
+- **Impact:** downgradable connections expose traffic to known protocol attacks.
+- **Source:** RFC 8996 (deprecating TLS 1.0 and 1.1); NIST SP 800-52 Rev. 2.
 
-### SEC-01 [CRITICAL] Secure Credential Storage
-applies_when: always
-Credentials, tokens, and secrets must not be in plaintext files or unencrypted storage.
-- **Detect:**
-  - Files: `**/.env`, `**/credentials*`, `**/secrets*` committed to git (not in `.gitignore`)
-  - Search: passwords/tokens in config files, database connection strings with embedded credentials
-  - Plaintext secrets in `application.yml`, `settings.py`, `config/*.json`
-  - Exclude: `.env.example`, test fixtures with dummy values
-  - Plaintext secrets in config files
-- **Fix:** Use environment variables loaded at runtime. Use secret managers (Vault, AWS Secrets Manager, GCP Secret Manager, Doppler). Add `.env` to `.gitignore`. For Docker: use secrets, not ENV in Dockerfile
-- **Impact:** A plaintext or committed credential is readable by anyone with repo/filesystem access, including in git history long after the file appears fixed.
-- **Source:** OWASP A07:2025 (Authentication Failures)
+### NWK-02 [CRITICAL] Certificate verification disabled
+- **Detect:** verification turned off in shipped code or config: `verify=False`, `InsecureSkipVerify: true`, `NODE_TLS_REJECT_UNAUTHORIZED=0`, `rejectUnauthorized: false`, `CURLOPT_SSL_VERIFYPEER` false, `danger_accept_invalid_certs(true)`, a trust-all `TrustManager` or `ServerCertificateValidationCallback` returning true.
+- **Mech:** S `git grep -nIE 'verify[[:space:]]*=[[:space:]]*False|InsecureSkipVerify[[:space:]]*:[[:space:]]*true|NODE_TLS_REJECT_UNAUTHORIZED[[:space:]]*=?[[:space:]]*.?0|rejectUnauthorized[[:space:]]*:[[:space:]]*false|CURLOPT_SSL_VERIFYPEER[[:space:]]*(=>|,)[[:space:]]*(false|0)|danger_accept_invalid_certs\(true\)|ServerCertificateValidationCallback[[:space:]]*=.*true' -- ':!*.md'`
+- **Fix:** remove the bypass; trust a staging CA by adding it to the trust store, never by disabling checks.
+- **Impact:** anyone on the path presents a forged certificate and reads or changes every request.
+- **Source:** OWASP A02:2025; CWE-295.
 
-### SEC-02 [CRITICAL] No Hardcoded Credentials
-applies_when: always
-Zero secrets in source code.
-- **Detect:**
-  - Search: `apiKey\s*[:=]`, `api_key\s*[:=]`, `secret\s*[:=]`, `password\s*[:=]`, `bearer\s`, `sk-[a-zA-Z0-9]`, `AKIA[A-Z0-9]`, base64 patterns >20 chars in string literals
-  - Files: `**/.env`, `**/credentials*`, `**/secrets*` committed to git
-  - Exclude: `.env.example`, test fixtures with dummy values
-- **Fix:** Move to environment variables or secret manager. Add to `.gitignore`. Use server-side proxy for third-party API keys
-- **Impact:** A hardcoded secret ships inside the source and leaks to every clone, fork, and build artifact — rotation requires a code change, not just a config change.
-- **Source:** OWASP A07:2025 (Authentication Failures)
+### NWK-03 [HIGH] HSTS missing or weak
+applies_when: ui∋web or api≠none
+- **Detect:** HTTPS responses without `Strict-Transport-Security`, or `max-age` below 31536000 or without `includeSubDomains` where subdomains are served over HTTPS. Preload submission and rollout are DEP-25.
+- **Mech:** T `git grep -nI 'Strict-Transport-Security'` · `git grep -nIiE 'hsts'`
+- **Fix:** `Strict-Transport-Security: max-age=31536000; includeSubDomains` at minimum (63072000 is the OWASP recommendation); ramp up from a short `max-age` on a first rollout.
+- **Impact:** the first request, or any after a cleared cache, can be downgraded to HTTP and intercepted before the redirect.
+- **Source:** RFC 6797; OWASP HTTP Strict Transport Security Cheat Sheet; hstspreload.org (preload needs max-age ≥ 31536000).
 
-### SEC-03 [CRITICAL] Debug Mode Off in Production
-applies_when: always
-No debug features exposed in production builds.
-- **Detect:**
-  - Python: `DEBUG = True` in settings, `FLASK_DEBUG=1`
-  - Node: missing `NODE_ENV=production`, `console.log` in production paths
-  - Go: `debug` flags in production configs
-  - Java/Kotlin: `debug=true` in application.properties
-  - Stack traces exposed in error responses
-  - Verbose error output exposing internals
-  - Android: `android:debuggable="true"` in AndroidManifest.xml
-  - iOS: check build configuration for DEBUG symbols in release
-  - Flutter: `kDebugMode` used in release-visible code paths
-- **Fix:** Environment-based config. Strip debug code in production builds. Never expose stack traces to clients
-- **Impact:** Debug mode in production exposes stack traces, internal routes, and in some frameworks a live code-execution console directly to attackers.
-- **Source:** OWASP A02:2025 (Security Misconfiguration)
+### NWK-04 [HIGH] No certificate pinning where the threat model needs it
+applies_when: mobile≠none or ui∋desktop
+- **Detect:** a native app handling payments, health or account credentials calling its own API with no pin set (`network_security_config.xml` `<pin-set>`, OkHttp `CertificatePinner`, iOS `NSPinnedDomains` or a `URLSession` delegate); a pin set with a single pin and no backup.
+- **Mech:** T `git grep -nIE 'pin-set|CertificatePinner|NSPinnedDomains|TrustKit|evaluateServerTrust'`
+- **Fix:** pin the public-key hash of the leaf or intermediate with at least one backup pin and an expiry; ship a pin update before rotating keys.
+- **Impact:** a coerced CA or a user-installed root lets an attacker read sensitive API traffic undetected.
+- **Source:** OWASP MASVS-NETWORK-2; Android, Network security configuration.
 
-### SEC-04 [CRITICAL] TLS Enforced
-applies_when: api≠none or deploy≠none
-All connections over HTTPS. No plaintext HTTP in production.
-- **Detect:**
-  - Search: `http://` URLs in source (excluding localhost/127.0.0.1/10.0/192.168)
-  - No HTTPS redirect configuration
-  - Missing HSTS headers
-  - Android: `android:usesCleartextTraffic="true"` in AndroidManifest.xml, or missing `network_security_config.xml`
-  - iOS: `NSAllowsArbitraryLoads` = YES in Info.plist
-- **Fix:** Redirect HTTP to HTTPS. Set HSTS header: `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`. Use TLS 1.2+ only
-- **Impact:** Plaintext HTTP lets any network intermediary read or alter traffic in transit — credentials, session tokens, and personal data travel exposed.
-- **Source:** OWASP A04:2025 (Cryptographic Failures)
+### SEC-05 [CRITICAL] Input reaches an interpreter or business logic unchecked
+- **Detect:** request, file, webhook, queue, CLI or environment input passed to business logic without a schema check (type, format, range, length, allowed values); input concatenated into a shell command (`os.system`, `subprocess` with `shell=True`, `child_process.exec`, `Runtime.exec` with a single string, `shell_exec`), `eval`/`new Function`, HTML sinks (`innerHTML`, `dangerouslySetInnerHTML`, `v-html`, `|safe`), LDAP or XPath queries, template source. SQL is DB-01.
+- **Mech:** T `git grep -nIE 'os\.system\(|shell[[:space:]]*=[[:space:]]*True|child_process|\.exec(Sync)?\(|Runtime\.getRuntime\(\)\.exec|shell_exec\(|passthru\(|eval\(|new Function\(|innerHTML[[:space:]]*=|dangerouslySetInnerHTML|v-html|\|[[:space:]]*safe|render_template_string\(' -- ':!*test*' ':!*.md'`
+- **Fix:** validate at the boundary with the stack's schema library and reject invalid input (400) rather than repairing it; pass arguments as an array, never through a shell; encode on output with the template engine's auto-escaping; never evaluate input.
+- **Impact:** one unchecked path to an interpreter gives an attacker code execution or another user's session.
+- **Source:** OWASP A05:2025; OWASP Input Validation Cheat Sheet; CWE-20/77/78/79/94.
 
-### SEC-05 [CRITICAL] Input Validation & Injection Prevention
-applies_when: always
-All user input validated and sanitized. No raw interpolation in queries or commands.
-- **Detect:**
-  - Search: string concatenation in SQL queries (`"SELECT.*" +`, f-strings in queries, template literals in SQL)
-  - Raw user input in shell commands (`exec`, `os.system`, `child_process.exec`)
-  - No input validation middleware/decorators on route handlers
-  - Search: `eval(`, `Function(`, `innerHTML =` with user input
-  - No input validation on CLI arguments
-  - Unsanitized file paths from user input (path traversal)
-- **Fix:** Parameterized queries (prepared statements). Input validation with schemas (Zod, Pydantic, Joi). Never interpolate user input into SQL/shell/HTML. Use ORM for queries
-- **Impact:** SQL injection is still #1 web vulnerability. Single unparameterized query = full database compromise
-- **Source:** OWASP A05:2025 (Injection)
+### SEC-18 [CRITICAL] Untrusted data deserialized into objects
+- **Detect:** native object deserialization of data that crosses a trust boundary (request, cookie, cache, queue, upload): Python `pickle`/`marshal`/`shelve`, `yaml.load` without a safe loader, Java `ObjectInputStream`, .NET `BinaryFormatter`/`NetDataContractSerializer`, PHP `unserialize`, Ruby `Marshal.load`/`YAML.load`, JSON libraries with polymorphic type handling enabled (`TypeNameHandling`, `enableDefaultTyping`).
+- **Mech:** T `git grep -nIE 'pickle\.loads?\(|marshal\.loads?\(|shelve\.open\(|yaml\.load\(|ObjectInputStream|BinaryFormatter|NetDataContractSerializer|unserialize\(|Marshal\.load|YAML\.load\(|TypeNameHandling\.(All|Auto|Objects)|enableDefaultTyping|activateDefaultTyping' -- ':!*test*' ':!*.md'`
+- **Fix:** exchange plain data formats (JSON, protobuf) mapped onto explicit types; `yaml.safe_load`; an allow-list of types where polymorphism is unavoidable; sign data that must round-trip through a client and verify before reading it.
+- **Impact:** deserializing attacker-controlled bytes runs attacker-chosen code in the process.
+- **Source:** OWASP A08:2025; OWASP Deserialization Cheat Sheet; CWE-502.
 
-### SEC-06 [CRITICAL] Strong Cryptography
-applies_when: always
-AES-256-GCM symmetric. No MD5/SHA-1 for security. No custom crypto.
-- **Detect:**
-  - Search: `MD5`, `SHA1`, `SHA-1` in non-checksum context, `ECB` mode, `DES`, `RC4`, hardcoded IV/nonce
-  - Custom crypto implementations
-  - Weak password hashing (plain SHA-256 without salt/iteration)
-- **Fix:** Use platform crypto libraries. Password hashing: bcrypt/scrypt/argon2. Encryption: AES-256-GCM. Use random IV/nonce per operation
-- **Impact:** Weak or custom cryptography (MD5/SHA-1, ECB mode, hand-rolled ciphers) is breakable with known techniques and protects nothing against a motivated attacker.
-- **Source:** OWASP A04:2025 (Cryptographic Failures)
+### SEC-19 [HIGH] Uploaded files and archives trusted by name or path
+applies_when: api≠none or ui≠none
+- **Detect:** an upload stored under the client's file name or inside the web root; type decided by extension or `Content-Type` alone; no size limit per endpoint; archive extraction (`extractall`, `ZipFile`, `ZipInputStream`, `archive/zip`, `tar`) or a user-supplied path joined to a base directory with no check that the resolved path stays inside it (`..`, absolute paths, symlinks).
+- **Mech:** T `git grep -nIE 'extractall\(|extractfile\(|ZipFile|ZipInputStream|ZipArchive|archive/(zip|tar)|tarfile\.open|multer|UploadFile|MultipartFile|FormFile\(|move_uploaded_file|send_?[Ff]ile\(' -- ':!*test*' ':!*.md'`
+- **Fix:** store under a generated name outside the web root (or in object storage) with the size capped (NWK-06); check content type by magic bytes against an allow-list; resolve every extracted or joined path and reject it unless it stays under the target directory; cap the extracted total size and entry count.
+- **Impact:** a crafted file overwrites code or config (zip-slip), is served back as executable content, or a zip bomb fills the disk.
+- **Source:** OWASP File Upload Cheat Sheet; CWE-22, CWE-434, CWE-409.
 
-### SEC-07 [CRITICAL] Secure HTTP Headers
-applies_when: api≠none or ui=web
-Security headers set on all responses.
-- **Detect:**
-  - No `helmet` (Express), `django-csp` (Django), security middleware
-  - Missing any of the 2026 baseline header set for HTTPS sites: HSTS, Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP `frame-ancestors` (or legacy X-Frame-Options)
-- **Fix:** Use security middleware (helmet, django-secure, secure-headers). Set the six-header baseline: HSTS, CSP (strict — see WEB-01), X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy (deny unused features), `frame-ancestors 'none'` (preferred over X-Frame-Options: DENY). Add the cross-origin isolation trio (COOP/COEP/CORP) only when the app needs SharedArrayBuffer/high-resolution timers — not as a blanket default
-- **Impact:** Missing security headers enable XSS, clickjacking, and MIME-sniffing attacks
-- **Source:** OWASP Secure Headers Project
+### SEC-06 [CRITICAL] Weak cryptography or randomness
+- **Detect:** MD5, SHA-1, DES, 3DES, RC4 or ECB used for security (signatures, password storage, tokens, integrity of untrusted data); a fixed or reused IV/nonce; hand-written crypto; tokens, IDs or codes from a non-cryptographic generator (`Math.random`, `random.random`, `rand()`, `java.util.Random`).
+- **Mech:** T `git grep -nIwE 'md5|MD5|sha1|SHA1|SHA-1|DES|3DES|RC4|ECB' -- ':!*.md' ':!*lock*'` · `git grep -nIE 'Math\.random\(|random\.(random|randint|choice)\(|rand\(|new Random\(' -- ':!*test*' ':!*.md'`
+- **Fix:** the platform's vetted library: AES-GCM or ChaCha20-Poly1305 with a random nonce per message; the OS CSPRNG (`secrets`, `crypto.getRandomValues`, `crypto/rand`, `SecureRandom`) for anything an attacker must not guess. A checksum of trusted data may stay non-cryptographic; password storage is AUTH-01.
+- **Impact:** broken primitives and guessable tokens fall to known, cheap attacks.
+- **Source:** OWASP A04:2025; OWASP Cryptographic Storage Cheat Sheet; CWE-327/328/330/338.
 
-### SEC-08 [CRITICAL] Supply Chain Security
-applies_when: always
-Dependencies audited, versions pinned, lockfile committed.
-- **Detect:**
-  - Unpinned versions: `^`, `~`, `latest`, `>=` without upper bound
-  - Missing lockfile (package-lock.json, yarn.lock, pnpm-lock.yaml, Pipfile.lock, poetry.lock, go.sum) in git
-  - Unpinned versions: `^`, `~`, `latest`, `>=` without upper bound in pubspec.yaml/package.json/build.gradle
-- **Fix:** Pin exact versions. Commit lockfiles. Run `npm audit` / `pip audit` / `safety check` regularly
-- **Impact:** An unpinned dependency can silently pull a compromised or backdoored version on the next install — the exact supply-chain vector behind several major incidents.
-- **Source:** OWASP A03:2025 (Software Supply Chain Failures)
+### SEC-07 [HIGH] Security response headers missing
+applies_when: ui∋web or api≠none
+- **Detect:** no header middleware or proxy config setting the baseline: `Content-Security-Policy` (detail is WEB-01), `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy` and CSP `frame-ancestors` (or `X-Frame-Options`). An API that returns only JSON needs `nosniff` and no framing, not a page CSP.
+- **Mech:** T `git grep -nIE 'helmet|Content-Security-Policy|X-Content-Type-Options|Referrer-Policy|Permissions-Policy|frame-ancestors|X-Frame-Options|SecurityMiddleware|secure_headers'`
+- **Fix:** set the baseline once in middleware or at the proxy; add COOP/COEP/CORP only when cross-origin isolation is needed.
+- **Impact:** missing headers turn an HTML injection into script execution, allow clickjacking and MIME sniffing.
+- **Source:** OWASP Secure Headers Project; OWASP HTTP Headers Cheat Sheet.
 
-### SEC-09 [CRITICAL] Server-Side Auth & Authorization
+### SAR-06 [CRITICAL] Debug mode or internals exposed in production
+- **Detect:** debug switches on in a production config or build (`DEBUG = True`, `FLASK_DEBUG=1`, `APP_DEBUG=true`, PHP `display_errors=On`, ASP.NET `UseDeveloperExceptionPage` outside a development branch, Spring `debug=true`, Android `android:debuggable="true"`, Rust/C++ release builds with debug assertions or symbols shipped by accident, desktop builds with devtools enabled); error responses or crash dialogs carrying stack traces, SQL, file paths or framework versions; framework default error pages.
+- **Mech:** T `git grep -nIE 'DEBUG[[:space:]]*=[[:space:]]*True|FLASK_DEBUG[[:space:]]*=[[:space:]]*1|APP_DEBUG[[:space:]]*=[[:space:]]*true|display_errors[[:space:]]*=[[:space:]]*(On|1)|UseDeveloperExceptionPage|^debug[[:space:]]*=[[:space:]]*true|android:debuggable="true"|traceback\.(print_exc|format_exc)\(|\.stack|openDevTools\(' -- ':!*test*' ':!*.md'`
+- **Fix:** debug from the environment, off by default; one error handler returns a generic body with a correlation ID (RFC 9457 shape for HTTP APIs, API-02) and logs the detail server-side.
+- **Impact:** internals hand an attacker the layout and versions needed for a targeted exploit; some debug modes expose a live code console.
+- **Source:** OWASP A02:2025; OWASP Error Handling Cheat Sheet; CWE-209, CWE-489.
+
+### SAR-07 [CRITICAL] Authorization fails open or lives outside the server boundary
 applies_when: auth≠none
-Auth validated server-side on every request. No client-only auth checks.
-- **Detect:**
-  - API endpoints without auth middleware
-  - Authorization based on client-provided role/permission without server verification
-  - Missing token validation on protected routes
-- **Fix:** Auth middleware on all protected routes. Validate JWT/session server-side. Check permissions per resource, not just authentication. Use RBAC or ABAC
-- **Impact:** A client-asserted role or permission is trivially forged — without server-side verification, any user can claim to be an admin.
-- **Source:** OWASP A01:2025 (Broken Access Control)
+- **Detect:** a protected route or handler with no server-side check; a role or permission taken from the client (body, header, unverified token claim); auth middleware that continues on error or timeout; a role switch whose default allows; `catch` blocks that proceed after an auth failure; permission checks scattered through business code instead of one boundary. Object ownership is AUTH-11.
+- **Mech:** T `git grep -nIE 'catch[[:space:]]*(\([^)]*\))?[[:space:]]*\{[[:space:]]*(return[[:space:]]+)?next\(\)|except[^:]*:[[:space:]]*(pass|return True)|default:[[:space:]]*return[[:space:]]+true|isAdmin[[:space:]]*=[[:space:]]*req\.(body|query|headers)' -- ':!*test*' ':!*.md'`
+- **Fix:** deny by default: every route passes one central policy layer (middleware, decorator, interceptor) that returns 401/403 on any error; roles come from the server-side session or a verified token; allow-list roles; a test lists every route and asserts each is protected or on an explicit public list.
+- **Impact:** any bug, timeout or forged claim in the auth path becomes an access-control bypass.
+- **Source:** OWASP A01:2025, A10:2025; OWASP Authorization Cheat Sheet; CWE-285, CWE-636.
 
-### SEC-10 [HIGH] Session Management
-applies_when: auth≠none
-Secure session configuration. Token rotation. Proper logout.
-- **Detect:**
-  - Session cookies without `Secure`, `HttpOnly`, `SameSite` flags
-  - No token expiry or rotation
-  - Logout doesn't invalidate server-side session
-  - Long-lived tokens without refresh mechanism
-- **Fix:** Set cookie flags: `Secure; HttpOnly; SameSite=Strict`. Short-lived access tokens (15min) + refresh token rotation. Server-side session invalidation on logout. Regenerate session ID after auth state change
-- **Impact:** A session with no rotation or secure flags stays hijackable for its full lifetime, and a logout that doesn't invalidate the server-side session leaves a stolen token valid after the user thinks they're signed out.
-- **Source:** OWASP Session Management Cheat Sheet
+### SAR-01 [HIGH] Security-relevant events not audit-logged
+applies_when: auth≠none or billing≠none or pii=yes
+- **Detect:** login, logout, failed login, MFA and password changes, permission or role changes, admin actions, data export and deletion, consent changes and payment events produce no structured record of who, what, when, from where and the outcome; audit records writable or deletable by the application role.
+- **Mech:** M (list the sensitive handlers; check each emits an audit event)
+- **Fix:** one audit helper called from each sensitive path, writing `{time, actor, action, resource, source, result}` to an append-only store separate from application logs; alert on repeated failures.
+- **Impact:** incident response and regulators cannot reconstruct who did what, and attacks go unnoticed.
+- **Source:** OWASP A09:2025; OWASP Logging Cheat Sheet; GDPR Art. 30 and 33(5).
 
-### SEC-12 [HIGH] License & IP Contamination
-applies_when: always
-AI assistants can emit near-verbatim third-party or copyleft code without attribution.
-- **Detect:**
-  - No license / SCA scan on AI-assisted PRs
-  - Copyleft (GPL/AGPL) code entering a permissively-licensed project
-  - Large verbatim blocks of unknown provenance
-  - AI assistance not recorded where org or licensing policy requires it
-- **Fix:** Run a license/SCA scan (FOSSA, ScanCode) on AI-assisted PRs; flag copyleft entering permissive code. Verify provenance of large verbatim AI output before merge; prefer generating from your own interfaces. Record AI assistance where policy requires an authorship/provenance note.
-- **Impact:** In *Doe v. GitHub* most claims were dismissed but an open-source-license-violation claim survives; the EU AI Act (Reg. 2024/1689) GPAI transparency duties applied 2 Aug 2025; general enforcement and penalties apply 2 Aug 2026, while high-risk obligations shifted under the Digital Omnibus — timeline in PRV-21.
-- **Source:** [Doe v. GitHub case updates](https://githubcopilotlitigation.com/case-updates.html); [EU AI Act (EC)](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
+### SAR-02 [CRITICAL] Secrets or personal data written to logs
+- **Detect:** log, print or crash-report calls emitting passwords, tokens, API keys, session IDs, card data, full request or response bodies, whole user objects, or PII fields (email, phone, address, government ID, health data); error trackers sending request bodies or user context without scrubbing. A log line naming a field (`password reset sent`) is not a hit.
+- **Mech:** T `git grep -nIiE '(log|logger|console|print|debug|info|warn|error)[[:alnum:]_]*[.(].*(password|passwd|secret|token|api_?key|authorization|cookie|ssn|card_?number|req\.body|request\.body)' -- ':!*test*' ':!*.md'`
+- **Fix:** log an allow-list of known-safe fields; redact or hash identifiers at one logging boundary; configure error trackers to scrub bodies and headers; a test asserts a known secret never appears in captured output.
+- **Impact:** logs reach aggregators, dashboards, support staff and vendors; a log leak becomes a credential and personal-data breach.
+- **Source:** OWASP Logging Cheat Sheet; CWE-532; GDPR Art. 5(1)(c) and 32.
 
-### SEC-13 [HIGH] Identity/Session Storage Tier & Token-Refresh Re-hydration
-applies_when: auth≠none
-Session/identity data used for a boot-time decision (per-account storage selection, cache partitioning) persists in cold-start-durable storage, not storage that's cleared on process/tab restart.
-- **Detect:**
-  - Identity/auth-claim data (a stable user ID, session claims) required at boot for a storage/partition decision is kept in session-scoped storage (cleared on tab/process restart) rather than persistent storage
-  - A token-refresh flow that renews only the access token without re-fetching/re-validating the identity claims the app's boot logic depends on
-- **Fix:** Move boot-critical identity/session data to storage that survives a cold start (persistent local storage, not session-scoped); make token-refresh re-hydrate the full identity payload, not just the access token.
-- **Impact:** Mobile WebViews and app-kill scenarios routinely wipe session-scoped storage — the real-world failure mode is "logged in, no data": the app boots, authentication looks fine, but the wrong (or no) data partition loads because the boot-time identity read came back empty. A refresh path that renews the token but never re-hydrates identity reintroduces the same bug after every refresh.
-- **Source:** Mobile WebView storage-lifetime documentation (session vs. persistent storage semantics)
+### SAR-11 [MEDIUM] Dependency with supply-chain risk
+- **Detect:** a direct dependency that is archived, unmaintained (no release for years with open security issues), has a single anonymous maintainer and install scripts, or pulls a large transitive tree for a small job. Whether it earns its place is LEAN-06; advisories are DOP-06.
+- **Mech:** M (manifest plus registry metadata read at run time)
+- **Fix:** replace with a maintained alternative or the standard library; vendor and pin a small abandoned piece; disable install scripts where the package manager allows.
+- **Impact:** an abandoned or takeover-prone package is the cheapest path into every build.
+- **Source:** OWASP A03:2025; NIST SSDF (SP 800-218) PW.4; OpenSSF Scorecard.
 
-### SEC-14 [HIGH] Dependency License Compliance Scanning
-applies_when: always
-Every dependency's license is known, scanned automatically, and compatible with the project's distribution model.
-- **Detect:**
-  - No SBOM (SPDX/CycloneDX) generated and no automated license scanner (FOSSA, Snyk, `license-checker`, ScanCode) configured in CI/pre-commit
-  - GPL/AGPL-licensed dependency present in a proprietary or permissively-licensed distribution with no compliance review recorded
-  - LGPL dependency statically linked into proprietary code (dynamic linking required to avoid copyleft propagation)
-  - Apache 2.0 dependency distributed without its NOTICE file; MIT/BSD dependency distributed without copyright/license text preserved
-- **Fix:** Generate and maintain an SBOM (SPDX or CycloneDX format); wire a license scanner into CI/pre-commit that fails the build on a disallowed license; use LGPL dependencies via dynamic linking only; preserve NOTICE/copyright/license files in every distribution; document any borderline license decision before merge.
-- **Impact:** An unreviewed GPL/AGPL dependency in a proprietary build, or a statically-linked LGPL dependency, converts a routine install into a license violation discoverable by the rights-holder at any time, with remedies up to source disclosure or a distribution injunction.
-- **Source:** [SPDX specification](https://spdx.dev/); [OpenChain ISO/IEC 5230](https://www.openchainproject.org/); complements SEC-12 and PRV-43
+### NWK-06 [HIGH] Request body or message size unbounded
+applies_when: api≠none
+- **Detect:** no body-size limit in the framework or proxy (`express.json` without `limit`, `client_max_body_size` absent, `DATA_UPLOAD_MAX_MEMORY_SIZE`, `MaxRequestBodySize`, `http.MaxBytesReader` absent), no per-endpoint upload cap, no WebSocket message size limit; an app limit above the fronting proxy or CDN's documented limit.
+- **Mech:** T `git grep -nIE 'client_max_body_size|LimitRequestBody|DATA_UPLOAD_MAX_MEMORY_SIZE|MaxRequestBodySize|MaxBytesReader|bodyParser|express\.json\(|maxPayload|max_size|MAX_CONTENT_LENGTH'`
+- **Fix:** an explicit small default for JSON, a larger explicit cap per upload endpoint with streaming, a WebSocket message cap; check the proxy's current documented limit when setting the app limit.
+- **Impact:** one oversized request exhausts memory and takes the process down.
+- **Source:** OWASP API4:2023 Unrestricted Resource Consumption; CWE-770.
 
-### SEC-15 [MEDIUM] Controls Scale to the Real Threat Model; No Cargo-Cult Layers
-Security/resilience controls map to the actual deployment threat model: best-effort hardening where it pays, no ritual layers that deliver nothing, removals documented with rationale.
-- **Detect:** Controls copied from a different deployment shape (app-layer cert pinning behind a CDN that rotates edge certs autonomously; mlockall/TLS/circuit breakers inside a same-host deployment); genuinely sensitive buffers left unzeroed; removed controls with no recorded reasoning.
-- **Fix:** Match each control to the real threat model. Add best-effort defenses where the asset warrants them (zero sensitive buffers; never throw on cleanup failure, never pass silently either). Remove or decline layers with no concrete benefit in this topology, and document the rationale. Re-evaluate only when the threat model actually changes (multi-host, external network hop, shared tenancy).
-- **Impact:** Cargo-cult layers consume maintenance and mask real gaps; the documented-rationale rule prevents the next audit from re-adding a deliberately removed control as a "finding".
-- **Source:** XR-019 — cross-project experience registry (2026).
+### NWK-07 [HIGH] Outbound call without a timeout
+- **Detect:** HTTP, RPC, database or queue clients with no connect and read timeout: `requests.*(` without `timeout=`, `fetch` without an abort signal, Go `http.Client{}` without `Timeout` or context deadline, JDBC or driver defaults left infinite, no statement timeout.
+- **Mech:** T `git grep -nIE 'requests\.(get|post|put|patch|delete|request)\(' -- ':!*test*' | grep -v 'timeout'` · `git grep -nIE 'http\.Client\{\}|new HttpClient\(\)|fetch\(' -- ':!*test*' ':!*.md'`
+- **Fix:** explicit connect and overall timeouts on every client, sized under the caller's own deadline; a statement timeout on the database role.
+- **Impact:** one slow peer holds threads and connections until the whole service stops answering.
+- **Source:** Nygard, *Release It!* (timeouts); CWE-400.
 
-### SEC-16 [HIGH] Crypto Components Get One Independent External Review Before Production-Final
-In products carrying sensitive/health data, cryptographic components (key wrapping, HKDF, role-bound envelopes/keyrings, OAuth PKCE implementation) are not production-final on self-assessment alone: at least one independent third-party review is obtained and its findings folded back in.
-- **Detect:** Custom or assembled crypto (key hierarchies, envelope schemes) validated only by the team that built it; "audited" claims tracing to internal review; external findings received but not mapped to decisions.
-- **Fix:** Commission one independent security review of the crypto layer before declaring it production-final; record the findings and the disposition of each in the security decision log. Internal review gates development; external review gates the production-final claim.
-- **Impact:** Crypto is the domain where self-assessment fails silently — a subtle key-derivation flaw invalidates every guarantee built on it, and only fresh outside eyes reliably catch it.
-- **Source:** XR-127 — cross-project experience registry (2026).
+### NWK-09 [HIGH] Connection pool unbounded or unsized
+applies_when: api≠none or db≠none
+- **Detect:** database or HTTP pools with no maximum, no acquire timeout or idle and lifetime limits; a pool per request; the sum of max sizes across instances and workers above the server's connection limit (Postgres `max_connections`); serverless functions opening direct connections with no pooler.
+- **Mech:** T `git grep -nIE 'pool_?size|max_?pool|maxPoolSize|MaxOpenConns|connectionLimit|max_connections|pool_max|maximumPoolSize|create_engine\(|new Pool\('`
+- **Fix:** one pool per process with an explicit maximum derived from measured concurrency and the server limit divided by instances; acquire timeout and lifetime set; a pooler (PgBouncer, RDS Proxy, the provider's pooled endpoint) for serverless.
+- **Impact:** a traffic spike exhausts the server's connections and every consumer of the database fails at once.
+- **Source:** CWE-770; PostgreSQL, Connections and Authentication (`max_connections`); HikariCP, About Pool Sizing.
 
-### SEC-17 [MEDIUM] Cross-Platform Security Asymmetry Documented Honestly
-When a security control is materially stronger on one platform than another, the asymmetry is documented explicitly — never presented as equal protection.
-- **Detect:** One security bullet covering all platforms while implementations differ (hard OS-enforced flag on platform A, best-effort emulation on platform B because the OS API doesn't exist); policy/marketing text asserting uniform protection.
-- **Fix:** Document per-platform control strength side by side: what is enforced, what is best-effort, what is absent and why (missing OS API). Propagate the honest version into user-facing security claims.
-- **Impact:** Asserted-but-absent protection on the weaker platform is a misleading security claim — discovered in an incident, it converts a technical limitation into a credibility and liability problem.
-- **Source:** XR-034 — cross-project experience registry (2026).
+### NWK-10 [HIGH] Retry with no backoff
+- **Detect:** retry loops with no delay, a fixed delay, no jitter or no attempt cap; retries of non-idempotent operations without an idempotency key (API-07); repeated calls to a failing dependency with no circuit breaker or fallback.
+- **Mech:** T `git grep -nIiE 'retry|retries|backoff|while[[:space:]]*\([[:space:]]*![[:space:]]*[[:alnum:]_]*(success|ok|done)' -- ':!*test*' ':!*.md'`
+- **Fix:** capped exponential backoff with full jitter and a small attempt limit, honouring `Retry-After`; retry only idempotent or keyed operations; a breaker that fails fast after a failure-rate threshold and probes recovery.
+- **Impact:** synchronized retries multiply load exactly when the dependency is struggling and turn a blip into a cascade.
+- **Source:** AWS Architecture Blog, "Exponential Backoff and Jitter"; Nygard, *Release It!* (circuit breaker).
+
+### NWK-13 [HIGH] Client IP taken from a spoofable header
+applies_when: api≠none
+- **Detect:** `X-Forwarded-For`, `X-Real-IP` or `Forwarded` read unconditionally, or its leftmost value used, for rate limits, audit or access decisions; no setting stating which proxies are trusted.
+- **Mech:** T `git grep -nIiE 'x-forwarded-for|x-real-ip|trust.?proxy|ProxyFix|ForwardedHeaders|RemoteIpValve'`
+- **Fix:** read forwarded headers only behind a configured trusted proxy and take the rightmost untrusted address (the framework's trusted-proxy setting); otherwise use the socket peer address.
+- **Impact:** any client spoofs its IP with one header, defeating rate limits, audit trails and IP allow-lists.
+- **Source:** MDN, X-Forwarded-For (security and privacy concerns); CWE-348.

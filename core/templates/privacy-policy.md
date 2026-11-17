@@ -12,7 +12,7 @@
 
 ## 1. Introduction
 
-{APP_NAME} is a {brief description — e.g., "privacy-first AI transcription app"}. This policy describes what data we collect, how we process it, and your rights regarding your personal information.
+{APP_NAME} is a {one-sentence description of the product and who it is for}. This policy describes what data we collect, how we process it, and your rights regarding your personal information.
 
 ---
 
@@ -35,7 +35,6 @@ We do **not** collect: {list data types explicitly not collected — e.g., conta
 - {Core data} stored **locally** on your device using {encryption method — e.g., AES-256 encrypted storage}.
 - Authentication tokens stored in platform-native secure storage ({Android Keystore / iOS Keychain}).
 - {Temporary files} deleted after {condition}.
-- Offline queue files stored temporarily and removed after successful processing.
 
 ---
 

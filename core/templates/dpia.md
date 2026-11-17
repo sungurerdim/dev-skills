@@ -16,15 +16,14 @@
 
 ### 1.1 Nature of Processing
 
-{APP_NAME} processes {describe data types} through {describe processing method}. The processing flow is:
+{APP_NAME} processes {describe data types} through {describe processing method}. Trace each data category from collection to deletion:
 
-1. User {initiates action} on their device.
-2. Data is {preprocessed locally if applicable}.
-3. Data is uploaded to {APP_NAME} servers over TLS {with certificate pinning if applicable}.
-4. Server processes data {in RAM / with persistent storage — specify}.
-5. Result is returned to the client {with integrity verification if applicable}.
-6. Client acknowledges receipt; server {deletes / retains — specify} data.
-7. Result is stored locally on-device {with encryption details}.
+1. **Collected** — {where and how: form, device sensor, import, third party}.
+2. **Transmitted** — {to which systems and processors, over what protection}.
+3. **Processed** — {what is done, by which component or processor, automated decisions if any}.
+4. **Stored** — {where, in which region, encrypted how, for how long}.
+5. **Shared** — {recipients and the reason}.
+6. **Deleted** — {trigger and mechanism, including backups and processors}.
 
 ### 1.2 Scope of Processing
 
@@ -137,7 +136,7 @@
 
 ## 5. Decision
 
-Based on the assessment above, the residual risks are **{Low/Medium/High}** after mitigations are applied. {Decision: proceed / proceed with conditions / do not proceed}.
+Based on the assessment above, the residual risks are **{Low/Medium/High}** after mitigations are applied. {Decision: proceed / proceed with conditions / do not proceed}. A high residual risk that cannot be mitigated requires prior consultation with the supervisory authority before processing starts (GDPR Art. 36).
 
 | Approved By | Date | Next Review |
 |-------------|------|-------------|

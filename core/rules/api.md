@@ -1,339 +1,100 @@
-# Rules: API Design & Architecture
-
-## API Design
-
-### API-01 [HIGH] RESTful Resource Naming
-**Detect:** Verb-based URL paths (`/getUsers`, `/createOrder`, `/deleteItem`, `/fetchProducts`).
-
-**Fix:** Rename to noun-based resource paths. Use HTTP methods for actions, plural nouns for collections.
-
-| Before | After |
-|--------|-------|
-| `GET /getUsers` | `GET /users` |
-| `POST /createOrder` | `POST /orders` |
-| `DELETE /deleteItem/5` | `DELETE /items/5` |
-| `GET /fetchProduct/3` | `GET /products/3` |
-
-**Multi-stack examples:**
-
-- **Node/Express:** `router.get('/users', listUsers)` with `router.post('/users', createUser)`
-- **Python/FastAPI:** `@app.get("/users")` and `@app.post("/users")`
-- **Go/Gin:** `r.GET("/users", listUsers)` and `r.POST("/users", createUser)`
-- **Java/Spring:** `@GetMapping("/users")` and `@PostMapping("/users")`
-
-**Impact:** Consistent resource naming reduces client confusion, improves cacheability, and aligns with tooling expectations (Swagger, Postman).
-
-**Note (2026):** For complex parameterized reads that outgrow GET's URL limits, `POST`-as-safe-read was the historical workaround — the HTTP `QUERY` method ([RFC 10008](https://datatracker.ietf.org/doc/rfc10008/), June 2026; safe, idempotent, cacheable, with a request body) is now the standard replacement. Adopt where the framework/infrastructure supports it; OpenAPI 3.2 models it natively.
-
-**Source:** [Google API Design Guide](https://cloud.google.com/apis/design)
-
-### API-02 [HIGH] Consistent Error Response
-**Detect:** Different error shapes across endpoints (e.g., `{ message: "..." }` on one route, `{ error: "..." }` on another, raw strings on a third).
-
-**Fix:** Standardize all error responses to RFC 9457 Problem Details format:
-
-```json
-{
-  "type": "https://api.example.com/problems/validation-error",
-  "title": "Validation Error",
-  "status": 422,
-  "detail": "The request body contains invalid fields.",
-  "instance": "/logs/requests/d24b2953",
-  "errors": [
-    { "pointer": "/email", "detail": "Must be a valid email address" }
-  ]
-}
-```
-
-**Multi-stack examples:**
-
-- **Node/Express:** Global error handler middleware that formats all thrown errors to RFC 9457
-- **Python/FastAPI:** Custom `HTTPException` handler returning `application/problem+json`
-- **Go/Gin:** `ErrorHandler` middleware wrapping all errors into a `ProblemDetail` struct
-- **Java/Spring:** `@ControllerAdvice` with `ProblemDetail` (Spring 6+ has built-in support)
-
-**Impact:** Clients parse one format. Monitoring tools detect errors reliably. `status` field in body must match HTTP status code.
-
-**Source:** [RFC 9457: Problem Details for HTTP APIs](https://www.rfc-editor.org/rfc/rfc9457.html)
-
-### API-03 [HIGH] API Versioning
-**Detect:** Endpoints with no version prefix, or mixed versioning strategies (some URL-based, some header-based).
-
-**Fix:** Use URI path versioning (`/v1/users`). One strategy, applied consistently.
-
-| Strategy | Format | Cacheable | Recommendation |
-|----------|--------|-----------|----------------|
-| URI path | `/v1/orders` | Yes | Preferred for simplicity |
-| Query string | `/orders?version=1` | Partial | Avoid |
-| Header | `Accept: ...;version=1` | No | Avoid for solo projects |
-
-Rules: Increment major version only for breaking changes. Support at least two major versions during transitions. Announce deprecation via `Deprecation` response header. Adding new optional fields requires no version bump.
-
-**Impact:** Prevents breaking existing clients on deploy. Enables parallel migration windows.
-
-**Source:** [Stripe API versioning](https://stripe.com/docs/api/versioning)
-
-### API-04 [HIGH] Request Validation
-**Detect:** Endpoints that accept request bodies or query parameters without any schema validation at the API boundary (distinct from API-12, which covers mass assignment and client-trusted authorization state on endpoints that already have a schema).
-
-**Fix:** Add schema validation at entry point of every endpoint. Reject malformed input with 422 and descriptive errors.
-
-**Multi-stack examples:**
-
-- **Node/Express:** `zod` schema with `.parse()` in middleware, or `joi` with `celebrate`
-- **Python/FastAPI:** Pydantic models as function parameters (built-in)
-- **Go/Gin:** `binding:"required"` struct tags with `go-playground/validator`
-- **Java/Spring:** `@Valid` with Jakarta Bean Validation annotations
-- **Ruby/Rails:** `strong_parameters` + custom validators
-- **PHP/Laravel:** `FormRequest` classes with validation rules
-
-**Impact:** Prevents invalid data from reaching business logic or database. Reduces attack surface (injection, type confusion).
-
-**Source:** [OWASP Input Validation Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)
-
-### API-05 [HIGH] Rate Limiting
-**Detect:** Endpoints (especially public or auth-related) with no rate limiting middleware. Also: a limiter whose backing-store error is swallowed (`try`/`catch` around the check that continues on failure), a limiter with no test covering "store unavailable", and a documented limit whose failure behaviour is written down nowhere.
-
-**Fix:** Add per-endpoint or per-user rate limits. Return `429 Too Many Requests` with standard headers.
-
-Response headers on every request:
-```
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 742
-X-RateLimit-Reset: 1711929600
-Retry-After: 30          # on 429 only
-```
-
-The `X-RateLimit-*` family is the de-facto convention. The IETF standardization (`RateLimit-Policy` + `RateLimit` fields, draft-ietf-httpapi-ratelimit-headers) is still an Internet-Draft as of mid-2026 — emit the de-facto headers today, adopt the IETF names when the RFC lands.
-
-| Algorithm | Burst | Best for |
-|-----------|-------|----------|
-| Fixed window | Spike at boundary | Simple quotas |
-| Sliding window | Smooth | Fair enforcement |
-| Token bucket | Yes | APIs allowing short bursts |
-| Leaky bucket | No | Strict throughput |
-
-**Multi-stack examples:**
-
-- **Node/Express:** `express-rate-limit` or `rate-limiter-flexible` with Redis
-- **Python/FastAPI:** `slowapi` (wraps `limits` library)
-- **Go/Gin:** `ulule/limiter` or `tollbooth`
-- **Java/Spring:** `bucket4j-spring-boot-starter` or Spring Cloud Gateway filters
-
-**Limiter failure is a design decision, not an accident.** The backing store (Redis, KV, a shared counter) goes away eventually; what the limiter does in that minute is part of the rule. Default **fail-closed** — reject with `429`/`503` — on auth, payment, signup, and every write endpoint. **Fail-open** is legal only where availability outweighs abuse (public read paths), and only when the choice is written beside the config: which endpoint class it covers, why, and the alert that fires while the limiter is degraded. An unhandled limiter exception that silently lets every request through is the same finding as having no limiter — and it takes effect precisely during the incident the limiter existed for. This is [security-arch.md](security-arch.md) SAR-07 (fail-closed authorization) applied one layer out, to throttling.
-
-**Impact:** Protects against abuse, credential stuffing, and denial-of-service. Required by OWASP API Top 10 (API4: Unrestricted Resource Consumption).
-
-**Source:** [IETF RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), [Stripe rate limiters](https://stripe.com/blog/rate-limiters)
-  - No rate limiting middleware on auth endpoints (login, register, password reset)
-  - No rate limiting on API endpoints
-  - No brute-force protection
-
-### API-06 [MEDIUM] Cursor Pagination
-**Detect:** Offset-based pagination (`?limit=20&offset=40`) on tables expected to exceed 10,000 rows or with real-time inserts.
-
-**Fix:** Switch to cursor-based pagination with consistent ordering.
-
-| Feature | Offset | Cursor |
-|---------|--------|--------|
-| Performance at scale | Degrades (DB skips N rows) | Constant (seeks to cursor) |
-| Data consistency | Duplicates/skips on concurrent writes | Stable |
-| Random page access | Yes | No (sequential) |
-
-Cursor pagination shows ~17x speedup over offset on 1M-row PostgreSQL tables at deep pages.
-
-**Impact:** Eliminates performance degradation on large, actively-written tables. Prevents duplicate or skipped rows in paginated results.
-
-**Source:** [Slack API pagination](https://api.slack.com/docs/pagination), [Zendesk cursor vs offset](https://developer.zendesk.com/documentation/api-basics/pagination/comparing-cursor-pagination-and-offset-pagination/)
-
-### API-07 [MEDIUM] Idempotency
-**Detect:** `POST` endpoints that create resources or trigger side effects without idempotency protection. Duplicate submissions create duplicate records.
-
-**Fix:** Accept `Idempotency-Key: <uuid>` header on non-idempotent mutation endpoints. Store key with response; return stored response on replay. Layering: hash the client-supplied key and namespace it per user before storage; treat the Idempotency-Key layer as an optional shield IN FRONT OF endpoint-specific server-side protections (unique constraints, state checks) — never as their replacement. (XR-194)
-
-- `PUT` and `DELETE` are naturally idempotent by spec
-- `POST` requires explicit idempotency keys for safety (payments, order creation)
-- Store idempotency records with TTL (24-48 hours)
-
-**Multi-stack examples:**
-
-- **Node/Express:** Middleware that checks Redis for `idempotency-key` before handler execution
-- **Python/FastAPI:** Dependency that queries a cache/DB for prior results by key
-- **Go/Gin:** Middleware with `sync.Map` or Redis-backed idempotency store
-- **Java/Spring:** `HandlerInterceptor` with cache lookup
-
-**Impact:** Enables safe client retries for network failures, especially critical for payment and order flows.
-
-**Source:** [Stripe Idempotent Requests](https://stripe.com/docs/api/idempotent_requests)
-
-### API-08 [MEDIUM] OpenAPI Specification
-**Detect:** API project without `openapi.json` or `openapi.yaml`. Endpoints undocumented in machine-readable format.
-
-**Fix:** Generate from code annotations or write spec-first. Lint in CI.
-
-| Practice | Why |
-|----------|-----|
-| Schemas in `components/schemas` | Code generators produce clean types |
-| `description` on every operation | Documentation quality |
-| Request/response `examples` | Enables automated test generation |
-| `tags` to group operations | Navigation in Swagger UI |
-| Spec linting in CI (Spectral: `spectral:oas` + `@stoplight/spectral-owasp-ruleset`) | Catches naming issues, broken refs, OWASP API risks |
-| Breaking-change detection in CI (oasdiff) | Blocks incompatible spec changes before release |
-| Contract tests | Verify server matches spec |
-
-Design-first (write YAML before code) produces cleaner contracts and enables frontend mocking during parallel development — serve the spec as a live mock (Prism or WireMock) so clients build against the contract before the backend exists.
-
-**Impact:** Machine-readable API contracts enable code generation, automated testing, and accurate documentation.
-
-**Source:** [OpenAPI 3.1 Specification](https://swagger.io/specification/), [OpenAPI Best Practices](https://learn.openapis.org/best-practices.html)
-
-### API-09 [LOW] HATEOAS Links
-**Detect:** API responses without navigation links. Clients must hard-code endpoint URLs.
-
-**Fix:** Add `_links` or `links` with `rel` types for discoverability:
-
-```json
-{
-  "orderId": 3,
-  "status": "pending",
-  "links": [
-    { "rel": "self",   "href": "/orders/3",       "method": "GET" },
-    { "rel": "cancel", "href": "/orders/3/cancel", "method": "POST" },
-    { "rel": "customer","href": "/customers/12",   "method": "GET" }
-  ]
-}
-```
-
-HATEOAS optional for internal APIs but valuable for public APIs to reduce client coupling and enable API evolution without breaking changes.
-
-**Impact:** Reduces client-side URL construction. Enables API evolution without breaking existing consumers.
-
-**Source:** [Richardson Maturity Model Level 3](https://martinfowler.com/articles/richardsonMaturityModel.html)
-
-### API-10 [LOW] GraphQL Best Practices
-**Detect:** GraphQL endpoint without query depth limiting or complexity analysis. Resolvers without batching (N+1 queries).
-
-**Fix:** Add query complexity analysis and depth limiting. Use DataLoader for batched resolution.
-
-| Issue | Fix |
-|-------|-----|
-| Unbounded depth | Set max depth (e.g., 10 levels) |
-| Unbounded complexity | Assign cost per field, reject over threshold |
-| N+1 queries | DataLoader (batches per-request) |
-| Introspection in production | Disable introspection on public endpoints |
-| Large responses | Pagination on list fields (connections pattern) |
-
-**Multi-stack examples:**
-
-- **Node/Apollo:** `depthLimit` + `createComplexityRule` + `DataLoader`
-- **Python/Strawberry:** `QueryDepthLimiter` extension + `aiodataloader`
-- **Go/gqlgen:** `extension.FixedComplexityLimit` + custom dataloaders
-- **Java/Spring GraphQL:** `DataFetcherInterceptor` for depth + `BatchLoader`
-
-**Impact:** Prevents denial-of-service via deeply nested or expensive queries. Eliminates N+1 database access patterns in resolvers.
-
-**Source:** [Apollo GraphQL Best Practices](https://www.apollographql.com/docs/apollo-server/performance/)
-### API-11 [CRITICAL] SSRF Protection on URL Fetches
-**Detect:** Server-side fetch of a user-supplied URL (webhook, link preview, image/PDF proxy, "import from URL") without host validation. Search: `requests.get(`, `fetch(`, `axios.get(`, `http.get(`, `URL(` with a host taken from request input. Every agent in Tenzai's 2026 study introduced SSRF in a URL-preview feature (100% rate).
-
-**Fix:** Validate the target before fetching:
-- Block private / loopback / link-local + cloud-metadata ranges: RFC 1918 (`10/8`, `172.16/12`, `192.168/16`), `127/8`, `169.254/16`, `::1`, and `169.254.169.254`.
-- Prefer a host allowlist; allow `https` only; disable `file:`/`gopher:`/`ftp:` schemes.
-- Re-validate after every redirect; resolve DNS once and connect to that resolved IP (defeats DNS rebinding).
-
-**Impact:** An unvalidated URL fetch lets an attacker reach internal services, cloud metadata endpoints, and cloud credentials from the server — turning a preview/webhook/import feature into a full internal-network foothold.
-
-**Source:** [CWE-918](https://cwe.mitre.org/data/definitions/918.html), [Tenzai 2026](https://blog.tenzai.com/bad-vibes-comparing-the-secure-coding-capabilities-of-popular-coding-agents/)
-
-### API-12 [HIGH] Mass Assignment & Client-Trusted State
-Distinct from API-04 (which flags an endpoint with *no* schema validation at all): API-12 fires even when a schema exists, on two narrower failure modes that survive API-04 being fixed.
-
-**Detect:** Request body fields spread or bound directly onto a DB model/entity with no explicit allowlist of writable fields (mass assignment / overposting — e.g. `User.update(req.body)`, `Model(**request.json)`); authorization or role/permission state read from client-supplied input (a `role` or `isAdmin` field in the request body, a hidden form field) instead of re-derived server-side from the authenticated session.
-
-**Fix:** Allowlist writable fields explicitly per endpoint (schema `pick`/`omit`, DTO, or ORM attribute allowlist) — never bind a request body onto a model wholesale. Re-derive authorization state (role, ownership, permissions) from the server-side session/DB on every request; never trust a client-supplied authorization field.
-
-**Impact:** Mass assignment lets an attacker set fields the UI never exposes (`role`, `isAdmin`, `balance`) by adding them to the request body; trusting client-supplied authorization state allows privilege escalation with one crafted field, independent of whether schema validation is otherwise in place.
-
-**Source:** [OWASP API Security Top 10 — API3 Broken Object Property Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/)
-
-### API-13 [LOW] API Style Selection
-**Detect:** API style adopted without evaluating client requirements — GraphQL introduced for a single-client API, or tRPC exposed as a public API.
-
-**Fix:** Default to REST; adopt an alternative only when its condition holds:
-
-| Style | Choose when | Avoid when |
-|-------|-------------|------------|
-| REST | Default — public APIs, single dominant client shape | — |
-| GraphQL | Multiple client types with genuinely different data needs for the same resources | Single client, uniform data shapes |
-| tRPC | TypeScript-first monorepo, internal services — pair with REST for the public surface | Public API or polyglot consumers |
-
-**Impact:** Matching style to demonstrated client needs avoids GraphQL operational complexity where REST suffices, and avoids over-/under-fetching where client shapes genuinely diverge.
-
-**Source:** [Fern API design guide (2026)](https://buildwithfern.com/post/api-design-best-practices-guide), [Complete guide to API design in 2026](https://dev.to/zny10289/the-complete-guide-to-api-design-in-2026-rest-graphql-and-trpc-in-production-4ib2), [API design trends 2026](https://calmops.com/backend/api-design-trends-2026/)
-
-### API-14 [HIGH] Long-Lived Connections Ship With a Stateless Fallback Transport
-Critical realtime updates delivered over a persistent connection (WebSocket/SSE) automatically fall back to stateless polling with exponential backoff.
-
-**Detect:** WS/SSE as the only delivery path for critical state; no automatic downgrade when the persistent connection dies; auth/permanent errors funneled into the same silent-retry loop as transient drops.
-
-**Fix:** Layer a stateless HTTP-polling fallback with exponential backoff under the persistent transport — mobile-network proxies and captive portals silently kill long-lived connections routinely, so this is resilience, not duplication. Exclude authentication and other permanent errors from the fallback path: rethrow them immediately instead of retrying forever.
-
-**Impact:** Without fallback, users behind common mobile/corporate middleboxes see a permanently frozen app; with auth errors swallowed by retry, a revoked session spins silently instead of re-prompting login.
-
-**Source:** XR-077 — cross-project experience registry (2026).
-
-### API-15 [CRITICAL] Broken Object-Level Authorization (BOLA)
-Complements AUTH-11 ([auth.md](auth.md)), which adds the cross-user regression-test methodology — this entry is the API-design-side detection surface for the same OWASP API1 risk.
-
-**Detect:** An endpoint that accepts an object ID in the path or body (`/orders/{id}`, `/users/{id}/invoices/{invoiceId}`) and fetches or mutates that object by ID alone, with no check that the authenticated caller owns or is authorized for that specific instance — only role/authentication is verified, not object-level ownership. Applies to GET/PUT/PATCH/DELETE alike, not just writes.
-
-**Fix:** On every object-scoped endpoint, verify the authenticated caller is authorized for THIS object instance before returning or mutating it — a scoped query (`WHERE id = ? AND user_id = ?` instead of `WHERE id = ?`), an ownership check, or an ACL lookup. Never rely on the ID being "hard to guess" as the only control.
-
-**Impact:** BOLA has held the #1 OWASP API risk spot since 2019 and accounts for roughly 40% of API attacks — an authenticated-but-unauthorized caller can enumerate IDs and read or modify any other user's data.
-
-**Source:** [OWASP API Security Top 10 2023 — API1 Broken Object Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/)
-
-### API-16 [HIGH] Middleware Ordering
-**Detect:** Security-relevant middleware registered out of order — authorization checks before authentication runs, rate limiting after the expensive handler instead of before it, security headers missing or applied only on error paths, request logging that doesn't capture the identity attached by auth.
-
-**Fix:** Apply the standard order: CORS → security headers (HSTS, `X-Content-Type-Options`, etc.) → request-ID injection → structured request logging → body parsing/content negotiation → authentication (verify token/key, attach identity) → rate limiting (per identity or IP) → authorization (check permissions for the route) → route handler → error handler (formats thrown errors to RFC 9457).
-
-**Impact:** Authorization before authentication checks permissions against an unverified identity; rate limiting after the handler lets abusive traffic pay the handler's full cost before being rejected — misordering silently defeats the control it appears to provide.
-
-**Source:** [OWASP REST Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html), [Express.js — Using middleware](https://expressjs.com/en/guide/using-middleware.html)
-
-### API-17 [MEDIUM] Structured Request Logging & Correlation ID
-**Detect:** Request logs as unstructured strings (`console.log`, `print`) instead of a consistent schema; no request-scoped correlation ID propagated to the client and echoed in error responses.
-
-**Fix:** Log every request with a consistent structured schema (`request_id`, `method`, `path`, `status`, `duration_ms`, `user_id` when authenticated). Generate or propagate a request ID and return it as `X-Request-ID` on every response so clients can correlate reports with server logs.
-
-**Impact:** Without a correlation ID, reproducing a user-reported failure means grepping logs by timestamp and guesswork instead of one exact-match lookup — incident response and support both slow down.
-
-**Source:** [OWASP Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
-
-### API-18 [HIGH] Unrestricted Resource Consumption Limits
-**Detect:** No enforced maximum on request body size, list/page size (`?limit=`), array length in request payloads, or per-request timeout — distinct from API-05 (request rate limiting), which bounds frequency, not payload or execution cost.
-
-**Fix:** Enforce a maximum body size at the framework/proxy layer, cap `limit`/`page_size` query parameters server-side regardless of what the client requests, bound array/batch sizes in mutation payloads, and set a request timeout on every handler and outbound call.
-
-**Impact:** Even a rate-limited endpoint can be starved by a single oversized request (huge body, unbounded page size, or a batch array with no cap) — resource-consumption limits close the gap rate limiting alone leaves open.
-
-**Source:** [OWASP API Security Top 10 2023 — API4 Unrestricted Resource Consumption](https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/)
-
-### API-19 [HIGH] Security Misconfiguration
-**Detect:** Stack traces or internal error detail returned in production API responses; CORS configured with a wildcard origin (`Access-Control-Allow-Origin: *`) combined with `Access-Control-Allow-Credentials: true`; debug/introspection endpoints (framework debug mode, admin panels, GraphQL introspection) reachable without authentication in a production deployment.
-
-**Fix:** Strip stack traces and internal detail from error responses outside local development (RFC 9457 `detail` field states the problem, never the exception dump). Scope CORS to an explicit origin allowlist — never combine a wildcard origin with credentialed requests. Gate debug endpoints and introspection behind authentication or disable them entirely in production.
-
-**Impact:** A stack trace discloses file paths, library versions, and query structure to an attacker for free; wildcard CORS plus credentials lets any origin make authenticated requests on a logged-in user's behalf; an open debug/admin endpoint is a direct foothold.
-
-**Source:** [OWASP API Security Top 10 2023 — API8 Security Misconfiguration](https://owasp.org/API-Security/editions/2023/en/0xa8-security-misconfiguration/)
-
-### API-20 [MEDIUM] Unsafe Consumption of Third-Party APIs
-**Detect:** Responses from third-party APIs, webhooks, or partner integrations consumed without validation — fields used directly in queries, file paths, or rendered output; webhook payloads trusted without signature verification; a third-party redirect or URL followed without the same host-validation applied to user input (API-11).
-
-**Fix:** Treat every third-party response as untrusted input: validate its shape against a schema before use, verify webhook signatures before processing the payload, and apply the same injection/SSRF defenses used for user input (parameterized queries, output encoding, host allowlisting).
-
-**Impact:** Third-party integrations are often granted more implicit trust than user input despite being an equally attacker-influenced channel — a compromised or spoofed upstream (fake webhook, malicious redirect, poisoned API response) reaches the same code paths a direct attack would use.
-
-**Source:** [OWASP API Security Top 10 2023 — API10 Unsafe Consumption of APIs](https://owasp.org/API-Security/editions/2023/en/0xaa-unsafe-consumption-of-apis/)
+# API — contract, limits, server-side request safety
+
+Loaded when the project serves an API (`api≠none`). Boundary validation is SEC-05, error bodies without internals SAR-06, object access AUTH-11, body size and timeouts NWK-06 and NWK-07, request logging with a request ID OBS-01, deprecation headers DEP-16.
+
+### API-01 [HIGH] Verbs in REST resource paths
+applies_when: api∋rest
+- **Detect:** routes named for actions (`/getUsers`, `/createOrder`, `/deleteItem/5`) instead of resources with HTTP methods; singular and plural collection names mixed.
+- **Mech:** T `git grep -nIE "['\"]/(api/)?(v[0-9]+/)?(get|create|update|delete|fetch|remove|add|list)[A-Z_-]" -- ':!*.md' ':!*test*'`
+- **Fix:** plural nouns for collections, the method for the action (`GET /users`, `POST /orders`, `DELETE /items/5`); a non-CRUD action becomes a sub-resource or a custom method in one documented style.
+- **Impact:** inconsistent paths confuse clients and defeat HTTP caching, tooling and method semantics.
+- **Source:** Google Cloud API Design Guide (resource-oriented design); RFC 9110 (method semantics).
+
+### API-02 [HIGH] Error responses in several shapes
+- **Detect:** different error bodies across endpoints (`{message}`, `{error}`, plain strings, HTML); a body status that disagrees with the HTTP status; validation errors without a pointer to the failing field.
+- **Mech:** T `git grep -nIE 'problem\+json|ProblemDetail|HTTPException|res\.status\([45][0-9]{2}\)|status_code[[:space:]]*=[[:space:]]*[45][0-9]{2}|abort\([45][0-9]{2}' -- ':!*test*' ':!*.md'`
+- **Fix:** one error handler emitting RFC 9457 `application/problem+json` (`type`, `title`, `status`, `detail`, `instance`, plus field errors) for every failure path; gRPC uses `google.rpc.Status`, GraphQL the `errors` array with `extensions.code`.
+- **Impact:** clients and monitors cannot parse failures reliably, so errors are mishandled or missed.
+- **Source:** RFC 9457 (Problem Details for HTTP APIs).
+
+### API-03 [HIGH] Public API changes break clients without a version
+applies_when: api∋rest
+- **Detect:** an API consumed outside the repo (mobile app in stores, third parties, other teams) with no versioning scheme, or several schemes mixed; breaking changes (removed field, changed type, new required field) shipped in place.
+- **Mech:** M (API-08's diff output when a spec exists)
+- **Fix:** one scheme (URI major version is the simplest); additive changes need no new version; a breaking change ships as a new major version while the old one stays served through an announced window (DEP-16).
+- **Impact:** a deploy silently breaks clients that cannot update at once, such as installed mobile apps.
+- **Source:** Semantic Versioning 2.0.0; Google Cloud API Design Guide (versioning); Stripe API versioning.
+
+### API-05 [HIGH] No rate limit, or a limiter that fails open
+- **Detect:** public, login, signup, password reset, MFA and costly endpoints with no per-client limit; WebSocket upgrades or GraphQL operations outside the limiter; endpoints neither limited nor on an explicit exemption list; a limiter whose store error is caught and the request let through, with no decision recorded; no `429` with `Retry-After`; error messages that tell a wrong password from an unknown account (AUTH-21).
+- **Mech:** T `git grep -nIiE 'rate.?limit|throttl|slowapi|express-rate-limit|rate-limiter-flexible|bucket4j|limiter' -- ':!*.md'`
+- **Fix:** per-identity and per-IP limits (sliding window or token bucket) in front of handlers, tighter on auth endpoints with progressive delay; one budget shared by REST and WebSocket attempts; fail closed (`429`/`503`) on auth, payment and write paths when the store is down, fail open only on public reads with the choice written beside the config and an alert while degraded; a test asserts every route is limited or exempt-listed.
+- **Impact:** credential stuffing, scraping and cost abuse run unthrottled, and a silent fail-open removes the limiter exactly during the incident it exists for.
+- **Source:** OWASP API4:2023 Unrestricted Resource Consumption; OWASP Credential Stuffing Prevention Cheat Sheet; RFC 6585 (429).
+
+### API-06 [MEDIUM] List endpoints unbounded or offset-paginated at scale
+- **Detect:** list endpoints returning every row; a client-chosen `limit`/`page_size` with no server cap; offset pagination over large or actively written collections (deep pages scan skipped rows and shift under inserts).
+- **Mech:** T `git grep -nIE '(limit|page_?size|per_?page|first).*(req\.|request\.|query|params)|OFFSET|\.offset\(|\.skip\(' -- ':!*test*' ':!*.md'`
+- **Fix:** paginate every list with a server-side maximum page size; keyset (cursor) pagination on a stable unique ordering for large or live collections; offset only for small, static lists that need page jumps.
+- **Impact:** one request for everything exhausts memory and the database; deep offsets get slower per page and return duplicates or gaps.
+- **Source:** OWASP API4:2023; PostgreSQL docs, LIMIT and OFFSET (skipped rows are still computed).
+
+### API-07 [MEDIUM] Retried writes create duplicates
+- **Detect:** `POST` endpoints with side effects (payments, orders, messages, provisioning) and no idempotency key or natural unique constraint; clients that retry such calls.
+- **Mech:** T `git grep -nIiE 'idempotency.?key' -- ':!*.md'` · `git grep -nIE '\.(post|put|patch)\(' -- ':!*test*' ':!*.md'`
+- **Fix:** accept an `Idempotency-Key` header, store it namespaced per caller with the response and a TTL, and replay the stored response; keep unique constraints and state checks as the real guard behind it.
+- **Impact:** a network retry charges a customer twice or creates duplicate records.
+- **Source:** IETF draft "The Idempotency-Key HTTP Header Field" (httpapi WG); Stripe, Idempotent requests.
+
+### API-08 [MEDIUM] No machine-readable API contract
+applies_when: api∋rest or api∋graphql or api∋grpc
+- **Detect:** an API consumed outside its own codebase with no OpenAPI document, GraphQL schema file or `.proto`; a spec not linted or not checked for breaking changes in the gate; a spec that disagrees with the routes.
+- **Mech:** T `git ls-files | grep -iE '(openapi|swagger)[^/]*\.(ya?ml|json)$|\.graphqls?$|\.proto$'`
+- **Fix:** generate the contract from code or write it first; lint it (Spectral for OpenAPI, `buf lint` for protobuf) and diff it against the base for breaking changes (oasdiff, `buf breaking`) in the gate; a contract test checks the server against it.
+- **Impact:** clients guess the contract, and breaking changes reach them unnoticed.
+- **Source:** OpenAPI Specification 3.1; Spectral (stoplight.io); oasdiff (github.com/oasdiff/oasdiff); Buf (buf.build).
+
+### API-10 [HIGH] GraphQL queries unbounded
+applies_when: api∋graphql
+- **Detect:** no depth or cost limit; list fields without pagination; resolvers that query per parent (no DataLoader-style batching); introspection and field suggestions enabled on a public production endpoint; batched operations or aliases with no cap.
+- **Mech:** T `git grep -nIiE 'depthLimit|depth_limit|QueryDepthLimiter|ComplexityLimit|createComplexityRule|introspection|DataLoader|maxAliases|batch' -- ':!*.md'`
+- **Fix:** depth and cost limits, connection-style pagination, per-request batching, introspection off for public production clients, caps on aliases and batch size.
+- **Impact:** one nested query costs the server more than a thousand ordinary requests.
+- **Source:** OWASP GraphQL Cheat Sheet; OWASP API4:2023.
+
+### API-11 [CRITICAL] Server fetches a caller-supplied URL
+- **Detect:** server-side requests to a URL or host from input (webhook target, link preview, image or PDF proxy, import from URL, OAuth metadata) with no destination check; redirects followed without re-checking; schemes other than `https` allowed.
+- **Mech:** T `git grep -nIE '(requests\.(get|post)|urlopen|fetch|axios(\.(get|post))?|http\.Get|HttpClient|WebClient|curl_init)\(.*(req\.|request\.|params|query|body|url)' -- ':!*test*' ':!*.md'`
+- **Fix:** an allow-list of hosts where possible; otherwise resolve once, reject private, loopback, link-local and metadata addresses (`10/8`, `172.16/12`, `192.168/16`, `127/8`, `169.254/16`, `::1`, `fc00::/7`) and connect to the checked IP; `https` only; re-check every redirect hop; run fetchers without cloud credentials where possible.
+- **Impact:** the server becomes a proxy into internal services and cloud metadata, leaking credentials.
+- **Source:** OWASP A01:2025 (SSRF); OWASP SSRF Prevention Cheat Sheet; CWE-918.
+
+### API-12 [HIGH] Request body bound onto a model wholesale
+- **Detect:** a request body spread or bound onto a database model or entity without an allow-list of writable fields (`Model.update(req.body)`, `Model(**request.json)`, `Object.assign(entity, req.body)`, Rails `permit!`, unbound `@ModelAttribute`); response serializers that return every column. Client-asserted roles are SAR-07.
+- **Mech:** T `git grep -nIE '\.(update|create|build|assign|merge|insert)\([[:space:]]*(req\.body|request\.(json|data|POST|form))|\*\*request\.(json|data|form)|Object\.assign\([^,]+,[[:space:]]*req\.body|permit!' -- ':!*test*' ':!*.md'`
+- **Fix:** an explicit DTO or schema per endpoint listing writable fields; explicit response schemas that list readable fields.
+- **Impact:** an attacker sets fields the UI never shows (`role`, `isAdmin`, `balance`) or reads ones it never displays.
+- **Source:** OWASP API3:2023 Broken Object Property Level Authorization; CWE-915.
+
+### API-16 [HIGH] Security middleware in the wrong order
+- **Detect:** authorization registered before authentication; rate limiting after body parsing of large payloads or after the handler; headers or CORS applied only on success paths; routes registered before the auth middleware they rely on.
+- **Mech:** T `git grep -nIE 'app\.use\(|router\.use\(|\.Use(Authentication|Authorization|Cors|RateLimiter)\(|add_middleware\(|MIDDLEWARE[[:space:]]*=|\.addFilter(Before|After)\(' -- ':!*.md'`
+- **Fix:** CORS and headers → request ID and logging → size limit and parsing → authentication → rate limit by identity → authorization → handler → error handler.
+- **Impact:** a control registered out of order checks an unverified identity or runs after the cost it should prevent.
+- **Source:** OWASP REST Security Cheat Sheet; Express, Using middleware (order of execution).
+
+### API-19 [HIGH] CORS allows any origin with credentials
+applies_when: ui∋web or api≠none
+- **Detect:** `Access-Control-Allow-Origin` reflecting the request `Origin` or `*` together with `Access-Control-Allow-Credentials: true`; origin checks by substring or suffix; `null` origin allowed.
+- **Mech:** T `git grep -nIiE 'Access-Control-Allow-(Origin|Credentials)|cors\(|allow_origins|AllowAnyOrigin|allowedOrigins|origin[[:space:]]*:[[:space:]]*(true|\*)' -- ':!*.md'`
+- **Fix:** an exact allow-list of origins for credentialed requests; no reflection of arbitrary origins.
+- **Impact:** any website makes authenticated requests as the logged-in user and reads the responses.
+- **Source:** OWASP API8:2023 Security Misconfiguration; OWASP HTML5 Security Cheat Sheet (CORS); CWE-942.
+
+### API-20 [HIGH] Webhooks or third-party responses trusted unverified
+applies_when: integrations≠none or api≠none
+- **Detect:** incoming webhooks processed without verifying the provider's signature; the signature computed over re-serialized JSON instead of the raw body; signatures compared with `==` instead of a constant-time function; no timestamp tolerance or event-ID dedupe against replay; third-party API responses used in queries, paths or HTML without validation.
+- **Mech:** T `git grep -nIiE 'webhook|x-hub-signature|stripe-signature|svix|constructEvent|hmac' -- ':!*.md'`
+- **Fix:** verify with the provider SDK or HMAC over the raw body using `hmac.compare_digest` / `crypto.timingSafeEqual` / `hmac.Equal`; reject events outside a few minutes of tolerance and dedupe by event ID (API-07); validate third-party payloads against a schema like user input.
+- **Impact:** anyone who finds the endpoint forges payment or account events, or replays a captured one.
+- **Source:** OWASP API10:2023 Unsafe Consumption of APIs; CWE-208, CWE-345; Stripe, Check the webhook signatures.

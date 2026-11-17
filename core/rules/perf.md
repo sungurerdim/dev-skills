@@ -34,7 +34,7 @@ applies_when: ui≠none
 ### PRF-07 [HIGH] Unbounded concurrency or connections
 - **Detect:** `Promise.all`, `gather` or goroutines over an input-sized collection with no limit; one task per item on a burst workload calling a metered API; a new database or HTTP connection per request; a pool size never set or never sized against measured concurrency.
 - **Mech:** T `git grep -nIE 'Promise\.all\(|asyncio\.gather\(\*|go func\(' -- ':!*test*' ':!*.md'`
-- **Fix:** a semaphore or worker pool sized from the downstream's measured capacity; one shared pool per process with an explicit maximum (DB-04, NWK-09).
+- **Fix:** a semaphore or worker pool sized from the downstream's measured capacity; one shared pool per process with an explicit maximum (NWK-09).
 - **Impact:** a traffic spike exhausts connections and descriptors and becomes an outage for every consumer of the same resource.
 - **Source:** CWE-770 (Allocation of Resources Without Limits or Throttling).
 
