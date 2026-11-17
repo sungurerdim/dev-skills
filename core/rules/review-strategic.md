@@ -21,7 +21,7 @@ Strategic, architecture-level analysis scopes. 9 scopes, 110 checks.
 | patterns | PAT-01 to PAT-15 | Inconsistent error handling/logging/async, SOLID/DRY violations, primitive obsession, data clumps, framework anti-patterns |
 | testing | TST-01 to TST-14 | Coverage by module, critical path test existence, test-to-code ratio, missing negative/boundary tests, test isolation, mock balance, flaky indicators |
 | maintainability | MNT-01 to MNT-12 | Cyclomatic complexity >15, cognitive complexity >20, methods >50 lines, >4 parameters, nesting >3, magic numbers, hardcoded config, boolean flags, temporal coupling |
-| ai-architecture | AIA-01 to AIA-14 | Over-engineering (interface with 1 impl, abstract class with 1 subclass, factory for 1 type), local-only solutions presented as reusable, architectural drift, pattern inconsistency; product-facing LLM features: untrusted input concatenated into prompts (injection surface), model output consumed without schema validation, no eval/regression set for prompt changes, no per-call cost tracking |
+| ai-architecture | AIA-01 to AIA-14 | Local-only solutions presented as reusable, architectural drift, pattern inconsistency; product-facing LLM features: untrusted input concatenated into prompts (injection surface), model output consumed without schema validation, no eval/regression set for prompt changes, no per-call cost tracking |
 | functional-completeness | FUN-01 to FUN-18 | Missing CRUD/pagination/filter, incomplete error handling, state transition gaps, caching/indexing strategy |
 | production-readiness | PRD-01 to PRD-07 | Health/readiness probes, graceful shutdown, config validation, secret injection method, container/deployment hygiene, observability, scaling bottlenecks |
 | cross-cutting | XCT-01 to XCT-05 | Decision impact tracing: how one architectural choice affects other areas. Only report concrete cross-area impacts with evidence at file:line |
@@ -88,9 +88,6 @@ Every scope's checks are individually identified so a run can report exactly whi
 
 | ID | Severity | Check |
 |----|----------|-------|
-| AIA-01 | MEDIUM | Over-engineered interface (1 implementation) |
-| AIA-02 | MEDIUM | Over-engineered abstract class (1 subclass) |
-| AIA-03 | MEDIUM | Over-engineered factory (1 type) |
 | AIA-04 | MEDIUM | Local-only solution presented as reusable |
 | AIA-05 | MEDIUM | Architectural drift |
 | AIA-06 | MEDIUM | Pattern inconsistency |

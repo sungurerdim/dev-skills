@@ -308,8 +308,9 @@ def scan(root: Path, phase: str, core: Path = None) -> list:
 
 
 def run_mech(root: Path, rid: str, cls: str, cmd: str, state) -> dict:
-    cmd = cmd.replace("{base}", (state or {}).get("base") or "HEAD")
-    tool = cmd.split()[0]
+    cmd = cmd.replace("{base}", (state or {}).get("base") or "HEAD").replace(
+        "{audit}", f'"{sys.executable}" -B "{HERE / "audit.py"}" --root "{root}"')
+    tool = cmd.split()[0].strip('"')
     row = {"rule": rid, "class": cls, "cmd": cmd}
     if tool not in ("git", "grep", "test", "find") and not shutil.which(tool):
         return dict(row, status="tool absent")

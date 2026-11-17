@@ -2,7 +2,7 @@
 
 Principle-based detection scopes (SSOT, DRY, KISS, YAGNI, SoC). Each scope defines: detector rule, threshold, false-positive guard, skip patterns.
 
-**Delegated scopes.** `yagni`, `obsolete`, and function/module-level `duplicate` detection are not run here — [simplify.md](simplify.md) covers them (`dead-code`, `premature-abstraction`, `orphan`, `fallback`, and `quarantine` scopes cover this ground).
+**Not here:** YAGNI, obsolete code and module-level duplication run in the lean phase — [simplify.md](simplify.md) SIM-01..07.
 
 ## SSOT-ARCHITECTURAL [HIGH] Same fact in 2+ authoritative locations
 
@@ -81,16 +81,6 @@ When a single file:line surfaces in multiple meta-quality scopes (e.g., a functi
 1. **Same file:line** → merge into one finding, list all matched scopes, keep the highest severity.
 2. **Within 10 lines** → merge if the underlying issue is the same (e.g., two adjacent duplicates).
 3. **Contradictory findings** (one detector says "delete", another says "extract") → keep the higher-confidence finding, discard the other.
-
-## Anti-overengineering 3-gate (every finding)
-
-Report a finding only when AT LEAST ONE harm signal is present; no signal → silent discard, no flag.
-
-1. **Breaks:** it breaks something — now, or on a predictable path (e.g. drift between duplicated sources).
-2. **Misleads:** it misleads a future reader (human or AI) about what is live, canonical, or intended.
-3. **Not worth its keep:** the complexity costs more to keep than the value it adds.
-
-In doubt on signal 3 → treat the complexity as worth its keep (that signal does not fire). Canonical statement of this gate: [kernel](../kernel.md) §4 — the text here is the detector-side restatement, not a second source of truth.
 
 ## Confidence-driven reporting
 

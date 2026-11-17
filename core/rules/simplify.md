@@ -1,59 +1,52 @@
-# Simplification scopes
+# Simplify — code that should not exist
 
-Per-scope detection steps, evidence format, and proposal for 8 deletion/simplification scopes (kernel.md §1 step 3).
+Code-level removal for the lean phase; the project-level proportion rules are in [lean.md](lean.md). Tool output upgrades the detector, never the decision: every hit is confirmed by reading it (kernel §4 skip list: public API manifests, `__all__`, framework entry points, generated code, test fixtures) and every removal passes Category A/B. Chesterton's fence: read the `git log` of what is removed.
 
-**Deterministic detector preference (advisory):** for `dead-code` / `orphan` / `single-caller` on JS/TS, Knip binary or config present → run it and use its module-graph output (entry-point-aware, framework-plugin coverage) as the primary evidence; absent → LSP/grep detectors below. Repo configured with ts-prune but not Knip → still run it, but note in the report that ts-prune is officially in maintenance mode and recommend migrating to Knip (~150 framework plugins, entry-point-aware). For Python `dead-code`, Vulture present → run with `--min-confidence 80`; findings at ≥80 confidence enter the table directly, below 80 → flag with confidence noted and hold for Review Each; absent → LSP/grep detectors below. Tool output still passes false-positive prevention and the Category A/B decision (kernel.md §4) — the tool upgrades the detector, never bypasses the gate.
+### SIM-01 [MEDIUM] Dead code
+- **Detect:** exports, functions, files and parameters with zero code references. A `git grep -w {name}` hit inside a comment, a doc or a string literal is not a reference. Skip exports in public API manifests (`exports` in `package.json`, `__all__`, a library's public re-exports).
+- **Mech:** T `knip --no-progress` · `vulture . --min-confidence 80` · `deadcode ./...`
+- **Fix:** delete it with its tests and docs; a parameter nothing passes is removed from the signature and every call site.
+- **Impact:** dead code is read, kept compiling, tested and migrated forever, and misleads readers about what is live.
+- **Source:** YAGNI; Knip (knip.dev), Vulture, golang.org/x/tools/cmd/deadcode.
 
-## dead-code
+### SIM-02 [LOW] Single-caller indirection
+- **Detect:** an internal helper, wrapper or export with exactly one caller and under ~10 lines, adding a name without hiding complexity. Skip recursive helpers, trait or interface implementations, and helpers that isolate a side effect for testing.
+- **Mech:** M (reference counts from SIM-01's tools or `git grep -cw {name}`)
+- **Fix:** inline at the caller and remove the export.
+- **Impact:** every hop costs a reader a jump; one-caller layers hide nothing.
+- **Source:** KISS; Fowler, *Refactoring* (Inline Function).
 
-1. Collect all exported symbols (language-specific: `export`, `module.exports`, `pub fn`, `public`, Dart `public` by default).
-2. For each export, count references via LSP `findReferences` or `git grep -w {name}`.
-3. **String-literal confirmation:** a `git grep` hit inside a comment, a doc (`.md`/`.txt`), or a quoted string literal is not a code reference. Re-run `git grep -w {name} -- '*.{ext}' ':!*.md' ':!*.txt'` and read each match's line — a symbol whose only remaining hits sit inside string literals, comments, or docs is still dead, not a false negative.
-4. Reference count (code references only, after step 3) = 0 → finding. Include file:line of export + "zero references" evidence.
-5. Skip exports in public API manifests (`exports` in `package.json`, Dart `lib/` public re-exports, `__all__` in Python).
-6. **Dead/mismatched parameters:** for each function definition, collect its signature (param names + types); diff against every call site — unused params, extra args at call site, wrong-order params (type-checked only if LSP) → finding with function file:line + caller file:line. A param nothing calls with is dead code at the signature level.
+### SIM-03 [MEDIUM] Branch that never runs
+- **Detect:** compatibility residue (`legacy`, `backward compat`, version checks below the minimum supported runtime, `catch` that returns a default with no re-throw) and feature-flag branches whose flag is the same literal in every config source with no runtime setter. A flag set remotely, per tenant or at runtime is skipped.
+- **Mech:** T `git grep -nIiE 'backward.?compat|legacy|deprecated|for old (clients|versions)'`
+- **Fix:** delete the dead branch and the flag; in an unreleased product with no external consumer delete compatibility shims outright (Breaking-first in [engineering.md](engineering.md)); a shim genuinely needed during a transition gets a removal date in the same line.
+- **Impact:** untested branches rot silently and double the paths a reader must consider.
+- **Source:** YAGNI; Piranha (Uber) for stale-flag removal.
 
-## single-caller
+### SIM-04 [MEDIUM] Premature abstraction
+- **Detect:** an interface or abstract base with one implementation, a factory for one type, a generic container, wrapper, hook or plugin point with ≤ 2 concrete uses, a config option nothing sets. Evidence: the abstraction's `file:line` and each use.
+- **Mech:** M
+- **Fix:** inline the uses and drop the abstraction; reintroduce it when a second real use exists.
+- **Impact:** speculative indirection is paid for on every change and usually guesses the future wrong.
+- **Source:** YAGNI; Metz, "duplication is far cheaper than the wrong abstraction".
 
-1. Collect internal exports (not in public API).
-2. Count references (same string-literal confirmation as dead-code step 3). Count = 1 → finding with caller file:line + "1 reference at {file}:{line}" evidence.
-3. Propose: inline at caller, remove export.
-4. Skip: recursive helpers, classes with subclasses, trait implementations.
+### SIM-05 [LOW] Code kept "just in case"
+- **Detect:** commented-out code, `// removed`, `// TODO: delete`, `// unused`, `_unused` renames, files named `old_*`/`*_backup`/`*.bak`.
+- **Mech:** S `git grep -nIE '//\s*(removed|unused|TODO:? delete|kill this)|_unused[A-Z_]' -- ':!*.md'` · `git ls-files '*_backup*' '*.bak' '*/old_*'`
+- **Fix:** delete; git history keeps it.
+- **Impact:** quarantined code is noise every reader and every search has to skip.
+- **Source:** Boy Scout rule; git as the archive.
 
-## fallback
+### SIM-06 [MEDIUM] One fact, several homes
+- **Detect:** the same business value or rule (threshold, URL, limit, enum mapping, regex) declared in two or more source files with the same role. Test fixtures, protocol constants and framework-required literals are not findings.
+- **Mech:** T `jscpd --min-lines 6 --reporters console .`
+- **Fix:** one owning definition; others import it.
+- **Impact:** a change lands in one home and the others silently disagree.
+- **Source:** DRY / single source of truth (Hunt & Thomas).
 
-Dead/unreachable branches from two sources — backward-compat residue and feature flags whose value never varies. Both end up as the same finding shape (a branch that never executes); scanned together under one scope.
-
-1. **Compat residue:** scan patterns `// @deprecated`, `// backward compat`, `// legacy`, `if ({old-version-check})`, `catch { return null }` with no re-throw, feature detection where feature is guaranteed by minimum runtime version. Each match → finding with file:line + evidence snippet + proposal.
-2. **Pre-release residue discipline:** While a product is unreleased with no external consumers, backward-compat shims, redirect residue, and dual-model retention are never required — prefer the cleanest single-canonical resolution; the "breaking change" constraint is void. Shims/redirects genuinely forced during a transition are explicitly time-boxed and removed in the next release. Where tooling exists, seal the no-residue discipline with a mechanical gate (unused-code/knip-class audit) so residue can't re-accumulate. (XR-116; see also Breaking-first in [engineering](engineering.md) — Breaking-first)
-3. **Dead feature-flag branches:** grep feature-flag references (`process.env.{FLAG}`, `flags.{x}`, `if (config.{x})`). Statically resolvable flags only: the flag's value is a constant across every config source (all env files/`.env.example`, config files, deployment manifests set the same literal; no runtime setter/toggle mechanism exists) → the never-selected branch is dead → finding, evidence = flag name + each config source file:line showing the constant value + "no runtime setter found". Flag value not statically resolvable (remote config, per-tenant, runtime toggle) → skip, never guess runtime behavior.
-4. **Stale-flag governance (advisory):** flags are a distinct compounding debt class — for each flag found in step 3, check for lifecycle metadata (owner + expiry date in the flag registry/config/comment; temporary-vs-permanent designation). Temporary flag with no owner/expiry, or whose value has been constant since a git-blame date older than 90 days → advisory finding "stale flag — assign owner+expiry or remove" (industry practice: owner + expiration set at creation, removal automated — Uber's Piranha removed ~2,000 stale flags this way). Advisory only; never delete a flag whose branch is not provably dead under step 3.
-
-## premature-abstraction
-
-1. Find generic containers, base classes, wrappers, higher-order hooks, render props with ≤3 concrete usages.
-2. Evidence: abstraction file:line + usage count + file:line of each usage.
-3. Proposal: inline usages, drop abstraction.
-
-## quarantine
-
-1. Grep: `// removed`, `// legacy`, `// deprecated`, `// TODO: delete`, `// kill this`, `// unused`, variable `_unused{name}`.
-2. Each match → finding with context.
-
-## test-realism (advisory handoff, no local detector)
-
-Apply [testing.md](testing.md)'s value rule and fixture-realism checks.
-
-## ssot-violation
-
-1. Build constant map: string/number literals ≥3 chars appearing in 2+ source files.
-2. Filter: exclude test fixtures + framework-expected literals (config keys, HTTP status codes, well-known MIME types).
-3. Remaining duplicates → finding. Evidence: each occurrence file:line.
-4. Propose: single export location.
-
-## orphan
-
-1. Collect: source files, images, JSON, CSS/SCSS, `.md` files under `docs/` or repo root.
-2. Per file, `git grep -n` across tracked files for the filename (with + without extension) and relative path patterns.
-3. Zero inbound references → finding.
-4. Skip: entry points, config files named by convention (`.eslintrc*`, `tsconfig.json`, etc.), `README.md`, `LICENSE`, `CHANGELOG.md`.
+### SIM-07 [LOW] Orphan file
+- **Detect:** a tracked source, asset, stylesheet or doc no other tracked file names (with or without extension). Skip entry points, convention-named config, `README`, `LICENSE`, `CHANGELOG`.
+- **Mech:** T `knip --include files --no-progress`
+- **Fix:** delete it, or link it from where it is meant to be found.
+- **Impact:** orphans look live and get maintained for nothing.
+- **Source:** YAGNI.

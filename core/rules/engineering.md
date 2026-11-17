@@ -58,10 +58,9 @@ Operational and scaffolding passes check each factor; a factor with no Detect co
 
 | Rule | Interpretation | Detect |
 |------|----------------|--------|
-| **YAGNI** | Propose only what the stated goal needs; never speculate on future needs. | Abstraction, config option, or parameter with exactly one consumer and no second caller anywhere = finding (kernel §4: report only what breaks, misleads or costs more than it gives) |
+| **YAGNI** | Propose only what the stated goal needs; never speculate on future needs. | Detected in the lean phase: [simplify.md](simplify.md) SIM-01..04, project level [lean.md](lean.md) |
 | **DRY** | Detect duplication and propose extraction. | ≥ 3 instances of the same logic (same token sequence ≥ 6 lines, or same regex/constant) = finding |
 | **KISS** | Two solutions satisfy the requirement → the simpler wins; complexity earns its place with measured benefit. | judgment — record the measured benefit that justifies the complex form, or propose the simple one |
-| **Refactor mercilessly** | Dead code, single-caller helpers, premature abstractions are findings every run. | Export with 0 callers; helper with 1 caller and < 10 lines; interface with one implementation |
 | **Profile before optimizing** | A measurable metric and a baseline precede any performance change. | Performance-labelled change without a before/after measurement in the commit/PR/summary |
 | **Breaking-first** | Default to the root-clean change: unpublished product, zero external consumers, or provably harmless → break directly. Compat layers (shims, re-exports, dual models, redirect residue) only on proven need — a real consumer, a live migration window, a contract — and time-boxed. Risk plausible but unproven → ask the owner; never assume compat is wanted. | Shim, `_unused` rename, `// removed` comment, or re-export added without a named consumer = finding |
 

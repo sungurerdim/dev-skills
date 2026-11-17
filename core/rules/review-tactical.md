@@ -26,7 +26,7 @@ Tactical, file-level analysis scopes. 8 scopes, 109 checks.
 | privacy | [privacy.md](privacy.md) PRV-* | PII exposure/logging, missing masking/consent/retention/audit, insecure PII storage |
 | doc-sync | [docs.md](docs.md) DOC-01 to DOC-08 | README drift, API signature mismatch, deprecated refs in docs, broken links, changelog gaps |
 
-**Delegated scope.** `simplify` (deep nesting, duplicate similar code, unnecessary abstractions, single-use wrappers, complex booleans, test bloat) is scanned by [simplify.md](simplify.md).
+**Delegated scope.** `simplify` (deep nesting, duplicate similar code, unnecessary abstractions, single-use wrappers, complex booleans, test bloat) runs in the lean phase ([simplify.md](simplify.md)).
 
 ## Security — Scanner Augmentation
 
