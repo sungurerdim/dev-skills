@@ -15,6 +15,7 @@ Frase = "Frase"             # Frase.io
 Wonderous = "Wonderous"     # Google's Flutter showcase app
 Canva = "Canva"
 testng = "testng"           # TestNG dependency name (core/toolchains.md)
+ratatui = "ratatui"         # Rust TUI crate (core/ds_detect.py)
 
 # English usages typos mis-reads
 mis = "mis"                 # mis-copied, mis-priced

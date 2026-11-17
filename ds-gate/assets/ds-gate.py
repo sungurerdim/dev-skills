@@ -46,11 +46,17 @@ import tempfile
 import time
 from pathlib import Path
 
+# The quality-command detector is shared with ds-audit (core/ds_detect.py); the installed hook carries a copy beside it.
+_HERE = Path(__file__).resolve().parent
+_CORE = next((d for d in (_HERE, _HERE.parent / "core", _HERE.parent.parent / "core") if (d / "ds_detect.py").is_file()), _HERE)
+sys.path.insert(0, str(_CORE))
+from ds_detect import check_cmd as detect  # noqa: E402
+
 WINDOWS = os.name == "nt"
 TAIL_CHARS = 4000
 DEFAULT_TIMEOUT = 270  # seconds; under the 300 s hook timeout so a slow gate reports instead of being killed
 DEFAULT_CONFIG = {"mode": "auto", "roots": ["~/projects"]}
-HOOK_FILES = ("ds-gate.py",)
+HOOK_FILES = ("ds-gate.py", "ds_detect.py")
 LEGACY_FILES = ("ds-quality-gate.sh", "ds-quality-detect.sh", "ds-quality.py")  # earlier names of this hook
 OLD_MARKER, OLD_CONFIG = "ds-quality.json", "ds-quality.config.json"  # read when the new name is absent
 
@@ -117,173 +123,6 @@ def run_shell(cmd: str, cwd: Path, timeout: float):
                 p.kill()
         out, _ = p.communicate()
         return None, out.decode("utf-8", "replace")
-
-
-# --- detect -----------------------------------------------------------------------------------------------
-
-def detect(root) -> str:
-    """The fail-fast quality command for `root`: only checks whose tools/configs exist, format -> lint -> type -> test."""
-    root = Path(root)
-
-    def has(name):  # an executable on PATH
-        return shutil.which(name) is not None
-
-    def exists(*names):
-        return any((root / n).exists() for n in names)
-
-    def glob(pattern):
-        return any(root.glob(pattern))
-
-    def text(name) -> str:
-        try:
-            return (root / name).read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            return ""
-
-    def grep(name, pattern, flags=0) -> bool:
-        return re.search(pattern, text(name), flags) is not None
-
-    # 1) explicit single entry points win
-    if exists("scripts/quality.sh"):
-        return "bash scripts/quality.sh"
-    if exists("Makefile") and grep("Makefile", r"^quality:", re.M):
-        return "make quality"
-    if exists("package.json") and grep("package.json", r'"quality"\s*:'):
-        return "pnpm run quality" if exists("pnpm-lock.yaml") else "yarn quality" if exists("yarn.lock") else "npm run quality"
-
-    cmds: list[str] = []
-
-    def add(c):
-        cmds.append(c)
-
-    # Dart / Flutter
-    if exists("pubspec.yaml"):
-        run = "flutter" if grep("pubspec.yaml", r"^\s*flutter:", re.M) else "dart"
-        add("dart format --output=none --set-exit-if-changed .")
-        add(f"{run} analyze")
-        if exists("test") or glob("*_test.dart"):
-            add(f"{run} test --exclude-tags integration")  # integration tags need live services a local gate cannot supply
-
-    # JS / TS
-    if exists("package.json"):
-        pm = "pnpm" if exists("pnpm-lock.yaml") else "yarn" if exists("yarn.lock") else "npm"
-        if glob(".prettierrc*") or glob("prettier.config.*") or grep("package.json", r'"prettier"'):
-            add("npx --no-install prettier --check .")
-        if glob(".eslintrc*") or glob("eslint.config.*") or grep("package.json", r'"eslint"'):
-            add("npx --no-install eslint .")
-        if exists("tsconfig.json"):
-            add("npx --no-install tsc --noEmit")
-        if grep("package.json", r'"test"\s*:') and not grep("package.json", r"no test specified"):
-            add({"pnpm": "pnpm test", "yarn": "yarn test"}.get(pm, "npm test"))
-
-    # Python (a uv project runs its tools from its own environment: a global pytest cannot import the project's deps)
-    if exists("pyproject.toml", "setup.py") or glob("requirements*.txt"):
-        uv = exists("uv.lock") and has("uv")
-        prefix = "uv run " if uv else ""
-
-        def pyhave(tool):
-            return exists(f".venv/bin/{tool}", f".venv/Scripts/{tool}.exe") if uv else has(tool)
-
-        if pyhave("ruff"):
-            add(f"{prefix}ruff format --check .")
-            add(f"{prefix}ruff check .")
-        elif pyhave("black"):
-            add(f"{prefix}black --check .")
-        if pyhave("mypy") and (exists("mypy.ini") or grep("pyproject.toml", r"\[tool\.mypy\]")):
-            add(f"{prefix}mypy .")
-        if pyhave("pytest"):
-            add(f"{prefix}pytest -q")
-
-    # Go (toolchain built-in)
-    if exists("go.mod"):
-        add('test -z "$(gofmt -l .)"')
-        if has("golangci-lint") and exists(".golangci.yml", ".golangci.yaml", ".golangci.toml", ".golangci.json"):
-            add("golangci-lint run")
-        add("go vet ./...")
-        add("go build ./...")
-        add("go test ./...")
-
-    # Rust (toolchain built-in)
-    if exists("Cargo.toml"):
-        add("cargo fmt --check")
-        add("cargo clippy -- -D warnings")
-        add("cargo test")
-
-    # JVM via the Gradle wrapper (Maven skipped: no cheap, reliable plugin-presence signal)
-    if exists("gradlew") and exists("build.gradle", "build.gradle.kts"):
-        if any("spotless" in text(n) for n in ("build.gradle", "build.gradle.kts")):
-            add("./gradlew spotlessCheck")
-        if exists("detekt.yml", "config/detekt/detekt.yml"):
-            add("./gradlew detekt")
-        add("./gradlew test")
-
-    # Swift
-    if exists("Package.swift") and has("swift"):
-        if has("swiftformat"):
-            add("swiftformat --lint .")
-        if has("swiftlint"):
-            add("swiftlint")
-        add("swift build")
-        add("swift test")
-
-    # C# / .NET
-    if (glob("*.sln") or glob("*.csproj")) and has("dotnet"):
-        add("dotnet format --verify-no-changes")
-        add("dotnet build --no-restore")
-        add("dotnet test")
-
-    # Ruby
-    if exists("Gemfile"):
-        if has("rubocop"):
-            add("rubocop")
-        if grep("Gemfile", r"rspec") and has("bundle"):
-            add("bundle exec rspec")
-
-    # PHP (vendor/bin binaries only — never invents a check whose tool wasn't installed)
-    if exists("composer.json"):
-        for tool, c in (("pint", "./vendor/bin/pint --test"), ("phpstan", "./vendor/bin/phpstan analyze"),
-                        ("phpunit", "./vendor/bin/phpunit")):
-            if exists(f"vendor/bin/{tool}"):
-                add(c)
-
-    # Elixir (dialyzer skipped: the first run builds the PLT, minutes-long — unfit for a per-Stop hook)
-    if exists("mix.exs") and has("mix"):
-        add("mix format --check-formatted")
-        if grep("mix.exs", r"credo"):
-            add("mix credo --strict")
-        add("mix test")
-
-    # Scala
-    if exists("build.sbt") and has("sbt"):
-        if has("scalafmt") and exists(".scalafmt.conf"):
-            add("scalafmt --check .")
-        add("sbt compile test")
-
-    # C/C++ — static analysis only (format/build need a pre-configured out-of-source build dir)
-    if has("cppcheck") and exists("src") and (glob("src/*.c") or glob("src/*.cpp") or glob("src/*.cc")):
-        add("cppcheck --enable=warning,performance --error-exitcode=1 src/")
-
-    # Terraform — fmt only (validate/tflint need `terraform init` and a network provider download)
-    if glob("*.tf") and has("terraform"):
-        add("terraform fmt -check -recursive .")
-
-    # Shell
-    if has("shellcheck"):
-        targets = [t for t, ok in (("./*.sh", glob("*.sh")), ("scripts/*.sh", glob("scripts/*.sh"))) if ok]
-        if targets:
-            add("shellcheck -S warning " + " ".join(targets))
-
-    # Docker — lint only
-    if exists("Dockerfile") and has("hadolint"):
-        add("hadolint Dockerfile")
-
-    # Vanilla JS — no bundler, no package.json (node:test, Node >= 20)
-    if not exists("package.json") and has("node") and (exists("test") or glob("*.test.js")):
-        add("node --test")
-
-    # Not added, by design: clasp / wrangler checks need an authenticated networked call, and a generic ad-hoc sweep has
-    # no manifest to key off — both stay with the explicit /ds-gate bootstrap, never the silent auto-arm.
-    return " && ".join(cmds)
 
 
 # --- gate -------------------------------------------------------------------------------------------------
@@ -468,16 +307,16 @@ def install(argv) -> int:
     dry = "--dry-run" in argv
     base = claude_dir()
     hooks = base / "hooks"
-    src = Path(__file__).resolve().parent
     say = print
     for name in HOOK_FILES:
+        src = (_HERE if name == "ds-gate.py" else _CORE) / name
         dst = hooks / name
-        if dst.exists() and dst.read_bytes() == (src / name).read_bytes():
+        if dst.exists() and dst.read_bytes() == src.read_bytes():
             continue
         say(f"{'would copy' if dry else 'copy'}  {name} -> {hooks}")
         if not dry:
             hooks.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(src / name, dst)
+            shutil.copyfile(src, dst)
             dst.chmod(0o755)
     for name in LEGACY_FILES:
         if (hooks / name).exists():
