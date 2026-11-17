@@ -32,7 +32,7 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 
 ### TST-05 [CRITICAL] Weakened, skipped or focused tests
 - **Detect:** a skip or expected-failure marker on a failing test without a linked issue; a committed focus (`.only`) that silently drops every other test; assertions changed to match a bug; the unit under test replaced by a mock.
-- **Mech:** T `git grep -nIE '\.(skip|only)\(|\bx(it|describe)\(|@(Ignore|Disabled)\b|t\.Skip\(|pytest\.mark\.(skip|xfail)|#\[ignore\]' -- ':!*.md'`
+- **Mech:** T `git grep -nIE '\.(skip|only)\(|(^|[^[:alnum:]_])x(it|describe)\(|@(Ignore|Disabled)([^[:alnum:]_]|$)|t\.Skip\(|pytest\.mark\.(skip|xfail)|#\[ignore\]' -- ':!*.md'`
 - **Fix:** fix the code or the test so it checks the correct behavior; a temporary skip names its issue on the same line; every bug fix adds its regression test.
 - **Impact:** a red test turned green without a fix lets the next regression on that path ship unnoticed.
 - **Source:** Beck, *Test-Driven Development: By Example*.
@@ -54,7 +54,7 @@ applies_when: ui≠none
 
 ### TST-12 [MEDIUM] Placeholder committed as data
 - **Detect:** committed structured files (registries, manifests, config, fixtures read as data) holding unresolved tokens such as `TBD`, `FIXME`, `<fill>`, `assign at apply`, `next free ID` in a field consumers read as a value.
-- **Mech:** S `git grep -nIE '\b(TBD|FIXME)\b|<fill[^>]*>|assign at apply|next free ID' -- '*.json' '*.yaml' '*.yml' '*.toml' '*.csv'`
+- **Mech:** S `git grep -nIE '(^|[^[:alnum:]_])(TBD|FIXME)([^[:alnum:]_]|$)|<fill[^>]*>|assign at apply|next free ID' -- '*.json' '*.yaml' '*.yml' '*.toml' '*.csv'`
 - **Fix:** resolve it now; when it must wait, model it as an explicit null or pending state the consumer handles, and fail the gate on the token.
 - **Impact:** the placeholder passes every structural check and flows into reports and counts as if it were real.
 - **Source:** fail fast (Shore, "Fail Fast", *IEEE Software*, 2004).

@@ -106,6 +106,7 @@ def check_rules(root: Path, err):
 
 
 NETWORK = re.compile(r"^\s*(curl|wget|dig|nslookup|host|openssl\s+s_client|gh|npm\s+view|pip\s+download|ssh|nc)\b")
+PERL_ONLY = re.compile(r"\\[bBsSwWdD]")
 MECH = re.compile(r"^- \*\*Mech:\*\* (?:M\b.*|[ST] .*`[^`]+`.*)$")
 
 
@@ -120,6 +121,10 @@ def check_mech(root: Path, err):
                     if NETWORK.match(cmd):
                         err(f"core/rules/{f.name}:{n}: Mech command `{cmd[:40]}` needs the network or credentials — "
                             "a scan is offline; name it in Detect and make the rule M")
+                    if re.search(r"\bgrep\b", cmd) and (PERL_ONLY.search(cmd) or re.search(r"\s-[a-zA-Z]*P", cmd)):
+                        err(f"core/rules/{f.name}:{n}: Mech grep `{cmd[:40]}` uses a Perl-only escape or -P — "
+                            "grep -E and git grep -E on macOS match nothing for \\b \\s \\w \\d (a silent false clean); "
+                            "use [[:space:]], [[:alnum:]_], [0-9], (^|[^[:alnum:]_])word([^[:alnum:]_]|$)")
 
 
 def check_duplicate_lines(root: Path, err):
@@ -226,6 +231,9 @@ def run(root: Path, checks=CHECKS, quiet=False) -> list:
     return errors
 
 
+DUP = "Gate fixture line long enough to count as a fact: it now has two homes in two shipped files."
+
+
 def self_test() -> int:
     """Each case injects the defect one check exists to catch into a copy; that check must go red."""
     cases = [
@@ -235,17 +243,19 @@ def self_test() -> int:
         (check_links, "ds-audit/SKILL.md", lambda s: s + "\n[x](../ds-setup/SKILL.md)\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-01 [HIGH] Again\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-99 [BLOCKER] Severity\n"),
-        (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-98 [HIGH] Retry With Backoff\n"),
+        (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-98 [HIGH] Gate fixture near duplicate title alpha beta\n",
+         {"core/rules/ux.md": "\n### UX-998 [LOW] Gate fixture near duplicate title alpha\n"}),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-97 | HIGH | Pipe heading\n"),
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S no command in backticks\n"),
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S `curl -sI https://example.com`\n"),
-        (check_duplicate_lines, "core/rules/web.md", lambda s: s + "\nAnimations must not trigger expensive layout recalculations; this line now has two homes.\n" * 1),
+        (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** T `git grep -nE '\\bfoo\\b'`\n"),
+        (check_duplicate_lines, "core/rules/web.md", lambda s: s + "\n" + DUP + "\n", {"core/rules/ux.md": "\n" + DUP + "\n"}),
         (check_consumers, "core/orphan.md", lambda s: "# orphan\n"),
         (check_retired, "ds-audit/SKILL.md", lambda s: s + "\nDelegate to ds-review.\n"),
         (check_versions, ".claude-plugin/marketplace.json", lambda s: s.replace('"version": "', '"version": "9', 1)),
     ]
     failures = 0
-    for check, rel, mutate in cases:
+    for check, rel, mutate, *prep in cases:
         tmp = Path(tempfile.mkdtemp(prefix="ds-check-")).resolve()  # macOS: /var is a symlink to /private/var
         try:
             for part in ("ds-audit", "ds-gate", "ds-research", "ds-setup", "core", "agents", ".claude-plugin"):
@@ -253,10 +263,8 @@ def self_test() -> int:
                     shutil.copytree(ROOT / part, tmp / part)
             shutil.copy(ROOT / "CHANGELOG.md", tmp / "CHANGELOG.md")
             target = tmp / rel
-            if check is check_duplicate_lines:  # a line is only a duplicate once it exists in two files
-                (tmp / "core/rules/ux.md").write_text((tmp / "core/rules/ux.md").read_text(encoding="utf-8")
-                                                      + "\nAnimations must not trigger expensive layout recalculations; this line now has two homes.\n",
-                                                      encoding="utf-8")
+            for path, extra in (prep[0] if prep else {}).items():  # the counterpart a duplicate needs, own text
+                (tmp / path).write_text((tmp / path).read_text(encoding="utf-8") + extra, encoding="utf-8")
             original = target.read_text(encoding="utf-8") if target.exists() else ""
             if run(tmp, [check], quiet=True):
                 print(f"  setup  {check.__name__}: already red before the mutation — fix the gate first")
