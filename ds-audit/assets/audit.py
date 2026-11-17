@@ -89,7 +89,7 @@ def loads(expr: str, sig: dict) -> tuple:
         if (op == "=" and val in values) or (op == "∋" and val in values) or (op == "≠" and values != {val}):
             return True, ""
         misses.append(f"{key}={have}")
-    return False, "N/A — " + ", ".join(misses)
+    return False, "N/A — " + ", ".join(dict.fromkeys(misses))  # one mention per key=value, in order
 
 
 def rule_ids(core: Path = None) -> set:
@@ -1009,6 +1009,8 @@ def self_test() -> int:
         expect("YAGNI" in rule_ids() and loads("ui≠none or api≠none", {"ui": {"value": "none"},
                                                                      "api": {"value": "rest"}})[0], "rule ids / loads")
         expect(not loads("pii=yes", {"pii": {"value": "no"}})[0] and loads("pii=yes", {})[0], "loads unknown → runs")
+        na = loads("platforms∋cli or platforms∋library", {"platforms": {"value": "web"}})[1]
+        expect(na == "N/A — platforms=web", f"N/A reason repeats a term: {na}")
         init(tmp, ["all"])
         expect(load(tmp)[0]["phases"]["surface"]["areas"]["a11y"].startswith("N/A"), "a11y N/A while ui=none")
         sres = set_signal(tmp, "ui", "web")
