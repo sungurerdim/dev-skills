@@ -640,7 +640,7 @@ def render_html(root: Path, state: dict, findings: list, status: str, minutes: i
 </header>
 <div class="grid">
 <section class="card"><h2>Result</h2><div class="kpi"><svg class="ring" viewBox="0 0 100 100" role="img"
-aria-label="Findings fixed"><circle class="base" cx="50" cy="50" r="40"/>{ring}<text x="50" y="58"
+aria-label="{"No findings" if pct is None else f"{pct}% of findings fixed"}"><circle class="base" cx="50" cy="50" r="40"/>{ring}<text x="50" y="58"
 text-anchor="middle">{"–" if pct is None else f"{pct}%"}</text></svg><div><div class="status" style="color:{color}">{e(status)}</div>
 <div class="row">{badge("b-ok", f"{fixed} fixed")}{badge("b-warn", f"{open_} open")}{badge("b-info", f"{only} only you")}</div>
 <div class="note">{len(findings)} findings · code {got.get("file", 0)} files +{got.get("insertion", 0)} −{got.get("deletion", 0)} · {e(commits)} commits</div></div></div></section>
@@ -945,6 +945,7 @@ def self_test() -> int:
         page = read(tmp / REPORT.with_suffix(".html"))
         expect("&lt;script&gt;x" in page and "<script>x" not in page and "@media (max-width:560px)" in page,
                "report.html escapes finding text and carries the narrow-screen layout")
+        expect('aria-label="100% of findings fixed"' in page, "report.html ring hides its percentage from screen readers")
 
         def media_of(css, pos):  # the at-rule preludes enclosing pos
             stack, start = [], 0
