@@ -75,13 +75,19 @@ def remove(p: Path, dry: bool):
             p.unlink()
 
 
+HOOK_FILES = (("ds-gate.py", "ds-gate/assets/ds-gate.py"), ("ds_detect.py", "core/ds_detect.py"))
+
+
 def migrate_hooks(skills_dir: Path, dry: bool):
-    """ds-gate was ds-quality before 3.0 (shell launchers, then ds-quality.py); re-register an installed hook as ds-gate."""
+    """Keep an installed ds-gate Stop hook in step with the skill: re-register a pre-3.0 ds-quality hook as ds-gate, and
+    refresh the hook's files (ds-gate.py and the ds_detect.py it imports) whenever a ds-gate hook is installed."""
     hooks = skills_dir.parent / "hooks"
     old = [n for n in ("ds-quality-gate.sh", "ds-quality.py") if (hooks / n).exists()]
-    if skills_dir.parent.name == ".claude" and old and (skills_dir / "ds-gate").is_dir():
-        args = [sys.executable, str(skills_dir / "ds-gate" / "assets" / "ds-gate.py"), "install", "--register"]
-        print(f"{'would run' if dry else 'run'}  {' '.join(args)}  (replaces the old ds-quality hook)")
+    current = (hooks / "ds-gate.py").exists()
+    if skills_dir.parent.name == ".claude" and (old or current) and (skills_dir / "ds-gate").is_dir():
+        args = [sys.executable, str(skills_dir / "ds-gate" / "assets" / "ds-gate.py"), "install"] + (["--register"] * bool(old))
+        why = "replaces the old ds-quality hook" if old else "refreshes the installed hook"
+        print(f"{'would run' if dry else 'run'}  {' '.join(args)}  ({why})")
         if not dry:
             env = dict(os.environ, CLAUDE_CONFIG_DIR=str(skills_dir.parent))
             subprocess.run(args, check=False, env=env)
@@ -127,6 +133,13 @@ def check(skills_dir: Path) -> int:
             drift += [f"{rel}/{f}: missing in install" for f in c.left_only]
             drift += [f"{rel}/{f}: not in this checkout" for f in c.right_only]
             stack += [(sub, f"{rel}/{n}") for n, sub in c.subdirs.items()]
+    hooks = skills_dir.parent / "hooks"
+    if (hooks / "ds-gate.py").exists():
+        for name, src in HOOK_FILES:
+            if not (hooks / name).exists():
+                drift.append(f"hooks/{name}: missing (the ds-gate hook imports it)")
+            elif not filecmp.cmp(REPO / src, hooks / name, shallow=False):
+                drift.append(f"hooks/{name}: differs from {src}")
     for line in drift:
         print("DRIFT", line)
     print(f"{len(drift)} drift item(s) in {skills_dir}")
