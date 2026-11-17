@@ -31,6 +31,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 |---------|------|
 | `A init [words]` | Fetch, fast-forward when safe, scope, signals, check command, phase plan; resumes an open run |
 | `A signal KEY VALUE [why]` | Confirm or correct a judged signal (`?` in the Signals line); re-plans phases not started; notes it as `decided:` |
+| `A check CMD` | Sets the check command explicitly, noted as `decided:` (init takes the ds-gate marker, else the gate the project's agent docs name, else stack defaults) |
 | `A checks baseline\|now` | Runs each check step, records pass / fail / timeout |
 | `A scan PHASE` | Runs the `Mech:` commands of the phase's loaded rules |
 | `A validate` | Ledger schema, rule IDs, `file:line` exists, commits real and after the start |
@@ -46,7 +47,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 
 1. **Start** — `A init {words}`. Read its JSON: `next` phase, plan, signals, check command, notes. Read the project's rules in one batch (`AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, ADRs, specs); they override this file and the rule files where they differ.
 2. **Signals** — confirm every `?` value by reading the code it rests on; wrong → `A signal KEY VALUE`.
-3. **Baseline** — `A checks baseline` once per run (a resumed run keeps its baseline).
+3. **Baseline** — read the check command and `check_from` (kernel §3: never run what you have not read); wrong → `A check CMD`. Then `A checks baseline` once per run (a resumed run keeps its baseline).
 4. **Phases** — for the `next` phase and each after it, follow [phases.md](references/phases.md): inventory → detect → decide → apply → verify → `A phase {p} done`. `all` and phase words: one phase per invocation, or one fresh subagent per phase when subagents exist.
 5. **Report** — `A report`; print its closing message as the last output (kernel §6).
 
