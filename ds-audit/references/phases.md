@@ -44,7 +44,7 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 | Disposition | `open` · `fixed` · `reverted (error)` · `skipped (blocker)` · `not applicable (reason)` · `only you can do (action)` |
 | Commit | hash for `fixed` (checked: exists, after the run's start) · `uncommitted` (file had user edits) · `—` |
 
-Notes lines: `decided: {decision} · {reason}` and `only-you: {exact action or command}`. A cell never contains `|`. Everything else in the file, and `report.html` beside it, is written by `audit.py`.
+Notes lines: `decided: {decision} · {reason}` (`decided!:` puts it among the closing message's five) and `only-you: {exact action or command}`, each once; an action already in a row's Disposition is not repeated as a note. A decision is a choice the owner may reverse; scan triage (why a hit is not a finding) goes into the row or nowhere, never into Notes. A cell never contains `|`. Everything else in the file, and `report.html` beside it, is written by `audit.py`.
 
 ## Running the phases
 
