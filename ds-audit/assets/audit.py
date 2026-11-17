@@ -10,6 +10,9 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
                                      phase plan; prints JSON (what runs next and why)
   audit.py checks baseline|now       run each step of the check command; record pass/fail/timeout per step
   audit.py check CMD                 set the check command explicitly (wins over marker, docs and defaults)
+  audit.py probe -- CMD ...          run a project program isolated (kernel §3): temp HOME/XDG/CLAUDE_CONFIG_DIR/
+                                     TMPDIR, no network, sandboxed writes where the OS allows; JSON with exit code,
+                                     output tails and every file it created in the temp dir
   audit.py scan PHASE                run the Mech commands of the phase's loaded rules; prints JSON hits
   audit.py signal KEY VALUE [WHY]    confirm or correct a judged signal (auth, pii, audience), noted as decided:;
                                      re-plans the areas of phases not yet started
@@ -375,6 +378,45 @@ def checks(root: Path, which: str) -> dict:
     state["checks"][which] = {k: v["status"] for k, v in result.items()}
     save_state(root, state)
     return result
+
+
+# --- probe ------------------------------------------------------------------------------------------------
+
+PROBE_TIMEOUT = 60
+PROBE_DIRS = {"HOME": "home", "USERPROFILE": "home", "XDG_CONFIG_HOME": "config", "XDG_DATA_HOME": "data",
+              "XDG_CACHE_HOME": "cache", "XDG_STATE_HOME": "state", "APPDATA": "config", "LOCALAPPDATA": "data",
+              "CLAUDE_CONFIG_DIR": "claude", "TMPDIR": "tmp", "TMP": "tmp", "TEMP": "tmp"}
+DEAD_PROXY = "http://127.0.0.1:9"  # the discard port: a client that honours proxies cannot reach the network
+
+
+def probe(root: Path, argv: list) -> dict:
+    """Run a project program the way kernel §3 allows a probe: every home/config/temp location points into a fresh temp
+    dir, no network, and (with macOS sandbox-exec) no write outside that dir. Reports what the program wrote there."""
+    box = Path(tempfile.mkdtemp(prefix="ds-audit-probe-")).resolve()
+    env = dict(ENV, **{k: str(box / v) for k, v in PROBE_DIRS.items()},
+               **{k: DEAD_PROXY for k in ("http_proxy", "https_proxy", "all_proxy", "HTTP_PROXY", "HTTPS_PROXY",
+                                          "ALL_PROXY")}, no_proxy="", NO_PROXY="")
+    for v in set(PROBE_DIRS.values()):
+        (box / v).mkdir()
+    wrap, how = [], "none: only the environment is redirected; network and other writes are not blocked"
+    if shutil.which("sandbox-exec"):
+        wrap = ["sandbox-exec", "-p", f'(version 1)(allow default)(deny network*)(deny file-write*)'
+                f'(allow file-write* (subpath "{box}") (literal "/dev/null") (literal "/dev/tty") (subpath "/dev/fd"))']
+        how = "sandbox-exec: no network, writes only inside the temp dir"
+    elif shutil.which("unshare") and subprocess.run(["unshare", "-rn", "true"], capture_output=True).returncode == 0:
+        wrap, how = ["unshare", "-rn"], "unshare: no network; writes outside the temp dir are not blocked"
+    try:
+        r = subprocess.run(wrap + list(argv), cwd=str(root), capture_output=True, text=True, env=env,
+                           stdin=subprocess.DEVNULL, timeout=PROBE_TIMEOUT)
+        code, out, err = r.returncode, r.stdout, r.stderr
+    except subprocess.TimeoutExpired:
+        code, out, err = None, "", f"no result in {PROBE_TIMEOUT}s"
+    except OSError as e:
+        code, out, err = None, "", str(e)
+    created = sorted(p.relative_to(box).as_posix() for p in box.rglob("*") if p.is_file())
+    shutil.rmtree(box, ignore_errors=True)
+    return {"cmd": argv, "exit": code, "stdout": out.strip()[-1500:], "stderr": err.strip()[-1500:],
+            "created": created, "sandbox": how}
 
 
 # --- scan -------------------------------------------------------------------------------------------------
@@ -1099,6 +1141,28 @@ def self_test() -> int:
         gens = sorted(x.name for x in (tmp / REPORT.parent).glob("report-*.md"))
         expect(gens == [f"report-{state2['started']}.md"], f"init keeps one earlier generation, got {gens}")
 
+        # probe: a program under test runs with a temporary HOME/XDG/CLAUDE_CONFIG_DIR/TMPDIR and no network
+        outside = Path(tempfile.mkdtemp(prefix="ds-audit-outside-")).resolve() / "written"
+        script = ('touch "$HOME/x"; mkdir -p "$XDG_CONFIG_HOME/a" && echo 1 > "$XDG_CONFIG_HOME/a/b"; '
+                  'mkdir -p "$CLAUDE_CONFIG_DIR" && echo 1 > "$CLAUDE_CONFIG_DIR/settings.json"; echo 2 > "$1"; '
+                  'echo "home=$HOME"')
+        pr = probe(tmp, ["sh", "-c", script, "sh", str(outside)])
+        made = set(pr.get("created", []))
+        expect({"home/x", "config/a/b", "claude/settings.json"} <= made and pr.get("exit") is not None
+               and f"home={Path.home()}" not in pr.get("stdout", ""),
+               f"probe does not redirect HOME / XDG_CONFIG_HOME / CLAUDE_CONFIG_DIR into a temp dir: {pr}")
+        if pr.get("sandbox", "none").startswith("sandbox-exec"):
+            expect(not outside.exists(), "probe let the program write outside its temp dir")
+            import socket
+            srv = socket.socket()
+            srv.bind(("127.0.0.1", 0))
+            srv.listen(1)
+            net = probe(tmp, [sys.executable, "-c", f"import socket; socket.create_connection(('127.0.0.1', "
+                                                    f"{srv.getsockname()[1]}), 2)"])
+            srv.close()
+            expect(net["exit"] != 0, f"probe left the network open: {net}")
+        shutil.rmtree(outside.parent, ignore_errors=True)
+
         # check command: explicit > ds-gate marker > the project's documented gate > stack defaults
         gate = Path(tempfile.mkdtemp(prefix="ds-audit-gate-"))
         (gate / "CONTRIBUTING.md").write_text("| Task | Command |\n|---|---|\n| Run tests | `true tests` |\n"
@@ -1191,6 +1255,10 @@ def main(argv) -> int:
         return 0 if all(v["status"] == "pass" for v in res.values()) else 1
     elif cmd == "scan" and rest[:1] and rest[0] in PHASES:
         dump(scan(root, rest[0]))
+    elif cmd == "probe" and rest[:1] == ["--"] and rest[1:]:
+        res = probe(root, rest[1:])
+        dump(res)
+        return 0 if res["exit"] == 0 else 1
     elif cmd == "check" and rest:
         dump(set_check(root, " ".join(rest)))
     elif cmd == "signal" and len(rest) >= 2:

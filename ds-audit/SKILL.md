@@ -37,6 +37,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 | `A validate` | Ledger schema, rule IDs, `file:line` exists, commits real and after the start |
 | `A phase PHASE done\|blocked "reason"` | Closes a phase; `done` refuses open rows, a red validate or a red `lean-check`, pushes `ds/audit` and prints the push result and the next phase |
 | `A report` | Rewrites the report's Closing and Phases, writes `report.html`, prints the closing message |
+| `A probe -- CMD…` | The only way a project program is run to see what it does (kernel §3): temp HOME/XDG/`CLAUDE_CONFIG_DIR`/TMPDIR, no network, writes confined where the OS allows; prints exit code, output and files it created |
 | `A lean` · `A lean-check` · `A rules` | lean inventory · `SCOPE.md` check · recorded rules with blame date, reason, citation count |
 
 ## Done when
