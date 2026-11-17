@@ -2,7 +2,7 @@
 
 Instructions for any coding agent working **on** this repository.
 
-dev-skills ships four Agent Skills (`ds-audit`, `ds-gate`, `ds-setup`, `ds-research`) and the shared `core/` they all load. Skills are Markdown; the only code is Python 3.8+ stdlib: `install.py`, `scripts/check.py`, `evals/*.py`, and each skill's `assets/*.py`.
+dev-skills ships four Agent Skills (`ds-audit`, `ds-gate`, `ds-setup`, `ds-research`) and the shared `core/` they all load. Skills are Markdown; the only code is Python 3.8+ stdlib: `install.py`, `scripts/*.py`, `evals/*.py`, `core/ds_detect.py` and each skill's `assets/*.py`.
 
 ## Commands
 
