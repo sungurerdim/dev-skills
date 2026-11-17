@@ -26,7 +26,7 @@ The **Standards** column names what the area is checked against — apply them b
 | `mobile` | surface | mobile.md | `mobile≠none` | MUX · MARC · MPRF | Material Design · Apple HIG · Android platform guides |
 | `store` | surface | store.md | `deploy=store` or `mobile≠none` | STO · LCH · REL · VIS-14 | Apple App Review Guidelines · Google Play requirements (technical) |
 | `money` | surface | monetization.md | `billing≠none` | PRC · UX-DP | store billing APIs · deceptive.design |
-| `ci` | ship | ci.md · dependencies.md · dependencies-advisories.md · signing.md · release.md | `ci≠none`, or any lockfile | DOP | SLSA · SBOM (SPDX / CycloneDX) · Conventional Commits · Semantic Versioning |
-| `ops` | ship | deployment.md · monitoring.md | `deploy≠none` | DEP · OBS · COST | Twelve-Factor · CIS Benchmarks · Kubernetes Pod Security Standards · OpenTelemetry · golden signals · 3-2-1 backups |
-| `docs` | ship | docs.md · docs-gaps.md · ai-context.md | always | DOC | Keep a Changelog · ADRs · AGENTS.md |
+| `ci` | ship | ci.md | always (a local gate counts; hosted-pipeline rules carry `applies_when: ci≠none` or `ci∋github`) | DOP · SEC-14 | SLSA · SBOM (SPDX / CycloneDX) · Conventional Commits · Semantic Versioning |
+| `ops` | ship | ops.md | `deploy≠none` | DEP · OBS · COST | Twelve-Factor · CIS Benchmarks · Kubernetes Pod Security Standards · OpenTelemetry · golden signals · 3-2-1 backups |
+| `docs` | ship | docs.md | always | DOC | Keep a Changelog · Diátaxis · AGENTS.md |
 | `repo` | ship | repo.md | a git remote exists | RPO | community health files (LICENSE, SECURITY.md, CONTRIBUTING) · SPDX license IDs |

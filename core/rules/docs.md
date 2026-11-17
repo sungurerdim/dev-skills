@@ -1,406 +1,78 @@
-# Rules: Documentation Quality
-
-## Structure & Content
-
-### DOC-01 [HIGH] README Hook
-
-**Detect:** README starts with project name, badge wall, feature list, or generic description ("A library for..."). First line describes what project is rather than why it matters.
-
-**Fix:** Lead with pain-point statement or contrarian hook in 10 words or fewer. Follow with solution framing.
-
-```markdown
-<!-- Before -->
-# MyTool
-A CLI tool for managing Docker deployments with zero-config setup.
-
-<!-- After -->
-# MyTool
-AI commits are vague and bundle unrelated changes.
-
-MyTool analyzes your staged changes and generates atomic,
-context-aware commit messages.
-```
-
-**Impact:** Repos with compelling READMEs receive 4x more stars and 6x more contributors. First line determines whether a visitor reads further or bounces. Pain-point hook → immediate recognition and relevance.
-
-**Source:** Launch research (rivereditor.com, GitHub analysis) — [launch research](https://github.com/sungurerdim/dev-skills/blob/5480013/docs/methodology/launch-research.md) Pattern 6
-
-### DOC-02 [HIGH] Verified Code Examples
-
-**Detect:** Code blocks in documentation contain snippets that have drifted from actual source code. Example output, function signatures, or API calls reference outdated implementations.
-
-**Fix:** Verify every code block against current source. Prefer auto-generated documentation (OpenAPI for REST, TypeDoc for TypeScript, rustdoc for Rust, Sphinx for Python) to keep examples in sync with implementation. For manually written examples, include source file path as a comment.
-
-```markdown
-<!-- Include source reference for manual examples -->
-```javascript
-// From: src/config.ts#L42-L55
-const config = loadConfig({ strict: true });
-```
-```
-
-**Impact:** Incorrect code examples waste developer time and erode trust. Auto-generated docs eliminate drift by construction.
-
-### DOC-03 [MEDIUM] Quick Start in 5 Commands or Fewer
-
-**Detect:** Getting started section requires more than 5 commands or more than 10 minutes for a new user to reach working state.
-
-**Fix:** Reduce setup to minimum path: clone, install, run (3 commands ideal). Provide copy-paste blocks with expected output.
-
-```markdown
-## Quick Start
-
-```bash
-git clone https://github.com/user/project && cd project
-npm install
-npm start
-# Server running at http://localhost:3000
-```
-```
-
-Projects requiring configuration → provide sensible defaults or a setup script:
-
-```bash
-cp .env.example .env   # defaults work out of the box
-npm install && npm start
-```
-
-**Impact:** Every additional setup step loses a percentage of potential contributors. 10-minute threshold aligns with average attention span for evaluating a new tool.
-
-**Source:** GitHub README best practices, launch research (Quick Start pattern)
-
-### DOC-04 [MEDIUM] Scannable Format
-
-**Detect:** Documentation sections contain more than 5 consecutive prose paragraphs without structural breaks (headings, tables, bullet lists, or code blocks).
-
-**Fix:** Break dense prose into scannable elements:
-
-- **Comparisons:** Use tables
-- **Steps/procedures:** Use numbered lists
-- **Options/features:** Use bullet lists
-- **Concepts:** Use heading + 1-3 sentence summary + example
-
-| Format | Use When |
-|--------|----------|
-| Table | Comparing 3+ items across 2+ dimensions |
-| Bullet list | Enumerating items without priority |
-| Numbered list | Sequential steps or ranked items |
-| Code block | Any executable or configuration example |
-| Heading | Every new concept or topic shift |
-
-**Impact:** Developers scan documentation; they rarely read linearly. Structured content reduces time-to-answer by 40-60% compared to prose walls.
-
-**Source:** Nielsen Norman Group readability research, technical writing best practices
-
-## Maintenance & Tools
-
-### DOC-05 [MEDIUM] Link Freshness
-
-**Detect:** Documentation contains links returning 404, pointing to moved pages, or referencing outdated URLs (e.g., old API versions, deprecated docs sites).
-
-**Fix:** Verify all links resolve correctly. Use relative links for internal references (resilient to domain changes). For external links, prefer canonical URLs over blog posts or tutorials that may be removed.
-
-```markdown
-<!-- Prefer relative for internal -->
-See `[Configuration](./docs/config.md)`
-
-<!-- Prefer canonical for external -->
-See [Express docs](https://expressjs.com/en/guide/routing.html)
-```
-
-Repo has a link checker configured (e.g., lychee) → run it and consume the report; suppress known false positives via `.lycheeignore` instead of loosening the check.
-
-**Impact:** Broken links signal unmaintained documentation and send users to dead ends. Single 404 in a getting-started guide can block adoption.
-
-**Source:** Web maintenance best practices; lychee (lycheeverse)
-
-### DOC-06 [MEDIUM] Auto-Generated API Documentation
-
-**Detect:** API documentation manually written in a separate file, disconnected from source code. Changes to implementation require updating docs in a second location.
-
-**Fix:** Use framework's canonical documentation generator:
-
-| Stack | Tool | Source |
-|-------|------|--------|
-| REST API | OpenAPI/Swagger (auto-generate from routes) | openapis.org |
-| GraphQL | Schema introspection + GraphiQL | graphql.org |
-| TypeScript library | TypeDoc | typedoc.org |
-| Rust library | rustdoc (built-in) | doc.rust-lang.org |
-| Python library | Sphinx + autodoc | sphinx-doc.org |
-| Go library | godoc (built-in) | pkg.go.dev |
-
-**Impact:** Manually maintained API docs inevitably drift from implementation. Auto-generation makes source code single source of truth.
-
-**Source:** OpenAPI 3.1 specification, framework-specific documentation standards
-
-### DOC-07 [LOW] Badge Discipline
-
-**Detect:** README displays more than 7 badges, creating visual clutter that pushes actual content below the fold.
-
-**Fix:** Keep 4-7 badges maximum. Prioritize actionable information:
-
-| Keep | Remove |
-|------|--------|
-| Build/CI status | "PRs welcome" |
-| Test coverage | "Made with love" |
-| Latest version/release | Duplicate status badges |
-| License | Platform badges that add no info |
-
-**Impact:** Badge walls create visual noise and delay reader from reaching content that determines whether they will use or contribute to project. Screenshots increase stars approximately 42%; excessive badges do opposite.
-
-**Source:** Launch research (README best practices) — [launch research](https://github.com/sungurerdim/dev-skills/blob/5480013/docs/methodology/launch-research.md) Pattern 6
-
-### DOC-08 [LOW] Changelog in Standard Format
-
-**Detect:** No `CHANGELOG.md` file, or changelog exists in non-standard format (e.g., raw git log dumps, unstructured notes).
-
-**Fix:** Follow Keep a Changelog format with sections for Added, Changed, Deprecated, Removed, Fixed, and Security. Auto-generate from conventional commits where project uses them.
-
-Literal file content (indented to keep this example's own headings out of this corpus's `###` rule-id convention — type it flush-left, no indent, in a real `CHANGELOG.md`):
-
-    # Changelog
-
-    ## [1.2.0] - 2026-03-15
-
-    ### Added
-    - Health check endpoint with dependency verification
-
-    ### Fixed
-    - SSL certificate renewal failing silently on Caddy restart
-
-    ## [1.1.0] - 2026-02-28
-
-    ### Changed
-    - Switched from Nginx to Caddy for automatic HTTPS
-
-**Impact:** Well-maintained changelog helps users decide whether to upgrade and understand breaking changes without reading commit history. Often first file checked before a version bump.
-
-**Source:** Keep a Changelog (keepachangelog.com), Semantic Versioning
-
-### DOC-09 [MEDIUM] Deterministic Doc-Lint Stack
-
-**Detect:** Docs checked only by manual/LLM review — no prose linter (Vale), Markdown-structure linter (markdownlint), or link checker (lychee) configured in a repo that has a docs directory or CI.
-
-**Fix:** Run the configured stack and consume its output; where absent, propose it as a needs-approval item — never install unasked:
-
-| Tool | Checks | Severity mapping |
-|------|--------|------------------|
-| lychee | broken URLs, dead anchors | error — fails the check; `.lycheeignore` for known false positives |
-| markdownlint | structure: bare code fences, heading order, missing image alt text | error |
-| Vale | prose style: passive voice, sentence length, word choice | warning — advisory, never blocks |
-
-**Impact:** Deterministic linters catch drift that review misses and produce repeatable signals; the severity split keeps style suggestions from blocking at broken-link level.
-
-**Source:** GitLab documentation testing guide (Vale + markdownlint); lychee (lycheeverse); documentation-linting severity practice 2026
-
-## Harness Context Files
-
-`CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`, `.windsurfrules`/`.devin/rules/`, `.github/copilot-instructions.md`, `GEMINI.md`, `CONVENTIONS.md` (Aider). These are re-injected as low-trust background context on every session, not read once like a README — signal density matters more than completeness. A file that only contains what the agent cannot derive on its own outperforms a comprehensive one.
-
-### DOC-10 [CRITICAL] Secrets in Harness Context File
-
-**Detect:** Hardcoded credentials, API keys, tokens, or connection strings with embedded passwords appear in the file body.
-
-**Fix:** Remove immediately. Reference the variable by name only (`{ENV_VAR_NAME}`), never its value.
-
-**Impact:** These files are typically git-committed and re-sent to the model provider on every session — a secret placed here leaks on every future run, not just once.
-
-**Source:** General secret-handling policy (no vendor documentation explicitly warns against this despite recommending the file be committed to git — treated as an inferred-but-undocumented risk, not a sourced vendor claim).
-
-### DOC-11 [HIGH] Code-Derivable Content
-
-**Detect:** Directory layout, dependency lists, file-by-file descriptions, or architecture overviews that duplicate what the agent discovers in seconds by reading the code.
-
-**Fix:** Remove, or replace with a one-line pointer (`see src/` / `see package.json`). Verify the claim is genuinely derivable — read the actual file/directory before flagging — before cutting it.
-
-```markdown
-<!-- Before -->
-## Project Structure
-- src/api/ — REST route handlers
-- src/db/ — database models
-- src/utils/ — shared helpers
-
-<!-- After -->
-(section removed — agent reads the tree directly)
-```
-
-**Impact:** This is exactly the boilerplate that dominates auto-generated context files. An 18-repo AgentBench study found LLM-generated context files cut task success 2–3% while raising inference cost 20%+; removing the project's existing docs made those same generated files useful again (+2.7%), pointing to derivable-content redundancy as the core failure mode.
-
-**Source:** [Anthropic Claude Code best practices](https://code.claude.com/docs/en/best-practices) (✅/❌ table); [Cursor Rules docs](https://cursor.com/docs/rules); [Evaluating AGENTS.md, arXiv:2602.11988](https://arxiv.org/abs/2602.11988)
-
-### DOC-12 [HIGH] Generic Self-Evident Advice
-
-**Detect:** Instructions the model already follows from training or the harness's own defaults — "write clean code," "handle errors properly," "use meaningful variable names" with no project-specific specifics.
-
-**Fix:** Delete. Do not replace with a project-specific version unless the project genuinely diverges from the default.
-
-**Impact:** This does not just waste tokens — it measurably degrades output. An independent 1,188-test benchmark across 3 models and 10 instruction profiles found an empty file was the best-performing configuration, with a −0.95 correlation between instruction token count and output quality; even a 4-bullet minimal profile scored below no instructions at all.
-
-**Source:** [Anthropic best practices](https://code.claude.com/docs/en/best-practices); [Windsurf/Devin Cascade Memories docs](https://docs.devin.ai/desktop/cascade/memories) ("already baked into Cascade's training data"); independent 1,188-test community benchmark (single-sourced, directionally consistent with the peer-reviewed-adjacent AgentBench finding above)
-
-### DOC-13 [MEDIUM] Pasted Reference Material
-
-**Detect:** API documentation, tutorials, or frequently-changing detail (endpoint lists, config schemas) copied inline instead of linked.
-
-**Fix:** Replace with a link to the canonical source (docs site, OpenAPI spec, source file).
-
-**Impact:** Pasted content goes stale the moment the source changes and bloats every session regardless of relevance to the current task.
-
-**Source:** [Anthropic best practices](https://code.claude.com/docs/en/best-practices) ("Detailed API documentation (link to docs instead)"); [Cursor Rules docs](https://cursor.com/docs/rules) ("Reference files rather than copying their contents")
-
-### DOC-14 [MEDIUM] Length Over Harness Budget
-
-**Detect:** File exceeds the target harness's own adherence threshold.
-
-| Harness | File | Budget |
-|---------|------|--------|
-| Claude Code | `CLAUDE.md` | <200 lines (warn; still loaded in full past this) |
-| Claude Code | `MEMORY.md` (auto-memory) | first 200 lines / 25KB only auto-load |
-| Cursor | `.cursor/rules/*.mdc` | <500 lines/file |
-| Windsurf/Devin | `global_rules.md` | 6,000 chars (hard cap) |
-| Windsurf/Devin | `.devin/rules/*.md` | 12,000 chars/file (risk of silent truncation past this) |
-| Cross-harness | any | <300 lines — general consensus |
-
-**Fix:** Cut DOC-10–DOC-13 findings first. Still over budget → split via nested per-directory files (monorepo pattern, DOC-17) or path-scoped/glob-conditional rules where the harness supports them (Cursor `globs`, Copilot `applyTo`, Windsurf glob-activation mode). Do **not** rely on `@path`/`@file.md` imports to reduce size — imported content is expanded and loaded in full at launch alongside the referencing file; imports organize, they do not shrink context.
-
-**Impact:** Claude Code's own docs state files over 200 lines "consume more context and may reduce adherence"; independent teams converge on shorter-is-better (HumanLayer's own production file is under 60 lines).
-
-**Source:** [How Claude remembers your project](https://code.claude.com/docs/en/memory); [Cursor Rules docs](https://cursor.com/docs/rules); [Windsurf/Devin Cascade Memories docs](https://docs.devin.ai/desktop/cascade/memories); [Writing a good CLAUDE.md — HumanLayer](https://www.humanlayer.dev/blog/writing-a-good-claude-md)
-
-### DOC-15 [MEDIUM] Missing Recommended Content
-
-**Detect:** File lacks non-guessable build/test/lint commands, code-style rules that diverge from language/tool defaults, non-obvious gotchas or architecture rationale, repo etiquette, or the project's intent and hard limits (who it serves; what a change must never do) — despite the project clearly having them (custom scripts, non-default lint config, documented past incidents).
-
-**Fix:** Add tersely, one line per item, each earning its place. Prefer a concrete before/after code example over an abstract rule statement. Intent and hard limits come from a person: propose them from evidence as `only you can do: confirm`, never write them as settled.
-
-**Impact:** These are the categories every major harness's own docs recommend, and agents will actually execute listed test/build commands automatically. Measured: context files help mainly through non-standard requirements not in the code; LLM-generated files and repository overviews did not improve task success and raised cost by over 20%.
-
-**Source:** [Anthropic best practices](https://code.claude.com/docs/en/best-practices); [agents.md](https://agents.md/) ("the agent will attempt to execute relevant programmatic checks"); [Gemini CLI GEMINI.md docs](https://geminicli.com/docs/cli/gemini-md/); [Aider conventions docs](https://aider.chat/docs/usage/conventions.html); [Evaluating AGENTS.md (ETH Zurich, arXiv:2602.11988)](https://arxiv.org/abs/2602.11988)
-
-### DOC-16 [LOW] Negative-Framed Instructions
-
-**Detect:** A rule stated as a prohibition ("don't write unclear code") where a positive equivalent exists ("write clear code").
-
-**Fix:** Rewrite as the positive action.
-
-**Impact:** Weak, single-sourced evidence of a measurable gap in favor of positive framing — kept at LOW severity pending independent replication.
-
-**Source:** Independent community benchmark (single-sourced; not independently replicated)
-
-### DOC-17 [LOW] Single Monolithic Root File in a Monorepo
-
-**Detect:** One root context file covers multiple unrelated packages instead of nested per-package files.
-
-**Fix:** Add a context file inside each package; the file closest to the working directory takes precedence, so package-specific content doesn't dilute the root file for unrelated work.
-
-**Impact:** Independently implemented by three harnesses as the standard monorepo pattern — OpenAI's own repo carries 88 nested `AGENTS.md` files.
-
-**Source:** [agents.md](https://agents.md/); [How Claude remembers your project](https://code.claude.com/docs/en/memory) (nested `CLAUDE.md` discovery); [Gemini CLI GEMINI.md docs](https://geminicli.com/docs/cli/gemini-md/) (just-in-time directory scan)
-
-### DOC-18 [HIGH] Structural Changes and Their Docs Land in the Same Commit
-
-File moves/adds/deletes, renames, and dependency version bumps update the affected docs (README, architecture, main guide, design system) in the same change — doc truth is part of "done".
-
-**Detect:** Docs claiming file counts, versions, paths, or module lists that no longer match the code; structural commits with no doc diff; doc updates tracked as separate "later" tasks.
-
-**Fix:** Treat the doc update as part of the structural change's definition of done: the commit that moves/renames/bumps also fixes every doc claim it invalidates. The docs area's drift detection is the safety net, not the mechanism.
-
-**Impact:** Same-commit coupling is the only doc-sync strategy that doesn't decay — every "update docs later" queue converges to permanently wrong docs.
-
-**Source:** XR-014 — cross-project experience registry (2026).
-
-### DOC-19 [HIGH] Cross-Repo Documents Keep One Canonical Copy; Others Become Pointers
-
-In multi-repo products, every cross-cutting document (breach plan, DPIA, retention table) is canonical in exactly one repo; other repos hold a short pointer plus only their scope-specific notes.
-
-**Detect:** The same policy/compliance document independently editable in two repos; copies that have already diverged; a "shared" doc with no designated canonical home.
-
-**Fix:** Pick the canonical repo per document; convert every other copy into a pointer stub (link + repo-specific addenda only). Two independently-editable copies of regulatory content are never left standing.
-
-**Impact:** Diverged compliance copies mean the org provably follows at most one of them — and in an audit, the divergence itself is the finding.
-
-**Source:** XR-015 — cross-project experience registry (2026).
-
-### DOC-20 [MEDIUM] Living Compliance Docs Correct Through a Dated Review Log
-
-Regularly reviewed compliance documents (DPIA, security policy, breach plan) record corrections in a dated review-log section — what changed, when, and what triggered it — instead of silently overwriting past errors.
-
-**Detect:** Compliance docs whose history exists only in git (invisible to auditors reading the doc); errors fixed in place with no trace; no review-log section.
-
-**Fix:** Maintain a dated Review Log section per living compliance doc: date, what was corrected, trigger (code audit, doc-drift check, new decision). The document's accuracy history stays auditable and defensible on its face.
-
-**Impact:** A silently-corrected compliance doc can't demonstrate it was ever reviewed — the review log is what turns "we fixed it" into evidence of a working review process.
-
-**Source:** XR-016 — cross-project experience registry (2026); complements the Breach Plan template's Review log section.
-
-### DOC-21 [MEDIUM] Evidence-Based Decisions Are Locked; Reopening Requires New Evidence
-
-Engineering decisions grounded in measurement or experiment (model parameter, dependency version, a deliberately removed security/resilience layer) live in a decision ledger tagged "not to be revisited without new evidence", citing the triggering measurement.
-
-**Detect:** Measured decisions re-litigated on preference; a deliberately removed control re-added by a later audit that didn't know the removal was deliberate; decision records with no reference to the evidence that drove them.
-
-**Fix:** Record each evidence-based decision with its measurement/incident reference and an explicit reopening condition (new measured evidence, real threat-model change). Automated and human reviews route around locked decisions instead of re-flagging the same deliberate trade-off.
-
-**Impact:** Without decision locks, every audit cycle re-fights settled questions — and eventually someone "fixes" a deliberate removal back in, un-measuring a measured system.
-
-**Source:** XR-017 — cross-project experience registry (2026); pairs with ADR supersedence.
-
-### DOC-22 [MEDIUM] Accepted Debt Is Tracked With ID, Reason, and Fix Path
-
-Deliberately deferred architectural gaps are recorded openly: short ID, what's missing, why not fixed now, and the fix path.
-
-**Detect:** Known gaps living in team memory or code comments; the next review re-discovering and re-debating an already-accepted trade-off as a "new finding"; debt entries without a fix path.
-
-**Fix:** Register each accepted gap with an ID, the missing piece, the deferral rationale, and the concrete fix path; reviews cite the existing acceptance record instead of reopening it. Silent accumulation is the failure mode this kills.
-
-**Impact:** Untracked debt is re-discovered at the worst time (incident, audit, onboarding) and re-debated from scratch; tracked debt is a managed queue with prices attached.
-
-**Source:** XR-018 — cross-project experience registry (2026).
-
-### DOC-23 [MEDIUM] Numeric Claims Trace to a Reproducible Measurement Artifact
-
-Every quality/performance claim (accuracy, latency, size) is backed by a re-runnable measurement script and the raw log/record it produced, both kept in the repo.
-
-**Detect:** Docs stating numbers with no script that reproduces them; measurement logs lost to chat threads; claims that survive pipeline changes unre-measured.
-
-**Fix:** Pair every reported number with (1) the measurement script and (2) its raw output artifact, stored as repo sources; every documented figure must trace to that artifact. Re-run on relevant changes — this is Measure-Before-Optimize applied to documentation.
-
-**Impact:** Untraceable numbers rot into marketing fiction; traceable ones let anyone — including future-you — re-verify the claim in one command.
-
-**Source:** XR-093 — cross-project experience registry (2026).
-
-### DOC-24 [LOW] Third-Party Names Vendor-Neutral in Customer Copy; Re-Verified Against the Live Pipeline
-
-Customer-facing text describes third-party models/libraries in vendor-neutral, function-accurate terms, and the copy is periodically re-verified against the current pipeline.
-
-**Detect:** Customer copy naming specific vendors/models that the pipeline may swap; descriptions accurate at writing time but stale against the current implementation; no re-verification trigger on pipeline changes.
-
-**Fix:** Describe components by function ("speech-to-text engine", not the vendor's product name) unless the vendor name is contractual; re-verify the description against the actual current pipeline on a schedule and on every pipeline swap.
-
-**Impact:** Vendor-named copy goes false the day the pipeline swaps suppliers — turning an implementation detail into a public misstatement.
-
-**Source:** XR-184 — cross-project experience registry (2026).
-
-### DOC-25 [HIGH] Absence Claims Require a Proven-Positive Control Query
-
-A claim that something does not exist is only valid when the search that found nothing is itself proven to work.
-
-**Detect:** An assertion of absence ("no such function", "unused anywhere", "not implemented", "no rule covers this") resting on a search that returned zero results, with no evidence the query, flags, or path scope were correct. Zero-result searches reported as findings without a companion query that returned hits.
-
-**Fix:** Before asserting absence, run a control query against the same corpus with the same tool and flags that is guaranteed to return hits. Control returns nothing → the search is broken, not the subject; fix the query and re-run. Record both queries alongside the claim so a reader can re-verify.
-
-**Impact:** An empty result is ambiguous — the thing is absent, or the query is malformed (a wrong escape, a bad path filter, a case-sensitivity default). Acting on the wrong branch deletes live code or invents missing features that already ship.
-
-**Source:** XR-203 — cross-project experience registry (2026).
-
-### DOC-26 [MEDIUM] Machine-Read Corpora Keep One Structural Convention Across Sibling Files
-
-Every file in a corpus that tooling parses uses the same heading level and entry shape for the same kind of entry.
-
-**Detect:** Sibling files under one corpus using different heading depths (`##` vs `###`) or different entry formats for equivalent entries; a parser that needs per-file special-casing to read the set; extraction counts that disagree with a manual count for one file only.
-
-**Fix:** Pin one structural convention per corpus and state it in the corpus README; add a structural lint that fails when a sibling deviates. Parsers key on the pinned convention and never guess per file.
-
-**Impact:** A single deviating file silently drops all of its entries from every extraction, and nothing errors — the corpus looks complete while every downstream count, audit, and report reads a subset.
-
-**Source:** XR-204 — cross-project experience registry (2026).
+# Docs — README, accuracy, changelog, agent context files
+
+Applies to every project. Every claim a doc makes is checked against the code; the same passage kept in two places is SIM-06.
+
+### DOC-01 [HIGH] README does not say what it is or how to start
+- **Detect:** no README; a first screen opening with badges, a feature list or a generic line instead of the problem the project solves; no install-and-run path, or more than about 5 commands to a first success; no proof (screenshot, output, example) where one applies; stale badges (a CI that no longer runs, DOP-01) or so many that the content starts below the fold.
+- **Mech:** T `git ls-files -z 'README*' | xargs -0 head -n 30`
+- **Fix:** one-line problem and what the project does → proof → quick start (copy-paste commands with expected output; defaults or an `.env.example` so it runs unconfigured) → links to deeper docs; keep only badges a reader acts on (version, licence, a CI that runs).
+- **Impact:** visitors leave before they learn what it does; new users stall in setup.
+- **Source:** GitHub Docs, About READMEs; Diátaxis (tutorials).
+
+### DOC-02 [HIGH] Docs claim what the code no longer does
+- **Detect:** every testable claim — command, flag, path, config key, env var, default, endpoint, signature, version, code example, feature, security or performance statement — checked against the code and classed `Drift` (differs; HIGH), `Stale` (names what no longer exists; CRITICAL, asserted only after a control query on the same corpus with the same tool and flags returns hits, so the empty search proves absence and not a broken query) or `Gap` (shipped behaviour no doc mentions; MEDIUM); moves, renames, deletions and version bumps since {base} whose docs did not change in the same commit. Code blocks, flag tables, numbered steps and internal links first: they drift most. ds-audit's promise census calls Drift and Stale `promised-not-implemented` and Gap `implemented-not-documented`.
+- **Mech:** T `git diff --name-status {base} -- ':!*.md' | grep -E '^(R|D)'` · `git grep -nE '^[[:space:]]*(\$ |npm (run )?|npx |make |python3? |\./|cargo |go run )' -- '*.md'`
+- **Fix:** fix the doc in the same commit as the change; replace a copied fact (version, default, port) with a reference to its owning file or command; generate reference docs where the stack has a generator (DOC-06).
+- **Impact:** a wrong doc costs more than none: readers and agents act on it.
+- **Source:** Write the Docs, Docs as Code; kernel §3 (evidence).
+
+### DOC-23 [MEDIUM] Number or date in a doc with nothing keeping it true
+- **Detect:** a number a tool produces (counts, coverage, sizes, benchmark results, accuracy) or that also lives on another surface (config, UI, site, store listing), written by hand with no generator and no drift check; a figure with no re-runnable measurement script and raw output in the repo; an access or "last verified" date on a source nobody opened in that change.
+- **Mech:** T `git grep -nE '[0-9]+ (tests|rules|checks|files|steps)|[0-9]+(\.[0-9]+)?% (coverage|faster|smaller|fewer)' -- '*.md'`
+- **Fix:** emit the number from its generator at build time, or keep the hand copy under a check that fails when its source moves; keep the measurement script and its raw output beside the claim; write a verification date only for a source opened in that change.
+- **Impact:** correct today, silently wrong after the next change, and nobody can re-check it.
+- **Source:** SIM-06 (single source of truth); The Turing Way, Reproducible research.
+
+### DOC-05 [MEDIUM] Broken links and unlinted docs
+- **Detect:** internal links to missing files or anchors; external links that fail (`lychee .`, network); a repo with a docs directory and no link checker or Markdown linter in the gate.
+- **Mech:** T `lychee --offline --no-progress '**/*.md'` · `markdownlint-cli2 '**/*.md' '#node_modules'`
+- **Fix:** relative links for internal targets, canonical URLs for external ones; lychee and markdownlint in the gate with `.lycheeignore` for known false positives; Vale for prose style, advisory only.
+- **Impact:** a dead link on the getting-started path blocks adoption; unlinted structure drifts.
+- **Source:** lychee; markdownlint; Vale; GitLab Docs, Documentation testing.
+
+### DOC-06 [MEDIUM] API reference written by hand beside the code
+applies_when: api≠none or platforms∋library
+- **Detect:** endpoint or public-API docs maintained in a separate file while the stack has a generator.
+- **Mech:** T `git ls-files | grep -iE '(^|/)(openapi|swagger)[^/]*\.(ya?ml|json)$|(^|/)(typedoc\.json|mkdocs\.yml|docs/conf\.py)$'`
+- **Fix:** generate it: OpenAPI from routes, GraphQL introspection, TypeDoc, rustdoc, Sphinx autodoc, godoc, dartdoc.
+- **Impact:** a hand-kept reference drifts from the implementation with every change.
+- **Source:** OpenAPI Specification 3.1; each stack's documentation generator.
+
+### DOC-08 [LOW] No changelog a user can read
+- **Detect:** a released project with no changelog, or one that is a raw git log instead of versioned sections (Added, Changed, Deprecated, Removed, Fixed, Security) under `## [x.y.z] - YYYY-MM-DD`. Agreement with tags is DOP-48.
+- **Mech:** T `git ls-files | grep -iE '^(CHANGELOG|CHANGES|HISTORY|NEWS)(\.md)?$'` · `git grep -nE '^## ' -- CHANGELOG.md`
+- **Fix:** Keep a Changelog sections with an Unreleased block on top, written per change or generated from Conventional Commits (DOP-04).
+- **Impact:** users cannot tell whether an upgrade is safe without reading commits.
+- **Source:** Keep a Changelog 1.1.0; Semantic Versioning 2.0.0.
+
+### DOC-27 [HIGH] Docs the project type needs are missing
+- **Detect:** by signal: `platforms∋cli` without `--help` text covering every command and flag; `platforms∋library` without a public-API reference and a versioning statement; `api≠none` without a reference (DOC-06) and an auth and error guide; `ui≠none` without help reachable from the product and a support contact; a deployed service without the runbook of DEP-33.
+- **Mech:** T `git ls-files | grep -iE '(^|/)(docs?|man|help)/|(^|/)(FAQ|SUPPORT|USAGE|RUNBOOK)[^/]*$'`
+- **Fix:** add the missing page at the size the project needs, linked from the README.
+- **Impact:** users and operators cannot use or run what they cannot find out about.
+- **Source:** Diátaxis (tutorials, how-to guides, reference, explanation); GitHub Docs, Adding support resources to your project.
+
+## Agent context files
+
+`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.cursor/rules/*.mdc`, `.windsurfrules`, `.devin/rules/*.md`, `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, `CONVENTIONS.md` (Aider), root and nested. They are re-sent with every session, so signal density beats completeness. An edit to one steers every later session: it is Category B, applied with a one-line reason per cut or addition. None present → note it; write one only when asked, from verified commands. Secrets in them are SEC-01.
+
+### DOC-11 [HIGH] Context file repeats what the agent can derive or already does
+- **Detect:** directory layouts, dependency lists, file-by-file descriptions or architecture overviews the agent reads from the code in seconds; generic advice the model follows anyway ("write clean code", "handle errors properly"); pasted API docs, schemas or tutorials instead of links. Read the file or directory a passage describes before flagging it as derivable; unconfirmed → not a finding.
+- **Mech:** T `git grep -nE '^#+ .*(Structure|Layout|Director|Tech Stack|Dependencies|Overview)' -- '*CLAUDE.md' '*AGENTS.md' '*GEMINI.md' '.github/copilot-instructions.md' '.cursor/rules/*'`
+- **Fix:** delete it, or replace it with a one-line pointer (`see package.json`, a docs URL).
+- **Impact:** measured: generated and overview-heavy context files lowered task success and raised inference cost by over 20%; generic instructions degrade output, not only waste tokens.
+- **Source:** "Evaluating AGENTS.md" (arXiv:2602.11988); Anthropic, Claude Code best practices; Cursor Docs, Rules.
+
+### DOC-14 [MEDIUM] Context file over its harness budget
+- **Detect:** a file over its harness's budget — Claude Code `CLAUDE.md` 200 lines; a Cursor rule file 500 lines; Windsurf/Devin global rules 6,000 characters, a workspace rule file 12,000; about 300 lines elsewhere — or one root file covering several unrelated packages of a monorepo.
+- **Mech:** T `git ls-files -z '*CLAUDE.md' '*AGENTS.md' '*GEMINI.md' '.cursor/rules/*' '.devin/rules/*' '.windsurfrules' '.github/copilot-instructions.md' | xargs -0 wc -lc`
+- **Fix:** cut DOC-11 content first; then nested per-package files (the nearest one wins) or path-scoped rules (Cursor `globs`, Copilot `applyTo`); `@path` imports organize but still load in full.
+- **Impact:** past the budget adherence drops, or the harness truncates silently.
+- **Source:** Anthropic, How Claude remembers your project; Cursor Docs, Rules; Devin Docs, Cascade memories; agents.md (nested files).
+
+### DOC-15 [MEDIUM] Context file lacks what only the project knows
+- **Detect:** no non-guessable build, test or lint command; no style rule that differs from tool defaults; no non-obvious gotcha or rationale; no repo etiquette; no intent and hard limits (whom it serves, what a change must never do) — while the project clearly has them (custom scripts, non-default lint config, documented incidents).
+- **Mech:** M (compare the file with package scripts, Makefile, lint config and incident notes)
+- **Fix:** one terse line each, a before/after example over an abstract rule; intent and hard limits come from a person: propose them from evidence as `only you can do: confirm`, never write them as settled.
+- **Impact:** agents run listed commands automatically; context files help mainly through such non-standard requirements.
+- **Source:** agents.md; Anthropic, Claude Code best practices; "Evaluating AGENTS.md" (arXiv:2602.11988).

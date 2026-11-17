@@ -55,7 +55,7 @@ Module-level design for any stack. Code-level checks (errors, complexity, duplic
 applies_when: api≠none or deploy≠none
 - **Detect:** no handler for SIGTERM/SIGINT (or the platform's stop hook) that stops intake, drains in-flight work with a bounded timeout and closes connections; per-process state that must survive a restart (in-memory sessions, local-disk uploads, an in-process queue treated as durable).
 - **Mech:** S `git grep -qIE 'SIGTERM|SIGINT|NotifyContext|addShutdownHook|ApplicationStopping|on_shutdown' -- ':!*.md' || echo 'no shutdown handler in tracked code'`
-- **Fix:** on SIGTERM stop accepting work, drain, close pools, exit; non-zero when the drain times out. Durable state goes to a backing service. Health endpoints: OBS-02 in [monitoring.md](monitoring.md).
+- **Fix:** on SIGTERM stop accepting work, drain, close pools, exit; non-zero when the drain times out. Durable state goes to a backing service. Health endpoints: OBS-02 in [ops.md](ops.md).
 - **Impact:** every deploy or scale-down drops in-flight requests and can leave half-written data.
 - **Source:** Twelve-Factor VI Processes and IX Disposability (https://12factor.net/disposability).
 
