@@ -1,6 +1,6 @@
 # Privacy — personal data in code and config
 
-Loaded when the product handles personal data (`pii=yes`). Every rule here is an engineering control the code or config shows; legal duties are the owner's. Personal data in logs is SAR-02, access audit trails SAR-01, object and tenant access AUTH-11, transport encryption SEC-04, column encryption DB-24, backup encryption DEP-36, card data MON (money), app-store tracking and age signals STO (mobile).
+Loaded when the product handles personal data (`pii=yes`). Every rule here is an engineering control the code or config shows; legal duties are the owner's. Personal data in logs is SAR-02, access audit trails SAR-01, object and tenant access AUTH-11, transport encryption SEC-04, column encryption DB-24, backup encryption DEP-31, card data SEC-26, app-store tracking and age signals STO (mobile).
 
 ### PRV-01 [CRITICAL] Consent not enforced, versioned or withdrawable in code
 - **Detect:** non-essential cookies, tracking, analytics, ads or crash SDKs initialized before a stored choice; reject harder than accept, pre-ticked or bundled purposes, a dismissed banner treated as consent; a `Sec-GPC: 1` request header ignored; consent kept only as a current boolean with no append-only record of grant, change and withdrawal (time, purposes, method, text version); consent text changed without a version bump; no per-purpose withdrawal, or withdrawal that does not stop processing.

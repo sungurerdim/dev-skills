@@ -45,7 +45,7 @@ A match is CRITICAL after the CRITICAL second pass in `kernel.md` §4 (re-read �
 
 | Tool present | Use |
 |--------------|-----|
-| `gitleaks` | `gitleaks dir . --no-banner --redact=60` alongside the regexes; merge by `file:line`. |
+| `gitleaks` | SEC-01's Mech commands (working tree and git history) alongside the regexes; merge by `file:line`. |
 | `trufflehog` | Offer a verified scan for CRITICAL triage — its verifiers tell a live credential from an expired one. Never probe a credential yourself. |
 | Neither | The regex table above stands alone. |
 

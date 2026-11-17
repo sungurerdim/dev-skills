@@ -84,12 +84,12 @@ applies_when: ui≠none
 - **Source:** web.dev, Avoid large, complex layouts and layout thrashing; Flutter, performance best practices.
 
 ### PRF-14 [HIGH] Offscreen content rendered
-applies_when: ui∋web
-- **Detect:** lists of 100+ items fully rendered with no virtualization; long below-the-fold sections without `content-visibility: auto`; dense, periodically refreshed grids that measure or lay out twice per frame.
-- **Mech:** M
-- **Fix:** virtualize long lists (viewport plus overscan); `content-visibility: auto` with `contain-intrinsic-size`; one layout pass per frame.
-- **Impact:** render and interaction cost scale with data size instead of the viewport.
-- **Source:** web.dev, content-visibility (https://web.dev/articles/content-visibility).
+applies_when: ui≠none
+- **Detect:** lists of 100+ items fully rendered with no virtualization (native: Flutter `ListView(children:)` instead of `ListView.builder`, React Native `ScrollView` with `map` instead of `FlatList`/`FlashList`, Compose `Column` with `verticalScroll` instead of `LazyColumn`, SwiftUI `VStack` instead of `LazyVStack`); long below-the-fold sections without `content-visibility: auto`; dense, periodically refreshed grids that measure or lay out twice per frame.
+- **Mech:** T `git grep -nIE 'ListView\(|<ScrollView|verticalScroll\(' -- ':!*test*' ':!*.md'`
+- **Fix:** virtualize long lists (viewport plus overscan; the platform's builder or lazy list); `content-visibility: auto` with `contain-intrinsic-size`; one layout pass per frame.
+- **Impact:** render and interaction cost scale with data size instead of the viewport; long native lists jank and run out of memory.
+- **Source:** web.dev, content-visibility (https://web.dev/articles/content-visibility); Flutter, `ListView.builder`; Android, Lists in Compose (`LazyColumn`).
 
 ### PRF-16 [HIGH] Interaction blocks the main thread
 applies_when: ui∋web

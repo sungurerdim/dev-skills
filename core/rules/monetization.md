@@ -1,6 +1,6 @@
 # Money — paywall, checkout and subscription screens
 
-Loaded when the product takes payments (`billing≠none`). Server-side entitlement, webhook and receipt checks are in the safe phase; store purchase handling is in [store.md](store.md) (STO-05, STO-21, LCH-11).
+Loaded when the product takes payments (`billing≠none`). Server-side entitlement, webhook, card-data, refund and receipt checks are in the safe phase (SAR-07, API-20, SEC-26–SEC-28); store purchase handling is in [store.md](store.md) (STO-05, STO-21, LCH-11).
 
 ### PRC-04 [HIGH] Prices hard-coded in the client
 - **Detect:** currency-formatted amounts or price IDs written into client source or copy instead of read from the billing provider's product catalogue (StoreKit products, Play Billing product details, Stripe Prices, Paddle prices); a price change that needs a redeploy or store review. Detector of SIM-06.

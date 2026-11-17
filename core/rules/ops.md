@@ -54,14 +54,6 @@ applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or
 - **Impact:** internet scanners find an open datastore port within hours; a wildcard role turns one compromised component into the whole account.
 - **Source:** OWASP Docker Security Cheat Sheet; AWS IAM best practices (least privilege); CIS Benchmarks.
 
-### DEP-16 [MEDIUM] API removal without Deprecation and Sunset headers
-applies_when: api≠none
-- **Detect:** a public endpoint slated for removal with no `Deprecation` header (RFC 9745) or `Sunset` header (RFC 8594), a Sunset date before the Deprecation date, or no published minimum notice before a breaking removal.
-- **Mech:** T `git grep -nIiE 'deprecation|sunset' -- ':!*.md' ':!*test*'`
-- **Fix:** send `Deprecation` and `Sunset` with a link to the migration guide; publish the notice window and keep version numbers honest.
-- **Impact:** clients get no machine-readable warning and break on removal day.
-- **Source:** RFC 9745; RFC 8594; Semantic Versioning 2.0.0.
-
 ### DEP-20 [CRITICAL] Critical config defaulted, placeholder or overridable in production
 - **Detect:** code defaults for salts, secrets, connection strings, prices, rate limits, endpoints or debug and mock switches (`process.env.X || 'value'`, `os.getenv('X', 'value')`); startup that accepts the `.env.example` placeholder; backing services (database, cache, queue, mail) hard-wired to a host instead of a URL from the environment; production commands relying on default file resolution where a dev override can exist (`docker compose up` beside a `compose.override.yml`).
 - **Mech:** T `git grep -nIE "process\.env\.[A-Z_]+[[:space:]]*(\|\||\?\?)|getenv\([^)]*,|environ\.get\([^)]*," -- ':!*test*' ':!*.md'` · `git ls-files '*compose.override*' '*.env.local' '*.env.development'`
@@ -138,11 +130,11 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 - **Source:** Kubernetes Docs, Configure liveness, readiness and startup probes.
 
 ### OBS-03 [HIGH] Errors and crashes reach no one
-- **Detect:** servers with no alert on error-rate spikes, sustained 5xx or failing health; shipped apps with no crash reporting, or crash reports without symbols (dSYM, `mapping.txt` or PDB not uploaded at release); a third-party crash SDK sending personal data unscrubbed, with no opt-in where personal data flows.
+- **Detect:** servers with no alert on error-rate spikes, sustained 5xx or failing health; shipped apps with no crash reporting, or crash reports without symbols (dSYM, `mapping.txt` or PDB not uploaded at release); a third-party crash SDK sending personal data unscrubbed, with no opt-in where personal data flows; an app whose uncaught-error hooks are not all bound at start to that one reporter (Flutter `runZonedGuarded`, `FlutterError.onError` and `PlatformDispatcher.instance.onError`; browser `error` and `unhandledrejection`; Node `uncaughtException` and `unhandledRejection`), or that routes handled business errors into them.
 - **Mech:** T `git grep -nIiE 'sentry|crashlytics|bugsnag|rollbar|honeybadger|glitchtip|alertmanager|opsgenie|pagerduty' -- ':!*.md' ':!*.lock'`
-- **Fix:** choose deliberately, lightest first: the platform's own crash reports (App Store Connect, Play Console Android vitals, Windows Error Reporting) or a self-hosted collector, a third-party SDK only for a need those miss, with scrubbing and opt-in where personal data flows; symbols uploaded by the release step; one alert channel the developer reads.
-- **Impact:** outages and crashes are learned from users, hours or days late.
-- **Source:** Google SRE Book, Monitoring distributed systems; GDPR Art. 25 (data protection by default).
+- **Fix:** choose deliberately, lightest first: the platform's own crash reports (App Store Connect, Play Console Android vitals, Windows Error Reporting) or a self-hosted collector, a third-party SDK only for a need those miss, with scrubbing and opt-in where personal data flows; symbols uploaded by the release step; every uncaught-error hook bound at start to the one reporter, business errors handled at their site; one alert channel the developer reads.
+- **Impact:** outages and crashes are learned from users, hours or days late; each unbound hook is a class of crashes that leaves no report.
+- **Source:** Google SRE Book, Monitoring distributed systems; Flutter, Handling errors in Flutter; GDPR Art. 25 (data protection by default).
 
 ### OBS-04 [MEDIUM] Requests across services cannot be followed
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
