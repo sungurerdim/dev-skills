@@ -29,6 +29,7 @@ Global option: --root DIR (default: the current directory). Words: all, dry, ask
 """
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import re
@@ -856,7 +857,7 @@ text-anchor="middle">{"–" if pct is None else f"{pct}%"}</text></svg><div><div
 TEST = re.compile(r"(^|/)(tests?|__tests__|spec)(/|$)|(_test|\.test|\.spec|_spec|Tests?)\.\w+$|(^|/)test_[^/]+\.py$")
 ENTRY = re.compile(r"(^|/)(main|__main__|index|app|server|cli)\.\w+$")
 TIERS = re.compile(r"^(T0|T1|T2|cut|merge\s*(?:→|->)\s*\S+)$")
-BUDGET = re.compile(r"\b(units|deps|docs)\s*(?:≤|<=)\s*(\d+)")
+BUDGET = re.compile(r"\b(units|deps|docs|product)\s*(?:≤|<=)\s*(\d+)")
 RULE_FILES = re.compile(r"(^|/)(CLAUDE|AGENTS|GEMINI|CONVENTIONS|SCOPE|DECISIONS)\.md$|(^|/)\.cursorrules$|"
                         r"(^|/)\.windsurfrules$|(^|/)\.cursor/rules/[^/]+\.mdc?$|(^|/)\.devin/rules/[^/]+\.md$|"
                         r"(^|/)\.github/copilot-instructions\.md$|(^|/)\.github/instructions/[^/]+\.md$|"
@@ -872,8 +873,16 @@ def unit_of(path: str, depth: int) -> str:
     return "/".join(path.split("/")[:-1][:depth]) or "."
 
 
+def product_globs(root: Path) -> list:
+    """SCOPE.md `Product:` globs: files that are the product although not source code (a Markdown or data product)."""
+    m = re.search(r"^Product:(.*)$", read(root / "SCOPE.md"), re.M)
+    return re.findall(r"`([^`]+)`", m.group(1)) if m else []
+
+
 def inventory(root: Path, depth: int = 2) -> dict:
     names = files(root)
+    globs = product_globs(root)
+    is_product = lambda n: any(fnmatch.fnmatch(n, g) for g in globs)  # noqa: E731 — `*` also crosses `/`
     units, texts = {}, {}
     for n in names:
         ext = Path(n).suffix.lower()
@@ -888,25 +897,29 @@ def inventory(root: Path, depth: int = 2) -> dict:
         else:
             u["src_lines"] += lines
             texts.setdefault(unit_of(n, depth), []).append(text)
-            if ENTRY.search(n) or (ext == ".go" and re.search(r"^package main\b", text, re.M)):
+            if (ENTRY.search(n) or text.startswith("#!") or (ext == ".go" and re.search(r"^package main\b", text, re.M))
+                    or (ext == ".py" and re.search(r"^if __name__ == [\"']__main__[\"']", text, re.M))):
                 u["entry"] = True
     for name, u in units.items():
         pats = [re.compile(r"(?<![\w.\-])" + re.escape(t) + r"(?![\w\-])")
                 for t in ({name, name.replace("/", ".")} if name != "." else set())]
         u["fan_in"] = sum(1 for other, ts in texts.items() if other != name and any(p.search(t) for t in ts for p in pats))
-    commits, stamps = [], []
+    commits, stamps, sourced = [], [], 0
     for chunk in git(root, "log", "--format=%x00%ct", "--name-only").split("\0")[1:]:
         head, *paths = chunk.strip().split("\n")
         stamps.append(int(head))
         commits.append({unit_of(p, depth) for p in paths if p and Path(p).suffix.lower() in SRC})
+        sourced += bool(commits[-1]) or any(is_product(p) for p in paths if p)
     for name, u in units.items():
         u["commits"] = sum(1 for c in commits if name in c)
     now = max(stamps) if stamps else 0
-    doc_names = [n for n in names if Path(n).suffix.lower() in DOC]
+    product = [n for n in names if is_product(n)]
+    doc_names = [n for n in names if Path(n).suffix.lower() in DOC and n not in product]
     dep_list = deps(root, names)
     src_lines = sum(u["src_lines"] for u in units.values())
     test_lines = sum(u["test_lines"] for u in units.values())
     doc_kb = round(sum((root / n).stat().st_size for n in doc_names) / 1024)
+    product_kb = round(sum((root / n).stat().st_size for n in product) / 1024)
     runtime = sum(1 for d in dep_list if d["kind"] == "runtime")
     room = lambda n: -(-n * 11 // 10)  # noqa: E731 — measured + 10 %, rounded up: the next small commit stays green
     return {
@@ -915,13 +928,15 @@ def inventory(root: Path, depth: int = 2) -> dict:
             "files": len(names), "units": len(units), "src_lines": src_lines, "test_lines": test_lines,
             "test_to_src": round(test_lines / src_lines, 2) if src_lines else None,
             "doc_files": len(doc_names), "doc_kb": doc_kb, "deps_runtime": runtime,
+            "product_files": len(product), "product_kb": product_kb,
             "deps_dev": sum(1 for d in dep_list if d["kind"] == "dev"),
             "commits": len(stamps), "days": round((now - min(stamps)) / 86400) + 1 if stamps else 0,
             "commits_30d": sum(1 for s in stamps if s > now - 30 * 86400),
-            "commits_without_source": sum(1 for c in commits if not c),
+            "commits_without_source": len(stamps) - sourced,
             "branches": len(git(root, "for-each-ref", "--format=x", "refs/heads").split()),
         },
-        "budget": f"units ≤ {room(len(units))} · deps ≤ {room(runtime)} · docs ≤ {room(doc_kb)} KB",
+        "budget": f"units ≤ {room(len(units))} · deps ≤ {room(runtime)} · docs ≤ {room(doc_kb)} KB"
+                  + (f" · product ≤ {room(product_kb)} KB" if globs else ""),
         "units": [dict(unit=k, **v) for k, v in sorted(units.items(), key=lambda kv: -kv[1]["src_lines"])],
         "deps": dep_list,
         "entry_points": sorted(k for k, v in units.items() if v["entry"]),
@@ -960,10 +975,11 @@ def lean_check(root: Path, scope: Path, depth: int = 2) -> list:
     m = re.search(r"^Budget:(.*)$", text, re.M)
     if not m:
         problems.append("no 'Budget:' line (units ≤ n · deps ≤ n · docs ≤ n KB)")
-    actual = {"units": inv["totals"]["units"], "deps": inv["totals"]["deps_runtime"], "docs": inv["totals"]["doc_kb"]}
+    actual = {"units": inv["totals"]["units"], "deps": inv["totals"]["deps_runtime"], "docs": inv["totals"]["doc_kb"],
+              "product": inv["totals"]["product_kb"]}
     for key, limit in BUDGET.findall(m.group(1) if m else ""):
         if actual[key] > int(limit):
-            problems.append(f"budget: {key} {actual[key]}{' KB' if key == 'docs' else ''} > {limit}")
+            problems.append(f"budget: {key} {actual[key]}{' KB' if key in ('docs', 'product') else ''} > {limit}")
     return problems
 
 
@@ -1110,6 +1126,27 @@ def self_test() -> int:
         expect(len(items) == 2 and items[0]["absolute"] and not items[0]["reason"] and items[0]["subject"] == "init"
                and items[0]["refs"] == 1, f"rules order/flags/refs {items[:1]}")
         expect(recorded_rules(tmp, since="HEAD") == [], "rules --since HEAD lists nothing older")
+        prod = Path(tempfile.mkdtemp(prefix="ds-audit-product-"))
+        subprocess.run(["git", "-C", str(prod), "init", "-q"], check=True, env=gitenv, capture_output=True)
+        (prod / "skill").mkdir()
+        for rel, body in (("SCOPE.md", "Product: `skill/*.md`\n"), ("skill/a.md", "# a\n"),
+                          ("tool.py", "def main():\n    pass\n\n\nif __name__ == \"__main__\":\n    main()\n")):
+            (prod / rel).write_text(body, encoding="utf-8")
+        for msg in ("one", "two"):
+            subprocess.run(["git", "-C", str(prod), "add", "-A"], check=True, env=gitenv, capture_output=True)
+            subprocess.run(["git", "-C", str(prod), "commit", "-qm", msg], check=True, env=gitenv, capture_output=True)
+            (prod / "skill" / "a.md").write_text("# a\n\nmore\n", encoding="utf-8")
+        (prod / "SCOPE.md").write_text("Product: `skill/*.md`\n\nBudget: units ≤ 1 · product ≤ 1 KB\n\n"
+                                       "| Unit | Tier |\n|---|---|\n| . | T0 |\n", encoding="utf-8")
+        (prod / "skill" / "a.md").write_text("x" * 3000, encoding="utf-8")
+        expect(lean_check(prod, prod / "SCOPE.md") == ["budget: product 3 KB > 1"],
+               f"lean-check ignores the product budget: {lean_check(prod, prod / 'SCOPE.md')}")
+        pt = inventory(prod)
+        expect(pt["totals"]["commits_without_source"] == 0 and pt["totals"]["doc_files"] == 1
+               and pt["totals"].get("product_files") == 1 and pt["entry_points"] == ["."],
+               f"lean: Markdown product counted as docs / commits without source, or a __main__ script not an entry "
+               f"point: {pt['totals']} entry={pt['entry_points']}")
+        shutil.rmtree(prod, ignore_errors=True)
         rdir = Path(tempfile.mkdtemp(prefix="ds-audit-rules-"))
         (rdir / "AGENTS.md").write_text(
             "| Task | Command |\n|------|---------|\n| Run both on every commit | `python3 scripts/check.py --install-hook` |\n"
