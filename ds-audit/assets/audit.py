@@ -881,6 +881,10 @@ def self_test() -> int:
                        "- Keep the CLI flags stable so that scripts keep working.\n")
         commit("init")
 
+        doc = section(read(HERE.parent / "references" / "phases.md"), "Output — the ledger language")
+        named = [c.strip().strip("`") for c in re.findall(r"^\| ([^|]+) \|", doc, re.M)][1:]  # past the header
+        expect(named == list(COLS), f"phases.md ledger columns {named} differ from the script's {list(COLS)}")
+
         # lean inventory, SCOPE check, recorded rules
         inv = inventory(tmp)
         units = {u["unit"]: u for u in inv["units"]}
