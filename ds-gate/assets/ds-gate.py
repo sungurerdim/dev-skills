@@ -50,7 +50,7 @@ from pathlib import Path
 _HERE = Path(__file__).resolve().parent
 _CORE = next((d for d in (_HERE, _HERE.parent / "core", _HERE.parent.parent / "core") if (d / "ds_detect.py").is_file()), _HERE)
 sys.path.insert(0, str(_CORE))
-from ds_detect import check_cmd as detect  # noqa: E402
+from ds_detect import check_cmd as detect, isolate_git  # noqa: E402
 
 WINDOWS = os.name == "nt"
 TAIL_CHARS = 4000
@@ -373,6 +373,7 @@ def self_test() -> int:
         subprocess.run(cmd, cwd=cwd, check=True, capture_output=True)
 
     keep = {k: os.environ.get(k) for k in ("CLAUDE_CONFIG_DIR", "CLAUDE_PROJECT_DIR")}
+    keep.update(isolate_git())
     tmp = Path(tempfile.mkdtemp(prefix="ds-gate-test-"))
     try:
         os.environ["CLAUDE_CONFIG_DIR"] = str(tmp / "cfg")
