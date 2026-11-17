@@ -10,10 +10,10 @@ The **Standards** column names what the area is checked against — apply them b
 |------|-------|-------|-----------|-----|-----------|
 | `rules` | lean | — (recorded rules and decisions, `audit.py rules`) | always | LEAN-12 | ADRs · Chesterton's fence |
 | `lean` | lean | lean.md · simplify.md | always | LEAN | YAGNI · KISS · Gall's law · fitness functions |
-| `arch` | build | engineering.md · architecture-testing.md · architecture-rubric.md · review-strategic.md | always | ARC | SOLID · GRASP · Twelve-Factor |
-| `code` | build | review-tactical.md · review-meta.md | always | — | DRY/SSOT · KISS · YAGNI · SoC · cyclomatic complexity |
-| `test` | build | testing.md · architecture-testing.md | always (`tests=none` is itself a finding) | TST | test pyramid · mutation testing · property-based testing · contract testing (Pact) |
-| `perf` | build | performance.md · performance-runtime.md · review-performance.md | `ui≠none` or `api≠none` | PRF · NET · COST · RTP | Core Web Vitals (LCP, INP, CLS) · RFC 9110 caching semantics |
+| `arch` | build | arch.md | always | ARC · RTP-10 · AIA | SOLID · GRASP · Twelve-Factor · OWASP Top 10 for LLM Applications |
+| `code` | build | code.md | always | ARC (code level) · TST-06 | DRY · KISS · cyclomatic and cognitive complexity · CWE-362/367/407/1333 |
+| `test` | build | test.md | always (`tests=none` is itself a finding) | TST | test pyramid · mutation testing · property-based testing · contract testing (Pact) · Semantic Versioning |
+| `perf` | build | perf.md | `ui≠none` or `api≠none` | PRF · NET · COST · RTP | Core Web Vitals (LCP, INP, CLS) · RFC 9111 HTTP caching · CWE-400/770 |
 | `sec` | safe | security.md · security-arch.md · network.md · `../secret-patterns.md` | always | SEC · SAR · NWK | OWASP Top 10 (2025) · OWASP ASVS 5.0 · OWASP API Security Top 10 · NIST SSDF (SP 800-218) · HSTS |
 | `privacy` | safe | privacy.md · templates: [dpia](../templates/dpia.md), [breach-notification](../templates/breach-notification.md), [privacy-policy](../templates/privacy-policy.md), [processor-registry](../templates/processor-registry.md) | `pii=yes` | PRV | GDPR · UK GDPR · KVKK · CCPA/CPRA · LGPD · PIPL · ePrivacy · EU AI Act · PCI DSS |
 | `auth` | safe | auth.md | `auth≠none` | AUTH | RFC 9700 (OAuth 2.0 Security BCP) · NIST SP 800-63B |
@@ -27,6 +27,6 @@ The **Standards** column names what the area is checked against — apply them b
 | `store` | surface | store.md · store-aso.md · templates: [store-submission](../templates/store-submission.md), [store-privacy-labels](../templates/store-privacy-labels.md) | `deploy=store` | LCH | Apple App Review Guidelines · Google Play policies |
 | `money` | surface | monetization.md · pricing.md · gtm.md | `billing≠none` | MON · PRC · GTM · pricing IDs | PCI DSS scope · store billing rules |
 | `ci` | ship | ci.md · dependencies.md · dependencies-advisories.md · signing.md · release.md | `ci≠none`, or any lockfile | DOP | SLSA · SBOM (SPDX / CycloneDX) · Conventional Commits · Semantic Versioning |
-| `ops` | ship | deployment.md · monitoring.md | `deploy≠none` | DEP · OBS | Twelve-Factor · CIS Benchmarks · Kubernetes Pod Security Standards · OpenTelemetry · golden signals · 3-2-1 backups |
+| `ops` | ship | deployment.md · monitoring.md | `deploy≠none` | DEP · OBS · COST | Twelve-Factor · CIS Benchmarks · Kubernetes Pod Security Standards · OpenTelemetry · golden signals · 3-2-1 backups |
 | `docs` | ship | docs.md · docs-gaps.md · ai-context.md | always | DOC | Keep a Changelog · ADRs · AGENTS.md |
 | `repo` | ship | repo.md | a git remote exists | RPO | community health files (LICENSE, SECURITY.md, CONTRIBUTING) · SPDX license IDs |

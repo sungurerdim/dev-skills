@@ -172,7 +172,7 @@ User consent carries a schema version; any change to consent text or scope incre
 applies_when: pii=yes
 - **Detect:**
   - Consent state stored as a bare current-value column (boolean/enum) with no accompanying event log — the current state is known but not when/how/for-what-scope it was given or withdrawn
-  - Consent-change events absent from the audit-logging scope that already covers auth/payment/deletion ([ARC-01](security-arch.md))
+  - Consent-change events absent from the audit-logging scope that already covers auth/payment/deletion (SAR-01 in [security-arch.md](security-arch.md))
   - No way to reconstruct, for a given user and date, what they had actually consented to
 - **Fix:** Log every consent grant/change/withdrawal as an immutable, append-only event (timestamp, purpose/scope, method — banner/settings-toggle/API, consent-schema version per PRV-33) separate from the current-state column the application reads at runtime. Route consent events through the same append-only audit-log mechanism [ARC-01](security-arch.md) already requires for auth/payment/deletion.
 - **Impact:** Without a consent event log, "prove you had consent for this processing on this date" — the exact question a regulator or DSAR response asks under GDPR Art. 7(1)'s demonstrability requirement — has no answer; a current-value-only column can't show whether today's "yes" is the same "yes" a user gave two policy versions ago.

@@ -448,3 +448,48 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 **Impact:** An incident closed without a completed post-mortem loses the only mechanism that turns an outage into a prevention — action items with no owner or deadline are indistinguishable from action items that don't exist, and the same failure mode recurs.
 
 **Source:** Google SRE Workbook — Postmortem Culture (https://sre.google/workbook/postmortem-culture/)
+
+## Cost
+
+### COST-02 [HIGH] Cloud Egress Waste
+Cross-region/cross-AZ data transfer and origin-served assets generate avoidable egress charges.
+- **Detect:**
+  - Service A (region us-east-1) calls Service B (region eu-west-1) on every request — cross-region transfer billed per GB
+  - Static assets (images, JS, CSS) served from compute origin (EC2, Cloud Run, App Engine) instead of CDN or object storage
+  - Database read replica in a different AZ/region than the application, fetching large result sets on hot paths
+  - Large binary blobs stored in DB and served via API response body instead of pre-signed object-storage URLs
+- **Fix:** Co-locate services that exchange high-volume data in the same region/AZ. Serve static/media assets from CDN (CloudFront, Cloud CDN, Fastly) or object storage with direct pre-signed URLs. Move read replicas to the same AZ as the application tier. Return pre-signed URLs instead of proxying blobs through compute
+- **Impact:** cross-region and origin-served traffic is billed per GB on every request, while a CDN or co-located service pays it once or not at all
+- **Source:** AWS Data Transfer Pricing, GCP Network Egress Pricing, CDN Best Practices (MDN)
+
+### COST-03 [HIGH] Oversized Infra Defaults
+Instance sizes or provisioned capacity far above observed load incur idle spend.
+- **Detect:**
+  - CPU utilization consistently < 20% on provisioned instances (check CloudWatch, Cloud Monitoring, Datadog)
+  - RDS/Cloud SQL provisioned IOPS at maximum with actual IOPS < 30% of provisioned
+  - Always-on staging/dev/preview environments running 24/7 without a shutdown schedule
+  - Kubernetes requests/limits set to defaults (1 CPU, 512Mi) without profiling — either over-provisioned or a future OOM
+- **Fix:** Right-size instances to next tier down when p95 CPU < 20% and p95 memory < 50% for 7+ days. Set RDS to autoscaling storage + gp3 instead of provisioned IOPS unless throughput-bound. Add start/stop schedules to non-prod environments (AWS Instance Scheduler, GCP resource policies). Profile containers under load and set requests/limits to observed p99 + 20% headroom. Make rightsizing + reserved/committed-use coverage review a recurring cadence (monthly/quarterly against usage trends), not a one-off exercise
+- **Impact:** idle capacity is paid for every hour; non-production environments left on at night and on weekends pay for time nobody uses
+- **Source:** AWS Compute Optimizer, GCP Recommender, FinOps Foundation Right-Sizing Guide
+
+### COST-04 [HIGH] Missing Lifecycle Policies
+Objects, logs, artifacts, and backups retained indefinitely accumulate unbounded storage cost.
+- **Detect:**
+  - S3/GCS/Azure Blob buckets with no lifecycle rule (check bucket policy or IaC)
+  - CloudWatch Logs / Cloud Logging log groups with retention set to "Never expire"
+  - CI/CD artifact stores (S3, GCS, Artifactory) retaining every build artifact with no TTL
+  - Database backups kept beyond documented retention window with no automated deletion
+  - Docker image registry (ECR, GCR, Docker Hub) accumulating all tags with no deletion policy
+- **Fix:** Set S3/GCS lifecycle rules: transition to Infrequent Access after 30 days, Glacier after 90 days, delete after retention window. Set log group retention to ≤ 90 days for non-compliance workloads (adjust for regulatory requirements). Add CI artifact expiration (e.g., keep last 10 builds or 30 days). Define and automate backup retention (typically 7–35 days). Add ECR/GCR lifecycle policy to delete untagged images and old non-production tags
+- **Impact:** storage with no expiry grows every month and is paid for forever
+- **Source:** AWS S3 Lifecycle Policies, GCP Object Lifecycle Management, AWS CloudWatch Logs Retention, ECR Lifecycle Policies
+
+### COST-07 [HIGH] Cost-Allocation Tagging Discipline
+Billable resources without team/service/environment tags make spend unattributable — no unit economics, no accountability.
+- **Detect:**
+  - IaC resource blocks (Terraform/CloudFormation/Pulumi) missing the org's cost-allocation tag set (team, service, environment minimum)
+  - No tag-policy enforcement at creation time (no IaC lint rule, no cloud policy engine rule) — tagging left to convention
+- **Fix:** Enforce required tags at resource-creation time: IaC linting (tflint/checkov rule) or cloud policy engine (AWS Tag Policies/SCP, Azure Policy, GCP org policy). Backfill untagged resources from ownership records; treat persistently untagged spend as a finding, not a rounding error
+- **Impact:** Untagged spend cannot be attributed to a team or feature — every optimization conversation stalls at "whose is this?"
+- **Source:** FinOps Foundation cost-allocation guidance; cloud vendor tag-policy docs
