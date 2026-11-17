@@ -56,7 +56,7 @@ applies_when: api∋rest
 ### API-08 [MEDIUM] No machine-readable API contract
 applies_when: api∋rest or api∋graphql or api∋grpc
 - **Detect:** an API consumed outside its own codebase with no OpenAPI document, GraphQL schema file or `.proto`; a spec not linted or not checked for breaking changes in the gate; a spec that disagrees with the routes.
-- **Mech:** T `git ls-files | grep -iE '(openapi|swagger)[^/]*\.(ya?ml|json)$|\.graphqls?$|\.proto$'`
+- **Mech:** T `git ls-files | grep -qiE '(openapi|swagger)[^/]*\.(ya?ml|json)$|\.graphqls?$|\.proto$' || echo 'no OpenAPI, GraphQL schema or .proto tracked'`
 - **Fix:** generate the contract from code or write it first; lint it (Spectral for OpenAPI, `buf lint` for protobuf) and diff it against the base for breaking changes (oasdiff, `buf breaking`) in the gate; a contract test checks the server against it.
 - **Impact:** clients guess the contract, and breaking changes reach them unnoticed.
 - **Source:** Semantic Versioning; OpenAPI Specification 3.1; Spectral (stoplight.io); oasdiff (github.com/oasdiff/oasdiff); Buf (buf.build).

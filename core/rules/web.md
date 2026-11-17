@@ -25,14 +25,14 @@ Loaded for web UIs (`ui∋web`). Behaviour every graphical UI shares is in [ux.m
 
 ### WEB-15 [MEDIUM] No declared browser support target
 - **Detect:** no Browserslist query (`browserslist` in `package.json` or `.browserslistrc`) and no Baseline target stated; platform features used (CSS nesting, `:has()`, `popover`, View Transitions) with no fallback for browsers the product claims to support; transpile and polyfill settings that do not follow the target.
-- **Mech:** T `git grep -nIE '"browserslist"|baseline' -- package.json .browserslistrc README.md`
+- **Mech:** T `git ls-files | grep -qE '(^|/)\.browserslistrc$' || git grep -qIE '"browserslist"|Baseline' -- package.json README.md || echo 'no Browserslist query or Baseline target'`
 - **Fix:** declare one target (a Browserslist query or a Baseline year) and feed it to the transpiler, CSS tooling and linter; test the oldest browser in it.
 - **Impact:** features silently fail for part of the audience, or polyfills ship to browsers that never needed them.
 - **Source:** web.dev, Baseline (https://web.dev/baseline); Browserslist (https://browsersl.ist/).
 
 ### WEB-07 [MEDIUM] Framework default error pages
 - **Detect:** no custom 404 and 5xx page or route; no top-level error boundary in a client-rendered app, so one render error blanks the page; error pages without a way back (home, search, retry). Stack traces in responses are SAR-06.
-- **Mech:** T `git ls-files | grep -iE '(^|/)(404|500|not-found|error)\.(html|tsx?|jsx?|vue|svelte|astro)$'`
+- **Mech:** T `git ls-files | grep -qiE '(^|/)(404|500|not-found|error)\.(html|tsx?|jsx?|vue|svelte|astro)$' || echo 'no custom 404 or error page tracked'`
 - **Fix:** a branded 404 with navigation and search, a 5xx with retry and a support path, and an app-level error boundary that logs and renders the same.
 - **Impact:** a dead end with no route back turns one broken link or exception into an abandoned session.
 - **Source:** Nielsen heuristic 9, help users recover from errors; MDN, HTTP 404.
@@ -68,7 +68,7 @@ applies_when: audience=public
 
 ### RSP-13 [LOW] Printable page without print styles
 - **Detect:** pages users print or save as PDF (invoices, receipts, reports, tickets) with no `@media print` block: navigation, dark backgrounds and interactive chrome print, content splits across page breaks.
-- **Mech:** T `git grep -lI '@media print' -- '*.css' '*.scss' '*.less' '*.html'`
+- **Mech:** T `git grep -qI '@media print' -- '*.css' '*.scss' '*.less' '*.html' '*.vue' '*.svelte' || git grep -lIiE 'invoice|receipt|ticket' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte' '*.astro'`
 - **Fix:** an `@media print` block that hides chrome, uses dark text on white, and sets `break-inside: avoid` on rows and cards.
 - **Impact:** printed documents waste ink and lose content at page breaks.
 - **Source:** W3C CSS Fragmentation Module Level 3; CSS Paged Media Module Level 3.

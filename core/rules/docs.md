@@ -40,7 +40,7 @@ applies_when: api≠none or platforms∋library
 
 ### DOC-08 [LOW] No changelog a user can read
 - **Detect:** a released project with no changelog, or one that is a raw git log instead of versioned sections (Added, Changed, Deprecated, Removed, Fixed, Security) under `## [x.y.z] - YYYY-MM-DD`. Agreement with tags is DOP-48.
-- **Mech:** T `git ls-files | grep -iE '^(CHANGELOG|CHANGES|HISTORY|NEWS)(\.md)?$'` · `git grep -nE '^## ' -- CHANGELOG.md`
+- **Mech:** T `git ls-files | grep -qiE '^(CHANGELOG|CHANGES|HISTORY|NEWS)(\.md)?$' || echo 'no changelog tracked'` · `git grep -nE '^## ' -- CHANGELOG.md`
 - **Fix:** Keep a Changelog sections with an Unreleased block on top, written per change or generated from Conventional Commits (DOP-04).
 - **Impact:** users cannot tell whether an upgrade is safe without reading commits.
 - **Source:** Keep a Changelog 1.1.0; Semantic Versioning 2.0.0.

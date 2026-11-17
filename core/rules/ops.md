@@ -106,7 +106,7 @@ applies_when: db≠none
 ### DEP-33 [MEDIUM] Incident response improvised
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** no written first-minutes triage order, no map from failure to rollback command with its expected downtime, or major incidents closed without a post-mortem carrying a timeline, root cause and owned, dated action items.
-- **Mech:** T `git ls-files | grep -iE 'runbook|playbook|incident|post-?mortem'`
+- **Mech:** T `git ls-files | grep -qiE 'runbook|playbook|incident|post-?mortem' || echo 'no runbook or incident document tracked'`
 - **Fix:** one runbook: triage (real or false alarm, process up, recent errors, dependencies reachable, host resources) → severity (down, degraded, minor); rollback per scenario (bad deploy → previous image or `kubectl rollout undo`; bad migration → restore plus previous image; host loss → redeploy from IaC; bad data → point-in-time restore); a post-mortem stub created when an incident closes.
 - **Impact:** the slowest or riskiest rollback gets chosen under pressure, and the same failure comes back.
 - **Source:** Reversibility; Google SRE Workbook, Incident response and Postmortem culture.
@@ -197,7 +197,7 @@ applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or
 ### COST-04 [HIGH] Storage that never expires
 applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** buckets without lifecycle rules; log groups set to never expire; CI artifacts and container registries keeping every build and tag. Backup retention is DEP-31.
-- **Mech:** T `git grep -nIE 'lifecycle_rule|LifecycleConfiguration|retention_in_days|RetentionInDays|lifecyclePolicy|retention-days' -- ':!*.md'`
+- **Mech:** T `git grep -qIE 'lifecycle_rule|LifecycleConfiguration|retention_in_days|RetentionInDays|lifecyclePolicy|retention-days' -- ':!*.md' || echo 'no storage lifecycle or retention setting in tracked code'`
 - **Fix:** lifecycle rules (infrequent-access tier after 30 days, archive after 90, delete at the retention window); log retention set explicitly; CI artifacts kept for N builds or days; registry policies deleting untagged and old non-production images.
 - **Impact:** storage with no expiry grows every month and is paid for forever.
 - **Source:** AWS S3 Lifecycle; Google Cloud Object Lifecycle Management; Amazon ECR lifecycle policies.

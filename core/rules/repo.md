@@ -33,7 +33,7 @@ Host settings are read with the host's CLI (`gh api …`, `glab api …`), which
 ### RPO-07 [MEDIUM] Public repo without licence, security policy or contribution guide
 applies_when: public_repo=yes
 - **Detect:** no `LICENSE` with an SPDX-listed licence, or `SPDX-License-Identifier` headers that disagree with it; no `SECURITY.md` naming a private reporting channel and a response time; no `CONTRIBUTING.md` (setup, tests, PR expectations). Dependency licence compatibility is SEC-14.
-- **Mech:** T `git ls-files | grep -iE '(^|/)(LICEN[CS]E|COPYING|SECURITY|CONTRIBUTING|CODE_OF_CONDUCT)(\.[a-z]+)?$'` · `git grep -hoE 'SPDX-License-Identifier:[[:space:]]*[^[:space:]*]+' | sort | uniq -c`
+- **Mech:** T `for n in 'LICEN[CS]E|COPYING' SECURITY CONTRIBUTING; do git ls-files | grep -qiE "(^|/)($n)(\.[a-z]+)?$" || echo "no $n file tracked"; done` · `git grep -hoIE 'SPDX-License-Identifier:[[:space:]]*[^[:space:]*]+' -- ':!*.md' | sort | uniq -c | awk '{l[NR]=$0} END{if(NR>1)for(i=1;i<=NR;i++)print l[i]}'`
 - **Fix:** add the missing files (SECURITY.md: supported versions, private channel, acknowledgement time); keep SPDX headers consistent with LICENSE.
 - **Impact:** without a licence the code is not open for reuse; without a private channel a found vulnerability goes public before a fix.
 - **Source:** GitHub Docs, Community health files; SPDX License List; REUSE specification.
