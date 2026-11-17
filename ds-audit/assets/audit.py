@@ -312,14 +312,14 @@ MECH = re.compile(r"^- \*\*Mech:\*\* ([STM])\b(.*)$", re.M)
 def scan(root: Path, phase: str, core: Path = None) -> list:
     core = core or CORE
     state, _ = load(root)
-    sig = signals(root) if not state else None
+    sig = state["sig"] if state else signals(root)
     out = []
     for r in area_table(core):
         if r["phase"] != phase:
             continue
         if state and state["phases"].get(phase, {}).get("areas", {}).get(r["word"]) != "ran":
             continue
-        if sig is not None and not loads(r["when"], sig)[0]:
+        if not state and not loads(r["when"], sig)[0]:
             continue
         for fname in r["files"]:
             text = read(core / "rules" / fname)
@@ -327,6 +327,11 @@ def scan(root: Path, phase: str, core: Path = None) -> list:
                 head = re.match(r"^### (\S+) \[", block)
                 m = MECH.search(block)
                 if not head or not m or m.group(1) == "M":
+                    continue
+                when = re.search(r"^applies_when:\s*(.+)$", block, re.M)
+                ok, why = loads(when.group(1), sig) if when else (True, "")
+                if not ok:  # the rule's own narrowing: reported, not run, so a hit never comes from a rule that does not apply
+                    out.append({"rule": head.group(1), "class": m.group(1), "status": "not applicable", "reason": why})
                     continue
                 for cmd in re.findall(r"`([^`]+)`", m.group(2)):
                     out.append(run_mech(root, head.group(1), m.group(1), cmd, state))
@@ -849,7 +854,9 @@ def self_test() -> int:
             "| `docs` | ship | t.md | always | T | x |\n", encoding="utf-8")
         (CORE / "rules" / "lean.md").write_text("### LEAN-03 [HIGH] Unit serving no need\n", encoding="utf-8")
         (CORE / "rules" / "t.md").write_text("### T-01 [LOW] Todo\n- **Detect:** x\n- **Mech:** S `git grep -n TODO`\n\n"
-                                             "### T-02 [LOW] Absent\n- **Mech:** T `no-such-tool-xyz .`\n",
+                                             "### T-02 [LOW] Absent\n- **Mech:** T `no-such-tool-xyz .`\n\n"
+                                             "### T-03 [LOW] Web only\napplies_when: ui≠none\n"
+                                             "- **Mech:** S `git grep -n TODO`\n",
                                              encoding="utf-8")
         (CORE / "kernel.md").write_text("## 7. Named\n| Principle | Apply as |\n|---|---|\n| YAGNI | x |\n",
                                         encoding="utf-8")
@@ -951,6 +958,7 @@ def self_test() -> int:
         hits = {h["rule"]: h for h in scan(tmp, "build")}
         expect(hits.get("T-01", {}).get("status") == "hit" and hits.get("T-02", {}).get("status") == "tool absent",
                f"scan {hits}")
+        expect(hits.get("T-03", {}).get("status") == "not applicable", f"scan runs a rule its applies_when excludes: {hits}")
         expect("YAGNI" in rule_ids() and loads("ui≠none or api≠none", {"ui": {"value": "none"},
                                                                      "api": {"value": "rest"}})[0], "rule ids / loads")
         expect(not loads("pii=yes", {"pii": {"value": "no"}})[0] and loads("pii=yes", {})[0], "loads unknown → runs")
