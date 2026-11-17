@@ -50,17 +50,17 @@ A visible **"Print / PDF"** button (inline SVG icon + label, no emoji) calls `wi
 
 ## Theming (brand baked at build, validated dark, light/dark toggle)
 
-- **The brand palette is chosen once, at build, and baked into the CSS** — the `:root` brand 5 (`primary, accent, bg, surface, text`). There is no runtime brand switching and no JS color application; the reader's only control is the light/dark toggle. This also removes the runtime color-injection surface entirely: with no `setProperty` color path, no `safeColor()`-style guard is needed — the defense is structural. Colors are validated at build instead (see the validation note below).
+- **The brand palette is chosen once, at build, and baked into the CSS** — the `:root` brand 5 (`primary, accent, bg, surface, text`) plus `--hdr-end`, the header gradient end (`color-mix(in srgb,var(--primary) {%},{partner})`; white header text ≥ 4.5:1 on both stops). There is no runtime brand switching and no JS color application; the reader's only control is the light/dark toggle. This also removes the runtime color-injection surface entirely: with no `setProperty` color path, no `safeColor()`-style guard is needed — the defense is structural. Colors are validated at build instead (see the validation note below).
 - **Brand presets** (validated pairs; **default = `slate`** — neutral, corporate, best for report/legal content):
 
-  | Preset | `--primary` | `--accent` | `--bg` | `--surface` | `--text` |
-  |---|---|---|---|---|---|
-  | slate | `#334155` | `#0ea5e9` | `#f8fafc` | `#ffffff` | `#0f172a` |
-  | teal | `#0f766e` | `#14b8a6` | `#f6fbfa` | `#ffffff` | `#0f1a19` |
-  | emerald | `#047857` | `#10b981` | `#f5fbf8` | `#ffffff` | `#0f1a15` |
-  | indigo | `#4f46e5` | `#6366f1` | `#fafafa` | `#ffffff` | `#18181b` |
-  | rose | `#be185d` | `#ec4899` | `#fff7fa` | `#ffffff` | `#1f1117` |
-  | amber | `#b45309` | `#f59e0b` | `#fffbf5` | `#ffffff` | `#1f1505` |
+  | Preset | `--primary` | `--accent` | `--bg` | `--surface` | `--text` | `--hdr-end` (primary % + partner) |
+  |---|---|---|---|---|---|---|
+  | slate | `#334155` | `#0ea5e9` | `#f8fafc` | `#ffffff` | `#0f172a` | 70 % + accent |
+  | teal | `#0f766e` | `#14b8a6` | `#f6fbfa` | `#ffffff` | `#0f1a19` | 85 % + black |
+  | emerald | `#047857` | `#10b981` | `#f5fbf8` | `#ffffff` | `#0f1a15` | 85 % + black |
+  | indigo | `#4f46e5` | `#6366f1` | `#fafafa` | `#ffffff` | `#18181b` | 70 % + accent |
+  | rose | `#be185d` | `#ec4899` | `#fff7fa` | `#ffffff` | `#1f1117` | 70 % + accent |
+  | amber | `#b45309` | `#f59e0b` | `#fffbf5` | `#ffffff` | `#1f1505` | 85 % + black |
 
 - **Project brand input:** a host project with a house style (e.g. a report collection with per-category colors and its own canonical token block) supplies it at build — bake the project's token values into `:root`, keep its category `--primary/--accent` pair, and set `CONFIG.themeStorageKey` to the collection's shared localStorage key so every report and its dashboard remember one preference. The project's own template/auditor remains the authority for those values; ds-research never overrides a supplied brand with a preset. This replaces any post-hoc "canonicalization" patch step — the output must match the house contract as built.
 - **Dark theme is a CSS block, not JS**: `@media screen{ html[data-theme="dark"]{…} }` plus an identical `@media screen and (prefers-color-scheme:dark){ html:not([data-theme="light"]){…} }` mirror, so dark works with JS off and never flashes; `screen` keeps paper on the light palette (dark tokens in print give light text on white). Dark keeps brand hues desaturated on a near-black bg (never `#000` — halation) and re-tunes **semantic lightness only** (same hue family: `ok/bad/warn` brightened) plus the on-color trio `onprim/onbad/onwarn` (text on primary/bad/warn fills — CSS falls back to `#fff` when unset). A dark block does **not** satisfy WCAG by itself — every changed pair re-passes 4.5:1 text / 3:1 UI before shipping.
