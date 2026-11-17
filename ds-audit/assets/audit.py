@@ -527,7 +527,7 @@ def report(root: Path) -> str:
 CSS = """
 :root{--plane:#f3f5f8;--surface:#fff;--ink:#16202c;--ink-2:#566274;--line:#d9dfe7;--accent:#1d5fd1;
 --ok:#17794a;--ok-bg:#dff3e8;--warn:#8f5a00;--warn-bg:#fcefd0;--bad:#b3261e;--bad-bg:#fae3e0;--info:#1d5fd1;
---info-bg:#e2ebfa;--mute:#69727f;--mute-bg:#eceff3;color-scheme:light}
+--info-bg:#e2ebfa;--mute:#5f6874;--mute-bg:#eceff3;color-scheme:light}
 @media screen and (prefers-color-scheme:dark){:root:not([data-theme=light]){--plane:#0f1318;--surface:#181d24;
 --ink:#e6eaf0;--ink-2:#9ba5b3;--line:#2b323c;--accent:#7aa5ff;--ok:#52c485;--ok-bg:#14301f;--warn:#e6b24d;
 --warn-bg:#362b12;--bad:#f08077;--bad-bg:#3b1c19;--info:#7aa5ff;--info-bg:#1a2742;--mute:#8c96a4;--mute-bg:#242a33;
@@ -957,6 +957,18 @@ def self_test() -> int:
             return " ".join(stack)
         expect(all("screen" in media_of(CSS, m.start()) for m in re.finditer(r"(?<![-\w])color-scheme:dark", CSS)),
                "report.html prints in the dark theme (light text on paper); dark tokens must be screen-only")
+
+        def lum(h):
+            h = h if len(h) == 7 else "#" + "".join(x * 2 for x in h[1:])
+            c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+            c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+            return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+        for theme in (CSS.split("}", 1)[0], CSS.split(":root[data-theme=dark]{", 1)[1].split("}", 1)[0]):
+            tok = dict(re.findall(r"--([\w-]+):(#[0-9a-f]{6}|#[0-9a-f]{3})\b", theme))
+            for fg, bg in (("ok", "ok-bg"), ("warn", "warn-bg"), ("bad", "bad-bg"), ("info", "info-bg"),
+                           ("mute", "mute-bg"), ("ink-2", "surface"), ("ink-2", "plane"), ("ink", "plane")):
+                hi, lo = sorted((lum(tok[fg]), lum(tok[bg])), reverse=True)
+                expect((hi + 0.05) / (lo + 0.05) >= 4.5, f"report.html text {fg} on {bg} below 4.5:1 (WCAG 1.4.3)")
         state["checks"]["now"]["go test"] = "fail"
         save_state(tmp, state)
         expect(report(tmp).startswith("ds-audit: FAIL"), "report FAIL on a check newly red")
