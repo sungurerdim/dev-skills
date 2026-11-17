@@ -127,6 +127,24 @@ def check_mech(root: Path, err):
                             "use [[:space:]], [[:alnum:]_], [0-9], (^|[^[:alnum:]_])word([^[:alnum:]_]|$)")
 
 
+def check_principles(root: Path, err):
+    """Every kernel §7 principle is enforced somewhere: a rule with a Detect line cites its exact name in Source."""
+    kernel = (root / "core" / "kernel.md").read_text(encoding="utf-8")
+    sec7 = kernel[kernel.find("## 7."):]
+    names = [n for n in re.findall(r"^\| ([^|]+?) \|", sec7, re.M) if n != "Principle" and set(n) - set("-")]
+    if not names:
+        err("core/kernel.md: no §7 principle table found")
+    sources = []
+    for f in sorted((root / "core" / "rules").glob("*.md")):
+        for block in re.split(r"(?m)^(?=### )", f.read_text(encoding="utf-8")):
+            src = re.search(r"(?m)^- \*\*Source:\*\* (.*)$", block)
+            if RULE.match(block.split("\n", 1)[0]) and "- **Detect:**" in block and src:
+                sources.append(src.group(1).lower())
+    for n in names:
+        if not any(n.lower() in s for s in sources):
+            err(f"kernel §7 principle '{n}': no rule with a Detect line cites it in its Source line")
+
+
 def check_duplicate_lines(root: Path, err):
     """A long line repeated in two shipped files is a second home for one fact."""
     homes = {}
@@ -212,7 +230,7 @@ def check_spelling(root: Path, err):
         err("typos: " + (r.stdout + r.stderr).strip()[-400:])
 
 
-CHECKS = [check_skills, check_links, check_rules, check_mech, check_duplicate_lines, check_consumers, check_retired,
+CHECKS = [check_skills, check_links, check_rules, check_mech, check_principles, check_duplicate_lines, check_consumers, check_retired,
           check_versions, check_self_tests, check_spelling]
 
 
@@ -249,6 +267,7 @@ def self_test() -> int:
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S no command in backticks\n"),
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S `curl -sI https://example.com`\n"),
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** T `git grep -nE '\\bfoo\\b'`\n"),
+        (check_principles, "core/kernel.md", lambda s: s.replace("| YAGNI |", "| Gate fixture principle | Never |\n| YAGNI |")),
         (check_duplicate_lines, "core/rules/web.md", lambda s: s + "\n" + DUP + "\n", {"core/rules/ux.md": "\n" + DUP + "\n"}),
         (check_consumers, "core/orphan.md", lambda s: "# orphan\n"),
         (check_retired, "ds-audit/SKILL.md", lambda s: s + "\nDelegate to ds-review.\n"),
