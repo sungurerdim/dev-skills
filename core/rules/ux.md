@@ -32,7 +32,7 @@ Users need a clearly marked "emergency exit" to leave an unwanted state without 
 applies_when: ui≠none
 Users should not have to wonder whether different words, situations, or actions mean the same thing — follow platform and internal conventions.
 - **Detect:** Same action labeled differently across screens ("Delete" vs "Remove" vs "Trash" for the same operation); same icon used for different actions in different views; primary-button placement inconsistent across comparable screens.
-- **Fix:** One verb per action class, enforced repo-wide (see `contract-consistency` in [review-strategic.md](review-strategic.md)); one icon-to-action mapping; consistent primary-action placement per platform convention.
+- **Fix:** One verb per action class, enforced repo-wide (ARC-17 in [arch.md](arch.md)); one icon-to-action mapping; consistent primary-action placement per platform convention.
 - **Impact:** Inconsistent terminology forces users to relearn the interface on every screen, raising cognitive load and error rate.
 - **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 4)
 

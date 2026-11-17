@@ -2,7 +2,7 @@
 
 Five advisory signals checked during classification, beyond the semver bump table. Each may promote a dep to `review-major` or hold it out of the safe groups. Loaded with [dependencies.md](dependencies.md) when an upgrade is classified.
 
-**Supply-chain override ([engineering](engineering.md) — Security Baseline):** any package introducing/expanding `postinstall` / `preinstall` / `prepare` lifecycle scripts (or non-npm equivalents) auto-promotes to `review-major` regardless of semver delta. New executable install hooks = known supply-chain attack surface.
+**Supply-chain override:** any package introducing/expanding `postinstall` / `preinstall` / `prepare` lifecycle scripts (or non-npm equivalents) auto-promotes to `review-major` regardless of semver delta. New executable install hooks = known supply-chain attack surface.
 
 **Release-age cooldown (advisory, default 7 days):** target version published less than 7 days ago (npm: `npm view {name} time --json` → the version's publish timestamp; other stacks: registry publish timestamp) → hold it out of the safe groups this run — classification stands, execution deferred with note `held (release-age {n}d < 7d cooldown)`; the previous in-cooldown-window version applies instead when it satisfies the same bump class. Security-advisory fixes override the cooldown (patching a known CVE beats worm-window caution). Rationale: recent registry worm/compromise events were detected within days of publication (xz-utils ~3 days; Shai-Hulud npm worm — CISA alert within the week) — a short quarantine window converts "first victim" into "warned bystander".
 

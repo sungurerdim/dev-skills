@@ -209,7 +209,7 @@ def self_test() -> int:
         (check_links, "ds-audit/SKILL.md", lambda s: s + "\n[x](../ds-setup/SKILL.md)\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-01 [HIGH] Again\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-99 [BLOCKER] Severity\n"),
-        (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-98 [HIGH] Exponential Backoff + Jitter\n"),
+        (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-98 [HIGH] Retry With Backoff\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-97 | HIGH | Pipe heading\n"),
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S no command in backticks\n"),
         (check_duplicate_lines, "core/rules/web.md", lambda s: s + "\nAnimations must not trigger expensive layout recalculations; this line now has two homes.\n" * 1),

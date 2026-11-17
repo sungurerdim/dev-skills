@@ -4,11 +4,11 @@
 
 Applied alongside the ARC/HYB/NET rules below — these are cross-rule principle applications, not individually numbered.
 
-**arch scope mandatory checks** ([engineering](engineering.md) — SOLID + GRASP): widget/screen/view-model/repository layers vs SOLID — SRP (widget changes for >1 reason: UI + state + I/O), OCP, LSP (subtype violates parent navigation contract), ISP (unused lifecycle hooks), DIP (UI imports concrete platform-channel instead of abstraction) — and GRASP: Information Expert, Low Coupling (>7 unrelated peer imports), High Cohesion. Cite principle by name.
+**arch scope mandatory checks** ([arch.md](arch.md) ARC-16): widget/screen/view-model/repository layers vs SOLID — SRP (widget changes for >1 reason: UI + state + I/O), OCP, LSP (subtype violates parent navigation contract), ISP (unused lifecycle hooks), DIP (UI imports concrete platform-channel instead of abstraction) — and GRASP: Information Expert, Low Coupling (>7 unrelated peer imports), High Cohesion. Cite principle by name.
 
 **arch scope hybrid checks** [hybrid shell detected]: run HYB-01–04 (§ Hybrid & WebView Bridge below) — WebView origin/bridge exposure in the committed `capacitor.config.*`, plugin dead-load audit (every plugin needs a consumer, searched repo-wide — a scoped search misses root entry files), the web-build → `cap sync` → native-build chain, and native behaviors the WebView doesn't supply. Not hybrid → skip silently.
 
-**network + perf scope reliability checks** ([engineering](engineering.md) — Reliability Patterns): flag missing — timeout on every API call, retry-with-backoff on transient failures, offline/slow-network degradation, app-lifecycle handlers (background→foreground), idempotency keys on payment/order/write endpoints, logging surviving restart, fail-fast validation at every boundary (deep links, push, intent extras).
+**network + perf scope reliability checks** ([network.md](network.md) NWK-07, NWK-10): flag missing — timeout on every API call, retry-with-backoff on transient failures, offline/slow-network degradation, app-lifecycle handlers (background→foreground), idempotency keys on payment/order/write endpoints, logging surviving restart, fail-fast validation at every boundary (deep links, push, intent extras).
 
 ## Architecture & Code Quality
 
@@ -161,7 +161,7 @@ A plugin in the manifest is native code, permissions, and store-declared capabil
 - **Detect:** for each `@capacitor/*` / `capacitor-*` / `cordova-plugin-*` dependency, search the **entire repo** for an import or bridge call (`git grep`, repo-wide — a `src/`-scoped search misses a root entry file and produces a false "unused"); a dependency with zero consumers is the finding. Second half of the same check: a plugin *used* in code but missing from the manifest — the runtime failure only appears on device
 - **Fix:** unused → remove the dependency, run `npx cap sync`, then re-check the native permission manifests for the entries it left behind (removing the package does not always remove its merged permissions); used-but-unlisted → add it and sync
 - **Impact:** dead plugins add permissions the store listing must justify and the privacy declaration must cover — a permission with no feature behind it is a rejection reason and a privacy claim you cannot defend
-- **Source:** same manifest-plus-consumer test as [review-meta.md](review-meta.md) YAGNI-USAGE; Capacitor plugin registration is generated during `cap sync`
+- **Source:** same manifest-plus-consumer test as [simplify.md](simplify.md) SIM-01; Capacitor plugin registration is generated during `cap sync`
 
 ### HYB-03 [HIGH] The Build Chain Runs Web Build → `cap sync` → Native Build
 `cap sync` is copy + update in one: it copies the built web assets **and** regenerates native plugin registration. Skipping either half ships a stale shell.

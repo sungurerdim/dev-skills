@@ -134,7 +134,7 @@ more specific one (P8 before P9, P1 before P6).
 - **Red-proof:** a fixture pair where test A poisons a cache test B reads → reversed run
   red, normal run green.
 - **Wiring:** the entry point's test step, or pre-push when the double run is slow —
-  a documented-but-manual reversed run is unwired and counts as absent (TST-14 in core/rules/architecture-testing.md).
+  a documented-but-manual reversed run is unwired and counts as absent (TST-14 in core/rules/test.md).
 - **Live source:** trade `tests/onbellek.py --ters` — reversed `unittest` discovery over
   the identical test set, plus the `ONBELLEKLER` central cache registry.
 
@@ -173,7 +173,7 @@ more specific one (P8 before P9, P1 before P6).
 
 ## Cross-cutting rules (every generated gate)
 
-1. **Scope is declared and non-empty** (TST-13 in core/rules/architecture-testing.md): the gate names the set it scans
+1. **Scope is declared and non-empty** (TST-13 in core/rules/test.md): the gate names the set it scans
    (explicit paths/globs, or a printed file count), exits red on zero files matched, and —
    for repo-wide rules — compares its scope against `git ls-files` so new directories join
    the scan or break the gate. Deliberate narrowing is stated beside the scope with its
@@ -183,7 +183,7 @@ more specific one (P8 before P9, P1 before P6).
 3. **Exemptions by name, with reason, in the gate file** — never a bare skip.
 4. **Non-destructive:** a gate reports; it never rewrites the tree it scans (restore-on-exit
    when it must touch files, as P3 does).
-5. **Red-proof forms, strongest first** (TST-11 in core/rules/architecture-testing.md — a gate is only enforcing
+5. **Red-proof forms, strongest first** (TST-11 in core/rules/test.md — a gate is only enforcing
    something if a fixture exists that makes it fail):
    - **parameterized scope** — the gate accepts its scan target as an argument and a suite
      test aims it at a violating fixture on every run (SafeScribeAI/app `test/gates_test.dart`);
@@ -193,5 +193,5 @@ more specific one (P8 before P9, P1 before P6).
      at runtime so the registry file cannot trip the gates it feeds;
    - **one-time green→red→green** at delivery (SKILL.md step 5) — the floor, used
      only when neither standing mechanism exists in the repo.
-6. **Exit code propagates** (TST-14 in core/rules/architecture-testing.md): the chain step that calls the gate fails
+6. **Exit code propagates** (TST-14 in core/rules/test.md): the chain step that calls the gate fails
    when the gate fails; a discarded return value is an unwired gate.
