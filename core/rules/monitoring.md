@@ -2,7 +2,7 @@
 
 ## Observability
 
-### OBS-01 | HIGH | Structured JSON Logging
+### OBS-01 [HIGH] Structured JSON Logging
 
 **Detect:** Unstructured `console.log`, `print`, `fmt.Println`, or `System.out.println` calls in production code paths. Log output lacks machine-parseable format.
 
@@ -38,7 +38,7 @@ slog.Info("request processed",
 
 **Source:** OpenTelemetry Logging specification (https://opentelemetry.io/docs/specs/otel/logs/)
 
-### OBS-02 | HIGH | Liveness and Readiness Endpoints
+### OBS-02 [HIGH] Liveness and Readiness Endpoints
 
 **Detect:** Application exposes single `/health` endpoint (or none), with no distinction between "process is alive" and "process can serve traffic."
 
@@ -65,7 +65,7 @@ app.get('/readyz', async (req, res) => {
 
 **Source:** Kubernetes probe best practices (https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
 
-### OBS-03 | HIGH | Error Alerting
+### OBS-03 [HIGH] Error Alerting
 
 **Detect:** Errors logged but no alerting or notification configured. Team learns about outages from users instead of automated systems.
 
@@ -85,7 +85,7 @@ sentry_sdk.init(dsn="https://...@sentry.io/...", traces_sample_rate=0.1)
 
 **Source:** Sentry alerting docs (https://docs.sentry.io/product/alerts/)
 
-### OBS-04 | MEDIUM | Distributed Tracing
+### OBS-04 [MEDIUM] Distributed Tracing
 
 **Detect:** Multi-service architecture with no trace context propagation. Debugging cross-service issues requires correlating logs manually by timestamp.
 
@@ -104,7 +104,7 @@ registerInstrumentations({ instrumentations: [/* http, express, pg, etc. */] });
 
 **Source:** OpenTelemetry specification, W3C Trace Context standard
 
-### OBS-05 | MEDIUM | External Uptime Monitoring
+### OBS-05 [MEDIUM] External Uptime Monitoring
 
 **Detect:** No external monitoring configured. Downtime detection relies on internal health checks (which fail when entire host is unreachable) or user reports.
 
@@ -122,7 +122,7 @@ Alert on downtime sustained longer than 1 minute. Configure a status page for tr
 
 **Source:** UptimeRobot (https://uptimerobot.com/), Better Stack (https://betterstack.com/uptime)
 
-### OBS-06 | LOW | Cost Monitoring and Budget Alerts
+### OBS-06 [LOW] Cost Monitoring and Budget Alerts
 
 **Detect:** No cost alerts configured on cloud provider accounts. Monthly spending reviewed manually or discovered via invoice surprise.
 
@@ -139,7 +139,7 @@ Alert on downtime sustained longer than 1 minute. Configure a status page for tr
 
 **Source:** AWS Budgets docs (https://aws.amazon.com/aws-cost-management/aws-budgets/)
 
-### OBS-07 | HIGH | Health Signals Measure Queue-Head Staleness, Not Just Liveness
+### OBS-07 [HIGH] Health Signals Measure Queue-Head Staleness, Not Just Liveness
 
 A queue-consuming service's health endpoint checks the age of the oldest queued item against a threshold and returns 503 when exceeded — catching "process up, work stuck".
 
@@ -151,7 +151,7 @@ A queue-consuming service's health endpoint checks the age of the oldest queued 
 
 **Source:** XR-079 — cross-project experience registry (2026).
 
-### OBS-08 | MEDIUM | Log Aggregation Tier Matches Project Maturity
+### OBS-08 [MEDIUM] Log Aggregation Tier Matches Project Maturity
 
 **Detect:** Production logs going only to the container's local JSON-file driver (or stdout with no collector) on a project with multiple services or real production traffic — debugging an incident requires SSHing into the host and grepping raw log files.
 
@@ -161,7 +161,7 @@ A queue-consuming service's health endpoint checks the age of the oldest queued 
 
 **Source:** Grafana Loki documentation (https://grafana.com/docs/loki/latest/)
 
-### OBS-09 | MEDIUM | Infrastructure Resource Metrics Monitored With Alert Thresholds
+### OBS-09 [MEDIUM] Infrastructure Resource Metrics Monitored With Alert Thresholds
 
 **Detect:** No CPU/memory/disk-usage monitoring configured beyond uptime pings (OBS-05) and log aggregation (OBS-08) — resource exhaustion is discovered only when it causes an outage, not before; no alert threshold set on disk usage specifically (the resource most likely to fail slowly and silently until full).
 
