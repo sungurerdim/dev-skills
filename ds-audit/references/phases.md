@@ -36,7 +36,7 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 | Phase | a phase name |
 | Sev | CRITICAL · HIGH · MEDIUM · LOW (kernel §4) |
 | Area | an area word |
-| Rule | a rule ID · a kernel §7 principle (any case; the part before ` / ` suffices: `DRY`) · `tool:{name}` · `judgment`; several joined by ` · ` |
+| Rule | a rule ID · a kernel §7 principle (any case; the part before ` / ` suffices: `DRY`) · `tool:{name}` · `judgment`; several joined by ` · `. A standard (the rule index's Standards column) is named in Plan or Prevents, never here |
 | Where | `path:line` (checked: the file and line exist now or at the run's start) · `host:{service}/{setting}` for a host or account setting (`host:github/branch-protection`; checked: that form) · a unit · an item |
 | Finding | what is wrong — plain words |
 | Prevents | what goes wrong without the fix, for whom — plain words |

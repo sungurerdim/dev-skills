@@ -541,7 +541,8 @@ def validate(root: Path, core: Path = None) -> list:
             problems.append(f"row {n}: area '{r['Area']}' unknown")
         for rid in re.split(r"\s*[·,]\s*", r["Rule"]):
             if rid not in ids and rid.lower() not in ids and not rid.startswith("tool:"):
-                problems.append(f"row {n}: rule '{rid}' is not a rule ID, a kernel §7 principle, tool:<name> or judgment")
+                problems.append(f"row {n}: rule '{rid}' is not a rule ID, a kernel §7 principle, tool:<name> or judgment"
+                                " — a named standard goes in Plan or Prevents; with no rule ID, Rule is judgment")
         if r["Where"].startswith("host:") and not re.match(r"^host:[\w.-]+/[\w./-]+$", r["Where"]):
             problems.append(f"row {n}: host setting '{r['Where']}' must read host:{{service}}/{{setting}}, "
                             "e.g. host:github/branch-protection")
@@ -1251,6 +1252,9 @@ def self_test() -> int:
                f"validate: host settings need the form host:{{service}}/{{setting}}: {validate(tmp)}")
         write(tmp, state, findings=findings + good_row.replace("LEAN-03", "DRY · yagni"))
         expect(not validate(tmp), f"validate rejects a §7 principle by its short name: {validate(tmp)}")
+        write(tmp, state, findings=findings + good_row.replace("LEAN-03", "Keep a Changelog"))
+        expect(any("standard" in p and "Plan" in p for p in validate(tmp)),
+               f"validate: a standard in Rule is rejected without saying where it belongs: {validate(tmp)}")
         write(tmp, state, findings=findings + good_row.replace("| fixed |", "| open |").replace(fixc, "—"))
         try:
             phase(tmp, "lean", "done")
