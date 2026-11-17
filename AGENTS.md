@@ -21,7 +21,7 @@ There is no CI; the gate is the only enforcement. A red gate is fixed, never byp
 - **One home per fact.** Shared guidance lives once in `core/`; a skill links `../core/<file>.md` and adds only what is specific to it. The gate fails on a long line repeated in two shipped files and on near-duplicate rule titles.
 - **Standalone skills.** A link from a skill may resolve only inside its own directory or `core/` (what one install ships). Mentioning another skill by name in prose is fine.
 - **`core/kernel.md` is loaded by every skill.** Change it only for something every skill needs; section numbers (§1-§7) are cited from skills and rule files.
-- **Rules:** `### ID [CRITICAL|HIGH|MEDIUM|LOW] Title`, then Detect / Fix / Impact / Source; IDs are unique across `core/rules/`. A new rule file needs a row in `core/rules/README.md` (area, load signal, ID prefix, standards).
+- **Rules:** `### ID [CRITICAL|HIGH|MEDIUM|LOW] Title`, then Detect / Mech / Fixture (S and T rules; the gate runs it, grammar in `core/rules/README.md`) / Fix / Impact / Source; IDs are unique across `core/rules/`. A new rule file needs a row in `core/rules/README.md` (area, load signal, ID prefix, standards).
 - **Sizes:** `SKILL.md` ≤ 8 KB; anything situational goes to the skill's `references/`.
 - **A new gate check needs a self-test case** in `scripts/check.py` that injects its defect and sees it go red.
 - **Versions:** `.claude-plugin/marketplace.json` and the top `CHANGELOG.md` entry must agree (semver).

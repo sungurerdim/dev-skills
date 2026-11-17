@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import py_compile
@@ -17,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -155,6 +157,197 @@ def check_mech(root: Path, err):
                             "rule text — add -- ':!*.md', or name the paths (`.` to scan prose on purpose)")
 
 
+FIXTURE = re.compile(r"(?m)^- \*\*Mech:\*\* ([ST]) (.*)\n(?:- \*\*Fixture:\*\* (.*))?")
+ENTRY = re.compile(r"(hit|miss|quiet|says) `([^`]+)`")
+# Commands reading git history run on one scripted repo (history_repo); each names what it must and must not print.
+HISTORY = {
+    "DOP-04": (["Update stuff"], ["fix: crash on empty input"]),
+    "DOP-48": (["v1.2.0", "## [1.2.0]", '"version": "1.2.0"'], ["v0.9.0"]),
+    "RPO-06": (["origin/stale", "assets/big.png"], ["src/app.py"]),
+    "WEB-10": (["assets/big.png"], ["assets/icon.png"]),
+    "TST-11": (["crash on empty input"], ["covered parser bug"]),
+    "DOC-02": (["src/gone.py", "src/old_name.py", "$ make build"], ["src/app.py", "Plain prose line."]),
+    "PRF-12": (["perf: faster startup"], ["Update stuff"]),
+}
+
+
+def git_env(home: Path) -> dict:
+    """No GIT_* variable of the caller (a hook points GIT_INDEX_FILE at the outer commit), no user or system config."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    return dict(env, HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"), GIT_CONFIG_NOSYSTEM="1",
+                GIT_AUTHOR_NAME="fixture-author", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+
+
+def git_in(d: Path, env: dict, *args) -> str:
+    return subprocess.run(["git", "-C", str(d), *args], check=True, capture_output=True, text=True, env=env).stdout.strip()
+
+
+def commit(d: Path, env: dict, msg: str, files=(), drop=()):
+    for path, text in files:
+        (d / path).parent.mkdir(parents=True, exist_ok=True)
+        (d / path).write_bytes(text) if isinstance(text, bytes) else (d / path).write_text(text, encoding="utf-8")
+    for path in drop:
+        (d / path).unlink()
+    git_in(d, env, "add", "-A")
+    git_in(d, env, "commit", "-q", "--allow-empty", "-m", msg)
+
+
+def history_repo(d: Path, env: dict) -> str:
+    """Base commit (tags, a merged remote branch), then fix/perf/odd commits, a rename, a delete and a 10 MB blob."""
+    git_in(d.parent, env, "init", "-q", d.name)
+    commit(d, env, "chore: base", [
+        ("src/app.py", "def run():\n    return 1\n"), ("src/old_name.py", "X = 1\n"), ("src/gone.py", "Y = 2\n"),
+        ("README.md", "Run it:\n\n    $ make build\n\nPlain prose line.\n"), ("CHANGELOG.md", "# Changelog\n\n## [1.2.0]\n"),
+        ("package.json", '{\n  "version": "1.2.0"\n}\n')])
+    base = git_in(d, env, "rev-parse", "HEAD")
+    for tag in ("v0.9.0", "v1.0.0", "v1.1.0", "v1.2.0"):
+        git_in(d, env, "tag", tag)
+    git_in(d, env, "update-ref", "refs/remotes/origin/stale", base)
+    commit(d, env, "fix: crash on empty input", [("src/app.py", "def run():\n    return 2\n")])
+    commit(d, env, "fix: covered parser bug", [("tests/test_app.py", "def test_run():\n    assert run() == 2\n")])
+    commit(d, env, "Update stuff", [("notes.txt", "x\n")])
+    commit(d, env, "perf: faster startup", [("src/app.py", "def run():\n    return 3\n")])
+    git_in(d, env, "mv", "src/old_name.py", "src/new_name.py")
+    commit(d, env, "refactor: move module", drop=["src/gone.py"])
+    commit(d, env, "build: add assets", [("assets/big.png", b"\0" * 10485761), ("assets/icon.png", b"\x89PNG")])
+    return base
+
+
+def parts(text: str) -> set:
+    return {t.strip() for t in text.split("\\n") if t.strip()}
+
+
+def shown(entry, lines, common=frozenset()) -> bool:
+    """An entry shows when an output line holds one of its content lines (except boilerplate `common` to a hit and a
+    miss) or names its path (file-listing commands)."""
+    path, text = entry
+    own = parts(text) - common
+    named = re.compile(r"(^|[\s/:])" + re.escape(path) + r"($|[\s:])") if path else None
+    return any(any(p in ln for p in own) or (named and named.search(ln)) for ln in lines)
+
+
+def outputs(audit, d: Path, rid: str, cls: str, cmds, base: str, problems: list, skip: list) -> list:
+    """(command, printed lines) of each command that ran; a missing tool goes to skip, an error to problems."""
+    out = []
+    for cmd in cmds:
+        row = audit.run_mech(d, rid, cls, cmd, {"base": base})
+        if row["status"] == "tool absent":
+            skip.append(f"{rid} `{cmd.split()[0]}`")
+        elif row["status"] in ("error", "timeout"):
+            problems.append(f"`{cmd[:60]}` {row['status']}: {row.get('detail', '')[-150:]}")
+        else:
+            out.append((cmd, row["hits"] if row["status"] == "hit" else []))
+    return out
+
+
+def judge(out, ran_all: bool, hits, misses, skip: list, rid: str, later=None) -> list:
+    """Every command that ran shows a hit (or goes to `later`, for the quiet stage); every hit shows (else, with a tool
+    absent, it is listed); no miss shows."""
+    problems, hit_paths = [], {h[0] for h in hits}
+    common = set().union(*(parts(t) for _, t in hits)) & set().union(*(parts(t) for _, t in misses))
+    for cmd, lines in out:
+        if any(shown(h, lines, common) for h in hits):
+            continue
+        if later is None:
+            problems.append(f"`{cmd[:60]}` shows none of its hit fixtures (output: {lines[:3]})")
+        else:
+            later.append(cmd)
+    for h in hits:
+        if not any(shown(h, lines, common) for _, lines in out):
+            if ran_all:
+                problems.append(f"hit `{h[0]}: {h[1][:40]}` shown by no command")
+            else:
+                skip.append(f"{rid} hit `{h[1][:30]}` (left to the absent tool)")
+    for path, text in misses:
+        if any(shown((path if path not in hit_paths else "", text), lines, common) for _, lines in out):
+            problems.append(f"miss `{path}: {text[:40]}` is reported")
+    return problems
+
+
+def fixture_files(entries):
+    files = {}
+    for path, text in entries:
+        files[path] = files.get(path, "") + text.replace("\\n", "\n") + "\n"
+    return files.items()
+
+
+def fixture_rule(audit, tmp: Path, env: dict, hist: tuple, rid: str, cls: str, cmds: list, fx) -> tuple:
+    """(problems, skips) of one S/T rule's Fixture line."""
+    problems, skip = [], []
+    if fx is None:
+        return ["an S/T rule needs `- **Fixture:** hit `path: line` · miss `path: line`` right after its Mech line "
+                "(or `history`, or `none · reason`)"], skip
+    if fx.startswith("none · "):
+        return problems, [f"{rid} (none: {fx[7:]})"]
+    if fx == "history":
+        if rid not in HISTORY:
+            return ["Fixture history, but scripts/check.py HISTORY has no entry for it"], skip
+        hits, misses = ([("", t) for t in side] for side in HISTORY[rid])
+        out = outputs(audit, hist[0], rid, cls, cmds, hist[1], problems, skip)
+        return problems + judge(out, not skip, hits, misses, skip, rid), skip
+    e = {k: [] for k in ("hit", "miss", "quiet", "says")}
+    for kind, body in ENTRY.findall(fx):
+        path, sep, text = body.partition(": ")
+        e[kind].append(("", body) if kind == "says" else (path, text) if sep else ("", "\0"))
+    if ("", "\0") in e["hit"] + e["miss"] + e["quiet"] or not e["hit"] + e["says"] or not e["miss"] + e["quiet"]:
+        return ["Fixture needs entries `hit|miss|quiet `path: line`` or `says `text``: at least one hit or says, and "
+                "one miss or quiet"], skip
+    d = tmp / rid
+    git_in(tmp, env, "init", "-q", d.name)
+    commit(d, env, "chore: base")
+    base = git_in(d, env, "rev-parse", "HEAD")
+    commit(d, env, "chore: fixture", fixture_files(e["hit"] + e["miss"]))
+    out = outputs(audit, d, rid, cls, cmds, base, problems, skip)
+    later = [] if e["quiet"] else None  # a command for the present thing may show it after the quiet files
+    problems += judge(out, not skip, e["hit"] + e["says"], e["miss"], skip, rid, later)
+    if e["quiet"] and not skip:
+        commit(d, env, "chore: quiet", fixture_files(e["quiet"]))
+        said = {c for c, lines in out if any(shown(s, lines) for s in e["says"])}
+        for cmd, lines in outputs(audit, d, rid, cls, cmds, base, problems, skip):
+            if cmd in said and lines:  # an absence check falls silent once the thing exists
+                problems.append(f"`{cmd[:60]}` still prints after the quiet files: {lines[:2]}")
+            problems += [f"`{t[1][:40]}` still shown after the quiet files"
+                         for t in ([] if e["says"] else e["hit"]) if shown(t, lines)]
+            if cmd in later and not any(shown(q, lines) for q in e["quiet"]):
+                problems.append(f"`{cmd[:60]}` shows none of its hit or quiet fixtures")
+    elif later:
+        problems += [f"`{c[:60]}` shows none of its hit fixtures" for c in later]
+    return problems, skip
+
+
+def check_mech_fixtures(root: Path, err):
+    """Each S/T Mech command runs, as audit.py scan runs it, on a temp repo holding its rule's Fixture files: it shows
+    every hit and `says` text and no miss; after the `quiet` files are committed a command that printed a `says` text
+    prints nothing (with no says, the hits are gone). `history` rules run on one scripted history; `none` and absent
+    tools are listed as skipped, never passed. Rules run in parallel: each is a few git and grep processes."""
+    spec = importlib.util.spec_from_file_location("ds_audit_fixture", root / "ds-audit" / "assets" / "audit.py")
+    audit = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(audit)
+    tmp = Path(tempfile.mkdtemp(prefix="ds-fix-")).resolve()
+    env = audit.ENV = dict(git_env(tmp), CI="1", GIT_PAGER="cat", GIT_EDITOR="true", PAGER="cat", GIT_TERMINAL_PROMPT="0")
+    jobs, skip = [], []
+    try:
+        hist = (tmp / "history", history_repo(tmp / "history", env))
+        for f in sorted((root / "core" / "rules").glob("*.md")):
+            for block in re.split(r"(?m)^(?=### )", f.read_text(encoding="utf-8")):
+                head, m = RULE.match(block.split("\n", 1)[0]), FIXTURE.search(block)
+                if head and m:
+                    jobs.append((f.name, head.group(1), m.group(1), re.findall(r"`([^`]+)`", m.group(2)), m.group(3)))
+        with ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as pool:
+            results = pool.map(lambda j: fixture_rule(audit, tmp, env, hist, *j[1:]), jobs)
+            for (name, rid, *_), (problems, skipped) in zip(jobs, results):
+                skip += skipped
+                for p in problems:
+                    err(f"core/rules/{name} {rid}: {p}")
+        declared = {rid for _, rid, _, _, fx in jobs if fx == "history"}
+        for rid in sorted(set(HISTORY) - declared):
+            err(f"scripts/check.py HISTORY: {rid} is no S/T rule with `- **Fixture:** history`")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    if skip:
+        return f"{len(skip)} fixture command(s) not run: " + ", ".join(skip)
+
+
 def check_principles(root: Path, err):
     """Every kernel §7 principle is enforced somewhere: a rule with a Detect line cites its exact name in Source."""
     kernel = (root / "core" / "kernel.md").read_text(encoding="utf-8")
@@ -275,8 +468,8 @@ def check_python_compiles(root: Path, err):
         shutil.rmtree(out, ignore_errors=True)
 
 
-CHECKS = [check_skills, check_links, check_rules, check_mech, check_principles, check_duplicate_lines, check_consumers, check_retired,
-          check_versions, check_python_compiles, check_self_tests, check_spelling]
+CHECKS = [check_skills, check_links, check_rules, check_mech, check_mech_fixtures, check_principles, check_duplicate_lines,
+          check_consumers, check_retired, check_versions, check_python_compiles, check_self_tests, check_spelling]
 
 
 SKIPPED = []
@@ -290,7 +483,8 @@ def run(root: Path, checks=CHECKS, quiet=False) -> list:
         if skip:
             SKIPPED.append(c.__name__)
         if not quiet:
-            print(f"SKIP {c.__name__}: {skip}" if skip else f"{'ok  ' if len(errors) == before else 'FAIL'} {c.__name__}")
+            state = "FAIL" if len(errors) > before else "SKIP" if skip else "ok  "
+            print(f"{state} {c.__name__}" + (f" — skipped: {skip}" if skip else ""))
     return errors
 
 
@@ -319,6 +513,8 @@ def self_test() -> int:
         (check_retired, "ds-audit/SKILL.md", lambda s: s + "\nDelegate to ds-review.\n"),
         (check_versions, ".claude-plugin/marketplace.json", lambda s: s.replace('"version": "', '"version": "9', 1)),
         (check_python_compiles, "core/broken.py", lambda s: "def broken(:\n"),
+        (check_mech_fixtures, "core/rules/web.md", lambda s: s + "\n### WEB-96 [LOW] Gate fixture blind command\n"
+         "- **Mech:** S `git grep -nE 'never_written' -- '*.py'`\n- **Fixture:** hit `a.py: written` · miss `b.py: other`\n"),
     ]
     failures = 0
     for check, rel, mutate, *prep in cases:
@@ -367,7 +563,7 @@ def main(argv) -> int:
     errors = run(ROOT)
     for e in errors:
         print("  ", e)
-    skipped = f", {len(SKIPPED)} check(s) not run: {', '.join(SKIPPED)}" if SKIPPED else ""
+    skipped = f", {len(SKIPPED)} check(s) with skips: {', '.join(SKIPPED)}" if SKIPPED else ""
     print(f"check: {'OK' if not errors else 'FAIL'} — {len(errors)} problem(s){skipped}")
     return 1 if errors else 0
 
