@@ -901,6 +901,7 @@ ABSOLUTE = re.compile(r"\b(always|never|every|must|all|only|forbidden|mandatory)
                       r"hiç bir|\bhep\b|kesinlikle|yalnızca|sadece|zorunlu|yasak", re.I)
 REASON = re.compile(r"\b(because|so that|since|reason|why\b|otherwise|to avoid|to keep)|→|çünkü|zira|gerekçe|"
                     r"aksi halde|yoksa|\*\*Why|\([^()`]{12,}\)", re.I)  # a parenthesis that explains: (what one install ships)
+SCOPE_FIELD = re.compile(r"^(Purpose|Done when|Product|Budget|Rules reviewed|Scope):")
 RULE_ID = re.compile(r"\b[A-Z][A-Z0-9]{0,5}-\d{1,4}\b")
 
 
@@ -1065,7 +1066,10 @@ def recorded_rules(root: Path, since: str = "", also=()) -> list:
             elif ln.startswith("\t"):
                 blame[num] = sha
         mtime = int(path.stat().st_mtime) if path.exists() else 0
+        scope = path.name == "SCOPE.md"  # its fields and unit rows are owner values lean step 4 reviews, not rules
         for n, t in rule_lines(read(path)):
+            if scope and (SCOPE_FIELD.match(t) or t.startswith("|")):
+                continue
             s = blame.get(n, "")
             when = meta.get(s, {}).get("time", mtime)
             if when > floor:
@@ -1189,6 +1193,15 @@ def self_test() -> int:
         got = [(i["text"][:12], i["absolute"], i["reason"]) for i in recorded_rules(rdir)]
         expect(got == [("- A link may", True, True)],
                f"rules: a command-table row counts as a rule or a parenthesised reason is missed: {got}")
+        (rdir / "SCOPE.md").write_text(
+            "# Scope\n\nPurpose: \"Skills that always ship production-quality software.\"\n\nDone when: every skill "
+            "works alone\n\nBudget: units ≤ 9 · deps ≤ 0 · docs ≤ 82 KB\n\nRules reviewed: 2026-11-17 (6b2e0df)\n\n"
+            "| Unit | Tier | Serves | Evidence |\n|---|---|---|---|\n| `core` | T0 | detection every skill must use | x |\n"
+            "| scripts | T1 | the gate every commit must pass | y |\n"
+            "\nBudget raised because the skills' Markdown must count as product.\n", encoding="utf-8")
+        got = sorted(i["text"][:12] for i in recorded_rules(rdir))
+        expect(got == ["- A link may", "Budget raise"],
+               f"rules: SCOPE.md's own fields or unit rows listed as recorded rules (lean step 4 reviews them): {got}")
         shutil.rmtree(rdir, ignore_errors=True)
 
         # a run: init, findings, validate, phase, report
