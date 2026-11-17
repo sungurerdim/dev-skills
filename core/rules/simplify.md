@@ -18,7 +18,7 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 
 ### SIM-03 [MEDIUM] Branch that never runs
 - **Detect:** compatibility residue (`legacy`, `backward compat`, version checks below the minimum supported runtime, `catch` that returns a default with no re-throw) and feature-flag branches whose flag is the same literal in every config source with no runtime setter. A flag set remotely, per tenant or at runtime is skipped.
-- **Mech:** T `git grep -nIiE 'backward.?compat|legacy|deprecated|for old (clients|versions)'`
+- **Mech:** T `git grep -nIiE 'backward.?compat|legacy|deprecated|for old (clients|versions)' -- ':!*.md'`
 - **Fix:** delete the dead branch and the flag; in an unreleased product with no external consumer delete compatibility shims outright (breaking-first); a shim genuinely needed during a transition gets a removal date in the same line.
 - **Impact:** untested branches rot silently and double the paths a reader must consider.
 - **Source:** YAGNI; Piranha (Uber) for stale-flag removal.

@@ -52,7 +52,7 @@ applies_when: auth∋jwt or auth∋oauth or auth∋other
 ### AUTH-05 [HIGH] State-changing requests without CSRF protection
 applies_when: ui∋web
 - **Detect:** cookie-authenticated `POST`/`PUT`/`PATCH`/`DELETE` handlers with no CSRF token, no `SameSite` cookie attribute and no Origin check; CSRF middleware disabled or exempted per route; state changes on `GET`.
-- **Mech:** T `git grep -nIiE 'csrf_exempt|@csrf\.exempt|skip_before_action :verify_authenticity_token|csrf[[:space:]]*:[[:space:]]*false|\.csrf\(\)\.disable|ignoringRequestMatchers'` · `git grep -nIiE 'csrf|SameSite' -- ':!*.md'`
+- **Mech:** T `git grep -nIiE 'csrf_exempt|@csrf\.exempt|skip_before_action :verify_authenticity_token|csrf[[:space:]]*:[[:space:]]*false|\.csrf\(\)\.disable|ignoringRequestMatchers' -- ':!*.md'` · `git grep -nIiE 'csrf|SameSite' -- ':!*.md'`
 - **Fix:** `SameSite=Lax` cookies plus the framework's CSRF token (synchronizer or signed double-submit) on every unsafe method; verify `Origin`; keep `GET` safe. Token-in-header APIs with no cookie auth are exempt.
 - **Impact:** any site the user visits can perform actions in their name.
 - **Source:** OWASP CSRF Prevention Cheat Sheet; CWE-352.
@@ -66,7 +66,7 @@ applies_when: ui∋web
 
 ### AUTH-11 [CRITICAL] Object or tenant access not tied to the caller
 - **Detect:** a handler loading, updating or deleting a record, file or storage key by an ID from the request with no ownership or tenant filter (`WHERE owner_id = :me`, a policy check); tenant ID taken from the request body instead of the session; queries in a multi-tenant schema missing the tenant column; row-level security disabled or open (`USING (true)`), Firebase/Supabase rules that allow any signed-in user; no cross-user test.
-- **Mech:** T `git grep -nIE '(findById|findByPk|find_by_id|findUnique|findOne|get_object_or_404|objects\.get|\.get)\(([[:space:]]*[a-z_]+[[:space:]]*=)?[[:space:]]*(req\.(params|query|body)|request\.(args|GET|POST|json)|params\[|ctx\.params)' -- ':!*test*' ':!*.md'` · `git grep -nIE 'USING[[:space:]]*\([[:space:]]*true[[:space:]]*\)|allow read, write: if (true|request\.auth != null)|DISABLE ROW LEVEL SECURITY'`
+- **Mech:** T `git grep -nIE '(findById|findByPk|find_by_id|findUnique|findOne|get_object_or_404|objects\.get|\.get)\(([[:space:]]*[a-z_]+[[:space:]]*=)?[[:space:]]*(req\.(params|query|body)|request\.(args|GET|POST|json)|params\[|ctx\.params)' -- ':!*test*' ':!*.md'` · `git grep -nIE 'USING[[:space:]]*\([[:space:]]*true[[:space:]]*\)|allow read, write: if (true|request\.auth != null)|DISABLE ROW LEVEL SECURITY' -- ':!*.md'`
 - **Fix:** scope every lookup by the caller (owner or tenant from the session) or pass it through a policy check; enable row-level security or database rules that encode the same; add the cross-user test: user A creates R, user B requests R by ID, expect 403 or 404.
 - **Impact:** any signed-in user reads or changes other users' or tenants' data by changing an ID.
 - **Source:** Least privilege; OWASP API1:2023 Broken Object Level Authorization; CWE-639; CVE-2025-48757 (open Supabase RLS).

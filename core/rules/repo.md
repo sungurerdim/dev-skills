@@ -48,7 +48,7 @@ applies_when: public_repo=yes
 
 ### RPO-11 [HIGH] Tracked files depend on something outside the repository
 - **Detect:** a tracked file pointing at an absolute machine-local path (`/Users/…`, `/home/…`, `C:\Users\…`) for a rule, spec, decision log, script or generator the project needs; a governing document that exists in one untracked copy.
-- **Mech:** T `git grep -nIE '(/Users/|/home/|[A-Z]:.Users.)[A-Za-z0-9._-]+' -- ':!*.lock'`
+- **Mech:** T `git grep -nIE '(/Users/|/home/|[A-Z]:.Users.)[A-Za-z0-9._-]+' -- . ':!*.lock'`
 - **Fix:** move the artifact into the repo (or a versioned sibling repo) and reference it relatively; machine-specific values come from the environment.
 - **Impact:** it works on one machine only; losing that machine loses the artifact and its history.
 - **Source:** Twelve-Factor I (Codebase) and III (Config).
