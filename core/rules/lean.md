@@ -1,6 +1,6 @@
 # Lean — is the project the right size for its purpose?
 
-Project-level proportion: does what exists, and the way it is built, match the stated purpose? Code-level removal (dead code, single callers, premature abstraction, orphans) is in [simplify.md](simplify.md). Measurements come from `ds-audit/assets/lean.py`; the field each rule reads is named in its Detect. The model judges only need and fit; counts are never estimated.
+Project-level proportion: does what exists, and the way it is built, match the stated purpose? Code-level removal (dead code, single callers, premature abstraction, orphans) is in [simplify.md](simplify.md). Measurements come from `{audit} lean` (ds-audit's `audit.py`); the field each rule reads is named in its Detect. The model judges only need and fit; counts are never estimated.
 
 ### LEAN-01 [HIGH] No measurable purpose
 - **Detect:** no `SCOPE.md` with `Purpose:` and `Done when:`, and no README/spec sentence naming who it serves and what observable result means done.
@@ -73,14 +73,14 @@ Project-level proportion: does what exists, and the way it is built, match the s
 - **Source:** Little's law (less work in progress, shorter lead time); Gall's law.
 
 ### LEAN-11 [MEDIUM] Scope drift since the last lean pass
-- **Detect:** `lean.py --check SCOPE.md` is red: a unit without a row, a row for a gone unit, an unapplied cut, or the budget exceeded.
+- **Detect:** `{audit} lean-check` is red: a unit without a row, a row for a gone unit, an unapplied cut, or the budget exceeded.
 - **Mech:** S `{audit} lean-check`
 - **Fix:** give the new unit a tier and the need it serves, or remove it; raise a budget only with the reason in `SCOPE.md`.
 - **Impact:** without a check, the project regrows to its old size within weeks.
 - **Source:** YAGNI; fitness functions (Ford, Parsons, Kua — *Building Evolutionary Architectures*).
 
 ### LEAN-12 [MEDIUM] Standing rule without scope or reason
-- **Detect:** `lean.py --rules` items with `absolute` and no `reason`, or added by a commit whose subject is about one task (the rule came from a single moment); rules that contradict each other or the purpose.
+- **Detect:** `{audit} rules` items with `absolute` and no `reason`, or added by a commit whose subject is about one task (the rule came from a single moment); rules that contradict each other or the purpose.
 - **Mech:** M (on `{audit} rules`, the lean procedure step 1)
 - **Fix:** the owner decides each (the rules step of the lean procedure): keep, reword, scope it (`until {date or condition}`), move it to a dated decision log, or delete it. A kept rule states its reason in the same line.
 - **Impact:** a sentence said for one day becomes how all work is done, and every agent obeys it without knowing why.
