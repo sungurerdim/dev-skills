@@ -3,9 +3,7 @@
 [default.extend-words]
 # Rule prefixes and acronyms
 ASO = "ASO"                 # App Store Optimization
-aso = "aso"
-THM = "THM"                 # theming rule prefix (core/rules/ui-design-system.md)
-PN = "PN"                   # inside "PNGs"
+THM = "THM"                 # theming rule prefix (core/rules/ux.md)
 
 # Technology and product names
 BRIN = "BRIN"               # Postgres Block Range INdex

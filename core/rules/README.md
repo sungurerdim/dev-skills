@@ -19,13 +19,13 @@ The **Standards** column names what the area is checked against — apply them b
 | `auth` | safe | auth.md | `auth≠none` | AUTH | RFC 9700 (OAuth 2.0 Security BCP) · NIST SP 800-63B |
 | `api` | safe | api.md | `api≠none` | API | RFC 9457 Problem Details · OpenAPI · OWASP API Security Top 10 |
 | `db` | safe | database.md | `db≠none` | DB · DP | OWASP Database Security Cheat Sheet · CIS Benchmarks · expand/contract migrations |
-| `web` | surface | web.md | `ui∋web` | WEB | HSTS · CSP · Core Web Vitals |
-| `a11y` | surface | a11y.md | `ui≠none` | AXE | WCAG 2.2 AA · WAI-ARIA APG · EN 301 549 · EAA |
-| `ux` | surface | ux.md · ui-components.md · ui-design-system.md · ui-responsive.md · ui-scheduling.md | `ui≠none` (scheduling: calendar/booking UI present) | UX · CMP · INT · THM · TOK · RSP · SCH | Nielsen's 10 heuristics · Fitts / Hick / Jakob / Tesler / Postel laws · W3C Design Tokens (DTCG) |
-| `i18n` | surface | i18n.md | `i18n=yes` or `audience=public` | I18N | Unicode CLDR · ICU MessageFormat |
-| `mobile` | surface | mobile-engineering.md · mobile-experience.md · mobile-compliance.md · mobile-release.md | `mobile≠none` | MARC · MNET · MPRF · MTST · DEV · HYB · MUX · VIS · MPRV · MSEC · STO · REL | OWASP MASVS · Apple App Review Guidelines · Google Play policies |
-| `store` | surface | store.md · store-aso.md · templates: [store-submission](../templates/store-submission.md), [store-privacy-labels](../templates/store-privacy-labels.md) | `deploy=store` | LCH | Apple App Review Guidelines · Google Play policies |
-| `money` | surface | monetization.md · pricing.md · gtm.md | `billing≠none` | MON · PRC · GTM · pricing IDs | PCI DSS scope · store billing rules |
+| `web` | surface | web.md | `ui∋web` | WEB · CMP-09 · RSP | Core Web Vitals · Baseline / Browserslist · WCAG 2.2 SC 1.4.10 Reflow |
+| `a11y` | surface | a11y.md | `ui∋web` or `ui∋ios` or `ui∋android` or `ui∋desktop` | AXE | WCAG 2.2 AA · WAI-ARIA APG · EN 301 549 clause 11 |
+| `ux` | surface | ux.md · cli.md (terminal products) | `ui≠none` or `platforms∋cli` | UX · CMP · INT · TOK · THM · RSP · VIS · SCH · CLI | Nielsen's 10 heuristics · Laws of UX · W3C Design Tokens (DTCG) · clig.dev · POSIX Utility Syntax Guidelines · NO_COLOR |
+| `i18n` | surface | i18n.md | `i18n=yes` or `audience=public` | I18N | Unicode CLDR · ICU MessageFormat · UAX #10 and #29 · BCP 47 |
+| `mobile` | surface | mobile.md | `mobile≠none` | MUX · MARC · MPRF | Material Design · Apple HIG · Android platform guides |
+| `store` | surface | store.md | `deploy=store` or `mobile≠none` | STO · LCH · REL · VIS-14 | Apple App Review Guidelines · Google Play requirements (technical) |
+| `money` | surface | monetization.md | `billing≠none` | PRC · UX-DP | store billing APIs · deceptive.design |
 | `ci` | ship | ci.md · dependencies.md · dependencies-advisories.md · signing.md · release.md | `ci≠none`, or any lockfile | DOP | SLSA · SBOM (SPDX / CycloneDX) · Conventional Commits · Semantic Versioning |
 | `ops` | ship | deployment.md · monitoring.md | `deploy≠none` | DEP · OBS · COST | Twelve-Factor · CIS Benchmarks · Kubernetes Pod Security Standards · OpenTelemetry · golden signals · 3-2-1 backups |
 | `docs` | ship | docs.md · docs-gaps.md · ai-context.md | always | DOC | Keep a Changelog · ADRs · AGENTS.md |

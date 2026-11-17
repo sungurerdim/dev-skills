@@ -1,438 +1,242 @@
-# Rules: UX (Nielsen 10 + Interaction Laws + Perceived Performance + Forms + Error Presentation + Deceptive Patterns + Notifications + Writing + IA + Navigation Safety)
-
-Applies to all UI platforms: web, mobile, desktop.
-
-## Heuristics (Nielsen 10 + dev-skills UX-10a/10b)
-
-### UX-01 [HIGH] Visibility of System Status
-applies_when: ui≠none
-The system keeps users informed about what is happening through appropriate feedback within reasonable time.
-- **Detect:** Async action (submit, save, delete, upload) with no loading indicator, spinner, progress bar, or disabled-state feedback during the pending window; state change (toggle, filter, sort) with no visual confirmation.
-- **Fix:** Add a loading/pending state for every async action >100ms; confirm state changes with a toast, inline message, or visual diff (checkmark, highlight).
-- **Impact:** Users without status feedback assume the app is broken and repeat the action (duplicate submits) or abandon the task.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 1)
-
-### UX-02 [HIGH] Match Between System and the Real World
-applies_when: ui≠none
-The system speaks the users' language, with familiar words, phrases, and concepts, following real-world conventions.
-- **Detect:** Internal jargon, error codes, or database field names surfaced verbatim in user-facing copy (`ERR_4001`, `null`, `undefined`, `NPE`); icons with no accompanying label for non-standard actions.
-- **Fix:** Replace internal identifiers with plain-language copy; pair novel icons with text labels or tooltips.
-- **Impact:** Users cannot act on errors or labels they don't understand — support-ticket volume rises.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 2)
-
-### UX-03 [HIGH] User Control and Freedom
-applies_when: ui≠none
-Users need a clearly marked "emergency exit" to leave an unwanted state without going through an extended process.
-- **Detect:** Multi-step flow (wizard, checkout, onboarding) with no back/cancel affordance; destructive action (delete, send, publish) with no confirm step or undo window; modal with no close button or Escape-key handler.
-- **Fix:** Add cancel/back at every step; add a confirm dialog or a timed undo (5-10s) for destructive actions; every modal closable via explicit control + Escape.
-- **Impact:** Users trapped in a flow abandon the task entirely rather than search for an exit.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 3)
-
-### UX-04 [MEDIUM] Consistency and Standards
-applies_when: ui≠none
-Users should not have to wonder whether different words, situations, or actions mean the same thing — follow platform and internal conventions.
-- **Detect:** Same action labeled differently across screens ("Delete" vs "Remove" vs "Trash" for the same operation); same icon used for different actions in different views; primary-button placement inconsistent across comparable screens.
-- **Fix:** One verb per action class, enforced repo-wide (ARC-17 in [arch.md](arch.md)); one icon-to-action mapping; consistent primary-action placement per platform convention.
-- **Impact:** Inconsistent terminology forces users to relearn the interface on every screen, raising cognitive load and error rate.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 4)
-
-### UX-05 [HIGH] Error Prevention
-applies_when: ui≠none
-Eliminate error-prone conditions, or check for them and present a confirmation before users commit to the action.
-- **Detect:** Free-text input where a constrained control (select, date-picker, toggle) would prevent invalid values; irreversible action with no confirmation step; form that allows submission of a state known to be invalid (e.g., end-date before start-date) without inline validation.
-- **Fix:** Replace free-text with constrained controls where the value space is enumerable; add confirmation for irreversible actions; validate inline before submission, not only after.
-- **Impact:** Every prevented error is a support ticket and a recovery flow the user never has to endure.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 5)
-
-### UX-06 [MEDIUM] Recognition Rather Than Recall
-applies_when: ui≠none
-Minimize the user's memory load by making elements, actions, and options visible or easily retrievable.
-- **Detect:** Multi-step flow requiring the user to remember a value entered in an earlier step with no on-screen recap; command/action available only via a shortcut with no visible menu entry; search/filter with no recent-values or autocomplete.
-- **Fix:** Surface prior-step values in a summary panel; expose every shortcut-only action in a visible menu; add autocomplete/recents to search and filter inputs.
-- **Impact:** Recall-dependent interfaces disproportionately fail novice and infrequent users.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 6)
-
-### UX-07 [LOW] Flexibility and Efficiency of Use
-applies_when: ui≠none
-Accelerators — unseen by the novice user — may speed up the interaction for the expert user, so the design caters to both.
-- **Detect:** High-frequency action (per product analytics or repo-declared primary flow) with no keyboard shortcut, bulk-action, or saved-preset path; power-user flow requires the same number of steps as the first-time flow.
-- **Fix:** Add keyboard shortcuts for the top 3-5 most frequent actions; add bulk operations (select-all, batch-apply) where single-item flows repeat; add saved presets/filters for repeat configurations.
-- **Impact:** Without accelerators, expert users pay the novice-user tax on every use, increasing task time at scale.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 7)
-
-### UX-08 [MEDIUM] Aesthetic and Minimalist Design
-applies_when: ui≠none
-Interfaces should not contain irrelevant or rarely needed information that competes with the relevant units of information.
-- **Detect:** Screen presenting more than the primary + 1-2 secondary actions above the fold; dense forms exposing rarely-used optional fields by default instead of behind "Advanced"/"More options"; decorative elements with no functional or wayfinding purpose competing for attention with primary content.
-- **Fix:** Collapse rarely-used fields behind progressive disclosure; limit primary actions per screen to 1 (with secondary actions visually subordinate); remove decoration that doesn't aid comprehension or wayfinding.
-- **Impact:** Visual clutter raises the time and error rate for finding the primary action, especially for first-time and low-vision users.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 8)
-
-### UX-09 [HIGH] Help Users Recognize, Diagnose, and Recover from Errors
-applies_when: ui≠none
-Error messages should be expressed in plain language, precisely indicate the problem, and constructively suggest a solution.
-- **Detect:** Error message stating only that something failed ("Something went wrong", "Error") with no cause or next step; error message exposing a raw stack trace or internal exception to the end user; error with no visible recovery action (retry, edit, contact support).
-- **Fix:** Every error states what was expected, what happened, and how to fix it (mirrors this project's own Error Message quality bar); never surface raw stack traces to end users; pair every error with a recovery action.
-- **Impact:** Vague errors convert a recoverable failure into task abandonment.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 9)
-
-### UX-10 [LOW] Help and Documentation
-applies_when: ui≠none
-Even though it's better if the system can be used without documentation, providing help and documentation may be necessary.
-- **Detect:** Non-trivial feature (multi-step config, integration setup, advanced filter syntax) with no in-context help (tooltip, inline hint, linked doc) and no entry in the product's documentation surface (cross-reference `B6` documentation dimension).
-- **Fix:** Add in-context help for non-trivial features; ensure the docs ([docs.md](docs.md)) cover each one; keep help task-focused and searchable, not a monolithic manual.
-- **Impact:** Undocumented complexity forces users to trial-and-error or abandon the feature.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 10)
-
-### UX-10a [HIGH] AI Output Transparency
-applies_when: integrations contain an LLM/AI provider (`OPENAI_`, `ANTHROPIC_`, or an SDK import)
-AI-generated or AI-assisted content is labeled, and claims presented as fact are traceable to a source.
-- **Detect:** AI-generated summary, suggestion, or content block rendered indistinguishably from human-authored or ground-truth content; AI-generated factual claim (price, statistic, citation) with no visible source or "AI-generated — verify" affordance; AI chat/assistant response with no indication that a human is not on the other end.
-- **Fix:** Label AI-generated content at the point of display (badge, "Generated by AI" caption, or distinct visual treatment); attach source links or a "why am I seeing this" affordance to AI-derived claims; disclose AI vs human agent identity in conversational UIs.
-- **Impact:** Unlabeled AI content erodes trust once discovered, and unsourced AI claims propagate hallucinations as fact.
-- **Source:** dev-skills extension, not an official NN/g heuristic — verified 2026-07-11 against [nngroup.com/articles/ten-usability-heuristics](https://www.nngroup.com/articles/ten-usability-heuristics/), which states the 10 heuristics "have remained relevant and unchanged since 1994." Added here to cover an AI-transparency gap the original 10 don't address.
-
-### UX-10b [HIGH] AI Interaction Affordances
-applies_when: integrations contain an LLM/AI provider (`OPENAI_`, `ANTHROPIC_`, or an SDK import)
-LLM-backed features stream output, stay interruptible, and scope uncertainty display to stakes.
-- **Detect:** AI response rendered as spinner-then-full-dump instead of incremental token streaming; generation in progress with no "Stop Generation" control; confidence/uncertainty indicators attached to every response regardless of stakes (indicator fatigue), or absent on high-stakes outputs (medical, financial, legal, destructive actions); multi-step agent flows with no visible deliberation/progress state.
-- **Fix:** Stream tokens incrementally (reduced-opacity or cursor treatment while in flight); always provide a Stop Generation control so users don't wait out an irrelevant answer; show step-level progress for multi-step/agentic flows; use confidence indicators only where being wrong has meaningful stakes — not on every response.
-- **Impact:** A non-interruptible spinner-dump turns every bad generation into forced waiting; unscoped confidence chrome trains users to ignore the one warning that matters.
-- **Source:** AI-feature UX research (streaming + stop-control + stakes-scoped uncertainty conventions).
-
-## Onboarding / First-Use Flow
-
-### UX-ON-01 [HIGH] First-Run Path Exists and Is Bounded
-applies_when: ui≠none
-A first-time user reaches a working state without reading external documentation.
-- **Detect:** No distinguishable first-run experience (empty state, welcome screen, guided setup) for a new account/workspace/project; first-run path requires more than 5 user actions (clicks/taps/keystrokes) before the user reaches a usable state.
-- **Fix:** Add a first-run experience distinct from the steady-state UI; bound it to ≤5 actions to first usable state, or break it into resumable steps with visible progress.
-- **Impact:** Products without a bounded first-run path lose new users to abandonment before they experience any value.
-- **Source:** Nielsen Norman Group — Onboarding UX; RT2 ([dev-skills research trace](https://github.com/sungurerdim/dev-skills/blob/6c2a599/specs/001-v4-coverage-standalone/research.md))
-
-### UX-ON-02 [MEDIUM] Empty States Teach, Not Just Announce
-applies_when: ui≠none
-Every empty state (no data yet) explains what belongs there and how to add it, not just "No items."
-- **Detect:** Empty list/table/dashboard rendering only a "No X found" message with no call-to-action to create the first item, and no example of what populated state looks like.
-- **Fix:** Pair every empty state with a primary CTA ("Create your first X") and, where feasible, a preview/illustration of populated state.
-- **Impact:** A bare empty state is a dead end for new users who don't yet know what the feature does.
-- **Source:** Nielsen Norman Group — Empty State Design
-
-### UX-ON-03 [MEDIUM] Progressive Disclosure During Setup
-applies_when: ui≠none
-Setup/onboarding requests only the information required to reach first value; optional configuration is deferred.
-- **Detect:** Sign-up or setup flow collecting fields not required until a later feature is used (e.g., billing details before any paid action, notification preferences before any notification-triggering event).
-- **Fix:** Move non-blocking fields to post-onboarding settings, defaults, or just-in-time prompts triggered when the field becomes relevant.
-- **Impact:** Every non-essential field in the setup path raises drop-off before the user has experienced any value.
-- **Source:** Nielsen Norman Group — Progressive Disclosure
-
-### UX-ON-04 [MEDIUM] Auto-Navigate + Auto-Resume for Unavoidable Manual External Steps
-applies_when: a setup/connection flow includes a manual external step (e.g. OAuth consent, API key generation, store approval)
-When an otherwise-automated setup/connection flow hits one step with no programmatic API — a manual console toggle, a one-time consent screen, an app-store approval — the app deep-links the user to the exact right external page and auto-resumes the flow on return, instead of leaving a written instruction to go do it themselves.
-- **Detect:** A setup/onboarding flow describing an external step only as prose ("go to Settings → API → enable X, then come back") with no deep link to the exact page; no detection of the user's return (focus/visibility-change, redirect callback, or polling) to auto-continue; the user must manually find their way back and re-trigger the next step themselves.
-- **Fix:** Deep-link directly to the specific external page/screen the manual step requires (not its parent settings area). On return, auto-detect completion (poll the resource, listen for a redirect callback, or check on focus-regain) and resume the flow at the next step without requiring manual re-navigation.
-- **Impact:** A "go do this yourself" instruction is a common abandonment point — users lose the thread in an unfamiliar external UI and don't return; auto-navigate + auto-resume preserves the flow's momentum through a step the app genuinely can't automate away.
-- **Source:** Extends UX-ON-01 (bounded first-run path) to the specific case of an unavoidable external dependency with no automatable API
-
-### UX-ON-05 [MEDIUM] Onboarding Is Skippable for Returning and Existing Users
-applies_when: ui≠none
-A first-run or re-introduction flow never re-traps a user who has already reached productive use — returning users can skip straight past it.
-- **Detect:** An onboarding/tour/tutorial flow triggered again after a feature update, re-login, or new-device sign-in with no visible skip/dismiss control, forcing an already-oriented user through the full sequence; onboarding state keyed only to account creation with no per-flow "seen it" tracking for incremental feature tours.
-- **Fix:** Track completion/dismissal per onboarding flow (not just account-level), and always render a visible skip/close control; re-triggered tours for existing users default to a compact "what's new" entry point, not the full first-run sequence.
-- **Impact:** Forcing a returning user through a first-timer flow they've already completed reads as the product not recognizing them, and burns the same abandonment risk the flow exists to prevent.
-- **Source:** [Nielsen Norman Group — Onboarding Tutorials](https://www.nngroup.com/articles/onboarding-tutorials/)
-
-## Activation / Time-to-Value
-
-### UX-AC-01 [HIGH] First-Success Step Count Is Measured and Bounded
-applies_when: ui≠none
-The number of steps from first-run to the user's first successful outcome (the product's core value moment) is known and ≤ the product's stated target.
-- **Detect:** No instrumented or documented step count from account/session start to first core-value event (first message sent, first file processed, first report generated — product-specific); step count exceeds 7 discrete user actions with no justification tied to the domain (e.g., regulated onboarding).
-- **Fix:** Instrument or manually trace the first-run → first-success path; if it exceeds 7 actions, cut, merge, or defer steps until it doesn't, or record an explicit justification in the blueprint profile Priorities/Constraints.
-- **Impact:** Time-to-value is the strongest predictor of activation-to-retention conversion; unmeasured time-to-value means regressions ship undetected.
-- **Source:** RT2 ([dev-skills research trace](https://github.com/sungurerdim/dev-skills/blob/6c2a599/specs/001-v4-coverage-standalone/research.md)); product-led-growth activation literature
-
-### UX-AC-02 [MEDIUM] Core Value Moment Is Explicit and Celebrated
-applies_when: ui≠none
-The product marks the moment the user reaches first value (visually, not just functionally).
-- **Detect:** First-success event (first save, first successful integration, first completed task) produces no distinguishable feedback beyond the generic loading/success pattern used elsewhere in the app.
-- **Fix:** Add a distinguishable first-success moment (confirmation, next-step suggestion, or lightweight celebration) tied specifically to the first occurrence of the core-value event.
-- **Impact:** An unmarked value moment leaves the user unsure whether they succeeded, undermining the activation the product just achieved.
-- **Source:** RT2 ([dev-skills research trace](https://github.com/sungurerdim/dev-skills/blob/6c2a599/specs/001-v4-coverage-standalone/research.md))
-
-## Interaction Laws (Laws of UX)
-
-Catalog: [lawsofux.com](https://lawsofux.com/) (Yablonski) `[single-source aggregator]` — each law traces to original research named per rule. **Auditor-bias note (Aesthetic-Usability Effect):** a visually polished UI is *perceived* as more usable and masks real usability flaws — never soften a finding's severity because the screen looks good.
-
-### UX-LX-01 [MEDIUM] Choice Overload at Decision Points (Hick + Miller)
-applies_when: ui≠none
-Decision time grows with the number and complexity of choices; working memory holds ~7±2 chunks.
-- **Detect:** Menu, nav bar, settings screen, or picker presenting >7 ungrouped options at one level; onboarding/checkout step asking multiple unrelated decisions at once; long flat lists where grouping or search exists nowhere.
-- **Fix:** Chunk options into labeled groups; split compound decision steps; add search/filter to long option lists; move rare options behind progressive disclosure (UX-08).
-- **Impact:** Every extra simultaneous choice raises decision latency and abandonment at exactly the points (nav, checkout) where hesitation costs most.
-- **Source:** Laws of UX — Hick's Law, Miller's Law `[single-source]` (originals: Hick 1952; Miller 1956)
-
-### UX-LX-02 [MEDIUM] Action Distance (Fitts)
-applies_when: ui≠none
-Target acquisition time is a function of distance to and size of the target — actions live next to the objects they act on.
-- **Detect:** Per-item action (edit/delete/reply) rendered far from the item it affects (e.g. a global toolbar acting on a list selection below the fold); form submit separated from the form by unrelated content; on mobile, the primary action outside the natural thumb zone while rare actions occupy it.
-- **Fix:** Co-locate actions with their objects (row-level actions on the row, submit directly under the form); reserve the easiest-to-reach positions for the highest-frequency actions. Target *size* is audited by the accessibility target-size rule — this rule owns *distance*.
-- **Impact:** Distant targets add pointing time to every interaction and break the visual object-action link, causing wrong-object operations.
-- **Source:** Laws of UX — Fitts's Law `[single-source]` (original: Fitts 1954)
-
-### UX-LX-03 [MEDIUM] Convention Adherence (Jakob)
-applies_when: ui≠none
-Users expect a new UI to work like the products they already use — deviation from platform/domain convention needs a reason.
-- **Detect:** Novel interaction pattern where a dominant convention exists (cart icon not in the header, settings not behind a gear/avatar, non-standard gesture replacing a visible control, scroll hijacking); platform-convention mismatch (web app overriding browser back, desktop app without native menu/shortcut conventions).
-- **Fix:** Default to the dominant convention; keep innovation for the product's differentiating interaction only, and pair it with an on-ramp (hint, fallback control).
-- **Impact:** Every convention break spends user trust and adds relearning cost — users blame themselves, then leave.
-- **Source:** Laws of UX — Jakob's Law `[single-source]` (Nielsen)
-
-### UX-LX-04 [MEDIUM] Ordering & Salience (Serial Position + Von Restorff)
-applies_when: ui≠none
-First and last positions are best remembered; one visually distinct item among uniform peers draws recall and attention.
-- **Detect:** Critical nav/menu items buried mid-list while low-value items hold the first/last slots; primary CTA visually identical to its neighbor actions (no salience); MORE than one "distinct" element per view competing for the Von Restorff slot (everything highlighted = nothing highlighted).
-- **Fix:** Place the highest-value items at list start/end; give exactly one primary action per view distinct weight; demote decorative highlights that compete with it.
-- **Impact:** Mid-list burial and salience inflation both push users toward wrong or slower choices on every visit.
-- **Source:** Laws of UX — Serial Position Effect, Von Restorff Effect `[single-source]` (originals: Ebbinghaus; von Restorff 1933)
-
-### UX-LX-05 [MEDIUM] Progress Visibility in Multi-Step Flows (Goal-Gradient + Zeigarnik)
-applies_when: ui≠none
-Motivation rises with visible proximity to completion; interrupted tasks stay mentally open — show progress and make resumption easy.
-- **Detect:** Multi-step flow (wizard, onboarding, checkout) with no step indicator or completion signal; interruptible long task (profile setup, import) with no resumable state or "continue where you left off" entry point; progress indicator that starts at 0% when prior steps are already done (artificial-start omission).
-- **Fix:** Add a step/progress indicator that credits completed work (start >0% when justified); persist partial progress and surface a resume affordance on return.
-- **Impact:** Invisible progress and lost partial work are the two dominant causes of multi-step abandonment.
-- **Source:** Laws of UX — Goal-Gradient Effect, Zeigarnik Effect `[single-source]` (originals: Hull 1932; Zeigarnik 1927)
-
-### UX-LX-06 [MEDIUM] Input Tolerance (Postel)
-applies_when: a form or free-text input surface is present
-Be liberal in what you accept from users, conservative in what you emit — normalize instead of rejecting.
-- **Detect:** Input rejected for recoverable formatting the code could normalize: spaces/dashes in card, IBAN, or phone numbers; case-sensitive email/username match; trailing whitespace failing validation; date accepted in only one rigid format when the locale implies others.
-- **Fix:** Trim, strip separators, and case-normalize before validating; accept the formats users actually paste; keep the *stored/emitted* value strictly canonical.
-- **Impact:** Every rejection of normalizable input converts a completed user intention into an error state the code caused.
-- **Source:** Laws of UX — Postel's Law `[single-source]` (original: RFC 761 robustness principle)
-
-### UX-LX-07 [MEDIUM] Complexity Placement (Tesler)
-applies_when: ui≠none
-Inherent complexity cannot be eliminated — it can only be moved; move it into the system, not onto the user.
-- **Detect:** User asked for a value the system can derive (country from locale/GeoIP suggestion, card type from number, timezone from device); configuration required before first use where a working default exists; every option exposed because "the user should decide".
-- **Fix:** Derive what is derivable (editable, not locked); ship working defaults with override; absorb decision complexity into smart defaults and keep the choice available for the minority that needs it.
-- **Impact:** Complexity pushed onto users taxes every user on every use; complexity absorbed into the system costs the developer once.
-- **Source:** Laws of UX — Tesler's Law `[single-source]` (Tesler, Xerox PARC)
-
-## Perceived Performance & Optimism
-
-### UX-PP-01 [HIGH] Optimistic UI Has a Rollback Path
-applies_when: ui≠none and api≠none
-Optimistic updates (UI reflects success before the server confirms) are used only for fast, reliable, reversible actions — and always with rollback.
-- **Detect:** UI state updated before request resolution with no failure handler that reverts the state and informs the user; optimistic pattern on non-reversible or high-stakes actions (payment, send, delete, publish); rollback that silently reverts with no explanation of what failed.
-- **Fix:** Pair every optimistic update with an error path that restores prior state + surfaces a plain-language notice with retry; use pessimistic (wait-for-server) flow for payments, sends, and destructive actions.
-- **Impact:** An optimistic update without rollback shows the user a success that never happened — data-loss-grade trust damage when discovered.
-- **Source:** [Smashing Magazine — Optimistic UIs](https://www.smashingmagazine.com/2016/11/true-lies-of-optimistic-user-interfaces/); [Hearne — Optimistic UI Patterns](https://simonhearne.com/2021/optimistic-ui-patterns/)
-
-### UX-PP-02 [HIGH] Interaction Responsiveness Budget (INP)
-applies_when: ui≠none (INP field/lab measurement specifically requires platforms∋web)
-Interactions respond within the Core Web Vitals INP budget: Good ≤200ms at the 75th percentile (Needs Improvement 200-500ms, Poor >500ms).
-- **Detect:** Web: no INP measurement (field data or lab proxy) for the primary flows; long tasks >50ms blocking the main thread on interaction handlers; synchronous heavy work (large render, JSON parse, layout thrash) inside click/input handlers. All platforms: any interaction regularly exceeding ~400ms with no immediate feedback (Doherty threshold `[single-source]`).
-- **Fix:** Yield long tasks (`scheduler.postTask`/`setTimeout` chunking), move heavy work off the interaction path (worker, defer), show immediate feedback (UX-01) when real work must exceed the budget.
-- **Impact:** Interactions over budget read as "broken" — users re-click (duplicate actions) or leave; INP is also a ranking-relevant field metric.
-- **Source:** [web.dev — INP](https://web.dev/articles/inp) (thresholds verified 2×, 2026-07-17); Laws of UX — Doherty Threshold `[single-source]`
-
-### UX-PP-03 [MEDIUM] Loading Pattern Matches What Is Known Before Render
-applies_when: ui≠none
-The loading pattern communicates what the system already knows about the incoming content — skeleton screens when the layout is known, spinners only when it is not.
-- **Detect:** A generic spinner used for content whose layout/shape is already known (a list, a card grid, a known-shape detail page) instead of a skeleton matching that shape; a full-page spinner used for a partial, below-the-fold, or code-split region instead of scoping the loading state to that region.
-  - Mobile: `CircularProgressIndicator` (Flutter/Android), `ActivityIndicator` (RN), `ProgressView` (SwiftUI) used for content areas rather than discrete actions
-- **Fix:** Use a skeleton screen shaped like the incoming content whenever the layout is known ahead of the fetch; reserve bare spinners for genuinely unknown-layout or full-page loads; scope loading boundaries to the region that's actually pending, not the whole page.
-- **Impact:** A skeleton communicates structure and progress the instant it renders — response within the "feels instant" perceptual window keeps users in flow — while an undifferentiated spinner reads as dead time regardless of actual latency.
-- **Source:** [Nielsen Norman Group — Response Times: The 3 Important Limits](https://www.nngroup.com/articles/response-times-3-important-limits/)
-
-## Forms: Validation Strategy
-
-### UX-FM-01 [HIGH] One Deliberate Validation-Timing Strategy + Error Summary
-applies_when: a form or input-validation surface is present
-The product picks ONE validation-timing strategy deliberately and applies it consistently; long forms pair errors with a summary that links to fields.
-- **Detect:** Mixed timing across forms (some validate on blur, some on submit, some on keystroke) with no documented choice; premature validation that flags a field as wrong *while the user is still typing* their first entry; submit-time errors shown only inline on a long form with no top error summary; error summary entries not linked/focused to their fields.
-- **Fix:** Choose and document one strategy — (a) GOV.UK: validate on submit only + error summary component at top, each entry a link that moves focus to its field; or (b) reward-early/punish-late: validate a field immediately once it *becomes* valid, but flag errors only after the user leaves it. Never punish mid-typing. Cross-ref [a11y.md](a11y.md) AXE-14 (autocomplete/input purpose) and error-association rules.
-- **Impact:** Inconsistent or premature validation trains users to distrust the form; unlinked errors on long forms strand users hunting for the failing field.
-- **Source (both positions kept — documented contradiction):** [GOV.UK — validation pattern](https://design-system.service.gov.uk/patterns/validation/) + [error summary](https://design-system.service.gov.uk/components/error-summary/) vs [Smart Interface Design Patterns — inline validation](https://smart-interface-design-patterns.com/articles/inline-validation-ux/), [NN/g — hostile error messages](https://www.nngroup.com/articles/hostile-error-messages/)
-
-### UX-FM-02 [MEDIUM] Form Layout: Single-Column, Top-Aligned Labels
-applies_when: a form is present
-Long forms complete at a higher rate as a single column with labels above their fields, especially on mobile.
-- **Detect:** A form with more than one visual column of unrelated fields (side-by-side fields that aren't a genuine pair like City/State); labels placed to the left of their input on a narrow (mobile) viewport instead of above it.
-- **Fix:** Lay out forms as a single column top-to-bottom; place labels directly above their field, not beside it, on narrow viewports. Reserve side-by-side placement for fields that are a genuine logical pair (e.g. City/State/ZIP) at wide viewports only.
-- **Impact:** Multi-column and left-aligned-label forms measurably raise completion time and abandonment versus single-column, top-aligned layouts.
-- **Source:** [Nielsen Norman Group — Web Form Design](https://www.nngroup.com/articles/web-form-design/)
-
-## Error Presentation
-
-### UX-EP-01 [MEDIUM] Error Presentation Channel Matches Error Scope
-applies_when: ui≠none
-The channel an error is shown in matches its scope and severity — a field-level problem stays inline, a transient/recoverable issue uses a toast, and a decision-blocking error uses a dialog.
-- **Detect:** A single field's validation error shown as a page-level toast/banner instead of inline at the field; a transient, auto-recoverable issue (network retry, a background sync) interrupting the user with a blocking dialog; a decision-blocking error (data loss risk, an action that cannot proceed) shown only as a toast that can be missed or auto-dismisses before it's read.
-- **Fix:** Field-level problems render inline next to the field; transient/recoverable issues use a toast/snackbar that doesn't block interaction; errors requiring a decision before the user can proceed use a dialog that blocks until acknowledged.
-- **Impact:** A mismatched channel either interrupts the user for something that didn't need it or lets a blocking problem slip past as an ignorable toast.
-- **Source:** [Nielsen Norman Group — Error Message Guidelines](https://www.nngroup.com/articles/error-message-guidelines/)
-
-## Deceptive Patterns (Never Ship These)
-
-Canonical catalog: [deceptive.design/types](https://www.deceptive.design/types). These carry legal exposure (FTC negative-option enforcement, EU consumer law) on top of trust damage.
-
-### UX-DP-01 [HIGH] Preselection Steering
-applies_when: a consent, upsell, add-on, or subscription-tier selection surface is present
-No pre-checked choice commits the user to something not required for the requested service.
-- **Detect:** Pre-checked checkboxes for marketing consent, data sharing, add-on purchases, subscriptions, or "donation/tip" amounts; default-selected paid tier where a free path exists but is visually demoted.
-- **Fix:** Ship consent and upsell choices unchecked; make the no-extra path equally visible; preselect only what the user's explicit request implies.
-- **Impact:** Preselection converts inattention into unwanted commitments — refund/complaint load plus consent invalid under GDPR-class rules (cross-ref [privacy.md](privacy.md) consent rules).
-- **Source:** [deceptive.design — Preselection](https://www.deceptive.design/types) `[single-source]` (catalog); consent-validity: GDPR Art. 4(11) active-consent standard
-
-### UX-DP-02 [HIGH] Cancellation Parity
-applies_when: billing≠none or an account-deletion/unsubscribe flow is present
-Cancelling, unsubscribing, or downgrading is as easy as signing up — same channel, comparable step count.
-- **Detect:** Online signup but cancellation only via phone/chat/email; cancellation flow with retention interstitials exceeding one clearly skippable offer; "delete account" absent or buried while "upgrade" is one click; unsubscribe link missing or requiring login.
-- **Fix:** Provide cancellation in the same channel as signup with comparable effort; one optional retention offer max, skippable; account deletion reachable and completable online.
-- **Impact:** Obstructed exits are the most-enforced deceptive pattern (FTC negative-option actions, EU consumer law) and the fastest trust-to-chargeback converter.
-- **Source:** [deceptive.design — Hard to cancel](https://www.deceptive.design/types); FTC negative-option enforcement coverage (2026) — rule's litigation status recorded as contradiction in research notes; parity is the safe bar regardless
-
-### UX-DP-03 [HIGH] Honest Pricing & Presentation
-applies_when: billing≠none
-All mandatory costs are visible before effort is invested; information is never hidden, disguised, or nagged past.
-- **Detect:** Mandatory fees (service, booking, shipping minimums) first revealed at the final checkout step; visually demoted decline options ("confirmshaming" microcopy, low-contrast reject button vs high-contrast accept); countdown/scarcity claims not backed by real data; repeated interrupting prompts for the same permission/upsell after the user declined.
-- **Fix:** Show full mandatory price as early as a price is shown; give accept/decline equal visual weight; remove or data-back urgency claims; respect a decline for the session at minimum.
-- **Impact:** Late fees and interference patterns trade one-time conversion for churn, chargebacks, and regulator attention.
-- **Source:** [deceptive.design — Hidden costs, Visual interference, Nagging](https://www.deceptive.design/types) `[single-source]` (catalog); EU Omnibus/CPC price-transparency enforcement practice
-
-## Notifications & Interruption Budget
-
-### UX-NT-01 [HIGH] Notification Frequency Stays Under the Abandonment Threshold
-applies_when: a notification-sending feature is present (push, email, or in-app)
-Per-user notification volume (push, email, in-app) is capped low enough that it doesn't drive unsubscribes or app abandonment.
-- **Detect:** No enforced per-user daily/weekly notification cap across all notification-triggering features combined (each feature owns its own trigger with no shared budget); notification volume for an active user regularly exceeding roughly 5/day with no user-configurable frequency control.
-- **Fix:** Enforce one shared per-user notification budget across every feature that sends them (not per-feature limits that sum uncontrolled); default to ≤5/day-equivalent; give users a visible frequency/category control rather than all-or-nothing opt-out.
-- **Impact:** Unsubscribe rate rises sharply past roughly 10-15 notifications/day and app abandonment follows — over-notification is a top-cited reason for both muting and uninstalling.
-- **Source:** [Business of Apps — Push Notification Statistics](https://www.businessofapps.com/marketplace/push-notifications/research/push-notifications-statistics/)
-
-## UX Writing
-
-### UX-WR-01 [MEDIUM] Buttons Name Their Outcome
-applies_when: ui≠none
-Every action label states the specific outcome — one consistent verb per action class, no bare "OK"/"Submit"/"Yes".
-- **Detect:** Generic labels (`OK`, `Submit`, `Yes`, `No`, `Continue` on a consequential step) where the outcome is nameable (`Save changes`, `Delete 3 items`, `Send message`); confirm dialogs whose buttons don't answer the question asked; the same operation labeled with different verbs across screens (defer to UX-04 for the consistency half).
-- **Fix:** Rewrite labels as verb + object of the actual outcome; confirm-dialog buttons restate the choice (`Delete` / `Keep`), never `Yes`/`No`.
-- **Impact:** Outcome-named buttons cut wrong-click rates on consequential actions — the label is the last defense before an unintended operation.
-- **Source:** [Material Design — Writing guidance](https://m2.material.io/design/communication/writing.html); Google Material communication codelab (2×-confirmed)
-
-### UX-WR-02 [LOW] Sentence Case for UI Text
-applies_when: ui≠none
-Titles, headings, labels, and buttons use sentence case — not Title Case, not ALL CAPS.
-- **Detect:** Mixed casing conventions across views; ALL-CAPS body/label text (also a localization hazard — casing rules differ across locales, e.g. Turkish dotted/dotless i); Title Case in products that localize.
-- **Fix:** Standardize on sentence case in the design system tokens/lint (one exception: proper nouns); remove CSS `text-transform: uppercase` from translatable strings.
-- **Impact:** Sentence case reads faster, localizes safely, and removes per-screen casing debates.
-- **Source:** [Material Design — Writing guidance](https://m2.material.io/design/communication/writing.html) (2×-confirmed)
-
-### UX-WR-03 [LOW] Single-Heading Principle (Prune Redundant Subtitles)
-applies_when: ui≠none
-A subtitle/description directly under a heading renders only if it adds information the heading doesn't already state — a subtitle that merely paraphrases the heading in different words is pruned.
-- **Detect:** A subtitle/description under a page or section heading that restates the heading (e.g. "History" heading, "Past records" subtitle) rather than adding a constraint, legal notice, count, or concrete detail the heading omits.
-- **Fix:** Remove subtitles that only paraphrase; keep or add ones with genuine added information (a caveat, a behavior note, a count); remove the now-unused i18n string. Exempt: structural group/section labels within a multi-part form — those organize, they don't repeat.
-- **Impact:** A paraphrasing subtitle adds visual clutter and scan cost with zero new information — pruning it is a pure, risk-free legibility win.
-- **Source:** Nielsen Norman Group — content redundancy / scannability practice
-
-### UX-WR-04 [LOW] Separator Convention and Platform-Safe Copy
-applies_when: ui≠none
-User-visible text uses one consistent separator convention, and copyable/shareable text is platform-safe by default.
-- **Detect:** Mixed separators across surfaces (em-dash here, colon there); em-dashes in UI copy; copy-to-clipboard or share output that embeds emoji/styled characters by default.
-- **Fix:** Pick one separator set (middle dot `·`, slash `/`, or colon) and apply it everywhere; avoid em-dashes in UI copy. Default copyable/shareable text to plain text; make emoji and decoration opt-in.
-- **Impact:** Inconsistent separators read as sloppiness at scale; emoji-laden clipboard text breaks when pasted into CRMs, terminals, and legacy systems.
-- **Source:** XR-167 + XR-062 — cross-project experience registry (2026).
-
-## Information Architecture
-
-### UX-IA-01 [MEDIUM] Navigation Depth Budget & Breadcrumbs
-applies_when: ui≠none
-Visible navigation supports 2-3 tiers; deeper hierarchies switch to breadcrumbs + landing pages instead of deeper menus.
-- **Detect:** Nav menus nesting beyond 3 levels (flyout-in-flyout-in-flyout); content ≥3 levels deep with no breadcrumb trail; breadcrumb showing only the current page (no ancestor links) or breaking on direct/deep-linked entry; multi-user workspace product mixes personal-context surfaces (my settings, my day) and shared-workspace surfaces (team schedule, shared records) in one undifferentiated navigation tier
-- **Fix:** Cap visible nav at 2-3 tiers; add breadcrumbs on every page below tier 2 (ancestors linked, current page unlinked); deep sections get section landing pages instead of deeper flyouts. In multi-user workspace products, separate the IA into two consistent tiers — personal context (e.g. `#/me/…`) and shared workspace (e.g. `#/workspace/…`) — and keep every surface clearly in one tier. (XR-137)
-- **Impact:** Over-deep menus hide content from discovery; missing breadcrumbs strand deep-linked visitors (search/social arrivals) with no sense of place.
-- **Source:** [NN/g — Local navigation](https://www.nngroup.com/articles/local-navigation/); [NN/g — Breadcrumbs](https://www.nngroup.com/articles/breadcrumb-navigation-useful/) (2×-confirmed)
-
-### UX-IA-02 [MEDIUM] Primary Information Occupies the F-Pattern Scan Path
-applies_when: ui≠none
-Content placement matches how users actually scan a page — the highest-priority information sits where the first, heaviest scan passes land (top and left of the content area), not wherever layout convenience puts it.
-- **Detect:** The primary identifying fact of a row/card/page (title, status, the thing the user came to find) placed to the right of or below secondary/metadata content (timestamps, IDs, tags) instead of leading it; dense list/table views with no consistent left-anchored primary column.
-- **Fix:** Lead each row/card with its primary fact, top-left of the content block; keep metadata secondary in position and typographic weight; keep this ordering consistent across every comparable view.
-- **Impact:** Content placed against the natural scan path is read late or missed entirely, especially on unfamiliar or dense screens.
-- **Source:** [Nielsen Norman Group — F-Shaped Pattern of Reading on the Web](https://www.nngroup.com/articles/f-shaped-pattern-reading-web-content-discovered/)
-
-### UX-16 [MEDIUM] Rarely-Used Aggregate Stats Leave the Primary Work Screen
-applies_when: ui≠none and a dashboard/stats surface is present
-Aggregate statistics consulted occasionally (KPI tiles, heatmaps, trend widgets) move to a dedicated report/stats screen instead of occupying the daily working view.
-- **Detect:** The primary work screen dedicates permanent space to summary widgets users consult weekly or less; the working canvas is compressed to make room for them.
-- **Fix:** Relocate occasional aggregates to a dedicated stats/report surface; keep them drillable (click → filtered detail view, per CMP-12) and make filtered work surfaces route-addressable so drill targets are linkable.
-- **Impact:** Every pixel spent on rarely-read stats is taken from the screen users work in for hours — the core task gets the leftover space.
-- **Source:** XR-050 — cross-project experience registry (2026).
-
-## Navigation Safety
-
-### UX-NS-01 [HIGH] Unsaved-Work Confirmation on Exit or Navigate-Away
-applies_when: ui≠none
-Leaving a screen that holds unsaved user input — via back navigation, closing a tab, or an in-app route change — never silently discards that input.
-- **Detect:** A form, editor, or multi-step flow with dirty (unsaved, unsubmitted) input where browser back, an in-app nav link, or tab/window close discards the input with no warning; autosave present but not confirmed to the user (no "saved"/"unsaved changes" indicator to know whether it's safe to leave).
-- **Fix:** Intercept navigation away from dirty state and confirm before discarding (native `beforeunload` for tab/window close, an in-app confirm dialog for router navigation); where autosave exists, surface its status so the user can tell without guessing.
-- **Impact:** Silent loss of typed input on accidental navigation is one of the most trust-damaging failures in a product — users don't file a bug, they stop trusting the form.
-- **Source:** Nielsen Norman Group — 10 Usability Heuristics (heuristic 3, User Control and Freedom — extends UX-03 to the navigate-away case)
-
-## Filtering & Bulk Selection
-
-### UX-11 [MEDIUM] Mute-Not-Hide Filtering + Distinct Select-All/Clear-All
-applies_when: a filterable list/grid/calendar view with spatially-contextual items is present
-When a filter is applied to a list/grid/calendar view where surrounding context matters (adjacency, occupancy, availability), non-matching items are de-emphasized (muted/desaturated), never hidden outright — and bulk-selection panels expose "select all" and "clear all" as two distinct, unambiguous controls.
-- **Detect:** A filter/highlight interaction on a spatially-contextual list/grid/calendar view that sets non-matching items to `display: none` (destroying adjacency/occupancy information) instead of a muted/faded style; a mute pass applied only at mount and not reapplied after re-render; a bulk-selection panel with a single toggle button whose action (select-all vs clear-all) silently depends on hidden prior state.
-- **Fix:** Replace hide-on-filter with an idempotent mute pass (lower opacity/desaturate, stays interactive) that reapplies on every re-render; split any ambiguous toggle into two explicitly labeled "Select all" / "Clear all" (or "Select none") controls.
-- **Impact:** Hiding non-matching items destroys the spatial context users rely on to judge adjacency/availability; an ambiguous select/clear toggle causes real data loss when it silently clears instead of selecting.
-- **Source:** Gestalt continuity/context principles; NN/g bulk-action affordance clarity
-
-## Status & Health Communication
-
-### UX-12 [MEDIUM] Cascading Health/Status-Check Severity Demotion
-applies_when: a multi-check status or health dashboard is present
-When multiple health/status checks have a dependency relationship (a root check gating several downstream checks), a downstream check's displayed severity demotes when a known upstream root-cause check has already failed — never presented as N independent criticals for one root cause.
-- **Detect:** A status/health dashboard with dependency-ordered checks (e.g. connectivity → auth → sync → feature-specific) where a single outage condition (e.g. offline) causes multiple simultaneous, unrelated-looking CRITICAL badges instead of one root-cause indicator plus demoted symptoms.
-- **Fix:** Order checks by dependency; when an upstream check fails, demote dependent checks' displayed severity (e.g. to informational/"blocked by X") rather than each reporting independently.
-- **Impact:** An inflated list of unrelated-looking criticals for one root cause obscures the actual starting point for diagnosis and erodes trust in the status panel.
-- **Source:** Cascading-failure / root-cause-first alerting practice (SRE incident-communication conventions)
-
-## Tooltip Discipline
-
-### UX-13 [HIGH] Tooltip Discipline: None on Self-Explanatory Elements; Standard Behavior Everywhere Else
-applies_when: ui≠none
-Tooltips exist only where they add real information, and every tooltip derives from one SSOT component with industry-standard behavior.
-- **Detect:** Tooltips on elements whose visible label is already complete (noise tooltips); essential information available only inside a tooltip; multiple tooltip implementations; a tooltip that covers its own trigger, appears on hover but not keyboard focus, cannot be dismissed with Esc, disappears when the pointer moves onto it, flashes open with zero delay, or contains interactive content.
-- **Fix:** Remove tooltips from self-explanatory elements; never put must-know information only in a tooltip. Route every remaining tooltip through one shared component that: positions adjacent to the trigger (smart top/bottom/side placement, never covering it), opens on hover AND keyboard focus, is dismissable (Esc), hoverable, and persistent per WCAG 1.4.13, opens after a ~300–500ms delay, contains no interactive content (use popover/toggletip for that), and has a touch-accessible equivalent.
-- **Impact:** Noise tooltips degrade every interaction; non-standard ones violate WCAG 1.4.13 and randomly hide the very content they exist to show.
-- **Source:** XR-131 — cross-project experience registry (2026); WCAG 1.4.13.
-
-## Validation Severity
-
-### UX-14 [MEDIUM] Soft-Warn Is the Default for Reversible, Non-Destructive Limit Violations
-applies_when: ui≠none
-Limit violations that cause no data loss warn but do not block; hard blocks are reserved for irreversible or physically impossible states.
-- **Detect:** A soft limit (roster size, recommended maximum, quota advisory) hard-blocks the action; or the block/warn choice is hardcoded with no owner-level escalation option.
-- **Fix:** Default every no-data-loss limit violation to a soft warning that lets the action proceed; hard-block only genuine impossibilities (e.g. physical capacity conflicts) — and let the workspace owner deliberately escalate a soft warning to a hard block as a reversible, recorded setting.
-- **Impact:** Overzealous hard blocks force users into workarounds (fake data, split records) that corrupt the dataset more than the exceeded limit ever would.
-- **Source:** XR-185 — cross-project experience registry (2026).
-
-## Audit & History Surfaces
-
-### UX-15 [HIGH] Audit Screens Show Resolved, Human-Readable Facts — Filterable on Every Axis
-applies_when: an audit or history view is present
-Audit/history views resolve raw identifiers into human-readable facts and support filtering, search, and grouping on every recorded dimension.
-- **Detect:** Audit rows show raw IDs (user id, entity id), machine timestamps, or field-diff JSON; filtering is limited to free-text; no facet/dropdown filters or collapsible grouping.
-- **Fix:** Render WHO (display name), WHEN (readable local date-time), ON WHAT (the record's human-readable name), and EXACTLY WHAT changed (field-by-field old→new in plain words); add facet filters (date, actor, location, action type, affected entity) and grouped views. An admin must understand any row without a second query or cross-referencing.
-- **Impact:** An audit trail nobody can read is compliance theater — investigations stall and accountability silently disappears.
-- **Source:** XR-101 — cross-project experience registry (2026).
-
-## Integration with `states` Scope
-
-The `ux` scope audits *whether* a flow reaches success/error correctly from the user's perspective (heuristics, onboarding, activation); the `states` scope ([ui-components.md](ui-components.md)) audits *whether* each UI component correctly implements the empty/loading/error/success/disabled/hover/focus/active states that `ux` findings depend on. Run `states` findings first when both scopes are in play — a `ux` finding that traces to a missing `states` implementation (e.g., UX-01 flagging missing loading feedback) should cite the corresponding `states` rule rather than duplicate it.
+# UX — behaviour, states, layout and tokens of graphical UIs
+
+Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-only product skips this file for [cli.md](cli.md). Browser-only checks are in [web.md](web.md), accessibility in [a11y.md](a11y.md), billing screens in [monetization.md](monetization.md). A UI element or action built twice is SIM-08 or SIM-09; a literal where a token or string resource exists is a detector of SIM-06.
+
+### UX-01 [HIGH] Pending work shows no status
+- **Detect:** async actions (save, submit, upload, sync) with no pending state, disabled re-submit or completion signal; a generic full-page spinner where the layout is known (a skeleton fits) or where only one region loads; multi-step flows with no step indicator or resume point; offline or unsynced data with no indicator; interactions over ~400 ms with no immediate visual response.
+- **Mech:** M
+- **Fix:** an immediate pressed or pending state, then a progress or skeleton scoped to the loading region after a short delay (~300 ms) to avoid flashes; a step indicator and resume for long flows; a visible sync or offline state.
+- **Impact:** users repeat the action (double orders, duplicate posts) or abandon a flow they think is stuck.
+- **Source:** Nielsen heuristic 1, visibility of system status; NN/g, Response Times: The 3 Important Limits.
+
+### UX-09 [HIGH] Error message without cause or way forward
+- **Detect:** "Something went wrong" with no cause and no next step; raw codes, exception text or `undefined`/`null`/`[object Object]` shown to users; no retry, edit or support path; a field error shown as a page toast, or a blocking error shown only as a toast that disappears.
+- **Mech:** T `git grep -nIiE '["'"'"'](something went wrong|an error occurred|unknown error|error!?)["'"'"']' -- ':!*test*' ':!*.md'`
+- **Fix:** say what happened, why if known, and what to do, in the user's words; field errors inline at the field, page errors in a persistent banner, transient recoverable issues as a non-blocking notice.
+- **Impact:** users cannot recover on their own, so the error becomes a support ticket or a lost user.
+- **Source:** Nielsen heuristic 9; NN/g, Error-Message Guidelines.
+
+### CMP-13 [HIGH] Failure shown as an empty state
+- **Detect:** a fetch `catch` that sets the list to empty without an error flag; permission or authentication failures (401/403) rendered as "nothing here"; one `isEmpty` branch for both no-data and failed-load.
+- **Mech:** T `git grep -nIE 'catch.*(set[A-Z][A-Za-z]*\(\[\]\)|= \[\]|emptyList\(\)|const \[\])' -- ':!*test*' ':!*.md'`
+- **Fix:** separate loading, empty, error and forbidden states in the data type; render each differently, with retry on error and an access path on forbidden.
+- **Impact:** users conclude their data is gone and re-create or abandon it while the real failure stays hidden.
+- **Source:** Nielsen heuristics 1 and 9; ARC-06 (errors signalled consistently).
+
+### UX-ON-02 [MEDIUM] Empty state without a next step
+- **Detect:** empty lists, tables and dashboards that render nothing, or only "No items", with no action to create or import the first item and no hint of what it will show.
+- **Mech:** M
+- **Fix:** explain what will appear, offer the primary create or import action, and link help where setup is non-trivial.
+- **Impact:** a new user's first screen is a dead end.
+- **Source:** NN/g, Designing Empty States in Complex Applications.
+
+### UX-03 [HIGH] No way back from a step or a destructive action
+- **Detect:** wizards and flows without back or cancel; dialogs without a close control or Escape; destructive actions (delete, send, publish, wipe) with neither a confirmation naming what is lost nor an undo window; confirmation on trivial, reversible actions (confirmation fatigue).
+- **Mech:** M
+- **Fix:** back and cancel on every step; prefer undo (soft delete, delayed send) for reversible actions; a confirmation that names the object and its consequence for irreversible ones.
+- **Impact:** one mis-tap destroys data or traps the user in a flow.
+- **Source:** Nielsen heuristic 3, user control and freedom; heuristic 5, error prevention.
+
+### UX-NS-01 [HIGH] Unsaved input lost on leave or reload
+- **Detect:** forms, editors or flows with unsaved input that browser back, a nav link, a tab close, an app-update reload or a system back gesture discards without warning; autosave with no saved/unsaved indicator.
+- **Mech:** T `git grep -nIE 'beforeunload|useBlocker|beforeRouteLeave|canDeactivate|PopScope|WillPopScope|onBackPressed' -- ':!*.md'`
+- **Fix:** autosave drafts or warn on leave when input is dirty; snapshot and restore form state across forced reloads; show the save status.
+- **Impact:** users lose minutes of work to a single click and stop trusting the product.
+- **Source:** Nielsen heuristic 3; MDN, beforeunload event and Page Lifecycle API.
+
+### UX-05 [MEDIUM] Input invites errors or rejects fixable formats
+- **Detect:** free text where a constrained control fits (dates, enumerations); impossible combinations accepted (end before start); spaces, dashes or case in phone, card, IBAN or email rejected instead of normalised; trailing whitespace failing validation; one rigid date format.
+- **Mech:** M
+- **Fix:** constrained controls and cross-field checks before submit; normalise input (trim, strip separators, case-fold emails) before validating.
+- **Impact:** users fail forms for formatting the system could have fixed, and invalid data reaches the backend.
+- **Source:** Nielsen heuristic 5; Postel's robustness principle (RFC 761); Laws of UX, Postel's Law.
+
+### UX-FM-01 [MEDIUM] Form validation fires at the wrong time
+- **Detect:** errors shown while the user is still typing a first entry; different timing (keystroke, blur, submit) across forms with no chosen rule; long forms that show submit errors only inline with no summary; a summary whose entries do not move focus to the field.
+- **Mech:** M
+- **Fix:** one strategy for the product: validate on blur or submit, re-validate live once a field has shown an error; on submit, a summary at the top linking to each field.
+- **Impact:** premature errors distract and punish; a long form with hidden errors looks broken.
+- **Source:** GOV.UK Design System, Validation pattern and Error summary; Baymard Institute, inline validation research.
+
+### UX-06 [MEDIUM] Actions only memory can find
+- **Detect:** commands reachable only by keyboard shortcut, gesture, long-press or swipe with no visible control or menu entry; flows that make users remember a value from an earlier step; frequent actions with no shortcut or bulk path at all.
+- **Mech:** M
+- **Fix:** every action visible in a menu or control, with shortcuts and gestures as accelerators shown in that menu or a tooltip; recap earlier input; bulk actions for frequent list operations.
+- **Impact:** features go undiscovered, and users repeat tedious steps.
+- **Source:** Nielsen heuristics 6 and 7, recognition rather than recall, flexibility and efficiency.
+
+### UX-08 [MEDIUM] Screen without one clear primary action
+- **Detect:** several equally prominent filled buttons or highlighted elements in one view; no visual difference between primary, secondary and destructive buttons; more than ~7 ungrouped options at one level; rarely used options shown by default instead of behind "More"; a primary action far from what it acts on or outside thumb reach on phones.
+- **Mech:** M
+- **Fix:** one primary action per view; a button hierarchy (filled, outlined or tonal, text; destructive styled distinctly); group or progressively disclose options; place actions next to their object.
+- **Impact:** users hesitate or pick the wrong action; decision time grows with every equal option.
+- **Source:** Nielsen heuristic 8; Laws of UX, Hick's Law, Fitts's Law, Von Restorff effect.
+
+### UX-LX-03 [MEDIUM] Platform conventions overridden
+- **Detect:** scroll hijacking; browser or system back not undoing the last navigation; the native context menu, text selection or zoom suppressed with no replacement; custom controls replacing standard ones (date picker, select, share sheet) without need; desktop apps without the platform's menu, shortcut and window conventions.
+- **Mech:** T `git grep -nIE 'contextmenu.*preventDefault|user-select:[[:space:]]*none|history\.pushState|wheel.*preventDefault' -- ':!*.md'`
+- **Fix:** keep native behaviour unless the replacement is strictly better and complete; when replacing, support the same keys, gestures and accessibility.
+- **Impact:** users' habits from every other app fail here, which reads as broken.
+- **Source:** Laws of UX, Jakob's Law; Apple Human Interface Guidelines; Material Design; Microsoft Windows app design guidelines.
+
+### UX-LX-07 [MEDIUM] Asks for what it could derive or does not need yet
+- **Detect:** sign-up or setup asking for data not needed until later (billing before any paid action, preferences before the feature exists); values the system can derive asked from the user (country from locale, card type from number, time zone from device); configuration required where a working default exists.
+- **Mech:** M
+- **Fix:** derive or default, let the user correct; ask for each field at the moment it is first needed.
+- **Impact:** every extra field costs completions and collects data the product does not need (PRV-03).
+- **Source:** Laws of UX, Tesler's Law; NN/g, Progressive Disclosure.
+
+### UX-ON-01 [HIGH] First run does not reach value quickly
+- **Detect:** no defined first-run path for a new account or workspace; more steps than needed between sign-up and the first useful result, with no measurement of that step count; tours that cannot be skipped or that replay for returning users; external setup steps described in prose with no deep link and no automatic resume when the user returns.
+- **Mech:** M
+- **Fix:** one short path to the first success, measured in steps or time; skippable, once-per-feature tours; deep links into external setup pages and resume on return (redirect callback or focus event).
+- **Impact:** users leave before they see what the product does.
+- **Source:** NN/g, Onboarding Tutorials vs. Contextual Help.
+
+### UX-IA-01 [MEDIUM] Views not addressable or nested too deep
+- **Detect:** navigation nested beyond three levels; deep content without breadcrumbs; views, dialogs, tabs, filters or detail panels that vanish on reload or cannot be linked; state reachable only by a click sequence; routes registered in several places with no single route table.
+- **Mech:** M
+- **Fix:** a single route table; every meaningful view and filter state in the URL or the platform's deep-link and restoration path; breadcrumbs below the top level.
+- **Impact:** users cannot share, bookmark or return to what they were looking at, and support cannot reproduce it.
+- **Source:** NN/g, Breadcrumbs: 11 Design Guidelines; W3C, Cool URIs don't change.
+
+### UX-PP-01 [HIGH] Optimistic update with no rollback
+- **Detect:** UI state changed before the request resolves with no failure path that restores it and tells the user; optimistic updates on irreversible or paid actions (payment, send, delete, publish); silent rollback.
+- **Mech:** M
+- **Fix:** optimistic only for reversible, high-success actions; on failure restore the previous state and show what failed with retry; pessimistic (pending) for irreversible ones.
+- **Impact:** users believe an action succeeded that never happened.
+- **Source:** Nielsen heuristic 1; React, `useOptimistic` documentation.
+
+### UX-DP-01 [HIGH] Choices preselected against the user
+- **Detect:** pre-checked boxes for marketing, data sharing, add-ons, donations or upgrades; the paid option preselected while the free path is visually demoted; decline options worded to shame ("No, I like paying more") or styled to disappear; repeated prompts after a "no".
+- **Mech:** T `git grep -nIE '(checked|defaultChecked|value:[[:space:]]*true|initialValue:[[:space:]]*true)' -- ':!*test*' ':!*.md' | grep -iE 'consent|marketing|newsletter|share|addon|add_on|upsell|tip|donat'`
+- **Fix:** opt-in defaults, accept and decline of equal visual weight in neutral words, one prompt per decision.
+- **Impact:** users end up with purchases and sharing they did not choose, and consent obtained this way does not count (PRV-01).
+- **Source:** deceptive.design, types catalogue (preselection, confirmshaming, nagging); GDPR Art. 4(11).
+
+### UX-WR-01 [MEDIUM] Labels that do not name the outcome
+- **Detect:** `OK`, `Submit`, `Yes`, `Continue` on consequential steps where the outcome is nameable; confirmation buttons that do not answer the dialog's question; internal jargon or field names in user copy.
+- **Mech:** T `git grep -nIE '>[[:space:]]*(OK|Ok|Submit|Yes|No)[[:space:]]*<|["'"'"'](OK|Submit|Yes|No)["'"'"']' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte' '*.dart' '*.swift' '*.kt'`
+- **Fix:** verb plus object on every action ("Save changes", "Delete 3 files"); dialog buttons that repeat the verb from the title.
+- **Impact:** users confirm the wrong thing, most dangerously in destructive dialogs.
+- **Source:** Nielsen heuristic 2, match between system and the real world; Apple HIG, Writing; Material Design, Writing.
+
+### UX-13 [MEDIUM] Essential information only in a tooltip
+- **Detect:** instructions, error details or values available only on hover; tooltips on controls whose visible label already says everything; tooltips unreachable by keyboard focus or touch.
+- **Mech:** M
+- **Fix:** put essential information in visible text; keep tooltips for supplementary hints on icon-only controls, triggered by hover and focus (behaviour rules: AXE-19).
+- **Impact:** touch and keyboard users never see the information, and noise tooltips teach everyone to ignore them.
+- **Source:** NN/g, Tooltip Guidelines; WCAG 2.2 SC 1.4.13.
+
+### UX-NT-01 [MEDIUM] Notifications without a shared budget or user control
+- **Detect:** each feature sends push, email or in-app notifications on its own trigger with no shared per-user cap; no per-category opt-out or frequency setting; marketing and transactional messages on one channel.
+- **Mech:** M
+- **Fix:** one notification service with per-user rate limits, quiet hours and per-category preferences; transactional separate from marketing.
+- **Impact:** users disable notifications entirely or uninstall, and the important messages are lost with the rest.
+- **Source:** Apple HIG, Managing notifications; Material Design, Notifications.
+
+### UX-10a [HIGH] AI output presented as fact or uninterruptible
+applies_when: integrations∋openai or integrations∋anthropic
+- **Detect:** generated text, summaries or images not marked as AI-generated; generated factual claims (prices, citations, figures) without a source or a verify hint; long generations with no streaming and no stop control; no way to correct, retry or report a bad answer; personal data sent to a third-party model with no disclosure in the UI.
+- **Mech:** M
+- **Fix:** label generated content; show sources where claims are made; stream with a stop control; offer retry, edit and feedback; name the provider before personal data is sent.
+- **Impact:** users act on fabricated facts, and the product carries the blame.
+- **Source:** Google PAIR, People + AI Guidebook; Microsoft, Guidelines for Human-AI Interaction (Amershi et al., CHI 2019); Apple App Review Guideline 5.1.2(i).
+
+### CMP-02 [HIGH] Interactive states missing
+- **Detect:** controls without distinct hover, pressed, focus, disabled, selected and loading states; disabled controls that give no reason; buttons that accept a second press while the first is pending.
+- **Mech:** M (the component library's state list, or the design-system preview)
+- **Fix:** every state defined once in the shared component (SIM-08); disable during pending work; explain why something is disabled.
+- **Impact:** users cannot tell whether a tap registered, and double submissions follow.
+- **Source:** Material Design, States; Apple HIG, Buttons.
+
+### CMP-16 [HIGH] Control or route that does nothing
+- **Detect:** enabled controls with an empty handler, a `console.log`/`print` only, `href="#"` without a handler, `onPressed: () {}`; routes and screens rendering only a placeholder ("coming soon", `TODO`); menu items for unbuilt features.
+- **Mech:** T `git grep -nIE 'href="#"|onPressed:[[:space:]]*\(\)[[:space:]]*\{[[:space:]]*\}|onClick=\{\(\)[[:space:]]*=>[[:space:]]*\{\}\}|@click="\(\)[[:space:]]*=>[[:space:]]*\{\}"|coming soon|NotImplementedError' -- ':!*test*' ':!*.md'`
+- **Fix:** wire the action, or remove or hide the control and route until it works.
+- **Impact:** users hit dead ends, and store reviewers reject incomplete apps (STO-12).
+- **Source:** Nielsen heuristic 1; Apple App Review Guideline 2.1, App Completeness.
+
+### INT-01 [MEDIUM] Animation durations outside the usable range
+- **Detect:** UI transitions under ~100 ms (unseen) or over ~500 ms (blocking) for routine feedback; durations and easings as literals scattered per component rather than motion tokens; linear easing on movement.
+- **Mech:** T `git grep -nIE '(transition|animation)[^;]*[0-9]{4,}ms|milliseconds:[[:space:]]*[0-9]{4,}|duration:[[:space:]]*[0-9]{4,}' -- ':!*.md'`
+- **Fix:** a small set of duration and easing tokens (short ~100–200 ms, medium ~250–400 ms); reduced-motion handling per AXE-12.
+- **Impact:** slow motion makes every interaction wait; inconsistent motion looks unfinished.
+- **Source:** Material Design 3, Easing and duration; Apple HIG, Motion.
+
+### TOK-01 [HIGH] Colours outside the token set
+- **Detect:** hex, `rgb()`, `hsl()` or platform colour literals in components instead of semantic tokens (surface, on-surface, primary, error); tokens named by hue (`blue-500`) used directly in components; status colours that are hard to tell apart or used against meaning (green for an error, red for success). Detector of SIM-06.
+- **Mech:** T `git grep -nIE '#[0-9a-fA-F]{3,8}([^0-9a-zA-Z_-]|$)|rgba?\(|hsla?\(' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte' '*.jsx' '*.tsx' ':!*token*' ':!*theme*' ':!*variables*'` · `git grep -nIE 'Color\(0x[0-9A-Fa-f]{8}\)|Colors\.[a-z]+[^a-zA-Z]' -- '*.dart' ':!*theme*'`
+- **Fix:** primitive palette → semantic tokens → components; components reference semantic tokens only; one meaning per status colour.
+- **Impact:** a brand or theme change misses screens, and dark mode breaks wherever a literal hides.
+- **Source:** W3C Design Tokens Community Group, Format Module; Material Design 3, Color roles; SIM-06.
+
+### TOK-02 [MEDIUM] Spacing, radius and elevation off the scale
+- **Detect:** padding, margin and gap values outside one base-unit scale (4 or 8, chosen once); more than ~5 distinct corner radii; shadow or elevation literals per component; the same role (card padding, panel header) using different steps in different places.
+- **Mech:** T `git grep -nIE '(margin|padding|gap|border-radius)[a-z-]*:[^;]*[0-9]+px' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'EdgeInsets\.[a-zA-Z]+\([^)]*[0-9]|BorderRadius\.circular\([0-9]|elevation:[[:space:]]*[0-9]' -- '*.dart' ':!*theme*'`
+- **Fix:** spacing, radius and elevation tokens with role names on top (`space-card`, `radius-control`); enforce with a linter rule (stylelint `declaration-property-value-allowed-list`, a custom lint) where the stack has one.
+- **Impact:** layouts drift by a few pixels everywhere, and every spacing change becomes a hunt.
+- **Source:** Material Design, Layout spacing; W3C Design Tokens Community Group; SIM-06.
+
+### TOK-03 [MEDIUM] Type off the scale or hard to read
+- **Detect:** font sizes outside the type scale; body text smaller than the platform's default body style or any text under 11 pt/sp; body line height outside ~1.4–1.6; prose lines wider than ~80 characters.
+- **Mech:** T `git grep -nIE 'font-size:[[:space:]]*[0-9.]+px' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'fontSize:[[:space:]]*[0-9]' -- '*.dart' '*.jsx' '*.tsx' ':!*theme*'`
+- **Fix:** a named type scale (display, title, body, label) in tokens or the platform text styles; `max-width` around 65ch on prose.
+- **Impact:** text that is too small, cramped or too wide slows reading and drives zooming.
+- **Source:** Material Design 3, Type scale; Apple HIG, Typography; WCAG 2.2 SC 1.4.8 (AAA, line length).
+
+### THM-03 [MEDIUM] Theme ignores the system setting
+- **Detect:** light or dark forced with no system option; web pages without `color-scheme` (native controls and scrollbars stay light in dark mode) and no `prefers-color-scheme`; native apps not following `ThemeMode.system`, `UITraitCollection` or `isSystemInDarkTheme()`; the user's explicit choice not persisted.
+- **Mech:** T `git grep -nIE 'prefers-color-scheme|color-scheme|ThemeMode\.|isSystemInDarkTheme|userInterfaceStyle|AppCompatDelegate\.setDefaultNightMode' -- ':!*.md'`
+- **Fix:** default to the system theme, offer light/dark/system, persist the choice; declare `color-scheme` on the root.
+- **Impact:** a bright screen at night, or mismatched native controls, on every visit.
+- **Source:** MDN, prefers-color-scheme and color-scheme; Apple HIG, Dark Mode; Material Design, Dark theme.
+
+### THM-01 [MEDIUM] Theme applied to only part of the UI
+- **Detect:** a dark, high-contrast or density mode that some screens or components ignore (hard-coded light surfaces, images with white backgrounds, unthemed third-party widgets); pure black (`#000000`) dark surfaces where elevation needs grey steps; contrast checked only in the default theme (AXE-03).
+- **Mech:** M (switch every theme and mode and walk the main screens)
+- **Fix:** every component reads the same semantic tokens; dark surfaces from the theme's grey steps (Material uses #121212 as the base); transparent or theme-specific images; contrast checked per theme.
+- **Impact:** a half-applied theme looks broken and hides text on mismatched surfaces.
+- **Source:** Material Design, Dark theme; Apple HIG, Dark Mode.
+
+### THM-06 [MEDIUM] Flash of wrong theme or empty content on start
+- **Detect:** the page or app first paints in the default theme and then switches; a white flash between splash screen and first content; theme applied from several code paths; first render before required initial data, then reflow.
+- **Mech:** M
+- **Fix:** set the theme before first paint (inline script reading the stored choice, the platform splash API); render a skeleton until required data arrives; apply the theme in one place.
+- **Impact:** every start flickers, which reads as slow and unfinished.
+- **Source:** MDN, prefers-color-scheme; Android, SplashScreen API; web.dev, CLS.
+
+### RSP-04 [HIGH] Text overflows its container
+- **Detect:** long words, URLs, user names or translated strings that overflow fixed-width rows, buttons and table cells; flex children without `min-width: 0`; no wrapping or truncation policy; Flutter `Row` with unbounded `Text` (overflow stripes), fixed-width native labels.
+- **Mech:** T `git grep -nIE 'white-space:[[:space:]]*nowrap' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte'`
+- **Fix:** wrap by default; truncate deliberately with the full text available (tooltip or detail view); `min-width: 0` and `overflow-wrap: anywhere` where needed; `Flexible`/`Expanded` around native text; test with long and translated strings (I18N-01 pseudo-locale).
+- **Impact:** overflowing text hides content or controls, worst in longer languages.
+- **Source:** MDN, overflow-wrap and text-overflow; Flutter, Common Flutter errors (RenderFlex overflowed).
+
+### RSP-08 [MEDIUM] Layout fixed to one window size
+- **Detect:** one phone-width layout stretched on tablets, foldables, desktop windows and landscape; no window-size breakpoints; desktop or web windows that break when resized narrow.
+- **Mech:** M (check compact, medium and expanded widths)
+- **Fix:** layouts for compact (< 600 dp), medium (600–840 dp) and expanded widths: multi-pane and navigation rail where space allows; test resizing.
+- **Impact:** large-screen users get a stretched phone UI; small windows lose controls.
+- **Source:** Material Design 3, Window size classes; Apple HIG, Layout.
+
+### RSP-16 [LOW] Numbers misaligned in tables and lists
+- **Detect:** numeric columns (amounts, counts, dates) left- or centre-aligned or in proportional figures; headers aligned differently from their column.
+- **Mech:** T `git grep -nIE 'tabular-nums|tnum|FontFeature\.tabularFigures|monospacedDigit' -- ':!*.md'`
+- **Fix:** right-align numbers with tabular figures; align headers with their data.
+- **Impact:** users misread magnitudes when digits do not line up.
+- **Source:** Butterick, Practical Typography (tabular figures).
+
+### VIS-22 [LOW] Images stretched out of aspect ratio
+- **Detect:** images scaled with fill modes that distort (`BoxFit.fill`, `resizeMode="stretch"`, `.scaleToFill`, `object-fit: fill`); mixed aspect ratios in one grid.
+- **Mech:** T `git grep -nIE 'BoxFit\.fill|resizeMode=.?.?stretch|scaleToFill|object-fit:[[:space:]]*fill' -- ':!*.md'`
+- **Fix:** cover or contain with a fixed aspect-ratio box.
+- **Impact:** distorted photos and logos look broken.
+- **Source:** MDN, object-fit; Flutter, BoxFit.
+
+### SCH-08 [CRITICAL] Overlapping bookings of a finite resource not rejected
+- **Detect:** when the product reserves time on a finite resource (room, seat, person, device), overlap checked at coarse slots instead of the half-open interval test `a.start < b.end && b.start < a.end`; checked only in the UI or only at final submit; the check and the insert not in one transaction or guarded by a constraint; the rejection shows no reason.
+- **Mech:** M
+- **Fix:** the interval test server-side in the same transaction as the insert (or a database exclusion constraint, e.g. Postgres `EXCLUDE USING gist` on a range), mirrored early in the UI; name the conflicting booking in the message.
+- **Impact:** double bookings surface in person, the most trust-destroying failure such a product can have.
+- **Source:** Allen's interval algebra; PostgreSQL, Exclusion constraints; CWE-362 (race condition).
