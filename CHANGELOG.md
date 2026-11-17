@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`ds-audit` runs as five phases** — lean, build, safe, surface, ship — each with the same steps (inventory, detect, decide, apply, verify), one ledger language and one error table (`references/phases.md`). `audit.py` does every countable step: init, signals, checks, scan of rule `Mech:` lines, validate, phase close, report, lean inventory, `SCOPE.md` check and the recorded-rules review.
+- **lean phase and LEAN-01..12:** purpose, unit tiers and budget in `SCOPE.md`, recorded rules reviewed with the owner.
+- **`auto`** takes every decision, lean's included, from the stated purpose, evidence and standards, each recorded with its revert. `all`, phase and area runs commit on the review branch `ds/audit` (your branch is untouched) and push it without force after each phase.
+- **`report.html`** beside `ds/audit/report.md`: one self-contained page, phone to desktop, light and dark, printable.
+- ship applies patch and minor dependency updates, one group per ecosystem behind the checks; an uncovered refactor lands behind a characterization test.
+- SIM-06 finds the same asset committed under two paths. DOC-15 keeps human-stated intent and hard limits in agent context files.
+- `argument-hint` in every `SKILL.md` for `/` autocomplete. `scripts/package.py` builds one self-contained claude.ai upload zip per skill.
+- `install.py --self-test` (install, hook refresh, `--check`, uninstall, a foreign skill left alone, in a temporary directory), run by `scripts/check.py`.
+
+### Changed
+
+- ds-setup no longer installs or configures context-mode and basic-memory.
+
+### Fixed
+
+- `install.py` and `ds-setup/assets/perms.py` stop with usage and exit 2 on an unknown argument instead of installing or rewriting `~/.claude/settings.json`; `perms.py --help` prints its help.
+- `install.py` refreshes an installed ds-gate hook, and `--check` reports hook drift.
+- `audit.py scan` skips rules whose `applies_when:` excludes the project (`not applicable`), and quotes the base ref it puts into shell commands.
+- `core/ds_detect.py` no longer detects api and auth from its own source.
+- Rule `Mech:` patterns: 11 greps that matched nothing on macOS (`\b`, `\s`, `\w`); TST-01 sees pytest `test_*.py`; ARC-18 no longer takes `cargo test` for `go test`; SAR-06 and NWK-07 match whole words.
+- `report.html` and ds-research briefs print in the light palette even when dark is chosen; muted and secondary text meet 4.5:1 contrast; the report's result ring announces its percentage.
+- ds-gate self-tests no longer write into the outer commit's index when run inside a pre-commit hook.
+
 ## [3.0.0] - 2026-11-15
 
 Rebuilt from scratch around one decision order (question → reuse → delete → simplify → accelerate → automate) with one home for every rule. Measured on the files an install ships: 202 files / 2.68 MB → 80 files / 1.44 MB; SKILL.md total 704 KB across 32 skills → 29 KB across 4; a `ds-audit` run now loads 17 KB (its SKILL.md + `core/kernel.md`) before rules, which load only for areas whose project signal holds; rule headings 812 → 681 after removing duplicates.
