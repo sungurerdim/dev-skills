@@ -32,7 +32,7 @@ Function- and file-level checks for any stack; structure is in [arch.md](arch.md
 
 ### ARC-18 [HIGH] Data race or check-then-act on shared state
 - **Detect:** state shared between threads, goroutines, async tasks or processes written without a lock, atomic or single owner; a read-modify-write split across awaits or requests on a shared row or key; check-then-act on files or records (exists then create, select then insert without a unique constraint); a stack with a race detector whose test run does not use it.
-- **Mech:** T `git grep -nIE 'os\.path\.exists\(|fs\.existsSync\(|File\.Exists\(|Files\.exists\(' -- ':!*test*' ':!*.md'` · `git grep -nIE 'go test(^|[^[:alnum:]_])' -- ':!*.md' | grep -v -- '-race'`
+- **Mech:** T `git grep -nIE 'os\.path\.exists\(|fs\.existsSync\(|File\.Exists\(|Files\.exists\(' -- ':!*test*' ':!*.md'` · `git grep -nIE '(^|[^[:alnum:]_])go test([^[:alnum:]_]|$)' -- ':!*.md' | grep -v -- '-race'`
 - **Fix:** one owner (actor, channel, queue) or a lock or atomic; atomic database operations (`SET n = n + 1`, unique constraint plus upsert, a version column); create-exclusive open flags instead of exists-then-create; run tests under Go `-race` or ThreadSanitizer.
 - **Impact:** lost updates, double charges or bookings and corrupted files that appear only under load and never reproduce locally.
 - **Source:** CWE-362; CWE-367 (TOCTOU); Go race detector (https://go.dev/doc/articles/race_detector); ThreadSanitizer (Clang docs).
