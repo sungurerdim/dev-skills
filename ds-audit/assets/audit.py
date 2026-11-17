@@ -265,9 +265,9 @@ def make_plan(sig: dict, w: dict, scope: str, root: Path) -> dict:
             ok, why = loads(r["when"], sig)
             if p == "lean" and scope == "changed" and r["word"] == "rules":
                 ok, why = False, "N/A — changed scope; /ds-audit rules reviews recorded rules"
-            areas[r["word"]] = "ran" if ok or named else why
+            areas[r["word"]] = "loads" if ok or named else why
         if areas:
-            plan[p] = {"status": "pending" if any(v == "ran" for v in areas.values()) else "skipped", "areas": areas}
+            plan[p] = {"status": "pending" if any(v == "loads" for v in areas.values()) else "skipped", "areas": areas}
     return plan
 
 
@@ -320,7 +320,7 @@ def scan(root: Path, phase: str, core: Path = None) -> list:
     for r in area_table(core):
         if r["phase"] != phase:
             continue
-        if state and state["phases"].get(phase, {}).get("areas", {}).get(r["word"]) != "ran":
+        if state and state["phases"].get(phase, {}).get("areas", {}).get(r["word"]) not in ("loads", "ran"):
             continue
         if not state and not loads(r["when"], sig)[0]:
             continue
@@ -423,6 +423,9 @@ def phase(root: Path, name: str, status: str, reason: str = "") -> str:
     elif status != "blocked" or not reason:
         raise SystemExit("audit.py phase: use `done`, or `blocked \"<concrete blocker>\"`")
     state["phases"][name]["status"] = status
+    if status == "done":  # planned areas ("loads") become "ran" only once the phase has run
+        areas = state["phases"][name]["areas"]
+        areas.update({a: "ran" for a, v in areas.items() if v == "loads"})
     if reason:
         state["phases"][name]["reason"] = reason
     save_state(root, state)
@@ -616,7 +619,7 @@ def render_html(root: Path, state: dict, findings: list, status: str, minutes: i
     phases_html = "".join(
         f'<section class="card"><div class="phase">{e(n)} {badge(PHASE_BADGE.get(p["status"], "b-mute"), p["status"])}'
         f'</div>{"<div class=note>" + e(p["reason"]) + "</div>" if p.get("reason") else ""}<div class="areas">'
-        + "".join(badge("b-ok" if v == "ran" else "b-mute", f"{a} {v}") for a, v in p["areas"].items())
+        + "".join(badge("b-ok" if v in ("loads", "ran") else "b-mute", f"{a} {v}") for a, v in p["areas"].items())
         + "</div></section>" for n, p in state["phases"].items())
     order = sorted(findings, key=lambda r: (SEVS.index(r["Sev"]) if r["Sev"] in SEVS else 9,
                                             r["Disposition"] != "fixed", int(r["#"])))
@@ -959,6 +962,9 @@ def self_test() -> int:
         write(tmp, state, findings=findings + crit)
         for p in state["phases"]:
             phase(tmp, p, "blocked", "test") if p != "lean" else phase(tmp, p, "done")
+        areas_now = {n: set(p["areas"].values()) for n, p in load(tmp)[0]["phases"].items()}
+        expect(areas_now["lean"] == {"ran"} and areas_now["build"] == {"loads"},
+               f"a phase not yet run shows its areas as ran: {areas_now}")
         expect(report(tmp).startswith("ds-audit: INCOMPLETE"), "report INCOMPLETE while a phase is blocked")
         state, text = load(tmp)
         for p in state["phases"].values():
@@ -1023,10 +1029,10 @@ def self_test() -> int:
         init(tmp, ["all"])
         expect(load(tmp)[0]["phases"]["surface"]["areas"]["a11y"].startswith("N/A"), "a11y N/A while ui=none")
         sres = set_signal(tmp, "ui", "web")
-        expect(sres["plan"]["surface"]["areas"]["a11y"] == "ran" and "ui=web" in sres["signals"],
+        expect(sres["plan"]["surface"]["areas"]["a11y"] == "loads" and "ui=web" in sres["signals"],
                "signal correction re-plans a pending phase")
         (tmp / REPORT).unlink()
-        expect(init(tmp, ["a11y"])["plan"].get("surface", {}).get("areas", {}).get("a11y") == "ran",
+        expect(init(tmp, ["a11y"])["plan"].get("surface", {}).get("areas", {}).get("a11y") == "loads",
                "a named area runs even when its signal says N/A")
     finally:
         if CORE != real_core:
