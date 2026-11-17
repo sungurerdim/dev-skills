@@ -502,7 +502,7 @@ def run_mech(root: Path, rid: str, cls: str, cmd: str, state) -> dict:
         "{audit}", f'{q(sys.executable)} -B {q(str(HERE / "audit.py"))} --root {q(str(root))}')
     tool = cmd.split()[0].strip('"')
     row = {"rule": rid, "class": cls, "cmd": cmd}
-    if tool not in ("git", "grep", "test", "find") and not shutil.which(tool):
+    if tool not in ("git", "grep", "test", "find", "for", "if", "while", "!") and not shutil.which(tool):
         return dict(row, status="tool absent")
     try:
         r = subprocess.run(cmd, shell=True, cwd=str(root), capture_output=True, text=True, env=ENV,
@@ -1389,6 +1389,8 @@ def self_test() -> int:
         inj = run_mech(tmp, "T-04", "T", "echo {base}", {"base": "o/x;echo INJECTED"})  # `;` is legal in a ref name
         expect(inj.get("hits") == ["o/x;echo INJECTED"], f"scan passes {{base}} to the shell unquoted: {inj}")
         own = [run_mech(tmp, "T-05", "S", "{audit} contrast " + p, None)["status"] for p in ("000000 ffffff", "777777 888888")]
+        loop = run_mech(tmp, "T-06", "T", "for n in a; do echo $n; done", None)["status"]
+        expect(loop == "hit", f"a Mech command that opens with a shell keyword is called a missing tool: {loop}")
         expect(own == ["clean", "hit"], f"an {{audit}} check (lean-check) is judged by its output, not its exit code: {own}")
         expect("YAGNI" in rule_ids() and loads("ui≠none or api≠none", {"ui": {"value": "none"},
                                                                      "api": {"value": "rest"}})[0], "rule ids / loads")
