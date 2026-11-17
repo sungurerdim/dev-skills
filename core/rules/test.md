@@ -37,13 +37,13 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 - **Impact:** a red test turned green without a fix lets the next regression on that path ship unnoticed.
 - **Source:** Beck, *Test-Driven Development: By Example*.
 
-### TST-08 [MEDIUM] Pixel-exact visual tests not pinned to one platform
+### TST-08 [MEDIUM] Visual regressions unchecked, or goldens not pinned to one platform
 applies_when: ui≠none
-- **Detect:** screenshot or golden tests that fail on developer machines because rendering differs from CI; baselines updated from whichever machine ran last; goldens in a local gate with no platform pin.
-- **Mech:** M
-- **Fix:** name the one platform that owns the baselines; run and update goldens only there (CI or a container); exclude them from other local runs by tag with the reason in code.
-- **Impact:** developers conclude the tests are broken and regenerate goldens on their own machines, replacing the reference silently.
-- **Source:** Playwright, Visual comparisons — screenshots differ between browsers and platforms (https://playwright.dev/docs/test-snapshots).
+- **Detect:** key screens with no screenshot or golden test, so layout breaks (clipped text, wrong padding or colour) ship unseen; screenshot or golden tests that fail on developer machines because rendering differs from CI; baselines updated from whichever machine ran last; goldens in a local gate with no platform pin.
+- **Mech:** T `git grep -nIlE 'matchesGoldenFile|toHaveScreenshot|toMatchScreenshot|assertSnapshot|PreviewTest|Paparazzi|Roborazzi' -- ':!*.md'`
+- **Fix:** golden tests for key screens (Flutter `matchesGoldenFile`, Compose Preview Screenshot Testing, Playwright `toHaveScreenshot`, an XCTest snapshot library), updated on purpose; name the one platform that owns the baselines; run and update goldens only there (CI or a container); exclude them from other local runs by tag with the reason in code.
+- **Impact:** layout regressions reach users because nothing looks at rendered output, and developers who see platform-caused failures regenerate goldens on their own machines, replacing the reference silently.
+- **Source:** Playwright, Visual comparisons — screenshots differ between browsers and platforms (https://playwright.dev/docs/test-snapshots); Android, Compose Preview Screenshot Testing.
 
 ### TST-11 [HIGH] Check never seen failing
 - **Detect:** a lint, audit or gate with no fixture or test that turns it red; a gate said to enforce a rule while the code visibly breaks that rule and the gate stays green; removing the rule under test changes no result.

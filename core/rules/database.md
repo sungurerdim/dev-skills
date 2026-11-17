@@ -1,6 +1,6 @@
 # DB — schema, queries, migrations, datastore exposure, data jobs
 
-Loaded when the project has a datastore (`db≠none`); jobs, queues and ETL have no signal of their own and ride on the same one. SQL rules carry `applies_when` on a SQL engine. Tenant and object isolation (including row-level security) is AUTH-11; pool sizing NWK-09; backups and their encryption DEP-31 and DEP-36; personal-data minimization and retention PRV-03 and PRV-27; HTTP idempotency keys API-07.
+Loaded when the project has a datastore (`db≠none`); jobs, queues and ETL have no signal of their own and ride on the same one. SQL rules carry `applies_when` on a SQL engine. Tenant and object isolation (including row-level security) is AUTH-11; pool sizing NWK-09; backups and their encryption DEP-31; personal-data minimization and retention PRV-03 and PRV-27; HTTP idempotency keys API-07.
 
 ### DB-01 [CRITICAL] SQL built from strings
 applies_when: db∋postgres or db∋mysql or db∋sqlite or db∋other

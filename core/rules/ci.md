@@ -125,11 +125,11 @@ applies_when: platforms∋library or platforms∋cli
 - **Source:** npm Docs, Trusted publishing; PyPI Docs, Trusted Publishers; Rust Blog, crates.io development update (2025-07); RubyGems Guides, Trusted publishing.
 
 ### DOP-32 [HIGH] Release depends on memory
-- **Detect:** releasing takes several hand-typed steps; the release path does not refuse a dirty tree, publishes without the gate, bumps the version by hand, or runs heavy checks after the action that triggers deploy (on push-to-deploy hosts the push is the deploy); "released" or "deployed" assumed from a successful push instead of observed (host build status, health endpoint version equal to the released commit).
+- **Detect:** releasing takes several hand-typed steps; the release path does not refuse a dirty tree, publishes without the gate, bumps the version by hand, or runs heavy checks after the action that triggers deploy (on push-to-deploy hosts the push is the deploy); "released" or "deployed" assumed from a successful push instead of observed (host build status, health endpoint version equal to the released commit); a hybrid (Capacitor) release path that runs `cap copy` after a dependency change or `cap sync` before the web build, so native plugin registration ships stale.
 - **Mech:** T `git ls-files | grep -iE '(^|/)(release|publish|deploy)[^/]*\.(sh|py|js|mjs|ts)$|(^|/)(Makefile|justfile|Taskfile\.ya?ml)$'`
-- **Fix:** one command: refuse a dirty tree → stop when nothing changed since the last tag → version from the changelog's Unreleased section (DOP-48) → run the gate once → build → publish or deploy → poll the host until it reports the pushed commit, or fail loudly at a timeout → then tag. Heavy checks run before the triggering action; an emergency bypass is explicit and logged.
+- **Fix:** one command: refuse a dirty tree → stop when nothing changed since the last tag → version from the changelog's Unreleased section (DOP-48) → run the gate once → build (hybrid: web build → `npx cap sync` → native build) → publish or deploy → poll the host until it reports the pushed commit, or fail loudly at a timeout → then tag. Heavy checks run before the triggering action; an emergency bypass is explicit and logged.
 - **Impact:** each manual step is a release that can ship untested, unversioned or not at all while every marker says it shipped.
-- **Source:** Humble and Farley, *Continuous Delivery* (deployment pipeline); DORA capabilities (deployment automation).
+- **Source:** Humble and Farley, *Continuous Delivery* (deployment pipeline); DORA capabilities (deployment automation); Capacitor CLI, `sync` (copy plus update).
 
 ### DOP-48 [MEDIUM] Version disagrees across manifest, tag and changelog
 - **Detect:** a versioned project whose manifest version, latest release tag and top changelog entry name different versions, or a tag with no changelog entry.

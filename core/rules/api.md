@@ -1,6 +1,6 @@
 # API — contract, limits, server-side request safety
 
-Loaded when the project serves an API (`api≠none`). Boundary validation is SEC-05, error bodies without internals SAR-06, object access AUTH-11, body size and timeouts NWK-06 and NWK-07, request logging with a request ID OBS-01, deprecation headers DEP-16.
+Loaded when the project serves an API (`api≠none`). Boundary validation is SEC-05, error bodies without internals SAR-06, object access AUTH-11, body size and timeouts NWK-06 and NWK-07, request logging with a request ID OBS-01.
 
 ### API-01 [HIGH] Verbs in REST resource paths
 applies_when: api∋rest
@@ -25,6 +25,13 @@ applies_when: api∋rest
 - **Impact:** a deploy silently breaks clients that cannot update at once, such as installed mobile apps.
 - **Source:** Semantic Versioning 2.0.0; Google Cloud API Design Guide (versioning); Stripe API versioning.
 
+### DEP-16 [MEDIUM] API removal without Deprecation and Sunset headers
+- **Detect:** a public endpoint slated for removal with no `Deprecation` header (RFC 9745) or `Sunset` header (RFC 8594), a Sunset date before the Deprecation date, or no published minimum notice before a breaking removal.
+- **Mech:** T `git grep -nIiE 'deprecation|sunset' -- ':!*.md' ':!*test*'`
+- **Fix:** send `Deprecation` and `Sunset` with a link to the migration guide; publish the notice window and keep version numbers honest.
+- **Impact:** clients get no machine-readable warning and break on removal day.
+- **Source:** RFC 9745; RFC 8594; Semantic Versioning 2.0.0.
+
 ### API-05 [HIGH] No rate limit, or a limiter that fails open
 - **Detect:** public, login, signup, password reset, MFA and costly endpoints with no per-client limit; WebSocket upgrades or GraphQL operations outside the limiter; endpoints neither limited nor on an explicit exemption list; a limiter whose store error is caught and the request let through, with no decision recorded; no `429` with `Retry-After`; error messages that tell a wrong password from an unknown account (AUTH-21).
 - **Mech:** T `git grep -nIiE 'rate.?limit|throttl|slowapi|express-rate-limit|rate-limiter-flexible|bucket4j|limiter' -- ':!*.md'`
@@ -40,9 +47,9 @@ applies_when: api∋rest
 - **Source:** OWASP API4:2023; PostgreSQL docs, LIMIT and OFFSET (skipped rows are still computed).
 
 ### API-07 [MEDIUM] Retried writes create duplicates
-- **Detect:** `POST` endpoints with side effects (payments, orders, messages, provisioning) and no idempotency key or natural unique constraint; clients that retry such calls.
+- **Detect:** `POST` endpoints with side effects (payments, orders, messages, provisioning) and no idempotency key or natural unique constraint; clients that retry such calls; outbound payment-provider calls retried without the provider's idempotency key.
 - **Mech:** T `git grep -nIiE 'idempotency.?key' -- ':!*.md'` · `git grep -nIE '\.(post|put|patch)\(' -- ':!*test*' ':!*.md'`
-- **Fix:** accept an `Idempotency-Key` header, store it namespaced per caller with the response and a TTL, and replay the stored response; keep unique constraints and state checks as the real guard behind it.
+- **Fix:** accept an `Idempotency-Key` header, store it namespaced per caller with the response and a TTL, and replay the stored response; keep unique constraints and state checks as the real guard behind it; send the provider's `Idempotency-Key` on every outbound payment call that may be retried.
 - **Impact:** a network retry charges a customer twice or creates duplicate records.
 - **Source:** IETF draft "The Idempotency-Key HTTP Header Field" (httpapi WG); Stripe, Idempotent requests.
 
@@ -95,6 +102,6 @@ applies_when: ui∋web or api≠none
 applies_when: integrations≠none or api≠none
 - **Detect:** incoming webhooks processed without verifying the provider's signature; the signature computed over re-serialized JSON instead of the raw body; signatures compared with `==` instead of a constant-time function; no timestamp tolerance or event-ID dedupe against replay; third-party API responses used in queries, paths or HTML without validation.
 - **Mech:** T `git grep -nIiE 'webhook|x-hub-signature|stripe-signature|svix|constructEvent|hmac' -- ':!*.md'`
-- **Fix:** verify with the provider SDK or HMAC over the raw body using `hmac.compare_digest` / `crypto.timingSafeEqual` / `hmac.Equal`; reject events outside a few minutes of tolerance and dedupe by event ID (API-07); validate third-party payloads against a schema like user input.
-- **Impact:** anyone who finds the endpoint forges payment or account events, or replays a captured one.
-- **Source:** OWASP API10:2023 Unsafe Consumption of APIs; CWE-208, CWE-345; Stripe, Check the webhook signatures.
+- **Fix:** verify with the provider SDK or HMAC over the raw body using `hmac.compare_digest` / `crypto.timingSafeEqual` / `hmac.Equal`; reject events outside a few minutes of tolerance; delivery is at-least-once, so record each processed event ID under a unique constraint in the same transaction as its state change and treat a redelivery (refunds included) as a no-op; answer 2xx fast and do slow work after; validate third-party payloads against a schema like user input.
+- **Impact:** anyone who finds the endpoint forges payment or account events or replays a captured one, and a redelivered event credits or refunds twice.
+- **Source:** OWASP API10:2023 Unsafe Consumption of APIs; CWE-208, CWE-345; Stripe, Check the webhook signatures and Handle duplicate events.
