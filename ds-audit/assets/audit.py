@@ -528,12 +528,13 @@ CSS = """
 :root{--plane:#f3f5f8;--surface:#fff;--ink:#16202c;--ink-2:#566274;--line:#d9dfe7;--accent:#1d5fd1;
 --ok:#17794a;--ok-bg:#dff3e8;--warn:#8f5a00;--warn-bg:#fcefd0;--bad:#b3261e;--bad-bg:#fae3e0;--info:#1d5fd1;
 --info-bg:#e2ebfa;--mute:#69727f;--mute-bg:#eceff3;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--plane:#0f1318;--surface:#181d24;--ink:#e6eaf0;
---ink-2:#9ba5b3;--line:#2b323c;--accent:#7aa5ff;--ok:#52c485;--ok-bg:#14301f;--warn:#e6b24d;--warn-bg:#362b12;
---bad:#f08077;--bad-bg:#3b1c19;--info:#7aa5ff;--info-bg:#1a2742;--mute:#8c96a4;--mute-bg:#242a33;color-scheme:dark}}
-:root[data-theme=dark]{--plane:#0f1318;--surface:#181d24;--ink:#e6eaf0;--ink-2:#9ba5b3;--line:#2b323c;
+@media screen and (prefers-color-scheme:dark){:root:not([data-theme=light]){--plane:#0f1318;--surface:#181d24;
+--ink:#e6eaf0;--ink-2:#9ba5b3;--line:#2b323c;--accent:#7aa5ff;--ok:#52c485;--ok-bg:#14301f;--warn:#e6b24d;
+--warn-bg:#362b12;--bad:#f08077;--bad-bg:#3b1c19;--info:#7aa5ff;--info-bg:#1a2742;--mute:#8c96a4;--mute-bg:#242a33;
+color-scheme:dark}}
+@media screen{:root[data-theme=dark]{--plane:#0f1318;--surface:#181d24;--ink:#e6eaf0;--ink-2:#9ba5b3;--line:#2b323c;
 --accent:#7aa5ff;--ok:#52c485;--ok-bg:#14301f;--warn:#e6b24d;--warn-bg:#362b12;--bad:#f08077;--bad-bg:#3b1c19;
---info:#7aa5ff;--info-bg:#1a2742;--mute:#8c96a4;--mute-bg:#242a33;color-scheme:dark}
+--info:#7aa5ff;--info-bg:#1a2742;--mute:#8c96a4;--mute-bg:#242a33;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--plane);color:var(--ink);font:13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,
 "Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%}
@@ -944,6 +945,18 @@ def self_test() -> int:
         page = read(tmp / REPORT.with_suffix(".html"))
         expect("&lt;script&gt;x" in page and "<script>x" not in page and "@media (max-width:560px)" in page,
                "report.html escapes finding text and carries the narrow-screen layout")
+
+        def media_of(css, pos):  # the at-rule preludes enclosing pos
+            stack, start = [], 0
+            for m in re.finditer(r"[{}]", css[:pos]):
+                if m.group() == "{":
+                    stack.append(css[start:m.start()].strip())
+                else:
+                    stack and stack.pop()
+                start = m.end()
+            return " ".join(stack)
+        expect(all("screen" in media_of(CSS, m.start()) for m in re.finditer(r"(?<![-\w])color-scheme:dark", CSS)),
+               "report.html prints in the dark theme (light text on paper); dark tokens must be screen-only")
         state["checks"]["now"]["go test"] = "fail"
         save_state(tmp, state)
         expect(report(tmp).startswith("ds-audit: FAIL"), "report FAIL on a check newly red")
