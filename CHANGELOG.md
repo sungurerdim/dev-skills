@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - SIM-06 finds the same asset committed under two paths. DOC-15 keeps human-stated intent and hard limits in agent context files.
 - `argument-hint` in every `SKILL.md` for `/` autocomplete. `scripts/package.py` builds one self-contained claude.ai upload zip per skill.
 - `install.py --self-test` (install, hook refresh, `--check`, uninstall, a foreign skill left alone, in a temporary directory), run by `scripts/check.py`.
+- `audit.py probe -- CMD` runs a project program with a temporary HOME, XDG, `CLAUDE_CONFIG_DIR` and TMPDIR, no network, and lists the files it created; `audit.py check CMD` sets the check command, which `init` otherwise takes from the ds-gate marker or the gate the agent docs name; `audit.py contrast FG BG` gives the WCAG ratio, and surface opens static pages without a server.
 
 ### Changed
 
@@ -30,6 +31,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Rule `Mech:` patterns: 11 greps that matched nothing on macOS (`\b`, `\s`, `\w`); TST-01 sees pytest `test_*.py`; ARC-18 no longer takes `cargo test` for `go test`; SAR-06 and NWK-07 match whole words.
 - `report.html` and ds-research briefs print in the light palette even when dark is chosen; muted and secondary text meet 4.5:1 contrast; the report's result ring announces its percentage.
 - ds-gate self-tests no longer write into the outer commit's index when run inside a pre-commit hook.
+- ds-audit runs: `init` keeps the previous report as `report-{started}.*` and resumes on `ds/audit` with the open phase's rows and the run's own uncommitted files; planned areas say `loads` until their phase runs; a signal correction and the check command are noted as `decided:`; `phase … done` prints the push result and runs `lean-check`; one context runs every phase.
+- ds-audit report: a readable closing message, a change table split into code, tests and docs, one `Where` form for host settings, principle short names accepted by `validate`.
+- ds-audit lean: the budget gets 10 % headroom; a Markdown product named in `SCOPE.md` `Product:` is measured as product, not docs; `audit.py rules` skips command tables and reads a reason in parentheses.
+- `audit.py scan` judges an `{audit}` check such as lean-check by its exit code (a green lean-check was a hit), and runs a Mech command that opens with a shell loop instead of calling it a missing tool (RPO-07 never ran).
+- Rule `Mech:` patterns: presence scans print what is missing; CSS scans read inline styles in HTML; greps skip Markdown prose; NWK-07's `fetch(` grep skips Python; four more misfires from a dogfood run. CLI-01 reads the parser before running a program. ship checks the changelog against `git log`; one fixer rule; stdlib Python is detected.
 
 ## [3.0.0] - 2026-11-15
 
