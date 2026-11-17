@@ -68,7 +68,7 @@ applies_when: ui≠none
 
 ### TST-14 [HIGH] Check nothing calls
 - **Detect:** a script under `scripts/`, `tools/` or `bin/` that no task runner, hook or pipeline invokes; a test file outside the runner's discovery pattern; a caller that discards the check's exit code; docs saying "we lint with X" where nothing runs X.
-- **Mech:** T `git ls-files 'scripts/*' 'tools/*' 'bin/*' | while read -r f; do git grep -qF "${f##*/}" -- ":!$f" || echo "$f"; done`
+- **Mech:** T `git ls-files 'scripts/*' 'tools/*' 'bin/*' | while read -r f; do git grep -qF "${f##*/}" -- ":!$f" ':!*.md' || echo "$f"; done`
 - **Fix:** wire it into the single entry point that gates "done", or delete it; an intentional exclusion is named at that entry point with the condition under which it runs; prove the path by breaking a fixture and running the entry point.
 - **Impact:** the rule looks enforced, so nobody looks again, and the first real enforcement happens in production.
 - **Source:** Fail fast; Fowler, Continuous Integration (one command runs every check).

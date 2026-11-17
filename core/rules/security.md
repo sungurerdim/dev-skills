@@ -4,7 +4,7 @@ Applies to every project type. OWASP Top 10 IDs are the 2025 edition (owasp.org/
 
 ### SEC-01 [CRITICAL] Secret in source or a tracked file
 - **Detect:** a tracked file from the filename set or a content-regex match in [../secret-patterns.md](../secret-patterns.md); credentials in config (`settings.py`, `application.yml`, `config/*.json`), Dockerfile `ENV` or a connection string. Skip `*.example`, documented placeholders and test fixtures with dummy values; every hit gets the history check from that file.
-- **Mech:** T `git ls-files | grep -E '(^|/)(\.env(\.[^/]*)?|credentials\.[^/]*|secrets\.[^/]*|id_rsa|id_ed25519)$|\.(pem|key|p12|pfx|jks|keystore)$' | grep -vE '\.(example|sample|template)$'` · `git grep -nIE 'AKIA[0-9A-Z]{16}|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|sk_live_[A-Za-z0-9]{10,}|gh[pousr]_[A-Za-z0-9]{36}|xox[baprs]-|glpat-|npm_[A-Za-z0-9]{36}' -- ':!*.lock' ':!*lock.json'` · `gitleaks dir . --no-banner --no-color --redact -v | grep '^Fingerprint:'` · `gitleaks git --no-banner --no-color --redact -v | grep '^Fingerprint:'`
+- **Mech:** T `git ls-files | grep -E '(^|/)(\.env(\.[^/]*)?|credentials\.[^/]*|secrets\.[^/]*|id_rsa|id_ed25519)$|\.(pem|key|p12|pfx|jks|keystore)$' | grep -vE '\.(example|sample|template)$'` · `git grep -nIE 'AKIA[0-9A-Z]{16}|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|sk_live_[A-Za-z0-9]{10,}|gh[pousr]_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]{10,}|glpat-[A-Za-z0-9_-]{20,}|npm_[A-Za-z0-9]{36}' -- . ':!*.lock' ':!*lock.json'` · `gitleaks dir . --no-banner --no-color --redact -v | grep '^Fingerprint:'` · `gitleaks git --no-banner --no-color --redact -v | grep '^Fingerprint:'`
 - **Fix:** never auto-fixed — rotate the credential first, then load it at runtime from the environment or a secret manager, ignore the file and keep a placeholder in `.env.example`; a third-party key a client must not hold moves behind a server-side proxy.
 - **Impact:** a committed secret reaches every clone, fork, build artefact and the git history; removing the line does not revoke it.
 - **Source:** Twelve-Factor; OWASP A07:2025; CWE-798; Gitleaks (github.com/gitleaks/gitleaks).
@@ -20,7 +20,7 @@ applies_when: platforms∋android
 ### SEC-04 [CRITICAL] Cleartext transport
 applies_when: api≠none or deploy≠none or mobile≠none
 - **Detect:** `http://` endpoints in source or config other than loopback, private ranges and XML/schema namespaces; no HTTP→HTTPS redirect; Android `usesCleartextTraffic="true"` or a network security config permitting cleartext; iOS `NSAllowsArbitraryLoads` true.
-- **Mech:** T `git grep -nIE 'http://' -- ':!*.md' ':!*test*' ':!*.lock' | grep -vE 'http://(localhost|127\.|0\.0\.0\.0|10\.|192\.168\.|\[::1\]|www\.w3\.org|schemas\.|json-schema\.org|xmlns)'` · `git grep -nIE 'usesCleartextTraffic="true"|cleartextTrafficPermitted="true"|NSAllowsArbitraryLoads'`
+- **Mech:** T `git grep -nIE 'http://' -- ':!*.md' ':!*test*' ':!*.lock' | grep -vE 'http://(localhost|127\.|0\.0\.0\.0|10\.|192\.168\.|\[::1\]|www\.w3\.org|schemas\.|json-schema\.org|xmlns)'` · `git grep -nIE 'usesCleartextTraffic="true"|cleartextTrafficPermitted="true"|NSAllowsArbitraryLoads' -- ':!*.md'`
 - **Fix:** HTTPS everywhere outside loopback; redirect HTTP to HTTPS and send HSTS (NWK-03); remove platform cleartext exceptions or scope them to a named debug domain.
 - **Impact:** any network intermediary reads or alters credentials, tokens and personal data in transit.
 - **Source:** Secure / private by default; OWASP A04:2025; OWASP MASVS-NETWORK-1; CWE-319.
@@ -118,7 +118,7 @@ applies_when: mobile=capacitor
 ### SEC-23 [HIGH] Release build not shrunk or obfuscated
 applies_when: mobile≠none
 - **Detect:** an Android release `buildType` with minify or resource shrinking off or absent (R8 off); a Flutter release build without `--obfuscate --split-debug-info`; React Native without Hermes bytecode; an iOS release binary keeping debug symbols.
-- **Mech:** T `git grep -nIE '(is)?[mM]inifyEnabled[[:space:]]*(=[[:space:]]*)?false|(is)?[sS]hrinkResources[[:space:]]*(=[[:space:]]*)?false' -- '*.gradle' '*.gradle.kts'` · `git grep -nIE 'flutter build (apk|appbundle|ipa|ios)' | grep -v -- '--obfuscate'`
+- **Mech:** T `git grep -nIE '(is)?[mM]inifyEnabled[[:space:]]*(=[[:space:]]*)?false|(is)?[sS]hrinkResources[[:space:]]*(=[[:space:]]*)?false' -- '*.gradle' '*.gradle.kts'` · `git grep -nIE 'flutter build (apk|appbundle|ipa|ios)' -- ':!*.md' | grep -v -- '--obfuscate'`
 - **Fix:** R8 minify and resource shrinking on, with keep rules for reflection-loaded classes; `flutter build <target> --obfuscate --split-debug-info=<dir>` with the symbols uploaded for crash reports (OBS-03); strip debug symbols from the iOS release binary.
 - **Impact:** an unshrunk release is larger and hands a reverse engineer near-source names for logic, checks and endpoints.
 - **Source:** Defense in depth; OWASP MASVS-RESILIENCE-3; Android, Shrink, obfuscate, and optimize your app; Flutter, Obfuscate Dart code.
@@ -179,7 +179,7 @@ applies_when: api≠none
 
 ### NWK-07 [HIGH] Outbound call without a timeout
 - **Detect:** HTTP, RPC, database or queue clients with no connect and read timeout: `requests.*(` without `timeout=`, `fetch` without an abort signal, Go `http.Client{}` without `Timeout` or context deadline, JDBC or driver defaults left infinite, no statement timeout.
-- **Mech:** T `git grep -nIE 'requests\.(get|post|put|patch|delete|request)\(' -- ':!*test*' | grep -v 'timeout'` · `git grep -nIE 'http\.Client\{\}|new HttpClient\(\)|(^|[^[:alnum:]_])fetch\(' -- ':!*test*' ':!*.md'`
+- **Mech:** T `git grep -nIE 'requests\.(get|post|put|patch|delete|request)\(' -- ':!*test*' ':!*.md' | grep -v 'timeout'` · `git grep -nIE 'http\.Client\{\}|new HttpClient\(\)|(^|[^[:alnum:]_])fetch\(' -- ':!*test*' ':!*.md'`
 - **Fix:** explicit connect and overall timeouts on every client, sized under the caller's own deadline; a statement timeout on the database role.
 - **Impact:** one slow peer holds threads and connections until the whole service stops answering.
 - **Source:** Fail fast; Nygard, *Release It!* (timeouts); CWE-400.
@@ -187,7 +187,7 @@ applies_when: api≠none
 ### NWK-09 [HIGH] Connection pool unbounded or unsized
 applies_when: api≠none or db≠none
 - **Detect:** database or HTTP pools with no maximum, no acquire timeout or idle and lifetime limits; a pool per request; the sum of max sizes across instances and workers above the server's connection limit (Postgres `max_connections`); serverless functions opening direct connections with no pooler.
-- **Mech:** T `git grep -nIE 'pool_?size|max_?pool|maxPoolSize|MaxOpenConns|connectionLimit|max_connections|pool_max|maximumPoolSize|create_engine\(|new Pool\('`
+- **Mech:** T `git grep -nIE 'pool_?size|max_?pool|maxPoolSize|MaxOpenConns|connectionLimit|max_connections|pool_max|maximumPoolSize|create_engine\(|new Pool\(' -- ':!*.md'`
 - **Fix:** one pool per process with an explicit maximum derived from measured concurrency and the server limit divided by instances; acquire timeout and lifetime set; a pooler (PgBouncer, RDS Proxy, the provider's pooled endpoint) for serverless.
 - **Impact:** a traffic spike exhausts the server's connections and every consumer of the database fails at once.
 - **Source:** Fail fast; CWE-770; PostgreSQL, Connections and Authentication (`max_connections`); HikariCP, About Pool Sizing.
@@ -202,7 +202,7 @@ applies_when: api≠none or db≠none
 ### NWK-13 [HIGH] Client IP taken from a spoofable header
 applies_when: api≠none
 - **Detect:** `X-Forwarded-For`, `X-Real-IP` or `Forwarded` read unconditionally, or its leftmost value used, for rate limits, audit or access decisions; no setting stating which proxies are trusted.
-- **Mech:** T `git grep -nIiE 'x-forwarded-for|x-real-ip|trust.?proxy|ProxyFix|ForwardedHeaders|RemoteIpValve'`
+- **Mech:** T `git grep -nIiE 'x-forwarded-for|x-real-ip|trust.?proxy|ProxyFix|ForwardedHeaders|RemoteIpValve' -- ':!*.md'`
 - **Fix:** read forwarded headers only behind a configured trusted proxy and take the rightmost untrusted address (the framework's trusted-proxy setting); otherwise use the socket peer address.
 - **Impact:** any client spoofs its IP with one header, defeating rate limits, audit trails and IP allow-lists.
 - **Source:** MDN, X-Forwarded-For (security and privacy concerns); CWE-348.
