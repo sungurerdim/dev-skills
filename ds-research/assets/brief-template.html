@@ -29,7 +29,7 @@
   --primary:#334155; --accent:#0ea5e9; --bg:#f8fafc; --surface:#fff; --text:#0f172a;
 
   /* ---- derived (theme-reactive via color-mix; no hardcoded greys) ---- */
-  --mut:color-mix(in srgb, var(--text) 52%, var(--bg));
+  --mut:color-mix(in srgb, var(--text) 64%, var(--bg));   /* secondary TEXT: 64% keeps ≥4.5:1 on bg, surface, thead and warn tints in every preset (52% was 3.6:1) */
   --line:color-mix(in srgb, var(--text) 13%, var(--bg));
   --ctl:color-mix(in srgb, var(--text) 30%, var(--bg));   /* interactive-control borders: stronger than --line (light-border-on-white is a common a11y failure) */
   --okbg:color-mix(in srgb, var(--ok) 10%, var(--surface));
