@@ -105,6 +105,7 @@ def check_rules(root: Path, err):
                 err(f"near-duplicate rule titles: {w1} '{t1}' ~ {w2} '{t2}'")
 
 
+NETWORK = re.compile(r"^\s*(curl|wget|dig|nslookup|host|openssl\s+s_client|gh|npm\s+view|pip\s+download|ssh|nc)\b")
 MECH = re.compile(r"^- \*\*Mech:\*\* (?:M\b.*|[ST] .*`[^`]+`.*)$")
 
 
@@ -114,6 +115,11 @@ def check_mech(root: Path, err):
         for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
             if line.startswith("- **Mech:**") and not MECH.match(line):
                 err(f"core/rules/{f.name}:{n}: Mech line must be `- **Mech:** S|T `command`…` or `- **Mech:** M …`")
+            elif line.startswith("- **Mech:** ") and line[12:13] in "ST":
+                for cmd in re.findall(r"`([^`]+)`", line):
+                    if NETWORK.match(cmd):
+                        err(f"core/rules/{f.name}:{n}: Mech command `{cmd[:40]}` needs the network or credentials — "
+                            "a scan is offline; name it in Detect and make the rule M")
 
 
 def check_duplicate_lines(root: Path, err):
@@ -232,6 +238,7 @@ def self_test() -> int:
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-98 [HIGH] Retry With Backoff\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-97 | HIGH | Pipe heading\n"),
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S no command in backticks\n"),
+        (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S `curl -sI https://example.com`\n"),
         (check_duplicate_lines, "core/rules/web.md", lambda s: s + "\nAnimations must not trigger expensive layout recalculations; this line now has two homes.\n" * 1),
         (check_consumers, "core/orphan.md", lambda s: "# orphan\n"),
         (check_retired, "ds-audit/SKILL.md", lambda s: s + "\nDelegate to ds-review.\n"),
