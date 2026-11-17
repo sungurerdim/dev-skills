@@ -10,7 +10,7 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 |-------|-------|------------|-----------|
 | lean | `rules` `lean` | rule files, `SCOPE.md`, cuts and merges | every recorded rule and unit has a decision; `audit.py lean-check` green |
 | build | `arch` `code` `test` `perf` | code and tests (fixers run first, once) | `validate` green, no `open` row, `checks now` no redder than baseline |
-| safe | `sec` `privacy` `auth` `api` `db` | code, config, tests | same |
+| safe | `sec` `privacy` `privacy-eu` `privacy-us` `privacy-intl` `auth` `api` `db` | code, config, tests | same |
 | surface | `web` `a11y` `ux` `i18n` `mobile` `store` `money` | code, copy, assets | same |
 | ship | `ci` `ops` `docs` `repo` | CI, release, deploy config, docs | same; docs describe the final state |
 
@@ -44,9 +44,13 @@ Notes lines: `decided: {decision} · {reason}` and `only-you: {exact action or c
 
 ## Running the phases
 
-- **Changed scope** (no word): every phase in one invocation; lean runs only `lean-check` (when `SCOPE.md` exists).
+- **Changed scope** (no word): every phase in one invocation; lean runs SIM-* on the changed lines and LEAN-11 when `SCOPE.md` exists, not the rules review or the tiering.
 - **`all` / a phase word**: `audit.py init` names the next phase. With subagents: one fresh subagent per phase, in order, given this file, kernel.md, SKILL.md, the phase's rule files and the report path; it returns after `phase … done`. Without subagents: one phase per invocation, ending with `next: /ds-audit all — continues at {phase}`.
 - **One review branch**: every phase of an `all`, phase or area run commits on `ds/audit` (`audit.py init` creates or resumes it; the owner's branch is untouched), and `phase … done` pushes it without force. Later phases audit the code lean already cut. The report ends with the merge commands as `only-you`.
+
+## surface — see the running app (optional)
+
+After the static pass, when `ui≠none`: start the app locally (the project's documented dev or preview command; never a deploy, never production data) and open it with the host's browser tool (Playwright, the host's built-in browser). At a narrow (~400 px) and a wide (~1280 px) viewport check: no horizontal overflow, keyboard focus order and a visible focus ring, contrast (axe when present), and capture the empty, error and loading states of the main flow. Each problem is a row with the screenshot path in Notes. Cannot start the app, or no browser tool → `decided: visual check skipped — {reason}`; the run is not INCOMPLETE for it. Stop the app afterwards.
 
 ## lean
 
@@ -86,4 +90,5 @@ The one interactive phase: scope and recorded rules are owner values (kernel §5
 | Push of `ds/audit` refused | no force; the run continues | `only-you:` |
 | A workflow runs on every push | push still happens; the cost is named | `decided:` |
 | `SCOPE.md` malformed | `lean-check` names each problem | LEAN-11 rows |
+| App cannot start or no browser tool (surface) | visual check skipped; static checks stand | `decided:` |
 | Same obstacle 3 times | stop that unit, record, continue (kernel §3) | `reverted (error)` / `skipped (blocker)` |

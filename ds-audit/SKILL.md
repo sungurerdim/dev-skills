@@ -21,7 +21,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 | `auto` | No question at all, lean's included: every decision taken from purpose, evidence and standards, recorded as `decided:`; the review branch (below) makes it one review and one merge, or one branch delete |
 | `<path>` | One package of a monorepo; without it, each package with its own manifest is a unit |
 
-**Changed scope** — files changed in `{base}...HEAD` plus uncommitted and untracked ones; findings only on changed lines or code they break; checks still run whole-project. lean runs only `lean-check`, and only when `SCOPE.md` exists.
+**Changed scope** — files changed in `{base}...HEAD` plus uncommitted and untracked ones; findings only on changed lines or code they break; checks still run whole-project. lean runs the code-level rules (dead code, copies — SIM-*) on the changed lines, and `lean-check` when `SCOPE.md` exists; the recorded-rules review and the unit tiering need `lean`, `rules` or `all`.
 
 ## Mechanics
 

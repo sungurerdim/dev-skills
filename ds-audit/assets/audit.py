@@ -260,8 +260,8 @@ def make_plan(sig: dict, w: dict, scope: str, root: Path) -> dict:
             if (w["areas"] or w["phases"]) and not named:
                 continue
             ok, why = loads(r["when"], sig)
-            if p == "lean" and scope == "changed":
-                ok, why = (root / "SCOPE.md").is_file(), "N/A — no SCOPE.md; /ds-audit lean creates it"
+            if p == "lean" and scope == "changed" and r["word"] == "rules":
+                ok, why = False, "N/A — changed scope; /ds-audit rules reviews recorded rules"
             areas[r["word"]] = "ran" if ok or named else why
         if areas:
             plan[p] = {"status": "pending" if any(v == "ran" for v in areas.values()) else "skipped", "areas": areas}

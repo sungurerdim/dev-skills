@@ -32,17 +32,17 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 
 ### SIM-05 [LOW] Code kept "just in case"
 - **Detect:** commented-out code, `// removed`, `// TODO: delete`, `// unused`, `_unused` renames, files named `old_*`/`*_backup`/`*.bak`.
-- **Mech:** S `git grep -nIE '//\s*(removed|unused|TODO:? delete|kill this)|_unused[A-Z_]' -- ':!*.md'` · `git ls-files '*_backup*' '*.bak' '*/old_*'`
+- **Mech:** S `git grep -nIE '//[[:space:]]*(removed|unused|TODO:? delete|kill this)|_unused[A-Z_]' -- ':!*.md'` · `git ls-files '*_backup*' '*.bak' '*/old_*'`
 - **Fix:** delete; git history keeps it.
 - **Impact:** quarantined code is noise every reader and every search has to skip.
 - **Source:** Boy Scout rule; git as the archive.
 
-### SIM-06 [MEDIUM] One fact, several homes
-- **Detect:** the same business value or rule (threshold, URL, limit, enum mapping, regex) declared in two or more source files with the same role; the same asset (image, icon, font, document) committed under two paths. Test fixtures, protocol constants and framework-required literals are not findings.
-- **Mech:** T `jscpd --min-lines 6 --reporters console .` · `git ls-files -s | awk '{c[$2]++; p[$2]=p[$2]" "$4} END{for(k in c) if(c[k]>1) print p[k]}'`
-- **Fix:** one owning definition; others import or reference it; a duplicate asset is deleted and its users point at the one copy.
-- **Impact:** a change lands in one home and the others silently disagree.
-- **Source:** DRY / single source of truth (Hunt & Thomas).
+### SIM-06 [HIGH] One fact, several homes — any artifact
+- **Detect:** the one home of the single-source principle; every other rule that finds a copy (TOK literal colours, I18N hard-coded strings, SIM-08, SIM-09) is a detector of it. Any artifact counts: logic (near-identical blocks; a new helper redoing an existing one), a value or rule (threshold, URL, limit, enum mapping, regex), markup and style, UI copy, configuration, a documentation passage, an asset (image, icon, font, document) committed under two paths. Two copies are a note; the third, or two that already disagree, is a finding. Test fixtures, protocol constants and framework-required literals are not findings.
+- **Mech:** T `jscpd --min-lines 6 --reporters console .` · `git ls-files -s | awk '{c[$2]++; p[$2]=p[$2]" "$4} END{for(k in c) if(c[k]>1) print p[k]}'` · `git ls-files -z '*.md' '*.rst' '*.txt' | xargs -0 awk 'length>=80 && !/^[|]/' | sort | uniq -d`
+- **Fix:** one owning definition; every other place imports, references or links it; a duplicate asset or passage is deleted and its users point at the one copy.
+- **Impact:** a change lands in one home and the others silently disagree; a bug fixed in one copy stays in the rest.
+- **Source:** DRY / single source of truth (Hunt & Thomas, *The Pragmatic Programmer*); rule of three (Fowler, *Refactoring*).
 
 ### SIM-07 [LOW] Orphan file
 - **Detect:** a tracked source, asset, stylesheet or doc no other tracked file names (with or without extension). Skip entry points, convention-named config, `README`, `LICENSE`, `CHANGELOG`.
@@ -50,3 +50,19 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 - **Fix:** delete it, or link it from where it is meant to be found.
 - **Impact:** orphans look live and get maintained for nothing.
 - **Source:** YAGNI.
+
+### SIM-08 [MEDIUM] UI element built twice
+applies_when: ui≠none
+- **Detect:** a UI primitive — button, separator, label/badge/chip, input, icon, card, toolbar, dialog — hand-built inside a screen where a shared component or style exists (raw `<button>`/`<hr>`, a platform widget used directly instead of the design-system one, copied markup or style blocks), or a one-off variant of it. Detector of SIM-06.
+- **Mech:** T `git grep -nE '<(button|hr|dialog)(^|[^[:alnum:]_])' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte'` · `git grep -nE '(^|[^[:alnum:]_])(ElevatedButton|TextButton|OutlinedButton|Divider|AlertDialog)\(' -- '*.dart'`
+- **Fix:** route every use through the one primitive; a genuinely new look becomes a variant (prop) of it, not a copy.
+- **Impact:** the same element drifts in size, colour, focus ring and behaviour from screen to screen, and every fix has to be repeated.
+- **Source:** design systems (Frost, *Atomic Design*); Nielsen heuristic 4, consistency and standards.
+
+### SIM-09 [MEDIUM] Action defined twice
+applies_when: ui≠none
+- **Detect:** one user action (delete, share, save, archive, export…) whose label, icon, shortcut, confirmation, permission check or handler is defined separately in each place that offers it — toolbar, menu, context menu, shortcut, command palette, CLI flag and help text — or whose copies already differ ("Delete" here, "Remove" there; a confirmation in one place only). Detector of SIM-06.
+- **Mech:** M (compare every entry point of the same action; the duplicated label literals show up in SIM-06's scan)
+- **Fix:** one command definition per action — label, icon, shortcut, confirmation, permission, handler — that every entry point renders; in a CLI, one command table that drives both parsing and help.
+- **Impact:** users meet the same action with different names and safety nets, and a permission fix lands in one entry point while another stays open.
+- **Source:** command pattern (Gamma et al., *Design Patterns*); WAI-ARIA APG menu and toolbar patterns; Nielsen heuristic 4.
