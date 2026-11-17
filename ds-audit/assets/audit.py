@@ -413,6 +413,8 @@ def phase(root: Path, name: str, status: str, reason: str = "") -> str:
         raise SystemExit(f"audit.py phase: '{name}' is not in this run's plan {list((state or {}).get('phases', {}))}")
     if status == "done":
         bad = validate(root)
+        if (root / "SCOPE.md").is_file():  # a later phase's commits can breach the budget lean set; never silently
+            bad += [f"lean-check: {p}" for p in lean_check(root, root / "SCOPE.md")]
         open_rows = [r["#"] for r in rows(text) if r["Phase"] == name and r["Disposition"] == "open"]
         if bad or open_rows:
             raise SystemExit("audit.py phase: not done — " + "; ".join(bad + [f"open rows {open_rows}"] * bool(open_rows)))
@@ -709,19 +711,22 @@ def inventory(root: Path, depth: int = 2) -> dict:
     dep_list = deps(root, names)
     src_lines = sum(u["src_lines"] for u in units.values())
     test_lines = sum(u["test_lines"] for u in units.values())
+    doc_kb = round(sum((root / n).stat().st_size for n in doc_names) / 1024)
+    runtime = sum(1 for d in dep_list if d["kind"] == "runtime")
+    room = lambda n: -(-n * 11 // 10)  # noqa: E731 — measured + 10 %, rounded up: the next small commit stays green
     return {
         "head": git(root, "rev-parse", "--short", "HEAD").strip(), "depth": depth,
         "totals": {
             "files": len(names), "units": len(units), "src_lines": src_lines, "test_lines": test_lines,
             "test_to_src": round(test_lines / src_lines, 2) if src_lines else None,
-            "doc_files": len(doc_names), "doc_kb": round(sum((root / n).stat().st_size for n in doc_names) / 1024),
-            "deps_runtime": sum(1 for d in dep_list if d["kind"] == "runtime"),
+            "doc_files": len(doc_names), "doc_kb": doc_kb, "deps_runtime": runtime,
             "deps_dev": sum(1 for d in dep_list if d["kind"] == "dev"),
             "commits": len(stamps), "days": round((now - min(stamps)) / 86400) + 1 if stamps else 0,
             "commits_30d": sum(1 for s in stamps if s > now - 30 * 86400),
             "commits_without_source": sum(1 for c in commits if not c),
             "branches": len(git(root, "for-each-ref", "--format=x", "refs/heads").split()),
         },
+        "budget": f"units ≤ {room(len(units))} · deps ≤ {room(runtime)} · docs ≤ {room(doc_kb)} KB",
         "units": [dict(unit=k, **v) for k, v in sorted(units.items(), key=lambda kv: -kv[1]["src_lines"])],
         "deps": dep_list,
         "entry_points": sorted(k for k, v in units.items() if v["entry"]),
@@ -929,6 +934,15 @@ def self_test() -> int:
             fails.append("phase done accepted an open row")
         except SystemExit:
             pass
+        expect(inv.get("budget") == "units ≤ 3 · deps ≤ 2 · docs ≤ 0 KB", f"lean budget = measured + 10 % rounded up: {inv.get('budget')}")
+        write(tmp, state, findings=findings)
+        (tmp / "SCOPE.md").write_text(good.replace("units ≤ 2", "units ≤ 1"), encoding="utf-8")
+        try:
+            phase(tmp, "lean", "done")
+            fails.append("phase done accepted a red lean-check (budget breached)")
+        except SystemExit as e:
+            expect("budget" in str(e), f"phase done names the lean-check problem: {e}")
+        (tmp / "SCOPE.md").unlink()
         crit = good_row.replace("HIGH", "CRITICAL").replace("| fixed |", "| skipped (needs a key) |").replace(fixc, "—")
         write(tmp, state, findings=findings + crit)
         for p in state["phases"]:
