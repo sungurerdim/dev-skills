@@ -1,157 +1,74 @@
-# Rules: Web-Specific
+# Web — browser-only surface checks
 
-Conditional rules loaded only for web frontend projects. Each rule: ID, severity, title, detect pattern, fix action.
+Loaded for web UIs (`ui∋web`). Behaviour every graphical UI shares is in [ux.md](ux.md); accessibility in [a11y.md](a11y.md); web security headers, CSP, XSS and cookies in [security.md](security.md) and [auth.md](auth.md); bundle size, INP and layout thrashing in [perf.md](perf.md) (PRF-03, PRF-09, PRF-16).
 
-## Web Security
+### WEB-09 [HIGH] Core Web Vitals unmeasured or over threshold
+- **Detect:** no field measurement (the `web-vitals` library or a RUM tool) on a public site; LCP element (hero image, heading) lazy-loaded, without `fetchpriority="high"` or preload, or behind render-blocking CSS/JS; images, video, iframes and ad or embed slots without reserved `width`/`height` or `aspect-ratio`; content injected above existing content after load; web fonts swapping without metric overrides. INP causes and fixes are PRF-16.
+- **Mech:** T `git grep -nIE '<(img|iframe|video)[[:space:]]' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte' '*.astro' | grep -v -e 'height=' -e 'aspect-ratio'`
+- **Fix:** preload or `fetchpriority="high"` the LCP resource and never lazy-load it; reserve space for every media and embed slot; insert late content below the viewport or in reserved space; `size-adjust`/`font-display` tuned fonts; report field p75 of LCP, INP and CLS.
+- **Impact:** slow first paint and jumping layouts lose users before the first interaction and misplace taps; search ranking uses the same field data.
+- **Source:** web.dev, Core Web Vitals thresholds LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1 at p75 (https://web.dev/articles/vitals).
 
-### WEB-01 [CRITICAL] Content Security Policy
-CSP header preventing inline scripts and unauthorized sources.
-- **Detect:**
-  - No `Content-Security-Policy` header in responses
-  - CSP with `unsafe-inline` or `unsafe-eval` for scripts
-  - Host-allowlist CSP (long domain lists, no nonces) — bypassable via JSONP endpoints/open redirects on allowed hosts
-  - No CSP meta tag or header configuration
-  - Search: absence of `content-security-policy` in middleware/headers config
-  - **Allowlist-completeness (distinct from presence/strictness):** grep every `fetch()`/XHR/SDK-call target host in source (auth/token endpoints, identity/userinfo endpoints, every third-party API) and cross-reference against the `connect-src` directive — a fetched host absent from `connect-src` fails silently in the browser (request just blocked) with no error surfaced until a user reports a broken feature
-- **Fix:** Strict CSP (2026 default): `script-src 'nonce-{RANDOM}' 'strict-dynamic'; object-src 'none'; base-uri 'none'` — nonce-based with `'strict-dynamic'` (CSP Level 3, widely supported in modern browsers) instead of host allowlists. Deploy as `Content-Security-Policy-Report-Only` first; promote to enforcement only after violation reports go quiet. Where supported (Chromium), add `require-trusted-types-for 'script'` (Trusted Types) to block DOM-XSS sinks. Report violations with `report-to`/`report-uri`. For `connect-src` completeness: generate the allowlist from the same host-constants file the fetch calls use, or add a lint/audit step that fails when a new external host is called but not yet allowlisted
-- **Impact:** CSP prevents XSS exploitation even when injection vulnerabilities exist; allowlist CSPs are routinely bypassed, strict nonce CSPs are not. A CSP that's strict but incomplete on `connect-src` silently breaks real features (a real incident: an OIDC identity-verification endpoint omitted from `connect-src` silently broke post-login identity hydration, only caught via a live login-loop bug report)
-- **Source:** OWASP CSP Cheat Sheet (strict CSP), MDN CSP
+### WEB-05 [HIGH] Layout breaks on narrow viewports
+- **Detect:** an HTML entry point with no `<meta name="viewport" content="width=device-width…">`; fixed pixel widths on containers wider than a phone without `max-width`; tables, code blocks or wide media with no scroll container; horizontal scroll at 320 CSS px width.
+- **Mech:** T `git grep -nIE '(^|[^-])width:[[:space:]]*[0-9]{4,}px' -- '*.css' '*.scss' '*.less'` · `git grep -LI 'name="viewport"' -- '*.html'`
+- **Fix:** the viewport meta tag; fluid containers (`max-width`, `%`, `min()`), grid and flex wrapping; a scroll wrapper for content that cannot reflow; check at 320, 768 and 1280 px.
+- **Impact:** phone users get sideways scrolling or cut-off controls on every page.
+- **Source:** WCAG 2.2 SC 1.4.10 Reflow; MDN, Viewport meta tag.
 
-### WEB-02 [CRITICAL] CORS Configuration
-Restrictive CORS. No wildcard origins in production.
-- **Detect:**
-  - `Access-Control-Allow-Origin: *` in production config
-  - CORS allowing any origin with credentials
-  - Search: `origin: '*'`, `origin: true`, `cors({ origin: '*' })` in production code
-- **Fix:** Whitelist specific origins. Never use `*` with credentials. Validate origin against whitelist. Set appropriate `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers`
-- **Impact:** A wildcard CORS origin (especially with credentials) lets any website read authenticated API responses on behalf of a logged-in user — cross-origin data theft.
-- **Source:** MDN CORS, OWASP
+### WEB-10 [MEDIUM] Images heavier than the viewport needs
+- **Detect:** committed raster images over ~200 KB; `<img>` without `srcset`/`sizes` where several display widths exist; below-the-fold images without `loading="lazy"`; JPEG/PNG photos where AVIF or WebP is supported by the browser target (WEB-15).
+- **Mech:** T `git ls-tree -r -l HEAD | awk '$4 > 204800 && $5 ~ /\.(png|jpe?g|gif|bmp|tiff?)$/ {print $5, $4}'`
+- **Fix:** compress and convert at build time; `srcset`/`sizes` or the framework's image component; `loading="lazy"` below the fold only.
+- **Impact:** every visit downloads bytes the screen cannot show, slowing LCP on mobile networks.
+- **Source:** web.dev, Optimize images (https://web.dev/learn/images).
 
-### WEB-03 [CRITICAL] XSS Prevention
-No raw HTML rendering of user input. Output encoding enforced.
-- **Detect:**
-  - React: `dangerouslySetInnerHTML` with user input
-  - Vue: `v-html` with user input
-  - Angular: bypassing DomSanitizer
-  - Server: template rendering without auto-escaping
-  - Search: `innerHTML`, `dangerouslySetInnerHTML`, `v-html`, `|safe`, `mark_safe` near user input variables
-- **Fix:** Use framework auto-escaping (React JSX, Vue templates, Angular templates). Sanitize with DOMPurify when raw HTML is required. Never use `eval()` or `innerHTML` with user data
-- **Impact:** Unescaped user input rendered as HTML lets an attacker run arbitrary script in every victim's browser session — session theft, account takeover, defacement.
-- **Source:** OWASP XSS Prevention Cheat Sheet
+### WEB-15 [MEDIUM] No declared browser support target
+- **Detect:** no Browserslist query (`browserslist` in `package.json` or `.browserslistrc`) and no Baseline target stated; platform features used (CSS nesting, `:has()`, `popover`, View Transitions) with no fallback for browsers the product claims to support; transpile and polyfill settings that do not follow the target.
+- **Mech:** T `git grep -nIE '"browserslist"|baseline' -- package.json .browserslistrc README.md`
+- **Fix:** declare one target (a Browserslist query or a Baseline year) and feed it to the transpiler, CSS tooling and linter; test the oldest browser in it.
+- **Impact:** features silently fail for part of the audience, or polyfills ship to browsers that never needed them.
+- **Source:** web.dev, Baseline (https://web.dev/baseline); Browserslist (https://browsersl.ist/).
 
-### WEB-14 [HIGH] Third-Party Content Integrity
-External scripts/styles carry SRI hashes; embedded third-party content is sandboxed.
-- **Detect:**
-  - `<script src=` or `<link rel="stylesheet"` from external origins without `integrity=` attribute
-  - `<iframe>` embedding third-party content without `sandbox` attribute
-  - Search: `integrity="sha256-` (weaker than the SHA-384 default; only SHA-256/384/512 are supported by the spec)
-- **Fix:** Add `integrity="sha384-…"` + `crossorigin="anonymous"` to third-party `<script>`/`<link>` tags (SHA-384 default). Sandbox third-party iframes with the minimum capability set (e.g. `<iframe sandbox="allow-scripts">`). Known coverage gap: dynamically-served assets (e.g. Google Fonts) do not support SRI — self-host those assets instead
-- **Impact:** A compromised CDN or third-party host can inject arbitrary script into every page; SRI turns that into a failed load instead of an XSS
-- **Source:** MDN Subresource Integrity, OWASP Third-Party JavaScript Cheat Sheet
+### WEB-07 [MEDIUM] Framework default error pages
+- **Detect:** no custom 404 and 5xx page or route; no top-level error boundary in a client-rendered app, so one render error blanks the page; error pages without a way back (home, search, retry). Stack traces in responses are SAR-06.
+- **Mech:** T `git ls-files | grep -iE '(^|/)(404|500|not-found|error)\.(html|tsx?|jsx?|vue|svelte|astro)$'`
+- **Fix:** a branded 404 with navigation and search, a 5xx with retry and a support path, and an app-level error boundary that logs and renders the same.
+- **Impact:** a dead end with no route back turns one broken link or exception into an abandoned session.
+- **Source:** Nielsen heuristic 9, help users recover from errors; MDN, HTTP 404.
 
-## Web Quality
+### WEB-08 [MEDIUM] Public pages not indexable or not shareable
+applies_when: audience=public
+- **Detect:** pages without a unique `<title>` and `<meta name="description">`; no `rel="canonical"` on duplicate URLs; no Open Graph tags; no `robots.txt` or sitemap; content pages rendered only on the client.
+- **Mech:** T `git grep -LIE '<title' -- '*.html'` · `git ls-files | grep -E '(^|/)(robots\.txt|sitemap[^/]*\.xml)$'`
+- **Fix:** per-page title, description, canonical and Open Graph tags; generate robots.txt and a sitemap; server-render or pre-render content pages.
+- **Impact:** pages rank poorly and shared links show blank previews.
+- **Source:** Google Search Central, SEO starter guide; Open Graph protocol (https://ogp.me/).
 
-### WEB-05 [HIGH] Responsive Design
-Layout adapts to all screen sizes. No horizontal scroll on mobile.
-- **Detect:**
-  - Search: `width:` with pixel values >320px without `max-width` or media query context (e.g., `width: 960px`, `width: 1200px` on containers)
-  - Search: missing `<meta name="viewport">` tag in HTML entry points (`index.html`, layout templates)
-  - Search: `@media` query absence in CSS/SCSS files (zero responsive breakpoints)
-  - Search: fixed-width containers without responsive alternatives (`width: [4-9]\d\dpx`, `width: \d{4,}px` without accompanying `max-width` or `%`/`vw` fallback)
-  - Images without responsive sizing (`<img` without `srcset` or CSS `max-width: 100%`)
-- **Fix:** Use relative units (%, rem, vw). Mobile-first media queries. Viewport meta tag: `<meta name="viewport" content="width=device-width, initial-scale=1">`. Responsive images with `srcset`/`sizes`. CSS Grid/Flexbox for layouts
-- **Impact:** A layout that doesn't adapt forces mobile users into horizontal scrolling and unreadable text — a majority-share traffic segment gets a broken experience.
-- **Source:** Responsive Web Design, MDN
+### CMP-09 [HIGH] Overlay clipped or stacked by accident
+- **Detect:** dropdowns, menus, popovers and typeahead lists positioned `absolute` inside an `overflow: hidden|auto` ancestor instead of a portal, top layer (`popover`, `<dialog>`) or anchor positioning; literal `z-index` values (`999`, `9999`) instead of a layer scale; overlays without a `max-height` and inner scroll.
+- **Mech:** T `git grep -nIE 'z-index:[[:space:]]*[0-9]{3,}' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte'`
+- **Fix:** render overlays in the top layer or a portal; one named z-index scale (base, sticky, overlay, modal, toast); a max-height tied to the viewport with scroll.
+- **Impact:** menus cut off inside cards or hidden behind sticky headers make actions unreachable.
+- **Source:** MDN, Stacking context; HTML popover attribute; CSS Anchor Positioning.
 
-### WEB-06 [HIGH] Web Accessibility (WCAG 2.2 AA)
-Core flows meet WCAG 2.2 AA. Keyboard navigable. Screen reader compatible.
-- **Detect:**
-  - Images without `alt` attribute
-  - Form inputs without associated labels
-  - Interactive elements not keyboard accessible
-  - Missing ARIA roles/landmarks on dynamic content
-  - Color contrast below 4.5:1 for normal text
-  - Search: `<img` without `alt=`, `<input` without associated `<label`
-- **Fix:** Add `alt` text to all images (empty `alt=""` for decorative). Associate labels with inputs. Ensure keyboard navigation (tab order, focus management). Use semantic HTML. Test with screen reader (NVDA, VoiceOver). Ensure 4.5:1 contrast ratio
-- **Impact:** ~15% of users have some form of disability. EAA enforcement live since 28 Jun 2025 — an active obligation for products/services marketed in the EU, not a future deadline
-- **Source:** WCAG 2.2, EAA 2019/882
+### RSP-21 [MEDIUM] Scrollbars or hover shift layout
+- **Detect:** content jumps sideways when a scrollbar appears (scroll containers without `scrollbar-gutter: stable`); hover or focus styles that change width, border width or font weight and reflow neighbours.
+- **Mech:** T `git grep -nIE 'overflow(-y)?:[[:space:]]*auto' -- '*.css' '*.scss' '*.less'`
+- **Fix:** `scrollbar-gutter: stable` on scroll containers whose content length varies; hover states through colour, outline, shadow or transform only.
+- **Impact:** moving targets cause mis-clicks and read as a broken page.
+- **Source:** MDN, scrollbar-gutter; complements WEB-09 (CLS).
 
-### WEB-07 [HIGH] Error Pages
-Custom error pages (404, 500) with helpful content and consistent branding.
-- **Detect:**
-  - Default framework error pages in production
-  - Stack traces visible in error responses
-  - No custom 404 page
-  - No global error boundary (React) or error page (Next.js)
-- **Fix:** Custom 404 with navigation/search. Custom 500 with "try again" and support contact. Error boundaries for React. Never expose stack traces. Log errors server-side
-- **Impact:** A default framework error page or an exposed stack trace leaks internal structure to attackers and shows every real user a dead end with no way back.
-- **Source:** UX best practices
+### RSP-19 [MEDIUM] Media query overridden by a later rule
+- **Detect:** an `@media` override followed later in the same cascade (file or bundle order) by a rule of equal specificity setting the same property, so the override never applies.
+- **Mech:** M (compare source order of each `@media` block with later same-selector rules; the browser devtools show the struck-through declaration)
+- **Fix:** put media overrides after the base rule, or write mobile-first with `min-width` queries after the base styles.
+- **Impact:** the responsive layout silently never activates at the breakpoint it was written for.
+- **Source:** MDN, Cascade, specificity and order of appearance.
 
-### WEB-08 [HIGH] SEO Fundamentals
-Proper meta tags, semantic HTML, structured data for public-facing pages.
-- **Detect:**
-  - Missing `<title>` or `<meta name="description">` on pages
-  - No Open Graph / Twitter Card meta tags
-  - Non-semantic HTML (div soup)
-  - No sitemap.xml or robots.txt
-  - Client-side only rendering without SSR/SSG for content pages
-- **Fix:** Unique `<title>` and `<meta description>` per page. Open Graph tags for social sharing. Semantic HTML (header, main, nav, article, section). Generate sitemap.xml. SSR/SSG for content pages
-- **Cross-ref:** Launch-surface SEO execution (sitemap/robots generation, JSON-LD validation, CWV tie-breaker, llms.txt posture) is generation work outside this audit-time check.
-- **Impact:** Missing title/description/OG tags and non-semantic markup suppress search ranking and produce blank, unclickable link previews when shared.
-- **Source:** Google Search Central, MDN Semantic HTML
-
-## Web Performance
-
-### WEB-09 [CRITICAL] Core Web Vitals
-LCP < 2.5s, INP < 200ms, CLS < 0.1.
-- **Detect:**
-  - No performance monitoring (no web-vitals library, no RUM)
-  - Large images above fold without optimization
-  - Layout shifts from dynamically loaded content
-  - Long tasks blocking main thread
-- **Fix:** Optimize LCP: preload critical resources, optimize images (WebP/AVIF, srcset), use CDN. Optimize INP: break long tasks, use `requestIdleCallback`, debounce handlers. Optimize CLS: set explicit dimensions on images/embeds, avoid injecting content above viewport
-- **Impact:** Core Web Vitals are Google ranking signal. Poor scores = lower search visibility
-- **Source:** web.dev Core Web Vitals
-
-### WEB-10 [HIGH] Image Optimization
-Modern formats, responsive sizes, lazy loading for below-fold images.
-- **Detect:**
-  - Large unoptimized images (PNG/JPEG > 200KB)
-  - No lazy loading on below-fold images
-  - No responsive image sizing (srcset/sizes)
-  - Search: `<img` without `loading="lazy"` (excluding above-fold hero images)
-- **Fix:** Convert to WebP/AVIF. Use `<img srcset>` for responsive sizes. `loading="lazy"` for below-fold. Use image CDN (Cloudinary, imgix, Vercel Image Optimization) for on-the-fly resizing
-- **Impact:** Unoptimized, non-lazy images inflate page weight and push back Largest Contentful Paint — slower loads measurably cost conversion and search ranking.
-- **Source:** web.dev Image Optimization
-
-### WEB-11 [HIGH] Code Splitting & Dynamic Imports
-Route-based code splitting. Lazy load non-critical JavaScript.
-- **Detect:**
-  - Single large JavaScript bundle (> 200KB gzipped)
-  - No dynamic imports for routes/features
-  - Heavy libraries imported in main bundle (moment.js, lodash full)
-- **Fix:** Route-based splitting (Next.js/React.lazy automatic). Dynamic import for heavy features. Replace heavy libraries with lighter alternatives (date-fns, lodash-es). Tree-shake unused exports
-- **Impact:** A single unsplit bundle forces every visitor to download the whole application's code before any route renders, even for a one-page visit.
-- **Source:** webpack Code Splitting, Next.js Dynamic Imports
-
-### WEB-12 [HIGH] HTTPS & Cookie Security
-All cookies secure. Proper cookie attributes.
-- **Detect:**
-  - Cookies without `Secure` flag
-  - Session cookies without `HttpOnly`
-  - Missing `SameSite` attribute
-  - Cookies with excessive expiry (> 1 year for non-essential)
-- **Fix:** Set all cookies: `Secure; HttpOnly; SameSite=Lax` (or Strict for sensitive). Session cookies: no explicit expiry (browser session). Persistent cookies: reasonable TTL. Use `__Host-` prefix for sensitive cookies (browser-enforced: requires `Secure`, forbids `Domain`, requires `Path=/` — blocks subdomain cookie-tossing); use `__Secure-` only when legitimate subdomain sharing is required. Reference form: `Set-Cookie: __Host-SID=<token>; path=/; Secure; HttpOnly; SameSite=Strict`
-- **Impact:** A cookie missing Secure/HttpOnly/SameSite is readable over plaintext HTTP, stealable via XSS, or replayable cross-site — any one of the three defeats session security.
-- **Source:** MDN HTTP Cookies, OWASP Cookie Security
-
-### WEB-13 [CRITICAL] Sensitive Data Cache Exclusion
-No credentials/PII in HTTP cache, CDN cache, or logs.
-- **Detect:**
-  - Sensitive API responses without `Cache-Control: no-store`
-  - Auth tokens in URL query parameters (cached in logs, browser history)
-  - PII in CDN-cached responses
-  - Sensitive data in error messages/stack traces returned to client
-- **Fix:** `Cache-Control: no-store, no-cache` for sensitive endpoints. Auth tokens in headers only (never URL). Sanitize error responses. Exclude sensitive paths from CDN
-- **Impact:** Sensitive data cached by a browser, proxy, or CDN persists outside the application's control and can surface in shared caches, browser history, or logs long after the response is served.
-- **Source:** OWASP Secure Headers
+### RSP-13 [LOW] Printable page without print styles
+- **Detect:** pages users print or save as PDF (invoices, receipts, reports, tickets) with no `@media print` block: navigation, dark backgrounds and interactive chrome print, content splits across page breaks.
+- **Mech:** T `git grep -lI '@media print' -- '*.css' '*.scss' '*.less' '*.html'`
+- **Fix:** an `@media print` block that hides chrome, uses dark text on white, and sets `break-inside: avoid` on rows and cards.
+- **Impact:** printed documents waste ink and lose content at page breaks.
+- **Source:** W3C CSS Fragmentation Module Level 3; CSS Paged Media Module Level 3.

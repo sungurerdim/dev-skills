@@ -1,291 +1,145 @@
-# Rules: Store Review Readiness
-
-Each check scans the codebase/metadata and produces PASS/FAIL with severity, `file:line`, and a fix — not a manual checklist. Loaded when the project ships to an app store.
-
-**Review timing (informational, not a check):** Apple 24-48h typical; Google Play 1-7 days (longer for a first app) — see [aso-2026-updates.md](store-aso.md) § Store Submission Timeline for the full 60-day pre-launch schedule.
-
-## App Completeness & Metadata
-
-### LCH-01 [CRITICAL] Privacy Policy URL Live and Accessible
-
-**Detect:** Scan store metadata + in-app configs for a privacy policy URL; `curl -s -o /dev/null -w '%{http_code}' {url}` must return `200`.
-
-**Fix:** Publish a live, publicly accessible privacy policy page; add its URL to both store listings and in-app settings before submission.
-
-**Impact:** Outright rejection — no review proceeds without a live policy URL.
-
-**Source:** App Store Review Guidelines (https://developer.apple.com/app-store/review/guidelines/) 5.1.1; Play Console Privacy Policy requirement.
-
-### LCH-02 [CRITICAL] Metadata Completeness (No Placeholder Content)
-
-**Detect:** Scan store metadata directories for empty fields or placeholder content (draft markers, lorem ipsum, "TBD").
-
-**Fix:** Fill every required listing field with final content before submitting; remove draft/placeholder markers.
-
-**Impact:** Outright rejection under Guideline 2.1 (App Completeness).
-
-**Source:** App Store Review Guidelines 2.1; Play Store Metadata Policy.
-
-### LCH-03 [MEDIUM] Platform Cross-Reference in Listing Text
-
-**Detect:** Search listing text for competing-platform mentions (naming the other store, "also available on…").
-
-**Fix:** Remove references to competing platforms from store listing copy.
-
-**Impact:** Listing edit demand or takedown.
-
-**Source:** App Store Review Guidelines 3.1; Play Store Metadata Policy.
-
-### LCH-04 [HIGH] Reviewer-Access Gap (Missing Demo Credentials)
-
-**Detect:** Login/auth flow detected in the app but `ds/launch/submission-notes-apple.txt` is absent or missing its demo-credentials section.
-
-**Fix:** Generate submission notes via `--submission-notes` and provide pre-provisioned reviewer credentials before submitting.
-
-**Impact:** Automatic rejection — the reviewer cannot proceed past the login wall.
-
-**Source:** App Store Review Guidelines 2.1.
-
-### LCH-05 [HIGH] App Completeness / Remote Feature Gating
-
-**Detect:** Primary feature classes wrapped in remote-config/feature-flag conditions with no guaranteed-on default for the reviewer.
-
-**Fix:** Ensure every primary feature has a guaranteed-on default reachable without a remote-config round trip that could return "off".
-
-**Impact:** Rejection under Guideline 2.1 — the app looks broken to the reviewer.
-
-**Source:** App Store Review Guidelines 2.1; Play Store Deceptive Behavior Policy.
-
-## Privacy & Consent
-
-### LCH-06 [HIGH] Permission Usage Descriptions Present
-
-**Detect:** Parse `Info.plist` / `AndroidManifest.xml` for permissions missing a usage-description string.
-
-**Fix:** Add a clear `NS*UsageDescription` (iOS) or permission rationale (Android) for every requested permission.
-
-**Impact:** Rejection or review delay — the reviewer cannot verify the permission's purpose.
-
-**Source:** App Store Review Guidelines 5.1.1; Play Store Permissions Policy.
-
-### LCH-07 [HIGH] Privacy Manifest + SDK Compliance
-
-**Detect:** Scan for `PrivacyInfo.xcprivacy`; flag third-party SDKs shipped without a matching privacy manifest.
-
-**Fix:** Add the app's own privacy manifest and confirm every bundled SDK ships its own (upgrade SDKs that don't).
-
-**Impact:** Rejection — required-reason APIs undeclared.
-
-**Source:** Apple Privacy Manifest requirement (App Store Review Guidelines).
-
-### LCH-08 [HIGH] AI Service Consent Modal
-
-**Detect:** External AI service usage detected (API calls to a third-party AI provider) with no consent modal shown before data leaves the device.
-
-**Fix:** Show a consent modal naming the AI provider and data types before the first call to an external AI service.
-
-**Impact:** Rejection under Guideline 5.1.1(i).
-
-**Source:** App Store Review Guidelines 5.1.1(i).
-
-### LCH-09 [HIGH] Account/Data Deletion Flow Present
-
-**Detect:** Search for an account-deletion or data-deletion UI flow reachable from account settings.
-
-**Fix:** Implement an in-app deletion flow that removes the account and its data, reachable without contacting support.
-
-**Impact:** Rejection under Guideline 5.1.1(v).
-
-**Source:** App Store Review Guidelines 5.1.1(v); Play Store Account Deletion Policy.
-
-### LCH-10 [HIGH] App Tracking Transparency Prompt Before Tracking
-
-**Detect:** IDFA/tracking SDK initialization before the ATT prompt response, or `PrivacyInfo.xcprivacy` declares tracking without an ATT prompt present.
-
-**Fix:** Gate tracking SDK initialization and IDFA access behind a confirmed ATT authorization; show the custom pre-prompt explanation first.
-
-**Impact:** Rejection, or post-launch takedown on audit.
-
-**Source:** App Store Review Guidelines 5.1.2(i); Apple ATT Framework.
-
-## Monetization & Payments
-
-### LCH-11 [CRITICAL] IAP / External-Payment Link Compliance (Jurisdiction-Conditional)
-
-**Detect:** StoreKit/Play Billing present alongside Stripe/PayPal/checkout URLs for digital content, or "pay on our website" strings pointing off-store. Jurisdiction determines the rule: US App Store storefront allows external payment links without entitlement (Ninth Circuit ruling, Dec 2025); outside the US, the StoreKit External Purchase Link Entitlement is required in designated regions, otherwise IAP-only.
-
-**Fix:** US storefront — external links are permitted (no more visually prominent than IAP). Outside the US — obtain the External Purchase Link Entitlement or remove the external payment path and route digital-content purchases through IAP.
-
-**Impact:** Rejection under Guideline 3.1.1, or post-launch removal.
-
-**Source:** App Store Review Guidelines 3.1.1; Play Store Billing Policy (alternative billing per settlement terms).
-
-## Content & Rating
-
-### LCH-13 [MEDIUM] Age Rating Matches Declared Content
-
-**Detect:** Verify age-rating questionnaire completeness against the 13+/16+/18+ tiers.
-
-**Fix:** Complete the age-rating questionnaire and align the declared rating with actual app content, including UGC moderation status.
-
-**Impact:** Rating-questionnaire rejection, re-submission cycle.
-
-**Source:** App Store Review Guidelines 4.1 (age ratings); Play Store IARC.
-
-### LCH-14 [HIGH] Clone-Category Differentiation Risk (Guideline 4.3(b))
-
-**Detect:** App's category/concept matches Apple's named spam-prone classes (dating, flashlight, sound effects, wallpaper, simple timers, fortune telling) with no meaningfully differentiated feature set.
-
-**Fix:** Document and implement genuine differentiation before submitting in a saturated category; maintain a regular update cadence.
-
-**Impact:** Submission barred outright, or an existing listing removed.
-
-**Source:** App Store Review Guidelines 4.3(b) (June 2026 revision).
-
-### LCH-15 [MEDIUM] Live Activities Misuse (Guideline 4.5.3)
-
-**Detect:** ActivityKit/Live Activities used for promotional or unsolicited content; random/anonymous-chat features present without UGC moderation duties addressed.
-
-**Fix:** Restrict Live Activities to their intended live-status use case; add UGC moderation/reporting for any chat feature.
-
-**Impact:** Rejection under 4.5.3, compounding with 1.2 for UGC apps.
-
-**Source:** App Store Review Guidelines 4.5.3, 1.2 (Feb 2026 revision).
-
-### LCH-16 [MEDIUM] Content Matches Declared Age Rating
-
-**Detect:** Gambling SDK, loot-box pattern, unrestricted `WebView`, or UGC text input detected alongside a 4+/Everyone age-rating declaration.
-
-**Fix:** Raise the declared age rating to match detected content signals, or remove/restrict the content pattern.
-
-**Impact:** Rating dispute, forced re-submission.
-
-**Source:** App Store Review Guidelines 4.1; Play Store IARC.
-
-## Platform & Build
-
-### LCH-17 [MEDIUM] Crash-Prone Entry-Point Patterns
-
-**Detect:** Scan app entry points for force-unwraps, unhandled exceptions, or other crash-prone patterns on the first-launch path.
-
-**Fix:** Guard entry-point code against nil/exception cases the reviewer's first launch is likely to hit.
-
-**Impact:** Reviewer hits a crash on first launch — instant rejection.
-
-**Source:** App Store Review Guidelines 2.1.
-
-### LCH-18 [MEDIUM] SDK / Build Requirement Currency
-
-**Detect:** Check minimum/target SDK version against the current store deadline (iOS 26 SDK required from April 2026).
-
-**Fix:** Rebuild against the current required SDK before the deadline; verify no deprecated API paths are exercised.
-
-**Impact:** Build rejected as non-compliant at upload.
-
-**Source:** Apple Xcode release notes (App Store Review Guidelines); Play Store target API level policy.
-
-### LCH-19 [HIGH] Sign in with Apple Alongside Third-Party Social Login
-
-**Detect:** Google/Facebook/Twitter auth SDK detected without a matching `com.apple.developer.applesignin` entitlement or `ASAuthorizationAppleIDProvider` import.
-
-**Fix:** Add Sign in with Apple alongside existing OAuth providers, with equal or greater visual prominence.
-
-**Impact:** Rejection under Guideline 4.8.
-
-**Source:** App Store Review Guidelines 4.8.
-
-## Pre-Submission Testing
-
-### LCH-20 [HIGH] Auth Flow Tested on a Real Device Before Submission
-
-**Detect:** No recorded evidence (in `ds/launch/submission-meta.yml` or the pre-submission audit trail) that every offered sign-in provider (OIDC, Sign in with Apple, first-party) was exercised end-to-end on a physical device before this submission.
-
-**Fix:** Test every auth provider on a real device — sign-in, session persistence, and sign-out — before submitting; record the result.
-
-**Impact:** An untested auth path is the most common reason a reviewer hits a login wall that never resolves — the failure LCH-04 checks for statically, confirmed here by actually running it.
-
-**Source:** Apple TestFlight documentation (https://developer.apple.com/testflight/); App Store Review Guidelines 2.1.
-
-### LCH-21 [HIGH] Core Feature End-to-End Tested Against a Production-Equivalent Backend
-
-**Detect:** No recorded evidence that the app's primary user journey was exercised end-to-end against a real (or production-equivalent) backend — not a mock — before submission.
-
-**Fix:** Run the core feature flow start-to-finish against the real backend on a physical device or TestFlight/Internal Testing build; record the result before submitting.
-
-**Impact:** Guideline 2.1 requires a fully working app; a core flow that only works against a local mock is exactly the gap a reviewer's real-world test exposes.
-
-**Source:** App Store Review Guidelines 2.1 (App Completeness).
-
-### LCH-22 [HIGH] Data Export Flow Tested End-to-End
-
-**Detect:** App has a data-export/portability feature but no recorded evidence the export was exercised end-to-end (request → generated file → content correctness) before submission.
-
-**Fix:** Run the export flow to completion and verify the output file actually contains the user's data before submitting.
-
-**Impact:** A data-export feature that exists in code but was never run end-to-end is indistinguishable from a broken one the first time a user or regulator relies on it.
-
-**Source:** GDPR Art. 20 (https://eur-lex.europa.eu/eli/reg/2016/679/oj) — right to data portability.
-
-### LCH-23 [MEDIUM] Offline / Reconnect Behavior Tested
-
-**Detect:** No recorded evidence the app was tested through a disconnect → offline → reconnect cycle before submission.
-
-**Fix:** Toggle network off mid-session, exercise the app's core flow offline, then reconnect and verify state recovers (queued actions sync, no crash, no data loss); record the result.
-
-**Impact:** Offline/reconnect handling is a common, easily-reproduced reviewer path to a crash or stuck state — exactly the "broken feature" Guideline 2.1 rejects, and one static analysis alone does not catch.
-
-**Source:** App Store Review Guidelines 2.1 (App Completeness).
-
-## Release Rollout
-
-### LCH-24 [MEDIUM] Staged-Rollout Halt Threshold on Crash-Free Rate
-
-**Detect:** Staged/phased rollout in progress (Play Console percentage rollout or App Store Connect phased release) with no defined crash-free-rate threshold that halts or rolls back the rollout.
-
-**Fix:** Define and monitor a crash-free-rate floor (a common practice is 99%) at each rollout stage; halt or roll back — automatically or manually — the moment a stage drops below it, before advancing to the next percentage.
-
-**Impact:** Without a defined halt threshold, a defect that only appears at scale keeps rolling out to more users during the exact window staged rollout exists to protect against.
-
-**Source:** Android vitals documentation (https://developer.android.com/topic/performance/vitals).
-
-## Additional Pre-Submission & Metadata Checks
-
-### LCH-25 [HIGH] Support URL Live and Accessible
-
-**Detect:** Scan store metadata + in-app configs for a support URL / support contact channel; `curl -sIL -o /dev/null -w '%{http_code}' {url}` must return `200`.
-
-**Fix:** Publish a live, reachable support URL (or in-app contact flow backed by a monitored inbox) and add it to both store listings and in-app settings before submission.
-
-**Impact:** A dead or missing support URL is a metadata-completeness rejection reason distinct from the privacy-policy check (LCH-01) — Apple's own guideline frames absent contact info as both a rejection risk and a legal-notice issue in some regions.
-
-**Source:** App Store Review Guidelines (https://developer.apple.com/app-store/review/guidelines/) 1.5 (Developer Information); Play Console — How to support your app's users — https://support.google.com/googleplay/android-developer/answer/113477
-
-### LCH-26 [HIGH] IAP Sandbox Purchase Flow Tested Before Submission
-
-**Detect:** App has IAP/subscription products but no recorded evidence (in `ds/launch/submission-meta.yml` or the pre-submission audit trail) that a full sandbox purchase — initiate, complete, verify entitlement granted — was exercised on a physical device before this submission.
-
-**Fix:** Run the complete sandbox purchase flow (Apple Sandbox Tester account / Google License Testing account) end-to-end on a real device for every offered product before submitting; record the result.
-
-**Impact:** IAP is the one flow that cannot be exercised at all before a sandbox/license-test account exists — an untested purchase path is exactly where entitlement bugs first surface, and it surfaces during real user checkout instead of before submission.
-
-**Source:** Apple — Testing In-App Purchases with Sandbox — https://developer.apple.com/documentation/storekit/testing-in-app-purchases-with-sandbox ; Google Play Console — Test in-app billing with application licensing — https://support.google.com/googleplay/android-developer/answer/6062777
-
-### LCH-27 [HIGH] Account Deletion Flow Tested End-to-End
-
-**Detect:** App has an account-deletion flow (LCH-09) but no recorded evidence it was exercised end-to-end — request → confirmation → account actually inaccessible/data removed — on a real device before submission.
-
-**Fix:** Run the deletion flow to completion and verify the account can no longer sign in and the data is gone (or scheduled for removal per stated policy) before submitting; record the result.
-
-**Impact:** A deletion flow that exists in code but was never run end-to-end is indistinguishable from a broken one the first time a reviewer or regulator relies on it — the same gap LCH-22 closes for data export, applied to deletion.
-
-**Source:** App Store Review Guidelines 5.1.1(v) (https://developer.apple.com/app-store/review/guidelines/); Play Store Account Deletion Policy.
-
-### LCH-28 [HIGH] Consent Screen and Age-Verification Tested Before Submission
-
-**Detect:** App shows an AI-service consent modal (LCH-08) and/or an age-verification/age-gate flow, but no recorded evidence either was exercised end-to-end on a real device before submission.
-
-**Fix:** Walk through the consent modal and age-verification/age-gate flow on a real device, confirm the correct downstream behavior (data blocked until consent given; age-restricted content blocked below the declared threshold) before submitting; record the result.
-
-**Impact:** An untested consent or age-gate is a silent-failure risk in exactly the two areas stores actively enforce post-launch (AI disclosure, age rating) — a static presence check (LCH-08, LCH-13) confirms the UI exists, not that it actually blocks the right thing.
-
-**Source:** App Store Review Guidelines 5.1.1(i), 5.1.2 (https://developer.apple.com/app-store/review/guidelines/); Play Store Families/Age Policy.
+# Store — technical submission blockers the repo can show
+
+Loaded for apps shipped through an app store. Listing content (name, description, screenshots, positioning) is out of scope. Store minimums (SDK levels, library versions) change: read the value from the build files and compare it with the live requirement page named in the rule. Consent before tracking is PRV-01; in-app AI disclosure is UX-10a.
+
+### REL-02 [CRITICAL] Release build not signed for the store
+- **Detect:** an Android `release` build type using `signingConfigs.debug` or no release signing config; keystore passwords in tracked build files; iOS release archives on a development or ad-hoc profile; an `eas.json` production profile without store distribution credentials. A committed keystore or key file is SEC-01.
+- **Mech:** T `git grep -nIE 'signingConfig[[:space:]]*(=)?[[:space:]]*signingConfigs\.debug|storePassword|keyPassword|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE|"distribution"' -- '*.gradle' '*.kts' '*.properties' '*.pbxproj' 'eas.json'`
+- **Fix:** a release signing config that reads the keystore and passwords from the environment or CI secrets; App Store distribution signing (Xcode automatic signing, fastlane `match`, EAS credentials); Play App Signing for the upload key.
+- **Impact:** the store refuses the upload, or a leaked signing key lets anyone ship updates as the app.
+- **Source:** Android, Sign your app; Apple, Distributing your app for beta testing and releases.
+
+### REL-04 [HIGH] Build number not increasing automatically
+- **Detect:** `versionCode`, `CFBundleVersion`/`CURRENT_PROJECT_VERSION` or the `pubspec.yaml` build number edited by hand or fixed in config; no single version source for both platforms.
+- **Mech:** T `git grep -nIE 'versionCode|CFBundleVersion|CURRENT_PROJECT_VERSION|^version:|"buildNumber"|autoIncrement' -- '*.gradle' '*.kts' '*.plist' '*.pbxproj' 'pubspec.yaml' 'app.json' 'eas.json'`
+- **Fix:** derive the build number in the release step (CI run number, commit count, the build service's auto-increment) from one version source.
+- **Impact:** uploads fail on a reused build number, usually at the end of a release.
+- **Source:** Android, Version your app; Apple, CFBundleVersion.
+
+### STO-01 [CRITICAL] Target SDK or minimum OS out of range
+- **Detect:** Android `targetSdk`/`compileSdk` below Google Play's current target-API requirement; iOS archives built with an Xcode and SDK older than App Store Connect accepts; a minimum OS (`minSdk`, `IPHONEOS_DEPLOYMENT_TARGET`, `platform :ios`) below what the dependencies support.
+- **Mech:** T `git grep -nIE '(targetSdk|targetSdkVersion|compileSdk|compileSdkVersion|minSdk|minSdkVersion)[[:space:]]*(=|:)?[[:space:]]*[0-9]+|IPHONEOS_DEPLOYMENT_TARGET|platform :ios' -- '*.gradle' '*.kts' '*.properties' '*.pbxproj' 'Podfile' 'app.json' 'app.config.*'`
+- **Fix:** raise the target to the current requirement and test that version's behaviour changes; align the minimum OS across the project and its dependencies; build with the required Xcode.
+- **Impact:** the upload is refused, or an existing app stops being offered on recent OS versions.
+- **Source:** Google Play, Target API level requirements (https://developer.android.com/google/play/requirements/target-sdk); Apple, Upcoming requirements (App Store Connect).
+
+### STO-14 [HIGH] Permission without a usage string or without a use
+- **Detect:** iOS APIs for camera, microphone, location, contacts, photos, Bluetooth or tracking used with no `NS*UsageDescription` key in `Info.plist`, or with an empty or generic one; `<uses-permission>` entries (including ones merged from libraries) with no matching API call; Android restricted permissions (SMS, call log, all-files access, exact alarms, background location) without the core feature that needs them.
+- **Mech:** T `git grep -nIE '<uses-permission|NS[A-Za-z]+UsageDescription' -- '*.xml' '*.plist' 'app.json' 'app.config.*'` · `git grep -nIE 'AVCaptureDevice|CLLocationManager|CNContactStore|PHPhotoLibrary|CBCentralManager|AVAudioSession|ATTrackingManager' -- '*.swift' '*.m'`
+- **Fix:** a specific usage string per iOS API, saying what the user gets; remove unused Android permissions (`tools:node="remove"` for merged ones).
+- **Impact:** iOS terminates the app on first access without the string, and review rejects unused or unexplained permissions.
+- **Source:** Apple App Review Guideline 5.1.1; Apple, Requesting access to protected resources; Google Play, Permissions and APIs that access sensitive information.
+
+### STO-03 [CRITICAL] Privacy manifest or store data declaration out of date
+- **Detect:** an iOS app without `PrivacyInfo.xcprivacy`, or one that does not list the required-reason APIs it calls (file timestamps, system boot time, disk space, active keyboards, `UserDefaults`); privacy-label or Data safety answers that do not match the SDKs receiving personal data in PRV-15's data-flow inventory; a new SDK or capability merged without updating the declaration; "encrypted in transit" declared while cleartext traffic is allowed.
+- **Mech:** T `git ls-files | grep -E 'PrivacyInfo\.xcprivacy$'` · `git grep -nIE 'NSFileCreationDate|NSFileModificationDate|creationDate|modificationDate|systemUptime|mach_absolute_time|volumeAvailableCapacity|activeInputModes|UserDefaults' -- '*.swift' '*.m' '*.mm'` · `git grep -nIE 'usesCleartextTraffic="true"|NSAllowsArbitraryLoads' -- '*.xml' '*.plist'`
+- **Fix:** a privacy manifest with every required-reason API; derive the label and Data safety answers from the PRV-15 inventory and update them in the same commit as the SDK or capability.
+- **Impact:** uploads are rejected for missing manifests, and a wrong declaration leads to removal.
+- **Source:** Apple, Privacy manifest files and Describing use of required reason API; Google Play, Data safety section (https://support.google.com/googleplay/android-developer/answer/10787469).
+
+### LCH-09 [HIGH] Account cannot be deleted in the app
+applies_when: auth≠none
+- **Detect:** the app creates accounts but offers no in-app path that deletes the account and its data (deactivation or "email us" is not deletion); no web deletion URL for Google Play; deletion that leaves the store subscription running with no notice.
+- **Mech:** T `git grep -nIiE 'delete.?account|deleteUser|account.?deletion|close.?account' -- ':!*.md'`
+- **Fix:** a delete action in account settings that removes the account and its data server-side (PRV-04), a public web deletion URL for Play, and a note to cancel the store subscription.
+- **Impact:** review rejects the build, and users cannot leave.
+- **Source:** Apple App Review Guideline 5.1.1(v); Google Play, Account deletion requirements.
+
+### VIS-14 [MEDIUM] Icon or launch assets missing a required size
+- **Detect:** iOS `AppIcon.appiconset` without the 1024 px marketing icon or with an alpha channel in it; no launch screen (`UILaunchScreen` or a launch storyboard); Android without an adaptive icon (`mipmap-anydpi-v26` foreground and background), with artwork outside the safe zone, without a monochrome layer, or without a splash configured through the SplashScreen API.
+- **Mech:** T `git ls-files | grep -iE 'AppIcon\.appiconset/|LaunchScreen|mipmap-anydpi|ic_launcher|splash'` · `git grep -nIE 'UILaunchScreen|UILaunchStoryboardName|windowSplashScreen|Theme\.SplashScreen' -- '*.plist' '*.xml'`
+- **Fix:** generate every icon and splash size from one source image with the platform's tool (Xcode single-size icon, Android Studio Image Asset, `flutter_launcher_icons`, Expo config).
+- **Impact:** App Store Connect rejects invalid icons, and launchers show cropped or default icons.
+- **Source:** Apple HIG, App icons and Launching; Android, Adaptive icons and Splash screens.
+
+### LCH-11 [CRITICAL] Digital goods paid outside store billing
+applies_when: billing≠none
+- **Detect:** a store build that sells digital content, subscriptions or features through a web checkout (Stripe, Paddle, PayPal) or a link out to buy, without the store's external-purchase or alternative-billing programme for that storefront; physical goods or services routed through in-app purchase.
+- **Mech:** T `git grep -nIiE 'stripe|paddle|paypal|lemonsqueezy|checkout' -- '*.swift' '*.kt' '*.java' '*.dart' ':!*test*'`
+- **Fix:** the store's in-app purchase for digital goods in store builds, or the platform's external-purchase programme where it applies, checked per storefront.
+- **Impact:** rejection or removal, and revenue held by the store.
+- **Source:** Apple App Review Guideline 3.1.1 and 3.1.3; Google Play, Payments policy.
+
+### STO-05 [HIGH] No restore-purchases path
+applies_when: billing≠none
+- **Detect:** in-app purchases with no visible restore action; entitlements kept only as a local flag instead of re-derived from the store (StoreKit 2 `Transaction.currentEntitlements`, Play Billing `queryPurchasesAsync`, the RevenueCat customer info).
+- **Mech:** T `git grep -nIE 'restorePurchases|restoreCompletedTransactions|currentEntitlements|queryPurchasesAsync|getAvailablePurchases|AppStore\.sync' -- ':!*.md'`
+- **Fix:** a restore button on the paywall and in settings; derive entitlements from the store at start and on restore.
+- **Impact:** paying users on a new device lose what they bought, and review rejects the build.
+- **Source:** Apple App Review Guideline 3.1.1; Google Play Billing, Process purchases.
+
+### STO-21 [HIGH] Purchase states not all handled
+applies_when: billing≠none
+- **Detect:** purchase listeners that handle only success; pending or deferred (Ask to Buy, cash payments) purchases treated as failed or granted; cancelled and already-owned results shown as errors; Play purchases never acknowledged; StoreKit transactions never finished.
+- **Mech:** T `git grep -nIE 'PurchaseStatus\.|purchaseState|PurchaseState\.PENDING|deferred|acknowledgePurchase|finishTransaction|completePurchase|\.finish\(\)' -- ':!*.md'`
+- **Fix:** handle every state the store library defines; grant on a verified purchase, then acknowledge or finish; show pending purchases as pending.
+- **Impact:** Play refunds purchases not acknowledged within three days, and users pay without receiving the item.
+- **Source:** Google Play Billing, Integrate the library (acknowledge purchases); Apple, StoreKit `Transaction.finish()`.
+
+### STO-20 [HIGH] Play Billing Library below the supported version
+applies_when: platforms∋android
+- **Detect:** `com.android.billingclient:billing` (or the version bundled by `in_app_purchase_android`, `react-native-iap`, `purchases_flutter`) older than the minimum Play accepts; deprecated calls such as `querySkuDetailsAsync`.
+- **Mech:** T `git grep -nIE 'com\.android\.billingclient:billing|in_app_purchase_android|react-native-iap|purchases_flutter|querySkuDetailsAsync' -- ':!*.md'`
+- **Fix:** upgrade to a supported major version and migrate deprecated calls; test the purchase flow in the sandbox.
+- **Impact:** Play blocks updates that ship an unsupported billing library.
+- **Source:** Google Play Billing, Deprecation FAQ (https://developer.android.com/google/play/billing/deprecation-faq).
+
+### STO-15 [CRITICAL] Tracking before App Tracking Transparency
+applies_when: platforms∋ios
+- **Detect:** IDFA reads, attribution or ad SDKs started before `ATTrackingManager.requestTrackingAuthorization` resolves; tracking SDKs present with no `NSUserTrackingUsageDescription`; the data declaration (STO-03) claiming tracking with no prompt, or the reverse.
+- **Mech:** T `git grep -nIE 'advertisingIdentifier|requestTrackingAuthorization|app_tracking_transparency|NSUserTrackingUsageDescription|AppsFlyer|Adjust\.|FBSDKCoreKit|GoogleMobileAds' -- ':!*.md'`
+- **Fix:** start tracking SDKs only after an authorized ATT result and in non-tracking mode otherwise; keep the declaration and the prompt consistent.
+- **Impact:** rejection, and tracking of users who refused it.
+- **Source:** Apple App Review Guideline 5.1.2; Apple, App Tracking Transparency framework.
+
+### STO-19 [HIGH] Capability declared without use
+- **Detect:** `UIBackgroundModes` entries (audio, location, voip, fetch, processing, bluetooth) without the matching API use; entitlements (push, Sign in with Apple, iCloud, associated domains) without the feature, or features without the entitlement.
+- **Mech:** T `git grep -nIE -A12 'UIBackgroundModes' -- '*.plist'` · `git ls-files '*.entitlements'`
+- **Fix:** declare exactly what the code uses; reconcile entitlements with the provisioning profile.
+- **Impact:** review rejects unused background modes, and missing entitlements fail at runtime.
+- **Source:** Apple App Review Guideline 2.5.4; Apple, Entitlements.
+
+### STO-22 [HIGH] Foreground service without a declared type
+applies_when: platforms∋android
+- **Detect:** `startForeground()` with no `android:foregroundServiceType` on the service; types without their `FOREGROUND_SERVICE_*` permission; `dataSync` services without `onTimeout`; no matching Play Console declaration.
+- **Mech:** T `git grep -nIE 'startForeground|foregroundServiceType|FOREGROUND_SERVICE' -- ':!*.md'`
+- **Fix:** the correct type and permission per service, `onTimeout` for time-limited types, WorkManager for deferrable work, and the Play Console declaration.
+- **Impact:** the service crashes with `MissingForegroundServiceTypeException`, or the update is rejected.
+- **Source:** Android, Foreground service types (https://developer.android.com/develop/background-work/services/fgs/service-types).
+
+### REL-22 [HIGH] Native libraries not aligned for 16 KB pages
+applies_when: platforms∋android
+- **Detect:** bundled `.so` files (own NDK code or from Flutter, React Native, game engines, ML runtimes) built with 4 KB segment alignment or packaged without 16 KB zip alignment; an outdated NDK or Android Gradle Plugin.
+- **Mech:** T `git ls-files '*.so'` · `git grep -nIE 'ndkVersion|useLegacyPackaging|com\.android\.tools\.build:gradle|com\.android\.application' -- '*.gradle' '*.kts' '*.toml'`
+- **Fix:** build with a current NDK and AGP, update native dependencies to 16 KB-aligned releases, and check with the APK Analyzer or `zipalign -c -P 16`.
+- **Impact:** the app fails to install or crashes on 16 KB devices, and Play rejects the update.
+- **Source:** Android, Support 16 KB page sizes (https://developer.android.com/guide/practices/page-sizes).
+
+### REL-08 [MEDIUM] Wrong release artifact
+- **Detect:** release scripts producing an APK for Google Play instead of an Android App Bundle; debuggable release builds.
+- **Mech:** T `git grep -nIE 'assembleRelease|flutter build apk|debuggable[[:space:]]*(=|:)?[[:space:]]*true' -- ':!*.md'`
+- **Fix:** `bundleRelease` or `flutter build appbundle` for Play; `debuggable false` for release builds.
+- **Impact:** Play refuses the upload, or a debuggable build ships.
+- **Source:** Google Play, Android App Bundles; Android, Prepare your app for release.
+
+### STO-11 [CRITICAL] Third-party login without the Apple-required alternative
+applies_when: platforms∋ios
+- **Detect:** Google, Facebook or other third-party social login in the iOS app with no Sign in with Apple or another login service that limits data to name and email, allows a private email and does not track.
+- **Mech:** T `git grep -nIE 'GoogleSignIn|google_sign_in|FBSDKLoginKit|flutter_facebook_auth|react-native-fbsdk|ASAuthorizationAppleIDProvider|sign_in_with_apple|AppleAuthentication' -- ':!*.md'`
+- **Fix:** add Sign in with Apple (or a qualifying service) with equal prominence, unless the app uses only its own account system.
+- **Impact:** rejection at review.
+- **Source:** Apple App Review Guideline 4.8, Login Services.
+
+### STO-17 [HIGH] Deep links unverified or without a fallback
+- **Detect:** custom URL schemes only; no `applinks:` associated-domains entitlement or `autoVerify` App Links intent filter; unknown or stale link paths that crash or open a blank screen.
+- **Mech:** T `git grep -nIE 'autoVerify|applinks:|apple-app-site-association|assetlinks\.json|CFBundleURLSchemes' -- ':!*.md'`
+- **Fix:** verified Universal Links and App Links with association files matching the team ID, bundle ID, package and signing fingerprint; route unknown paths to a sensible screen.
+- **Impact:** links open the browser or another app, or crash the app.
+- **Source:** Apple, Supporting associated domains; Android, Verify App Links.
+
+### STO-12 [HIGH] Placeholder or test content in the release build
+- **Detect:** user-visible strings or bundled assets with `lorem ipsum`, "coming soon", test accounts or sample data; features switched off remotely in the review build. No-op controls are CMP-16.
+- **Mech:** T `git grep -nIiE 'lorem ipsum|coming soon|under construction|placeholder text|test@test|demo123' -- ':!*test*' ':!*.md'`
+- **Fix:** ship only finished features; remove test data; keep remote flags on for review.
+- **Impact:** incomplete builds are the most common rejection, each costing a review cycle.
+- **Source:** Apple App Review Guideline 2.1, App Completeness; Google Play, Minimum functionality policy.

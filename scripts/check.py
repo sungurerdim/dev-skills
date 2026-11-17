@@ -241,7 +241,7 @@ def self_test() -> int:
         (check_skills, "ds-audit/SKILL.md", lambda s: s + "x" * SKILL_MAX),
         (check_links, "ds-audit/SKILL.md", lambda s: s + "\n[x](../core/missing.md)\n"),
         (check_links, "ds-audit/SKILL.md", lambda s: s + "\n[x](../ds-setup/SKILL.md)\n"),
-        (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-01 [HIGH] Again\n"),
+        (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-09 [HIGH] Again\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-99 [BLOCKER] Severity\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-98 [HIGH] Gate fixture near duplicate title alpha beta\n",
          {"core/rules/ux.md": "\n### UX-998 [LOW] Gate fixture near duplicate title alpha\n"}),
