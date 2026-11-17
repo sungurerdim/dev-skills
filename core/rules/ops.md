@@ -8,6 +8,7 @@ Loaded when the project deploys somewhere (`deploy≠none`); server and containe
 applies_when: deploy=docker or deploy=k8s
 - **Detect:** a Dockerfile that `COPY`s or `ADD`s `.env` files or keys, or passes secrets through `ARG` or `ENV` (both stay in the image history); a build context copied with no `.dockerignore` excluding `.git`, `.env*`, keys and local build output.
 - **Mech:** T `git grep -nIE '^(COPY|ADD)[^#]*\.env|^(ARG|ENV)[[:space:]]+[A-Za-z_]*(TOKEN|SECRET|PASSWORD|PASSWD|API_KEY)' -- '*Dockerfile*' '*.dockerfile'` · `git ls-files '*Dockerfile*' '.dockerignore' '*/.dockerignore'`
+- **Fixture:** hit `Dockerfile: COPY .env /app/.env` · miss `src/build.sh: cp .env dist/`
 - **Fix:** build secrets through `RUN --mount=type=secret`; runtime secrets from the environment or a secret manager; a `.dockerignore` listing `.git`, `.env*`, keys, dependency folders and build output.
 - **Impact:** anyone who can pull the image reads every layer; deleting a file in a later layer does not remove it.
 - **Source:** Docker Docs, Build secrets and Build context (.dockerignore); OWASP Docker Security Cheat Sheet.
@@ -16,6 +17,7 @@ applies_when: deploy=docker or deploy=k8s
 applies_when: deploy=docker or deploy=k8s
 - **Detect:** a final stage with no `USER` (root); a single-stage build shipping compilers and dev dependencies; a full-OS base (`ubuntu`, non-slim `debian`) where a minimal or distroless base works; `FROM` by tag instead of digest; runtime specs without `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false` and dropped capabilities. Covers images the CI builds or runs as well.
 - **Mech:** T `hadolint Dockerfile` · `git ls-files -z '*Dockerfile*' | xargs -0 grep -L '^USER'` · `git grep -nE '^FROM[[:space:]]+[^@[:space:]]+([[:space:]]|$)' -- '*Dockerfile*'`
+- **Fixture:** hit `Dockerfile: FROM debian:12\nRUN apt-get install -y curl` · miss `api/Dockerfile: FROM node:20@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\nUSER node`
 - **Fix:** a multi-stage build copying only runtime artifacts; a minimal or distroless base pinned by `@sha256:`; `USER` a non-root id; a read-only root filesystem with explicit writable mounts; `cap_drop: [ALL]`, adding back only what is needed.
 - **Impact:** code execution in a root, full-OS, writable container comes with a toolchain and an easier host escape; a moving tag changes the image under you.
 - **Source:** Least privilege; CIS Docker Benchmark; Kubernetes Pod Security Standards (restricted); Docker Docs, Multi-stage builds; hadolint.
@@ -24,6 +26,7 @@ applies_when: deploy=docker or deploy=k8s
 applies_when: deploy=docker or deploy=k8s
 - **Detect:** `COPY . .` before the dependency install step of a Dockerfile.
 - **Mech:** T `git grep -nE '^(COPY|ADD)[[:space:]]+\.[[:space:]]|^RUN[[:space:]].*(npm (ci|install)|pip install|uv sync|go mod download|bundle install|composer install)' -- '*Dockerfile*'`
+- **Fixture:** hit `Dockerfile: COPY . .\nRUN npm ci` · miss `web/Dockerfile: COPY package.json ./`
 - **Fix:** copy the manifest and lockfile, install, then copy the source.
 - **Impact:** every code change rebuilds the dependency layer: minutes per build instead of seconds.
 - **Source:** Docker Docs, Optimize cache usage in builds.
@@ -42,6 +45,7 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 applies_when: deploy=docker or deploy=k8s
 - **Detect:** compose services or pods without memory and CPU limits, or without a restart policy (compose defaults to `no`: a crash or reboot leaves the service down).
 - **Mech:** T `git grep -nE 'restart:|mem_limit|limits:|resources:' -- '*compose*.y*ml' '*.yaml'` · `kube-linter lint .`
+- **Fixture:** hit `docker-compose.yml: restart: unless-stopped` · miss `docs/compose-notes.txt: restart: always`
 - **Fix:** limits from measured use plus headroom (`deploy.resources.limits` in compose, `resources.limits` in Kubernetes); `restart: unless-stopped` or the orchestrator's equivalent on every long-running service.
 - **Impact:** one runaway process starves its neighbours; one crash becomes an outage that lasts until someone notices.
 - **Source:** Docker Docs, Start containers automatically; Kubernetes Docs, Resource management for pods and containers; kube-linter.
@@ -50,6 +54,7 @@ applies_when: deploy=docker or deploy=k8s
 applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** IAM policies with `"Action": "*"` or `"Resource": "*"` beyond read-only; ingress open to `0.0.0.0/0` or `::/0` on ports other than 80 and 443; compose ports published on every interface for a service behind a reverse proxy (`"8080:8080"`, not `"127.0.0.1:8080:8080"`); any database or cache port published at all.
 - **Mech:** T `git grep -nIE '"(Action|Resource)"[[:space:]]*:[[:space:]]*"\*"|0\.0\.0\.0/0|::/0' -- '*.tf' '*.json' '*.yaml' '*.yml'` · `git grep -nE '^[[:space:]]*-[[:space:]]*"?[0-9]+:[0-9]+' -- '*compose*.y*ml'`
+- **Fixture:** hit `infra/sg.tf: cidr_blocks = ["0.0.0.0/0"]` · hit `docker-compose.yml: ports:\n  - "5432:5432"` · miss `infra/sg2.tf: cidr_blocks = ["10.0.0.0/8"]` · miss `compose.prod.yml: ports:\n  - "127.0.0.1:5432:5432"`
 - **Fix:** least-privilege roles naming actions and resources; ingress limited to the ports and sources needed; proxied ports bound to `127.0.0.1`; datastores reached only over the internal network.
 - **Impact:** internet scanners find an open datastore port within hours; a wildcard role turns one compromised component into the whole account.
 - **Source:** OWASP Docker Security Cheat Sheet; AWS IAM best practices (least privilege); CIS Benchmarks.
@@ -57,6 +62,7 @@ applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or
 ### DEP-20 [CRITICAL] Critical config defaulted, placeholder or overridable in production
 - **Detect:** code defaults for salts, secrets, connection strings, prices, rate limits, endpoints or debug and mock switches (`process.env.X || 'value'`, `os.getenv('X', 'value')`); startup that accepts the `.env.example` placeholder; backing services (database, cache, queue, mail) hard-wired to a host instead of a URL from the environment; production commands relying on default file resolution where a dev override can exist (`docker compose up` beside a `compose.override.yml`).
 - **Mech:** T `git grep -nIE "process\.env\.[A-Z_]+[[:space:]]*(\|\||\?\?)|getenv\([^)]*,|environ\.get\([^)]*," -- ':!*test*' ':!*.md'` · `git ls-files '*compose.override*' '*.env.local' '*.env.development'`
+- **Fixture:** hit `src/config.js: const port = process.env.PORT || 3000` · hit `.env.local: DEBUG=1` · miss `src/b.js: const port = requirePort()`
 - **Fix:** no code default for security-, money- or environment-critical values: validate them at startup and exit with a clear message when missing or equal to a known placeholder; every backing service attached by a URL from the environment; production commands name their files (`-f compose.yml -f compose.prod.yml`).
 - **Impact:** a service on a public example salt, a default price or a wrong-environment endpoint passes its health check while it leaks or bills wrong.
 - **Source:** Fail fast; Secure / private by default; Twelve-Factor III (Config) and IV (Backing services); CWE-1188 (insecure default initialization).
@@ -81,6 +87,7 @@ applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or
 applies_when: ui∋web or api≠none
 - **Detect:** `includeSubDomains` or `preload` set, or the domain submitted to hstspreload.org, while a subdomain still needs plain HTTP; preload with `max-age` below 31536000. The header itself is NWK-03.
 - **Mech:** T `git grep -nIE 'includeSubDomains|preload' -- ':!*.md' ':!*.lock'`
+- **Fixture:** hit `nginx.conf: add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";` · miss `nginx2.conf: add_header X-Frame-Options DENY;`
 - **Fix:** confirm every subdomain serves HTTPS, raise `max-age` in steps, add `includeSubDomains`, then `preload`.
 - **Impact:** removal from the preload list takes months; a subdomain that still needs HTTP is unreachable in browsers meanwhile.
 - **Source:** hstspreload.org submission requirements; RFC 6797.
@@ -91,6 +98,7 @@ applies_when: ui∋web or api≠none
 applies_when: deploy=vps
 - **Detect:** in provisioning scripts or on the host: SSH password or root login allowed, no default-deny firewall, no brute-force throttling on SSH, no automatic security updates, running services the stack does not use (`systemctl list-units --type=service --state=running`), no mandatory access control and no audit log.
 - **Mech:** T `git grep -nIE 'PermitRootLogin|PasswordAuthentication|ufw|nftables|iptables|fail2ban|unattended-upgrades|dnf-automatic' -- ':!*.md'`
+- **Fixture:** hit `ansible/ssh.yml: line: "PermitRootLogin no"` · miss `ansible/b.yml: name: install app`
 - **Fix:** `PermitRootLogin no` and `PasswordAuthentication no`; a default-deny firewall allowing SSH and HTTP(S) only; fail2ban or equivalent; unattended security upgrades; disable unmapped services; AppArmor or SELinux enforcing; run a hardening scan (Lynis) after setup and after each distribution upgrade.
 - **Impact:** scanners find and try a fresh VPS within hours; each missing layer is a known entry path.
 - **Source:** Least privilege; Secure / private by default; CIS Benchmarks (Linux distributions); OpenBSD manual, sshd_config(5); Lynis.
@@ -99,6 +107,7 @@ applies_when: deploy=vps
 applies_when: db≠none
 - **Detect:** no backup of persistent data; a backup step that never checks its output is non-empty and restorable; every copy on the source host or medium, none offsite and none immutable (object lock, WORM); backups unencrypted or deletable with production admin credentials; no retention tiers (unbounded growth or ad-hoc deletes); no recorded restore test, recovery point or recovery time target.
 - **Mech:** T `git grep -nIE 'pg_dump|pg_basebackup|mysqldump|mongodump|restic|borg|rclone|litestream|wal-g|pgbackrest|\.backup' -- ':!*.md'`
+- **Fixture:** hit `ops/backup.sh: pg_dump app > app.sql` · miss `ops/b.sh: echo done`
 - **Fix:** 3-2-1-1-0: three copies, two media, one offsite, one immutable, zero errors on a restore test; encrypt before a copy leaves the host (restic and borg do by default; else `age` or `gpg`), key in the secret manager and never beside the backup; separate credentials for the backup target; tiered retention (`restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune`); a provider's managed point-in-time backup or continuous replication (Litestream, WAL archiving) counts; restore into a scratch environment before each major release and record the result.
 - **Impact:** a backup that silently wrote nothing, shares the host, or dies with stolen production credentials is gone the day it is needed; an unencrypted offsite copy is a breach of its own.
 - **Source:** Reversibility; CISA #StopRansomware Guide (backups); restic documentation; GDPR Art. 32(1)(c).
@@ -107,6 +116,7 @@ applies_when: db≠none
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** no written first-minutes triage order, no map from failure to rollback command with its expected downtime, or major incidents closed without a post-mortem carrying a timeline, root cause and owned, dated action items.
 - **Mech:** T `git ls-files | grep -qiE 'runbook|playbook|incident|post-?mortem' || echo 'no runbook or incident document tracked'`
+- **Fixture:** says `no runbook or incident document tracked` · miss `docs/ops.txt: Restart with make restart.` · quiet `docs/runbook.md: # Runbook`
 - **Fix:** one runbook: triage (real or false alarm, process up, recent errors, dependencies reachable, host resources) → severity (down, degraded, minor); rollback per scenario (bad deploy → previous image or `kubectl rollout undo`; bad migration → restore plus previous image; host loss → redeploy from IaC; bad data → point-in-time restore); a post-mortem stub created when an incident closes.
 - **Impact:** the slowest or riskiest rollback gets chosen under pressure, and the same failure comes back.
 - **Source:** Reversibility; Google SRE Workbook, Incident response and Postmortem culture.
@@ -117,6 +127,7 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** production code paths logging with `print`, `console.log`, `fmt.Println`, `System.out.println` or format strings instead of a structured logger; log lines without timestamp, level and a request or trace ID.
 - **Mech:** T `git grep -nE 'console\.log\(|^[[:space:]]*print\(|fmt\.Print(ln|f)?\(|System\.out\.print' -- ':!*test*' ':!*.md' ':!scripts/*'`
+- **Fixture:** hit `src/app.js: console.log(user)` · miss `scripts/dev.js: console.log("dev")` · miss `src/b.js: logger.info(user)`
 - **Fix:** one structured logger writing JSON to stdout (structlog, pino, `log/slog`, Serilog) with timestamp, level, message, request ID and context fields; personal data per SAR-02.
 - **Impact:** free-text logs cannot be filtered, correlated or alerted on, and parsers break when the wording changes.
 - **Source:** OpenTelemetry Logs data model; Twelve-Factor XI (Logs).
@@ -125,6 +136,7 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** no health endpoint or container `HEALTHCHECK`; one endpoint that both restarts the process and checks dependencies; a queue consumer whose health ignores how long the oldest job has waited; no build version in the health response.
 - **Mech:** T `git grep -nIE 'healthz|readyz|livez|/health|HEALTHCHECK|livenessProbe|readinessProbe' -- ':!*.md'`
+- **Fixture:** hit `src/app.js: app.get('/healthz', ok)` · miss `src/b.js: app.get('/users', list)`
 - **Fix:** liveness (`/healthz`) answers 200 while the process runs and checks nothing else; readiness (`/readyz`) checks database, cache and critical dependencies and returns 503 when degraded, and for a queue consumer compares the oldest item's wait with a threshold; both report the deployed version; probes and `HEALTHCHECK` point at them.
 - **Impact:** a dependency blip restarts healthy instances, while a wedged worker stays green and jobs pile up unseen.
 - **Source:** Kubernetes Docs, Configure liveness, readiness and startup probes.
@@ -132,6 +144,7 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 ### OBS-03 [HIGH] Errors and crashes reach no one
 - **Detect:** servers with no alert on error-rate spikes, sustained 5xx or failing health; shipped apps with no crash reporting, or crash reports without symbols (dSYM, `mapping.txt` or PDB not uploaded at release); a third-party crash SDK sending personal data unscrubbed, with no opt-in where personal data flows; an app whose uncaught-error hooks are not all bound at start to that one reporter (Flutter `runZonedGuarded`, `FlutterError.onError` and `PlatformDispatcher.instance.onError`; browser `error` and `unhandledrejection`; Node `uncaughtException` and `unhandledRejection`), or that routes handled business errors into them.
 - **Mech:** T `git grep -nIiE 'sentry|crashlytics|bugsnag|rollbar|honeybadger|glitchtip|alertmanager|opsgenie|pagerduty' -- ':!*.md' ':!*.lock'`
+- **Fixture:** hit `src/main.py: import sentry_sdk` · miss `src/b.py: import logging`
 - **Fix:** choose deliberately, lightest first: the platform's own crash reports (App Store Connect, Play Console Android vitals, Windows Error Reporting) or a self-hosted collector, a third-party SDK only for a need those miss, with scrubbing and opt-in where personal data flows; symbols uploaded by the release step; every uncaught-error hook bound at start to the one reporter, business errors handled at their site; one alert channel the developer reads.
 - **Impact:** outages and crashes are learned from users, hours or days late; each unbound hook is a class of crashes that leaves no report.
 - **Source:** Fail fast; Google SRE Book, Monitoring distributed systems; Flutter, Handling errors in Flutter; GDPR Art. 25 (data protection by default).
@@ -140,6 +153,7 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** several services calling each other with no trace context propagation; a single service whose logs carry no request ID.
 - **Mech:** T `git grep -nIiE 'opentelemetry|traceparent|x-request-id|request_id|correlation.?id' -- ':!*.md' ':!*.lock'`
+- **Fixture:** hit `src/mw.js: const id = req.headers['x-request-id']` · miss `src/b.js: const id = req.params.id`
 - **Fix:** one service: a request ID created at the edge and logged on every line; several: the OpenTelemetry SDK with W3C Trace Context.
 - **Impact:** one user request becomes unconnected log streams, and debugging means matching timestamps by hand.
 - **Source:** W3C Trace Context; OpenTelemetry specification.
@@ -164,6 +178,7 @@ applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** the app writing and rotating its own log files instead of stdout; Docker's `json-file` driver without `max-size` and `max-file`, journald without size limits, or log files without logrotate; several services or real traffic with logs only on each host.
 - **Mech:** T `git grep -nIE 'max-size|max-file|log-opts|logrotate|SystemMaxUse|RotatingFileHandler|FileHandler|transports\.File' -- ':!*.md'`
+- **Fixture:** hit `src/log.py: handler = RotatingFileHandler("app.log", maxBytes=10_000_000)` · miss `src/b.py: handler = StreamHandler()`
 - **Fix:** the app writes one event stream to stdout; the runtime bounds it (`--log-opt max-size=50m --log-opt max-file=5`, or daemon-wide in `daemon.json`; journald `SystemMaxUse`); with several services or real traffic, ship to one aggregator (Loki or a managed service) with a set retention (COST-04).
 - **Impact:** unbounded logs fill the disk and stop the service; logs spread over hosts turn a cross-service incident into hand-correlation.
 - **Source:** Twelve-Factor XI (Logs); Docker Docs, JSON File logging driver.
@@ -198,6 +213,7 @@ applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or
 applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** buckets without lifecycle rules; log groups set to never expire; CI artifacts and container registries keeping every build and tag. Backup retention is DEP-31.
 - **Mech:** T `git grep -qIE 'lifecycle_rule|LifecycleConfiguration|retention_in_days|RetentionInDays|lifecyclePolicy|retention-days' -- ':!*.md' || echo 'no storage lifecycle or retention setting in tracked code'`
+- **Fixture:** says `no storage lifecycle or retention setting in tracked code` · miss `infra/bucket.tf: resource "aws_s3_bucket" "logs" {}` · quiet `infra/logs.tf: retention_in_days = 30`
 - **Fix:** lifecycle rules (infrequent-access tier after 30 days, archive after 90, delete at the retention window); log retention set explicitly; CI artifacts kept for N builds or days; registry policies deleting untagged and old non-production images.
 - **Impact:** storage with no expiry grows every month and is paid for forever.
 - **Source:** AWS S3 Lifecycle; Google Cloud Object Lifecycle Management; Amazon ECR lifecycle policies.
@@ -206,6 +222,7 @@ applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or
 applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
 - **Detect:** IaC resources without the cost tags the project uses (service and environment at least) and nothing enforcing them at creation.
 - **Mech:** T `git ls-files '*.tf' '*.tf.json' 'Pulumi.yaml' '*.template.yaml' '*.template.json'`
+- **Fixture:** hit `infra/main.tf: provider "aws" {}` · miss `src/app.py: print(1)`
 - **Fix:** default tags in the provider block, or a policy rule (tflint, the cloud's tag policies); untagged spend is a finding.
 - **Impact:** nobody can say which service or environment a cost line belongs to, so nothing gets cut.
 - **Source:** FinOps Foundation, Cost allocation.

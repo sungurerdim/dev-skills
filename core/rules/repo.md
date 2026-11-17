@@ -19,6 +19,7 @@ Host settings are read with the host's CLI (`gh api …`, `glab api …`), which
 ### RPO-04 [MEDIUM] Team repo without owners for sensitive paths
 - **Detect:** more than one committer in the last year and no `CODEOWNERS`, or one that misses CI config, infrastructure, auth, migrations and API contracts, or names users or teams that no longer exist.
 - **Mech:** T `git shortlog -sn --since=1.year HEAD` · `git ls-files | grep -E '(^|/)CODEOWNERS$'`
+- **Fixture:** says `fixture-author` · hit `.github/CODEOWNERS: * @team` · miss `docs/OWNERS.txt: team`
 - **Fix:** a `CODEOWNERS` file (`.github/` on GitHub; root, `docs/` or `.gitlab/` on GitLab) mapping those paths to accountable owners.
 - **Impact:** a change to a sensitive path is reviewed by whoever notices it, not by the person accountable for it.
 - **Source:** GitHub Docs, About code owners; GitLab Docs, Code owners.
@@ -26,6 +27,7 @@ Host settings are read with the host's CLI (`gh api …`, `glab api …`), which
 ### RPO-06 [MEDIUM] Stale branches and oversized history
 - **Detect:** branches untouched for over 30 days with no open PR; branches merged into the default and not deleted; remote-tracking refs whose upstream is gone; blobs over 10 MB anywhere in history.
 - **Mech:** T `git for-each-ref --sort=committerdate --format='%(committerdate:short) %(refname:short)' refs/heads refs/remotes` · `git branch -r --merged HEAD` · `git rev-list --objects --all | git cat-file --batch-check='%(objectsize) %(objectname) %(rest)' | awk '$1 > 10485760'`
+- **Fixture:** history
 - **Fix:** delete merged branches and prune remotes (`git remote prune origin`); unmerged stale branches and history rewrites (`git filter-repo --strip-blobs-bigger-than 10M`, or Git LFS to keep the file) are `only you can do`: they lose commits or break every clone.
 - **Impact:** dead branches hide which work is live; large blobs slow every clone for good.
 - **Source:** git-filter-repo; Git LFS; Pro Git, Branch management.
@@ -34,6 +36,7 @@ Host settings are read with the host's CLI (`gh api …`, `glab api …`), which
 applies_when: public_repo=yes
 - **Detect:** no `LICENSE` with an SPDX-listed licence, or `SPDX-License-Identifier` headers that disagree with it; no `SECURITY.md` naming a private reporting channel and a response time; no `CONTRIBUTING.md` (setup, tests, PR expectations). Dependency licence compatibility is SEC-14.
 - **Mech:** T `for n in 'LICEN[CS]E|COPYING' SECURITY CONTRIBUTING; do git ls-files | grep -qiE "(^|/)($n)(\.[a-z]+)?$" || echo "no $n file tracked"; done` · `git grep -hoIE 'SPDX-License-Identifier:[[:space:]]*[^[:space:]*]+' -- ':!*.md' | sort | uniq -c | awk '{l[NR]=$0} END{if(NR>1)for(i=1;i<=NR;i++)print l[i]}'`
+- **Fixture:** says `no SECURITY file tracked` · says `no CONTRIBUTING file tracked` · hit `src/a.txt: SPDX-License-Identifier: MIT` · hit `src/b.txt: SPDX-License-Identifier: Apache-2.0` · miss `LICENSE: MIT License` · quiet `SECURITY.md: Report to the maintainer.` · quiet `CONTRIBUTING.md: Pull requests welcome.`
 - **Fix:** add the missing files (SECURITY.md: supported versions, private channel, acknowledgement time); keep SPDX headers consistent with LICENSE.
 - **Impact:** without a licence the code is not open for reuse; without a private channel a found vulnerability goes public before a fix.
 - **Source:** GitHub Docs, Community health files; SPDX License List; REUSE specification.
@@ -49,6 +52,7 @@ applies_when: public_repo=yes
 ### RPO-11 [HIGH] Tracked files depend on something outside the repository
 - **Detect:** a tracked file pointing at an absolute machine-local path (`/Users/…`, `/home/…`, `C:\Users\…`) for a rule, spec, decision log, script or generator the project needs; a governing document that exists in one untracked copy.
 - **Mech:** T `git grep -nIE '(/Users/|/home/|[A-Z]:.Users.)[A-Za-z0-9._-]+' -- . ':!*.lock'`
+- **Fixture:** hit `config/dev.json: "root": "/Users/alice/app"` · miss `config/prod.json: "root": "/srv/app"`
 - **Fix:** move the artifact into the repo (or a versioned sibling repo) and reference it relatively; machine-specific values come from the environment.
 - **Impact:** it works on one machine only; losing that machine loses the artifact and its history.
 - **Source:** Twelve-Factor I (Codebase) and III (Config).

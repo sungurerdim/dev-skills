@@ -12,6 +12,7 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 ### UX-09 [HIGH] Error message without cause or way forward
 - **Detect:** "Something went wrong" with no cause and no next step; raw codes, exception text or `undefined`/`null`/`[object Object]` shown to users; no retry, edit or support path; a field error shown as a page toast, or a blocking error shown only as a toast that disappears.
 - **Mech:** T `git grep -nIiE '["'"'"'](something went wrong|an error occurred|unknown error|error!?)["'"'"']' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `src/a.js: toast("Something went wrong")` · miss `src/b.js: toast("Could not save: disk full")`
 - **Fix:** say what happened, why if known, and what to do, in the user's words; field errors inline at the field, page errors in a persistent banner, transient recoverable issues as a non-blocking notice.
 - **Impact:** users cannot recover on their own, so the error becomes a support ticket or a lost user.
 - **Source:** Fail fast; Nielsen heuristic 9; NN/g, Error-Message Guidelines.
@@ -19,6 +20,7 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 ### CMP-13 [HIGH] Failure shown as an empty state
 - **Detect:** a fetch `catch` that sets the list to empty without an error flag; permission or authentication failures (401/403) rendered as "nothing here"; one `isEmpty` branch for both no-data and failed-load.
 - **Mech:** T `git grep -nIE 'catch.*(set[A-Z][A-Za-z]*\(\[\]\)|= \[\]|emptyList\(\)|const \[\])' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `src/a.js: } catch (e) { setItems([]) }` · miss `src/b.js: } catch (e) { setError(e) }`
 - **Fix:** separate loading, empty, error and forbidden states in the data type; render each differently, with retry on error and an access path on forbidden.
 - **Impact:** users conclude their data is gone and re-create or abandon it while the real failure stays hidden.
 - **Source:** Fail fast; Nielsen heuristics 1 and 9; ARC-06 (errors signalled consistently).
@@ -40,6 +42,7 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 ### UX-NS-01 [HIGH] Unsaved input lost on leave or reload
 - **Detect:** forms, editors or flows with unsaved input that browser back, a nav link, a tab close, an app-update reload or a system back gesture discards without warning; autosave with no saved/unsaved indicator.
 - **Mech:** T `git grep -nIE 'beforeunload|useBlocker|beforeRouteLeave|canDeactivate|PopScope|WillPopScope|onBackPressed' -- ':!*.md'`
+- **Fixture:** hit `src/a.js: window.addEventListener("beforeunload", warn)` · miss `src/b.js: window.addEventListener("load", init)`
 - **Fix:** autosave drafts or warn on leave when input is dirty; snapshot and restore form state across forced reloads; show the save status.
 - **Impact:** users lose minutes of work to a single click and stop trusting the product.
 - **Source:** Nielsen heuristic 3; MDN, beforeunload event and Page Lifecycle API.
@@ -75,6 +78,7 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 ### UX-LX-03 [MEDIUM] Platform conventions overridden
 - **Detect:** scroll hijacking; browser or system back not undoing the last navigation; the native context menu, text selection or zoom suppressed with no replacement; custom controls replacing standard ones (date picker, select, share sheet) without need; desktop apps without the platform's menu, shortcut and window conventions.
 - **Mech:** T `git grep -nIE 'contextmenu.*preventDefault|user-select:[[:space:]]*none|history\.pushState|wheel.*preventDefault' -- ':!*.md'`
+- **Fixture:** hit `a.css: body { user-select: none; }` · miss `b.css: body { user-select: text; }`
 - **Fix:** keep native behaviour unless the replacement is strictly better and complete; when replacing, support the same keys, gestures and accessibility.
 - **Impact:** users' habits from every other app fail here, which reads as broken.
 - **Source:** Least astonishment; Laws of UX, Jakob's Law; Apple Human Interface Guidelines; Material Design; Microsoft Windows app design guidelines.
@@ -110,6 +114,7 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 ### UX-DP-01 [HIGH] Choices preselected against the user
 - **Detect:** pre-checked boxes for marketing, data sharing, add-ons, donations or upgrades; the paid option preselected while the free path is visually demoted; decline options worded to shame ("No, I like paying more") or styled to disappear; repeated prompts after a "no".
 - **Mech:** T `git grep -nIE '(checked|defaultChecked|value:[[:space:]]*true|initialValue:[[:space:]]*true)' -- ':!*test*' ':!*.md' | grep -iE 'consent|marketing|newsletter|share|addon|add_on|upsell|tip|donat'`
+- **Fixture:** hit `src/a.jsx: <input type="checkbox" name="marketing" defaultChecked />` · miss `src/b.jsx: <input type="checkbox" name="terms" />` · miss `src/c.jsx: <input type="checkbox" name="remember" defaultChecked />`
 - **Fix:** opt-in defaults, accept and decline of equal visual weight in neutral words, one prompt per decision.
 - **Impact:** users end up with purchases and sharing they did not choose, and consent obtained this way does not count (PRV-01).
 - **Source:** Secure / private by default; deceptive.design, types catalogue (preselection, confirmshaming, nagging); GDPR Art. 4(11).
@@ -117,6 +122,7 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 ### UX-WR-01 [MEDIUM] Labels that do not name the outcome
 - **Detect:** `OK`, `Submit`, `Yes`, `Continue` on consequential steps where the outcome is nameable; confirmation buttons that do not answer the dialog's question; internal jargon or field names in user copy.
 - **Mech:** T `git grep -nIE '>[[:space:]]*(OK|Ok|Submit|Yes|No)[[:space:]]*<|["'"'"'](OK|Submit|Yes|No)["'"'"']' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte' '*.dart' '*.swift' '*.kt'`
+- **Fixture:** hit `src/a.jsx: <button>OK</button>` · miss `src/b.jsx: <button>Save draft</button>`
 - **Fix:** verb plus object on every action ("Save changes", "Delete 3 files"); dialog buttons that repeat the verb from the title.
 - **Impact:** users confirm the wrong thing, most dangerously in destructive dialogs.
 - **Source:** Least astonishment; Nielsen heuristic 2, match between system and the real world; Apple HIG, Writing; Material Design, Writing.
@@ -153,6 +159,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### CMP-16 [HIGH] Control or route that does nothing
 - **Detect:** enabled controls with an empty handler, a `console.log`/`print` only, `href="#"` without a handler, `onPressed: () {}`; routes and screens rendering only a placeholder ("coming soon", `TODO`); menu items for unbuilt features.
 - **Mech:** T `git grep -nIE 'href="#"|onPressed:[[:space:]]*\(\)[[:space:]]*\{[[:space:]]*\}|onClick=\{\(\)[[:space:]]*=>[[:space:]]*\{\}\}|@click="\(\)[[:space:]]*=>[[:space:]]*\{\}"|coming soon|NotImplementedError' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `index.html: <a href="#">Pricing</a>` · miss `index2.html: <a href="/pricing">Pricing</a>`
 - **Fix:** wire the action, or remove or hide the control and route until it works.
 - **Impact:** users hit dead ends, and store reviewers reject incomplete apps (STO-12).
 - **Source:** Least astonishment; Nielsen heuristic 1; Apple App Review Guideline 2.1, App Completeness.
@@ -160,6 +167,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### INT-01 [MEDIUM] Animation durations outside the usable range
 - **Detect:** UI transitions under ~100 ms (unseen) or over ~500 ms (blocking) for routine feedback; durations and easings as literals scattered per component rather than motion tokens; linear easing on movement.
 - **Mech:** T `git grep -nIE '(transition|animation)[^;]*[0-9]{4,}ms|milliseconds:[[:space:]]*[0-9]{4,}|duration:[[:space:]]*[0-9]{4,}' -- ':!*.md'`
+- **Fixture:** hit `a.css: .x { transition: opacity 1500ms; }` · miss `b.css: .x { transition: opacity 150ms; }`
 - **Fix:** a small set of duration and easing tokens (short ~100–200 ms, medium ~250–400 ms); reduced-motion handling per AXE-12.
 - **Impact:** slow motion makes every interaction wait; inconsistent motion looks unfinished.
 - **Source:** DRY / single source of truth; Material Design 3, Easing and duration; Apple HIG, Motion.
@@ -167,6 +175,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### TOK-01 [HIGH] Colours outside the token set
 - **Detect:** hex, `rgb()`, `hsl()` or platform colour literals in components instead of semantic tokens (surface, on-surface, primary, error); tokens named by hue (`blue-500`) used directly in components; status colours that are hard to tell apart or used against meaning (green for an error, red for success). Detector of SIM-06.
 - **Mech:** T `git grep -nIE '(^|[^&])#[0-9a-fA-F]{3,8}([^0-9a-zA-Z_-]|$)|rgba?\(|hsla?\(' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte' '*.jsx' '*.tsx' ':!*token*' ':!*theme*' ':!*variables*'` · `git grep -nIE 'Color\(0x[0-9A-Fa-f]{8}\)|Colors\.[a-z]+[^a-zA-Z]' -- '*.dart' ':!*theme*'`
+- **Fixture:** hit `src/a.css: .x { color: #ff0000; }` · hit `lib/a.dart: color: Color(0xFF112233),` · miss `src/theme.css: .x { color: #00ff00; }` · miss `src/b.css: .x { color: var(--brand); }` · miss `lib/theme.dart: color: Color(0xFF445566),`
 - **Fix:** primitive palette → semantic tokens → components; components reference semantic tokens only; one meaning per status colour.
 - **Impact:** a brand or theme change misses screens, and dark mode breaks wherever a literal hides.
 - **Source:** DRY / single source of truth; W3C Design Tokens Community Group, Format Module; Material Design 3, Color roles; SIM-06.
@@ -174,6 +183,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### TOK-02 [MEDIUM] Spacing, radius and elevation off the scale
 - **Detect:** padding, margin and gap values outside one base-unit scale (4 or 8, chosen once); more than ~5 distinct corner radii; shadow or elevation literals per component; the same role (card padding, panel header) using different steps in different places.
 - **Mech:** T `git grep -nIE '(margin|padding|gap|border-radius)[a-z-]*:[^;]*[0-9]+px' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'EdgeInsets\.[a-zA-Z]+\([^)]*[0-9]|BorderRadius\.circular\([0-9]|elevation:[[:space:]]*[0-9]' -- '*.dart' ':!*theme*'`
+- **Fixture:** hit `src/a.css: .x { padding: 12px; }` · hit `lib/a.dart: padding: EdgeInsets.all(12),` · miss `src/b.css: .x { padding: var(--space-3); }` · miss `lib/b.dart: padding: EdgeInsets.all(Space.m),`
 - **Fix:** spacing, radius and elevation tokens with role names on top (`space-card`, `radius-control`); enforce with a linter rule (stylelint `declaration-property-value-allowed-list`, a custom lint) where the stack has one.
 - **Impact:** layouts drift by a few pixels everywhere, and every spacing change becomes a hunt.
 - **Source:** DRY / single source of truth; Material Design, Layout spacing; W3C Design Tokens Community Group; SIM-06.
@@ -181,6 +191,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### TOK-03 [MEDIUM] Type off the scale or hard to read
 - **Detect:** font sizes outside the type scale; body text smaller than the platform's default body style or any text under 11 pt/sp; body line height outside ~1.4–1.6; prose lines wider than ~80 characters.
 - **Mech:** T `git grep -nIE 'font-size:[[:space:]]*[0-9.]+px' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'fontSize:[[:space:]]*[0-9]' -- '*.dart' '*.jsx' '*.tsx' ':!*theme*'`
+- **Fixture:** hit `src/a.css: .x { font-size: 14px; }` · hit `src/A.tsx: <Text style={{ fontSize: 14 }} />` · miss `src/b.css: .x { font-size: 1rem; }` · miss `src/B.tsx: <Text style={{ fontSize: theme.body }} />`
 - **Fix:** a named type scale (display, title, body, label) in tokens or the platform text styles; `max-width` around 65ch on prose.
 - **Impact:** text that is too small, cramped or too wide slows reading and drives zooming.
 - **Source:** Material Design 3, Type scale; Apple HIG, Typography; WCAG 2.2 SC 1.4.8 (AAA, line length).
@@ -188,6 +199,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### THM-03 [MEDIUM] Theme ignores the system setting
 - **Detect:** light or dark forced with no system option; web pages without `color-scheme` (native controls and scrollbars stay light in dark mode) and no `prefers-color-scheme`; native apps not following `ThemeMode.system`, `UITraitCollection` or `isSystemInDarkTheme()`; the user's explicit choice not persisted.
 - **Mech:** T `git grep -qIE 'prefers-color-scheme|color-scheme|ThemeMode\.system|isSystemInDarkTheme|userInterfaceStyle|AppCompatDelegate\.setDefaultNightMode' -- ':!*.md' || echo 'no system theme handling in tracked code'` · `git grep -nIE 'ThemeMode\.(light|dark)|color-scheme:[[:space:]]*(light|dark)[[:space:]]*;|overrideUserInterfaceStyle' -- ':!*.md'`
+- **Fixture:** says `no system theme handling in tracked code` · hit `lib/app.dart: themeMode: ThemeMode.dark,` · miss `lib/b.dart: theme: ThemeData(),` · quiet `lib/c.dart: themeMode: ThemeMode.system,`
 - **Fix:** default to the system theme, offer light/dark/system, persist the choice; declare `color-scheme` on the root.
 - **Impact:** a bright screen at night, or mismatched native controls, on every visit.
 - **Source:** Least astonishment; MDN, prefers-color-scheme and color-scheme; Apple HIG, Dark Mode; Material Design, Dark theme.
@@ -209,6 +221,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### RSP-04 [HIGH] Text overflows its container
 - **Detect:** long words, URLs, user names or translated strings that overflow fixed-width rows, buttons and table cells; flex children without `min-width: 0`; no wrapping or truncation policy; Flutter `Row` with unbounded `Text` (overflow stripes), fixed-width native labels.
 - **Mech:** T `git grep -nIE 'white-space:[[:space:]]*nowrap' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte'`
+- **Fixture:** hit `a.css: .x { white-space: nowrap; }` · miss `b.css: .x { white-space: normal; }`
 - **Fix:** wrap by default; truncate deliberately with the full text available (tooltip or detail view); `min-width: 0` and `overflow-wrap: anywhere` where needed; `Flexible`/`Expanded` around native text; test with long and translated strings (I18N-01 pseudo-locale).
 - **Impact:** overflowing text hides content or controls, worst in longer languages.
 - **Source:** MDN, overflow-wrap and text-overflow; Flutter, Common Flutter errors (RenderFlex overflowed).
@@ -223,6 +236,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### RSP-16 [LOW] Numbers misaligned in tables and lists
 - **Detect:** numeric columns (amounts, counts, dates) left- or centre-aligned or in proportional figures; headers aligned differently from their column.
 - **Mech:** T `git grep -qIE 'tabular-nums|tnum|FontFeature\.tabularFigures|monospacedDigit' -- ':!*.md' || git grep -lIE '<(table|td)[[:space:]>]|DataTable' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte' '*.dart'`
+- **Fixture:** hit `src/Table.tsx: <table><td>1</td></table>` · miss `src/Card.tsx: <div>card</div>` · quiet `src/num.css: td { font-variant-numeric: tabular-nums; }`
 - **Fix:** right-align numbers with tabular figures; align headers with their data.
 - **Impact:** users misread magnitudes when digits do not line up.
 - **Source:** Butterick, Practical Typography (tabular figures).
@@ -230,6 +244,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 ### VIS-22 [LOW] Images stretched out of aspect ratio
 - **Detect:** images scaled with fill modes that distort (`BoxFit.fill`, `resizeMode="stretch"`, `.scaleToFill`, `object-fit: fill`); mixed aspect ratios in one grid.
 - **Mech:** T `git grep -nIE 'BoxFit\.fill|resizeMode=.?.?stretch|scaleToFill|object-fit:[[:space:]]*fill' -- ':!*.md'`
+- **Fixture:** hit `lib/a.dart: Image.asset("x.png", fit: BoxFit.fill)` · miss `lib/b.dart: Image.asset("x.png", fit: BoxFit.cover)`
 - **Fix:** cover or contain with a fixed aspect-ratio box.
 - **Impact:** distorted photos and logos look broken.
 - **Source:** MDN, object-fit; Flutter, BoxFit.
