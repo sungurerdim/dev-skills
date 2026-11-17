@@ -11,7 +11,7 @@ Loaded for web UIs (`ui∋web`). Behaviour every graphical UI shares is in [ux.m
 
 ### WEB-05 [HIGH] Layout breaks on narrow viewports
 - **Detect:** an HTML entry point with no `<meta name="viewport" content="width=device-width…">`; fixed pixel widths on containers wider than a phone without `max-width`; tables, code blocks or wide media with no scroll container; horizontal scroll at 320 CSS px width.
-- **Mech:** T `git grep -nIE '(^|[^-])width:[[:space:]]*[0-9]{4,}px' -- '*.css' '*.scss' '*.less'` · `git grep -LI 'name="viewport"' -- '*.html'`
+- **Mech:** T `git grep -nIE '(^|[^-])width:[[:space:]]*[0-9]{4,}px' -- '*.html' '*.css' '*.scss' '*.less'` · `git grep -LI 'name="viewport"' -- '*.html'`
 - **Fix:** the viewport meta tag; fluid containers (`max-width`, `%`, `min()`), grid and flex wrapping; a scroll wrapper for content that cannot reflow; check at 320, 768 and 1280 px.
 - **Impact:** phone users get sideways scrolling or cut-off controls on every page.
 - **Source:** WCAG 2.2 SC 1.4.10 Reflow; MDN, Viewport meta tag.
@@ -47,14 +47,14 @@ applies_when: audience=public
 
 ### CMP-09 [HIGH] Overlay clipped or stacked by accident
 - **Detect:** dropdowns, menus, popovers and typeahead lists positioned `absolute` inside an `overflow: hidden|auto` ancestor instead of a portal, top layer (`popover`, `<dialog>`) or anchor positioning; literal `z-index` values (`999`, `9999`) instead of a layer scale; overlays without a `max-height` and inner scroll.
-- **Mech:** T `git grep -nIE 'z-index:[[:space:]]*[0-9]{3,}' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte'`
+- **Mech:** T `git grep -nIE 'z-index:[[:space:]]*[0-9]{3,}' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte'`
 - **Fix:** render overlays in the top layer or a portal; one named z-index scale (base, sticky, overlay, modal, toast); a max-height tied to the viewport with scroll.
 - **Impact:** menus cut off inside cards or hidden behind sticky headers make actions unreachable.
 - **Source:** MDN, Stacking context; HTML popover attribute; CSS Anchor Positioning.
 
 ### RSP-21 [MEDIUM] Scrollbars or hover shift layout
 - **Detect:** content jumps sideways when a scrollbar appears (scroll containers without `scrollbar-gutter: stable`); hover or focus styles that change width, border width or font weight and reflow neighbours.
-- **Mech:** T `git grep -nIE 'overflow(-y)?:[[:space:]]*auto' -- '*.css' '*.scss' '*.less'`
+- **Mech:** T `git grep -nIE 'overflow(-y)?:[[:space:]]*auto' -- '*.html' '*.css' '*.scss' '*.less'`
 - **Fix:** `scrollbar-gutter: stable` on scroll containers whose content length varies; hover states through colour, outline, shadow or transform only.
 - **Impact:** moving targets cause mis-clicks and read as a broken page.
 - **Source:** MDN, scrollbar-gutter; complements WEB-09 (CLS).
