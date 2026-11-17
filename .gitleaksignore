@@ -1,0 +1,2 @@
+# Fake key planted on purpose by a pre-3.0 eval fixture (the file says so; removed from the tree in 3.0.0).
+f9067b910616b5527fe8ed3d0fa52d8a4b7a0e71:evals/tasks/fix-secret-report/setup.sh:generic-api-key:8
