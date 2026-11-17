@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -339,8 +340,9 @@ def scan(root: Path, phase: str, core: Path = None) -> list:
 
 
 def run_mech(root: Path, rid: str, cls: str, cmd: str, state) -> dict:
-    cmd = cmd.replace("{base}", (state or {}).get("base") or "HEAD").replace(
-        "{audit}", f'"{sys.executable}" -B "{HERE / "audit.py"}" --root "{root}"')
+    q = shlex.quote  # a ref name may hold `;`, `$` or `(`: never pass it to the shell bare
+    cmd = cmd.replace("{base}", q((state or {}).get("base") or "HEAD")).replace(
+        "{audit}", f'{q(sys.executable)} -B {q(str(HERE / "audit.py"))} --root {q(str(root))}')
     tool = cmd.split()[0].strip('"')
     row = {"rule": rid, "class": cls, "cmd": cmd}
     if tool not in ("git", "grep", "test", "find") and not shutil.which(tool):
@@ -959,6 +961,8 @@ def self_test() -> int:
         expect(hits.get("T-01", {}).get("status") == "hit" and hits.get("T-02", {}).get("status") == "tool absent",
                f"scan {hits}")
         expect(hits.get("T-03", {}).get("status") == "not applicable", f"scan runs a rule its applies_when excludes: {hits}")
+        inj = run_mech(tmp, "T-04", "T", "echo {base}", {"base": "o/x;echo INJECTED"})  # `;` is legal in a ref name
+        expect(inj.get("hits") == ["o/x;echo INJECTED"], f"scan passes {{base}} to the shell unquoted: {inj}")
         expect("YAGNI" in rule_ids() and loads("ui≠none or api≠none", {"ui": {"value": "none"},
                                                                      "api": {"value": "rest"}})[0], "rule ids / loads")
         expect(not loads("pii=yes", {"pii": {"value": "no"}})[0] and loads("pii=yes", {})[0], "loads unknown → runs")
