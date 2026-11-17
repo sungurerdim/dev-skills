@@ -57,7 +57,7 @@ applies_when: ui≠none
 - **Mech:** T `git grep -nE '<(button|hr|dialog)(^|[^[:alnum:]_])' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte'` · `git grep -nE '(^|[^[:alnum:]_])(ElevatedButton|TextButton|OutlinedButton|Divider|AlertDialog)\(' -- '*.dart'`
 - **Fix:** route every use through the one primitive; a genuinely new look becomes a variant (prop) of it, not a copy.
 - **Impact:** the same element drifts in size, colour, focus ring and behaviour from screen to screen, and every fix has to be repeated.
-- **Source:** design systems (Frost, *Atomic Design*); Nielsen heuristic 4, consistency and standards.
+- **Source:** DRY / single source of truth; Least astonishment; design systems (Frost, *Atomic Design*); Nielsen heuristic 4, consistency and standards.
 
 ### SIM-09 [MEDIUM] Action defined twice
 applies_when: ui≠none
@@ -65,4 +65,4 @@ applies_when: ui≠none
 - **Mech:** M (compare every entry point of the same action; the duplicated label literals show up in SIM-06's scan)
 - **Fix:** one command definition per action — label, icon, shortcut, confirmation, permission, handler — that every entry point renders; in a CLI, one command table that drives both parsing and help.
 - **Impact:** users meet the same action with different names and safety nets, and a permission fix lands in one entry point while another stays open.
-- **Source:** command pattern (Gamma et al., *Design Patterns*); WAI-ARIA APG menu and toolbar patterns; Nielsen heuristic 4.
+- **Source:** DRY / single source of truth; Least astonishment; command pattern (Gamma et al., *Design Patterns*); WAI-ARIA APG menu and toolbar patterns; Nielsen heuristic 4.

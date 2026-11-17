@@ -14,7 +14,7 @@ Loaded for mobile apps (native, cross-platform or a hybrid WebView shell). Share
 - **Mech:** T `git grep -nIE 'onBackPressed|OnBackPressedCallback|enableOnBackInvokedCallback|PopScope|WillPopScope|BackHandler|backButton|interactivePopGestureRecognizer' -- ':!*.md'`
 - **Fix:** back pops one level, closes the top sheet or dialog first, and exits only from the root; use `OnBackPressedCallback`/`PopScope` so predictive back works; keep swipe-back; unsaved input follows UX-NS-01.
 - **Impact:** users lose their place or quit the app by accident.
-- **Source:** Android, Add support for the predictive back gesture; Apple HIG, Navigation.
+- **Source:** Least astonishment; Android, Add support for the predictive back gesture; Apple HIG, Navigation.
 
 ### MARC-06 [HIGH] State lost when the OS kills the app
 - **Detect:** form input, navigation stack, selected tab or scroll position lost after the process is killed in the background, after rotation or after switching tabs; no use of the platform's state restoration.
@@ -28,7 +28,7 @@ Loaded for mobile apps (native, cross-platform or a hybrid WebView shell). Share
 - **Mech:** T `git grep -nIE 'requestPermission|requestAuthorization|requestWhenInUseAuthorization|requestPermissions\(|ActivityCompat\.requestPermissions|Permission\.[a-zA-Z]+\.request|PermissionsAndroid\.request|registerForRemoteNotifications' -- ':!*.md'`
 - **Fix:** ask when the user starts the feature that needs it, after a short in-app explanation; on denial, degrade the feature and offer a link to settings.
 - **Impact:** users deny permissions they do not understand, and a denied system prompt usually cannot be shown again.
-- **Source:** Apple HIG, Privacy (requesting permission); Android, Request runtime permissions.
+- **Source:** Least privilege; Apple HIG, Privacy (requesting permission); Android, Request runtime permissions.
 
 ### MPRF-07 [HIGH] Battery drained by background work
 - **Detect:** continuous high-accuracy location when coarse or significant-change would do; wake locks without release or timeout; periodic timers or polling while backgrounded; background network work outside the platform scheduler (WorkManager, BGTaskScheduler).
@@ -42,5 +42,5 @@ Loaded for mobile apps (native, cross-platform or a hybrid WebView shell). Share
 - **Mech:** T `git grep -nIE 'BottomNavigationBar|NavigationBar\(|CupertinoTabBar|TabView|UITabBarController|createBottomTabNavigator|BottomNavigation' -- ':!*.md'`
 - **Fix:** three to five labelled destinations in the bar; more in an overflow screen or a navigation rail on large screens.
 - **Impact:** users cannot see where they can go or where they are.
-- **Source:** Material Design 3, Navigation bar; Apple HIG, Tab bars.
+- **Source:** Least astonishment; Material Design 3, Navigation bar; Apple HIG, Tab bars.
 

@@ -1,6 +1,6 @@
 # Rule index — which file to read, when
 
-Read a file only when its signal holds (`../signals.md`); `unknown` loads it. An area's word (first column) limits a run to the named areas: `/ds-audit sec a11y`. Each rule: `### ID [SEVERITY] Title`, then Detect / Fix / Impact / Source; an `applies_when:` line narrows one rule further. Severity and reporting: `../kernel.md` §4. IDs are unique across all files.
+Read a file only when its signal holds (`../signals.md`); `unknown` loads it. An area's word (first column) limits a run to the named areas: `/ds-audit sec a11y`. Each rule: `### ID [SEVERITY] Title`, then Detect / Fix / Impact / Source, where Source opens with the `../kernel.md` §7 principle(s) the Detect enforces (the gate fails a principle no rule cites); an `applies_when:` line narrows one rule further. Severity and reporting: `../kernel.md` §4. IDs are unique across all files.
 
 **Dated facts** (store minimum SDK and billing-library versions, platform requirements) are a seed, never the authority: re-check any such fact a finding depends on against the live official page the rule names; the live source wins. Offline → use the seed and mark the finding `unverified-currency`.
 

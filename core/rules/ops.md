@@ -18,7 +18,7 @@ applies_when: deploy=docker or deploy=k8s
 - **Mech:** T `hadolint Dockerfile` · `git ls-files -z '*Dockerfile*' | xargs -0 grep -L '^USER'` · `git grep -nE '^FROM[[:space:]]+[^@[:space:]]+([[:space:]]|$)' -- '*Dockerfile*'`
 - **Fix:** a multi-stage build copying only runtime artifacts; a minimal or distroless base pinned by `@sha256:`; `USER` a non-root id; a read-only root filesystem with explicit writable mounts; `cap_drop: [ALL]`, adding back only what is needed.
 - **Impact:** code execution in a root, full-OS, writable container comes with a toolchain and an easier host escape; a moving tag changes the image under you.
-- **Source:** CIS Docker Benchmark; Kubernetes Pod Security Standards (restricted); Docker Docs, Multi-stage builds; hadolint.
+- **Source:** Least privilege; CIS Docker Benchmark; Kubernetes Pod Security Standards (restricted); Docker Docs, Multi-stage builds; hadolint.
 
 ### DEP-09 [LOW] Dependency install re-runs on every source change
 applies_when: deploy=docker or deploy=k8s
@@ -36,7 +36,7 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 - **Mech:** M (deploy scripts and manifests)
 - **Fix:** rolling or blue-green behind readiness (OBS-02); with real traffic, staged weights with automatic rollback on error-rate or latency thresholds (Argo Rollouts, Flagger, the platform's equivalent); on one node: build first → drain new work (a flag with a TTL so it clears itself) → wait for queues to empty → back up → stop writers first, start in reverse → undrain → confirm the health endpoint reports the new version.
 - **Impact:** every deploy becomes a small outage, and a bad release stays live until someone notices.
-- **Source:** Kubernetes Docs, Performing a rolling update; Google SRE Workbook, Canarying releases.
+- **Source:** Reversibility; Kubernetes Docs, Performing a rolling update; Google SRE Workbook, Canarying releases.
 
 ### DEP-08 [MEDIUM] Service without resource limits or restart policy
 applies_when: deploy=docker or deploy=k8s
@@ -59,7 +59,7 @@ applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or
 - **Mech:** T `git grep -nIE "process\.env\.[A-Z_]+[[:space:]]*(\|\||\?\?)|getenv\([^)]*,|environ\.get\([^)]*," -- ':!*test*' ':!*.md'` · `git ls-files '*compose.override*' '*.env.local' '*.env.development'`
 - **Fix:** no code default for security-, money- or environment-critical values: validate them at startup and exit with a clear message when missing or equal to a known placeholder; every backing service attached by a URL from the environment; production commands name their files (`-f compose.yml -f compose.prod.yml`).
 - **Impact:** a service on a public example salt, a default price or a wrong-environment endpoint passes its health check while it leaks or bills wrong.
-- **Source:** Twelve-Factor III (Config) and IV (Backing services); CWE-1188 (insecure default initialization).
+- **Source:** Fail fast; Secure / private by default; Twelve-Factor III (Config) and IV (Backing services); CWE-1188 (insecure default initialization).
 
 ## Domains and TLS
 
@@ -93,7 +93,7 @@ applies_when: deploy=vps
 - **Mech:** T `git grep -nIE 'PermitRootLogin|PasswordAuthentication|ufw|nftables|iptables|fail2ban|unattended-upgrades|dnf-automatic' -- ':!*.md'`
 - **Fix:** `PermitRootLogin no` and `PasswordAuthentication no`; a default-deny firewall allowing SSH and HTTP(S) only; fail2ban or equivalent; unattended security upgrades; disable unmapped services; AppArmor or SELinux enforcing; run a hardening scan (Lynis) after setup and after each distribution upgrade.
 - **Impact:** scanners find and try a fresh VPS within hours; each missing layer is a known entry path.
-- **Source:** CIS Benchmarks (Linux distributions); OpenBSD manual, sshd_config(5); Lynis.
+- **Source:** Least privilege; Secure / private by default; CIS Benchmarks (Linux distributions); OpenBSD manual, sshd_config(5); Lynis.
 
 ### DEP-31 [HIGH] Backups unverified, single-copy, or reachable from production
 applies_when: db≠none
@@ -101,7 +101,7 @@ applies_when: db≠none
 - **Mech:** T `git grep -nIE 'pg_dump|pg_basebackup|mysqldump|mongodump|restic|borg|rclone|litestream|wal-g|pgbackrest|\.backup' -- ':!*.md'`
 - **Fix:** 3-2-1-1-0: three copies, two media, one offsite, one immutable, zero errors on a restore test; encrypt before a copy leaves the host (restic and borg do by default; else `age` or `gpg`), key in the secret manager and never beside the backup; separate credentials for the backup target; tiered retention (`restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune`); a provider's managed point-in-time backup or continuous replication (Litestream, WAL archiving) counts; restore into a scratch environment before each major release and record the result.
 - **Impact:** a backup that silently wrote nothing, shares the host, or dies with stolen production credentials is gone the day it is needed; an unencrypted offsite copy is a breach of its own.
-- **Source:** CISA #StopRansomware Guide (backups); restic documentation; GDPR Art. 32(1)(c).
+- **Source:** Reversibility; CISA #StopRansomware Guide (backups); restic documentation; GDPR Art. 32(1)(c).
 
 ### DEP-33 [MEDIUM] Incident response improvised
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
@@ -109,7 +109,7 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 - **Mech:** T `git ls-files | grep -iE 'runbook|playbook|incident|post-?mortem'`
 - **Fix:** one runbook: triage (real or false alarm, process up, recent errors, dependencies reachable, host resources) → severity (down, degraded, minor); rollback per scenario (bad deploy → previous image or `kubectl rollout undo`; bad migration → restore plus previous image; host loss → redeploy from IaC; bad data → point-in-time restore); a post-mortem stub created when an incident closes.
 - **Impact:** the slowest or riskiest rollback gets chosen under pressure, and the same failure comes back.
-- **Source:** Google SRE Workbook, Incident response and Postmortem culture.
+- **Source:** Reversibility; Google SRE Workbook, Incident response and Postmortem culture.
 
 ## Observability
 
@@ -134,7 +134,7 @@ applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or 
 - **Mech:** T `git grep -nIiE 'sentry|crashlytics|bugsnag|rollbar|honeybadger|glitchtip|alertmanager|opsgenie|pagerduty' -- ':!*.md' ':!*.lock'`
 - **Fix:** choose deliberately, lightest first: the platform's own crash reports (App Store Connect, Play Console Android vitals, Windows Error Reporting) or a self-hosted collector, a third-party SDK only for a need those miss, with scrubbing and opt-in where personal data flows; symbols uploaded by the release step; every uncaught-error hook bound at start to the one reporter, business errors handled at their site; one alert channel the developer reads.
 - **Impact:** outages and crashes are learned from users, hours or days late; each unbound hook is a class of crashes that leaves no report.
-- **Source:** Google SRE Book, Monitoring distributed systems; Flutter, Handling errors in Flutter; GDPR Art. 25 (data protection by default).
+- **Source:** Fail fast; Google SRE Book, Monitoring distributed systems; Flutter, Handling errors in Flutter; GDPR Art. 25 (data protection by default).
 
 ### OBS-04 [MEDIUM] Requests across services cannot be followed
 applies_when: api≠none or deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps
@@ -150,7 +150,7 @@ applies_when: deploy≠store
 - **Mech:** M (monitoring account)
 - **Fix:** an external uptime monitor on the public URL and the health endpoint, alerting after about a minute down and checking certificate expiry (DEP-24).
 - **Impact:** host, DNS and network failures go unnoticed until users report them.
-- **Source:** Google SRE Book, Monitoring distributed systems (black-box monitoring).
+- **Source:** Defense in depth; Google SRE Book, Monitoring distributed systems (black-box monitoring).
 
 ### OBS-06 [LOW] Spend discovered on the invoice
 applies_when: deploy=docker or deploy=k8s or deploy=serverless or deploy=paas or deploy=vps

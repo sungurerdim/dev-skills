@@ -14,7 +14,7 @@ Loaded for apps shipped through an app store. Listing content (name, description
 - **Mech:** T `git grep -nIE 'versionCode|CFBundleVersion|CURRENT_PROJECT_VERSION|^version:|"buildNumber"|autoIncrement' -- '*.gradle' '*.kts' '*.plist' '*.pbxproj' 'pubspec.yaml' 'app.json' 'eas.json'`
 - **Fix:** derive the build number in the release step (CI run number, commit count, the build service's auto-increment) from one version source.
 - **Impact:** uploads fail on a reused build number, usually at the end of a release.
-- **Source:** Android, Version your app; Apple, CFBundleVersion.
+- **Source:** DRY / single source of truth; Android, Version your app; Apple, CFBundleVersion.
 
 ### STO-01 [CRITICAL] Target SDK or minimum OS out of range
 - **Detect:** Android `targetSdk`/`compileSdk` below Google Play's current target-API requirement; iOS archives built with an Xcode and SDK older than App Store Connect accepts; a minimum OS (`minSdk`, `IPHONEOS_DEPLOYMENT_TARGET`, `platform :ios`) below what the dependencies support.
@@ -28,7 +28,7 @@ Loaded for apps shipped through an app store. Listing content (name, description
 - **Mech:** T `git grep -nIE '<uses-permission|NS[A-Za-z]+UsageDescription' -- '*.xml' '*.plist' 'app.json' 'app.config.*'` · `git grep -nIE 'AVCaptureDevice|CLLocationManager|CNContactStore|PHPhotoLibrary|CBCentralManager|AVAudioSession|ATTrackingManager' -- '*.swift' '*.m'`
 - **Fix:** a specific usage string per iOS API, saying what the user gets; remove unused Android permissions (`tools:node="remove"` for merged ones).
 - **Impact:** iOS terminates the app on first access without the string, and review rejects unused or unexplained permissions.
-- **Source:** Apple App Review Guideline 5.1.1; Apple, Requesting access to protected resources; Google Play, Permissions and APIs that access sensitive information.
+- **Source:** Least privilege; Apple App Review Guideline 5.1.1; Apple, Requesting access to protected resources; Google Play, Permissions and APIs that access sensitive information.
 
 ### STO-03 [CRITICAL] Privacy manifest or store data declaration out of date
 - **Detect:** an iOS app without `PrivacyInfo.xcprivacy`, or one that does not list the required-reason APIs it calls (file timestamps, system boot time, disk space, active keyboards, `UserDefaults`); privacy-label or Data safety answers that do not match the SDKs receiving personal data in PRV-15's data-flow inventory; a new SDK or capability merged without updating the declaration; "encrypted in transit" declared while cleartext traffic is allowed.
@@ -66,7 +66,7 @@ applies_when: billing≠none
 - **Mech:** T `git grep -nIE 'restorePurchases|restoreCompletedTransactions|currentEntitlements|queryPurchasesAsync|getAvailablePurchases|AppStore\.sync' -- ':!*.md'`
 - **Fix:** a restore button on the paywall and in settings; derive entitlements from the store at start and on restore.
 - **Impact:** paying users on a new device lose what they bought, and review rejects the build.
-- **Source:** Apple App Review Guideline 3.1.1; Google Play Billing, Process purchases.
+- **Source:** DRY / single source of truth; Apple App Review Guideline 3.1.1; Google Play Billing, Process purchases.
 
 ### STO-21 [HIGH] Purchase states not all handled
 applies_when: billing≠none
@@ -90,14 +90,14 @@ applies_when: platforms∋ios
 - **Mech:** T `git grep -nIE 'advertisingIdentifier|requestTrackingAuthorization|app_tracking_transparency|NSUserTrackingUsageDescription|AppsFlyer|Adjust\.|FBSDKCoreKit|GoogleMobileAds' -- ':!*.md'`
 - **Fix:** start tracking SDKs only after an authorized ATT result and in non-tracking mode otherwise; keep the declaration and the prompt consistent.
 - **Impact:** rejection, and tracking of users who refused it.
-- **Source:** Apple App Review Guideline 5.1.2; Apple, App Tracking Transparency framework.
+- **Source:** Secure / private by default; Apple App Review Guideline 5.1.2; Apple, App Tracking Transparency framework.
 
 ### STO-19 [HIGH] Capability declared without use
 - **Detect:** `UIBackgroundModes` entries (audio, location, voip, fetch, processing, bluetooth) without the matching API use; entitlements (push, Sign in with Apple, iCloud, associated domains) without the feature, or features without the entitlement.
 - **Mech:** T `git grep -nIE -A12 'UIBackgroundModes' -- '*.plist'` · `git ls-files '*.entitlements'`
 - **Fix:** declare exactly what the code uses; reconcile entitlements with the provisioning profile.
 - **Impact:** review rejects unused background modes, and missing entitlements fail at runtime.
-- **Source:** Apple App Review Guideline 2.5.4; Apple, Entitlements.
+- **Source:** Least privilege; Apple App Review Guideline 2.5.4; Apple, Entitlements.
 
 ### STO-22 [HIGH] Foreground service without a declared type
 applies_when: platforms∋android

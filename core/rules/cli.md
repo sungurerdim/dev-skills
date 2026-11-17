@@ -7,21 +7,21 @@ Loaded for command-line and terminal products (`ui∋cli-tui` or `platforms∋cl
 - **Mech:** M (run the entry point with `--help`, `--version` and an unknown flag)
 - **Fix:** let the argument parser (argparse, click, cobra, clap, commander) generate help and version; add one example per subcommand; on a usage error print the usage line to stderr and exit 2.
 - **Impact:** users cannot discover the tool or report the version they run, and scripts break on silent behaviour changes.
-- **Source:** GNU Coding Standards, Command-Line Interfaces (`--help`, `--version`); clig.dev, Help (https://clig.dev/).
+- **Source:** DRY / single source of truth; Least astonishment; GNU Coding Standards, Command-Line Interfaces (`--help`, `--version`); clig.dev, Help (https://clig.dev/).
 
 ### CLI-02 [CRITICAL] Exit status does not report failure
 - **Detect:** errors caught, printed and followed by exit 0; `main` that always returns 0; one non-zero code for every failure where callers must tell usage errors from runtime failures; a failure in a pipeline step swallowed (`|| true`, missing `set -o pipefail` in shell wrappers).
 - **Mech:** T `git grep -nIE '(sys\.exit|os\.Exit|process\.exit|std::process::exit|exit)\(0\)|\|\| true' -- ':!*test*' ':!*.md'`
 - **Fix:** exit 0 only on success; 2 for usage errors; documented non-zero codes for the failure classes callers act on; propagate errors to one top-level handler that sets the code.
 - **Impact:** CI jobs, scripts and `&&` chains continue after a failure as if it had succeeded.
-- **Source:** POSIX, exit status of utilities (IEEE Std 1003.1 XCU 2.8.2); clig.dev, The Basics.
+- **Source:** Fail fast; POSIX, exit status of utilities (IEEE Std 1003.1 XCU 2.8.2); clig.dev, The Basics.
 
 ### CLI-03 [HIGH] Data and diagnostics on the wrong stream
 - **Detect:** errors, warnings, progress or prompts written to stdout; the command's real output written to stderr; log lines interleaved with machine-readable output (JSON, CSV) on stdout; no machine-readable format (`--json`) where the output is parsed by other tools.
 - **Mech:** T `git grep -nIiE '(print|console\.log|fmt\.Print(ln|f)?|println!|echo)[[:space:]]*\(?["'"'"'].*(error|warning|failed)' -- ':!*test*' ':!*.md'`
 - **Fix:** results on stdout, everything for the human (errors, progress, prompts) on stderr; a stable `--json` (or `--format`) output for scripts.
 - **Impact:** piping the tool into another program feeds it error text, and redirecting output hides the errors.
-- **Source:** POSIX, stdin/stdout/stderr conventions; clig.dev, Output.
+- **Source:** Least astonishment; POSIX, stdin/stdout/stderr conventions; clig.dev, Output.
 
 ### CLI-04 [MEDIUM] Colour and animation not gated on a terminal
 - **Detect:** ANSI escapes, spinners and progress bars emitted unconditionally; no `isatty` check on the stream being written; `NO_COLOR` not honoured; no `--no-color` flag; animation still drawn when `TERM=dumb` or in CI logs.
@@ -49,4 +49,4 @@ Loaded for command-line and terminal products (`ui∋cli-tui` or `platforms∋cl
 - **Mech:** M (the parser library's configuration shows it)
 - **Fix:** use a standard parser with POSIX short options, GNU long options and `--`; accept `-` for standard streams.
 - **Impact:** users hit surprises their other tools taught them not to expect, and file names starting with `-` become commands.
-- **Source:** POSIX Utility Syntax Guidelines (IEEE Std 1003.1 XBD 12.2); GNU Coding Standards, Command-Line Interfaces.
+- **Source:** Least astonishment; POSIX Utility Syntax Guidelines (IEEE Std 1003.1 XBD 12.2); GNU Coding Standards, Command-Line Interfaces.

@@ -7,7 +7,7 @@ Every finding names its measurement or the code that makes the cost grow; nothin
 - **Mech:** T `git log --since=90.days -i -E --grep='perf|optimi[sz]|faster|speed' --format='%h %s'`
 - **Fix:** baseline, change, the same measurement again; a budget is the measured current value plus a margin, warned on drift in the gate; keep lab data for regressions and field data for user truth.
 - **Impact:** unmeasured optimization targets the wrong bottleneck, and a fictional budget teaches everyone to ignore budgets.
-- **Source:** Knuth, "Structured Programming with go to Statements" (1974); web.dev, performance budgets and lab vs field data (https://web.dev/articles/lab-and-field-data-differences).
+- **Source:** Make it work, right, fast; Knuth, "Structured Programming with go to Statements" (1974); web.dev, performance budgets and lab vs field data (https://web.dev/articles/lab-and-field-data-differences).
 
 ### PRF-02 [HIGH] Startup does work the first screen or request does not need
 - **Detect:** analytics, crash reporting, cache warming, migrations, large file reads or every feature module initialized before the first frame or first request; blocking I/O on the main or UI thread at start; all routes imported eagerly; a full dataset loaded where a page or a summary is shown.
@@ -22,7 +22,7 @@ applies_when: ui≠none
 - **Mech:** M (the bundler's analyzer or build output sizes)
 - **Fix:** measure with the bundler's analyzer (source-map-explorer, the build tool's stats); import narrowly; split per route; set the size budget per PRF-12.
 - **Impact:** every page load and update downloads code most sessions never run.
-- **Source:** web.dev, Performance budgets 101 (https://web.dev/articles/performance-budgets-101).
+- **Source:** Make it work, right, fast; web.dev, Performance budgets 101 (https://web.dev/articles/performance-budgets-101).
 
 ### PRF-06 [CRITICAL] Resource not released
 - **Detect:** listeners, subscriptions, timers or observers with no removal on teardown (`addEventListener` without `removeEventListener`, an effect without cleanup, a controller without `dispose()`); files, sockets or connections opened outside the language's scoped form (Python `with`, Java try-with-resources, Kotlin `use`, C# `using`, Go `defer Close()`, JS `try/finally`, PHP `finally`; Rust RAII handles it); closures or long-lived objects holding short-lived UI objects strongly.
@@ -51,7 +51,7 @@ applies_when: api≠none or deploy≠none
 - **Mech:** M
 - **Fix:** a job-level timeout in the queue library or a context deadline; a heartbeat for long jobs; a dead-letter queue for jobs that fail or time out.
 - **Impact:** one hung job holds its slot forever and starves the queue behind it.
-- **Source:** Nygard, *Release It!* (timeouts, steady state).
+- **Source:** Fail fast; Nygard, *Release It!* (timeouts, steady state).
 
 ### RTP-09 [HIGH] Large input loaded whole or on the UI thread
 - **Detect:** whole-file reads, full response bodies or full query results (`readFileSync`, `.read()`, `fetchall()`, `io.ReadAll`, `readAllBytes`) on input whose size the user or data controls; hashing, parsing or transcoding user files on the main or UI thread.
@@ -104,7 +104,7 @@ applies_when: ui∋web
 - **Mech:** M
 - **Fix:** one source of truth per data type; cache-aside with an explicit TTL; invalidate or update on write; write the strategy beside the cache.
 - **Impact:** stale or inconsistent reads that are hard to reproduce.
-- **Source:** RFC 9111 (HTTP Caching); RFC 5861 (stale-while-revalidate).
+- **Source:** DRY / single source of truth; RFC 9111 (HTTP Caching); RFC 5861 (stale-while-revalidate).
 
 ### NET-07 [HIGH] HTTP cache directives do not match the content
 applies_when: ui∋web or api≠none

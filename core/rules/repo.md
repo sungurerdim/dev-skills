@@ -7,7 +7,7 @@ Host settings are read with the host's CLI (`gh api …`, `glab api …`), which
 - **Mech:** M (host API)
 - **Fix:** a ruleset (classic protection where the plan has no rulesets) on the default branch: block force-push and deletion, require linear history, require the CI checks that actually run, one approving review on team repos, an empty bypass list.
 - **Impact:** one mistaken force-push or unchecked merge rewrites or breaks the shared history with no gate.
-- **Source:** GitHub Docs, About rulesets and About protected branches; GitLab Docs, Protected branches.
+- **Source:** Reversibility; GitHub Docs, About rulesets and About protected branches; GitLab Docs, Protected branches.
 
 ### RPO-02 [HIGH] Merge settings produce noisy history or stale branches
 - **Detect:** merge commits or rebase merges allowed beside squash where changelog or version come from PR titles; squash commits not titled from the PR title; head branches kept after merge; auto-merge enabled (DOP-15). Read: `gh api repos/{owner}/{repo} --jq '{allow_squash_merge,allow_merge_commit,allow_rebase_merge,squash_merge_commit_title,delete_branch_on_merge,allow_auto_merge}'`.
@@ -58,4 +58,4 @@ applies_when: public_repo=yes
 - **Mech:** M (host API)
 - **Fix:** turn them on under Settings → Code security, given as `only you can do` with the matching `gh api -X PUT` or `-X PATCH` call; code scanning default setup runs on GitHub Actions, so with Actions off a local static-analysis step in the gate takes its place.
 - **Impact:** a pushed secret lands in history unblocked, a vulnerable dependency goes unflagged, and a researcher has no private channel.
-- **Source:** GitHub Docs, Push protection, Dependabot alerts, Private vulnerability reporting and Code scanning default setup.
+- **Source:** Secure / private by default; GitHub Docs, Push protection, Dependabot alerts, Private vulnerability reporting and Code scanning default setup.

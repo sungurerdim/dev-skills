@@ -35,21 +35,21 @@ Project-level proportion: does what exists, and the way it is built, match the s
 - **Mech:** M (on `{audit} lean`: commits_without_source, per-unit lines)
 - **Fix:** replace each with an existing tool (the stack's linter or formatter, a ds-gate entry point, `gh`, the build tool's own tasks) or delete it; keep custom tooling only for a check no tool provides and the purpose needs.
 - **Impact:** effort spent on the workshop is effort not spent on the product, and the tooling itself needs gates, tests and fixes.
-- **Source:** kernel §1 (reuse before build; automate last).
+- **Source:** YAGNI; kernel §1 (reuse before build; automate last).
 
 ### LEAN-06 [MEDIUM] Dependency that removes no burden
 - **Detect:** each entry in `deps` (runtime first): which concrete burden does it remove? The stdlib, the platform or another listed dependency already does it, or it is used in one call site for a few lines of logic.
 - **Mech:** M (on `{audit} lean`: deps)
 - **Fix:** replace with stdlib/platform or the existing dependency and remove it; keep with a one-line reason in `SCOPE.md` when it removes real work. Supply-chain risk of what stays is judged in SAR-11.
 - **Impact:** every dependency adds updates, advisories, build time and lock-in.
-- **Source:** kernel §1 step 2; NIST SSDF PW.4 (reuse well-secured software).
+- **Source:** YAGNI; kernel §1 step 2; NIST SSDF PW.4 (reuse well-secured software).
 
 ### LEAN-07 [MEDIUM] Slow path where a proven faster one exists
 - **Detect:** a hand-built mechanism, stack or workflow for a job a mature tool, framework feature or managed platform does (queue, scheduler, ORM, auth, build, release, docs site, test runner), or a process step that a single command replaces. Evidence: the named alternative and what it removes.
 - **Mech:** M
 - **Fix:** adopt the alternative when it meets the purpose with less code or time; record a rejected alternative with its reason so it is not re-proposed.
 - **Impact:** weeks spent rebuilding what exists; the custom version keeps costing after it works.
-- **Source:** kernel §1 step 2; Twelve-Factor (backing services as attached resources).
+- **Source:** KISS; kernel §1 step 2; Twelve-Factor (backing services as attached resources).
 
 ### LEAN-08 [MEDIUM] Plans and docs outweigh the product
 - **Detect:** `doc_kb` above the budget or above ~1 KB per 100 `src_lines`; spec sections, issues or milestones for T2 or unbuilt features; open issues several times the closed ones in the last 30 days.
@@ -77,7 +77,7 @@ Project-level proportion: does what exists, and the way it is built, match the s
 - **Mech:** S `{audit} lean-check`
 - **Fix:** give the new unit a tier and the need it serves, or remove it; raise a budget only with the reason in `SCOPE.md`.
 - **Impact:** without a check, the project regrows to its old size within weeks.
-- **Source:** fitness functions (Ford, Parsons, Kua — *Building Evolutionary Architectures*).
+- **Source:** YAGNI; fitness functions (Ford, Parsons, Kua — *Building Evolutionary Architectures*).
 
 ### LEAN-12 [MEDIUM] Standing rule without scope or reason
 - **Detect:** `lean.py --rules` items with `absolute` and no `reason`, or added by a commit whose subject is about one task (the rule came from a single moment); rules that contradict each other or the purpose.

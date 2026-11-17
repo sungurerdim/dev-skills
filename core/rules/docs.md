@@ -21,7 +21,7 @@ Applies to every project. Every claim a doc makes is checked against the code; t
 - **Mech:** T `git grep -nE '[0-9]+ (tests|rules|checks|files|steps)|[0-9]+(\.[0-9]+)?% (coverage|faster|smaller|fewer)' -- '*.md'`
 - **Fix:** emit the number from its generator at build time, or keep the hand copy under a check that fails when its source moves; keep the measurement script and its raw output beside the claim; write a verification date only for a source opened in that change.
 - **Impact:** correct today, silently wrong after the next change, and nobody can re-check it.
-- **Source:** SIM-06 (single source of truth); The Turing Way, Reproducible research.
+- **Source:** DRY / single source of truth; SIM-06 (single source of truth); The Turing Way, Reproducible research.
 
 ### DOC-05 [MEDIUM] Broken links and unlinted docs
 - **Detect:** internal links to missing files or anchors; external links that fail (`lychee .`, network); a repo with a docs directory and no link checker or Markdown linter in the gate.
@@ -36,7 +36,7 @@ applies_when: api≠none or platforms∋library
 - **Mech:** T `git ls-files | grep -iE '(^|/)(openapi|swagger)[^/]*\.(ya?ml|json)$|(^|/)(typedoc\.json|mkdocs\.yml|docs/conf\.py)$'`
 - **Fix:** generate it: OpenAPI from routes, GraphQL introspection, TypeDoc, rustdoc, Sphinx autodoc, godoc, dartdoc.
 - **Impact:** a hand-kept reference drifts from the implementation with every change.
-- **Source:** OpenAPI Specification 3.1; each stack's documentation generator.
+- **Source:** DRY / single source of truth; OpenAPI Specification 3.1; each stack's documentation generator.
 
 ### DOC-08 [LOW] No changelog a user can read
 - **Detect:** a released project with no changelog, or one that is a raw git log instead of versioned sections (Added, Changed, Deprecated, Removed, Fixed, Security) under `## [x.y.z] - YYYY-MM-DD`. Agreement with tags is DOP-48.
@@ -61,7 +61,7 @@ applies_when: api≠none or platforms∋library
 - **Mech:** T `git grep -nE '^#+ .*(Structure|Layout|Director|Tech Stack|Dependencies|Overview)' -- '*CLAUDE.md' '*AGENTS.md' '*GEMINI.md' '.github/copilot-instructions.md' '.cursor/rules/*'`
 - **Fix:** delete it, or replace it with a one-line pointer (`see package.json`, a docs URL).
 - **Impact:** measured: generated and overview-heavy context files lowered task success and raised inference cost by over 20%; generic instructions degrade output, not only waste tokens.
-- **Source:** "Evaluating AGENTS.md" (arXiv:2602.11988); Anthropic, Claude Code best practices; Cursor Docs, Rules.
+- **Source:** DRY / single source of truth; "Evaluating AGENTS.md" (arXiv:2602.11988); Anthropic, Claude Code best practices; Cursor Docs, Rules.
 
 ### DOC-14 [MEDIUM] Context file over its harness budget
 - **Detect:** a file over its harness's budget — Claude Code `CLAUDE.md` 200 lines; a Cursor rule file 500 lines; Windsurf/Devin global rules 6,000 characters, a workspace rule file 12,000; about 300 lines elsewhere — or one root file covering several unrelated packages of a monorepo.

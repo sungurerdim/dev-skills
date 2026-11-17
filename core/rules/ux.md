@@ -14,14 +14,14 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 - **Mech:** T `git grep -nIiE '["'"'"'](something went wrong|an error occurred|unknown error|error!?)["'"'"']' -- ':!*test*' ':!*.md'`
 - **Fix:** say what happened, why if known, and what to do, in the user's words; field errors inline at the field, page errors in a persistent banner, transient recoverable issues as a non-blocking notice.
 - **Impact:** users cannot recover on their own, so the error becomes a support ticket or a lost user.
-- **Source:** Nielsen heuristic 9; NN/g, Error-Message Guidelines.
+- **Source:** Fail fast; Nielsen heuristic 9; NN/g, Error-Message Guidelines.
 
 ### CMP-13 [HIGH] Failure shown as an empty state
 - **Detect:** a fetch `catch` that sets the list to empty without an error flag; permission or authentication failures (401/403) rendered as "nothing here"; one `isEmpty` branch for both no-data and failed-load.
 - **Mech:** T `git grep -nIE 'catch.*(set[A-Z][A-Za-z]*\(\[\]\)|= \[\]|emptyList\(\)|const \[\])' -- ':!*test*' ':!*.md'`
 - **Fix:** separate loading, empty, error and forbidden states in the data type; render each differently, with retry on error and an access path on forbidden.
 - **Impact:** users conclude their data is gone and re-create or abandon it while the real failure stays hidden.
-- **Source:** Nielsen heuristics 1 and 9; ARC-06 (errors signalled consistently).
+- **Source:** Fail fast; Nielsen heuristics 1 and 9; ARC-06 (errors signalled consistently).
 
 ### UX-ON-02 [MEDIUM] Empty state without a next step
 - **Detect:** empty lists, tables and dashboards that render nothing, or only "No items", with no action to create or import the first item and no hint of what it will show.
@@ -31,11 +31,11 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 - **Source:** NN/g, Designing Empty States in Complex Applications.
 
 ### UX-03 [HIGH] No way back from a step or a destructive action
-- **Detect:** wizards and flows without back or cancel; dialogs without a close control or Escape; destructive actions (delete, send, publish, wipe) with neither a confirmation naming what is lost nor an undo window; confirmation on trivial, reversible actions (confirmation fatigue).
+- **Detect:** wizards and flows without back or cancel; dialogs without a close control or Escape; destructive actions (delete, send, publish, wipe) with neither a confirmation naming what is lost nor an undo window; a CLI command that deletes or overwrites with no `--dry-run`, confirmation or backup; confirmation on trivial, reversible actions (confirmation fatigue).
 - **Mech:** M
 - **Fix:** back and cancel on every step; prefer undo (soft delete, delayed send) for reversible actions; a confirmation that names the object and its consequence for irreversible ones.
 - **Impact:** one mis-tap destroys data or traps the user in a flow.
-- **Source:** Nielsen heuristic 3, user control and freedom; heuristic 5, error prevention.
+- **Source:** Reversibility; Nielsen heuristic 3, user control and freedom; heuristic 5, error prevention.
 
 ### UX-NS-01 [HIGH] Unsaved input lost on leave or reload
 - **Detect:** forms, editors or flows with unsaved input that browser back, a nav link, a tab close, an app-update reload or a system back gesture discards without warning; autosave with no saved/unsaved indicator.
@@ -56,7 +56,7 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 - **Mech:** M
 - **Fix:** one strategy for the product: validate on blur or submit, re-validate live once a field has shown an error; on submit, a summary at the top linking to each field.
 - **Impact:** premature errors distract and punish; a long form with hidden errors looks broken.
-- **Source:** GOV.UK Design System, Validation pattern and Error summary; Baymard Institute, inline validation research.
+- **Source:** Least astonishment; GOV.UK Design System, Validation pattern and Error summary; Baymard Institute, inline validation research.
 
 ### UX-06 [MEDIUM] Actions only memory can find
 - **Detect:** commands reachable only by keyboard shortcut, gesture, long-press or swipe with no visible control or menu entry; flows that make users remember a value from an earlier step; frequent actions with no shortcut or bulk path at all.
@@ -77,14 +77,14 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 - **Mech:** T `git grep -nIE 'contextmenu.*preventDefault|user-select:[[:space:]]*none|history\.pushState|wheel.*preventDefault' -- ':!*.md'`
 - **Fix:** keep native behaviour unless the replacement is strictly better and complete; when replacing, support the same keys, gestures and accessibility.
 - **Impact:** users' habits from every other app fail here, which reads as broken.
-- **Source:** Laws of UX, Jakob's Law; Apple Human Interface Guidelines; Material Design; Microsoft Windows app design guidelines.
+- **Source:** Least astonishment; Laws of UX, Jakob's Law; Apple Human Interface Guidelines; Material Design; Microsoft Windows app design guidelines.
 
 ### UX-LX-07 [MEDIUM] Asks for what it could derive or does not need yet
 - **Detect:** sign-up or setup asking for data not needed until later (billing before any paid action, preferences before the feature exists); values the system can derive asked from the user (country from locale, card type from number, time zone from device); configuration required where a working default exists.
 - **Mech:** M
 - **Fix:** derive or default, let the user correct; ask for each field at the moment it is first needed.
 - **Impact:** every extra field costs completions and collects data the product does not need (PRV-03).
-- **Source:** Laws of UX, Tesler's Law; NN/g, Progressive Disclosure.
+- **Source:** Secure / private by default; Laws of UX, Tesler's Law; NN/g, Progressive Disclosure.
 
 ### UX-ON-01 [HIGH] First run does not reach value quickly
 - **Detect:** no defined first-run path for a new account or workspace; more steps than needed between sign-up and the first useful result, with no measurement of that step count; tours that cannot be skipped or that replay for returning users; external setup steps described in prose with no deep link and no automatic resume when the user returns.
@@ -105,21 +105,21 @@ Applies to graphical UIs (`ui` ∋ web, ios, android or desktop); a terminal-onl
 - **Mech:** M
 - **Fix:** optimistic only for reversible, high-success actions; on failure restore the previous state and show what failed with retry; pessimistic (pending) for irreversible ones.
 - **Impact:** users believe an action succeeded that never happened.
-- **Source:** Nielsen heuristic 1; React, `useOptimistic` documentation.
+- **Source:** Reversibility; Nielsen heuristic 1; React, `useOptimistic` documentation.
 
 ### UX-DP-01 [HIGH] Choices preselected against the user
 - **Detect:** pre-checked boxes for marketing, data sharing, add-ons, donations or upgrades; the paid option preselected while the free path is visually demoted; decline options worded to shame ("No, I like paying more") or styled to disappear; repeated prompts after a "no".
 - **Mech:** T `git grep -nIE '(checked|defaultChecked|value:[[:space:]]*true|initialValue:[[:space:]]*true)' -- ':!*test*' ':!*.md' | grep -iE 'consent|marketing|newsletter|share|addon|add_on|upsell|tip|donat'`
 - **Fix:** opt-in defaults, accept and decline of equal visual weight in neutral words, one prompt per decision.
 - **Impact:** users end up with purchases and sharing they did not choose, and consent obtained this way does not count (PRV-01).
-- **Source:** deceptive.design, types catalogue (preselection, confirmshaming, nagging); GDPR Art. 4(11).
+- **Source:** Secure / private by default; deceptive.design, types catalogue (preselection, confirmshaming, nagging); GDPR Art. 4(11).
 
 ### UX-WR-01 [MEDIUM] Labels that do not name the outcome
 - **Detect:** `OK`, `Submit`, `Yes`, `Continue` on consequential steps where the outcome is nameable; confirmation buttons that do not answer the dialog's question; internal jargon or field names in user copy.
 - **Mech:** T `git grep -nIE '>[[:space:]]*(OK|Ok|Submit|Yes|No)[[:space:]]*<|["'"'"'](OK|Submit|Yes|No)["'"'"']' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte' '*.dart' '*.swift' '*.kt'`
 - **Fix:** verb plus object on every action ("Save changes", "Delete 3 files"); dialog buttons that repeat the verb from the title.
 - **Impact:** users confirm the wrong thing, most dangerously in destructive dialogs.
-- **Source:** Nielsen heuristic 2, match between system and the real world; Apple HIG, Writing; Material Design, Writing.
+- **Source:** Least astonishment; Nielsen heuristic 2, match between system and the real world; Apple HIG, Writing; Material Design, Writing.
 
 ### UX-13 [MEDIUM] Essential information only in a tooltip
 - **Detect:** instructions, error details or values available only on hover; tooltips on controls whose visible label already says everything; tooltips unreachable by keyboard focus or touch.
@@ -155,28 +155,28 @@ applies_when: integrations∋openai or integrations∋anthropic
 - **Mech:** T `git grep -nIE 'href="#"|onPressed:[[:space:]]*\(\)[[:space:]]*\{[[:space:]]*\}|onClick=\{\(\)[[:space:]]*=>[[:space:]]*\{\}\}|@click="\(\)[[:space:]]*=>[[:space:]]*\{\}"|coming soon|NotImplementedError' -- ':!*test*' ':!*.md'`
 - **Fix:** wire the action, or remove or hide the control and route until it works.
 - **Impact:** users hit dead ends, and store reviewers reject incomplete apps (STO-12).
-- **Source:** Nielsen heuristic 1; Apple App Review Guideline 2.1, App Completeness.
+- **Source:** Least astonishment; Nielsen heuristic 1; Apple App Review Guideline 2.1, App Completeness.
 
 ### INT-01 [MEDIUM] Animation durations outside the usable range
 - **Detect:** UI transitions under ~100 ms (unseen) or over ~500 ms (blocking) for routine feedback; durations and easings as literals scattered per component rather than motion tokens; linear easing on movement.
 - **Mech:** T `git grep -nIE '(transition|animation)[^;]*[0-9]{4,}ms|milliseconds:[[:space:]]*[0-9]{4,}|duration:[[:space:]]*[0-9]{4,}' -- ':!*.md'`
 - **Fix:** a small set of duration and easing tokens (short ~100–200 ms, medium ~250–400 ms); reduced-motion handling per AXE-12.
 - **Impact:** slow motion makes every interaction wait; inconsistent motion looks unfinished.
-- **Source:** Material Design 3, Easing and duration; Apple HIG, Motion.
+- **Source:** DRY / single source of truth; Material Design 3, Easing and duration; Apple HIG, Motion.
 
 ### TOK-01 [HIGH] Colours outside the token set
 - **Detect:** hex, `rgb()`, `hsl()` or platform colour literals in components instead of semantic tokens (surface, on-surface, primary, error); tokens named by hue (`blue-500`) used directly in components; status colours that are hard to tell apart or used against meaning (green for an error, red for success). Detector of SIM-06.
 - **Mech:** T `git grep -nIE '#[0-9a-fA-F]{3,8}([^0-9a-zA-Z_-]|$)|rgba?\(|hsla?\(' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte' '*.jsx' '*.tsx' ':!*token*' ':!*theme*' ':!*variables*'` · `git grep -nIE 'Color\(0x[0-9A-Fa-f]{8}\)|Colors\.[a-z]+[^a-zA-Z]' -- '*.dart' ':!*theme*'`
 - **Fix:** primitive palette → semantic tokens → components; components reference semantic tokens only; one meaning per status colour.
 - **Impact:** a brand or theme change misses screens, and dark mode breaks wherever a literal hides.
-- **Source:** W3C Design Tokens Community Group, Format Module; Material Design 3, Color roles; SIM-06.
+- **Source:** DRY / single source of truth; W3C Design Tokens Community Group, Format Module; Material Design 3, Color roles; SIM-06.
 
 ### TOK-02 [MEDIUM] Spacing, radius and elevation off the scale
 - **Detect:** padding, margin and gap values outside one base-unit scale (4 or 8, chosen once); more than ~5 distinct corner radii; shadow or elevation literals per component; the same role (card padding, panel header) using different steps in different places.
 - **Mech:** T `git grep -nIE '(margin|padding|gap|border-radius)[a-z-]*:[^;]*[0-9]+px' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'EdgeInsets\.[a-zA-Z]+\([^)]*[0-9]|BorderRadius\.circular\([0-9]|elevation:[[:space:]]*[0-9]' -- '*.dart' ':!*theme*'`
 - **Fix:** spacing, radius and elevation tokens with role names on top (`space-card`, `radius-control`); enforce with a linter rule (stylelint `declaration-property-value-allowed-list`, a custom lint) where the stack has one.
 - **Impact:** layouts drift by a few pixels everywhere, and every spacing change becomes a hunt.
-- **Source:** Material Design, Layout spacing; W3C Design Tokens Community Group; SIM-06.
+- **Source:** DRY / single source of truth; Material Design, Layout spacing; W3C Design Tokens Community Group; SIM-06.
 
 ### TOK-03 [MEDIUM] Type off the scale or hard to read
 - **Detect:** font sizes outside the type scale; body text smaller than the platform's default body style or any text under 11 pt/sp; body line height outside ~1.4–1.6; prose lines wider than ~80 characters.
@@ -190,7 +190,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 - **Mech:** T `git grep -nIE 'prefers-color-scheme|color-scheme|ThemeMode\.|isSystemInDarkTheme|userInterfaceStyle|AppCompatDelegate\.setDefaultNightMode' -- ':!*.md'`
 - **Fix:** default to the system theme, offer light/dark/system, persist the choice; declare `color-scheme` on the root.
 - **Impact:** a bright screen at night, or mismatched native controls, on every visit.
-- **Source:** MDN, prefers-color-scheme and color-scheme; Apple HIG, Dark Mode; Material Design, Dark theme.
+- **Source:** Least astonishment; MDN, prefers-color-scheme and color-scheme; Apple HIG, Dark Mode; Material Design, Dark theme.
 
 ### THM-01 [MEDIUM] Theme applied to only part of the UI
 - **Detect:** a dark, high-contrast or density mode that some screens or components ignore (hard-coded light surfaces, images with white backgrounds, unthemed third-party widgets); pure black (`#000000`) dark surfaces where elevation needs grey steps; contrast checked only in the default theme (AXE-03).
