@@ -98,7 +98,9 @@ def rule_ids(core: Path = None) -> set:
         ids |= set(re.findall(r"^### (\S+) \[", read(f), re.M))
     kernel = read(core / "kernel.md")
     sec7 = kernel[kernel.find("## 7."):]
-    ids |= {n.strip() for n in re.findall(r"^\| ([^|]+?) \|", sec7, re.M) if n.strip() not in ("Principle", "-")}
+    for n in (n.strip() for n in re.findall(r"^\| ([^|]+?) \|", sec7, re.M)):
+        if n not in ("Principle", "-") and set(n) - set("-"):  # a principle by any case, or its name before " / "
+            ids |= {n, n.lower(), n.split(" / ")[0].lower()}
     return ids | {"judgment"}
 
 
@@ -378,7 +380,7 @@ def validate(root: Path, core: Path = None) -> list:
         if r["Area"] not in areas:
             problems.append(f"row {n}: area '{r['Area']}' unknown")
         for rid in re.split(r"\s*[·,]\s*", r["Rule"]):
-            if rid not in ids and not rid.startswith("tool:"):
+            if rid not in ids and rid.lower() not in ids and not rid.startswith("tool:"):
                 problems.append(f"row {n}: rule '{rid}' is not a rule ID, a kernel §7 principle, tool:<name> or judgment")
         m = re.match(r"^`?(.+?):(\d+)(?:-\d+)?`?$", r["Where"])
         if m:
@@ -866,7 +868,8 @@ def self_test() -> int:
                                              "### T-03 [LOW] Web only\napplies_when: ui≠none\n"
                                              "- **Mech:** S `git grep -n TODO`\n",
                                              encoding="utf-8")
-        (CORE / "kernel.md").write_text("## 7. Named\n| Principle | Apply as |\n|---|---|\n| YAGNI | x |\n",
+        (CORE / "kernel.md").write_text("## 7. Named\n| Principle | Apply as |\n|---|---|\n| YAGNI | x |\n"
+                                        "| DRY / single source of truth | x |\n",
                                         encoding="utf-8")
         w("go.mod", "module m\n\nrequire (\n\tgolang.org/x/sys v0.1.0\n\tgithub.com/x/y v1.0.0 // indirect\n)\n")
         w("a/x.go", "package a\n\nfunc X() int { return 1 }\n")
@@ -931,6 +934,8 @@ def self_test() -> int:
         for name, row in [("good", good_row)] + bad_rows:
             write(tmp, state, findings=findings + row)
             expect(bool(validate(tmp)) == (name != "good"), f"validate {name}")
+        write(tmp, state, findings=findings + good_row.replace("LEAN-03", "DRY · yagni"))
+        expect(not validate(tmp), f"validate rejects a §7 principle by its short name: {validate(tmp)}")
         write(tmp, state, findings=findings + good_row.replace("| fixed |", "| open |").replace(fixc, "—"))
         try:
             phase(tmp, "lean", "done")
