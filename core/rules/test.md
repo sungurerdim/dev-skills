@@ -35,7 +35,7 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 - **Mech:** T `git grep -nIE '\.(skip|only)\(|(^|[^[:alnum:]_])x(it|describe)\(|@(Ignore|Disabled)([^[:alnum:]_]|$)|t\.Skip\(|pytest\.mark\.(skip|xfail)|#\[ignore\]' -- ':!*.md'`
 - **Fix:** fix the code or the test so it checks the correct behavior; a temporary skip names its issue on the same line; every bug fix adds its regression test.
 - **Impact:** a red test turned green without a fix lets the next regression on that path ship unnoticed.
-- **Source:** Beck, *Test-Driven Development: By Example*.
+- **Source:** Fail fast; Beck, *Test-Driven Development: By Example*.
 
 ### TST-08 [MEDIUM] Visual regressions unchecked, or goldens not pinned to one platform
 applies_when: ui≠none
@@ -46,11 +46,11 @@ applies_when: ui≠none
 - **Source:** Playwright, Visual comparisons — screenshots differ between browsers and platforms (https://playwright.dev/docs/test-snapshots); Android, Compose Preview Screenshot Testing.
 
 ### TST-11 [HIGH] Check never seen failing
-- **Detect:** a lint, audit or gate with no fixture or test that turns it red; a gate said to enforce a rule while the code visibly breaks that rule and the gate stays green; removing the rule under test changes no result.
-- **Mech:** M
-- **Fix:** pair every gate with a fixture that violates exactly what it claims to catch, asserted to fail in the same suite; a gate that cannot be made to fail is documented as advisory until it can.
+- **Detect:** a lint, audit or gate with no fixture or test that turns it red; a gate said to enforce a rule while the code visibly breaks that rule and the gate stays green; removing the rule under test changes no result; a bug fix (a `fix` commit since {base}) that adds or changes no test, or whose test passes on the unfixed code.
+- **Mech:** T `git log --no-merges -E --grep='^fix(\(|:|!)' --format='@%h %s' --name-only {base}..HEAD | awk '/^@/{if(h&&!t)print h; h=$0; t=0; next} /test|spec/{t=1} END{if(h&&!t)print h}'`
+- **Fix:** pair every gate with a fixture that violates exactly what it claims to catch, asserted to fail in the same suite; a gate that cannot be made to fail is documented as advisory until it can. A bug fix lands with its regression test, run red on the unfixed code first, then green.
 - **Impact:** a non-enforcing gate turns an unchecked rule into one everybody believes is checked, so nobody looks again.
-- **Source:** kernel §3 (a check is proven by injecting its defect); DeMillo, Lipton & Sayward, "Hints on Test Data Selection" (1978, mutation testing).
+- **Source:** Red-green-refactor; kernel §3 (a check is proven by injecting its defect); DeMillo, Lipton & Sayward, "Hints on Test Data Selection" (1978, mutation testing).
 
 ### TST-12 [MEDIUM] Placeholder committed as data
 - **Detect:** committed structured files (registries, manifests, config, fixtures read as data) holding unresolved tokens such as `TBD`, `FIXME`, `<fill>`, `assign at apply`, `next free ID` in a field consumers read as a value.
@@ -64,14 +64,14 @@ applies_when: ui≠none
 - **Mech:** M
 - **Fix:** name the scanned set explicitly, assert it is non-empty, and compare repo-wide rules against `git ls-files` so a new directory joins the scan or fails the gate; a deliberate exclusion is declared beside the scope with its reason.
 - **Impact:** a scope-blind gate is green for the same reason an empty one is, and the narrower the scope drifts the greener it gets.
-- **Source:** kernel §3 (a gate that stays green is blind); fitness functions (Ford, Parsons, Kua).
+- **Source:** Fail fast; kernel §3 (a gate that stays green is blind); fitness functions (Ford, Parsons, Kua).
 
 ### TST-14 [HIGH] Check nothing calls
 - **Detect:** a script under `scripts/`, `tools/` or `bin/` that no task runner, hook or pipeline invokes; a test file outside the runner's discovery pattern; a caller that discards the check's exit code; docs saying "we lint with X" where nothing runs X.
 - **Mech:** T `git ls-files 'scripts/*' 'tools/*' 'bin/*' | while read -r f; do git grep -qF "${f##*/}" -- ":!$f" || echo "$f"; done`
 - **Fix:** wire it into the single entry point that gates "done", or delete it; an intentional exclusion is named at that entry point with the condition under which it runs; prove the path by breaking a fixture and running the entry point.
 - **Impact:** the rule looks enforced, so nobody looks again, and the first real enforcement happens in production.
-- **Source:** Fowler, Continuous Integration (one command runs every check).
+- **Source:** Fail fast; Fowler, Continuous Integration (one command runs every check).
 
 ### TST-15 [HIGH] Test depends on time, randomness, network or order
 - **Detect:** in test files: real clock reads, sleeps, unseeded random values, real network calls; process-global caches or singletons not reset between tests; tests that pass alone and fail in the suite (or the reverse); reruns used to get green.

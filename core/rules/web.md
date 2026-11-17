@@ -7,7 +7,7 @@ Loaded for web UIs (`ui∋web`). Behaviour every graphical UI shares is in [ux.m
 - **Mech:** T `git grep -nIE '<(img|iframe|video)[[:space:]]' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte' '*.astro' | grep -v -e 'height=' -e 'aspect-ratio'`
 - **Fix:** preload or `fetchpriority="high"` the LCP resource and never lazy-load it; reserve space for every media and embed slot; insert late content below the viewport or in reserved space; `size-adjust`/`font-display` tuned fonts; report field p75 of LCP, INP and CLS.
 - **Impact:** slow first paint and jumping layouts lose users before the first interaction and misplace taps; search ranking uses the same field data.
-- **Source:** web.dev, Core Web Vitals thresholds LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1 at p75 (https://web.dev/articles/vitals).
+- **Source:** Make it work, right, fast; web.dev, Core Web Vitals thresholds LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1 at p75 (https://web.dev/articles/vitals).
 
 ### WEB-05 [HIGH] Layout breaks on narrow viewports
 - **Detect:** an HTML entry point with no `<meta name="viewport" content="width=device-width…">`; fixed pixel widths on containers wider than a phone without `max-width`; tables, code blocks or wide media with no scroll container; horizontal scroll at 320 CSS px width.

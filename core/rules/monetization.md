@@ -7,7 +7,7 @@ Loaded when the product takes payments (`billing≠none`). Server-side entitleme
 - **Mech:** T `git grep -nIE '[$€£¥₺][[:space:]]*[0-9]+([.,][0-9]{2})?|[0-9]+([.,][0-9]{2})?[[:space:]]*(USD|EUR|GBP|TRY|€)|price_[A-Za-z0-9]{8,}' -- ':!*test*' ':!*.md' ':!*.json'`
 - **Fix:** render the price, currency and period the provider returns for the user's storefront or region; keep product IDs in one config.
 - **Impact:** the screen shows one price and the store charges another, in the wrong currency for most countries.
-- **Source:** Apple StoreKit, `Product.displayPrice`; Google Play Billing, `ProductDetails`; Stripe, Prices API; SIM-06.
+- **Source:** DRY / single source of truth; Apple StoreKit, `Product.displayPrice`; Google Play Billing, `ProductDetails`; Stripe, Prices API; SIM-06.
 
 ### UX-DP-03 [HIGH] Charge terms hidden on the purchase screen
 - **Detect:** a paywall or checkout that does not show, before the buy action, the price, the billing period, the auto-renewal, the trial length with the price after it, and links to terms and privacy; mandatory fees first shown at the last step; per-day or comparison prices without the billed amount at equal weight; countdowns or scarcity not backed by data; no reminder before a trial converts.

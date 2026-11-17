@@ -15,7 +15,7 @@ applies_when: auth∋session or auth∋jwt or auth∋other
 - **Mech:** T `git grep -nIiE '(localStorage|sessionStorage)\.setItem\(.*(token|jwt|session|auth)|SharedPreferences.*token|UserDefaults.*token|httpOnly[[:space:]]*:[[:space:]]*false|HttpOnly[[:space:]]*=[[:space:]]*False|secure[[:space:]]*:[[:space:]]*false|SameSite[[:space:]]*=[[:space:]]*None' -- ':!*.md'`
 - **Fix:** web: a `__Host-`-prefixed `HttpOnly; Secure; SameSite=Lax; Path=/` cookie (the prefix forbids `Domain`, blocking subdomain cookie tossing; `Strict` where no inbound cross-site navigation must keep the session), or a backend-for-frontend holding the tokens; mobile: platform secure storage. Access tokens 5–15 minutes; refresh tokens rotated on every use (AUTH-24); logout and credential change revoke the server-side session and its refresh tokens.
 - **Impact:** any injected script exfiltrates a readable token, and a long-lived or unrevoked one keeps working after the user signs out.
-- **Source:** OWASP Session Management Cheat Sheet; OWASP MASVS-STORAGE-1; RFC 9700.
+- **Source:** Least privilege; OWASP Session Management Cheat Sheet; OWASP MASVS-STORAGE-1; RFC 9700.
 
 ### AUTH-17 [MEDIUM] Session ID not regenerated or guessable
 applies_when: auth∋session or auth∋other
@@ -47,7 +47,7 @@ applies_when: auth∋jwt or auth∋oauth or auth∋other
 - **Mech:** T `git grep -nIE 'jwt\.decode\(|ParseUnverified|verify_signature|verify[[:space:]]*=[[:space:]]*False|algorithms[[:space:]]*=|"none"|ignoreExpiration|decode\(.*complete' -- ':!*.md'`
 - **Fix:** verify with a server-side algorithm allow-list (ES256, EdDSA or RS256 across services; HS256 only when issuer and verifier are one service) and check `exp`, `nbf`, `iss`, `aud` on every request; keep claims minimal.
 - **Impact:** algorithm confusion or skipped checks let anyone forge a token for any user.
-- **Source:** RFC 8725 (JWT Best Current Practices); RFC 7519; CWE-347.
+- **Source:** Fail fast; RFC 8725 (JWT Best Current Practices); RFC 7519; CWE-347.
 
 ### AUTH-05 [HIGH] State-changing requests without CSRF protection
 applies_when: ui∋web
@@ -62,14 +62,14 @@ applies_when: ui∋web
 - **Mech:** M (route list against the role or permission definitions)
 - **Fix:** one permission table (role → actions) enforced by the central policy layer of SAR-07; flat roles until a concrete need for groups, attributes or relationships; per-tenant roles in a membership table for multi-tenant products.
 - **Impact:** any account reaches admin functions, and ad-hoc checks drift until one route is forgotten.
-- **Source:** OWASP API5:2023 Broken Function Level Authorization; NIST RBAC model (csrc.nist.gov).
+- **Source:** DRY / single source of truth; Least privilege; OWASP API5:2023 Broken Function Level Authorization; NIST RBAC model (csrc.nist.gov).
 
 ### AUTH-11 [CRITICAL] Object or tenant access not tied to the caller
 - **Detect:** a handler loading, updating or deleting a record, file or storage key by an ID from the request with no ownership or tenant filter (`WHERE owner_id = :me`, a policy check); tenant ID taken from the request body instead of the session; queries in a multi-tenant schema missing the tenant column; row-level security disabled or open (`USING (true)`), Firebase/Supabase rules that allow any signed-in user; no cross-user test.
 - **Mech:** T `git grep -nIE '(findById|findByPk|find_by_id|findUnique|findOne|get_object_or_404|objects\.get|\.get)\(([[:space:]]*[a-z_]+[[:space:]]*=)?[[:space:]]*(req\.(params|query|body)|request\.(args|GET|POST|json)|params\[|ctx\.params)' -- ':!*test*' ':!*.md'` · `git grep -nIE 'USING[[:space:]]*\([[:space:]]*true[[:space:]]*\)|allow read, write: if (true|request\.auth != null)|DISABLE ROW LEVEL SECURITY'`
 - **Fix:** scope every lookup by the caller (owner or tenant from the session) or pass it through a policy check; enable row-level security or database rules that encode the same; add the cross-user test: user A creates R, user B requests R by ID, expect 403 or 404.
 - **Impact:** any signed-in user reads or changes other users' or tenants' data by changing an ID.
-- **Source:** OWASP API1:2023 Broken Object Level Authorization; CWE-639; CVE-2025-48757 (open Supabase RLS).
+- **Source:** Least privilege; OWASP API1:2023 Broken Object Level Authorization; CWE-639; CVE-2025-48757 (open Supabase RLS).
 
 ### AUTH-18 [HIGH] Password policy contradicts NIST SP 800-63B-4
 applies_when: auth∋session or auth∋jwt or auth∋other
@@ -101,7 +101,7 @@ applies_when: api≠none
 - **Mech:** T `git grep -nIiE 'api_?key' -- ':!*test*' ':!*.md' ':!*lock*'`
 - **Fix:** prefixed keys (`live_`/`test_`), stored as a hash and shown once; several active keys per account with scopes; routine rotation adds the new key, migrates callers, then revokes the old; a confirmed leak is revoked immediately with no overlap; logs carry the prefix and last four characters only.
 - **Impact:** a leaked key that cannot be identified, scoped or rotated forces an all-or-nothing incident response.
-- **Source:** OWASP REST Security Cheat Sheet (API keys); OWASP API2:2023 Broken Authentication.
+- **Source:** Least privilege; OWASP REST Security Cheat Sheet (API keys); OWASP API2:2023 Broken Authentication.
 
 ### AUTH-23 [MEDIUM] Open redirect after login, logout or OAuth
 - **Detect:** a `next`, `return_to`, `returnUrl`, `redirect` or `redirect_uri` value from the request used to redirect without exact allow-list matching; validation by `startsWith`, substring or regex on the host.

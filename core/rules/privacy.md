@@ -7,28 +7,28 @@ Loaded when the product handles personal data (`pii=yes`). Every rule here is an
 - **Mech:** T `git grep -nIiE 'consent|cookie.?banner|onetrust|cookiebot|usercentrics|klaro|didomi|Sec-GPC|globalPrivacyControl' -- ':!*.md' ':!*lock*'`
 - **Fix:** gate every non-essential SDK on the stored per-purpose choice; accept and reject equal in weight and steps; read GPC as an opt-out; write a consent event per change through the SAR-01 audit helper; bump the version on every text or scope change and re-ask users below it; one settings action withdraws a purpose and stops its processing at once.
 - **Impact:** tracking starts without a choice, and "did this user agree to this, and when" has no answer in the data.
-- **Source:** GDPR Art. 7; ePrivacy Directive Art. 5(3); Global Privacy Control specification (W3C Privacy CG).
+- **Source:** Secure / private by default; GDPR Art. 7; ePrivacy Directive Art. 5(3); Global Privacy Control specification (W3C Privacy CG).
 
 ### PRV-03 [CRITICAL] More personal data than the feature needs
 - **Detect:** collected fields or columns no code reads; device fingerprinting or persistent device IDs used without need; raw email, phone or national ID used as join keys in analytics or derived tables; a pseudonym mapping kept beside the pseudonymized data; identifiers kept for abuse prevention in raw form.
 - **Mech:** T `git grep -nIiE 'fingerprint|getUniqueId|ANDROID_ID|identifierForVendor|advertisingId|IDFA' -- ':!*.md' ':!*lock*'`
 - **Fix:** drop what has no consuming feature; use surrogate IDs or keyed hashes in analytics and keep the mapping in a separately controlled store; hash identifiers that are only matched; minimize at the schema, not in a policy.
 - **Impact:** every unneeded field widens the breach and is a liability however well it is secured.
-- **Source:** GDPR Art. 25; NIST SP 800-122.
+- **Source:** Secure / private by default; GDPR Art. 25; NIST SP 800-122.
 
 ### PRV-04 [CRITICAL] Users cannot get, export or erase their data
 - **Detect:** no self-service or request path for access, export and deletion; deletion that only disables the account or leaves rows in other tables, files, search indexes, caches, analytics or processors (PRV-15); several deletion paths with diverging key lists; dropped data still in storage pages or backups with no expiry; no identity check on requests; no record of requests and outcomes; export not machine-readable.
 - **Mech:** T `git grep -nIiE 'delete.?account|deleteUser|account.?deletion|erasure|data.?export|export.?(my|user).?data|download.?my.?data|dsar' -- ':!*.md'`
 - **Fix:** one deletion routine covering every store and every PRV-15 recipient (their delete API called, backups expire on a set schedule, storage compacted after drops); export as JSON or CSV; verify the requester; record each request with type, time and outcome; a test deletes a seeded user and finds nothing left.
 - **Impact:** a user cannot leave or see their data, and "deleted" data stays exposed to the next breach.
-- **Source:** GDPR Art. 15, 17, 20; SIM-06 (one deletion list).
+- **Source:** DRY / single source of truth; GDPR Art. 15, 17, 20; SIM-06 (one deletion list).
 
 ### PRV-27 [HIGH] Retention stated but not enforced
 - **Detect:** retention periods in docs or config with no TTL, scheduled purge or lifecycle rule implementing them; personal data in tables, logs, intermediates or object stores with no expiry; one blanket period where data types differ (raw events, aggregates, recordings, crash data).
 - **Mech:** T `git grep -nIiE 'ttl|expireAfterSeconds|expires?_at|retention|purge|lifecycle_?rule|LifecycleConfiguration' -- ':!*.md' ':!*lock*'`
 - **Fix:** a retention period per data class in config, enforced by TTL indexes, scheduled purge jobs or storage lifecycle rules, with the job's result logged.
 - **Impact:** data is kept exactly as long as nobody remembers to delete it, which in practice means forever.
-- **Source:** GDPR Art. 5(1)(e); NIST SP 800-122.
+- **Source:** Secure / private by default; GDPR Art. 5(1)(e); NIST SP 800-122.
 
 ### PRV-28 [HIGH] Analytics or crash reporting carries personal data
 applies_when: pii=yes or integrations≠none
@@ -36,7 +36,7 @@ applies_when: pii=yes or integrations≠none
 - **Mech:** T `git grep -nIiE 'gtag\(|googletagmanager|mixpanel|amplitude|segment\.(io|com)|posthog|Sentry\.init|sentry_sdk\.init|crashlytics|firebase.?analytics|hotjar|fullstory|clarity\.ms|datadogRum' -- ':!*.md' ':!*lock*'`
 - **Fix:** start these SDKs through PRV-01's gate; mask inputs in replay; truncate IPs (IPv4 /24, IPv6 /64) before storage; strip identifiers and bodies with the SDK's before-send hook; suppress small cohorts with a documented minimum.
 - **Impact:** a debugging or growth tool becomes an unconsented personal-data pipeline into a third party.
-- **Source:** GDPR Art. 5(1)(c); OWASP Logging Cheat Sheet.
+- **Source:** Secure / private by default; GDPR Art. 5(1)(c); OWASP Logging Cheat Sheet.
 
 ### PRV-15 [HIGH] Third parties receiving personal data not inventoried
 - **Detect:** dependencies, SDKs or service clients that receive personal data (hosting, email, analytics, crash reporting, AI APIs, support, payment) with no list in the repo naming each recipient and the fields it gets; the list not updated in the change that adds or removes such a dependency; recipients the deletion routine (PRV-04) does not reach.
@@ -50,7 +50,7 @@ applies_when: pii=yes or integrations≠none
 - **Mech:** T `git grep -nIiE '(health|diagnos|medical|biometric|religio|ethnic|sexual|national_?id|tc_?kimlik|ssn)[a-z_]*' -- ':!*.md' ':!*test*' ':!*lock*'`
 - **Fix:** allow-list mappers for every outbound payload (unlisted fields cannot leave); keep such data in the primary store with need-to-know access (AUTH-11, SAR-01); a negative test fails the build if such a field appears in an outbound payload.
 - **Impact:** one accidental mapping sends sensitive data of every user to a party that cannot be made to delete it.
-- **Source:** GDPR Art. 9; OWASP API Security Top 10 API3:2023.
+- **Source:** Secure / private by default; GDPR Art. 9; OWASP API Security Top 10 API3:2023.
 
 ### PRV-30 [HIGH] A privacy claim the code contradicts
 - **Detect:** a promise in docs, UI copy or the published notice ("data stays in the EU", "nothing leaves your device", "end-to-end encrypted", "no copies remain", "we never share") that holds for the main path while exports, integrations, admin tools, backups, AI calls, crash reports or an ads SDK break it; exports that write to an API's default location instead of a named target.
@@ -65,4 +65,4 @@ applies_when: audience=public
 - **Mech:** T `git grep -nIiE 'age.?gate|date.?of.?birth|birth_?date|dob|is_?minor|age_?verif|parental' -- ':!*.md'`
 - **Fix:** an age gate before collection, the threshold in config; high-privacy defaults and no nudges below it; ads and analytics SDKs off below it; a parental-consent flow where the product needs one. Store age signals are STO-07.
 - **Impact:** children's data flows to ad and analytics vendors on adult terms.
-- **Source:** GDPR Art. 8; COPPA (16 CFR 312); ICO Age Appropriate Design Code.
+- **Source:** Secure / private by default; GDPR Art. 8; COPPA (16 CFR 312); ICO Age Appropriate Design Code.

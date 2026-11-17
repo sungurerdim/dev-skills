@@ -114,6 +114,7 @@ Each is applied, not just known. A finding or plan cites the name it rests on. D
 | Least astonishment | Names, defaults and behavior do what a reader expects |
 | Fail fast | Validate at the boundary; fail loudly with a clear message |
 | Idempotency | Retrying an operation is safe |
+| Reversibility | Every change has a way back: a backup or snapshot before a data change, a rollback path for a deploy, expand/contract or a down step for a schema, a commit per unit |
 | Least privilege | Grant the minimum access, scope and lifetime |
 | Defense in depth | No single control is the only guard |
 | Secure / private by default | The default configuration is the safe one; collect only what is needed |

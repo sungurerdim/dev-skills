@@ -8,14 +8,14 @@ applies_when: api∋rest
 - **Mech:** T `git grep -nIE "['\"]/(api/)?(v[0-9]+/)?(get|create|update|delete|fetch|remove|add|list)[A-Z_-]" -- ':!*.md' ':!*test*'`
 - **Fix:** plural nouns for collections, the method for the action (`GET /users`, `POST /orders`, `DELETE /items/5`); a non-CRUD action becomes a sub-resource or a custom method in one documented style.
 - **Impact:** inconsistent paths confuse clients and defeat HTTP caching, tooling and method semantics.
-- **Source:** Google Cloud API Design Guide (resource-oriented design); RFC 9110 (method semantics).
+- **Source:** Least astonishment; Google Cloud API Design Guide (resource-oriented design); RFC 9110 (method semantics).
 
 ### API-02 [HIGH] Error responses in several shapes
 - **Detect:** different error bodies across endpoints (`{message}`, `{error}`, plain strings, HTML); a body status that disagrees with the HTTP status; validation errors without a pointer to the failing field.
 - **Mech:** T `git grep -nIE 'problem\+json|ProblemDetail|HTTPException|res\.status\([45][0-9]{2}\)|status_code[[:space:]]*=[[:space:]]*[45][0-9]{2}|abort\([45][0-9]{2}' -- ':!*test*' ':!*.md'`
 - **Fix:** one error handler emitting RFC 9457 `application/problem+json` (`type`, `title`, `status`, `detail`, `instance`, plus field errors) for every failure path; gRPC uses `google.rpc.Status`, GraphQL the `errors` array with `extensions.code`.
 - **Impact:** clients and monitors cannot parse failures reliably, so errors are mishandled or missed.
-- **Source:** RFC 9457 (Problem Details for HTTP APIs).
+- **Source:** Least astonishment; RFC 9457 (Problem Details for HTTP APIs).
 
 ### API-03 [HIGH] Public API changes break clients without a version
 applies_when: api∋rest
@@ -37,7 +37,7 @@ applies_when: api∋rest
 - **Mech:** T `git grep -nIiE 'rate.?limit|throttl|slowapi|express-rate-limit|rate-limiter-flexible|bucket4j|limiter' -- ':!*.md'`
 - **Fix:** per-identity and per-IP limits (sliding window or token bucket) in front of handlers, tighter on auth endpoints with progressive delay; one budget shared by REST and WebSocket attempts; fail closed (`429`/`503`) on auth, payment and write paths when the store is down, fail open only on public reads with the choice written beside the config and an alert while degraded; a test asserts every route is limited or exempt-listed.
 - **Impact:** credential stuffing, scraping and cost abuse run unthrottled, and a silent fail-open removes the limiter exactly during the incident it exists for.
-- **Source:** OWASP API4:2023 Unrestricted Resource Consumption; OWASP Credential Stuffing Prevention Cheat Sheet; RFC 6585 (429).
+- **Source:** Secure / private by default; OWASP API4:2023 Unrestricted Resource Consumption; OWASP Credential Stuffing Prevention Cheat Sheet; RFC 6585 (429).
 
 ### API-06 [MEDIUM] List endpoints unbounded or offset-paginated at scale
 - **Detect:** list endpoints returning every row; a client-chosen `limit`/`page_size` with no server cap; offset pagination over large or actively written collections (deep pages scan skipped rows and shift under inserts).
@@ -59,7 +59,7 @@ applies_when: api∋rest or api∋graphql or api∋grpc
 - **Mech:** T `git ls-files | grep -iE '(openapi|swagger)[^/]*\.(ya?ml|json)$|\.graphqls?$|\.proto$'`
 - **Fix:** generate the contract from code or write it first; lint it (Spectral for OpenAPI, `buf lint` for protobuf) and diff it against the base for breaking changes (oasdiff, `buf breaking`) in the gate; a contract test checks the server against it.
 - **Impact:** clients guess the contract, and breaking changes reach them unnoticed.
-- **Source:** OpenAPI Specification 3.1; Spectral (stoplight.io); oasdiff (github.com/oasdiff/oasdiff); Buf (buf.build).
+- **Source:** Semantic Versioning; OpenAPI Specification 3.1; Spectral (stoplight.io); oasdiff (github.com/oasdiff/oasdiff); Buf (buf.build).
 
 ### API-10 [HIGH] GraphQL queries unbounded
 applies_when: api∋graphql
@@ -81,7 +81,7 @@ applies_when: api∋graphql
 - **Mech:** T `git grep -nIE '\.(update|create|build|assign|merge|insert)\([[:space:]]*(req\.body|request\.(json|data|POST|form))|\*\*request\.(json|data|form)|Object\.assign\([^,]+,[[:space:]]*req\.body|permit!' -- ':!*test*' ':!*.md'`
 - **Fix:** an explicit DTO or schema per endpoint listing writable fields; explicit response schemas that list readable fields.
 - **Impact:** an attacker sets fields the UI never shows (`role`, `isAdmin`, `balance`) or reads ones it never displays.
-- **Source:** OWASP API3:2023 Broken Object Property Level Authorization; CWE-915.
+- **Source:** Least privilege; OWASP API3:2023 Broken Object Property Level Authorization; CWE-915.
 
 ### API-16 [HIGH] Security middleware in the wrong order
 - **Detect:** authorization registered before authentication; rate limiting after body parsing of large payloads or after the handler; headers or CORS applied only on success paths; routes registered before the auth middleware they rely on.
@@ -96,7 +96,7 @@ applies_when: ui∋web or api≠none
 - **Mech:** T `git grep -nIiE 'Access-Control-Allow-(Origin|Credentials)|cors\(|allow_origins|AllowAnyOrigin|allowedOrigins|origin[[:space:]]*:[[:space:]]*(true|\*)' -- ':!*.md'`
 - **Fix:** an exact allow-list of origins for credentialed requests; no reflection of arbitrary origins.
 - **Impact:** any website makes authenticated requests as the logged-in user and reads the responses.
-- **Source:** OWASP API8:2023 Security Misconfiguration; OWASP HTML5 Security Cheat Sheet (CORS); CWE-942.
+- **Source:** Least privilege; OWASP API8:2023 Security Misconfiguration; OWASP HTML5 Security Cheat Sheet (CORS); CWE-942.
 
 ### API-20 [HIGH] Webhooks or third-party responses trusted unverified
 applies_when: integrations≠none or api≠none

@@ -23,14 +23,21 @@ A local gate (a git hook or one check command) counts as CI; no rule here assume
 - **Mech:** T `git grep -lIE 'DO NOT EDIT|@generated|[Aa]uto-?generated' -- ':!*.md'`
 - **Fix:** the gate regenerates and fails on `git diff --exit-code`; a fix goes into the source or the generator.
 - **Impact:** the next regeneration silently drops the hand edit; a stale hash or binding breaks production.
-- **Source:** Go `go generate` convention ("Code generated … DO NOT EDIT."); Reproducible Builds (reproducible-builds.org).
+- **Source:** DRY / single source of truth; Go `go generate` convention ("Code generated … DO NOT EDIT."); Reproducible Builds (reproducible-builds.org).
 
 ### DOP-40 [LOW] YAML that does not parse as written
 - **Detect:** YAML that fails to parse, usually an unquoted value containing `: ` or starting with `*`, `&`, `!`, `%` or `@`; no YAML check in the gate.
 - **Mech:** S `git ls-files -z '*.yml' '*.yaml' | xargs -0 yamllint -d '{rules: {}}' -f parsable`
 - **Fix:** quote such values; add `yamllint` to the gate.
 - **Impact:** the build may pass while a title, description or command ships half-parsed.
-- **Source:** YAML 1.2.2 specification (plain scalars); yamllint.
+- **Source:** Fail fast; YAML 1.2.2 specification (plain scalars); yamllint.
+
+### DOP-50 [MEDIUM] Script unsafe to re-run, failing silently or over-granting
+- **Detect:** a tracked setup, install, bootstrap or helper script (shell, Makefile recipe) that breaks or duplicates on a second run — `mkdir` without `-p`, `ln -s` without `-f`, a line appended (`>>`) to an rc, profile or config file with no check that it is already there, a user, key or resource created without an exists-check; a shell script without `set -e` (or `errexit`) that runs on after a failed step and exits 0; `chmod 777`, `a+w` or `o+w`.
+- **Mech:** T `git grep -nIE '(^|[;&|[:space:]])mkdir[[:space:]]+[^-[:space:]]|(^|[;&|[:space:]])ln[[:space:]]+-s[[:space:]]|>>[[:space:]]*[^[:space:]]*(rc|profile|\.conf|config)([^[:alnum:]_]|$)' -- '*.sh' '*.bash' 'Makefile' '*.mk'` · `git grep -LE 'set -[a-z]*e|errexit' -- '*.sh' '*.bash'` · `git grep -nIE 'chmod[[:space:]]+(-R[[:space:]]+)?(0?777|a\+w|o\+w)' -- ':!*.md'`
+- **Fix:** every step checks before it acts or uses its idempotent form (`mkdir -p`, `ln -sf`, append only when `grep -qxF` finds no such line, create-if-absent); `set -eu` at the top, plus `pipefail` where the shell has it; the narrowest mode that works (`755` directories, `644` or `600` files).
+- **Impact:** the documented re-run after an error fails half-way or doubles every appended line; a silently failed step leaves a "successful" setup missing a piece; a world-writable file lets any local user replace what the script runs.
+- **Source:** Fail fast; Idempotency; Least privilege; Bash Reference Manual, The Set Builtin (`errexit`); CWE-732.
 
 ## Coding agents
 
@@ -39,7 +46,7 @@ A local gate (a git hook or one check command) counts as CI; no rule here assume
 - **Mech:** T `git grep -nIE '"(npx|uvx|bunx|pipx)"|@latest' -- '*mcp*.json' '.cursor/*' '.vscode/*.json' '.claude/*.json' '.continue/*'`
 - **Fix:** pin every tool to a version and re-review on change; scope each tool to the task with no ambient secrets; approval prompts show the raw call; agent changes to CI, infrastructure, auth, secrets and dependencies get a human review; no auto-merge on protected branches.
 - **Impact:** one crafted input to an over-privileged or silently updated tool exfiltrates data or runs code (EchoLeak CVE-2025-32711, CurXecute CVE-2025-54135).
-- **Source:** OWASP Top 10 for Agentic Applications (2026); NVD CVE-2025-32711 and CVE-2025-54135.
+- **Source:** Least privilege; OWASP Top 10 for Agentic Applications (2026); NVD CVE-2025-32711 and CVE-2025-54135.
 
 ## Dependencies
 
@@ -76,7 +83,7 @@ A local gate (a git hook or one check command) counts as CI; no rule here assume
 - **Mech:** T `git check-ignore --no-index package-lock.json pnpm-lock.yaml yarn.lock bun.lock poetry.lock uv.lock Pipfile.lock Cargo.lock go.sum Gemfile.lock composer.lock mix.lock pubspec.lock Package.resolved` · `git grep -nE '(npm|pnpm|yarn) install|pip install -r' -- '.github' '.gitlab-ci.yml' '*Dockerfile*' 'Makefile' '*.sh'`
 - **Fix:** commit the lockfile; install with `npm ci`, `pnpm install --frozen-lockfile`, `uv sync --locked`, `pip install --require-hashes`, `cargo build --locked`.
 - **Impact:** two builds of one commit pull different code; a compromised new release is installed silently.
-- **Source:** npm Docs (package-lock.json, npm ci); The Cargo Book (Cargo.lock); Go Modules Reference (go.sum); pip secure installs.
+- **Source:** Twelve-Factor; npm Docs (package-lock.json, npm ci); The Cargo Book (Cargo.lock); Go Modules Reference (go.sum); pip secure installs.
 
 ### DOP-17 [HIGH] New dependency not proven real, or resolvable from the wrong registry
 - **Detect:** a dependency added since {base} that is absent from its registry, has near-zero downloads, was first published recently, is one character off a popular name or comes from another ecosystem (19.7% of LLM-suggested package names do not exist; attackers register them); a new or upgraded package adding install scripts (`preinstall`, `postinstall`, `prepare`); a publisher or source repository that changed between versions, or a missing attestation (`npm audit signatures`, PEP 740); unscoped internal package names, no private registry pinned for the internal scope, or installs that ignore the lockfile (dependency confusion). Registry checks need the network.
@@ -122,21 +129,21 @@ applies_when: platforms∋library or platforms∋cli
 - **Mech:** T `git grep -nIE 'NODE_AUTH_TOKEN|_authToken|TWINE_PASSWORD|PYPI_(API_)?TOKEN|CARGO_REGISTRY_TOKEN|GEM_HOST_API_KEY' -- ':!*.md'`
 - **Fix:** CI publish: trusted publishing (OIDC, `id-token: write`) on npm (CLI ≥ 11.5.1), PyPI, crates.io and RubyGems, then delete the stored token; local publish: 2FA on the account and a short-lived, package-scoped token never written to the repo.
 - **Impact:** a leaked publish token is a full package takeover for every downstream user.
-- **Source:** npm Docs, Trusted publishing; PyPI Docs, Trusted Publishers; Rust Blog, crates.io development update (2025-07); RubyGems Guides, Trusted publishing.
+- **Source:** Least privilege; npm Docs, Trusted publishing; PyPI Docs, Trusted Publishers; Rust Blog, crates.io development update (2025-07); RubyGems Guides, Trusted publishing.
 
 ### DOP-32 [HIGH] Release depends on memory
 - **Detect:** releasing takes several hand-typed steps; the release path does not refuse a dirty tree, publishes without the gate, bumps the version by hand, or runs heavy checks after the action that triggers deploy (on push-to-deploy hosts the push is the deploy); "released" or "deployed" assumed from a successful push instead of observed (host build status, health endpoint version equal to the released commit); a hybrid (Capacitor) release path that runs `cap copy` after a dependency change or `cap sync` before the web build, so native plugin registration ships stale.
 - **Mech:** T `git ls-files | grep -iE '(^|/)(release|publish|deploy)[^/]*\.(sh|py|js|mjs|ts)$|(^|/)(Makefile|justfile|Taskfile\.ya?ml)$'`
 - **Fix:** one command: refuse a dirty tree → stop when nothing changed since the last tag → version from the changelog's Unreleased section (DOP-48) → run the gate once → build (hybrid: web build → `npx cap sync` → native build) → publish or deploy → poll the host until it reports the pushed commit, or fail loudly at a timeout → then tag. Heavy checks run before the triggering action; an emergency bypass is explicit and logged.
 - **Impact:** each manual step is a release that can ship untested, unversioned or not at all while every marker says it shipped.
-- **Source:** Humble and Farley, *Continuous Delivery* (deployment pipeline); DORA capabilities (deployment automation); Capacitor CLI, `sync` (copy plus update).
+- **Source:** Fail fast; Humble and Farley, *Continuous Delivery* (deployment pipeline); DORA capabilities (deployment automation); Capacitor CLI, `sync` (copy plus update).
 
 ### DOP-48 [MEDIUM] Version disagrees across manifest, tag and changelog
 - **Detect:** a versioned project whose manifest version, latest release tag and top changelog entry name different versions, or a tag with no changelog entry.
 - **Mech:** T `git tag --sort=-v:refname | head -n 3` · `git grep -m1 -nE '^## ' -- CHANGELOG.md` · `git grep -nE '^version[[:space:]]*[=:]|"version"[[:space:]]*:|<Version>' -- package.json pyproject.toml Cargo.toml pubspec.yaml '*.csproj'`
 - **Fix:** one source for the version (the manifest, or the changelog the release command reads); the release command writes the others and tags in one step.
 - **Impact:** users and tools cannot tell which build they run or what changed in it.
-- **Source:** Semantic Versioning 2.0.0; Keep a Changelog 1.1.0.
+- **Source:** DRY / single source of truth; Semantic Versioning 2.0.0; Keep a Changelog 1.1.0.
 
 ### DOP-49 [MEDIUM] No way back from a bad published release
 applies_when: platforms∋library or platforms∋cli
@@ -144,7 +151,7 @@ applies_when: platforms∋library or platforms∋cli
 - **Mech:** T `git grep -nIiE 'yank|deprecate|unpublish' -- '*.md' '*.sh' 'Makefile' 'justfile'`
 - **Fix:** document the withdrawal beside the release command — `cargo yank --version {v}`, PyPI yank (PEP 592), `npm deprecate {pkg}@{v} "{reason}"`, `gem yank` — then ship a fixed patch release; never reuse a version number.
 - **Impact:** a broken release keeps installing for every new user until someone finds out how to stop it.
-- **Source:** PEP 592; The Cargo Book (cargo yank); npm Docs (npm deprecate); Semantic Versioning 2.0.0 (item 3).
+- **Source:** Reversibility; PEP 592; The Cargo Book (cargo yank); npm Docs (npm deprecate); Semantic Versioning 2.0.0 (item 3).
 
 ## Hosted pipelines
 
@@ -162,7 +169,7 @@ applies_when: ci∋github
 - **Mech:** T `git grep -nE 'pull_request_target|workflow_run' -- .github/workflows`
 - **Fix:** run PR code under `pull_request`; keep `pull_request_target` for metadata-only jobs that never check out or execute PR content.
 - **Impact:** a fork PR exfiltrates repository secrets and publish rights; the March 2026 trivy-action compromise that backdoored LiteLLM on PyPI began this way.
-- **Source:** GitHub Security Lab, "Preventing pwn requests"; zizmor audit `dangerous-triggers`.
+- **Source:** Least privilege; GitHub Security Lab, "Preventing pwn requests"; zizmor audit `dangerous-triggers`.
 
 ### DOP-23 [HIGH] CI holds long-lived cloud keys or a broad token
 applies_when: ci≠none
@@ -170,7 +177,7 @@ applies_when: ci≠none
 - **Mech:** T `git grep -nE 'AWS_SECRET_ACCESS_KEY|AZURE_CLIENT_SECRET|GOOGLE_CREDENTIALS|credentials_json' -- .github .gitlab-ci.yml .circleci azure-pipelines.yml` · `git grep -L -E '^permissions:' -- '.github/workflows/*.yml' '.github/workflows/*.yaml'`
 - **Fix:** federate (AWS role assumption, Azure federated credentials, GCP Workload Identity Federation, GitLab `id_tokens`) and delete the stored keys; `permissions: contents: read` at the top, raised per job only where needed.
 - **Impact:** a leaked stored key works until someone rotates it; a federated credential expires within the hour and is scoped to one role.
-- **Source:** GitHub Docs, Security hardening with OpenID Connect; GitLab Docs, OpenID Connect in GitLab CI/CD.
+- **Source:** Least privilege; GitHub Docs, Security hardening with OpenID Connect; GitLab Docs, OpenID Connect in GitLab CI/CD.
 
 ### DOP-44 [HIGH] CI secrets can reach logs or outlive a leak
 applies_when: ci≠none
@@ -178,7 +185,7 @@ applies_when: ci≠none
 - **Mech:** T `git grep -nE 'set -x|ACTIONS_STEP_DEBUG|CI_DEBUG_TRACE|echo[^#]*secrets\.' -- .github/workflows .gitlab-ci.yml`
 - **Fix:** never print secrets; mask every derived value (`::add-mask::`) before anything can print it; no trace logging on secret-holding jobs; the narrowest scope (environment over repository over organization); a rotation note for each secret that cannot move to OIDC (DOP-23).
 - **Impact:** a logged secret is exposed to everyone who can read the log, and an unrotated one stays usable after an unnoticed leak.
-- **Source:** GitHub Docs, Security hardening for GitHub Actions; CWE-532.
+- **Source:** Least privilege; GitHub Docs, Security hardening for GitHub Actions; CWE-532.
 
 ### DOP-41 [MEDIUM] CI minutes spent on work that need not run
 applies_when: ci≠none

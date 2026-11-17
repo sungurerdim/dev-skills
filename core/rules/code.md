@@ -14,14 +14,21 @@ Function- and file-level checks for any stack; structure is in [arch.md](arch.md
 - **Mech:** S `git grep -nIE '(#[[:space:]]*type:[[:space:]]*ignore|//[[:space:]]*@ts-ignore|eslint-disable(-next-line)?|#[[:space:]]*noqa)[[:space:]]*$' -- ':!*.md'`
 - **Fix:** enable the stack's default linter and type checker in strict mode ([toolchains.md](../toolchains.md)); each suppression names its rule and reason on the same line.
 - **Impact:** wrong types, unreachable code and hallucinated APIs reach review only if a person spots them.
-- **Source:** TypeScript `strict`; mypy and Pyright strict modes; golangci-lint; Clippy.
+- **Source:** Fail fast; TypeScript `strict`; mypy and Pyright strict modes; golangci-lint; Clippy.
 
 ### ARC-10 [MEDIUM] Function too complex to review
 - **Detect:** functions over the configured complexity, length, nesting or parameter threshold; where the tool reports cognitive complexity, prefer it. Skip inherently complex domains (parsers, cryptography, numeric kernels) and flat dispatch switches.
 - **Mech:** S `lizard -w -x "./node_modules/*" -x "./vendor/*" .` · `ruff check --select C901,PLR0912,PLR0913,PLR0915 --output-format concise .` · `gocyclo -over 15 .`
 - **Fix:** early returns, named extracted steps, a parameter object; set the threshold in the linter config so the gate holds it (ESLint `complexity`/`max-depth`/`max-params`/`max-lines-per-function`, ruff `C901`, detekt, SwiftLint `cyclomatic_complexity`).
 - **Impact:** past the threshold a function takes longer to review correctly and hides more defects per line.
-- **Source:** McCabe, "A Complexity Measure" (1976); Campbell, Cognitive Complexity (SonarSource, 2018).
+- **Source:** KISS; McCabe, "A Complexity Measure" (1976); Campbell, Cognitive Complexity (SonarSource, 2018).
+
+### ARC-22 [LOW] Call chain reaching through collaborators
+- **Detect:** four or more chained calls that walk an object graph (`order.getCustomer().getAddress().getCity().getName()`), so the caller knows the structure of objects it does not own. Fluent builders, query builders, streams and promise chains that return the same kind of object are not findings.
+- **Mech:** T `git grep -nIE '([[:alnum:]_]+\([^()]*\)\.){3,}[[:alnum:]_]+\(' -- ':!*test*' ':!*.md' ':!*.lock'`
+- **Fix:** ask the direct collaborator for what is needed (`order.shippingCity()`), or pass the needed value in.
+- **Impact:** a change to any object in the chain breaks every caller that reached through it.
+- **Source:** Law of Demeter (Lieberherr and Holland, "Assuring Good Style for Object-Oriented Programs", 1989).
 
 ### ARC-18 [HIGH] Data race or check-then-act on shared state
 - **Detect:** state shared between threads, goroutines, async tasks or processes written without a lock, atomic or single owner; a read-modify-write split across awaits or requests on a shared row or key; check-then-act on files or records (exists then create, select then insert without a unique constraint); a stack with a race detector whose test run does not use it.
@@ -35,7 +42,7 @@ Function- and file-level checks for any stack; structure is in [arch.md](arch.md
 - **Mech:** T `errcheck ./...` · `ruff check --select RUF006 --output-format concise .`
 - **Fix:** await or return it; fire-and-forget only through a supervisor that logs failures (task group, `errgroup`, a queue); enable `@typescript-eslint/no-floating-promises`, `errcheck` or ruff `RUF006` in the gate.
 - **Impact:** the failure vanishes: the caller reports success while the write never happened, or the process exits before the task ends.
-- **Source:** CWE-252 (Unchecked Return Value); typescript-eslint `no-floating-promises`.
+- **Source:** Fail fast; CWE-252 (Unchecked Return Value); typescript-eslint `no-floating-promises`.
 
 ### ARC-20 [HIGH] Work that grows faster than its input
 - **Detect:** nested loops or a linear lookup (`in list`, `indexOf`, `find`) inside a loop over a user- or data-sized collection; sorting or copying inside a loop; a regex with nested or overlapping quantifiers (`(a+)+`, `(.*)*`, `(a|a)*`) applied to user input.
