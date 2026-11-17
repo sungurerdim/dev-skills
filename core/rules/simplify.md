@@ -38,9 +38,9 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 - **Source:** Boy Scout rule; git as the archive.
 
 ### SIM-06 [MEDIUM] One fact, several homes
-- **Detect:** the same business value or rule (threshold, URL, limit, enum mapping, regex) declared in two or more source files with the same role. Test fixtures, protocol constants and framework-required literals are not findings.
-- **Mech:** T `jscpd --min-lines 6 --reporters console .`
-- **Fix:** one owning definition; others import it.
+- **Detect:** the same business value or rule (threshold, URL, limit, enum mapping, regex) declared in two or more source files with the same role; the same asset (image, icon, font, document) committed under two paths. Test fixtures, protocol constants and framework-required literals are not findings.
+- **Mech:** T `jscpd --min-lines 6 --reporters console .` · `git ls-files -s | awk '{c[$2]++; p[$2]=p[$2]" "$4} END{for(k in c) if(c[k]>1) print p[k]}'`
+- **Fix:** one owning definition; others import or reference it; a duplicate asset is deleted and its users point at the one copy.
 - **Impact:** a change lands in one home and the others silently disagree.
 - **Source:** DRY / single source of truth (Hunt & Thomas).
 
