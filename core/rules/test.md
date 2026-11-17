@@ -46,8 +46,8 @@ applies_when: ui≠none
 - **Source:** Playwright, Visual comparisons — screenshots differ between browsers and platforms (https://playwright.dev/docs/test-snapshots); Android, Compose Preview Screenshot Testing.
 
 ### TST-11 [HIGH] Check never seen failing
-- **Detect:** a lint, audit or gate with no fixture or test that turns it red; a gate said to enforce a rule while the code visibly breaks that rule and the gate stays green; removing the rule under test changes no result; a bug fix (a `fix` commit since {base}) that adds or changes no test, or whose test passes on the unfixed code.
-- **Mech:** T `git log --no-merges -E --grep='^fix(\(|:|!)' --format='@%h %s' --name-only {base}..HEAD | awk '/^@/{if(h&&!t)print h; h=$0; t=0; next} /test|spec/{t=1} END{if(h&&!t)print h}'`
+- **Detect:** a lint, audit or gate with no fixture or test that turns it red; a gate said to enforce a rule while the code visibly breaks that rule and the gate stays green; removing the rule under test changes no result; a bug fix (a `fix` commit since {base}) that adds or changes no test (a test file, an assertion or a self-test in the changed file), or whose test passes on the unfixed code.
+- **Mech:** T `git log --no-merges -E --grep='^fix(\(|:|!)' --format='#C %h %s' -p {base}..HEAD | awk '/^#C /{if(h&&!t)print h; h=substr($0,4); t=0; next} /^\+\+\+ .*(test|spec)|^\+.*(assert|expect\()|^@@.*(self.?test|[Tt]est)/{t=1} END{if(h&&!t)print h}'`
 - **Fix:** pair every gate with a fixture that violates exactly what it claims to catch, asserted to fail in the same suite; a gate that cannot be made to fail is documented as advisory until it can. A bug fix lands with its regression test, run red on the unfixed code first, then green.
 - **Impact:** a non-enforcing gate turns an unchecked rule into one everybody believes is checked, so nobody looks again.
 - **Source:** Red-green-refactor; kernel §3 (a check is proven by injecting its defect); DeMillo, Lipton & Sayward, "Hints on Test Data Selection" (1978, mutation testing).

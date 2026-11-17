@@ -53,8 +53,8 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 
 ### SIM-08 [MEDIUM] UI element built twice
 applies_when: ui≠none
-- **Detect:** a UI primitive — button, separator, label/badge/chip, input, icon, card, toolbar, dialog — hand-built inside a screen where a shared component or style exists (raw `<button>`/`<hr>`, a platform widget used directly instead of the design-system one, copied markup or style blocks), or a one-off variant of it. Detector of SIM-06.
-- **Mech:** T `git grep -nE '<(button|hr|dialog)(^|[^[:alnum:]_])' -- '*.html' '*.jsx' '*.tsx' '*.vue' '*.svelte'` · `git grep -nE '(^|[^[:alnum:]_])(ElevatedButton|TextButton|OutlinedButton|Divider|AlertDialog)\(' -- '*.dart'`
+- **Detect:** a UI primitive — button, separator, label/badge/chip, input, icon, card, toolbar, dialog — hand-built inside a screen where a shared component or style exists (raw `<button>`/`<hr>`, a platform widget used directly instead of the design-system one, copied markup or style blocks), or a one-off variant of it. Plain HTML with no component layer is out of scope. Detector of SIM-06.
+- **Mech:** T `git ls-files | grep -qiE 'button[^/]*\.(jsx|tsx|vue|svelte)$' && git grep -nE '<(button|hr|dialog)([^[:alnum:]_]|$)' -- '*.jsx' '*.tsx' '*.vue' '*.svelte' ':!*[Bb]utton*'` · `git ls-files | grep -qiE 'button[^/]*\.dart$' && git grep -nE '(^|[^[:alnum:]_])(ElevatedButton|TextButton|OutlinedButton|Divider|AlertDialog)\(' -- '*.dart' ':!*button*'`
 - **Fix:** route every use through the one primitive; a genuinely new look becomes a variant (prop) of it, not a copy.
 - **Impact:** the same element drifts in size, colour, focus ring and behaviour from screen to screen, and every fix has to be repeated.
 - **Source:** DRY / single source of truth; Least astonishment; design systems (Frost, *Atomic Design*); Nielsen heuristic 4, consistency and standards.

@@ -27,7 +27,7 @@ A local gate (a git hook or one check command) counts as CI; no rule here assume
 
 ### DOP-40 [LOW] YAML that does not parse as written
 - **Detect:** YAML that fails to parse, usually an unquoted value containing `: ` or starting with `*`, `&`, `!`, `%` or `@`; no YAML check in the gate.
-- **Mech:** S `git ls-files -z '*.yml' '*.yaml' | xargs -0 yamllint -d '{rules: {}}' -f parsable`
+- **Mech:** S `yamllint -d '{rules: {}}' -f parsable /dev/null $(git ls-files '*.yml' '*.yaml')`
 - **Fix:** quote such values; add `yamllint` to the gate.
 - **Impact:** the build may pass while a title, description or command ships half-parsed.
 - **Source:** Fail fast; YAML 1.2.2 specification (plain scalars); yamllint.

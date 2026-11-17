@@ -17,7 +17,7 @@ Function- and file-level checks for any stack; structure is in [arch.md](arch.md
 - **Source:** Fail fast; TypeScript `strict`; mypy and Pyright strict modes; golangci-lint; Clippy.
 
 ### ARC-10 [MEDIUM] Function too complex to review
-- **Detect:** functions over the configured complexity, length, nesting or parameter threshold; where the tool reports cognitive complexity, prefer it. Skip inherently complex domains (parsers, cryptography, numeric kernels) and flat dispatch switches.
+- **Detect:** functions over the configured complexity, length, nesting or parameter threshold, or with no tool configured over cyclomatic complexity 10, 50 lines, nesting depth 4 or 5 parameters; where the tool reports cognitive complexity, prefer it. Skip inherently complex domains (parsers, cryptography, numeric kernels) and flat dispatch switches.
 - **Mech:** S `lizard -w -x "./node_modules/*" -x "./vendor/*" .` · `ruff check --select C901,PLR0912,PLR0913,PLR0915 --output-format concise .` · `gocyclo -over 15 .`
 - **Fix:** early returns, named extracted steps, a parameter object; set the threshold in the linter config so the gate holds it (ESLint `complexity`/`max-depth`/`max-params`/`max-lines-per-function`, ruff `C901`, detekt, SwiftLint `cyclomatic_complexity`).
 - **Impact:** past the threshold a function takes longer to review correctly and hides more defects per line.
