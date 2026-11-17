@@ -86,7 +86,8 @@ ALLOW = [
     "ls -la ~/.ssh", "git branch -D old-feature", "git push origin --delete old-feature",
     "rsync -a ds-setup/ ~/.claude/skills/ds-setup/", "docker system prune -f",
     "curl -s https://api.github.com/repos/x/y | jq .stargazers_count",
-    "echo $(date) > build.log", "mv a.txt b.txt 2>&1 && echo done",  # fd prefix is not an argv path "for f in *.md; do wc -l \"$f\"; done",
+    "echo $(date) > build.log", "mv a.txt b.txt 2>&1 && echo done",  # fd prefix is not an argv path
+    "for f in *.md; do wc -l \"$f\"; done",
 ]
 
 
