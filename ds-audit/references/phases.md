@@ -49,7 +49,16 @@ Notes lines: `decided: {decision} · {reason}` (`decided!:` puts it among the cl
 ## Running the phases
 
 - **Changed scope** (no word): every phase in one invocation; lean runs SIM-* on the changed lines and LEAN-11 when `SCOPE.md` exists, not the rules review or the tiering.
-- **`all` / a phase word**: `audit.py init` names the next phase. With subagents: one fresh subagent per phase, in order, given this file, kernel.md, SKILL.md, the phase's rule files and the report path; it returns after `phase … done`. Without subagents: one phase per invocation, ending with `next: /ds-audit all — continues at {phase}`.
+- **`all` / a phase word**: `audit.py init` names the next phase. One context runs every phase in order: a subagent re-reads the whole contract, which cost about 3× the tokens in a measured run. A fresh subagent per phase only when `size=large` or the context runs short, given the handoff below; without subagents the invocation then ends with `next: /ds-audit all — continues at {phase}`.
+- **Handoff** — the whole brief of a phase subagent, filled from `init`'s JSON:
+
+```
+Phase {phase} of /ds-audit {words} in {root}; ledger ds/audit/report.md; branch {branch}.
+Read: phases.md, kernel.md, SKILL.md, and only these rule files: {the phase's files from core/rules/README.md}.
+Facts (do not re-derive): {Signals line} · check: {check} ({check_from}) · scope: {scope} · baseline taken.
+Do: Steps 1-5 for {phase}; write each row as it is decided; end with `audit.py phase {phase} done` or `blocked "{reason}"`.
+Return: Done (the phase command's output: push result, next) · rows #{first}-#{last} · Not done + why · Scope deviation.
+```
 - **One review branch**: every phase of an `all`, phase or area run commits on `ds/audit` (`audit.py init` creates or resumes it; the owner's branch is untouched), and `phase … done` pushes it without force. Later phases audit the code lean already cut. The report ends with the merge commands as `only-you`.
 
 ## surface — see the running app (optional)
