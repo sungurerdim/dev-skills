@@ -9,7 +9,8 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
   audit.py init [WORD ...]           start or resume a run: fetch, fast-forward, scope, signals, check command,
                                      phase plan; prints JSON (what runs next and why)
   audit.py checks baseline|now       run each step of the check command; record pass/fail/timeout per step
-  audit.py check CMD                 set the check command explicitly (wins over marker, docs and defaults)
+  audit.py check CMD [WHY]           set the check command explicitly (one quoted argument; wins over marker, docs
+                                     and defaults), noted as decided: with WHY
   audit.py probe -- CMD ...          run a project program isolated (kernel §3): temp HOME/XDG/CLAUDE_CONFIG_DIR/
                                      TMPDIR, no network, sandboxed writes where the OS allows; JSON with exit code,
                                      output tails and every file it created in the temp dir
@@ -399,12 +400,12 @@ def resolve_check(root: Path) -> tuple:
     return cmd, "stack defaults (ds_detect)" if cmd else ""
 
 
-def set_check(root: Path, cmd: str) -> dict:
+def set_check(root: Path, cmd: str, reason: str = "") -> dict:
     state, _ = load(root)
     if not state:
         raise SystemExit("audit.py check: no run — start with `audit.py init`")
     state["check"], state["check_from"], state["checks"] = cmd, "explicit", {}  # an old baseline measured another command
-    save_state(root, state, f"decided: check command `{cmd}` · set explicitly; baseline re-measured")
+    save_state(root, state, f"decided: check command `{cmd}` · {reason or 'set explicitly'}; baseline re-measured")
     return {"check": cmd, "check_from": "explicit"}
 
 
@@ -1399,12 +1400,13 @@ def self_test() -> int:
         with open(os.devnull, "w") as quiet:
             so, sys.stdout = sys.stdout, quiet
             try:
-                rc = main(["--root", str(gate), "check", "true explicit"])
+                rc = main(["--root", str(gate), "check", "true explicit", "the documented gate", "is stale"])
             finally:
                 sys.stdout = so
         st, txt = load(gate)
-        expect(rc == 0 and st["check"] == "true explicit" and "decided: check command `true explicit`" in txt,
-               f"`audit.py check CMD` does not set and record the check command: rc={rc} check={st['check']!r}")
+        expect(rc == 0 and st["check"] == "true explicit"
+               and "decided: check command `true explicit` · the documented gate is stale" in txt,
+               f"`audit.py check CMD WHY` does not set the command and record its reason: rc={rc} check={st['check']!r}")
         shutil.rmtree(gate, ignore_errors=True)
 
         # scan: a rule with a Mech line runs; a missing tool is reported, not run
@@ -1493,7 +1495,7 @@ def main(argv) -> int:
               f"{'pass' if ratio >= 3 else 'FAIL'} · AAA {'pass' if ratio >= 7 else 'fail'}")
         return 0 if ratio >= 4.5 else 1
     elif cmd == "check" and rest:
-        dump(set_check(root, " ".join(rest)))
+        dump(set_check(root, rest[0], " ".join(rest[1:])))
     elif cmd == "signal" and len(rest) >= 2:
         dump(set_signal(root, rest[0], rest[1], " ".join(rest[2:])))
     elif cmd == "validate":
