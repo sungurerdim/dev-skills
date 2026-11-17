@@ -30,7 +30,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 | Command | Does |
 |---------|------|
 | `A init [words]` | Fetch, fast-forward when safe, scope, signals, check command, phase plan; resumes an open run |
-| `A signal KEY VALUE` | Confirm or correct a judged signal (`?` in the Signals line); re-plans phases not started |
+| `A signal KEY VALUE [why]` | Confirm or correct a judged signal (`?` in the Signals line); re-plans phases not started; notes it as `decided:` |
 | `A checks baseline\|now` | Runs each check step, records pass / fail / timeout |
 | `A scan PHASE` | Runs the `Mech:` commands of the phase's loaded rules |
 | `A validate` | Ledger schema, rule IDs, `file:line` exists, commits real and after the start |

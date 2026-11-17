@@ -85,7 +85,7 @@ The one interactive phase: scope and recorded rules are owner values (kernel §5
 | Check red at baseline | red-at-baseline, never inherited as green | Effect line |
 | A step or command hangs | its timeout ends it; the run continues with what does not depend on it | `skipped (timeout: {cmd})` |
 | Tool absent | the rule falls back to its Detect text | scan `tool absent` |
-| Judged signal (`?`) wrong | `audit.py signal {key} {value}` re-plans phases not started | `decided:` |
+| Judged signal (`?`) wrong | `audit.py signal {key} {value} {why}` re-plans phases not started | `decided:` |
 | Unknown word, or `ask` with `auto` | `init` stops and names the valid choice | — |
 | Context or time runs out | progress is in `report.md`; the next invocation resumes the open phase | — |
 | Subagent returns nothing usable | rerun the phase once; again → `phase {p} blocked "{reason}"` | status INCOMPLETE |

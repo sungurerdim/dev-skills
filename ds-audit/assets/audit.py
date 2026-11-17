@@ -10,7 +10,7 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
                                      phase plan; prints JSON (what runs next and why)
   audit.py checks baseline|now       run each step of the check command; record pass/fail/timeout per step
   audit.py scan PHASE                run the Mech commands of the phase's loaded rules; prints JSON hits
-  audit.py signal KEY VALUE          confirm or correct a judged signal (auth, pii, audience);
+  audit.py signal KEY VALUE [WHY]    confirm or correct a judged signal (auth, pii, audience), noted as decided:;
                                      re-plans the areas of phases not yet started
   audit.py validate                  Findings schema, rule IDs, file:line, commits, totals; exit 1 = red
   audit.py phase PHASE done|blocked [REASON]   close a phase (done refuses open rows or a red validate)
@@ -123,7 +123,7 @@ def write(root: Path, state: dict, closing: str = "", phases: str = "", findings
     header = "| " + " | ".join(COLS) + " |\n|" + "|".join("---" for _ in COLS) + "|\n"
     body = (f"<!-- ds-audit-state {json.dumps(state, ensure_ascii=False)} -->\n# ds-audit report\n\n"
             f"## Closing\n{closing or '(written by audit.py report)'}\n\n## Phases\n{phases}\n\n"
-            f"## Findings\n{(findings or header).strip()}\n\n## Notes\n{notes or '(decided: … · only-you: … — one per line)'}\n")
+            f"## Findings\n{(findings or header).strip()}\n\n## Notes\n{notes or NOTES_HINT}\n")
     tmp = path.with_suffix(".tmp")
     tmp.write_text(body, encoding="utf-8")
     tmp.replace(path)  # atomic: a run cut short never leaves half a report
@@ -138,10 +138,17 @@ def rows(text: str) -> list:
     return out
 
 
-def save_state(root: Path, state: dict):
+NOTES_HINT = "(decided: … · only-you: … — one per line)"
+
+
+def save_state(root: Path, state: dict, note: str = ""):
+    """Write the state back; `note` appends one Notes line (once, replacing the empty-section hint)."""
     _, text = load(root)
+    notes = [ln for ln in section(text, "Notes").strip().splitlines() if ln != NOTES_HINT]
+    if note and note not in notes:
+        notes.append(note)
     write(root, state, section(text, "Closing").strip(), section(text, "Phases").strip(),
-          section(text, "Findings"), section(text, "Notes").strip())
+          section(text, "Findings"), "\n".join(notes))
 
 
 # --- init -------------------------------------------------------------------------------------------------
@@ -271,19 +278,20 @@ def make_plan(sig: dict, w: dict, scope: str, root: Path) -> dict:
     return plan
 
 
-def set_signal(root: Path, key: str, value: str) -> dict:
+def set_signal(root: Path, key: str, value: str, reason: str = "") -> dict:
     state, _ = load(root)
     if not state:
         raise SystemExit("audit.py signal: no run — start with `audit.py init`")
     if key not in state["sig"]:
         raise SystemExit(f"audit.py signal: unknown key '{key}' — one of {sorted(state['sig'])}")
+    was = state["sig"][key]["value"]
     state["sig"][key] = {"value": value, "by": "confirmed"}
     state["signals"] = line(state["sig"])
     fresh = make_plan(state["sig"], dict(state["words"], all=False), state["scope"], root)
     for p, plan in fresh.items():
         if state["phases"].get(p, {}).get("status", "pending") in ("pending", "skipped"):
             state["phases"][p] = plan
-    save_state(root, state)
+    save_state(root, state, f"decided: signal {key}={value} (was {was}) · {reason or 'confirmed by reading the code'}")
     return {"signals": state["signals"], "plan": state["phases"]}
 
 
@@ -445,13 +453,8 @@ def push(root: Path, state: dict):
     except subprocess.TimeoutExpired:
         ok, why = False, "timeout"
     if not ok:
-        _, text = load(root)
-        notes = section(text, "Notes").strip()
-        line_ = f"only-you: push of {BRANCH} refused ({why}) — fix the remote side, then `git push -u origin {BRANCH}`"
-        if line_ not in notes:
-            state, _ = load(root)
-            write(root, state, section(text, "Closing").strip(), section(text, "Phases").strip(),
-                  section(text, "Findings"), (notes + "\n" + line_).strip())
+        save_state(root, load(root)[0],
+                   f"only-you: push of {BRANCH} refused ({why}) — fix the remote side, then `git push -u origin {BRANCH}`")
 
 
 def status_of(state: dict, findings: list) -> str:
@@ -1031,6 +1034,8 @@ def self_test() -> int:
         sres = set_signal(tmp, "ui", "web")
         expect(sres["plan"]["surface"]["areas"]["a11y"] == "loads" and "ui=web" in sres["signals"],
                "signal correction re-plans a pending phase")
+        expect("decided: signal ui=web (was none)" in section(load(tmp)[1], "Notes"),
+               f"signal records no decided: line: {section(load(tmp)[1], 'Notes')!r}")
         (tmp / REPORT).unlink()
         expect(init(tmp, ["a11y"])["plan"].get("surface", {}).get("areas", {}).get("a11y") == "loads",
                "a named area runs even when its signal says N/A")
@@ -1078,8 +1083,8 @@ def main(argv) -> int:
         return 0 if all(v["status"] == "pass" for v in res.values()) else 1
     elif cmd == "scan" and rest[:1] and rest[0] in PHASES:
         dump(scan(root, rest[0]))
-    elif cmd == "signal" and len(rest) == 2:
-        dump(set_signal(root, rest[0], rest[1]))
+    elif cmd == "signal" and len(rest) >= 2:
+        dump(set_signal(root, rest[0], rest[1], " ".join(rest[2:])))
     elif cmd == "validate":
         problems = validate(root)
         for p in problems:
