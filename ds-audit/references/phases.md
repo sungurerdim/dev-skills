@@ -35,7 +35,7 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 | `#` | next integer |
 | Phase / Area | a phase name / an area word |
 | Sev | CRITICAL · HIGH · MEDIUM · LOW (kernel §4) |
-| Rule | a rule ID · a kernel §7 principle · `tool:{name}` · `judgment`; several joined by ` · ` |
+| Rule | a rule ID · a kernel §7 principle (any case; the part before ` / ` suffices: `DRY`) · `tool:{name}` · `judgment`; several joined by ` · ` |
 | Where | `path:line` (checked: the file and line exist now or at the run's start) · a unit · an item |
 | Finding / Prevents | what is wrong / what goes wrong without the fix, for whom — plain words |
 | Plan | the simplest fix (kernel §1) |
