@@ -9,7 +9,7 @@ Agent Skills that let one developer and an AI assistant ship production-quality 
 
 | Skill | Use it to |
 |-------|-----------|
-| `/ds-audit` | Audit and improve a project in five phases (lean, build, safe, surface, ship): detect what it is, cut what its purpose does not need, check every area that applies against named standards, fix what is safe, verify with the project's own checks, report in `ds/audit/report.md` and a printable `report.html`. By default it checks only what your branch changes against the remote; `all` audits the whole project on a review branch `ds/audit` that it pushes for you to merge, `sec a11y` narrows to those areas, `dry` only reports, `auto` takes even the scope decisions itself. |
+| `/ds-audit` | Audit and improve a project in five phases (lean, build, safe, surface, ship): detect what it is, cut what its purpose does not need (purpose, unit tiers and budget in `SCOPE.md`), check every area that applies against named standards, fix what is safe, verify with the project's own checks, report in `ds/audit/report.md` and a printable `report.html`. By default it checks only what your branch changes against the remote; `all` audits the whole project on a review branch `ds/audit` that it pushes, without force, for you to merge; `sec a11y` or a phase word narrows the run, `dry` only reports, `auto` takes even the scope decisions itself. A project program it needs to see run goes through `audit.py probe`: temporary HOME, no network. |
 | `/ds-gate` | Make format, lint, type and test checks block "done" (Claude Code, Codex, Gemini), every edit (Aider) or every commit (git hook — Copilot, Cursor, Windsurf, terminal). `inv "<rule>"` turns one custom rule into a red-proven gate; `checks`, `arm`, `prove`, `run`, `status` run one part. |
 | `/ds-setup` | Set up the machine: pinned tools, telemetry off in every tool and harness, permission profiles where risk-free work never prompts and dangerous commands are denied (wrappers such as `rtk` included), MCP budget. `tools`, `update`, `privacy`, `perms`, `mcp` run one part. |
 | `/ds-research` | Research a topic into one offline, printable HTML brief: every datum confirmed by two independent sources or flagged, primary sources for load-bearing facts, checked by a verifier script. `quick` gives a sourced answer with a DO / AVOID / CONDITIONAL verdict in the chat instead. |
@@ -23,12 +23,14 @@ core/kernel.md        loaded by every skill: decision order, working rules, evid
                       and the named principles every finding cites (YAGNI, KISS, SOLID, Chesterton's fence, …)
 core/signals.md       what the project is (ui, api, db, pii, mobile, …), detected from files
 core/rules/README.md  area → rule files → when they load → the standards they check against (OWASP, WCAG, GDPR, …)
-core/rules/*.md       the rules, unique IDs, each with Detect / Mech / Fix / Impact / Source
+core/rules/*.md       the rules, unique IDs, each with Detect / Mech / Fix / Impact / Source (S and T rules also Fixture)
+core/ds_detect.py     stack, check command and signal detection shared by ds-audit and ds-gate
 core/toolchains.md    per-stack format, lint, type and test commands
 ds-*/SKILL.md         one job per skill, ≤ 8 KB, details in its own references/
+ds-audit/assets       audit.py: every countable step of a run (init, scan, validate, phase, report, lean, probe, …)
 ```
 
-The decision order is the base of everything, applied to the run itself, each need it finds, and each fix it plans: **question** the need → **reuse** what exists → **delete** instead of adding → **simplify** → **accelerate** only against a measurement → **automate** last. A skill loads only the rule files whose project signal holds.
+The decision order is the base of everything, applied to the run itself, each need it finds, and each fix it plans: **question** the need → **reuse** what exists → **delete** instead of adding → **simplify** → **accelerate** only against a measurement → **automate** last. A skill loads only the rule files whose project signal holds. Every rule has a `Mech:` command, run offline with POSIX regex; the gate runs each one on a fixture.
 
 ## Install
 
@@ -54,7 +56,7 @@ Hosts without a skills loader (Aider, Windsurf) can reference a `SKILL.md` direc
 
 ## Contributing
 
-`python3 scripts/check.py` is the only gate (there is no CI): skill format and size, links, unique rule IDs, no near-duplicate rules, no line repeated across files, every core file has a consumer, version agreement, every asset's self-test (`install.py --self-test` included), and spelling when `typos` is installed. `python3 scripts/check.py --self-test` proves each check catches the defect it exists for; `--install-hook` runs both on every commit. Details: [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md).
+`python3 scripts/check.py` is the only gate (there is no CI): skill format and size, links, rule headings, unique IDs, no near-duplicate rules, `Mech:` lines run on their fixtures, every kernel principle cited by a rule, no line repeated across files, every core file has a consumer, version agreement, every Python file compiles, every asset's self-test (`install.py --self-test` included, run hook-safe), and spelling when `typos` is installed. `python3 scripts/check.py --self-test` proves each check catches the defect it exists for; `--install-hook` runs both on every commit. Details: [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md).
 
 ## License
 
