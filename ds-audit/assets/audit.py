@@ -13,6 +13,7 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
   audit.py probe -- CMD ...          run a project program isolated (kernel §3): temp HOME/XDG/CLAUDE_CONFIG_DIR/
                                      TMPDIR, no network, sandboxed writes where the OS allows; JSON with exit code,
                                      output tails and every file it created in the temp dir
+  audit.py contrast FG BG            WCAG contrast ratio of two hex colours (AXE-03); exit 1 below 4.5:1
   audit.py scan PHASE                run the Mech commands of the phase's loaded rules; prints JSON hits
   audit.py signal KEY VALUE [WHY]    confirm or correct a judged signal (auth, pii, audience), noted as decided:;
                                      re-plans the areas of phases not yet started
@@ -852,6 +853,20 @@ text-anchor="middle">{"–" if pct is None else f"{pct}%"}</text></svg><div><div
 """
 
 
+def contrast(fg: str, bg: str) -> float:
+    """WCAG 2.x contrast ratio of two sRGB colours given as #rgb or #rrggbb (the `#` optional)."""
+    def lum(h):
+        h = h.strip().lstrip("#")
+        if not re.fullmatch(r"[0-9a-fA-F]{3}|[0-9a-fA-F]{6}", h):
+            raise SystemExit(f"audit.py contrast: '{h}' is not a hex colour — use #rgb or #rrggbb")
+        h = h if len(h) == 6 else "".join(x * 2 for x in h)
+        c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    hi, lo = sorted((lum(fg), lum(bg)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
 # --- lean -------------------------------------------------------------------------------------------------
 
 TEST = re.compile(r"(^|/)(tests?|__tests__|spec)(/|$)|(_test|\.test|\.spec|_spec|Tests?)\.\w+$|(^|/)test_[^/]+\.py$")
@@ -1256,17 +1271,11 @@ def self_test() -> int:
         expect(all("screen" in media_of(CSS, m.start()) for m in re.finditer(r"(?<![-\w])color-scheme:dark", CSS)),
                "report.html prints in the dark theme (light text on paper); dark tokens must be screen-only")
 
-        def lum(h):
-            h = h if len(h) == 7 else "#" + "".join(x * 2 for x in h[1:])
-            c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
-            c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
-            return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
         for theme in (CSS.split("}", 1)[0], CSS.split(":root[data-theme=dark]{", 1)[1].split("}", 1)[0]):
             tok = dict(re.findall(r"--([\w-]+):(#[0-9a-f]{6}|#[0-9a-f]{3})\b", theme))
             for fg, bg in (("ok", "ok-bg"), ("warn", "warn-bg"), ("bad", "bad-bg"), ("info", "info-bg"),
                            ("mute", "mute-bg"), ("ink-2", "surface"), ("ink-2", "plane"), ("ink", "plane")):
-                hi, lo = sorted((lum(tok[fg]), lum(tok[bg])), reverse=True)
-                expect((hi + 0.05) / (lo + 0.05) >= 4.5, f"report.html text {fg} on {bg} below 4.5:1 (WCAG 1.4.3)")
+                expect(contrast(tok[fg], tok[bg]) >= 4.5, f"report.html text {fg} on {bg} below 4.5:1 (WCAG 1.4.3)")
         state["checks"]["now"]["go test"] = "fail"
         save_state(tmp, state)
         expect(report(tmp).startswith("ds-audit: FAIL"), "report FAIL on a check newly red")
@@ -1325,6 +1334,18 @@ def self_test() -> int:
             srv.close()
             expect(net["exit"] != 0, f"probe left the network open: {net}")
         shutil.rmtree(outside.parent, ignore_errors=True)
+
+        # contrast: the WCAG ratio AXE-03 needs, without a browser
+        import io
+        buf, so = io.StringIO(), sys.stdout
+        sys.stdout = buf
+        try:
+            rcs = [main(["contrast", "#000", "#fff"]), main(["contrast", "777777", "#ffffff"])]
+        finally:
+            sys.stdout = so
+        out = buf.getvalue()
+        expect(rcs == [0, 1] and "21.00:1" in out and "4.48:1" in out,
+               f"`audit.py contrast FG BG` does not print the WCAG ratio (exit 1 below 4.5:1): {rcs} {out!r}")
 
         # check command: explicit > ds-gate marker > the project's documented gate > stack defaults
         gate = Path(tempfile.mkdtemp(prefix="ds-audit-gate-"))
@@ -1422,6 +1443,11 @@ def main(argv) -> int:
         res = probe(root, rest[1:])
         dump(res)
         return 0 if res["exit"] == 0 else 1
+    elif cmd == "contrast" and len(rest) == 2:
+        ratio = contrast(rest[0], rest[1])
+        print(f"{ratio:.2f}:1 · normal text AA {'pass' if ratio >= 4.5 else 'FAIL'} · large text / UI AA "
+              f"{'pass' if ratio >= 3 else 'FAIL'} · AAA {'pass' if ratio >= 7 else 'fail'}")
+        return 0 if ratio >= 4.5 else 1
     elif cmd == "check" and rest:
         dump(set_check(root, " ".join(rest)))
     elif cmd == "signal" and len(rest) >= 2:
