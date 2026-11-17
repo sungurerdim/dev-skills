@@ -10,7 +10,7 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
                                      phase plan; prints JSON (what runs next and why)
   audit.py checks baseline|now       run each step of the check command; record pass/fail/timeout per step
   audit.py scan PHASE                run the Mech commands of the phase's loaded rules; prints JSON hits
-  audit.py signal KEY VALUE          confirm or correct a judged signal (auth, pii, audience, jurisdiction…);
+  audit.py signal KEY VALUE          confirm or correct a judged signal (auth, pii, audience);
                                      re-plans the areas of phases not yet started
   audit.py validate                  Findings schema, rule IDs, file:line, commits, totals; exit 1 = red
   audit.py phase PHASE done|blocked [REASON]   close a phase (done refuses open rows or a red validate)

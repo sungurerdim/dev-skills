@@ -10,7 +10,7 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 |-------|-------|------------|-----------|
 | lean | `rules` `lean` | rule files, `SCOPE.md`, cuts and merges | every recorded rule and unit has a decision; `audit.py lean-check` green |
 | build | `arch` `code` `test` `perf` | code and tests (fixers run first, once) | `validate` green, no `open` row, `checks now` no redder than baseline |
-| safe | `sec` `privacy` `privacy-eu` `privacy-us` `privacy-intl` `auth` `api` `db` | code, config, tests | same |
+| safe | `sec` `privacy` `auth` `api` `db` | code, config, tests | same |
 | surface | `web` `a11y` `ux` `i18n` `mobile` `store` `money` | code, copy, assets | same |
 | ship | `ci` `ops` `docs` `repo` | CI, release, deploy config, docs | same; docs describe the final state |
 

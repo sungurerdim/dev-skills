@@ -45,7 +45,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 ## Steps
 
 1. **Start** — `A init {words}`. Read its JSON: `next` phase, plan, signals, check command, notes. Read the project's rules in one batch (`AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, ADRs, specs); they override this file and the rule files where they differ.
-2. **Signals** — confirm every `?` value by reading the code it rests on; wrong → `A signal KEY VALUE`. `jurisdiction` comes only from the project's legal pages, locales or the owner.
+2. **Signals** — confirm every `?` value by reading the code it rests on; wrong → `A signal KEY VALUE`.
 3. **Baseline** — `A checks baseline` once per run (a resumed run keeps its baseline).
 4. **Phases** — for the `next` phase and each after it, follow [phases.md](references/phases.md): inventory → detect → decide → apply → verify → `A phase {p} done`. `all` and phase words: one phase per invocation, or one fresh subagent per phase when subagents exist.
 5. **Report** — `A report`; print its closing message as the last output (kernel §6).
