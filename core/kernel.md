@@ -89,9 +89,13 @@ Asked: {the request in one line}
 |---|-----|-------|---------|---------|------------------|
 
 Effect: {1-3 measured before → after lines: checks red → green, advisories 4 → 0, …}
-Decided without asking — say if wrong: {decision · reason}
-Only you can do: {exact action or command}
+Decided without asking — say if wrong: {count}
+- {decision · reason}
+Only you can do:
+- {exact action or command}
 ```
+
+- **Readable on return: about 40 lines.** `Decided` gives the count and at most 5 consequential decisions (scope, branch, signals, cuts, rules, budget), one per line; the rest stay in the skill's file. Each `Only you can do` action appears once.
 
 - **Numbers are measured, never estimated.** Record `{start}` = `git rev-parse HEAD` and the start time in the first call; the code row is `git diff --shortstat {start}` (commits and uncommitted together) plus `git rev-list --count {start}..HEAD`. Non-git changes (global configs, installed tools, generated files) get their own row from the skill's own record.
 - **Findings rows:** severity first, then fixed before open; at most 15, then `+{n} more in {file}`. `Where` = `file:line` or the item; `Outcome` = a kernel §4 disposition with the commit hash when fixed; `Prevents / gains` = what goes wrong without it, for whom, in plain words (or what is now faster, cheaper, clearer). A run with no findings says `No findings` instead of the table.

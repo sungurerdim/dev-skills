@@ -578,6 +578,10 @@ def status_of(state: dict, findings: list) -> str:
     return "OK"
 
 
+CLOSING_DECIDED, CLOSING_ONLY = 5, 8  # the closing message stays readable (~40 lines); report.md keeps everything
+CONSEQUENTIAL = re.compile(r"\b(branch|signal|cut|merge|rules?|budget|check command|scope|push)\b", re.I)
+
+
 def report(root: Path) -> str:
     state, text = load(root)
     if not state:
@@ -592,9 +596,14 @@ def report(root: Path) -> str:
     only = [r for r in findings if r["Disposition"].startswith("only you")]
     open_ = [r for r in findings if not r["Disposition"].startswith(CLOSED) and r not in only]
     notes = section(text, "Notes")
-    decided = [ln.split(":", 1)[1].strip() for ln in notes.splitlines() if ln.startswith("decided:")]
-    only_lines = [ln.split(":", 1)[1].strip() for ln in notes.splitlines() if ln.startswith("only-you:")]
-    only_lines += [f"{r['Where']}: {r['Disposition'][len('only you can do ('):-1]}" for r in only]
+    decided = [(ln.startswith("decided!:"), ln.split(":", 1)[1].strip()) for ln in notes.splitlines()
+               if ln.startswith(("decided:", "decided!:"))]
+    only_lines = []
+    for item in [ln.split(":", 1)[1].strip() for ln in notes.splitlines() if ln.startswith("only-you:")] + [
+            f"{r['Where']}: {r['Disposition'][len('only you can do ('):-1]}" for r in only]:
+        key = item.lower().strip("` .")
+        if not any(key in o.lower() or o.lower().strip("` .") in item.lower() for o in only_lines):
+            only_lines.append(item)  # the same action from a Notes line and a row is listed once
     if state.get("branch") == BRANCH and commits not in ("", "0"):
         only_lines.append(f"review and merge {BRANCH}: `git diff {state['start'][:12]}...{BRANCH}` · "
                           f"`git switch {state['home']}` · `git merge --ff-only {BRANCH}` · `git branch -d {BRANCH}` · "
@@ -625,9 +634,15 @@ def report(root: Path) -> str:
                    f"{sum(r['Disposition'] == 'fixed' for r in prior)} of {len(prior)} carried fixed · "
                    f"{sum(not r['Disposition'].startswith(CLOSED) for r in prior)} still open")
     if decided:
-        out.append("Decided without asking — say if wrong: " + "; ".join(decided))
+        top = sorted(decided, key=lambda d: (not d[0], not CONSEQUENTIAL.search(d[1])))[:CLOSING_DECIDED]
+        out.append(f"Decided without asking — say if wrong: {len(decided)}"
+                   + (f" ({len(top)} most consequential below; all in {REPORT} Notes)" if len(decided) > len(top) else ""))
+        out += [f"- {d}" for _, d in top]
     if only_lines:
-        out.append("Only you can do: " + "; ".join(only_lines))
+        out.append("Only you can do:")
+        out += [f"- {x}" for x in only_lines[:CLOSING_ONLY]]
+        if len(only_lines) > CLOSING_ONLY:
+            out.append(f"+{len(only_lines) - CLOSING_ONLY} more in {REPORT} Notes and rows")
     closing = "\n".join(out)
     phases_md = "| Phase | Status | Areas |\n|---|---|---|\n" + "".join(
         f"| {n} | {p['status']}{' — ' + p['reason'] if p.get('reason') else ''} | "
@@ -635,7 +650,8 @@ def report(root: Path) -> str:
     phases_md += f"\n{state['signals']}\n"
     write(root, state, closing, phases_md, section(text, "Findings"), notes.strip())
     page = root / REPORT.with_suffix(".html")
-    page.write_text(render_html(root, state, findings, status, minutes, got, commits, decided, only_lines),
+    page.write_text(render_html(root, state, findings, status, minutes, got, commits, [d for _, d in decided],
+                                only_lines),
                     encoding="utf-8")
     return closing
 
@@ -1125,6 +1141,18 @@ def self_test() -> int:
         state["checks"]["now"]["go test"] = "fail"
         save_state(tmp, state)
         expect(report(tmp).startswith("ds-audit: FAIL"), "report FAIL on a check newly red")
+        many = [f"decided: triage choice {i} · " + "reason " * 20 for i in range(11)] + [
+            "decided!: cut unit legacy · no inbound use", "only-you: enable branch protection on main"]
+        only_row = good_row.replace("| fixed |", "| only you can do (enable branch protection on main) |").replace(
+            fixc, "—").replace("| 1 |", "| 2 |")
+        write(tmp, state, findings=findings + good_row + only_row, notes="\n".join(many))
+        closing = report(tmp)
+        expect(len(closing.splitlines()) <= 40 and "12" in closing and "decided!: cut" not in closing
+               and "cut unit legacy" in closing
+               and closing.split("Only you can do:")[-1].count("enable branch protection on main") == 1
+               and "triage choice 10" not in closing,
+               f"closing message: decided not summarised or only-you repeated ({len(closing.splitlines())} lines):\n"
+               + closing)
         write(tmp, state, findings=findings + crit)
         init(tmp, ["all"])
         carried = rows(load(tmp)[1])
