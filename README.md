@@ -9,12 +9,12 @@ Agent Skills that let one developer and an AI assistant ship production-quality 
 
 | Skill | Use it to |
 |-------|-----------|
-| `/ds-audit` | Audit and improve a project: detect what it is, check every area that applies against named standards, fix what is safe, verify with the project's own checks, report. By default it checks only what your branch changes against the remote; `all` audits the whole project, `sec a11y` narrows to those areas, `dry` only reports. |
+| `/ds-audit` | Audit and improve a project in five phases (lean, build, safe, surface, ship): detect what it is, cut what its purpose does not need, check every area that applies against named standards, fix what is safe, verify with the project's own checks, report in `ds/audit/report.md` and a printable `report.html`. By default it checks only what your branch changes against the remote; `all` audits the whole project on a review branch `ds/audit` that it pushes for you to merge, `sec a11y` narrows to those areas, `dry` only reports, `auto` takes even the scope decisions itself. |
 | `/ds-gate` | Make format, lint, type and test checks block "done" (Claude Code, Codex, Gemini), every edit (Aider) or every commit (git hook — Copilot, Cursor, Windsurf, terminal). `inv "<rule>"` turns one custom rule into a red-proven gate; `checks`, `arm`, `prove`, `run`, `status` run one part. |
 | `/ds-setup` | Set up the machine: pinned tools, telemetry off in every tool and harness, permission profiles where risk-free work never prompts and dangerous commands are denied (wrappers such as `rtk` included), MCP budget. `tools`, `update`, `privacy`, `perms`, `mcp` run one part. |
 | `/ds-research` | Research a topic into one offline, printable HTML brief: every datum confirmed by two independent sources or flagged, primary sources for load-bearing facts, checked by a verifier script. `quick` gives a sourced answer with a DO / AVOID / CONDITIONAL verdict in the chat instead. |
 
-Every skill works alone. Arguments are plain words in any order (`/ds-audit all sec dry`): no word runs everything, a part's word runs that part alone, `dry` only reports and `ask` turns each decision into a question with a recommended answer. Without `ask`, each run decides from evidence and records its decisions. Pushing, publishing and anything that needs a human-only value are always left to you, with the exact command.
+Every skill works alone. Arguments are plain words in any order (`/ds-audit all sec dry`): no word runs everything, a part's word runs that part alone, `dry` only reports and `ask` turns each decision into a question with a recommended answer. Without `ask`, each run decides from evidence and records its decisions. Merging, publishing, releasing and anything that needs a human-only value are always left to you, with the exact command; the one push a skill makes is ds-audit's own review branch, without force.
 
 ## How it works
 
@@ -54,7 +54,7 @@ Hosts without a skills loader (Aider, Windsurf) can reference a `SKILL.md` direc
 
 ## Contributing
 
-`python3 scripts/check.py` is the only gate (there is no CI): skill format and size, links, unique rule IDs, no near-duplicate rules, no line repeated across files, every core file has a consumer, version agreement, the five asset self-tests, and spelling when `typos` is installed. `python3 scripts/check.py --self-test` proves each check catches the defect it exists for; `--install-hook` runs both on every commit. Details: [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md).
+`python3 scripts/check.py` is the only gate (there is no CI): skill format and size, links, unique rule IDs, no near-duplicate rules, no line repeated across files, every core file has a consumer, version agreement, every asset's self-test (`install.py --self-test` included), and spelling when `typos` is installed. `python3 scripts/check.py --self-test` proves each check catches the defect it exists for; `--install-hook` runs both on every commit. Details: [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md).
 
 ## License
 
