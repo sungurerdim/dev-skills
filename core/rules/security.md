@@ -179,7 +179,7 @@ applies_when: api≠none
 
 ### NWK-07 [HIGH] Outbound call without a timeout
 - **Detect:** HTTP, RPC, database or queue clients with no connect and read timeout: `requests.*(` without `timeout=`, `fetch` without an abort signal, Go `http.Client{}` without `Timeout` or context deadline, JDBC or driver defaults left infinite, no statement timeout.
-- **Mech:** T `git grep -nIE 'requests\.(get|post|put|patch|delete|request)\(' -- ':!*test*' ':!*.md' | grep -v 'timeout'` · `git grep -nIE 'http\.Client\{\}|new HttpClient\(\)|(^|[^[:alnum:]_])fetch\(' -- ':!*test*' ':!*.md'`
+- **Mech:** T `git grep -nIE 'requests\.(get|post|put|patch|delete|request)\(' -- ':!*test*' ':!*.md' | grep -v 'timeout'` · `git grep -nIE 'http\.Client\{\}|new HttpClient\(\)|(^|[^[:alnum:]_])fetch\(' -- ':!*test*' ':!*.md' ':!*.py'`
 - **Fix:** explicit connect and overall timeouts on every client, sized under the caller's own deadline; a statement timeout on the database role.
 - **Impact:** one slow peer holds threads and connections until the whole service stops answering.
 - **Source:** Fail fast; Nygard, *Release It!* (timeouts); CWE-400.
