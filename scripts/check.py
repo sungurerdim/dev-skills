@@ -87,6 +87,8 @@ def check_rules(root: Path, err):
     for f, n, line, m in rules(root):
         where = f"core/rules/{f.name}:{n}"
         if not m:
+            if re.match(r"^### [A-Z][A-Z0-9]*-\d+\b", line):  # looks like a rule, so it must parse as one
+                err(f"{where}: rule heading must be `### ID [SEVERITY] Title`, got: {line[:70]}")
             continue
         rid, sev, title = m.groups()
         if sev not in SEVERITIES:
@@ -100,6 +102,17 @@ def check_rules(root: Path, err):
         for w2, f2, t2, b in titles[i + 1:]:
             if f1 != f2 and a and b and len(a & b) / len(a | b) >= 0.75:
                 err(f"near-duplicate rule titles: {w1} '{t1}' ~ {w2} '{t2}'")
+
+
+MECH = re.compile(r"^- \*\*Mech:\*\* (?:M\b.*|[ST] .*`[^`]+`.*)$")
+
+
+def check_mech(root: Path, err):
+    """A Mech line names its class; S and T name at least one command in backticks (audit.py scan runs them)."""
+    for f in sorted((root / "core" / "rules").glob("*.md")):
+        for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            if line.startswith("- **Mech:**") and not MECH.match(line):
+                err(f"core/rules/{f.name}:{n}: Mech line must be `- **Mech:** S|T `command`…` or `- **Mech:** M …`")
 
 
 def check_duplicate_lines(root: Path, err):
@@ -146,7 +159,9 @@ def check_versions(root: Path, err):
 
 
 def check_self_tests(root: Path, err):
-    for args in (["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"], ["ds-setup/assets/probe.py", "--self-test"], ["ds-setup/assets/perms.py", "--self-test"],
+    for args in (["core/ds_detect.py", "--self-test"], ["ds-audit/assets/audit.py", "--self-test"],
+                 ["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"],
+                 ["ds-setup/assets/probe.py", "--self-test"], ["ds-setup/assets/perms.py", "--self-test"],
                  ["ds-research/assets/verify-brief.py", "--self-test"]):
         if not (root / args[0]).exists():
             err(f"{args[0]}: missing")
@@ -166,7 +181,7 @@ def check_spelling(root: Path, err):
         err("typos: " + (r.stdout + r.stderr).strip()[-400:])
 
 
-CHECKS = [check_skills, check_links, check_rules, check_duplicate_lines, check_consumers, check_retired,
+CHECKS = [check_skills, check_links, check_rules, check_mech, check_duplicate_lines, check_consumers, check_retired,
           check_versions, check_self_tests, check_spelling]
 
 
@@ -195,6 +210,8 @@ def self_test() -> int:
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-01 [HIGH] Again\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-99 [BLOCKER] Severity\n"),
         (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-98 [HIGH] Exponential Backoff + Jitter\n"),
+        (check_rules, "core/rules/web.md", lambda s: s + "\n### WEB-97 | HIGH | Pipe heading\n"),
+        (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S no command in backticks\n"),
         (check_duplicate_lines, "core/rules/web.md", lambda s: s + "\nAnimations must not trigger expensive layout recalculations; this line now has two homes.\n" * 1),
         (check_consumers, "core/orphan.md", lambda s: "# orphan\n"),
         (check_retired, "ds-audit/SKILL.md", lambda s: s + "\nDelegate to ds-review.\n"),
@@ -202,7 +219,7 @@ def self_test() -> int:
     ]
     failures = 0
     for check, rel, mutate in cases:
-        tmp = Path(tempfile.mkdtemp(prefix="ds-check-"))
+        tmp = Path(tempfile.mkdtemp(prefix="ds-check-")).resolve()  # macOS: /var is a symlink to /private/var
         try:
             for part in ("ds-audit", "ds-gate", "ds-research", "ds-setup", "core", "agents", ".claude-plugin"):
                 if (ROOT / part).exists():

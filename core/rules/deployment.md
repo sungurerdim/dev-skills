@@ -2,7 +2,7 @@
 
 ## Container Security
 
-### DEP-01 | CRITICAL | No Secrets in Image
+### DEP-01 [CRITICAL] No Secrets in Image
 
 **Detect:** `COPY` of `.env` files, `ARG` with secret values, hardcoded credentials in Dockerfile layers.
 
@@ -17,7 +17,7 @@ RUN --mount=type=secret,id=npm_token \
 
 **Source:** Docker security best practices, OWASP Docker Security Cheat Sheet
 
-### DEP-02 | CRITICAL | SSL/TLS Termination
+### DEP-02 [CRITICAL] SSL/TLS Termination
 
 **Detect:** Application serving HTTP directly on a public port without a TLS-terminating reverse proxy.
 
@@ -32,7 +32,7 @@ app.example.com { reverse_proxy localhost:3000 }
 
 **Source:** Let's Encrypt docs (https://letsencrypt.org/docs/), Caddy automatic HTTPS docs (https://caddyserver.com/docs/automatic-https)
 
-### DEP-03 | HIGH | Multi-Stage Build
+### DEP-03 [HIGH] Multi-Stage Build
 
 **Detect:** Single-stage Dockerfile with build tools (compilers, dev dependencies, source code) present in final image.
 
@@ -55,7 +55,7 @@ COPY --from=builder /app/node_modules ./node_modules
 
 **Source:** Docker multi-stage build docs (https://docs.docker.com/build/building/multi-stage/)
 
-### DEP-04 | HIGH | Health Check Endpoint
+### DEP-04 [HIGH] Health Check Endpoint
 
 **Detect:** No `HEALTHCHECK` instruction in Dockerfile, no `/health` or `/healthz` endpoint in application.
 
@@ -70,7 +70,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Source:** Kubernetes probe patterns (https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
 
-### DEP-05 | HIGH | Non-Root Container User
+### DEP-05 [HIGH] Non-Root Container User
 
 **Detect:** Dockerfile has no `USER` directive (defaults to root).
 
@@ -80,7 +80,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Source:** CIS Docker Benchmark, Docker security best practices
 
-### DEP-17 | HIGH | Container Hardening Baseline (canonical)
+### DEP-17 [HIGH] Container Hardening Baseline (canonical)
 
 **Detect:** Production image FROM a full OS base (`ubuntu:*`, `debian:*` non-slim) instead of distroless/minimal; runtime specs (K8s/compose) missing `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, or capability drop; base images referenced by mutable tag (`:latest`, bare `:20`) instead of digest.
 
@@ -94,7 +94,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 ## Deployment Patterns
 
-### DEP-06 | HIGH | Comprehensive .dockerignore
+### DEP-06 [HIGH] Comprehensive .dockerignore
 
 **Detect:** Missing `.dockerignore`, or it fails to exclude `.git`, `node_modules`, `.env*`, test files, IDE configs.
 
@@ -104,7 +104,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Source:** Docker build context optimization (https://docs.docker.com/build/building/context/)
 
-### DEP-07 | MEDIUM | Zero-Downtime Deployment
+### DEP-07 [MEDIUM] Zero-Downtime Deployment
 
 **Detect:** Deploying causes brief 502/503 errors because old container stops before new one is ready.
 
@@ -114,7 +114,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Source:** Kubernetes rolling update strategy (https://kubernetes.io/docs/tutorials/kubernetes-basics/update/update-intro/)
 
-### DEP-08 | MEDIUM | Resource Limits
+### DEP-08 [MEDIUM] Resource Limits
 
 **Detect:** No `memory` or `cpus` limits in Docker Compose, Kubernetes manifests, or container run commands.
 
@@ -124,7 +124,7 @@ HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
 
 **Source:** Kubernetes resource management (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
 
-### DEP-09 | LOW | Dockerfile Layer Optimization
+### DEP-09 [LOW] Dockerfile Layer Optimization
 
 **Detect:** `COPY . .` appears before dependency installation, busting cache on every code change.
 
@@ -140,7 +140,7 @@ COPY . .                                  # source code (changes frequently)
 
 **Source:** Docker layer caching best practices
 
-### DEP-10 | LOW | Docker Compose for Development
+### DEP-10 [LOW] Docker Compose for Development
 
 **Detect:** No `docker-compose.yml` for local development, or local setup diverges significantly from production.
 
@@ -150,7 +150,7 @@ COPY . .                                  # source code (changes frequently)
 
 **Source:** Docker Compose docs (https://docs.docker.com/compose/how-tos/production/)
 
-### DEP-11 | HIGH | Insecure Production Defaults
+### DEP-11 [HIGH] Insecure Production Defaults
 
 **Detect:** Permissive or debug-friendly configuration shipped to production:
 - `Access-Control-Allow-Origin: *` together with credentials
@@ -167,7 +167,7 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 
 **Source:** [Veracode GenAI 2026](https://www.veracode.com/blog/genai-security-and-vibe-coding/), [Tenzai 2026](https://blog.tenzai.com/bad-vibes-comparing-the-secure-coding-capabilities-of-popular-coding-agents/)
 
-### DEP-12 | MEDIUM | Backing Services as Attached Resources (12-Factor #4)
+### DEP-12 [MEDIUM] Backing Services as Attached Resources (12-Factor #4)
 
 **Detect:** Database/cache/queue/mail connection hardwired to a specific host/instance in code or config (e.g., a literal hostname or local socket path) instead of a URL-style env var (`DATABASE_URL`, `REDIS_URL`, `SMTP_URL`).
 
@@ -177,7 +177,7 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 
 **Source:** *The Twelve-Factor App* — Factor IV: Backing Services (https://12factor.net/backing-services)
 
-### DEP-13 | MEDIUM | Concurrency via Process Model (12-Factor #8)
+### DEP-13 [MEDIUM] Concurrency via Process Model (12-Factor #8)
 
 **Detect:** Scaling plan relies on a single larger process/instance (vertical scaling) rather than running more stateless replicas; no `replicas`/`scale` config in compose, Kubernetes, or PaaS manifest.
 
@@ -189,7 +189,7 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 
 ## Release Engineering
 
-### DEP-14 | HIGH | Canary With Automated Rollback Thresholds
+### DEP-14 [HIGH] Canary With Automated Rollback Thresholds
 
 **Detect:** Canary/staged rollout exists but rollback is a manual watch-and-decide process — no metric-bound automated trigger; or big-bang 100% deploys on a service with meaningful traffic.
 
@@ -199,7 +199,7 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 
 **Source:** Flagger/Argo Rollouts progressive-delivery docs; SRE Workbook canarying chapter
 
-### DEP-15 | MEDIUM | Feature-Flag Lifecycle Governance
+### DEP-15 [MEDIUM] Feature-Flag Lifecycle Governance
 
 **Detect:** Flag definitions with no owner, purpose, or planned removal date; flags older than their intended lifetime still active; an old flag key reused for a new purpose.
 
@@ -209,7 +209,7 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 
 **Source:** LaunchDarkly/CloudBees flag-lifecycle guidance
 
-### DEP-16 | MEDIUM | API Deprecation Signaling (Sunset / Deprecation Headers)
+### DEP-16 [MEDIUM] API Deprecation Signaling (Sunset / Deprecation Headers)
 
 **Detect:** Public API endpoint slated for removal without machine-readable signaling: no `Deprecation` header (RFC 9745) and/or no `Sunset` header (RFC 8594); Sunset date earlier than Deprecation date; package/API without a published SemVer + minimum-deprecation-window policy.
 
@@ -221,7 +221,7 @@ Veracode 2026 found ~45% of AI-generated samples carried a known weakness; Tenza
 
 ## Deployment Verification
 
-### DEP-18 | HIGH | Static-Host Deploys Verified via the Host's Build API, SHA-Matched
+### DEP-18 [HIGH] Static-Host Deploys Verified via the Host's Build API, SHA-Matched
 
 Push may start the deploy, but success is never assumed: the host's build-status API is polled until the reported commit SHA equals the pushed HEAD and the status is built.
 
@@ -233,7 +233,7 @@ Push may start the deploy, but success is never assumed: the host's build-status
 
 **Source:** XR-088 — cross-project experience registry (2026).
 
-### DEP-19 | HIGH | Single-Node Restarts Follow the Safe Sequence
+### DEP-19 [HIGH] Single-Node Restarts Follow the Safe Sequence
 
 Where true rolling update is impossible (one node), restarts follow: build → drain → queue-empty → backup → dependency-ordered stop/start → undrain → live-verify.
 
@@ -247,7 +247,7 @@ Where true rolling update is impossible (one node), restarts follow: build → d
 
 ## Configuration
 
-### DEP-20 | CRITICAL | Fail Fast on Missing or Placeholder Critical Config
+### DEP-20 [CRITICAL] Fail Fast on Missing or Placeholder Critical Config
 
 Security/compliance/finance-critical configuration has no code-level defaults; missing, placeholder, or wrong-environment values abort startup loudly.
 
@@ -259,7 +259,7 @@ Security/compliance/finance-critical configuration has no code-level defaults; m
 
 **Source:** XR-081 — cross-project experience registry (2026).
 
-### DEP-21 | HIGH | Dev-Override Config Cannot Leak Into Production
+### DEP-21 [HIGH] Dev-Override Config Cannot Leak Into Production
 
 Auto-merged development override files (docker-compose.override.yml, .env.local, dev webpack config) are neutralized on production hosts by explicit production-file invocation, not by hoping the file is absent.
 
@@ -273,7 +273,7 @@ Auto-merged development override files (docker-compose.override.yml, .env.local,
 
 ## Architecture & Topology
 
-### DEP-22 | HIGH | Account-Boundary Invariant: Customer-Owned and Product-Owned Infrastructure Never Mix
+### DEP-22 [HIGH] Account-Boundary Invariant: Customer-Owned and Product-Owned Infrastructure Never Mix
 
 Customer-owned server-side functions run only in the customer's own provider account; the product's central functions run only in the product's own account. The boundary is a named, documented red line — mechanically gated where possible.
 
@@ -287,7 +287,7 @@ Customer-owned server-side functions run only in the customer's own provider acc
 
 ## DNS & TLS
 
-### DEP-23 | HIGH | DNS Records Complete and Correct
+### DEP-23 [HIGH] DNS Records Complete and Correct
 
 Production domains resolve correctly and are protected against unauthorized certificate issuance.
 
@@ -299,7 +299,7 @@ Production domains resolve correctly and are protected against unauthorized cert
 
 **Source:** RFC 1912 (Common DNS Operational and Configuration Errors), RFC 6844 (CAA)
 
-### DEP-24 | HIGH | TLS Certificate Automation, Renewal and Expiry Alerting
+### DEP-24 [HIGH] TLS Certificate Automation, Renewal and Expiry Alerting
 
 Certificates renew unattended, well before expiry, with a failure alert if renewal itself fails.
 
@@ -311,7 +311,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** Let's Encrypt integration guide, Caddy automatic HTTPS documentation
 
-### DEP-25 | HIGH | HSTS Enabled With a Safe Preload Path
+### DEP-25 [HIGH] HSTS Enabled With a Safe Preload Path
 
 `Strict-Transport-Security` served on every HTTPS response, with `max-age` raised gradually before `preload` is submitted.
 
@@ -323,7 +323,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** MDN Strict-Transport-Security, hstspreload.org submission requirements
 
-### DEP-35 | HIGH | Reverse-Proxy TLS Protocol & Session Hardening
+### DEP-35 [HIGH] Reverse-Proxy TLS Protocol & Session Hardening
 
 **Detect:** Nginx/Apache/HAProxy config permitting `TLSv1`/`TLSv1.1` alongside 1.2+ (`ssl_protocols` without an explicit floor of TLSv1.2); default/weak cipher suite (no `ssl_ciphers` override, RC4/3DES/export ciphers not excluded); TLS session tickets left at server defaults with no key-rotation plan (undermines forward secrecy); OCSP stapling not enabled (`ssl_stapling on` absent) despite the CA supporting it.
 
@@ -335,7 +335,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 ## Image & Container Runtime Safety
 
-### DEP-26 | HIGH | Image Vulnerability Scan Gate in Build Pipeline
+### DEP-26 [HIGH] Image Vulnerability Scan Gate in Build Pipeline
 
 **Detect:** Build/deploy pipeline has no CVE scan step for the built image (no Trivy, Docker Scout, Grype, or registry-native scan invoked before push/deploy).
 
@@ -345,7 +345,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** Trivy documentation (https://trivy.dev/), Docker Scout documentation (https://docs.docker.com/scout/)
 
-### DEP-27 | HIGH | Service Ports Bound to Loopback, Not Publicly Exposed
+### DEP-27 [HIGH] Service Ports Bound to Loopback, Not Publicly Exposed
 
 **Detect:** Docker Compose (or equivalent) service publishes a port as `"{port}:{port}"` instead of `"127.0.0.1:{port}:{port}"` for a service meant to sit behind a reverse proxy; a database/cache port published on any host-facing interface at all.
 
@@ -355,7 +355,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** OWASP Docker Security Cheat Sheet (https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html)
 
-### DEP-28 | MEDIUM | Container Restart Policy Configured
+### DEP-28 [MEDIUM] Container Restart Policy Configured
 
 **Detect:** Docker Compose service (or equivalent) with no `restart:` policy set (defaults to `no` — the container stays down after any crash or host reboot).
 
@@ -367,7 +367,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 ## Edge & Infrastructure Hardening
 
-### DEP-29 | HIGH | CDN/Edge Security Configuration
+### DEP-29 [HIGH] CDN/Edge Security Configuration
 
 **Detect:** Domain proxied through a CDN/edge network (Cloudflare or equivalent) with SSL/TLS mode left at "Flexible" (edge-to-origin traffic unencrypted) instead of "Full (Strict)"; minimum TLS version not pinned at the edge; no page rule/WAF rule blocking direct requests to sensitive paths (`/.env*`, `/.git/*`).
 
@@ -377,7 +377,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** Cloudflare SSL/TLS encryption modes documentation (https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/)
 
-### DEP-30 | HIGH | VPS Hardening Baseline (10-Point)
+### DEP-30 [HIGH] VPS Hardening Baseline (10-Point)
 
 **Detect:** `deploy=vps` project missing one or more of: automated security updates, SSH key-only auth with root login disabled, a default-deny firewall with only required ports open, fail2ban (or equivalent) on the SSH port, kernel network-hardening sysctls, mandatory access control (AppArmor/SELinux), audit logging (auditd), a scheduled security scan.
 
@@ -387,7 +387,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** OpenSSH `sshd_config` manual (https://man.openbsd.org/sshd_config), Ubuntu community — automatic security updates (https://help.ubuntu.com/community/AutomaticSecurityUpdates), CIS Benchmarks (industry-standard hardening baselines — consult the Linux benchmark for the distribution in use)
 
-### DEP-34 | MEDIUM | Disable Unused System Services (VPS)
+### DEP-34 [MEDIUM] Disable Unused System Services (VPS)
 
 **Detect:** `systemctl list-units --type=service --state=running` (or distro equivalent) on a production VPS returns enabled services with no role in the deployed stack (e.g. `avahi-daemon`, `cups`, `bluetooth`, a default MTA nobody configured) — installed by the base image, never audited.
 
@@ -397,7 +397,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** VPS Hardening 25-Point Checklist (https://retzor.com/blog/vps-security-hardening-25-point-checklist-for-2025/)
 
-### DEP-31 | HIGH | Backup Integrity Verification & 3-2-1 Redundancy
+### DEP-31 [HIGH] Backup Integrity Verification & 3-2-1 Redundancy
 
 **Detect:** Backup script with no post-write integrity check (does not verify the archive is non-empty/valid before considering the backup successful); only one copy of backup data, or all copies on the same physical medium/host as the source; no offsite copy.
 
@@ -407,7 +407,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** CISA — #StopRansomware Guide, data backup guidance (https://www.cisa.gov/stopransomware/ransomware-guide)
 
-### DEP-36 | HIGH | Backup Encryption & Retention Rotation
+### DEP-36 [HIGH] Backup Encryption & Retention Rotation
 
 **Detect:** Database/file backups written unencrypted (plain `pg_dump`/`tar` output with no encryption step) especially before an offsite copy; no retention/rotation policy — backup directory grows unbounded, or old backups are deleted with no `--keep-*` schedule (e.g. a bare `rm` cron with no daily/weekly/monthly tiering).
 
@@ -419,7 +419,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 ## Incident & Rollback Runbooks
 
-### DEP-32 | MEDIUM | Incident Triage Runbook — First 5 Minutes
+### DEP-32 [MEDIUM] Incident Triage Runbook — First 5 Minutes
 
 **Detect:** No documented, ordered triage sequence for the first minutes of a detected incident — responders improvise the check order each time.
 
@@ -429,7 +429,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** Google SRE Workbook — Incident Response (https://sre.google/workbook/incident-response/)
 
-### DEP-33 | MEDIUM | Rollback Playbook — Scenario-to-Command Mapping
+### DEP-33 [MEDIUM] Rollback Playbook — Scenario-to-Command Mapping
 
 **Detect:** No documented mapping from incident scenario to the specific rollback command/procedure and its expected downtime — the rollback path is decided ad hoc during the incident.
 
@@ -439,7 +439,7 @@ Certificates renew unattended, well before expiry, with a failure alert if renew
 
 **Source:** Kubernetes Deployments — rolling back a deployment (https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
 
-### DEP-37 | MEDIUM | Post-Mortem Required Fields for P1/P2 Incidents
+### DEP-37 [MEDIUM] Post-Mortem Required Fields for P1/P2 Incidents
 
 **Detect:** A resolved P1/P2 incident (per DEP-32's severity classification) with no post-mortem document, or one missing required fields — no incident date/duration, no severity, no timeline of detection→mitigation→recovery, no root cause, no explicit "what went well / what went wrong," or action items with no owner or deadline.
 

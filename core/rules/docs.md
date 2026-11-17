@@ -2,7 +2,7 @@
 
 ## Structure & Content
 
-### DOC-01 | HIGH | README Hook
+### DOC-01 [HIGH] README Hook
 
 **Detect:** README starts with project name, badge wall, feature list, or generic description ("A library for..."). First line describes what project is rather than why it matters.
 
@@ -25,7 +25,7 @@ context-aware commit messages.
 
 **Source:** Launch research (rivereditor.com, GitHub analysis) — [launch research](https://github.com/sungurerdim/dev-skills/blob/5480013/docs/methodology/launch-research.md) Pattern 6
 
-### DOC-02 | HIGH | Verified Code Examples
+### DOC-02 [HIGH] Verified Code Examples
 
 **Detect:** Code blocks in documentation contain snippets that have drifted from actual source code. Example output, function signatures, or API calls reference outdated implementations.
 
@@ -41,7 +41,7 @@ const config = loadConfig({ strict: true });
 
 **Impact:** Incorrect code examples waste developer time and erode trust. Auto-generated docs eliminate drift by construction.
 
-### DOC-03 | MEDIUM | Quick Start in 5 Commands or Fewer
+### DOC-03 [MEDIUM] Quick Start in 5 Commands or Fewer
 
 **Detect:** Getting started section requires more than 5 commands or more than 10 minutes for a new user to reach working state.
 
@@ -69,7 +69,7 @@ npm install && npm start
 
 **Source:** GitHub README best practices, launch research (Quick Start pattern)
 
-### DOC-04 | MEDIUM | Scannable Format
+### DOC-04 [MEDIUM] Scannable Format
 
 **Detect:** Documentation sections contain more than 5 consecutive prose paragraphs without structural breaks (headings, tables, bullet lists, or code blocks).
 
@@ -94,7 +94,7 @@ npm install && npm start
 
 ## Maintenance & Tools
 
-### DOC-05 | MEDIUM | Link Freshness
+### DOC-05 [MEDIUM] Link Freshness
 
 **Detect:** Documentation contains links returning 404, pointing to moved pages, or referencing outdated URLs (e.g., old API versions, deprecated docs sites).
 
@@ -114,7 +114,7 @@ Repo has a link checker configured (e.g., lychee) → run it and consume the rep
 
 **Source:** Web maintenance best practices; lychee (lycheeverse)
 
-### DOC-06 | MEDIUM | Auto-Generated API Documentation
+### DOC-06 [MEDIUM] Auto-Generated API Documentation
 
 **Detect:** API documentation manually written in a separate file, disconnected from source code. Changes to implementation require updating docs in a second location.
 
@@ -133,7 +133,7 @@ Repo has a link checker configured (e.g., lychee) → run it and consume the rep
 
 **Source:** OpenAPI 3.1 specification, framework-specific documentation standards
 
-### DOC-07 | LOW | Badge Discipline
+### DOC-07 [LOW] Badge Discipline
 
 **Detect:** README displays more than 7 badges, creating visual clutter that pushes actual content below the fold.
 
@@ -150,7 +150,7 @@ Repo has a link checker configured (e.g., lychee) → run it and consume the rep
 
 **Source:** Launch research (README best practices) — [launch research](https://github.com/sungurerdim/dev-skills/blob/5480013/docs/methodology/launch-research.md) Pattern 6
 
-### DOC-08 | LOW | Changelog in Standard Format
+### DOC-08 [LOW] Changelog in Standard Format
 
 **Detect:** No `CHANGELOG.md` file, or changelog exists in non-standard format (e.g., raw git log dumps, unstructured notes).
 
@@ -177,7 +177,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** Keep a Changelog (keepachangelog.com), Semantic Versioning
 
-### DOC-09 | MEDIUM | Deterministic Doc-Lint Stack
+### DOC-09 [MEDIUM] Deterministic Doc-Lint Stack
 
 **Detect:** Docs checked only by manual/LLM review — no prose linter (Vale), Markdown-structure linter (markdownlint), or link checker (lychee) configured in a repo that has a docs directory or CI.
 
@@ -197,7 +197,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`, `.windsurfrules`/`.devin/rules/`, `.github/copilot-instructions.md`, `GEMINI.md`, `CONVENTIONS.md` (Aider). These are re-injected as low-trust background context on every session, not read once like a README — signal density matters more than completeness. A file that only contains what the agent cannot derive on its own outperforms a comprehensive one.
 
-### DOC-10 | CRITICAL | Secrets in Harness Context File
+### DOC-10 [CRITICAL] Secrets in Harness Context File
 
 **Detect:** Hardcoded credentials, API keys, tokens, or connection strings with embedded passwords appear in the file body.
 
@@ -207,7 +207,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** General secret-handling policy (no vendor documentation explicitly warns against this despite recommending the file be committed to git — treated as an inferred-but-undocumented risk, not a sourced vendor claim).
 
-### DOC-11 | HIGH | Code-Derivable Content
+### DOC-11 [HIGH] Code-Derivable Content
 
 **Detect:** Directory layout, dependency lists, file-by-file descriptions, or architecture overviews that duplicate what the agent discovers in seconds by reading the code.
 
@@ -228,7 +228,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** [Anthropic Claude Code best practices](https://code.claude.com/docs/en/best-practices) (✅/❌ table); [Cursor Rules docs](https://cursor.com/docs/rules); [Evaluating AGENTS.md, arXiv:2602.11988](https://arxiv.org/abs/2602.11988)
 
-### DOC-12 | HIGH | Generic Self-Evident Advice
+### DOC-12 [HIGH] Generic Self-Evident Advice
 
 **Detect:** Instructions the model already follows from training or the harness's own defaults — "write clean code," "handle errors properly," "use meaningful variable names" with no project-specific specifics.
 
@@ -238,7 +238,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** [Anthropic best practices](https://code.claude.com/docs/en/best-practices); [Windsurf/Devin Cascade Memories docs](https://docs.devin.ai/desktop/cascade/memories) ("already baked into Cascade's training data"); independent 1,188-test community benchmark (single-sourced, directionally consistent with the peer-reviewed-adjacent AgentBench finding above)
 
-### DOC-13 | MEDIUM | Pasted Reference Material
+### DOC-13 [MEDIUM] Pasted Reference Material
 
 **Detect:** API documentation, tutorials, or frequently-changing detail (endpoint lists, config schemas) copied inline instead of linked.
 
@@ -248,7 +248,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** [Anthropic best practices](https://code.claude.com/docs/en/best-practices) ("Detailed API documentation (link to docs instead)"); [Cursor Rules docs](https://cursor.com/docs/rules) ("Reference files rather than copying their contents")
 
-### DOC-14 | MEDIUM | Length Over Harness Budget
+### DOC-14 [MEDIUM] Length Over Harness Budget
 
 **Detect:** File exceeds the target harness's own adherence threshold.
 
@@ -267,7 +267,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** [How Claude remembers your project](https://code.claude.com/docs/en/memory); [Cursor Rules docs](https://cursor.com/docs/rules); [Windsurf/Devin Cascade Memories docs](https://docs.devin.ai/desktop/cascade/memories); [Writing a good CLAUDE.md — HumanLayer](https://www.humanlayer.dev/blog/writing-a-good-claude-md)
 
-### DOC-15 | MEDIUM | Missing Recommended Content
+### DOC-15 [MEDIUM] Missing Recommended Content
 
 **Detect:** File lacks non-guessable build/test/lint commands, code-style rules that diverge from language/tool defaults, non-obvious gotchas or architecture rationale, repo etiquette, or the project's intent and hard limits (who it serves; what a change must never do) — despite the project clearly having them (custom scripts, non-default lint config, documented past incidents).
 
@@ -277,7 +277,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** [Anthropic best practices](https://code.claude.com/docs/en/best-practices); [agents.md](https://agents.md/) ("the agent will attempt to execute relevant programmatic checks"); [Gemini CLI GEMINI.md docs](https://geminicli.com/docs/cli/gemini-md/); [Aider conventions docs](https://aider.chat/docs/usage/conventions.html); [Evaluating AGENTS.md (ETH Zurich, arXiv:2602.11988)](https://arxiv.org/abs/2602.11988)
 
-### DOC-16 | LOW | Negative-Framed Instructions
+### DOC-16 [LOW] Negative-Framed Instructions
 
 **Detect:** A rule stated as a prohibition ("don't write unclear code") where a positive equivalent exists ("write clear code").
 
@@ -287,7 +287,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** Independent community benchmark (single-sourced; not independently replicated)
 
-### DOC-17 | LOW | Single Monolithic Root File in a Monorepo
+### DOC-17 [LOW] Single Monolithic Root File in a Monorepo
 
 **Detect:** One root context file covers multiple unrelated packages instead of nested per-package files.
 
@@ -297,7 +297,7 @@ Literal file content (indented to keep this example's own headings out of this c
 
 **Source:** [agents.md](https://agents.md/); [How Claude remembers your project](https://code.claude.com/docs/en/memory) (nested `CLAUDE.md` discovery); [Gemini CLI GEMINI.md docs](https://geminicli.com/docs/cli/gemini-md/) (just-in-time directory scan)
 
-### DOC-18 | HIGH | Structural Changes and Their Docs Land in the Same Commit
+### DOC-18 [HIGH] Structural Changes and Their Docs Land in the Same Commit
 
 File moves/adds/deletes, renames, and dependency version bumps update the affected docs (README, architecture, main guide, design system) in the same change — doc truth is part of "done".
 
@@ -309,7 +309,7 @@ File moves/adds/deletes, renames, and dependency version bumps update the affect
 
 **Source:** XR-014 — cross-project experience registry (2026).
 
-### DOC-19 | HIGH | Cross-Repo Documents Keep One Canonical Copy; Others Become Pointers
+### DOC-19 [HIGH] Cross-Repo Documents Keep One Canonical Copy; Others Become Pointers
 
 In multi-repo products, every cross-cutting document (breach plan, DPIA, retention table) is canonical in exactly one repo; other repos hold a short pointer plus only their scope-specific notes.
 
@@ -321,7 +321,7 @@ In multi-repo products, every cross-cutting document (breach plan, DPIA, retenti
 
 **Source:** XR-015 — cross-project experience registry (2026).
 
-### DOC-20 | MEDIUM | Living Compliance Docs Correct Through a Dated Review Log
+### DOC-20 [MEDIUM] Living Compliance Docs Correct Through a Dated Review Log
 
 Regularly reviewed compliance documents (DPIA, security policy, breach plan) record corrections in a dated review-log section — what changed, when, and what triggered it — instead of silently overwriting past errors.
 
@@ -333,7 +333,7 @@ Regularly reviewed compliance documents (DPIA, security policy, breach plan) rec
 
 **Source:** XR-016 — cross-project experience registry (2026); complements the Breach Plan template's Review log section.
 
-### DOC-21 | MEDIUM | Evidence-Based Decisions Are Locked; Reopening Requires New Evidence
+### DOC-21 [MEDIUM] Evidence-Based Decisions Are Locked; Reopening Requires New Evidence
 
 Engineering decisions grounded in measurement or experiment (model parameter, dependency version, a deliberately removed security/resilience layer) live in a decision ledger tagged "not to be revisited without new evidence", citing the triggering measurement.
 
@@ -345,7 +345,7 @@ Engineering decisions grounded in measurement or experiment (model parameter, de
 
 **Source:** XR-017 — cross-project experience registry (2026); pairs with ADR supersedence.
 
-### DOC-22 | MEDIUM | Accepted Debt Is Tracked With ID, Reason, and Fix Path
+### DOC-22 [MEDIUM] Accepted Debt Is Tracked With ID, Reason, and Fix Path
 
 Deliberately deferred architectural gaps are recorded openly: short ID, what's missing, why not fixed now, and the fix path.
 
@@ -357,7 +357,7 @@ Deliberately deferred architectural gaps are recorded openly: short ID, what's m
 
 **Source:** XR-018 — cross-project experience registry (2026).
 
-### DOC-23 | MEDIUM | Numeric Claims Trace to a Reproducible Measurement Artifact
+### DOC-23 [MEDIUM] Numeric Claims Trace to a Reproducible Measurement Artifact
 
 Every quality/performance claim (accuracy, latency, size) is backed by a re-runnable measurement script and the raw log/record it produced, both kept in the repo.
 
@@ -369,7 +369,7 @@ Every quality/performance claim (accuracy, latency, size) is backed by a re-runn
 
 **Source:** XR-093 — cross-project experience registry (2026).
 
-### DOC-24 | LOW | Third-Party Names Vendor-Neutral in Customer Copy; Re-Verified Against the Live Pipeline
+### DOC-24 [LOW] Third-Party Names Vendor-Neutral in Customer Copy; Re-Verified Against the Live Pipeline
 
 Customer-facing text describes third-party models/libraries in vendor-neutral, function-accurate terms, and the copy is periodically re-verified against the current pipeline.
 
@@ -381,7 +381,7 @@ Customer-facing text describes third-party models/libraries in vendor-neutral, f
 
 **Source:** XR-184 — cross-project experience registry (2026).
 
-### DOC-25 | HIGH | Absence Claims Require a Proven-Positive Control Query
+### DOC-25 [HIGH] Absence Claims Require a Proven-Positive Control Query
 
 A claim that something does not exist is only valid when the search that found nothing is itself proven to work.
 
@@ -393,7 +393,7 @@ A claim that something does not exist is only valid when the search that found n
 
 **Source:** XR-203 — cross-project experience registry (2026).
 
-### DOC-26 | MEDIUM | Machine-Read Corpora Keep One Structural Convention Across Sibling Files
+### DOC-26 [MEDIUM] Machine-Read Corpora Keep One Structural Convention Across Sibling Files
 
 Every file in a corpus that tooling parses uses the same heading level and entry shape for the same kind of entry.
 
