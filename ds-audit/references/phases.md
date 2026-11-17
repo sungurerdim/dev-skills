@@ -12,7 +12,7 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 | build | `arch` `code` `test` `perf` | code and tests (fixers run first, once) | `validate` green, no `open` row, `checks now` no redder than baseline |
 | safe | `sec` `privacy` `auth` `api` `db` | code, config, tests | same |
 | surface | `web` `a11y` `ux` `i18n` `mobile` `store` `money` | code, copy, assets | same |
-| ship | `ci` `ops` `docs` `repo` | CI, release, deploy config, docs | same; docs describe the final state |
+| ship | `ci` `ops` `docs` `repo` | CI, release, deploy config, docs | same; docs describe the final state; the changelog's unreleased part names every user-visible commit of `git log --oneline {last tag}..HEAD` (last tag: `git describe --tags --abbrev=0`) |
 
 ## Steps — identical in every phase
 
