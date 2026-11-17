@@ -28,16 +28,18 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 
 ## Output — the ledger language
 
-`ds/audit/report.md`, Findings table; one row per finding, appended by the model:
+`ds/audit/report.md`, Findings table; one row per finding, appended by the model; columns in this order:
 
 | Column | Allowed values |
 |--------|----------------|
 | `#` | next integer |
-| Phase / Area | a phase name / an area word |
+| Phase | a phase name |
 | Sev | CRITICAL · HIGH · MEDIUM · LOW (kernel §4) |
+| Area | an area word |
 | Rule | a rule ID · a kernel §7 principle (any case; the part before ` / ` suffices: `DRY`) · `tool:{name}` · `judgment`; several joined by ` · ` |
 | Where | `path:line` (checked: the file and line exist now or at the run's start) · a unit · an item |
-| Finding / Prevents | what is wrong / what goes wrong without the fix, for whom — plain words |
+| Finding | what is wrong — plain words |
+| Prevents | what goes wrong without the fix, for whom — plain words |
 | Plan | the simplest fix (kernel §1) |
 | Disposition | `open` · `fixed` · `reverted (error)` · `skipped (blocker)` · `not applicable (reason)` · `only you can do (action)` |
 | Commit | hash for `fixed` (checked: exists, after the run's start) · `uncommitted` (file had user edits) · `—` |
