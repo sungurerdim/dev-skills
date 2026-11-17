@@ -34,7 +34,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 | `A checks baseline\|now` | Runs each check step, records pass / fail / timeout |
 | `A scan PHASE` | Runs the `Mech:` commands of the phase's loaded rules |
 | `A validate` | Ledger schema, rule IDs, `file:line` exists, commits real and after the start |
-| `A phase PHASE done\|blocked "reason"` | Closes a phase; `done` refuses open rows or a red validate |
+| `A phase PHASE done\|blocked "reason"` | Closes a phase; `done` refuses open rows, a red validate or a red `lean-check`, pushes `ds/audit` and prints the push result and the next phase |
 | `A report` | Rewrites the report's Closing and Phases, writes `report.html`, prints the closing message |
 | `A lean` · `A lean-check` · `A rules` | lean inventory · `SCOPE.md` check · recorded rules with blame date, reason, citation count |
 

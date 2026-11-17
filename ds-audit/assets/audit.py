@@ -13,7 +13,8 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
   audit.py signal KEY VALUE [WHY]    confirm or correct a judged signal (auth, pii, audience), noted as decided:;
                                      re-plans the areas of phases not yet started
   audit.py validate                  Findings schema, rule IDs, file:line, commits, totals; exit 1 = red
-  audit.py phase PHASE done|blocked [REASON]   close a phase (done refuses open rows or a red validate)
+  audit.py phase PHASE done|blocked [REASON]   close a phase (done refuses open rows or a red validate),
+                                     prints the push result and the next phase
   audit.py report                    rewrite Closing + Phases, write report.html, print the closing message (kernel §6)
   audit.py lean [--depth N]          lean inventory: units, lines, fan-in, commits, deps, docs, entry points
   audit.py lean-check [SCOPE.md]     every unit tiered, no stale or unapplied rows, Budget holds; exit 1 = red
@@ -437,24 +438,28 @@ def phase(root: Path, name: str, status: str, reason: str = "") -> str:
     if reason:
         state["phases"][name]["reason"] = reason
     save_state(root, state)
-    if status == "done":
-        push(root, state)
-    return next((n for n, p in state["phases"].items() if p["status"] == "pending"), "")
+    return {"next": next((n for n, p in state["phases"].items() if p["status"] == "pending"), ""),
+            "push": push(root, state) if status == "done" else "not pushed: phase blocked"}
 
 
-def push(root: Path, state: dict):
-    """Back up the review branch after each closed phase: no force, no other ref; refused -> only-you."""
-    if state.get("branch") != BRANCH or state.get("dry") or "origin" not in git(root, "remote").split():
-        return
+def push(root: Path, state: dict) -> str:
+    """Back up the review branch after each closed phase: no force, no other ref; refused -> only-you.
+    Returns what happened, for the caller to print: `pushed {branch} {sha}`, the refusal, or why nothing was pushed."""
+    if state.get("branch") != BRANCH or state.get("dry"):
+        return f"not pushed: the run commits on {state.get('branch')}{' (dry)' if state.get('dry') else ''}"
+    if "origin" not in git(root, "remote").split():
+        return "not pushed: no origin remote"
     try:
         r = subprocess.run(["git", "-C", str(root), "push", "--quiet", "-u", "origin", BRANCH], capture_output=True,
                            text=True, env=ENV, timeout=120)
         ok, why = r.returncode == 0, r.stderr.strip()[-160:]
     except subprocess.TimeoutExpired:
         ok, why = False, "timeout"
-    if not ok:
-        save_state(root, load(root)[0],
-                   f"only-you: push of {BRANCH} refused ({why}) — fix the remote side, then `git push -u origin {BRANCH}`")
+    if ok:
+        return f"pushed {BRANCH} {git(root, 'rev-parse', '--short', BRANCH).strip()}"
+    save_state(root, load(root)[0],
+               f"only-you: push of {BRANCH} refused ({why}) — fix the remote side, then `git push -u origin {BRANCH}`")
+    return f"push refused: {why}"
 
 
 def status_of(state: dict, findings: list) -> str:
@@ -963,8 +968,17 @@ def self_test() -> int:
         (tmp / "SCOPE.md").unlink()
         crit = good_row.replace("HIGH", "CRITICAL").replace("| fixed |", "| skipped (needs a key) |").replace(fixc, "—")
         write(tmp, state, findings=findings + crit)
+        origin = Path(tempfile.mkdtemp(prefix="ds-audit-origin-"))
+        subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True, env=gitenv, capture_output=True)
+        subprocess.run(["git", "-C", str(tmp), "remote", "add", "origin", str(origin)], check=True, env=gitenv)
         for p in state["phases"]:
-            phase(tmp, p, "blocked", "test") if p != "lean" else phase(tmp, p, "done")
+            closed = phase(tmp, p, "blocked", "test") if p != "lean" else phase(tmp, p, "done")
+            if p == "lean":
+                sha = git(tmp, "rev-parse", "--short", "HEAD").strip()
+                expect(isinstance(closed, dict) and closed.get("push") == f"pushed {BRANCH} {sha}",
+                       f"phase done does not report the push result: {closed!r}")
+        subprocess.run(["git", "-C", str(tmp), "remote", "remove", "origin"], check=True, env=gitenv)
+        shutil.rmtree(origin, ignore_errors=True)
         areas_now = {n: set(p["areas"].values()) for n, p in load(tmp)[0]["phases"].items()}
         expect(areas_now["lean"] == {"ran"} and areas_now["build"] == {"loads"},
                f"a phase not yet run shows its areas as ran: {areas_now}")
@@ -1092,7 +1106,9 @@ def main(argv) -> int:
         print(f"validate: {'OK' if not problems else 'FAIL'} — {len(problems)} problem(s)")
         return 1 if problems else 0
     elif cmd == "phase" and len(rest) >= 2:
-        print(phase(root, rest[0], rest[1], " ".join(rest[2:])) or "all phases closed — run `audit.py report`")
+        closed = phase(root, rest[0], rest[1], " ".join(rest[2:]))
+        print(closed["push"])
+        print(f"next: {closed['next']}" if closed["next"] else "all phases closed — run `audit.py report`")
     elif cmd == "report":
         print(report(root))
     elif cmd == "lean":
