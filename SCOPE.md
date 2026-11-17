@@ -17,6 +17,8 @@ The product is the Markdown (`ds-*/SKILL.md`, `references/`, `core/`); the rows 
 | `scripts` | T1 | the only gate (`check.py`) and claude.ai packaging (`package.py`) | AGENTS.md Commands; README.md Install |
 | `evals` | T1 | scorer for skill-behaviour evals | AGENTS.md Commands; `evals/README.md` |
 
-Budget: units ≤ 8 · deps ≤ 0 · docs ≤ 674 KB
+Budget: units ≤ 8 · deps ≤ 0 · docs ≤ 677 KB
+
+Budget raised 674 → 677 KB (2026-11-17): the CHANGELOG Unreleased block for the 44 commits since 3.0.0.
 
 Rules reviewed: 2026-11-17 (74d03eb)
