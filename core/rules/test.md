@@ -4,7 +4,7 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 
 ### TST-01 [HIGH] Test pyramid missing or inverted
 - **Detect:** no tracked test files; end-to-end tests outnumber integration and unit tests; core logic reachable only through end-to-end tests; public services or use cases with no unit test.
-- **Mech:** S `git ls-files | grep -qiE '(^|/)(tests?|spec|__tests__)/|[._-](test|spec)\.|_test\.' || echo 'no test files tracked'`
+- **Mech:** S `git ls-files | grep -qiE '(^|/)(tests?|spec|__tests__)/|[._-](test|spec)\.|_test\.|(^|/)test_[^/]+\.py$' || echo 'no test files tracked'`
 - **Fix:** unit tests for each public service or use case; integration tests at real boundaries; a few end-to-end tests for the critical journeys.
 - **Impact:** an inverted suite is slow and flaky, so feedback arrives too late to be cheap.
 - **Source:** Vocke, "The Practical Test Pyramid" (https://martinfowler.com/articles/practical-test-pyramid.html); Cohn, *Succeeding with Agile*.
