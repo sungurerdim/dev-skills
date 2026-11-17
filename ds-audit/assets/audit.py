@@ -578,6 +578,27 @@ def status_of(state: dict, findings: list) -> str:
     return "OK"
 
 
+def kind_of(path: str) -> str:
+    """The closing message's change kind (kernel §6): code, tests, docs or config."""
+    ext = Path(path).suffix.lower()
+    return "tests" if TEST.search(path) else "code" if ext in SRC else "docs" if ext in DOC else "config"
+
+
+def change_rows(root: Path, start: str) -> dict:
+    """{kind: files, +lines, -lines, commits} for `git diff {start}` (commits and uncommitted) and `{start}..HEAD`."""
+    out = {}
+    for ln in git(root, "diff", "--numstat", start).splitlines():
+        add, dele, path = ln.split("\t", 2)
+        c = out.setdefault(kind_of(path), {"files": 0, "add": 0, "del": 0, "commits": 0})
+        c["files"] += 1
+        c["add"] += int(add) if add.isdigit() else 0  # a binary file counts as a file, not lines
+        c["del"] += int(dele) if dele.isdigit() else 0
+    for chunk in git(root, "log", "--format=%x00", "--name-only", f"{start}..HEAD").split("\0")[1:]:
+        for k in {kind_of(p) for p in chunk.splitlines() if p.strip()}:
+            out.setdefault(k, {"files": 0, "add": 0, "del": 0, "commits": 0})["commits"] += 1
+    return {k: out[k] for k in ("code", "tests", "docs", "config") if k in out}
+
+
 CLOSING_DECIDED, CLOSING_ONLY = 5, 8  # the closing message stays readable (~40 lines); report.md keeps everything
 CONSEQUENTIAL = re.compile(r"\b(branch|signal|cut|merge|rules?|budget|check command|scope|push)\b", re.I)
 
@@ -589,8 +610,9 @@ def report(root: Path) -> str:
     findings = rows(text)
     status = status_of(state, findings)
     minutes = max(1, round((time.time() - state["started"]) / 60))
-    stat = git(root, "diff", "--shortstat", state["start"]).strip() if state["start"] else ""
-    got = {k: int(v) for v, k in re.findall(r"(\d+) (file|insertion|deletion)", stat)}
+    changes = change_rows(root, state["start"]) if state["start"] else {}
+    got = {"file": sum(c["files"] for c in changes.values()), "insertion": sum(c["add"] for c in changes.values()),
+           "deletion": sum(c["del"] for c in changes.values())}
     commits = git(root, "rev-list", "--count", f"{state['start']}..HEAD").strip() if state["start"] else "0"
     fixed = [r for r in findings if r["Disposition"] == "fixed"]
     only = [r for r in findings if r["Disposition"].startswith("only you")]
@@ -613,7 +635,8 @@ def report(root: Path) -> str:
            f"open {len(open_)} · only-you {len(only)}",
            f"Asked: /ds-audit {state['scope']}" + "".join(f" {k}" for k in ("dry", "ask", "auto") if state.get(k)), "",
            "| Change | Files | Lines | Commits |", "|--------|------:|------:|--------:|",
-           f"| code | {got.get('file', 0)} | +{got.get('insertion', 0)} −{got.get('deletion', 0)} | {commits} |", ""]
+           *([f"| {k} | {c['files']} | +{c['add']} −{c['del']} | {c['commits']} |" for k, c in changes.items()]
+             or ["| code | 0 | +0 −0 | 0 |"]), ""]
     if findings:
         order = sorted(findings, key=lambda r: (SEVS.index(r["Sev"]) if r["Sev"] in SEVS else 9,
                                                 r["Disposition"] != "fixed", int(r["#"])))
@@ -1153,6 +1176,12 @@ def self_test() -> int:
                and "triage choice 10" not in closing,
                f"closing message: decided not summarised or only-you repeated ({len(closing.splitlines())} lines):\n"
                + closing)
+        w("README.md", "# m\n\nMore.\n")
+        w("a/x_test.go", "package a\n\nimport \"testing\"\n\nfunc TestX(t *testing.T) { _ = X() }\n")
+        commit("docs and test")
+        table = [ln for ln in report(tmp).splitlines() if re.match(r"^\| (code|tests|docs|config) \|", ln)]
+        expect(table == ["| code | 1 | +1 −0 | 1 |", "| tests | 1 | +1 −1 | 1 |", "| docs | 1 | +2 −0 | 1 |"],
+               f"change table does not split code, tests and docs (kernel §6): {table}")
         write(tmp, state, findings=findings + crit)
         init(tmp, ["all"])
         carried = rows(load(tmp)[1])
