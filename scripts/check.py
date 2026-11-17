@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import py_compile
 import re
 import shlex
 import shutil
@@ -257,8 +258,25 @@ def check_spelling(root: Path, err):
         err("typos: " + (r.stdout + r.stderr).strip()[-400:])
 
 
+def check_python_compiles(root: Path, err):
+    """Every Python file parses; the bytecode goes to a temp dir, so no __pycache__ lands in the repo."""
+    out = Path(tempfile.mkdtemp(prefix="ds-pyc-"))
+    try:
+        for p in sorted(root.rglob("*.py")):
+            if ".git" in p.parts or "__pycache__" in p.parts:
+                continue
+            try:
+                py_compile.compile(str(p), cfile=str(out / "x.pyc"), doraise=True)
+            except py_compile.PyCompileError as e:
+                x = e.exc_value
+                err(f"{p.relative_to(root).as_posix()}:{getattr(x, 'lineno', '?')}: does not compile: "
+                    f"{e.exc_type_name}: {getattr(x, 'msg', x)}")
+    finally:
+        shutil.rmtree(out, ignore_errors=True)
+
+
 CHECKS = [check_skills, check_links, check_rules, check_mech, check_principles, check_duplicate_lines, check_consumers, check_retired,
-          check_versions, check_self_tests, check_spelling]
+          check_versions, check_python_compiles, check_self_tests, check_spelling]
 
 
 SKIPPED = []
@@ -300,6 +318,7 @@ def self_test() -> int:
         (check_consumers, "core/orphan.md", lambda s: "# orphan\n"),
         (check_retired, "ds-audit/SKILL.md", lambda s: s + "\nDelegate to ds-review.\n"),
         (check_versions, ".claude-plugin/marketplace.json", lambda s: s.replace('"version": "', '"version": "9', 1)),
+        (check_python_compiles, "core/broken.py", lambda s: "def broken(:\n"),
     ]
     failures = 0
     for check, rel, mutate, *prep in cases:
