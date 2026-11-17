@@ -354,6 +354,10 @@ def set_signal(root: Path, key: str, value: str, reason: str = "") -> dict:
     was = state["sig"][key]["value"]
     state["sig"][key] = {"value": value, "by": "confirmed"}
     state["signals"] = line(state["sig"])
+    if value == was:  # a confirmation, not a decision: the `?` goes, no decided: line
+        save_state(root, state)
+        return {"signals": state["signals"], "plan": state["phases"],
+                "unchanged": f"{key} is already {value} — confirmed, no decided: line written"}
     fresh = make_plan(state["sig"], dict(state["words"], all=False), state["scope"], root)
     for p, plan in fresh.items():
         if state["phases"].get(p, {}).get("status", "pending") in ("pending", "skipped"):
@@ -653,7 +657,14 @@ def change_rows(root: Path, start: str) -> dict:
 
 
 CLOSING_DECIDED, CLOSING_ONLY = 5, 8  # the closing message stays readable (~40 lines); report.md keeps everything
-CONSEQUENTIAL = re.compile(r"\b(branch|signal|cut|merge|rules?|budget|check command|scope|push)\b", re.I)
+# phases.md Notes: decided!: first, then by the first of these words in the line, in this order; none -> last
+CONSEQUENTIAL = re.compile(r"\b(?:(branch)|(signal)|(cut|merge|units?)|(rules?)|(budget)|(scope)|(push\w*)|"
+                           r"(check command))\b", re.I)
+
+
+def decided_rank(d: tuple) -> tuple:
+    m = CONSEQUENTIAL.search(d[1])
+    return not d[0], m.lastindex if m else CONSEQUENTIAL.groups + 1
 
 
 def report(root: Path) -> str:
@@ -709,7 +720,7 @@ def report(root: Path) -> str:
         out.append(f"Since the last run: {len(findings) - len(prior)} new · {len(was['fixed'])} of {len(prior)} "
                    f"carried fixed · {len(was['open'])} still open · {len(was['only'])} only you")
     if decided:
-        top = sorted(decided, key=lambda d: (not d[0], not CONSEQUENTIAL.search(d[1])))[:CLOSING_DECIDED]
+        top = sorted(decided, key=decided_rank)[:CLOSING_DECIDED]
         out.append(f"Decided without asking — say if wrong: {len(decided)}"
                    + (f" ({len(top)} most consequential below; all in {REPORT} Notes)" if len(decided) > len(top) else ""))
         out += [f"- {d}" for _, d in top]
@@ -1303,6 +1314,14 @@ def self_test() -> int:
                and "triage choice 10" not in closing,
                f"closing message: decided not summarised or only-you repeated ({len(closing.splitlines())} lines):\n"
                + closing)
+        ranked = ["decided: scope limited to a", "decided: budget raised · x", "decided: triage",
+                  "decided: commits go to the local branch ds/audit", "decided: rules review kept 3",
+                  "decided: signal ui=web (was none) · x", "decided: cut unit legacy · x", "decided!: keep the API · y"]
+        write(tmp, state, findings=findings + good_row, notes="\n".join(ranked))
+        top5 = [ln[2:] for ln in report(tmp).split("Decided without asking")[1].splitlines()[1:6]]
+        expect(top5 == ["keep the API · y", "commits go to the local branch ds/audit", "signal ui=web (was none) · x",
+                        "cut unit legacy · x", "rules review kept 3"],
+               f"closing top-5 decided not ranked decided!, branch, signal, cut, rules, budget, scope, push: {top5}")
         w("README.md", "# m\n\nMore.\n")
         w("a/x_test.go", "package a\n\nimport \"testing\"\n\nfunc TestX(t *testing.T) { _ = X() }\n")
         commit("docs and test")
@@ -1414,6 +1433,9 @@ def self_test() -> int:
                "signal correction re-plans a pending phase")
         expect("decided: signal ui=web (was none)" in section(load(tmp)[1], "Notes"),
                f"signal records no decided: line: {section(load(tmp)[1], 'Notes')!r}")
+        same = set_signal(tmp, "ui", "web")
+        expect("unchanged" in same and section(load(tmp)[1], "Notes").count("signal ui=") == 1,
+               f"a signal set to its current value writes a decided: line or does not say so: {same}")
         (tmp / REPORT).unlink()
         expect(init(tmp, ["a11y"])["plan"].get("surface", {}).get("areas", {}).get("a11y") == "loads",
                "a named area runs even when its signal says N/A")
