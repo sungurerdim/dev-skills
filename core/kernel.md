@@ -56,7 +56,7 @@ Optimizing or automating something that should not exist is the most expensive m
 
 **Arguments** — plain words, any order, space- or comma-separated: `/ds-audit all sec a11y dry`. No word runs every part of the skill, on its default scope. A part's word runs that part alone and by itself, even where its signal says it does not apply (the request wins; the report says so). Two words mean the same in every skill: `ask` and `dry` (detect and report only: no file changes, installs or commits). `--word` and `--word=a,b` spellings are read as the same words.
 
-Every decision is made from the evidence and recorded; the run does not stop to ask. `ask` turns each decision point into a question with a recommended option. These are never performed by a skill, in any mode — they are listed as `only you can do` with the exact command:
+Every decision is made from the evidence and recorded; the run does not stop to ask. `ask` turns each decision point into a question with a recommended option. A part whose subject is itself a human-only value (ds-audit `lean`: the project's scope and its recorded rules) asks when it is named or with `ask`; run unattended, its questions become `only you can do` with a recommendation. These are never performed by a skill, in any mode — they are listed as `only you can do` with the exact command:
 
 - Publishing: `git push`, opening/merging a PR, deploying to a shared environment, releasing, publishing to a registry or store.
 - Irreversible: force-push or history rewrite on a shared branch, deleting a remote branch/tag/resource, rotating or sending a real secret, `--no-verify`, `reset --hard` over work the run did not create.
@@ -68,7 +68,7 @@ Committing locally is allowed and expected; publishing is not.
 
 - Nothing waits for input: non-interactive forms only (`git commit -m`, `--no-edit`, `GIT_EDITOR=true`, `GIT_PAGER=cat`, `CI=1`, a tool's `--yes` only for a step this file already allows); no editor, pager, prompt or watch mode.
 - Every command has a timeout; a hung or failed step is recorded as a blocker and the run continues with everything that does not depend on it.
-- Progress lives in the skill's state file (`ds/audit/findings.md`, the ds-setup manifest, the ds-research artifact), so a run cut short by context or time resumes there instead of starting over.
+- Progress lives in the skill's state file (`ds/audit/report.md`, the ds-setup manifest, the ds-research artifact), so a run cut short by context or time resumes there instead of starting over.
 - Without `ask`, a run never ends on a question: open choices become `Decided without asking` or `Only you can do` in the closing message. Permission prompts of the host are the one wait a skill cannot remove; the ds-setup `perms` part allows all risk-free work so they do not occur.
 
 ## 6. Closing message

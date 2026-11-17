@@ -182,8 +182,12 @@ def init(root: Path, words) -> dict:
                          f"only-you: branch is {behind} behind and fast-forward was refused — `git pull --ff-only`")
             start = git(root, "rev-parse", "HEAD").strip()
         elif behind and ahead:
+            mt = subprocess.run(["git", "-C", str(root), "merge-tree", "--write-tree", "--name-only", "HEAD", "@{u}"],
+                                capture_output=True, text=True, env=ENV, timeout=60)  # git >= 2.38; changes nothing
+            clash = [ln for ln in mt.stdout.splitlines()[1:] if ln and not ln.startswith(("Auto-merging", "CONFLICT"))]
             notes.append(f"only-you: branch diverged (behind {behind}, ahead {ahead}) — audited without rebasing; "
-                         "integrate with `git pull --rebase` when ready")
+                         "integrate with `git pull --rebase` when ready"
+                         + (f"; would conflict: {', '.join(clash[:10])}" if mt.returncode == 1 and clash else ""))
         exclude = root / ".git" / "info" / "exclude"
         if exclude.parent.is_dir() and "ds/audit/" not in read(exclude):
             with exclude.open("a", encoding="utf-8") as f:
@@ -209,11 +213,12 @@ def init(root: Path, words) -> dict:
         for p in plan.values():
             p["status"] = "skipped"
     state = {"v": 1, "words": {k: w[k] for k in ("phases", "areas")}, "sig": sig, "start": start, "started": int(time.time()), "base": base, "scope": scope, "changed": changed,
-             "dry": w["dry"], "ask": w["ask"], "signals": line(sig), "check": cmd, "checks": {}, "phases": plan}
+             "dry": w["dry"], "ask": w["ask"], "carried": 0, "signals": line(sig), "check": cmd, "checks": {}, "phases": plan}
     carried = [r for r in rows(text) if not r["Disposition"].startswith(CLOSED)] if text else []
     findings = "| " + " | ".join(COLS) + " |\n|" + "|".join("---" for _ in COLS) + "|\n" + "".join(
         "| " + " | ".join([str(i)] + [r[c] for c in COLS[1:9]] + ["open", "—"]) + " |\n"
         for i, r in enumerate(carried, 1))
+    state["carried"] = len(carried)
     write(root, state, findings=findings, notes="\n".join(notes))
     nxt = next((n for n, p in plan.items() if p["status"] == "pending"), None)
     return {"resume": False, "report": str(REPORT), "next": nxt, "scope": scope, "changed": len(changed),
@@ -436,6 +441,11 @@ def report(root: Path) -> str:
     base, now = state["checks"].get("baseline", {}), state["checks"].get("now", {})
     effect = [f"{s}: {base.get(s, '—')} → {now.get(s, '—')}" for s in (base or now)]
     out += ["", "Effect: " + ("; ".join(effect) if effect else "no check ran")]
+    if state.get("carried"):
+        prior = [r for r in findings if int(r["#"]) <= state["carried"]]
+        out.append(f"Since the last run: {len(findings) - len(prior)} new · "
+                   f"{sum(r['Disposition'] == 'fixed' for r in prior)} of {len(prior)} carried fixed · "
+                   f"{sum(not r['Disposition'].startswith(CLOSED) for r in prior)} still open")
     if decided:
         out.append("Decided without asking — say if wrong: " + "; ".join(decided))
     if only_lines:
@@ -729,6 +739,11 @@ def self_test() -> int:
         state["checks"]["now"]["go test"] = "fail"
         save_state(tmp, state)
         expect(report(tmp).startswith("ds-audit: FAIL"), "report FAIL on a check newly red")
+        write(tmp, state, findings=findings + crit)
+        init(tmp, ["all"])
+        carried = rows(load(tmp)[1])
+        expect(len(carried) == 1 and carried[0]["Disposition"] == "open" and load(tmp)[0]["carried"] == 1,
+               "a new run carries the previous run's open rows as open")
 
         # scan: a rule with a Mech line runs; a missing tool is reported, not run
         w("b.txt", "TODO here\n")
