@@ -13,8 +13,6 @@
 | Empty gate is a false signal | A `{check-cmd}` that runs nothing never passes green — report the Verification-Infrastructure Gap. |
 | Windows | `./gradlew` → `gradlew.bat`; `./vendor/bin/x` → `vendor\bin\x.bat`; `npx` works unchanged. |
 
-**Ownership note (2026):** Astral tooling (Ruff, uv, ty) was acquired by OpenAI (2026-03); Bun by Anthropic (2025-12). Licenses stay MIT/Apache-2.0 — forkable, low continuity risk; re-verify the defaults here if stewardship changes.
-
 ---
 
 ## Node.js / TypeScript
@@ -38,6 +36,21 @@
 
 ---
 
+## Deno
+
+**Detect:** `deno.json` / `deno.jsonc`. Built-in toolchain, no installs.
+
+| Step | Check | Fix |
+|------|-------|-----|
+| format | `deno fmt --check` | `deno fmt` |
+| lint | `deno lint` | — |
+| type | `deno check .` | — |
+| test | `deno test` | — |
+
+**`{check-cmd}`:** `deno fmt --check && deno lint && deno check . && deno test`.
+
+---
+
 ## Vanilla JS — no bundler, no build step
 
 **Detect:** `.js` served directly (`index.html` with `<script src>`, `public/`/`static/`, a Worker or Apps Script entry) and no test-framework dep, often no `package.json`. Not "untestable", not a reason to add a bundler.
@@ -57,7 +70,7 @@
 
 ## Python
 
-**Detect:** `pyproject.toml` / `requirements*.txt` / `setup.py`. `[tool.ruff]` → Ruff · `[tool.black]` → Black · `[tool.mypy]` → mypy · `[tool.pyright]`/`pyrightconfig.json` → Pyright · no type config → no typecheck (never force typing onto an untyped project; report `type-check: not configured (gap)`).
+**Detect:** `pyproject.toml` / `requirements*.txt` / `setup.py`. `[tool.ruff]` → Ruff · `[tool.black]` → Black · `[tool.mypy]` → mypy · `[tool.pyright]`/`pyrightconfig.json` → Pyright · no type config → no typecheck (never force typing onto an untyped project; report `type-check: not configured (gap)`). `uv.lock` → run every command below through `uv run` (`uv run pytest -q`).
 
 | Step | Default | Alternatives | Check | Fix |
 |------|---------|--------------|-------|-----|
@@ -126,7 +139,7 @@
 | lint+type | `flutter analyze` | `dart analyze` (`--no-fatal-infos` when infos are noise) | `dart fix --apply` |
 | test | `flutter test`; integration `flutter test integration_test/`; coverage `flutter test --coverage` | `dart test` | — |
 | e2e | patrol (`patrol test`) / maestro | — | — |
-| dep audit | `dart pub outdated` | same | — |
+| dep audit | `osv-scanner scan source -r .` (reads `pubspec.lock`) | same | — |
 
 **`{check-cmd}`:** `dart format --output=none --set-exit-if-changed . && flutter analyze && flutter test`.
 **Bootstrap if missing:** `analysis_options.yaml` with `include: package:flutter_lints/flutter.yaml` (Flutter) or `include: package:lints/recommended.yaml` (Dart), the matching `dev_dependency`; no tests → a real `test/` smoke + boundary test. `patrol` in pubspec → Patrol E2E; `integration_test/` → integration tests.
@@ -142,6 +155,7 @@
 | format | Spotless | `./gradlew spotlessCheck` / `mvn spotless:check` | `./gradlew spotlessApply` / `mvn spotless:apply` |
 | lint (Kotlin) | detekt | `./gradlew detekt` | `./gradlew detekt` (auto-correct when configured) |
 | lint (Java) | Checkstyle / PMD | `./gradlew checkstyleMain` / `./gradlew pmdMain` | — |
+| lint (Android) | Android Lint | `./gradlew lint` | — |
 | type/build | compiler | `./gradlew compileKotlin compileJava` / `mvn compile` | — |
 | test | JUnit 5 / Kotest / TestNG | `./gradlew test` / `mvn test`; coverage `./gradlew jacocoTestReport`; Android UI `./gradlew connectedAndroidTest` | — |
 | dep audit | OWASP Dependency-Check | `./gradlew dependencyCheckAnalyze` / `mvn verify -P owasp` | — |
@@ -325,7 +339,7 @@ No formatter or type step. **Install:** `brew install hadolint trivy` / `scoop i
 | remote parity | clasp | `npx clasp show-file-status --json` (clasp 2.x: `clasp status`) | never `clasp push`/`pull` in a fix chain |
 
 **Install:** `npm install -D @google/clasp eslint eslint-plugin-googleappsscript prettier typescript @types/google-apps-script`.
-**V8 lint path:** Apps Script runs on V8 but is not Node — no `require`, no ESM, no `process`; every service (`SpreadsheetApp`, `UrlFetchApp`, `DriveApp`, `Logger`) is an implicit global. Without the plugin's globals `no-undef` fires on every service call and gets switched off, hiding real misspellings. eslintrc: `"plugins": ["googleappsscript"]` + `"env": { "googleappsscript/googleappsscript": true }`; flat config: spread `require('eslint-plugin-googleappsscript').environments.googleappsscript.globals` into `languageOptions.globals`. Set `sourceType: "script"`; keep `no-undef` and `no-unused-vars` on (an unused function is often an orphaned trigger handler).
+**V8 lint path:** Apps Script is V8 without Node (`require`, ESM, `process`); services (`SpreadsheetApp`, `UrlFetchApp`, …) are implicit globals. Load them from the plugin (flat config: `require('eslint-plugin-googleappsscript').environments.googleappsscript.globals` into `languageOptions.globals`) instead of turning `no-undef` off; `sourceType: "script"`; keep `no-unused-vars` on (an unused function is often an orphaned trigger handler).
 **Typecheck path:** clasp 3.x no longer transpiles TypeScript — a TS project bundles (Rollup/esbuild) before `clasp push`, so typecheck runs on the pre-bundle source with the project's `tsc`; plain JS gets `// @ts-check` headers + `@types/google-apps-script` + the command above.
 **Push is a deploy:** `clasp push` overwrites the live script, `clasp pull` overwrites the working tree — both are publishing steps (`kernel.md` §5). Repo-vs-remote parity = `clasp pull` into a scratch clone plus a diff, never over the working tree.
 
@@ -343,6 +357,21 @@ No formatter or type step. **Install:** `brew install hadolint trivy` / `scoop i
 | build validation | wrangler | `npx wrangler deploy --dry-run --outdir dist` (compiles without publishing — the only build check that never touches the live Worker); Pages Functions `npx wrangler pages functions build --outdir dist` |
 
 **`{check-cmd}`:** JS/TS chain `&& npx wrangler types --check && npx wrangler deploy --dry-run --outdir dist`. Bare `wrangler deploy` is a publish (`kernel.md` §5). The Worker runtime is not Node — scope Node globals (`process`, `Buffer`, `fs`) to build tooling, never to Worker source. **Install:** `npm install -D wrangler` (local install over global, per Cloudflare).
+
+---
+
+## Config, docs and workflows (any stack, when the files exist)
+
+| Files | Tool | Check | Fix |
+|-------|------|-------|-----|
+| `*.yml`, `*.yaml` | yamllint | `yamllint -f parsable .` | — |
+| `*.md` | markdownlint-cli2 | `markdownlint-cli2 '**/*.md' '#node_modules'` | `markdownlint-cli2 --fix '**/*.md' '#node_modules'` |
+| links in docs | lychee | `lychee --offline --no-progress '**/*.md'` (local links; drop `--offline` to check URLs) | — |
+| `.github/workflows/` | actionlint · zizmor | `actionlint` · `zizmor --offline .github/workflows` | — |
+| Kubernetes manifests | kube-linter | `kube-linter lint .` | — |
+| Helm charts | helm | `helm lint {chart}` | — |
+
+Install: `pipx install yamllint zizmor`, `npm install -D markdownlint-cli2`, `brew install lychee actionlint kube-linter helm`.
 
 ---
 
