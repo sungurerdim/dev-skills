@@ -54,7 +54,7 @@ Notes lines: `decided: {decision} · {reason}` (`decided!:` puts it among the cl
 
 ## surface — see the running app (optional)
 
-After the static pass, when `ui≠none`: start the app locally (the project's documented dev or preview command; never a deploy, never production data) and open it with the host's browser tool (Playwright, the host's built-in browser). At a narrow (~400 px) and a wide (~1280 px) viewport check: no horizontal overflow, keyboard focus order and a visible focus ring, contrast (axe when present), and capture the empty, error and loading states of the main flow. Each problem is a row with the screenshot path in Notes. Cannot start the app, or no browser tool → `decided: visual check skipped — {reason}`; the run is not INCOMPLETE for it. Stop the app afterwards.
+After the static pass, when `ui≠none`: start the app locally (the project's documented dev or preview command; never a deploy, never production data) and open it with the host's browser tool (Playwright, the host's built-in browser). Static or generated pages need no server: open the file directly (`file://…`), generating it first with the project's own command when it is generated output. At a narrow (~400 px) and a wide (~1280 px) viewport check: no horizontal overflow, keyboard focus order and a visible focus ring, contrast (axe when present; otherwise `audit.py contrast FG BG` on the computed colours), and capture the empty, error and loading states of the main flow. Each problem is a row with the screenshot path in its Finding. Cannot start the app, or no browser tool → `decided: visual check skipped — {reason}`; the run is not INCOMPLETE for it. Stop the app afterwards.
 
 ## lean
 

@@ -39,6 +39,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 | `A report` | Rewrites the report's Closing and Phases, writes `report.html`, prints the closing message |
 | `A probe -- CMD…` | The only way a project program is run to see what it does (kernel §3): temp HOME/XDG/`CLAUDE_CONFIG_DIR`/TMPDIR, no network, writes confined where the OS allows; prints exit code, output and files it created |
 | `A lean` · `A lean-check` · `A rules` | lean inventory · `SCOPE.md` check · recorded rules with blame date, reason, citation count |
+| `A contrast FG BG` | WCAG contrast ratio of two hex colours (AXE-03 without a browser); exit 1 below 4.5:1 |
 
 ## Done when
 
