@@ -102,7 +102,7 @@ applies_when: ui∋web
 
 ### SAR-06 [CRITICAL] Debug mode or internals exposed in production
 - **Detect:** debug switches on in a production config or build (`DEBUG = True`, `FLASK_DEBUG=1`, `APP_DEBUG=true`, PHP `display_errors=On`, ASP.NET `UseDeveloperExceptionPage` outside a development branch, Spring `debug=true`, Android `android:debuggable="true"`, Rust/C++ release builds with debug assertions or symbols shipped by accident, desktop builds with devtools enabled); error responses or crash dialogs carrying stack traces, SQL, file paths or framework versions; framework default error pages.
-- **Mech:** T `git grep -nIE 'DEBUG[[:space:]]*=[[:space:]]*True|FLASK_DEBUG[[:space:]]*=[[:space:]]*1|APP_DEBUG[[:space:]]*=[[:space:]]*true|display_errors[[:space:]]*=[[:space:]]*(On|1)|UseDeveloperExceptionPage|^debug[[:space:]]*=[[:space:]]*true|android:debuggable="true"|traceback\.(print_exc|format_exc)\(|\.stack|openDevTools\(' -- ':!*test*' ':!*.md'`
+- **Mech:** T `git grep -nIE 'DEBUG[[:space:]]*=[[:space:]]*True|FLASK_DEBUG[[:space:]]*=[[:space:]]*1|APP_DEBUG[[:space:]]*=[[:space:]]*true|display_errors[[:space:]]*=[[:space:]]*(On|1)|UseDeveloperExceptionPage|^debug[[:space:]]*=[[:space:]]*true|android:debuggable="true"|traceback\.(print_exc|format_exc)\(|(^|[^[:alnum:]_])(err|error|e|ex|exc|exception)\.stack([^[:alnum:]_]|$)|openDevTools\(' -- ':!*test*' ':!*.md'`
 - **Fix:** debug from the environment, off by default; one error handler returns a generic body with a correlation ID (RFC 9457 shape for HTTP APIs, API-02) and logs the detail server-side.
 - **Impact:** internals hand an attacker the layout and versions needed for a targeted exploit; some debug modes expose a live code console.
 - **Source:** Secure / private by default; OWASP A02:2025; OWASP Error Handling Cheat Sheet; CWE-209, CWE-489.
@@ -179,7 +179,7 @@ applies_when: api≠none
 
 ### NWK-07 [HIGH] Outbound call without a timeout
 - **Detect:** HTTP, RPC, database or queue clients with no connect and read timeout: `requests.*(` without `timeout=`, `fetch` without an abort signal, Go `http.Client{}` without `Timeout` or context deadline, JDBC or driver defaults left infinite, no statement timeout.
-- **Mech:** T `git grep -nIE 'requests\.(get|post|put|patch|delete|request)\(' -- ':!*test*' | grep -v 'timeout'` · `git grep -nIE 'http\.Client\{\}|new HttpClient\(\)|fetch\(' -- ':!*test*' ':!*.md'`
+- **Mech:** T `git grep -nIE 'requests\.(get|post|put|patch|delete|request)\(' -- ':!*test*' | grep -v 'timeout'` · `git grep -nIE 'http\.Client\{\}|new HttpClient\(\)|(^|[^[:alnum:]_])fetch\(' -- ':!*test*' ':!*.md'`
 - **Fix:** explicit connect and overall timeouts on every client, sized under the caller's own deadline; a statement timeout on the database role.
 - **Impact:** one slow peer holds threads and connections until the whole service stops answering.
 - **Source:** Fail fast; Nygard, *Release It!* (timeouts); CWE-400.
