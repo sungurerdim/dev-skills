@@ -121,7 +121,7 @@ def write(root: Path, state: dict, closing: str = "", phases: str = "", findings
     header = "| " + " | ".join(COLS) + " |\n|" + "|".join("---" for _ in COLS) + "|\n"
     body = (f"<!-- ds-audit-state {json.dumps(state, ensure_ascii=False)} -->\n# ds-audit report\n\n"
             f"## Closing\n{closing or '(written by audit.py report)'}\n\n## Phases\n{phases}\n\n"
-            f"## Findings\n{findings or header}\n## Notes\n{notes or '(decided: … · only-you: … — one per line)'}\n")
+            f"## Findings\n{(findings or header).strip()}\n\n## Notes\n{notes or '(decided: … · only-you: … — one per line)'}\n")
     tmp = path.with_suffix(".tmp")
     tmp.write_text(body, encoding="utf-8")
     tmp.replace(path)  # atomic: a run cut short never leaves half a report
@@ -912,6 +912,9 @@ def self_test() -> int:
         except SystemExit:
             pass
         state, text = load(tmp)
+        save_state(tmp, state)
+        save_state(tmp, state)
+        expect(load(tmp)[1] == text, "save_state changes the report (Findings gains a blank line per save)")
         expect(state["start"] == start and "ds/audit/" in read(tmp / ".git/info/exclude"), "init state + exclude")
         expect(state["branch"] == BRANCH and git(tmp, "rev-parse", "--abbrev-ref", "HEAD").strip() == BRANCH
                and state["home"] != BRANCH, "an all run commits on ds/audit, home branch recorded")
