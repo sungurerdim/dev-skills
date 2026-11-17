@@ -19,10 +19,12 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 1. **Inventory** — `audit.py scan {phase}`: runs each loaded rule's `Mech:` commands. `hit` = candidate, `clean` = rule passes, `tool absent` = that rule falls back to its Detect text, never to a pass.
 2. **Detect** — S hits: read 3 lines around each, record. T hits: read the code; record only the real ones. M rules: apply their Detect. Then judgment: what no rule names but breaks, misleads or costs more than it gives (cite a kernel §7 principle). Changed scope: only changed lines and the code they break. Every candidate passes kernel §1 steps 1-3 first.
 3. **Decide** — kernel §1 all six steps → the simplest fix in `Plan`; Category A apply, B decide and note `decided:`; same root cause → one fix.
-4. **Apply** (not in `dry`) — one unit → narrowest check (format → lint → type → targeted test) → one commit `type(scope): summary` → row `fixed` + hash. A bug fix lands behind a test seen red first. Red after 3 attempts → reverse-apply the unit's own diff, row `reverted (error)`.
+4. **Apply** (not in `dry`) — one unit → narrowest check (format → lint → type → targeted test) → one commit `type(scope): summary` → row `fixed` + hash. A bug fix lands behind a test seen red first. A refactor of code no test covers lands behind a characterization test written first and seen green on the unchanged code. Red after 3 attempts → reverse-apply the unit's own diff, row `reverted (error)`.
 5. **Verify** — `audit.py checks now`; a step newly red → fix or revert the unit that caused it. `audit.py validate` → green. `audit.py phase {phase} done`.
 
 **Fixers** run once, at the start of the first code phase: the project's own fix scripts, else the Fix commands of [toolchains.md](../../core/toolchains.md) (formatter, then the linter's safe autofix; never unsafe fixes or a dependency change); one commit per fixer (`style: apply {tool} fixes`); `checks now` after each — a newly red step reverts that fixer.
+
+**Dependency updates** run once, in ship (area `ci`), never in `dry`: patch and minor updates of direct dependencies, one group per ecosystem with the stack's own command (lockfile updated, no new dependency), one commit per group (`build(deps): update {ecosystem} patch and minor`), `checks now` after each — a newly red step reverts that group and records it. Majors and versions published less than 7 days ago are not applied: each becomes an `only-you` line with its changelog link (DOP-10, DOP-11).
 
 ## Output — the ledger language
 
