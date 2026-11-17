@@ -26,4 +26,5 @@ There is no CI; the gate is the only enforcement. A red gate is fixed, never byp
 - **A new gate check needs a self-test case** in `scripts/check.py` that injects its defect and sees it go red.
 - **Versions:** `.claude-plugin/marketplace.json` and the top `CHANGELOG.md` entry must agree (semver).
 - **Conventional Commits.** `feat`/`fix` only when a user-visible capability changes.
+- Scope: SCOPE.md — a new unit gets a row first.
 - `ds/audit/` is per-run scratch output of `ds-audit`; never commit it.
