@@ -4,7 +4,7 @@ Purpose: "Agent Skills that let one developer and an AI assistant ship productio
 
 Done when: "Every skill works alone" (README.md) — each of the four skills installs with `python3 install.py` and runs on its own, and `python3 scripts/check.py` plus `python3 scripts/check.py --self-test` are green.
 
-The product is the Markdown (`ds-*/SKILL.md`, `references/`, `core/`); the rows below are the Python units `audit.py lean` measures.
+Product: `ds-*/*.md` `core/*.md` `agents/*.md` — the skills' Markdown is the product; the rows below are the Python units `audit.py lean` measures.
 
 | Unit | Tier | Serves | Evidence |
 |------|------|--------|----------|
@@ -17,8 +17,8 @@ The product is the Markdown (`ds-*/SKILL.md`, `references/`, `core/`); the rows 
 | `scripts` | T1 | the only gate (`check.py`) and claude.ai packaging (`package.py`) | AGENTS.md Commands; README.md Install |
 | `evals` | T1 | scorer for skill-behaviour evals | AGENTS.md Commands; `evals/README.md` |
 
-Budget: units ≤ 9 · deps ≤ 0 · docs ≤ 745 KB
+Budget: units ≤ 9 · deps ≤ 0 · docs ≤ 82 KB · product ≤ 667 KB
 
-Budget set to the `audit.py lean` budget line (2026-11-17): measured + 10 %; the zero-headroom budget turned lean-check red on the next doc commit.
+Budget set to the `audit.py lean` budget line (2026-11-17): measured + 10 %; the zero-headroom budget turned lean-check red on the next doc commit, and the skills' Markdown now counts as product, not docs.
 
 Rules reviewed: 2026-11-17 (74d03eb)
