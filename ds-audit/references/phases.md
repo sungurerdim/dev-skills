@@ -20,7 +20,7 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 2. **Detect** — S hits: read 3 lines around each, record. T hits: read the code; record only the real ones. M rules: apply their Detect. Then judgment: what no rule names but breaks, misleads or costs more than it gives (cite a kernel §7 principle). Changed scope: only changed lines and the code they break. Every candidate passes kernel §1 steps 1-3 first.
 3. **Decide** — kernel §1 all six steps → the simplest fix in `Plan`; Category A apply, B decide and note `decided:`; same root cause → one fix.
 4. **Apply** (not in `dry`) — one unit → narrowest check (format → lint → type → targeted test) → one commit `type(scope): summary` → row `fixed` + hash. A bug fix lands behind a test seen red first. A refactor of code no test covers lands behind a characterization test written first and seen green on the unchanged code. Red after 3 attempts → reverse-apply the unit's own diff, row `reverted (error)`.
-5. **Verify** — `audit.py checks now`; a step newly red → fix or revert the unit that caused it. `audit.py validate` → green. `audit.py phase {phase} done`.
+5. **Verify** — `audit.py checks now`; a step newly red → fix or revert the unit that caused it. `audit.py validate` → green. `audit.py phase {phase} done` (it also runs `lean-check` when `SCOPE.md` exists and refuses on red).
 
 **Fixers** run once, at the start of the first code phase: the project's own fix scripts, else the Fix commands of [toolchains.md](../../core/toolchains.md) (formatter, then the linter's safe autofix; never unsafe fixes or a dependency change); one commit per fixer (`style: apply {tool} fixes`); `checks now` after each — a newly red step reverts that fixer.
 
@@ -67,7 +67,7 @@ The one interactive phase: scope and recorded rules are owner values (kernel §5
 2. **Purpose** — `SCOPE.md` `Purpose:` and `Done when:`, else proposed from README/spec/issues and confirmed (LEAN-01).
 3. **Measure** — `audit.py lean`. Write the minimal sketch: the fewest units that meet T0 and T1, reusing platform, stdlib and existing dependencies (LEAN-04).
 4. **Tier** — one `SCOPE.md` row per unit: `| Unit | Tier | Serves | Evidence |`; tier `T0` · `T1` · `T2` · `cut` · `merge→{unit}`. Confirm fan-in by reading importers before `cut`. Units protected by a kept rule or an ADR stay. Apply LEAN-02..10.
-5. **Apply**: one cut or merge per commit, with its tests, docs, CI steps, config and dependencies; the commit message names the last commit that had it. Then write `SCOPE.md` without `cut`/`merge` rows, `Budget:` = the measured counts after the cuts, `Rules reviewed: {date} ({sha})`; add one line to the project's agent rules file: `Scope: SCOPE.md — a new unit gets a row first`.
+5. **Apply**: one cut or merge per commit, with its tests, docs, CI steps, config and dependencies; the commit message names the last commit that had it. Then write `SCOPE.md` without `cut`/`merge` rows, `Budget:` = the `budget` line of `audit.py lean` after the cuts (measured + 10 %, rounded up; a later raise names its reason in `SCOPE.md`), `Rules reviewed: {date} ({sha})`; add one line to the project's agent rules file: `Scope: SCOPE.md — a new unit gets a row first`.
 6. **Verify** — `audit.py lean-check` green; `checks now` no redder than baseline; `audit.py lean` before → after in the report.
 
 ## Errors — one table for every phase
