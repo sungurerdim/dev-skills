@@ -75,6 +75,7 @@ Project-level proportion: does what exists, and the way it is built, match the s
 ### LEAN-11 [MEDIUM] Scope drift since the last lean pass
 - **Detect:** `{audit} lean-check` is red: a unit without a row, a row for a gone unit, an unapplied cut, or the budget exceeded.
 - **Mech:** S `{audit} lean-check`
+- **Fixture:** says `budget: units 1 > 0` · miss `SCOPE.md: Budget: units ≤ 0\n| Unit | Tier |\n|---|---|\n| src | T0 |` · miss `src/app.py: print(1)` · quiet `SCOPE.md: Budget: units ≤ 1\n| Unit | Tier |\n|---|---|\n| src | T0 |`
 - **Fix:** give the new unit a tier and the need it serves, or remove it; raise a budget only with the reason in `SCOPE.md`.
 - **Impact:** without a check, the project regrows to its old size within weeks.
 - **Source:** YAGNI; fitness functions (Ford, Parsons, Kua — *Building Evolutionary Architectures*).

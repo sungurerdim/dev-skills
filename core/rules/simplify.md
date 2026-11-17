@@ -5,6 +5,7 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 ### SIM-01 [MEDIUM] Dead code
 - **Detect:** exports, functions, files and parameters with zero code references. A `git grep -w {name}` hit inside a comment, a doc or a string literal is not a reference. Skip exports in public API manifests (`exports` in `package.json`, `__all__`, a library's public re-exports).
 - **Mech:** T `knip --no-progress` · `vulture . --min-confidence 80` · `deadcode ./...`
+- **Fixture:** none · needs knip, vulture or deadcode
 - **Fix:** delete it with its tests and docs; a parameter nothing passes is removed from the signature and every call site.
 - **Impact:** dead code is read, kept compiling, tested and migrated forever, and misleads readers about what is live.
 - **Source:** YAGNI; Knip (knip.dev), Vulture, golang.org/x/tools/cmd/deadcode.
@@ -19,6 +20,7 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 ### SIM-03 [MEDIUM] Branch that never runs
 - **Detect:** compatibility residue (`legacy`, `backward compat`, version checks below the minimum supported runtime, `catch` that returns a default with no re-throw) and feature-flag branches whose flag is the same literal in every config source with no runtime setter. A flag set remotely, per tenant or at runtime is skipped.
 - **Mech:** T `git grep -nIiE 'backward.?compat|legacy|deprecated|for old (clients|versions)' -- ':!*.md'`
+- **Fixture:** hit `src/api.py: # legacy endpoint for old clients` · miss `src/b.py: # current endpoint`
 - **Fix:** delete the dead branch and the flag; in an unreleased product with no external consumer delete compatibility shims outright (breaking-first); a shim genuinely needed during a transition gets a removal date in the same line.
 - **Impact:** untested branches rot silently and double the paths a reader must consider.
 - **Source:** YAGNI; Piranha (Uber) for stale-flag removal.
@@ -33,6 +35,7 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 ### SIM-05 [LOW] Code kept "just in case"
 - **Detect:** commented-out code, `// removed`, `// TODO: delete`, `// unused`, `_unused` renames, files named `old_*`/`*_backup`/`*.bak`.
 - **Mech:** S `git grep -nIE '//[[:space:]]*(removed|unused|TODO:? delete|kill this)|_unused[A-Z_]' -- ':!*.md'` · `git ls-files '*_backup*' '*.bak' '*/old_*'`
+- **Fixture:** hit `src/a.js: // removed` · hit `src/app.py.bak: print(1)` · miss `src/b.js: // renders the list`
 - **Fix:** delete; git history keeps it.
 - **Impact:** quarantined code is noise every reader and every search has to skip.
 - **Source:** Boy Scout rule; git as the archive.
@@ -40,6 +43,7 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 ### SIM-06 [HIGH] One fact, several homes — any artifact
 - **Detect:** the one home of the single-source principle; every other rule that finds a copy (TOK literal colours, I18N hard-coded strings, SIM-08, SIM-09) is a detector of it. Any artifact counts: logic (near-identical blocks; a new helper redoing an existing one), a value or rule (threshold, URL, limit, enum mapping, regex), markup and style, UI copy, configuration, a documentation passage, an asset (image, icon, font, document) committed under two paths. Two copies are a note; the third, or two that already disagree, is a finding. Test fixtures, protocol constants and framework-required literals are not findings.
 - **Mech:** T `jscpd --min-lines 6 --reporters console .` · `git ls-files -s | awk '{c[$2]++; p[$2]=p[$2]" "$4} END{for(k in c) if(c[k]>1) print p[k]}'` · `git ls-files -z '*.md' '*.rst' '*.txt' | xargs -0 awk 'length>=80 && !/^[|]/' | sort | uniq -d`
+- **Fixture:** hit `a/util.py: def helper(): return 42` · hit `b/util.py: def helper(): return 42` · hit `docs/a.md: This paragraph is long enough to count as one fact stated twice by the docs duplicate scan.` · hit `docs/b.md: This paragraph is long enough to count as one fact stated twice by the docs duplicate scan.` · miss `docs/c.md: A short unique line.`
 - **Fix:** one owning definition; every other place imports, references or links it; a duplicate asset or passage is deleted and its users point at the one copy.
 - **Impact:** a change lands in one home and the others silently disagree; a bug fixed in one copy stays in the rest.
 - **Source:** DRY / single source of truth (Hunt & Thomas, *The Pragmatic Programmer*); rule of three (Fowler, *Refactoring*).
@@ -47,6 +51,7 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 ### SIM-07 [LOW] Orphan file
 - **Detect:** a tracked source, asset, stylesheet or doc no other tracked file names (with or without extension). Skip entry points, convention-named config, `README`, `LICENSE`, `CHANGELOG`.
 - **Mech:** T `knip --include files --no-progress`
+- **Fixture:** none · needs knip
 - **Fix:** delete it, or link it from where it is meant to be found.
 - **Impact:** orphans look live and get maintained for nothing.
 - **Source:** YAGNI.
@@ -55,6 +60,7 @@ Code-level removal for the lean phase; the project-level proportion rules are in
 applies_when: ui≠none
 - **Detect:** a UI primitive — button, separator, label/badge/chip, input, icon, card, toolbar, dialog — hand-built inside a screen where a shared component or style exists (raw `<button>`/`<hr>`, a platform widget used directly instead of the design-system one, copied markup or style blocks), or a one-off variant of it. Plain HTML with no component layer is out of scope. Detector of SIM-06.
 - **Mech:** T `git ls-files | grep -qiE 'button[^/]*\.(jsx|tsx|vue|svelte)$' && git grep -nE '<(button|hr|dialog)([^[:alnum:]_]|$)' -- '*.jsx' '*.tsx' '*.vue' '*.svelte' ':!*[Bb]utton*'` · `git ls-files | grep -qiE 'button[^/]*\.dart$' && git grep -nE '(^|[^[:alnum:]_])(ElevatedButton|TextButton|OutlinedButton|Divider|AlertDialog)\(' -- '*.dart' ':!*button*'`
+- **Fixture:** hit `src/Form.tsx: <button type="submit">Save</button>` · hit `lib/form.dart: ElevatedButton(onPressed: save, child: t)` · miss `src/Button.tsx: export const Button = () => <button />` · miss `src/Card.tsx: <Button>Save</Button>` · miss `lib/app_button.dart: class AppButton { Widget build() => TextButton(onPressed: f, child: c); }`
 - **Fix:** route every use through the one primitive; a genuinely new look becomes a variant (prop) of it, not a copy.
 - **Impact:** the same element drifts in size, colour, focus ring and behaviour from screen to screen, and every fix has to be repeated.
 - **Source:** DRY / single source of truth; Least astonishment; design systems (Frost, *Atomic Design*); Nielsen heuristic 4, consistency and standards.

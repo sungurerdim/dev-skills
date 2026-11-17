@@ -5,6 +5,7 @@ Every finding names its measurement or the code that makes the cost grow; nothin
 ### PRF-12 [HIGH] Performance work without a measurement
 - **Detect:** optimization commits or PRs with no before/after numbers; caching, memoization or pooling added with no profile behind it; no latency, size or startup budget anywhere, or a budget no gate checks or one already exceeded at adoption; a public web UI with lab scores tracked and field data (real-user p75) not.
 - **Mech:** T `git log --since=90.days -i -E --grep='perf|optimi[sz]|faster|speed' --format='%h %s'`
+- **Fixture:** history
 - **Fix:** baseline, change, the same measurement again; a budget is the measured current value plus a margin, warned on drift in the gate; keep lab data for regressions and field data for user truth.
 - **Impact:** unmeasured optimization targets the wrong bottleneck, and a fictional budget teaches everyone to ignore budgets.
 - **Source:** Make it work, right, fast; Knuth, "Structured Programming with go to Statements" (1974); web.dev, performance budgets and lab vs field data (https://web.dev/articles/lab-and-field-data-differences).
@@ -27,6 +28,7 @@ applies_when: ui≠none
 ### PRF-06 [CRITICAL] Resource not released
 - **Detect:** listeners, subscriptions, timers or observers with no removal on teardown (`addEventListener` without `removeEventListener`, an effect without cleanup, a controller without `dispose()`); files, sockets or connections opened outside the language's scoped form (Python `with`, Java try-with-resources, Kotlin `use`, C# `using`, Go `defer Close()`, JS `try/finally`, PHP `finally`; Rust RAII handles it); closures or long-lived objects holding short-lived UI objects strongly.
 - **Mech:** T `ruff check --select SIM115 --output-format concise .` · `git grep -nIE 'addEventListener\(|\.subscribe\(' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `src/a.js: window.addEventListener('resize', onResize)` · miss `src/b.js: onResize()`
 - **Fix:** release in the scoped form or the teardown hook of the framework; confirm with a heap snapshot or descriptor count over repeated mount/unmount or requests.
 - **Impact:** memory or descriptors grow with every cycle until the process slows, hits its limit and crashes.
 - **Source:** CWE-401; CWE-404.
@@ -34,6 +36,7 @@ applies_when: ui≠none
 ### PRF-07 [HIGH] Unbounded concurrency or connections
 - **Detect:** `Promise.all`, `gather` or goroutines over an input-sized collection with no limit; one task per item on a burst workload calling a metered API; a new database or HTTP connection per request; a pool size never set or never sized against measured concurrency.
 - **Mech:** T `git grep -nIE 'Promise\.all\(|asyncio\.gather\(\*|go func\(' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `src/a.js: await Promise.all(ids.map(load))` · miss `src/b.js: for (const id of ids) await load(id)`
 - **Fix:** a semaphore or worker pool sized from the downstream's measured capacity; one shared pool per process with an explicit maximum (NWK-09).
 - **Impact:** a traffic spike exhausts connections and descriptors and becomes an outage for every consumer of the same resource.
 - **Source:** CWE-770 (Allocation of Resources Without Limits or Throttling).
@@ -41,6 +44,7 @@ applies_when: ui≠none
 ### RTP-01 [CRITICAL] Unbounded in-memory growth
 - **Detect:** a map, dict or list used as a cache with no maximum size or TTL; module-level or static collections that gain entries per request; memoization with no bound.
 - **Mech:** T `git grep -nIE '@(functools\.)?cache([^[:alnum:]_]|$)|lru_cache\(maxsize=None\)|static .*Map<|(const|let|var) [[:alnum:]_]+ = new Map\(\)' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `src/a.py: @functools.cache` · miss `src/b.py: @functools.lru_cache(maxsize=128)`
 - **Fix:** a maximum size plus eviction (LRU or TTL) using the platform's bounded cache.
 - **Impact:** the process grows until it runs out of memory and crashes — slowly, then suddenly.
 - **Source:** CWE-770; OWASP API4:2023 Unrestricted Resource Consumption.
@@ -56,6 +60,7 @@ applies_when: api≠none or deploy≠none
 ### RTP-09 [HIGH] Large input loaded whole or on the UI thread
 - **Detect:** whole-file reads, full response bodies or full query results (`readFileSync`, `.read()`, `fetchall()`, `io.ReadAll`, `readAllBytes`) on input whose size the user or data controls; hashing, parsing or transcoding user files on the main or UI thread.
 - **Mech:** T `git grep -nIE 'readFileSync\(|\.read\(\)|fetchall\(\)|io\.ReadAll\(|readAllBytes\(|ReadAllBytes\(' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `src/a.js: const data = fs.readFileSync(path)` · miss `src/b.js: const stream = fs.createReadStream(path)`
 - **Fix:** stream or iterate (file streams, cursors, paginated or streamed responses); run unbounded-size work off the UI thread.
 - **Impact:** a large enough input runs out of memory or freezes the UI whatever the hardware.
 - **Source:** CWE-400 (Uncontrolled Resource Consumption).
@@ -79,6 +84,7 @@ applies_when: ui≠none
 applies_when: ui≠none
 - **Detect:** animating layout properties (width, height, top, margin) instead of transform and opacity; layout reads (`offsetHeight`, `getBoundingClientRect`) right after writes or inside loops and scroll handlers; opacity animated over a large subtree; animation callbacks rebuilding static children.
 - **Mech:** T `git grep -nIE 'offset(Height|Width|Top|Left)([^[:alnum:]_]|$)|getBoundingClientRect\(' -- '*.js' '*.ts' '*.jsx' '*.tsx' '*.vue' '*.svelte'`
+- **Fixture:** hit `src/a.js: const h = el.offsetHeight` · miss `src/b.js: const h = el.style.height`
 - **Fix:** animate compositor-only properties through the platform's GPU path; batch reads before writes in one frame; build static children once outside the animation.
 - **Impact:** each forced layout re-runs style and layout mid-frame — the main cause of visible jank in lists, drags and animations.
 - **Source:** web.dev, Avoid large, complex layouts and layout thrashing; Flutter, performance best practices.
@@ -87,6 +93,7 @@ applies_when: ui≠none
 applies_when: ui≠none
 - **Detect:** lists of 100+ items fully rendered with no virtualization (native: Flutter `ListView(children:)` instead of `ListView.builder`, React Native `ScrollView` with `map` instead of `FlatList`/`FlashList`, Compose `Column` with `verticalScroll` instead of `LazyColumn`, SwiftUI `VStack` instead of `LazyVStack`); long below-the-fold sections without `content-visibility: auto`; dense, periodically refreshed grids that measure or lay out twice per frame.
 - **Mech:** T `git grep -nIE 'ListView\(|<ScrollView|verticalScroll\(' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `lib/a.dart: return ListView(children: items);` · miss `lib/b.dart: return ListView.builder(itemBuilder: build);`
 - **Fix:** virtualize long lists (viewport plus overscan; the platform's builder or lazy list); `content-visibility: auto` with `contain-intrinsic-size`; one layout pass per frame.
 - **Impact:** render and interaction cost scale with data size instead of the viewport; long native lists jank and run out of memory.
 - **Source:** web.dev, content-visibility (https://web.dev/articles/content-visibility); Flutter, `ListView.builder`; Android, Lists in Compose (`LazyColumn`).
@@ -132,6 +139,7 @@ applies_when: integrations≠none
 ### COST-05 [HIGH] Polling where push exists
 - **Detect:** a timer or sleep loop calling an API or database to check for changes when the provider offers webhooks, server-sent events, change streams or `LISTEN/NOTIFY`; mobile apps polling for push-like data.
 - **Mech:** T `git grep -nIE 'setInterval\(|time\.sleep\(|Timer\.periodic\(|time\.NewTicker\(' -- ':!*test*' ':!*.md'`
+- **Fixture:** hit `src/a.py: time.sleep(5)` · miss `src/b.py: await asyncio.sleep(5)`
 - **Fix:** subscribe to the push channel (webhook, SSE, WebSocket, change stream, FCM/APNs); where polling is unavoidable, back off and poll at the minimum acceptable staleness.
 - **Impact:** requests, battery and metered calls grow with clients × time instead of with events.
 - **Source:** PostgreSQL `LISTEN`/`NOTIFY`; Stripe webhooks guide.

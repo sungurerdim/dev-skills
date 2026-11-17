@@ -5,6 +5,7 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 ### TST-01 [HIGH] Test pyramid missing or inverted
 - **Detect:** no tracked test files; end-to-end tests outnumber integration and unit tests; core logic reachable only through end-to-end tests; public services or use cases with no unit test.
 - **Mech:** S `git ls-files | grep -qiE '(^|/)(tests?|spec|__tests__)/|[._-](test|spec)\.|_test\.|(^|/)test_[^/]+\.py$' || echo 'no test files tracked'`
+- **Fixture:** says `no test files tracked` · miss `src/app.py: print(1)` · miss `src/contest.py: x = 1` · quiet `tests/test_app.py: def test_x(): pass`
 - **Fix:** unit tests for each public service or use case; integration tests at real boundaries; a few end-to-end tests for the critical journeys.
 - **Impact:** an inverted suite is slow and flaky, so feedback arrives too late to be cheap.
 - **Source:** Vocke, "The Practical Test Pyramid" (https://martinfowler.com/articles/practical-test-pyramid.html); Cohn, *Succeeding with Agile*.
@@ -12,6 +13,7 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 ### TST-02 [HIGH] Critical path untested, or tested without real assertions
 - **Detect:** critical code (auth, payments, data mutations, core rules) with no branch or error-path test; a route, screen or command no smoke test reaches; boundary cases (empty, null, maximum size, concurrent, time zone, Unicode) never exercised; tests that assert nothing, only getters or constructors, or a snapshot over ~100 lines; an assertion listing today's members of a growing set instead of the rule that decides membership; a coverage percentage used as a gate target.
 - **Mech:** T `git grep -nE 'fail_under|cov-fail-under|coverageThreshold|minimum_coverage|jacocoTestCoverageVerification' -- ':!*.md'` · `git ls-files '*.snap' | xargs wc -l 2>/dev/null | awk '$1 > 100 && $2 != "total"'`
+- **Fixture:** hit `pyproject.toml: fail_under = 80` · hit `__snapshots__/big.snap: s\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns\ns` · miss `__snapshots__/small.snap: exports[1] = 1`
 - **Fix:** add branch and error-path tests on critical code first; replace padding tests with one that names the bug it catches; read coverage as a risk map, not a score; on touched critical code run the stack's mutation tool and kill each surviving mutant with an assertion.
 - **Impact:** the costliest paths fail silently in production while a high coverage number says they are tested.
 - **Source:** Fowler, TestCoverage (https://martinfowler.com/bliki/TestCoverage.html); mutation testing (Stryker, PIT).
@@ -19,6 +21,7 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 ### TST-03 [HIGH] Tests mock internals instead of faking the boundary
 - **Detect:** mocks of the unit's own modules; assertions on call order or arguments of internals; patches of deep internal paths that break when a file moves; mocks whose interface no longer matches the real one.
 - **Mech:** T `git grep -nIE "patch\(['\"][a-z_]+(\.[a-z_]+){3,}|(jest|vi)\.mock\(['\"]\.\.?/" -- ':!*.md'`
+- **Fixture:** hit `tests/test_a.py: @patch('app.services.billing.client.charge')` · miss `tests/test_b.py: @patch('app.charge')`
 - **Fix:** in-memory fakes for owned boundaries (repository, clock, queue); mocks only for external I/O or when the interaction is the behavior; patch at the seam the code imports from.
 - **Impact:** the suite fails on every refactor while behavior is unchanged, and passes when the real interface has moved on.
 - **Source:** Fowler, "Mocks Aren't Stubs"; Google Testing Blog, "Testing on the Toilet: Don't Overuse Mocks".
@@ -33,6 +36,7 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 ### TST-05 [CRITICAL] Weakened, skipped or focused tests
 - **Detect:** a skip or expected-failure marker on a failing test without a linked issue; a committed focus (`.only`) that silently drops every other test; assertions changed to match a bug; the unit under test replaced by a mock.
 - **Mech:** T `git grep -nIE '\.(skip|only)\(|(^|[^[:alnum:]_])x(it|describe)\(|@(Ignore|Disabled)([^[:alnum:]_]|$)|t\.Skip\(|pytest\.mark\.(skip|xfail)|#\[ignore\]' -- ':!*.md'`
+- **Fixture:** hit `tests/a.test.js: it.only('runs', fn)` · miss `tests/b.test.js: it('runs', fn)`
 - **Fix:** fix the code or the test so it checks the correct behavior; a temporary skip names its issue on the same line; every bug fix adds its regression test.
 - **Impact:** a red test turned green without a fix lets the next regression on that path ship unnoticed.
 - **Source:** Fail fast; Beck, *Test-Driven Development: By Example*.
@@ -41,6 +45,7 @@ Per-stack runners, property-based and mutation tools: [toolchains.md](../toolcha
 applies_when: ui≠none
 - **Detect:** key screens with no screenshot or golden test, so layout breaks (clipped text, wrong padding or colour) ship unseen; screenshot or golden tests that fail on developer machines because rendering differs from CI; baselines updated from whichever machine ran last; goldens in a local gate with no platform pin.
 - **Mech:** T `git grep -nIlE 'matchesGoldenFile|toHaveScreenshot|toMatchScreenshot|assertSnapshot|PreviewTest|Paparazzi|Roborazzi' -- ':!*.md'`
+- **Fixture:** hit `test/golden_test.dart: await expectLater(find.byType(App), matchesGoldenFile('app.png'));` · miss `test/unit_test.dart: expect(1, 1);`
 - **Fix:** golden tests for key screens (Flutter `matchesGoldenFile`, Compose Preview Screenshot Testing, Playwright `toHaveScreenshot`, an XCTest snapshot library), updated on purpose; name the one platform that owns the baselines; run and update goldens only there (CI or a container); exclude them from other local runs by tag with the reason in code.
 - **Impact:** layout regressions reach users because nothing looks at rendered output, and developers who see platform-caused failures regenerate goldens on their own machines, replacing the reference silently.
 - **Source:** Playwright, Visual comparisons — screenshots differ between browsers and platforms (https://playwright.dev/docs/test-snapshots); Android, Compose Preview Screenshot Testing.
@@ -48,6 +53,7 @@ applies_when: ui≠none
 ### TST-11 [HIGH] Check never seen failing
 - **Detect:** a lint, audit or gate with no fixture or test that turns it red; a gate said to enforce a rule while the code visibly breaks that rule and the gate stays green; removing the rule under test changes no result; a bug fix (a `fix` commit since {base}) that adds or changes no test (a test file, an assertion or a self-test in the changed file), or whose test passes on the unfixed code.
 - **Mech:** T `git log --no-merges -E --grep='^fix(\(|:|!)' --format='#C %h %s' -p {base}..HEAD | awk '/^#C /{if(h&&!t)print h; h=substr($0,4); t=0; next} /^\+\+\+ .*(test|spec)|^\+.*(assert|expect\()|^@@.*(self.?test|[Tt]est)/{t=1} END{if(h&&!t)print h}'`
+- **Fixture:** history
 - **Fix:** pair every gate with a fixture that violates exactly what it claims to catch, asserted to fail in the same suite; a gate that cannot be made to fail is documented as advisory until it can. A bug fix lands with its regression test, run red on the unfixed code first, then green.
 - **Impact:** a non-enforcing gate turns an unchecked rule into one everybody believes is checked, so nobody looks again.
 - **Source:** Red-green-refactor; kernel §3 (a check is proven by injecting its defect); DeMillo, Lipton & Sayward, "Hints on Test Data Selection" (1978, mutation testing).
@@ -55,6 +61,7 @@ applies_when: ui≠none
 ### TST-12 [MEDIUM] Placeholder committed as data
 - **Detect:** committed structured files (registries, manifests, config, fixtures read as data) holding unresolved tokens such as `TBD`, `FIXME`, `<fill>`, `assign at apply`, `next free ID` in a field consumers read as a value.
 - **Mech:** S `git grep -nIE '(^|[^[:alnum:]_])(TBD|FIXME)([^[:alnum:]_]|$)|<fill[^>]*>|assign at apply|next free ID' -- '*.json' '*.yaml' '*.yml' '*.toml' '*.csv'`
+- **Fixture:** hit `config.yaml: owner: TBD` · miss `config2.yaml: owner: platform-team`
 - **Fix:** resolve it now; when it must wait, model it as an explicit null or pending state the consumer handles, and fail the gate on the token.
 - **Impact:** the placeholder passes every structural check and flows into reports and counts as if it were real.
 - **Source:** fail fast (Shore, "Fail Fast", *IEEE Software*, 2004).
@@ -69,6 +76,7 @@ applies_when: ui≠none
 ### TST-14 [HIGH] Check nothing calls
 - **Detect:** a script under `scripts/`, `tools/` or `bin/` that no task runner, hook or pipeline invokes; a test file outside the runner's discovery pattern; a caller that discards the check's exit code; docs saying "we lint with X" where nothing runs X.
 - **Mech:** T `git ls-files 'scripts/*' 'tools/*' 'bin/*' | while read -r f; do git grep -qF "${f##*/}" -- ":!$f" ':!*.md' || echo "$f"; done`
+- **Fixture:** hit `scripts/orphan.sh: echo orphan` · miss `scripts/used.sh: echo used` · miss `Makefile: run: ; sh scripts/used.sh`
 - **Fix:** wire it into the single entry point that gates "done", or delete it; an intentional exclusion is named at that entry point with the condition under which it runs; prove the path by breaking a fixture and running the entry point.
 - **Impact:** the rule looks enforced, so nobody looks again, and the first real enforcement happens in production.
 - **Source:** Fail fast; Fowler, Continuous Integration (one command runs every check).
@@ -76,6 +84,7 @@ applies_when: ui≠none
 ### TST-15 [HIGH] Test depends on time, randomness, network or order
 - **Detect:** in test files: real clock reads, sleeps, unseeded random values, real network calls; process-global caches or singletons not reset between tests; tests that pass alone and fail in the suite (or the reverse); reruns used to get green.
 - **Mech:** T `git grep -nIE 'sleep\(|Date\.now\(|new Date\(\)|datetime\.now\(|time\.Now\(|Math\.random\(|random\.random\(|requests\.(get|post)\(' -- '*test*' '*spec*'`
+- **Fixture:** hit `tests/test_a.py: time.sleep(1)` · miss `src/worker.py: time.sleep(backoff)`
 - **Fix:** inject the clock and the seed; fake the network; reset every process-global cache in one before-each fixture; run the suite shuffled (pytest-randomly, `go test -shuffle=on`, Jest `--randomize`, Vitest `sequence.shuffle`); quarantine a flaky test with an issue, never a silent retry.
 - **Impact:** a suite that fails at random is rerun until green, and then its real failures are rerun away too.
 - **Source:** Luo et al., "An Empirical Analysis of Flaky Tests" (FSE 2014); Google Testing Blog, "Flaky Tests at Google and How We Mitigate Them" (2016).
@@ -83,6 +92,7 @@ applies_when: ui≠none
 ### TST-30 [MEDIUM] Public contract can drift unseen
 - **Detect:** an OpenAPI, GraphQL, protobuf or JSON Schema artifact with no test that validates the implementation against it; a library whose release has no public-API diff against the last published version.
 - **Mech:** T `git ls-files '*openapi*' '*swagger*' '*.proto' '*.graphql' '*.graphqls' '*.schema.json'`
+- **Fixture:** hit `api/openapi.yaml: openapi: 3.1.0` · miss `api/routes.py: x = 1`
 - **Fix:** a contract test that fails on drift (schemathesis, Pact, the stack's schema validator); for libraries an API diff in the release check (cargo-semver-checks, japicmp, api-extractor, apidiff) and a MAJOR bump on a break.
 - **Impact:** producer and consumer desync silently, and the first signal is a consumer failing in production.
 - **Source:** OpenAPI Specification; Pact (https://docs.pact.io/); Semantic Versioning 2.0.0 (https://semver.org/).

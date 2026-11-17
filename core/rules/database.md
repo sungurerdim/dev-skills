@@ -6,6 +6,7 @@ Loaded when the project has a datastore (`db≠none`); jobs, queues and ETL have
 applies_when: db∋postgres or db∋mysql or db∋sqlite or db∋other
 - **Detect:** query text assembled by concatenation, `%`/`.format`/f-strings, template literals or `sprintf` with any value not a compile-time constant; ORM raw-query escape hatches (`raw`, `$queryRawUnsafe`, `execute(text(...))`, `whereRaw`) fed with input; identifiers (column, sort order) taken from input without an allow-list.
 - **Mech:** T `git grep -nIiE '(execute|query|raw|exec)[a-z_]*\(f.(SELECT|INSERT|UPDATE|DELETE|WITH)|(SELECT|INSERT INTO|UPDATE|DELETE FROM)[^;]*("[[:space:]]*\+|\+[[:space:]]*"|%s?"[[:space:]]*%|\.format\(|\$\{|f")|queryRawUnsafe|executeRawUnsafe|whereRaw\(|Sprintf\("(SELECT|INSERT|UPDATE|DELETE)' -- ':!*.md' ':!*test*'`
+- **Fixture:** hit `src/db.py: cur.execute(f"SELECT * FROM users WHERE id = {uid}")` · miss `src/db2.py: cur.execute("SELECT * FROM users WHERE id = %s", (uid,))`
 - **Fix:** bound parameters for every value; identifiers chosen from an allow-list; the ORM's parameterized API instead of raw strings.
 - **Impact:** one injectable query exposes or destroys the whole database.
 - **Source:** OWASP A05:2025; OWASP SQL Injection Prevention Cheat Sheet; CWE-89.
@@ -13,6 +14,7 @@ applies_when: db∋postgres or db∋mysql or db∋sqlite or db∋other
 ### DB-25 [CRITICAL] Datastore reachable or over-privileged
 - **Detect:** the application connects as a superuser or owner role (`postgres`, `root`, `sa`, `admin`) or one role does migrations and runtime; credentials with DDL rights used by request handlers; a database, Redis, Mongo or Elasticsearch port bound to `0.0.0.0` or published with no auth (`protected-mode no`, no `requirepass`, `bind_ip_all` without auth); TLS disabled to a database across a network (`sslmode=disable`, `ssl=false`); Firestore or Storage rules with `allow read, write: if true`.
 - **Mech:** T `git grep -nIiE '(postgres(ql)?|mysql|mongodb(\+srv)?|redis)://(postgres|root|sa|admin)[:@]|sslmode=disable|ssl[_-]?mode[[:space:]]*[:=][[:space:]]*.?disable|ssl[[:space:]]*[:=][[:space:]]*false|protected-mode no|bind_ip_all|User Id=sa;|allow read, write: if true' -- ':!*.md'` · `git grep -nIE '"?(5432|3306|6379|27017|9200):(5432|3306|6379|27017|9200)' -- '*compose*.y*ml'`
+- **Fixture:** hit `.env: DATABASE_URL=postgres://postgres:pw@db/app` · hit `docker-compose.yml: ports: ["5432:5432"]` · miss `config.env: DATABASE_URL=postgres://app@db/app?sslmode=require`
 - **Fix:** a runtime role with only the DML rights it needs and a separate migration role; datastores on a private network or loopback with authentication on; TLS with verification for any hop that leaves the host; deny-by-default rules for client-reachable stores.
 - **Impact:** an injection or leaked credential becomes full control of the data, and an exposed unauthenticated store is found and wiped by internet scanners within hours.
 - **Source:** Least privilege; OWASP Database Security Cheat Sheet; CIS Benchmarks (PostgreSQL, MySQL, MongoDB); CWE-250, CWE-306.
@@ -36,6 +38,7 @@ applies_when: db∋postgres or db∋mysql or db∋sqlite or db∋other
 applies_when: db∋postgres or db∋mysql or db∋sqlite or db∋other
 - **Detect:** column drops, renames or type changes shipped in one step while old code still runs; index creation that blocks writes (Postgres without `CONCURRENTLY`); `NOT NULL` or a volatile default added to a large table in one statement; applied migrations edited; no down step, or a down step that silently cannot restore dropped, hashed or scrubbed data and does not say so; schema changed outside the migration tool; a hand-run schema script that fails or duplicates on a second run (`CREATE` without `IF NOT EXISTS`).
 - **Mech:** T `find . -path ./node_modules -prune -o -path '*migrat*' -name '*.sql' -print -exec squawk {} +` · `git grep -nIiE '^[[:space:]]*CREATE[[:space:]]+(UNIQUE[[:space:]]+)?(TABLE|INDEX)' -- '*.sql' | grep -viE 'if not exists'`
+- **Fixture:** hit `db/migrations/001_init.sql: CREATE TABLE users (id int);` · miss `db/seed.sql: CREATE TABLE IF NOT EXISTS orders (id int);`
 - **Fix:** expand → backfill → switch reads → contract across releases; engine-safe forms (concurrent index builds, `NOT VALID` then `VALIDATE` constraints); never edit an applied migration; every down step states what it cannot restore; the gate applies all migrations up, down and up again on an empty database.
 - **Impact:** a deploy takes the database offline, or a rollback restores the schema while the data is gone.
 - **Source:** Reversibility; Idempotency; expand/contract (Fowler, ParallelChange); Squawk (squawkhq.com); PostgreSQL docs, CREATE INDEX CONCURRENTLY.
@@ -44,6 +47,7 @@ applies_when: db∋postgres or db∋mysql or db∋sqlite or db∋other
 applies_when: db∋postgres or db∋mysql or db∋sqlite or db∋other
 - **Detect:** money in `FLOAT`/`DOUBLE`/`REAL`; timestamps without a time zone (`TIMESTAMP` in Postgres, naive datetimes) or with no documented UTC convention; database `ENUM` types for value sets that grow; related records with their own keys stored inside a JSON blob.
 - **Mech:** T `git grep -nIiE '(price|amount|total|cost|balance|money|fee)[a-z_]*.{0,30}(float|double|real)([^a-z]|$)|timestamp without time zone|TIMESTAMP[[:space:]]*(,|NOT|NULL|DEFAULT|$)' -- ':!*.md'`
+- **Fixture:** hit `src/models.py: price = Column(Float)` · miss `src/models2.py: price_cents = Column(Integer)`
 - **Fix:** integer minor units or `NUMERIC`/`DECIMAL` for money; time-zone-aware types or UTC with the convention written in the schema; a lookup table or `CHECK` for growing value sets; normalized tables for related data.
 - **Impact:** totals stop matching their line items, and times shift by hours as soon as a second time zone appears.
 - **Source:** PostgreSQL docs, Numeric Types and Date/Time Types; Fowler, Money pattern (*PoEAA*).
@@ -68,6 +72,7 @@ applies_when: db∋postgres or db∋mysql or db∋sqlite or db∋other
 applies_when: db∋sqlite
 - **Detect:** connections opened without `PRAGMA foreign_keys=ON` (foreign keys are not enforced by default, per connection); no `busy_timeout`, so concurrent writers fail with `SQLITE_BUSY`; a concurrently read database still in rollback-journal mode instead of WAL.
 - **Mech:** T `git grep -nIiE 'foreign_keys|busy_timeout|journal_mode|sqlite3?\.(connect|open)|openDatabase|new Database\(' -- ':!*.md'`
+- **Fixture:** hit `src/db.py: conn = sqlite3.connect("app.db")` · miss `src/db2.py: conn = psycopg.connect(dsn)`
 - **Fix:** on every connection: `foreign_keys=ON`, a `busy_timeout` of a few seconds, `journal_mode=WAL` with `synchronous=NORMAL` where readers and a writer overlap; further tuning only against a measurement.
 - **Impact:** declared foreign keys silently do nothing, and readers stall or fail behind every write.
 - **Source:** SQLite docs, Foreign Key Support §2; PRAGMA busy_timeout; Write-Ahead Logging.
@@ -76,6 +81,7 @@ applies_when: db∋sqlite
 applies_when: pii=yes
 - **Detect:** government IDs, financial account numbers, health or biometric data stored in plaintext with only disk encryption; encryption keys stored in the same database or repository as the ciphertext.
 - **Mech:** T `git grep -nIiE '(ssn|national_id|tax_id|iban|account_number|diagnos|health|biometric)[a-z_]*' -- '*.sql' '*.prisma' '*models*' '*schema*' '*entity*' '*entities*'`
+- **Fixture:** hit `db/schema.sql: ssn TEXT NOT NULL,` · miss `db/schema2.sql: nickname TEXT,`
 - **Fix:** application-level or database-function encryption for those columns, keys in a KMS or secret manager, access through a narrow role; hash instead when the value is only matched, never read back.
 - **Impact:** disk encryption does not stop an injection, an over-privileged role or a careless dump from reading the values.
 - **Source:** Defense in depth; OWASP Cryptographic Storage Cheat Sheet; GDPR Art. 32(1)(a); PostgreSQL pgcrypto.
@@ -91,6 +97,7 @@ applies_when: pii=yes or ui≠none
 ### DP-02 [CRITICAL] Re-runnable job or consumer that is not idempotent
 - **Detect:** jobs, consumers or webhook handlers that can run twice (scheduler retry, manual re-run, at-least-once delivery) and insert without a key, append, increment counters or apply state transitions without checking the current state; duplicate or out-of-order delivery crashing a consumer that then re-queues forever.
 - **Mech:** T `git grep -nIiE 'consume|subscribe|on_message|@task|@job|worker|cron|schedule' -- ':!*.md' ':!*test*'`
+- **Fixture:** hit `src/jobs.py: @task` · miss `src/util.py: def add(a, b):`
 - **Fix:** upsert on deterministic keys or a processed-event table keyed by event or batch ID; skip transitions out of a terminal state as a no-op; prove it by running the job twice on the same input.
 - **Impact:** every retry duplicates data or crash-loops the consumer, and totals drift beyond repair.
 - **Source:** Idempotency; Kleppmann, *Designing Data-Intensive Applications* (ch. 11, idempotence); AWS SQS docs, at-least-once delivery.
@@ -98,6 +105,7 @@ applies_when: pii=yes or ui≠none
 ### DP-03 [HIGH] Bad records dropped silently
 - **Detect:** per-record `try/except: continue` (or equivalent) with no counter, log or dead-letter sink; a job that reports success while skipping rows.
 - **Mech:** T `git grep -nIE -A2 'except[^:]*:|catch[[:space:]]*\(' -- '*.py' '*.js' '*.ts' '*.java' '*.kt' '*.cs' | grep -E 'continue|pass$'`
+- **Fixture:** hit `src/loop.py: for x in xs:\n    try:\n        run(x)\n    except Exception:\n        continue` · miss `src/ok.py: try:\n    go()\nexcept ValueError:\n    raise`
 - **Fix:** a quarantine (dead-letter table, topic or directory) and a dropped-count in the run's output; fail the run above a threshold.
 - **Impact:** data loss stays invisible until a consumer notices wrong totals weeks later.
 - **Source:** Fail fast; Enterprise Integration Patterns, Dead Letter Channel (Hohpe & Woolf).
@@ -121,6 +129,7 @@ applies_when: ui≠none
 applies_when: api≠none
 - **Detect:** updates written last-write-wins with no revision check where two users or devices can edit one record; a record mirrored to several targets with no designated source of truth.
 - **Mech:** T `git grep -nIiE 'If-Match|ETag|version[_ ]?(column|field)|optimistic|@Version|lock_version|rowversion' -- ':!*.md'`
+- **Fixture:** hit `src/api.py: if request.headers.get("If-Match") != etag:` · miss `src/b.py: return response`
 - **Fix:** optimistic concurrency (a version column or `ETag`/`If-Match`, `412` on mismatch); on a mismatch caused by the client's own stale copy, refetch, reapply and retry, and surface a conflict only on real divergence; derive mirrors from one canonical record.
 - **Impact:** one user's work silently disappears whenever two edits overlap.
 - **Source:** DRY / single source of truth; RFC 9110 §13 (conditional requests); Fowler, Optimistic Offline Lock (*PoEAA*).
