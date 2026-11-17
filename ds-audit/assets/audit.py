@@ -165,8 +165,24 @@ def parse_words(words) -> dict:
     return out
 
 
+def keep_previous(root: Path, old) -> None:
+    """Never overwrite another run's report (kernel §3): it becomes report-{started}.md (+ .html), one generation.
+    An older generation is deleted only when it is this skill's own, untracked output."""
+    d = (root / REPORT).parent
+    for f in list(d.glob("report-*.md")) + list(d.glob("report-*.html")):
+        own = f.suffix == ".html" or read(f).startswith(("<!-- ds-audit-state", "# ds-audit report"))
+        if own and not git(root, "ls-files", "--", str(f.relative_to(root))).strip():
+            f.unlink()
+    stamp = (old or {}).get("started") or int((root / REPORT).stat().st_mtime)
+    for ext in (".md", ".html"):
+        cur = (root / REPORT).with_suffix(ext)
+        if cur.is_file():
+            cur.replace(d / f"report-{stamp}{ext}")
+
+
 def init(root: Path, words) -> dict:
     state, text = load(root)
+    old = state
     if state and any(p["status"] in ("pending", "running") for p in state["phases"].values()):
         nxt = next(n for n in PHASES if state["phases"].get(n, {}).get("status") in ("pending", "running"))
         return {"resume": True, "report": str(REPORT), "next": nxt, "plan": state["phases"],
@@ -256,6 +272,8 @@ def init(root: Path, words) -> dict:
         "| " + " | ".join([str(i)] + [r[c] for c in COLS[1:9]] + ["open", "—"]) + " |\n"
         for i, r in enumerate(carried, 1))
     state["carried"] = len(carried)
+    if text:
+        keep_previous(root, old)
     write(root, state, findings=findings, notes="\n".join(notes))
     nxt = next((n for n, p in plan.items() if p["status"] == "pending"), None)
     return {"resume": False, "report": str(REPORT), "next": nxt, "scope": scope, "changed": len(changed),
@@ -1027,6 +1045,16 @@ def self_test() -> int:
         carried = rows(load(tmp)[1])
         expect(len(carried) == 1 and carried[0]["Disposition"] == "open" and load(tmp)[0]["carried"] == 1,
                "a new run carries the previous run's open rows as open")
+        kept = tmp / REPORT.parent / f"report-{state['started']}.md"
+        expect(kept.is_file() and crit.strip() in read(kept),
+               f"init overwrote the previous run's report instead of keeping it as {kept.name}")
+        state2 = load(tmp)[0]
+        for p in state2["phases"].values():
+            p["status"] = "done"
+        save_state(tmp, state2)
+        init(tmp, ["all"])
+        gens = sorted(x.name for x in (tmp / REPORT.parent).glob("report-*.md"))
+        expect(gens == [f"report-{state2['started']}.md"], f"init keeps one earlier generation, got {gens}")
 
         # scan: a rule with a Mech line runs; a missing tool is reported, not run
         w("b.txt", "TODO here\n")

@@ -54,6 +54,6 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 
 - `size=large` → order each phase's reading by hotspots (`git log --since=1.year --name-only --format=`, commits × size); stop an area when new findings stop appearing.
 - No commit-time or stop-time gate in the project → a finding in the `ci` area; the `ds-gate` skill installs one. The budget in `SCOPE.md` can become a gate with `/ds-gate inv "audit.py lean-check passes"`.
-- The run leaves `ds/audit/report.md` (the ledger) and `ds/audit/report.html` (the same report for people: one self-contained page, any screen size, light/dark, printable), both git-excluded, plus what the owner keeps: commits, `SCOPE.md`, the `ds/audit` branch until merged.
+- The run leaves `ds/audit/report.md` (the ledger) and `ds/audit/report.html` (the same report for people: one self-contained page, any screen size, light/dark, printable), both git-excluded (a new run keeps the previous pair as `report-{started}.*`, one generation, and carries its open rows), plus what the owner keeps: commits, `SCOPE.md`, the `ds/audit` branch until merged.
 - **Branch**: `all`, phase and area runs commit on `ds/audit` (created or resumed by `A init`; your branch is not touched) and push it, without force, after each phase; changed-scope runs commit on the current branch and never push. Merging, PRs and deleting the branch are yours (the report prints the commands).
 - Publishing, other pushes, releases and anything needing a human-only value stay `Only you can do` with the exact command (kernel §5).
