@@ -9,6 +9,7 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
   audit.py init [WORD ...]           start or resume a run: fetch, fast-forward, scope, signals, check command,
                                      phase plan; prints JSON (what runs next and why)
   audit.py checks baseline|now       run each step of the check command; record pass/fail/timeout per step
+  audit.py check CMD                 set the check command explicitly (wins over marker, docs and defaults)
   audit.py scan PHASE                run the Mech commands of the phase's loaded rules; prints JSON hits
   audit.py signal KEY VALUE [WHY]    confirm or correct a judged signal (auth, pii, audience), noted as decided:;
                                      re-plans the areas of phases not yet started
@@ -256,7 +257,7 @@ def init(root: Path, words) -> dict:
             if re.search(r"^\s*(on:\s*\[?[^\n]*\bpush\b|push\s*:)", body, re.M) and "branches" not in body:
                 notes.append(f"decided: pushing {BRANCH} triggers {wf} (runs on a push to any branch)")
     sig = signals(root)
-    cmd = check_cmd(root)
+    cmd, check_from = resolve_check(root)
     plan = make_plan(sig, w, scope, root)
     if not cmd:
         notes.append("decided: no runnable check found — Verification gap (HIGH); fixes limited to Category A")
@@ -266,7 +267,8 @@ def init(root: Path, words) -> dict:
             p["status"] = "skipped"
     state = {"v": 1, "words": {k: w[k] for k in ("phases", "areas")}, "sig": sig, "start": start,
              "home": home, "branch": branch, "started": int(time.time()), "base": base, "scope": scope, "changed": changed,
-             "dry": w["dry"], "ask": w["ask"], "auto": w["auto"], "carried": 0, "signals": line(sig), "check": cmd, "checks": {}, "phases": plan}
+             "dry": w["dry"], "ask": w["ask"], "auto": w["auto"], "carried": 0, "signals": line(sig), "check": cmd,
+             "check_from": check_from, "checks": {}, "phases": plan}
     carried = [r for r in rows(text) if not r["Disposition"].startswith(CLOSED)] if text else []
     findings = "| " + " | ".join(COLS) + " |\n|" + "|".join("---" for _ in COLS) + "|\n" + "".join(
         "| " + " | ".join([str(i)] + [r[c] for c in COLS[1:9]] + ["open", "—"]) + " |\n"
@@ -277,7 +279,8 @@ def init(root: Path, words) -> dict:
     write(root, state, findings=findings, notes="\n".join(notes))
     nxt = next((n for n, p in plan.items() if p["status"] == "pending"), None)
     return {"resume": False, "report": str(REPORT), "next": nxt, "scope": scope, "changed": len(changed),
-            "carried_open": len(carried), "plan": plan, "signals": state["signals"], "check": cmd, "notes": notes}
+            "carried_open": len(carried), "plan": plan, "signals": state["signals"], "check": cmd,
+            "check_from": check_from, "notes": notes}
 
 
 def make_plan(sig: dict, w: dict, scope: str, root: Path) -> dict:
@@ -315,6 +318,46 @@ def set_signal(root: Path, key: str, value: str, reason: str = "") -> dict:
 
 
 # --- checks -----------------------------------------------------------------------------------------------
+
+MARKERS = (".claude/ds-gate.json", ".claude/ds-quality.json")  # the ds-gate skill's marker, then its pre-rename name
+GATE_DOCS = ("AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md")
+GATE_WORDS = ("gate", "check", "lint", "test")  # earlier = stronger label
+
+
+def resolve_check(root: Path) -> tuple:
+    """(command, where it came from): ds-gate marker > the gate the project's docs label > ds_detect stack defaults.
+    An explicit `audit.py check CMD` overrides all three afterwards."""
+    for m in MARKERS:
+        try:
+            data = json.loads(read(root / m) or "{}")
+        except ValueError:
+            continue
+        if isinstance(data, dict) and data.get("command") and data.get("enabled", True):
+            return data["command"], f"{m} command"
+    best = None
+    for doc in GATE_DOCS:
+        for n, ln in enumerate(read(root / doc).splitlines(), 1):
+            label = re.sub(r"`[^`]*`", "", ln).lower()
+            ranks = [GATE_WORDS.index(w) for w in re.findall(r"\b(gate|check|lint|test)s?\b", label)]
+            # the first code span that names something runnable (a tool on PATH or a file in the repo)
+            cmd = next((c for c in re.findall(r"`([^`]+)`", ln) if c.split()[0:1] and
+                        (shutil.which(c.split()[0]) or (root / c.split()[0]).is_file())), None)
+            if ranks and cmd and (best is None or min(ranks) < best[0]):
+                best = (min(ranks), cmd, f"{doc}:{n}")
+    if best:
+        return best[1], best[2]
+    cmd = check_cmd(root)
+    return cmd, "stack defaults (ds_detect)" if cmd else ""
+
+
+def set_check(root: Path, cmd: str) -> dict:
+    state, _ = load(root)
+    if not state:
+        raise SystemExit("audit.py check: no run — start with `audit.py init`")
+    state["check"], state["check_from"], state["checks"] = cmd, "explicit", {}  # an old baseline measured another command
+    save_state(root, state, f"decided: check command `{cmd}` · set explicitly; baseline re-measured")
+    return {"check": cmd, "check_from": "explicit"}
+
 
 def checks(root: Path, which: str) -> dict:
     state, _ = load(root)
@@ -1056,6 +1099,29 @@ def self_test() -> int:
         gens = sorted(x.name for x in (tmp / REPORT.parent).glob("report-*.md"))
         expect(gens == [f"report-{state2['started']}.md"], f"init keeps one earlier generation, got {gens}")
 
+        # check command: explicit > ds-gate marker > the project's documented gate > stack defaults
+        gate = Path(tempfile.mkdtemp(prefix="ds-audit-gate-"))
+        (gate / "CONTRIBUTING.md").write_text("| Task | Command |\n|---|---|\n| Run tests | `true tests` |\n"
+                                              "| Install (see `.claude/ds-gate.json`) | `nosuchtool-xyz` |\n"
+                                              "| Quality gate | `true gate` |\n", encoding="utf-8")
+        got = init(gate, ["all"])["check"]
+        expect(got == "true gate", f"init ignores the gate the project documents: {got!r}")
+        (gate / ".claude").mkdir()
+        (gate / ".claude" / "ds-gate.json").write_text('{"command": "true marker"}', encoding="utf-8")
+        (gate / REPORT).unlink()
+        got = init(gate, ["all"])["check"]
+        expect(got == "true marker", f"init ignores the ds-gate marker: {got!r}")
+        with open(os.devnull, "w") as quiet:
+            so, sys.stdout = sys.stdout, quiet
+            try:
+                rc = main(["--root", str(gate), "check", "true explicit"])
+            finally:
+                sys.stdout = so
+        st, txt = load(gate)
+        expect(rc == 0 and st["check"] == "true explicit" and "decided: check command `true explicit`" in txt,
+               f"`audit.py check CMD` does not set and record the check command: rc={rc} check={st['check']!r}")
+        shutil.rmtree(gate, ignore_errors=True)
+
         # scan: a rule with a Mech line runs; a missing tool is reported, not run
         w("b.txt", "TODO here\n")
         commit("todo")
@@ -1125,6 +1191,8 @@ def main(argv) -> int:
         return 0 if all(v["status"] == "pass" for v in res.values()) else 1
     elif cmd == "scan" and rest[:1] and rest[0] in PHASES:
         dump(scan(root, rest[0]))
+    elif cmd == "check" and rest:
+        dump(set_check(root, " ".join(rest)))
     elif cmd == "signal" and len(rest) >= 2:
         dump(set_signal(root, rest[0], rest[1], " ".join(rest[2:])))
     elif cmd == "validate":
