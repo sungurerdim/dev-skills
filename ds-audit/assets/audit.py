@@ -864,7 +864,7 @@ RULE_FILES = re.compile(r"(^|/)(CLAUDE|AGENTS|GEMINI|CONVENTIONS|SCOPE|DECISIONS
 ABSOLUTE = re.compile(r"\b(always|never|every|must|all|only|forbidden|mandatory)\b|her zaman|daima|asla|hiçbir|"
                       r"hiç bir|\bhep\b|kesinlikle|yalnızca|sadece|zorunlu|yasak", re.I)
 REASON = re.compile(r"\b(because|so that|since|reason|why\b|otherwise|to avoid|to keep)|→|çünkü|zira|gerekçe|"
-                    r"aksi halde|yoksa|\*\*Why", re.I)
+                    r"aksi halde|yoksa|\*\*Why|\([^()`]{12,}\)", re.I)  # a parenthesis that explains: (what one install ships)
 RULE_ID = re.compile(r"\b[A-Z][A-Z0-9]{0,5}-\d{1,4}\b")
 
 
@@ -967,15 +967,25 @@ def lean_check(root: Path, scope: Path, depth: int = 2) -> list:
     return problems
 
 
+SEPARATOR = re.compile(r"^\|?[\s:|-]+\|?$")
+
+
 def rule_lines(text: str):
-    fence = False
-    for n, ln in enumerate(text.splitlines(), 1):
+    """Lines that can carry a rule: not code, headings, table headers or command-table rows (a cell that is only code
+    names a command, not a rule; it would rank as an unreasoned absolute and drown the real ones)."""
+    fence, lines = False, text.splitlines()
+    for n, ln in enumerate(lines, 1):
         t = ln.strip()
         if t.startswith("```"):
             fence = not fence
             continue
-        if fence or len(t) < 15 or t.startswith(("#", "---", "<!--")) or set(t) <= set("|-: "):
+        if fence or len(t) < 15 or t.startswith(("#", "---", "<!--")) or SEPARATOR.match(t):
             continue
+        if t.startswith("|"):
+            cells = [c.strip() for c in t.strip("|").split("|")]
+            if (n < len(lines) and SEPARATOR.match(lines[n].strip())) or any(
+                    c and not re.sub(r"`[^`]*`|[\s·,/]|or|and", "", c) for c in cells):
+                continue
         yield n, t
 
 
@@ -1100,6 +1110,14 @@ def self_test() -> int:
         expect(len(items) == 2 and items[0]["absolute"] and not items[0]["reason"] and items[0]["subject"] == "init"
                and items[0]["refs"] == 1, f"rules order/flags/refs {items[:1]}")
         expect(recorded_rules(tmp, since="HEAD") == [], "rules --since HEAD lists nothing older")
+        rdir = Path(tempfile.mkdtemp(prefix="ds-audit-rules-"))
+        (rdir / "AGENTS.md").write_text(
+            "| Task | Command |\n|------|---------|\n| Run both on every commit | `python3 scripts/check.py --install-hook` |\n"
+            "\n- A link may resolve only inside its own directory (what one install ships).\n", encoding="utf-8")
+        got = [(i["text"][:12], i["absolute"], i["reason"]) for i in recorded_rules(rdir)]
+        expect(got == [("- A link may", True, True)],
+               f"rules: a command-table row counts as a rule or a parenthesised reason is missed: {got}")
+        shutil.rmtree(rdir, ignore_errors=True)
 
         # a run: init, findings, validate, phase, report
         start = git(tmp, "rev-parse", "HEAD").strip()
