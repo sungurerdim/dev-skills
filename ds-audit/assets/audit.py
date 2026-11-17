@@ -497,6 +497,7 @@ def scan(root: Path, phase: str, core: Path = None) -> list:
 
 def run_mech(root: Path, rid: str, cls: str, cmd: str, state) -> dict:
     q = shlex.quote  # a ref name may hold `;`, `$` or `(`: never pass it to the shell bare
+    own = cmd.startswith("{audit}")  # this script's checks print a verdict line either way; the exit code is the verdict
     cmd = cmd.replace("{base}", q((state or {}).get("base") or "HEAD")).replace(
         "{audit}", f'{q(sys.executable)} -B {q(str(HERE / "audit.py"))} --root {q(str(root))}')
     tool = cmd.split()[0].strip('"')
@@ -511,7 +512,7 @@ def run_mech(root: Path, rid: str, cls: str, cmd: str, state) -> dict:
     lines = [ln for ln in r.stdout.splitlines() if ln.strip()]
     if r.returncode not in (0, 1) and not lines:
         return dict(row, status="error", detail=r.stderr.strip()[-300:])
-    return dict(row, status="hit" if lines else "clean", hits=lines[:50], more=max(0, len(lines) - 50))
+    return dict(row, status="hit" if (r.returncode if own else lines) else "clean", hits=lines[:50], more=max(0, len(lines) - 50))
 
 
 # --- validate ---------------------------------------------------------------------------------------------
@@ -1387,6 +1388,8 @@ def self_test() -> int:
         expect(hits.get("T-03", {}).get("status") == "not applicable", f"scan runs a rule its applies_when excludes: {hits}")
         inj = run_mech(tmp, "T-04", "T", "echo {base}", {"base": "o/x;echo INJECTED"})  # `;` is legal in a ref name
         expect(inj.get("hits") == ["o/x;echo INJECTED"], f"scan passes {{base}} to the shell unquoted: {inj}")
+        own = [run_mech(tmp, "T-05", "S", "{audit} contrast " + p, None)["status"] for p in ("000000 ffffff", "777777 888888")]
+        expect(own == ["clean", "hit"], f"an {{audit}} check (lean-check) is judged by its output, not its exit code: {own}")
         expect("YAGNI" in rule_ids() and loads("ui≠none or api≠none", {"ui": {"value": "none"},
                                                                      "api": {"value": "rest"}})[0], "rule ids / loads")
         expect(not loads("pii=yes", {"pii": {"value": "no"}})[0] and loads("pii=yes", {})[0], "loads unknown → runs")
