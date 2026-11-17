@@ -57,11 +57,12 @@
 /* Dark lives in CSS so it works with JS off and never flashes: explicit data-theme wins; no attribute →
    OS preference via the media block (same values — CSS offers no block reuse, the duplication is the
    platform cost of JS-off dark). Brand hues desaturated for dark surfaces (near-black, never #000 —
-   halation); semantic hues keep their family, LIGHTNESS re-tuned so text on fills keeps WCAG contrast. */
-html[data-theme="dark"]{color-scheme:dark;
+   halation); semantic hues keep their family, LIGHTNESS re-tuned so text on fills keeps WCAG contrast.
+   Both blocks are screen-only: paper is always the light palette (dark tokens in print = light text on white). */
+@media screen{html[data-theme="dark"]{color-scheme:dark;
   --primary:#8fb7f3; --accent:#38bdf8; --bg:#0f1115; --surface:#171a21; --text:#e7eaf0;
-  --ok:#45c98c; --bad:#f47c7c; --warn:#f0b429; --onprim:#0c1017; --onbad:#14181f; --onwarn:#14181f}
-@media (prefers-color-scheme:dark){
+  --ok:#45c98c; --bad:#f47c7c; --warn:#f0b429; --onprim:#0c1017; --onbad:#14181f; --onwarn:#14181f}}
+@media screen and (prefers-color-scheme:dark){
   html:not([data-theme="light"]){color-scheme:dark;
     --primary:#8fb7f3; --accent:#38bdf8; --bg:#0f1115; --surface:#171a21; --text:#e7eaf0;
     --ok:#45c98c; --bad:#f47c7c; --warn:#f0b429; --onprim:#0c1017; --onbad:#14181f; --onwarn:#14181f}}
