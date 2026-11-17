@@ -536,6 +536,9 @@ def validate(root: Path, core: Path = None) -> list:
         for rid in re.split(r"\s*[·,]\s*", r["Rule"]):
             if rid not in ids and rid.lower() not in ids and not rid.startswith("tool:"):
                 problems.append(f"row {n}: rule '{rid}' is not a rule ID, a kernel §7 principle, tool:<name> or judgment")
+        if r["Where"].startswith("host:") and not re.match(r"^host:[\w.-]+/[\w./-]+$", r["Where"]):
+            problems.append(f"row {n}: host setting '{r['Where']}' must read host:{{service}}/{{setting}}, "
+                            "e.g. host:github/branch-protection")
         m = re.match(r"^`?(.+?):(\d+)(?:-\d+)?`?$", r["Where"])
         if m:
             path, ln = m.group(1), int(m.group(2))
@@ -1212,6 +1215,10 @@ def self_test() -> int:
         for name, row in [("good", good_row)] + bad_rows:
             write(tmp, state, findings=findings + row)
             expect(bool(validate(tmp)) == (name != "good"), f"validate {name}")
+        write(tmp, state, findings=findings + good_row.replace("a/x.go:3", "host:github/branch-protection").replace(
+            "| 1 |", "| 2 |") + good_row.replace("a/x.go:3", "host:branch protection").replace("| 1 |", "| 3 |"))
+        expect([p[:6] for p in validate(tmp)] == ["row 3:"],
+               f"validate: host settings need the form host:{{service}}/{{setting}}: {validate(tmp)}")
         write(tmp, state, findings=findings + good_row.replace("LEAN-03", "DRY · yagni"))
         expect(not validate(tmp), f"validate rejects a §7 principle by its short name: {validate(tmp)}")
         write(tmp, state, findings=findings + good_row.replace("| fixed |", "| open |").replace(fixc, "—"))
