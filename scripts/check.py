@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -110,6 +111,29 @@ PERL_ONLY = re.compile(r"\\[bBsSwWdD]")
 MECH = re.compile(r"^- \*\*Mech:\*\* (?:M\b.*|[ST] .*`[^`]+`.*)$")
 
 
+def prose_greps(cmd: str) -> list:
+    """`git grep` calls in a shell command that also search Markdown: no pathspec, or only exclusions none of which
+    is ':!*.md'. Such a pattern matches the rule's own prose and every doc that names it (a hit that is no finding)."""
+    lex = shlex.shlex(cmd, posix=True, punctuation_chars=True)
+    lex.whitespace_split = True
+    try:
+        toks = list(lex)
+    except ValueError:  # unbalanced quotes: the shell would fail too
+        return [cmd]
+    found = []
+    for i in range(len(toks) - 1):
+        if toks[i] == "git" and toks[i + 1] == "grep":
+            seg = []
+            for t in toks[i + 2:]:
+                if set(t) <= set("|;&()"):
+                    break
+                seg.append(t)
+            spec = seg[seg.index("--") + 1:] if "--" in seg else []
+            if not any(s == ":!*.md" or not s.startswith(":") for s in spec):
+                found.append(" ".join(["git", "grep", *seg]))
+    return found
+
+
 def check_mech(root: Path, err):
     """A Mech line names its class; S and T name at least one command in backticks (audit.py scan runs them)."""
     for f in sorted((root / "core" / "rules").glob("*.md")):
@@ -125,6 +149,9 @@ def check_mech(root: Path, err):
                         err(f"core/rules/{f.name}:{n}: Mech grep `{cmd[:40]}` uses a Perl-only escape or -P — "
                             "grep -E and git grep -E on macOS match nothing for \\b \\s \\w \\d (a silent false clean); "
                             "use [[:space:]], [[:alnum:]_], [0-9], (^|[^[:alnum:]_])word([^[:alnum:]_]|$)")
+                    for g in prose_greps(cmd):
+                        err(f"core/rules/{f.name}:{n}: Mech `{g[:50]}` also searches Markdown, so it hits its own "
+                            "rule text — add -- ':!*.md', or name the paths (`.` to scan prose on purpose)")
 
 
 def check_principles(root: Path, err):
@@ -267,6 +294,7 @@ def self_test() -> int:
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S no command in backticks\n"),
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** S `curl -sI https://example.com`\n"),
         (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** T `git grep -nE '\\bfoo\\b'`\n"),
+        (check_mech, "core/rules/web.md", lambda s: s + "\n- **Mech:** T `git grep -nE 'foo' -- ':!*.lock' | sort`\n"),
         (check_principles, "core/kernel.md", lambda s: s.replace("| YAGNI |", "| Gate fixture principle | Never |\n| YAGNI |")),
         (check_duplicate_lines, "core/rules/web.md", lambda s: s + "\n" + DUP + "\n", {"core/rules/ux.md": "\n" + DUP + "\n"}),
         (check_consumers, "core/orphan.md", lambda s: "# orphan\n"),
