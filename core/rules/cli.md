@@ -3,8 +3,8 @@
 Loaded for command-line and terminal products (`ui∋cli-tui` or `platforms∋cli`). One command table drives parsing and help (SIM-09).
 
 ### CLI-01 [HIGH] No usable `--help` or `--version`
-- **Detect:** the entry point has no `--help`/`-h` and no `--version`; help text written by hand next to the parser instead of generated from it, so they disagree; help without a usage line, an example or the exit codes; an unknown flag or missing argument that prints a stack trace instead of the usage line.
-- **Mech:** M (run the entry point with `--help`, `--version` and an unknown flag)
+- **Detect:** read the parser and help source first; it shows most of this. The entry point has no `--help`/`-h` and no `--version`; help text written by hand next to the parser instead of generated from it, so they disagree; help without a usage line, an example or the exit codes; an unknown flag or missing argument that prints a stack trace instead of the usage line.
+- **Mech:** M (the parser source; a run only through `{audit} probe -- CMD` with `--help`, `--version` or an unknown flag, and none when the source shows that path writes anything)
 - **Fix:** let the argument parser (argparse, click, cobra, clap, commander) generate help and version; add one example per subcommand; on a usage error print the usage line to stderr and exit 2.
 - **Impact:** users cannot discover the tool or report the version they run, and scripts break on silent behaviour changes.
 - **Source:** DRY / single source of truth; Least astonishment; GNU Coding Standards, Command-Line Interfaces (`--help`, `--version`); clig.dev, Help (https://clig.dev/).
