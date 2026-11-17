@@ -206,7 +206,7 @@ def check_self_tests(root: Path, err):
         for args in (["core/ds_detect.py", "--self-test"], ["ds-audit/assets/audit.py", "--self-test"],
                      ["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"],
                      ["ds-setup/assets/probe.py", "--self-test"], ["ds-setup/assets/perms.py", "--self-test"],
-                     ["ds-research/assets/verify-brief.py", "--self-test"]):
+                     ["ds-research/assets/verify-brief.py", "--self-test"], ["install.py", "--self-test"]):
             if not (root / args[0]).exists():
                 err(f"{args[0]}: missing")
                 continue

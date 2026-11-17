@@ -8,6 +8,7 @@
   python3 install.py --check             report drift between this checkout and the installed copy; changes nothing
   python3 install.py --uninstall         remove everything dev-skills installed into DIR
   python3 install.py --dry-run           print what would change
+  python3 install.py --self-test         install, refresh, check and uninstall in a temporary directory
 
 Every install is a clean replace: everything the previous version installed (from its stamp), every skill
 that earlier versions shipped, and the old ds-quality hook files are removed first, so no old file can
@@ -146,7 +147,48 @@ def check(skills_dir: Path) -> int:
     return 1 if drift else 0
 
 
+def self_test() -> int:
+    """Dry run, install, hook refresh, drift check and uninstall in a temporary `.claude`; another skill is never touched."""
+    import contextlib
+    import io
+    import tempfile
+    fails = []
+    tmp = Path(tempfile.mkdtemp(prefix="dev-skills-install-"))
+    try:
+        skills_dir, hooks = tmp / ".claude" / "skills", tmp / ".claude" / "hooks"
+        other = skills_dir / "other-skill" / "SKILL.md"
+        other.parent.mkdir(parents=True)
+        other.write_text("not ours\n", encoding="utf-8")
+        hooks.mkdir()
+        (hooks / "ds-gate.py").write_text("# stale ds-gate hook\n", encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            install(skills_dir, repo_skills(), dry=True)
+            if sorted(p.name for p in skills_dir.iterdir()) != ["other-skill"]:
+                fails.append("--dry-run changed the skills directory")
+            install(skills_dir, repo_skills(), dry=False)
+            drift = check(skills_dir)
+            if drift:
+                fails.append("a fresh install reports drift")
+            for name, src in HOOK_FILES:
+                if not (hooks / name).is_file() or (hooks / name).read_bytes() != (REPO / src).read_bytes():
+                    fails.append(f"installed hook {name} not refreshed from {src}")
+            for p in sorted(owned(skills_dir)):
+                remove(p, False)
+        left = sorted(p.name for p in skills_dir.iterdir())
+        if left != ["other-skill"] or other.read_text(encoding="utf-8") != "not ours\n":
+            fails.append(f"uninstall left {left} or touched another skill")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    for f in fails:
+        print("  FAIL", f)
+    print("install self-test:", "all checks passed" if not fails else f"{len(fails)} failed")
+    return 1 if fails else 0
+
+
 def main(argv) -> int:
+    if "--self-test" in argv:
+        return self_test()
+
     def opt(flag):
         return argv[argv.index(flag) + 1] if flag in argv and argv.index(flag) + 1 < len(argv) else None
 
