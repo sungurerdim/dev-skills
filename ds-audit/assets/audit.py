@@ -624,6 +624,13 @@ def status_of(state: dict, findings: list) -> str:
     return "OK"
 
 
+def tally(findings: list) -> dict:
+    """The one count of rows by outcome (closing header, 'Since the last run', report.html): fixed · open · only-you."""
+    only = [r for r in findings if r["Disposition"].startswith("only you")]
+    return {"fixed": [r for r in findings if r["Disposition"] == "fixed"], "only": only,
+            "open": [r for r in findings if not r["Disposition"].startswith(CLOSED) and r not in only]}
+
+
 def kind_of(path: str) -> str:
     """The closing message's change kind (kernel §6): code, tests, docs or config."""
     ext = Path(path).suffix.lower()
@@ -660,9 +667,8 @@ def report(root: Path) -> str:
     got = {"file": sum(c["files"] for c in changes.values()), "insertion": sum(c["add"] for c in changes.values()),
            "deletion": sum(c["del"] for c in changes.values())}
     commits = git(root, "rev-list", "--count", f"{state['start']}..HEAD").strip() if state["start"] else "0"
-    fixed = [r for r in findings if r["Disposition"] == "fixed"]
-    only = [r for r in findings if r["Disposition"].startswith("only you")]
-    open_ = [r for r in findings if not r["Disposition"].startswith(CLOSED) and r not in only]
+    count = tally(findings)
+    fixed, only, open_ = count["fixed"], count["only"], count["open"]
     notes = section(text, "Notes")
     decided = [(ln.startswith("decided!:"), ln.split(":", 1)[1].strip()) for ln in notes.splitlines()
                if ln.startswith(("decided:", "decided!:"))]
@@ -699,9 +705,9 @@ def report(root: Path) -> str:
     out += ["", "Effect: " + ("; ".join(effect) if effect else "no check ran")]
     if state.get("carried"):
         prior = [r for r in findings if int(r["#"]) <= state["carried"]]
-        out.append(f"Since the last run: {len(findings) - len(prior)} new · "
-                   f"{sum(r['Disposition'] == 'fixed' for r in prior)} of {len(prior)} carried fixed · "
-                   f"{sum(not r['Disposition'].startswith(CLOSED) for r in prior)} still open")
+        was = tally(prior)
+        out.append(f"Since the last run: {len(findings) - len(prior)} new · {len(was['fixed'])} of {len(prior)} "
+                   f"carried fixed · {len(was['open'])} still open · {len(was['only'])} only you")
     if decided:
         top = sorted(decided, key=lambda d: (not d[0], not CONSEQUENTIAL.search(d[1])))[:CLOSING_DECIDED]
         out.append(f"Decided without asking — say if wrong: {len(decided)}"
@@ -796,9 +802,7 @@ PHASE_BADGE = {"done": "b-ok", "pending": "b-mute", "running": "b-info", "blocke
 def render_html(root: Path, state: dict, findings: list, status: str, minutes: int, got: dict, commits: str,
                 decided: list, only_lines: list) -> str:
     from html import escape as e
-    fixed = sum(r["Disposition"] == "fixed" for r in findings)
-    only = sum(r["Disposition"].startswith("only you") for r in findings)
-    open_ = sum(not r["Disposition"].startswith(CLOSED) for r in findings) - only
+    fixed, open_, only = (len(tally(findings)[k]) for k in ("fixed", "open", "only"))
     pct = round(100 * fixed / len(findings)) if findings else None
     color = {"OK": "var(--ok)", "WARN": "var(--warn)", "FAIL": "var(--bad)"}.get(status, "var(--mute)")
     when = time.strftime("%Y-%m-%d %H:%M", time.localtime(state["started"]))
@@ -1313,6 +1317,12 @@ def self_test() -> int:
         kept = tmp / REPORT.parent / f"report-{state['started']}.md"
         expect(kept.is_file() and crit.strip() in read(kept),
                f"init overwrote the previous run's report instead of keeping it as {kept.name}")
+        st_c, txt_c = load(tmp)
+        write(tmp, st_c, findings=section(txt_c, "Findings").replace("| open | — |", "| only you can do (rotate it) | — |"))
+        lines_c = report(tmp).splitlines()
+        since = next((ln for ln in lines_c if ln.startswith("Since the last run")), "")
+        expect("· open 0 ·" in lines_c[0] and "0 still open" in since and "1 only you" in since,
+               f"closing header and 'Since the last run' count a carried only-you row differently: {lines_c[0]} / {since}")
         state2 = load(tmp)[0]
         for p in state2["phases"].values():
             p["status"] = "done"
