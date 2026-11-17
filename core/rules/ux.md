@@ -166,21 +166,21 @@ applies_when: integrations∋openai or integrations∋anthropic
 
 ### TOK-01 [HIGH] Colours outside the token set
 - **Detect:** hex, `rgb()`, `hsl()` or platform colour literals in components instead of semantic tokens (surface, on-surface, primary, error); tokens named by hue (`blue-500`) used directly in components; status colours that are hard to tell apart or used against meaning (green for an error, red for success). Detector of SIM-06.
-- **Mech:** T `git grep -nIE '#[0-9a-fA-F]{3,8}([^0-9a-zA-Z_-]|$)|rgba?\(|hsla?\(' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte' '*.jsx' '*.tsx' ':!*token*' ':!*theme*' ':!*variables*'` · `git grep -nIE 'Color\(0x[0-9A-Fa-f]{8}\)|Colors\.[a-z]+[^a-zA-Z]' -- '*.dart' ':!*theme*'`
+- **Mech:** T `git grep -nIE '(^|[^&])#[0-9a-fA-F]{3,8}([^0-9a-zA-Z_-]|$)|rgba?\(|hsla?\(' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte' '*.jsx' '*.tsx' ':!*token*' ':!*theme*' ':!*variables*'` · `git grep -nIE 'Color\(0x[0-9A-Fa-f]{8}\)|Colors\.[a-z]+[^a-zA-Z]' -- '*.dart' ':!*theme*'`
 - **Fix:** primitive palette → semantic tokens → components; components reference semantic tokens only; one meaning per status colour.
 - **Impact:** a brand or theme change misses screens, and dark mode breaks wherever a literal hides.
 - **Source:** DRY / single source of truth; W3C Design Tokens Community Group, Format Module; Material Design 3, Color roles; SIM-06.
 
 ### TOK-02 [MEDIUM] Spacing, radius and elevation off the scale
 - **Detect:** padding, margin and gap values outside one base-unit scale (4 or 8, chosen once); more than ~5 distinct corner radii; shadow or elevation literals per component; the same role (card padding, panel header) using different steps in different places.
-- **Mech:** T `git grep -nIE '(margin|padding|gap|border-radius)[a-z-]*:[^;]*[0-9]+px' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'EdgeInsets\.[a-zA-Z]+\([^)]*[0-9]|BorderRadius\.circular\([0-9]|elevation:[[:space:]]*[0-9]' -- '*.dart' ':!*theme*'`
+- **Mech:** T `git grep -nIE '(margin|padding|gap|border-radius)[a-z-]*:[^;]*[0-9]+px' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'EdgeInsets\.[a-zA-Z]+\([^)]*[0-9]|BorderRadius\.circular\([0-9]|elevation:[[:space:]]*[0-9]' -- '*.dart' ':!*theme*'`
 - **Fix:** spacing, radius and elevation tokens with role names on top (`space-card`, `radius-control`); enforce with a linter rule (stylelint `declaration-property-value-allowed-list`, a custom lint) where the stack has one.
 - **Impact:** layouts drift by a few pixels everywhere, and every spacing change becomes a hunt.
 - **Source:** DRY / single source of truth; Material Design, Layout spacing; W3C Design Tokens Community Group; SIM-06.
 
 ### TOK-03 [MEDIUM] Type off the scale or hard to read
 - **Detect:** font sizes outside the type scale; body text smaller than the platform's default body style or any text under 11 pt/sp; body line height outside ~1.4–1.6; prose lines wider than ~80 characters.
-- **Mech:** T `git grep -nIE 'font-size:[[:space:]]*[0-9.]+px' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'fontSize:[[:space:]]*[0-9]' -- '*.dart' '*.jsx' '*.tsx' ':!*theme*'`
+- **Mech:** T `git grep -nIE 'font-size:[[:space:]]*[0-9.]+px' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte' ':!*token*' ':!*theme*'` · `git grep -nIE 'fontSize:[[:space:]]*[0-9]' -- '*.dart' '*.jsx' '*.tsx' ':!*theme*'`
 - **Fix:** a named type scale (display, title, body, label) in tokens or the platform text styles; `max-width` around 65ch on prose.
 - **Impact:** text that is too small, cramped or too wide slows reading and drives zooming.
 - **Source:** Material Design 3, Type scale; Apple HIG, Typography; WCAG 2.2 SC 1.4.8 (AAA, line length).
@@ -208,7 +208,7 @@ applies_when: integrations∋openai or integrations∋anthropic
 
 ### RSP-04 [HIGH] Text overflows its container
 - **Detect:** long words, URLs, user names or translated strings that overflow fixed-width rows, buttons and table cells; flex children without `min-width: 0`; no wrapping or truncation policy; Flutter `Row` with unbounded `Text` (overflow stripes), fixed-width native labels.
-- **Mech:** T `git grep -nIE 'white-space:[[:space:]]*nowrap' -- '*.css' '*.scss' '*.less' '*.vue' '*.svelte'`
+- **Mech:** T `git grep -nIE 'white-space:[[:space:]]*nowrap' -- '*.html' '*.css' '*.scss' '*.less' '*.vue' '*.svelte'`
 - **Fix:** wrap by default; truncate deliberately with the full text available (tooltip or detail view); `min-width: 0` and `overflow-wrap: anywhere` where needed; `Flexible`/`Expanded` around native text; test with long and translated strings (I18N-01 pseudo-locale).
 - **Impact:** overflowing text hides content or controls, worst in longer languages.
 - **Source:** MDN, overflow-wrap and text-overflow; Flutter, Common Flutter errors (RenderFlex overflowed).
