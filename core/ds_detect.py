@@ -360,7 +360,8 @@ def signals(root) -> dict:
     dep_names = [d["name"].lower() for d in deps(root, names)]
     manifest = "\n".join(dep_names)  # one dependency name per line: fragments match names, never module paths
     env = "\n".join(read(root / n) for n in names if re.search(r"(^|/)\.env\.(example|sample|template)$", n)).lower()
-    src = [n for n in names if Path(n).suffix.lower() in SRC]
+    # this detector's own copy is skipped: its patterns and self-test fixtures match themselves (api=rest, auth=other)
+    src = [n for n in names if Path(n).suffix.lower() in SRC and Path(n).name != Path(__file__).name]
     out = {}
 
     def put(key, value, by="file"):
@@ -513,6 +514,10 @@ def self_test() -> int:
         empty = signals(tmp)
         if empty["ui"]["value"] != "none" or empty["tests"]["value"] != "none" or empty["size"]["value"] != "small":
             fails.append(f"empty repo: {line(empty)}")
+        w("core/ds_detect.py", Path(__file__).read_text(encoding="utf-8"))  # its regexes and fixtures are not the project's
+        own = signals(tmp)
+        if own["api"]["value"] != "none" or own["auth"]["value"] != "none":
+            fails.append(f"detector matched its own source: api={own['api']['value']} auth={own['auth']['value']}")
         w("package.json", '{"dependencies": {"express": "4", "stripe": "1", "pg": "8"}, "devDependencies": {"vitest": "1"}}')
         w("src/server.ts", "const app = express();\napp.get('/x', h)\n")
         w("src/App.tsx", "export const A = 1\n")
