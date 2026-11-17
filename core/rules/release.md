@@ -24,7 +24,7 @@ Release workflows publishing to package registries must use short-lived OIDC tru
 ## Backup, DR & Resilience
 
 ### DOP-30 [HIGH] Backup & DR Posture (3-2-1-1-0)
-Infra-level backups follow 3-2-1-1-0 with tested recovery; DR objectives are explicit. (Database-level backup/restore checks live in [database.md](database.md) — this rule covers the infrastructure posture.)
+Infra-level backups follow 3-2-1-1-0 with tested recovery; DR objectives are explicit. Database backups are DEP-31 and DEP-36.
 - **Detect:**
   - Backup config with no immutable/air-gapped tier (object-lock/WORM): 3 copies, 2 media, 1 offsite, 1 immutable, 0 errors on recovery test
   - Backup infrastructure sharing credentials/network segment with production admin accounts — backups are an active ransomware target (Veeam-reported: 89% of surveyed orgs had backup repositories specifically targeted)

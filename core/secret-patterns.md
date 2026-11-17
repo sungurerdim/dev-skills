@@ -31,6 +31,10 @@ Exclude `.git/`, `node_modules/`, `build/`, `dist/`, `.dart_tool/`, `vendor/`, `
 | `gh[oursp]_[A-Za-z0-9]{36}` | GitHub OAuth/user/server/refresh tokens |
 | `xox[baprs]-[A-Za-z0-9-]+` | Slack token |
 | `glpat-[A-Za-z0-9_-]{20,}` | GitLab PAT |
+| `npm_[A-Za-z0-9]{36}` | npm access token |
+| `SG\.[A-Za-z0-9=_.-]{66}` | SendGrid API key |
+| `SK[0-9a-fA-F]{32}` | Twilio API key |
+| `hooks\.slack\.com/(services\|workflows\|triggers)/[A-Za-z0-9+/]{43,56}` | Slack webhook URL |
 | `(?i)(mongodb(\+srv)?\|postgres(ql)?\|mysql\|redis\|amqp)://[^:\s]+:[^@\s]{4,}@` | Connection URL with embedded password |
 | `eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}` | JWT literal (flag in source and config only; ignore in tests named `*jwt*`) |
 | `(?i)-----BEGIN CERTIFICATE-----` | Certificate — LOW unless paired with a key |

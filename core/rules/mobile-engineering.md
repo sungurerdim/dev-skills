@@ -8,7 +8,7 @@ Applied alongside the ARC/HYB/NET rules below — these are cross-rule principle
 
 **arch scope hybrid checks** [hybrid shell detected]: run HYB-01–04 (§ Hybrid & WebView Bridge below) — WebView origin/bridge exposure in the committed `capacitor.config.*`, plugin dead-load audit (every plugin needs a consumer, searched repo-wide — a scoped search misses root entry files), the web-build → `cap sync` → native-build chain, and native behaviors the WebView doesn't supply. Not hybrid → skip silently.
 
-**network + perf scope reliability checks** ([network.md](network.md) NWK-07, NWK-10): flag missing — timeout on every API call, retry-with-backoff on transient failures, offline/slow-network degradation, app-lifecycle handlers (background→foreground), idempotency keys on payment/order/write endpoints, logging surviving restart, fail-fast validation at every boundary (deep links, push, intent extras).
+**network + perf scope reliability checks** ([security.md](security.md) NWK-07, NWK-10): flag missing — timeout on every API call, retry-with-backoff on transient failures, offline/slow-network degradation, app-lifecycle handlers (background→foreground), idempotency keys on payment/order/write endpoints, logging surviving restart, fail-fast validation at every boundary (deep links, push, intent extras).
 
 ## Architecture & Code Quality
 

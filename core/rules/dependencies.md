@@ -106,3 +106,16 @@ Beyond pinning (DOP-14): every dependency is real, vetted, and continuously scan
 - **Fix:** Run SCA in CI (osv-scanner, Dependabot, Snyk, Trivy). Before adding a dependency, confirm it exists in the registry, predates the project, and has real downloads; reject near-miss / cross-ecosystem names. Commit lockfiles with integrity hashes.
 - **Impact:** A hallucinated or slopsquatted package name gets installed with full code-execution trust the moment it resolves — the same trust a legitimate dependency earns only after years of scrutiny.
 - **Source:** [CSA — Slopsquatting (2026)](https://labs.cloudsecurityalliance.org/research/csa-research-note-slopsquatting-ai-supply-chain-20260419-csa/); USENIX Security '25 (19.7% package hallucination)
+
+### SEC-14 [HIGH] Dependency License Compliance Scanning
+Every dependency's license is known, scanned automatically, and compatible with the project's distribution model.
+- **Detect:**
+  - No SBOM (SPDX/CycloneDX) generated and no automated license scanner (FOSSA, Snyk, `license-checker`, ScanCode) configured in CI/pre-commit
+  - GPL/AGPL-licensed dependency present in a proprietary or permissively-licensed distribution with no compliance review recorded
+  - LGPL dependency statically linked into proprietary code (dynamic linking required to avoid copyleft propagation)
+  - Apache 2.0 dependency distributed without its NOTICE file; MIT/BSD dependency distributed without copyright/license text preserved
+  - Large verbatim blocks of unknown provenance (often AI-generated) carrying third-party or copyleft code without attribution
+- **Mech:** M (the license scanner's output when present)
+- **Fix:** Generate and maintain an SBOM (SPDX or CycloneDX format); wire a license scanner into CI/pre-commit that fails the build on a disallowed license; use LGPL dependencies via dynamic linking only; preserve NOTICE/copyright/license files in every distribution; verify provenance of large verbatim blocks before merge; document any borderline license decision before merge.
+- **Impact:** An unreviewed GPL/AGPL dependency in a proprietary build, or a statically-linked LGPL dependency, converts a routine install into a license violation discoverable by the rights-holder at any time, with remedies up to source disclosure or a distribution injunction.
+- **Source:** [SPDX specification](https://spdx.dev/); [OpenChain ISO/IEC 5230](https://www.openchainproject.org/)

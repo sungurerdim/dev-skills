@@ -14,11 +14,14 @@ The **Standards** column names what the area is checked against — apply them b
 | `code` | build | code.md | always | ARC (code level) · TST-06 | DRY · KISS · cyclomatic and cognitive complexity · CWE-362/367/407/1333 |
 | `test` | build | test.md | always (`tests=none` is itself a finding) | TST | test pyramid · mutation testing · property-based testing · contract testing (Pact) · Semantic Versioning |
 | `perf` | build | perf.md | `ui≠none` or `api≠none` | PRF · NET · COST · RTP | Core Web Vitals (LCP, INP, CLS) · RFC 9111 HTTP caching · CWE-400/770 |
-| `sec` | safe | security.md · security-arch.md · network.md · `../secret-patterns.md` | always | SEC · SAR · NWK | OWASP Top 10 (2025) · OWASP ASVS 5.0 · OWASP API Security Top 10 · NIST SSDF (SP 800-218) · HSTS |
-| `privacy` | safe | privacy.md · templates: [dpia](../templates/dpia.md), [breach-notification](../templates/breach-notification.md), [privacy-policy](../templates/privacy-policy.md), [processor-registry](../templates/processor-registry.md) | `pii=yes` | PRV | GDPR · UK GDPR · KVKK · CCPA/CPRA · LGPD · PIPL · ePrivacy · EU AI Act · PCI DSS |
+| `sec` | safe | security.md · `../secret-patterns.md` | always | SEC · SAR · NWK | OWASP Top 10 (2025) · OWASP ASVS 5.0 · OWASP API Security Top 10 · NIST SSDF (SP 800-218) · HSTS |
+| `privacy` | safe | privacy.md · templates: [dpia](../templates/dpia.md), [breach-notification](../templates/breach-notification.md), [privacy-policy](../templates/privacy-policy.md), [processor-registry](../templates/processor-registry.md) | `pii=yes` | PRV | GDPR principles · ePrivacy · CCPA/CPRA · NIST SP 800-122 |
+| `privacy-eu` | safe | privacy-eu.md | `jurisdiction∋eu` or `jurisdiction∋uk` | PRV | GDPR · UK GDPR · EU AI Act · Data Act · Cyber Resilience Act · DSA |
+| `privacy-us` | safe | privacy-us.md | `jurisdiction∋us` or `jurisdiction∋us-ca` | PRV | CCPA/CPRA · COPPA · HIPAA |
+| `privacy-intl` | safe | privacy-intl.md | `jurisdiction∋tr` or `jurisdiction∋br` or `jurisdiction∋cn` or `jurisdiction∋kr` or `jurisdiction∋th` or `jurisdiction∋sg` or `jurisdiction∋ca-qc` | PRV | KVKK · LGPD · PIPL · PIPA · PDPA · Quebec Law 25 |
 | `auth` | safe | auth.md | `auth≠none` | AUTH | RFC 9700 (OAuth 2.0 Security BCP) · NIST SP 800-63B |
 | `api` | safe | api.md | `api≠none` | API | RFC 9457 Problem Details · OpenAPI · OWASP API Security Top 10 |
-| `db` | safe | database.md · data-pipeline.md | `db≠none` | DB · DP | 3-2-1 backups · expand/contract migrations |
+| `db` | safe | database.md | `db≠none` | DB · DP | OWASP Database Security Cheat Sheet · CIS Benchmarks · expand/contract migrations |
 | `web` | surface | web.md | `ui∋web` | WEB | HSTS · CSP · Core Web Vitals |
 | `a11y` | surface | a11y.md | `ui≠none` | AXE | WCAG 2.2 AA · WAI-ARIA APG · EN 301 549 · EAA |
 | `ux` | surface | ux.md · ui-components.md · ui-design-system.md · ui-responsive.md · ui-scheduling.md | `ui≠none` (scheduling: calendar/booking UI present) | UX · CMP · INT · THM · TOK · RSP · SCH | Nielsen's 10 heuristics · Fitts / Hick / Jakob / Tesler / Postel laws · W3C Design Tokens (DTCG) |
