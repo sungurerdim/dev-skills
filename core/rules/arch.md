@@ -4,7 +4,7 @@ Module-level design for any stack. Code-level checks (errors, complexity, duplic
 
 ### ARC-01 [HIGH] Business logic or data access in entry points
 - **Detect:** a route handler, controller, CLI command, UI event handler or message consumer that makes business decisions, computes, or queries storage itself instead of parse input → call one service or use case → format output; a lower layer importing the transport layer.
-- **Mech:** T `git grep -nIE '\b(SELECT|INSERT INTO|UPDATE|DELETE FROM)\b|\.(query|execute|findMany|findOne|aggregate)\(' -- '*controller*' '*handler*' '*route*' '*views*' '*endpoint*' ':!*.md'`
+- **Mech:** T `git grep -nIE '(^|[^[:alnum:]_])(SELECT|INSERT INTO|UPDATE|DELETE FROM)([^[:alnum:]_]|$)|\.(query|execute|findMany|findOne|aggregate)\(' -- '*controller*' '*handler*' '*route*' '*views*' '*endpoint*' ':!*.md'`
 - **Fix:** move the logic into a service or use-case function; the entry point keeps only parsing, the call and formatting.
 - **Impact:** logic inside an entry point cannot be reused by another transport or unit-tested without it, and each route re-implements the same rule.
 - **Source:** Martin, *Clean Architecture*; Cockburn, Hexagonal Architecture (ports and adapters).

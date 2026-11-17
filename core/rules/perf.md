@@ -40,7 +40,7 @@ applies_when: ui≠none
 
 ### RTP-01 [CRITICAL] Unbounded in-memory growth
 - **Detect:** a map, dict or list used as a cache with no maximum size or TTL; module-level or static collections that gain entries per request; memoization with no bound.
-- **Mech:** T `git grep -nIE '@(functools\.)?cache\b|lru_cache\(maxsize=None\)|static .*Map<|(const|let|var) \w+ = new Map\(\)' -- ':!*test*' ':!*.md'`
+- **Mech:** T `git grep -nIE '@(functools\.)?cache([^[:alnum:]_]|$)|lru_cache\(maxsize=None\)|static .*Map<|(const|let|var) [[:alnum:]_]+ = new Map\(\)' -- ':!*test*' ':!*.md'`
 - **Fix:** a maximum size plus eviction (LRU or TTL) using the platform's bounded cache.
 - **Impact:** the process grows until it runs out of memory and crashes — slowly, then suddenly.
 - **Source:** CWE-770; OWASP API4:2023 Unrestricted Resource Consumption.
@@ -78,7 +78,7 @@ applies_when: ui≠none
 ### PRF-09 [HIGH] Animation or layout reads force layout every frame
 applies_when: ui≠none
 - **Detect:** animating layout properties (width, height, top, margin) instead of transform and opacity; layout reads (`offsetHeight`, `getBoundingClientRect`) right after writes or inside loops and scroll handlers; opacity animated over a large subtree; animation callbacks rebuilding static children.
-- **Mech:** T `git grep -nIE 'offset(Height|Width|Top|Left)\b|getBoundingClientRect\(' -- '*.js' '*.ts' '*.jsx' '*.tsx' '*.vue' '*.svelte'`
+- **Mech:** T `git grep -nIE 'offset(Height|Width|Top|Left)([^[:alnum:]_]|$)|getBoundingClientRect\(' -- '*.js' '*.ts' '*.jsx' '*.tsx' '*.vue' '*.svelte'`
 - **Fix:** animate compositor-only properties through the platform's GPU path; batch reads before writes in one frame; build static children once outside the animation.
 - **Impact:** each forced layout re-runs style and layout mid-frame — the main cause of visible jank in lists, drags and animations.
 - **Source:** web.dev, Avoid large, complex layouts and layout thrashing; Flutter, performance best practices.
