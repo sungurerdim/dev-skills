@@ -5,14 +5,14 @@ Resolved once per run by `ds_detect.py`; never guessed. They decide which `core/
 ## The line
 
 ```
-Signals: ui=web,ios api=rest db=postgres auth=jwt billing=stripe pii=yes i18n=no tests=vitest ci=github deploy=docker platforms=web,ios audience=public jurisdiction=eu,tr integrations=stripe,sentry mobile=flutter
+Signals: ui=web,ios api=rest db=postgres auth=jwt billing=stripe pii=yes i18n=no tests=vitest ci=github deploy=docker platforms=web,ios audience=public integrations=stripe,sentry mobile=flutter
 ```
 
 Absent key = `unknown` (the consumer detects it); `none` = detected absent. Values are lowercase tokens; multi-valued keys are comma-joined.
 
 ## Keys
 
-Detected by `ds_detect.py signals` (this directory): one call, the same result for every skill. `By`: `file` = a file or dependency fact; `tool` = an installed CLI answered; `judge` = a heuristic shown with `?` that the model confirms by reading the code it rests on; `—` = only the project's legal pages, locales or a person can say.
+Detected by `ds_detect.py signals` (this directory): one call, the same result for every skill. `By`: `file` = a file or dependency fact; `tool` = an installed CLI answered; `judge` = a heuristic shown with `?` that the model confirms by reading the code it rests on.
 
 | Key | Values | By |
 |-----|--------|----|
@@ -29,7 +29,6 @@ Detected by `ds_detect.py signals` (this directory): one call, the same result f
 | `platforms` | `web` · `ios` · `android` · `desktop` · `cli` · `library` | file |
 | `mobile` | `none` · `flutter` · `react-native` · `expo` · `swiftui` · `compose` · `kmp` · `capacitor` | file |
 | `audience` | `public` · `internal` · `developers` | judge |
-| `jurisdiction` | ISO country/region tokens (`eu`, `uk`, `us-ca`, `tr`, …) or `unknown` | — |
 | `integrations` | `none` or provider names | file |
 | `public_repo` | `yes` · `no` · `unknown` | tool (`gh`) |
 | `secrets_mgmt` | `none` · `env` · `vault` · `cloud-sm` | file |

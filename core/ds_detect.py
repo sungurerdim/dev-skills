@@ -7,9 +7,8 @@
   ds_detect.py --self-test      fixture checks on temp repos
 
 `by` says how a value was reached: `file` (a file or manifest fact), `tool` (an installed CLI answered), `judge`
-(a heuristic the model confirms by reading: auth, pii, audience) or `unknown` (jurisdiction: only a person or the
-project's legal pages can say). Imported by ds-gate (hook) and ds-audit; ds-gate's installer copies this file next to
-its hook so the hook stays one directory.
+(a heuristic the model confirms by reading: auth, pii, audience). Imported by ds-gate (hook) and ds-audit; ds-gate's
+installer copies this file next to its hook so the hook stays one directory.
 """
 from __future__ import annotations
 
@@ -483,7 +482,6 @@ def signals(root) -> dict:
 
     put("audience", "developers" if platforms <= {"cli", "library"} and platforms else
         "public" if public == "yes" else "unknown", "judge")
-    put("jurisdiction", "unknown", "unknown")
 
     sm = "env" if env else "none"
     if re.search(r"vault|doppler|1password|infisical", manifest):  # dependency names only
@@ -525,7 +523,7 @@ def self_test() -> int:
         w("node_modules/x/index.html", "<html>")
         s = signals(tmp)
         want = {"ui": "web", "api": "rest", "db": "postgres", "billing": "stripe", "pii": "yes", "tests": "vitest",
-                "ci": "github", "deploy": "docker", "secrets_mgmt": "env", "jurisdiction": "unknown"}
+                "ci": "github", "deploy": "docker", "secrets_mgmt": "env"}
         for k, v in want.items():
             if s[k]["value"] != v:
                 fails.append(f"{k}: {s[k]['value']} != {v}")
