@@ -50,6 +50,17 @@ def files(root) -> list:
     return sorted(n for n in names if not SKIP.search(n) and (root / n).is_file())
 
 
+GIT_LOCAL = ("GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+             "GIT_COMMON_DIR", "GIT_PREFIX")
+
+
+def isolate_git(env=None) -> dict:
+    """Drop the repo-location variables git sets for a hook (a pre-commit of `commit --only` points GIT_INDEX_FILE at a
+    temporary index); a self-test's temp repo would otherwise write into the outer commit. Returns what was removed."""
+    env = os.environ if env is None else env
+    return {k: env.pop(k) for k in GIT_LOCAL if k in env}
+
+
 def read(path) -> str:
     try:
         return Path(path).read_text(encoding="utf-8", errors="replace")
@@ -494,6 +505,7 @@ def line(sig: dict) -> str:
 
 def self_test() -> int:
     fails = []
+    saved = isolate_git()
     tmp = Path(tempfile.mkdtemp(prefix="ds-detect-"))
     try:
         def w(rel, body=""):
@@ -523,6 +535,7 @@ def self_test() -> int:
             fails.append("judged value not marked with ?")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+        os.environ.update(saved)
     for f in fails:
         print("  FAIL", f)
     print("ds_detect self-test:", "all checks passed" if not fails else f"{len(fails)} failed")

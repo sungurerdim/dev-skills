@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -159,16 +160,35 @@ def check_versions(root: Path, err):
 
 
 def check_self_tests(root: Path, err):
-    for args in (["core/ds_detect.py", "--self-test"], ["ds-audit/assets/audit.py", "--self-test"],
-                 ["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"],
-                 ["ds-setup/assets/probe.py", "--self-test"], ["ds-setup/assets/perms.py", "--self-test"],
-                 ["ds-research/assets/verify-brief.py", "--self-test"]):
-        if not (root / args[0]).exists():
-            err(f"{args[0]}: missing")
-            continue
-        r = subprocess.run([sys.executable, "-B", *args], cwd=str(root), capture_output=True, text=True)
-        if r.returncode != 0:
-            err(f"{args[0]} self-test failed (exit {r.returncode}): {(r.stdout + r.stderr).strip()[-300:]}")
+    """Every asset self-test passes, and runs safely inside a git hook: git points GIT_INDEX_FILE at the outer commit's
+    index (`commit --only`), and a self-test's temp repo must never write into it."""
+    outer = Path(tempfile.mkdtemp(prefix="ds-hook-")).resolve()
+    clean = {k: v for k, v in os.environ.items()  # this gate itself runs inside the pre-commit hook
+             if k not in ("GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_OBJECT_DIRECTORY", "GIT_COMMON_DIR",
+                          "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX")}
+    try:
+        for a in (["init", "-q"], ["config", "user.email", "t@t"], ["config", "user.name", "t"]):
+            subprocess.run(["git", "-C", str(outer), *a], check=True, capture_output=True, env=clean)
+        (outer / "outer.txt").write_text("x\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(outer), "add", "outer.txt"], check=True, capture_output=True, env=clean)
+        index = outer / ".git" / "index"
+        before = index.read_bytes()
+        env = dict(clean, GIT_INDEX_FILE=str(index))
+        for args in (["core/ds_detect.py", "--self-test"], ["ds-audit/assets/audit.py", "--self-test"],
+                     ["ds-gate/assets/ds-gate.py", "--self-test"], ["ds-setup/assets/test_rc_deny.py"],
+                     ["ds-setup/assets/probe.py", "--self-test"], ["ds-setup/assets/perms.py", "--self-test"],
+                     ["ds-research/assets/verify-brief.py", "--self-test"]):
+            if not (root / args[0]).exists():
+                err(f"{args[0]}: missing")
+                continue
+            r = subprocess.run([sys.executable, "-B", *args], cwd=str(root), capture_output=True, text=True, env=env)
+            if r.returncode != 0:
+                err(f"{args[0]} self-test failed (exit {r.returncode}): {(r.stdout + r.stderr).strip()[-300:]}")
+            if index.read_bytes() != before:
+                err(f"{args[0]} self-test wrote into the outer git index (GIT_INDEX_FILE leak) — unsafe in a hook")
+                index.write_bytes(before)
+    finally:
+        shutil.rmtree(outer, ignore_errors=True)
 
 
 def check_spelling(root: Path, err):
