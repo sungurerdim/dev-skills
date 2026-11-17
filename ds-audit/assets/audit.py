@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: MIT
 """ds-audit mechanics — Python 3.8+ stdlib only. Everything countable is done here; the model writes findings.
 
-One run leaves one file: ds/audit/report.md (machine state in its first line, then Closing, Phases, Findings,
-Notes). The model appends Findings rows and Notes lines; every other part is written by this script.
+A run leaves ds/audit/report.md (machine state in its first line, then Closing, Phases, Findings, Notes; the model
+appends Findings rows and Notes lines, this script writes the rest) and ds/audit/report.html (the same report for
+people: self-contained, responsive, light/dark, printable), both git-excluded.
 
   audit.py init [WORD ...]           start or resume a run: fetch, fast-forward, scope, signals, check command,
                                      phase plan; prints JSON (what runs next and why)
@@ -13,13 +14,13 @@ Notes). The model appends Findings rows and Notes lines; every other part is wri
                                      re-plans the areas of phases not yet started
   audit.py validate                  Findings schema, rule IDs, file:line, commits, totals; exit 1 = red
   audit.py phase PHASE done|blocked [REASON]   close a phase (done refuses open rows or a red validate)
-  audit.py report                    rewrite Closing + Phases, print the closing message (kernel §6)
+  audit.py report                    rewrite Closing + Phases, write report.html, print the closing message (kernel §6)
   audit.py lean [--depth N]          lean inventory: units, lines, fan-in, commits, deps, docs, entry points
   audit.py lean-check [SCOPE.md]     every unit tiered, no stale or unapplied rows, Budget holds; exit 1 = red
   audit.py rules [--since SHA] [--also PATH ...]   recorded rules with blame date, subject, absolute, reason, refs
   audit.py --self-test               prove every command on temp repos
 
-Global option: --root DIR (default: the current directory). Words: all, dry, ask, a phase name, area words.
+Global option: --root DIR (default: the current directory). Words: all, dry, ask, auto, a phase name, area words.
 """
 from __future__ import annotations
 
@@ -38,11 +39,12 @@ CORE = next((d for d in (HERE.parent / "core", HERE.parent.parent / "core") if (
 if CORE is None:
     sys.exit("audit.py: core/ds_detect.py not found next to this skill — reinstall dev-skills (python3 install.py)")
 sys.path.insert(0, str(CORE))
-from ds_detect import SRC, check_cmd, deps, files, git, line, read, signals  # noqa: E402
+from ds_detect import SRC, check_cmd, deps, files, git, isolate_git, line, read, signals  # noqa: E402
 
 PHASES = ("lean", "build", "safe", "surface", "ship")
 SEVS = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
 REPORT = Path("ds") / "audit" / "report.md"
+BRANCH = "ds/audit"  # every commit of an all / phase / area run lands here; the owner reviews and merges it once
 STATE = re.compile(r"^<!-- ds-audit-state (.*) -->$", re.M)
 COLS = ("#", "Phase", "Sev", "Area", "Rule", "Where", "Finding", "Prevents", "Plan", "Disposition", "Commit")
 DISPOSITION = re.compile(r"^(open|fixed|reverted \(.+\)|skipped \(.+\)|not applicable \(.+\)|only you can do \(.+\))$")
@@ -144,10 +146,10 @@ def save_state(root: Path, state: dict):
 def parse_words(words) -> dict:
     flat = [w.lstrip("-") for arg in words for w in re.split(r"[,\s=]+", arg) if w.strip("-")]
     known = {r["word"] for r in area_table()}
-    out = {"all": "all" in flat, "dry": "dry" in flat, "ask": "ask" in flat,
+    out = {"all": "all" in flat, "dry": "dry" in flat, "ask": "ask" in flat, "auto": "auto" in flat,
            "phases": [w for w in flat if w in PHASES], "areas": [w for w in flat if w in known and w not in PHASES],
            "path": next((w for w in flat if "/" in w or w == "."), None)}
-    out["unknown"] = [w for w in flat if w not in ("all", "dry", "ask") and w not in PHASES and w not in known
+    out["unknown"] = [w for w in flat if w not in ("all", "dry", "ask", "auto") and w not in PHASES and w not in known
                       and w != out["path"]]
     return out
 
@@ -162,6 +164,9 @@ def init(root: Path, words) -> dict:
     if w["unknown"]:
         raise SystemExit(f"audit.py init: unknown word(s) {w['unknown']} — expected all, dry, ask, a phase "
                          f"({', '.join(PHASES)}) or an area word from core/rules/README.md")
+    if w["ask"] and w["auto"]:
+        raise SystemExit("audit.py init: `ask` and `auto` exclude each other — `ask` asks every decision, "
+                         "`auto` decides every one; pick one")
     is_git = bool(git(root, "rev-parse", "--git-dir"))
     notes = []
     if not is_git:
@@ -203,6 +208,26 @@ def init(root: Path, words) -> dict:
         changed = sorted(set(diff) | {ln[3:] for ln in git(root, "status", "--porcelain").splitlines()})
         if not base:
             notes.append("decided: no upstream — changed scope is uncommitted files only")
+    home = git(root, "rev-parse", "--abbrev-ref", "HEAD").strip()
+    branch = home
+    if is_git and scope != "changed" and not w["dry"] and home != BRANCH:
+        exists = bool(git(root, "rev-parse", "--verify", "--quiet", BRANCH))
+        r = subprocess.run(["git", "-C", str(root), "switch", *([] if exists else ["-c"]), BRANCH],
+                           capture_output=True, text=True, env=ENV, timeout=60)
+        if r.returncode == 0:
+            branch = BRANCH
+            notes.append(f"decided: commits go to the local branch {BRANCH} ({'resumed' if exists else 'new'}); "
+                         f"{home} is not touched")
+            start = git(root, "rev-parse", "HEAD").strip() if not exists else start
+        else:
+            w["dry"] = True
+            notes.append(f"only-you: could not switch to {BRANCH} ({r.stderr.strip()[-160:]}) — run is dry; "
+                         f"commit or stash, then rerun")
+    if branch == BRANCH:
+        for wf in (n for n in files(root) if re.match(r"^\.github/workflows/.+\.ya?ml$", n)):
+            body = read(root / wf)
+            if re.search(r"^\s*(on:\s*\[?[^\n]*\bpush\b|push\s*:)", body, re.M) and "branches" not in body:
+                notes.append(f"decided: pushing {BRANCH} triggers {wf} (runs on a push to any branch)")
     sig = signals(root)
     cmd = check_cmd(root)
     plan = make_plan(sig, w, scope, root)
@@ -212,8 +237,9 @@ def init(root: Path, words) -> dict:
         notes.append("decided: nothing changed — /ds-audit all audits the whole project")
         for p in plan.values():
             p["status"] = "skipped"
-    state = {"v": 1, "words": {k: w[k] for k in ("phases", "areas")}, "sig": sig, "start": start, "started": int(time.time()), "base": base, "scope": scope, "changed": changed,
-             "dry": w["dry"], "ask": w["ask"], "carried": 0, "signals": line(sig), "check": cmd, "checks": {}, "phases": plan}
+    state = {"v": 1, "words": {k: w[k] for k in ("phases", "areas")}, "sig": sig, "start": start,
+             "home": home, "branch": branch, "started": int(time.time()), "base": base, "scope": scope, "changed": changed,
+             "dry": w["dry"], "ask": w["ask"], "auto": w["auto"], "carried": 0, "signals": line(sig), "check": cmd, "checks": {}, "phases": plan}
     carried = [r for r in rows(text) if not r["Disposition"].startswith(CLOSED)] if text else []
     findings = "| " + " | ".join(COLS) + " |\n|" + "|".join("---" for _ in COLS) + "|\n" + "".join(
         "| " + " | ".join([str(i)] + [r[c] for c in COLS[1:9]] + ["open", "—"]) + " |\n"
@@ -389,7 +415,29 @@ def phase(root: Path, name: str, status: str, reason: str = "") -> str:
     if reason:
         state["phases"][name]["reason"] = reason
     save_state(root, state)
+    if status == "done":
+        push(root, state)
     return next((n for n, p in state["phases"].items() if p["status"] == "pending"), "")
+
+
+def push(root: Path, state: dict):
+    """Back up the review branch after each closed phase: no force, no other ref; refused -> only-you."""
+    if state.get("branch") != BRANCH or state.get("dry") or "origin" not in git(root, "remote").split():
+        return
+    try:
+        r = subprocess.run(["git", "-C", str(root), "push", "--quiet", "-u", "origin", BRANCH], capture_output=True,
+                           text=True, env=ENV, timeout=120)
+        ok, why = r.returncode == 0, r.stderr.strip()[-160:]
+    except subprocess.TimeoutExpired:
+        ok, why = False, "timeout"
+    if not ok:
+        _, text = load(root)
+        notes = section(text, "Notes").strip()
+        line_ = f"only-you: push of {BRANCH} refused ({why}) — fix the remote side, then `git push -u origin {BRANCH}`"
+        if line_ not in notes:
+            state, _ = load(root)
+            write(root, state, section(text, "Closing").strip(), section(text, "Phases").strip(),
+                  section(text, "Findings"), (notes + "\n" + line_).strip())
 
 
 def status_of(state: dict, findings: list) -> str:
@@ -422,10 +470,14 @@ def report(root: Path) -> str:
     decided = [ln.split(":", 1)[1].strip() for ln in notes.splitlines() if ln.startswith("decided:")]
     only_lines = [ln.split(":", 1)[1].strip() for ln in notes.splitlines() if ln.startswith("only-you:")]
     only_lines += [f"{r['Where']}: {r['Disposition'][len('only you can do ('):-1]}" for r in only]
+    if state.get("branch") == BRANCH and commits not in ("", "0"):
+        only_lines.append(f"review and merge {BRANCH}: `git diff {state['start'][:12]}...{BRANCH}` · "
+                          f"`git switch {state['home']}` · `git merge --ff-only {BRANCH}` · `git branch -d {BRANCH}` · "
+                          f"`git push origin --delete {BRANCH}` (or drop it all: `git branch -D {BRANCH}`)")
     scope = f"changed: {len(state['changed'])} files" if state["scope"] == "changed" else state["scope"]
     out = [f"ds-audit: {status} · {minutes} min · scope {scope} · findings {len(findings)} · fixed {len(fixed)} · "
            f"open {len(open_)} · only-you {len(only)}",
-           f"Asked: /ds-audit {state['scope']}{' dry' if state['dry'] else ''}", "",
+           f"Asked: /ds-audit {state['scope']}" + "".join(f" {k}" for k in ("dry", "ask", "auto") if state.get(k)), "",
            "| Change | Files | Lines | Commits |", "|--------|------:|------:|--------:|",
            f"| code | {got.get('file', 0)} | +{got.get('insertion', 0)} −{got.get('deletion', 0)} | {commits} |", ""]
     if findings:
@@ -457,7 +509,141 @@ def report(root: Path) -> str:
         + " · ".join(f"{a} {v}" for a, v in p["areas"].items()) + " |\n" for n, p in state["phases"].items())
     phases_md += f"\n{state['signals']}\n"
     write(root, state, closing, phases_md, section(text, "Findings"), notes.strip())
+    page = root / REPORT.with_suffix(".html")
+    page.write_text(render_html(root, state, findings, status, minutes, got, commits, decided, only_lines),
+                    encoding="utf-8")
     return closing
+
+
+# --- html report ------------------------------------------------------------------------------------------
+
+CSS = """
+:root{--plane:#f3f5f8;--surface:#fff;--ink:#16202c;--ink-2:#566274;--line:#d9dfe7;--accent:#1d5fd1;
+--ok:#17794a;--ok-bg:#dff3e8;--warn:#8f5a00;--warn-bg:#fcefd0;--bad:#b3261e;--bad-bg:#fae3e0;--info:#1d5fd1;
+--info-bg:#e2ebfa;--mute:#69727f;--mute-bg:#eceff3;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--plane:#0f1318;--surface:#181d24;--ink:#e6eaf0;
+--ink-2:#9ba5b3;--line:#2b323c;--accent:#7aa5ff;--ok:#52c485;--ok-bg:#14301f;--warn:#e6b24d;--warn-bg:#362b12;
+--bad:#f08077;--bad-bg:#3b1c19;--info:#7aa5ff;--info-bg:#1a2742;--mute:#8c96a4;--mute-bg:#242a33;color-scheme:dark}}
+:root[data-theme=dark]{--plane:#0f1318;--surface:#181d24;--ink:#e6eaf0;--ink-2:#9ba5b3;--line:#2b323c;
+--accent:#7aa5ff;--ok:#52c485;--ok-bg:#14301f;--warn:#e6b24d;--warn-bg:#362b12;--bad:#f08077;--bad-bg:#3b1c19;
+--info:#7aa5ff;--info-bg:#1a2742;--mute:#8c96a4;--mute-bg:#242a33;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);font:13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,
+"Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%}
+.page{max-width:1080px;margin:0 auto;padding-block:16px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));
+padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end;justify-content:space-between;margin-bottom:10px}
+h1{margin:0;font-size:22px;letter-spacing:-.02em}.sub{color:var(--ink-2);font-size:12.5px;margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;border-radius:999px;
+padding:2px 9px;white-space:nowrap}
+.b-ok{background:var(--ok-bg);color:var(--ok)}.b-warn{background:var(--warn-bg);color:var(--warn)}
+.b-bad{background:var(--bad-bg);color:var(--bad)}.b-info{background:var(--info-bg);color:var(--info)}
+.b-mute{background:var(--mute-bg);color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:10px;margin-top:10px}
+.grid>*{min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0;
+overflow-wrap:anywhere}
+.card h2{margin:0 0 6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.wide{margin-top:10px}
+.kpi{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.ring{width:84px;height:84px}.ring circle{fill:none;stroke-width:10}.ring .base{stroke:var(--mute-bg)}
+.ring text{fill:var(--ink);font-weight:800;font-size:22px}
+.status{font-size:16px;font-weight:800}.row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.note{font-size:11.5px;color:var(--ink-2);margin-top:4px}
+ul.plain{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px}
+.phase{display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:700}
+.areas{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-weight:600;color:var(--ink-2);font-size:11px;padding:4px;border-bottom:1px solid var(--line)}
+td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+td.id{font-variant-numeric:tabular-nums;color:var(--ink-2)}
+code,pre{font:11.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;background:var(--plane);border:1px solid var(--line);
+border-radius:8px;padding:8px}
+.toggle{font:inherit;font-size:12px;font-weight:600;color:var(--ink);background:var(--surface);
+border:1px solid color-mix(in srgb,var(--ink) 28%,transparent);border-radius:999px;padding:3px 11px;cursor:pointer}
+.toggle:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media (max-width:560px){thead{display:none}tr{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;padding:6px 0;
+border-bottom:1px solid var(--line)}td{border:0;padding:1px 0}td[data-k]:not(.id)::before{content:attr(data-k) ": ";
+color:var(--ink-2)}td:not(.id){grid-column:1 / -1}}
+@page{size:A4;margin:10mm}
+@media print{body{background:#fff;font-size:10.5px}.page{padding:0}.card{break-inside:avoid}.toggle{display:none}}
+"""
+
+THEME_JS = """(function(){var K="ds-audit-theme",O=["auto","light","dark"],s="auto",b=document.getElementById("theme");
+try{s=localStorage.getItem(K)||"auto"}catch(e){}if(O.indexOf(s)<0)s="auto";
+function a(){if(s==="auto")document.documentElement.removeAttribute("data-theme");
+else document.documentElement.setAttribute("data-theme",s);b.textContent="Theme: "+s}
+b.addEventListener("click",function(){s=O[(O.indexOf(s)+1)%3];try{localStorage.setItem(K,s)}catch(e){}a()});a()})();"""
+
+SEV_BADGE = {"CRITICAL": "b-bad", "HIGH": "b-warn", "MEDIUM": "b-info", "LOW": "b-mute"}
+STATUS_BADGE = {"OK": "b-ok", "WARN": "b-warn", "FAIL": "b-bad", "INCOMPLETE": "b-mute"}
+PHASE_BADGE = {"done": "b-ok", "pending": "b-mute", "running": "b-info", "blocked": "b-bad", "skipped": "b-mute"}
+
+
+def render_html(root: Path, state: dict, findings: list, status: str, minutes: int, got: dict, commits: str,
+                decided: list, only_lines: list) -> str:
+    from html import escape as e
+    fixed = sum(r["Disposition"] == "fixed" for r in findings)
+    only = sum(r["Disposition"].startswith("only you") for r in findings)
+    open_ = sum(not r["Disposition"].startswith(CLOSED) for r in findings) - only
+    pct = round(100 * fixed / len(findings)) if findings else None
+    color = {"OK": "var(--ok)", "WARN": "var(--warn)", "FAIL": "var(--bad)"}.get(status, "var(--mute)")
+    when = time.strftime("%Y-%m-%d %H:%M", time.localtime(state["started"]))
+    mode = "".join(f" {k}" for k in ("dry", "ask", "auto") if state.get(k))
+    base, now = state["checks"].get("baseline", {}), state["checks"].get("now", {})
+
+    def badge(cls, text):
+        return f'<span class="badge {cls}">{e(text)}</span>'
+
+    checks_html = "".join(
+        f"<li><code>{e(s)}</code> {badge('b-ok' if base.get(s) == 'pass' else 'b-bad', base.get(s, '—'))} → "
+        f"{badge('b-ok' if now.get(s) == 'pass' else 'b-bad' if s in now else 'b-mute', now.get(s, '—'))}</li>"
+        for s in (base or now)) or "<li>No check ran</li>"
+    phases_html = "".join(
+        f'<section class="card"><div class="phase">{e(n)} {badge(PHASE_BADGE.get(p["status"], "b-mute"), p["status"])}'
+        f'</div>{"<div class=note>" + e(p["reason"]) + "</div>" if p.get("reason") else ""}<div class="areas">'
+        + "".join(badge("b-ok" if v == "ran" else "b-mute", f"{a} {v}") for a, v in p["areas"].items())
+        + "</div></section>" for n, p in state["phases"].items())
+    order = sorted(findings, key=lambda r: (SEVS.index(r["Sev"]) if r["Sev"] in SEVS else 9,
+                                            r["Disposition"] != "fixed", int(r["#"])))
+    rows_html = "".join(
+        f'<tr><td class="id" data-k="#">{e(r["#"])}</td><td data-k="Severity">{badge(SEV_BADGE.get(r["Sev"], "b-mute"), r["Sev"])}'
+        f' <span class="note">{e(r["Phase"])} · {e(r["Area"])} · {e(r["Rule"])}</span></td>'
+        f'<td data-k="Where"><code>{e(r["Where"])}</code></td><td data-k="Finding">{e(r["Finding"])}</td>'
+        f'<td data-k="Prevents">{e(r["Prevents"])}</td><td data-k="Outcome">'
+        f'{badge("b-ok" if r["Disposition"] == "fixed" else "b-warn" if r["Disposition"].startswith("only you") else "b-mute", r["Disposition"])}'
+        f'{" <code>" + e(r["Commit"]) + "</code>" if r["Disposition"] == "fixed" else ""}</td></tr>' for r in order)
+    findings_html = (f'<div class="wrap"><table><thead><tr><th>#</th><th>Severity</th><th>Where</th><th>Finding</th>'
+                     f'<th>Prevents / gains</th><th>Outcome</th></tr></thead><tbody>{rows_html}</tbody></table></div>'
+                     if findings else '<p class="note">No findings</p>')
+    lists = "".join(
+        f'<section class="card"><h2>{title}</h2><ul class="plain">{"".join("<li>" + e(x) + "</li>" for x in items)}</ul></section>'
+        for title, items in (("Decided without asking — say if wrong", decided), ("Only you can do", only_lines)) if items)
+    ring = (f'<circle cx="50" cy="50" r="40" stroke="{color}" stroke-dasharray="{(pct or 0) * 2.513:.1f} 252" '
+            f'transform="rotate(-90 50 50)" stroke-linecap="round"/>')
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ds-audit · {e(root.name)}</title><style>{CSS}</style></head><body><div class="page">
+<header class="top"><div><h1>ds-audit · {e(root.name)}</h1>
+<div class="sub">{e(when)} · {minutes} min · scope {e(state["scope"])}{e(mode)} · start <code>{e(state["start"][:12])}</code></div></div>
+<div class="row">{badge(STATUS_BADGE.get(status, "b-mute"), status)}<button class="toggle" id="theme" type="button">Theme: auto</button></div>
+</header>
+<div class="grid">
+<section class="card"><h2>Result</h2><div class="kpi"><svg class="ring" viewBox="0 0 100 100" role="img"
+aria-label="Findings fixed"><circle class="base" cx="50" cy="50" r="40"/>{ring}<text x="50" y="58"
+text-anchor="middle">{"–" if pct is None else f"{pct}%"}</text></svg><div><div class="status" style="color:{color}">{e(status)}</div>
+<div class="row">{badge("b-ok", f"{fixed} fixed")}{badge("b-warn", f"{open_} open")}{badge("b-info", f"{only} only you")}</div>
+<div class="note">{len(findings)} findings · code {got.get("file", 0)} files +{got.get("insertion", 0)} −{got.get("deletion", 0)} · {e(commits)} commits</div></div></div></section>
+<section class="card"><h2>Checks · baseline → now</h2><ul class="plain">{checks_html}</ul></section>
+</div>
+<div class="grid">{phases_html}</div>
+<section class="card wide"><h2>Findings</h2>{findings_html}</section>
+<div class="grid">{lists}</div>
+<section class="card wide"><h2>Signals</h2><pre>{e(state["signals"])}</pre></section>
+</div><script>{THEME_JS}</script></body></html>
+"""
 
 
 # --- lean -------------------------------------------------------------------------------------------------
@@ -631,14 +817,16 @@ def recorded_rules(root: Path, since: str = "", also=()) -> list:
 # --- self-test --------------------------------------------------------------------------------------------
 
 def self_test() -> int:
+    global CORE
     fails = []
+    saved = isolate_git()
+    isolate_git(ENV)
     gitenv = dict(ENV, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
 
     def expect(ok, msg):
         if not ok:
             fails.append(msg)
 
-    global CORE
     real_core = CORE
     tmp = Path(tempfile.mkdtemp(prefix="ds-audit-"))
     try:
@@ -703,8 +891,15 @@ def self_test() -> int:
         res = init(tmp, ["all"])
         expect(res["next"] == "lean" and not res["resume"], f"init next {res.get('next')}")
         expect(init(tmp, [])["resume"], "second init resumes the open run")
+        try:
+            init(Path(tempfile.mkdtemp(prefix="ds-audit-x-")), ["ask", "auto"])
+            fails.append("init accepted ask together with auto")
+        except SystemExit:
+            pass
         state, text = load(tmp)
         expect(state["start"] == start and "ds/audit/" in read(tmp / ".git/info/exclude"), "init state + exclude")
+        expect(state["branch"] == BRANCH and git(tmp, "rev-parse", "--abbrev-ref", "HEAD").strip() == BRANCH
+               and state["home"] != BRANCH, "an all run commits on ds/audit, home branch recorded")
         w("a/x.go", "package a\n\n// X returns one.\nfunc X() int { return 1 }\n")
         fixc = commit("fix")
         good_row = f"| 1 | lean | HIGH | lean | LEAN-03 | a/x.go:3 | f | p | plan | fixed | {fixc} |\n"
@@ -735,8 +930,11 @@ def self_test() -> int:
         state["checks"] = {"baseline": {"go test": "pass"}, "now": {"go test": "pass"}}
         save_state(tmp, state)
         expect(report(tmp).startswith("ds-audit: FAIL"), "report FAIL on an open CRITICAL")
-        write(tmp, state, findings=findings + good_row)
+        write(tmp, state, findings=findings + good_row.replace("| f | p |", "| <script>x</script> | p |"))
         expect(report(tmp).startswith("ds-audit: OK"), "report OK when all fixed and checks hold")
+        page = read(tmp / REPORT.with_suffix(".html"))
+        expect("&lt;script&gt;x" in page and "<script>x" not in page and "@media (max-width:560px)" in page,
+               "report.html escapes finding text and carries the narrow-screen layout")
         state["checks"]["now"]["go test"] = "fail"
         save_state(tmp, state)
         expect(report(tmp).startswith("ds-audit: FAIL"), "report FAIL on a check newly red")
@@ -769,6 +967,8 @@ def self_test() -> int:
             shutil.rmtree(CORE, ignore_errors=True)
         CORE = real_core
         shutil.rmtree(tmp, ignore_errors=True)
+        os.environ.update(saved)
+        ENV.update(saved)
     for f in fails:
         print("  FAIL", f)
     print("ds-audit self-test:", "all checks passed" if not fails else f"{len(fails)} failed")

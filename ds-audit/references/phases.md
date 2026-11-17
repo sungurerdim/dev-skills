@@ -8,7 +8,7 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 
 | Phase | Areas | May change | Ends when |
 |-------|-------|------------|-----------|
-| lean | `rules` `lean` | rule files, `SCOPE.md`, cuts and merges — all on the local branch `ds/lean` | every recorded rule and unit has a decision; `audit.py lean-check` green on `ds/lean`; the invocation stops for the owner to merge |
+| lean | `rules` `lean` | rule files, `SCOPE.md`, cuts and merges | every recorded rule and unit has a decision; `audit.py lean-check` green |
 | build | `arch` `code` `test` `perf` | code and tests (fixers run first, once) | `validate` green, no `open` row, `checks now` no redder than baseline |
 | safe | `sec` `privacy` `auth` `api` `db` | code, config, tests | same |
 | surface | `web` `a11y` `ux` `i18n` `mobile` `store` `money` | code, copy, assets | same |
@@ -40,23 +40,28 @@ Order = what changes the code the next phase audits. A phase runs the areas its 
 | Disposition | `open` · `fixed` · `reverted (error)` · `skipped (blocker)` · `not applicable (reason)` · `only you can do (action)` |
 | Commit | hash for `fixed` (checked: exists, after the run's start) · `uncommitted` (file had user edits) · `—` |
 
-Notes lines: `decided: {decision} · {reason}` and `only-you: {exact action or command}`. A cell never contains `|`. Everything else in the file is written by `audit.py`.
+Notes lines: `decided: {decision} · {reason}` and `only-you: {exact action or command}`. A cell never contains `|`. Everything else in the file, and `report.html` beside it, is written by `audit.py`.
 
 ## Running the phases
 
 - **Changed scope** (no word): every phase in one invocation; lean runs only `lean-check` (when `SCOPE.md` exists).
 - **`all` / a phase word**: `audit.py init` names the next phase. With subagents: one fresh subagent per phase, in order, given this file, kernel.md, SKILL.md, the phase's rule files and the report path; it returns after `phase … done`. Without subagents: one phase per invocation, ending with `next: /ds-audit all — continues at {phase}`.
-- **lean stops the invocation** after it changed anything: `only-you: review and merge ds/lean (git diff {start}...ds/lean; git merge --ff-only ds/lean; git branch -d ds/lean)`. `all` resumes at build once merged.
+- **One review branch**: every phase of an `all`, phase or area run commits on `ds/audit` (`audit.py init` creates or resumes it; the owner's branch is untouched), and `phase … done` pushes it without force. Later phases audit the code lean already cut. The report ends with the merge commands as `only-you`.
 
 ## lean
 
 The one interactive phase: scope and recorded rules are owner values (kernel §5). It asks when named (`/ds-audit lean`, `/ds-audit rules`) or with `ask`; inside an unattended `all`, each question becomes `only-you` with its recommendation, and nothing the owner must decide is applied.
 
-1. **Rules** — `audit.py rules [--since {Rules reviewed sha}] [--also {spec the rules cite}] [--also {host memory dir}]`. Group lines into decisions (one cluster = one question); order: unreasoned absolutes, most cited, oldest. Ask at most 12 clusters, 4 per round: the rule verbatim, `file:line`, date and the commit subject that added it, what it forces today, its fit with the purpose, and a recommendation — keep · reword (new text) · scope (`until {date or condition}`) · move to a dated decision log · delete. Apply answers on `ds/lean`. Unasked clusters stay as they are and are listed. LEAN-12.
+**With `auto`** the recommendation is applied instead of asked, as `decided: {decision} · {evidence} · revert: {command}`, within these limits:
+- **Purpose** — derived only from the project's own words (README, spec, issues, agent rules), quoted in `SCOPE.md`; none found → `Purpose: unconfirmed`, and cuts are limited to units with no inbound use and no need named anywhere (no reference, no doc, no issue).
+- **Rules** — a rule with a stated reason is kept or reworded, never deleted; delete only a rule that contradicts the purpose or another rule, or names something that no longer exists; a one-moment rule (LEAN-12) is scoped `until {date}` rather than deleted.
+- **Units** — `cut` needs zero fan-in confirmed by reading plus no need in the purpose; a unit with users, docs or issues asking for it becomes `T2` (deferred), never cut; `merge` only where LEAN-04 names one reason to change for both.
+
+1. **Rules** — `audit.py rules [--since {Rules reviewed sha}] [--also {spec the rules cite}] [--also {host memory dir}]`. Group lines into decisions (one cluster = one question); order: unreasoned absolutes, most cited, oldest. Ask at most 12 clusters, 4 per round: the rule verbatim, `file:line`, date and the commit subject that added it, what it forces today, its fit with the purpose, and a recommendation — keep · reword (new text) · scope (`until {date or condition}`) · move to a dated decision log · delete. Apply answers as commits on the run's branch. Unasked clusters stay as they are and are listed. LEAN-12.
 2. **Purpose** — `SCOPE.md` `Purpose:` and `Done when:`, else proposed from README/spec/issues and confirmed (LEAN-01).
 3. **Measure** — `audit.py lean`. Write the minimal sketch: the fewest units that meet T0 and T1, reusing platform, stdlib and existing dependencies (LEAN-04).
 4. **Tier** — one `SCOPE.md` row per unit: `| Unit | Tier | Serves | Evidence |`; tier `T0` · `T1` · `T2` · `cut` · `merge→{unit}`. Confirm fan-in by reading importers before `cut`. Units protected by a kept rule or an ADR stay. Apply LEAN-02..10.
-5. **Apply** on `git switch -c ds/lean` (exists → resume it): one cut or merge per commit, with its tests, docs, CI steps, config and dependencies; the commit message names the last commit that had it. Then write `SCOPE.md` without `cut`/`merge` rows, `Budget:` = the measured counts after the cuts, `Rules reviewed: {date} ({sha})`; add one line to the project's agent rules file: `Scope: SCOPE.md — a new unit gets a row first`.
+5. **Apply**: one cut or merge per commit, with its tests, docs, CI steps, config and dependencies; the commit message names the last commit that had it. Then write `SCOPE.md` without `cut`/`merge` rows, `Budget:` = the measured counts after the cuts, `Rules reviewed: {date} ({sha})`; add one line to the project's agent rules file: `Scope: SCOPE.md — a new unit gets a row first`.
 6. **Verify** — `audit.py lean-check` green; `checks now` no redder than baseline; `audit.py lean` before → after in the report.
 
 ## Errors — one table for every phase
@@ -73,9 +78,12 @@ The one interactive phase: scope and recorded rules are owner values (kernel §5
 | A step or command hangs | its timeout ends it; the run continues with what does not depend on it | `skipped (timeout: {cmd})` |
 | Tool absent | the rule falls back to its Detect text | scan `tool absent` |
 | Judged signal (`?`) wrong | `audit.py signal {key} {value}` re-plans phases not started | `decided:` |
-| Unknown word | `init` stops and lists the valid words | — |
+| Unknown word, or `ask` with `auto` | `init` stops and names the valid choice | — |
 | Context or time runs out | progress is in `report.md`; the next invocation resumes the open phase | — |
 | Subagent returns nothing usable | rerun the phase once; again → `phase {p} blocked "{reason}"` | status INCOMPLETE |
-| `ds/lean` already exists | resume on it; never recreate | — |
+| `ds/audit` already exists | `init` resumes on it; never recreated | `decided:` |
+| Cannot switch to `ds/audit` | run becomes `dry` | `only-you:` |
+| Push of `ds/audit` refused | no force; the run continues | `only-you:` |
+| A workflow runs on every push | push still happens; the cost is named | `decided:` |
 | `SCOPE.md` malformed | `lean-check` names each problem | LEAN-11 rows |
 | Same obstacle 3 times | stop that unit, record, continue (kernel §3) | `reverted (error)` / `skipped (blocker)` |
