@@ -8,3 +8,4 @@ Thumbs.db
 Announce.md
 Video.md
 dist/
+__pycache__/
