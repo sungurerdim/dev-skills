@@ -30,9 +30,32 @@ MANIFESTS = ("package.json", "go.mod", "pyproject.toml", "Cargo.toml", "pubspec.
              "build.gradle", "build.gradle.kts", "pom.xml", "Package.swift", "mix.exs", "build.sbt")
 
 
+WINDOWS = os.name == "nt"
+TEXT = {"text": True, "encoding": "utf-8", "errors": "replace"}  # not the locale codec: a stray byte must not void the output
+
+
+def find_bash():
+    if not WINDOWS:
+        return shutil.which("bash") or shutil.which("sh")
+    for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)"), os.environ.get("LOCALAPPDATA")):
+        if base:
+            for sub in ("Git/bin/bash.exe", "Programs/Git/bin/bash.exe"):
+                cand = Path(base) / sub
+                if cand.is_file():
+                    return str(cand)
+    found = shutil.which("bash")  # System32\bash.exe is the WSL launcher, not Git Bash
+    return found if found and "system32" not in found.lower() else None
+
+
+def shell_argv(cmd: str) -> list:
+    """`cmd` through a POSIX shell (Git Bash on Windows): Mech lines and check commands are POSIX, cmd.exe is not."""
+    shell = find_bash()
+    return [shell, "-c", cmd] if shell else (["cmd", "/c", cmd] if WINDOWS else ["/bin/sh", "-c", cmd])
+
+
 def git(root, *args, timeout=60) -> str:
     try:
-        r = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=timeout, **TEXT)
     except (OSError, subprocess.TimeoutExpired):
         return ""
     return r.stdout if r.returncode == 0 else ""
@@ -475,7 +498,7 @@ def signals(root) -> dict:
     if shutil.which("gh") and git(root, "remote"):
         try:
             r = subprocess.run(["gh", "repo", "view", "--json", "visibility", "-q", ".visibility"], cwd=str(root),
-                               capture_output=True, text=True, timeout=20)
+                               capture_output=True, **TEXT, timeout=20)
             public = {"PUBLIC": "yes", "PRIVATE": "no", "INTERNAL": "no"}.get(r.stdout.strip().upper(), "unknown")
         except (OSError, subprocess.TimeoutExpired):
             pass

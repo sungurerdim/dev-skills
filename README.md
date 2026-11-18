@@ -52,7 +52,7 @@ Hosts without a skills loader (Aider, Windsurf) can reference a `SKILL.md` direc
 
 ## Upgrading from 2.x
 
-3.0.0 keeps four skills and folds the rest into `ds-audit` and the shared rules. The other 28 skills are removed; their rules live in `core/rules/`, and `/ds-audit <area>` replaces running one domain skill (for example `/ds-audit a11y` for ds-frontend's accessibility pass, `/ds-audit privacy` for ds-compliance, plain `/ds-audit` for ds-review); the old chat-answer ds-research is `/ds-research quick`, and ds-ship, ds-quality, ds-rig and ds-brief are now ds-audit, ds-gate, ds-setup and ds-research. `--flag` spellings still work. Commit, PR and release conventions belong to an always-on rules layer such as [dev-rules](https://github.com/sungurerdim/dev-rules). See [CHANGELOG.md](CHANGELOG.md).
+3.0.0 keeps four skills and folds the rest into `ds-audit` and the shared rules. The other 28 skills are removed; their rules live in `core/rules/`, and `/ds-audit <area>` replaces running one domain skill (for example `/ds-audit a11y` for ds-frontend's accessibility pass, `/ds-audit privacy` for ds-compliance, plain `/ds-audit` for ds-review); the old chat-answer ds-research is `/ds-research quick`, and ds-ship, ds-quality, ds-rig and ds-brief are now ds-audit, ds-gate, ds-setup and ds-research. `--flag` spellings still work. Commit, PR and release conventions belong to an always-on rules layer: your global or project `AGENTS.md`. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Contributing
 

@@ -48,7 +48,7 @@ CORE = next((d for d in (HERE.parent / "core", HERE.parent.parent / "core") if (
 if CORE is None:
     sys.exit("audit.py: core/ds_detect.py not found next to this skill — reinstall dev-skills (python3 install.py)")
 sys.path.insert(0, str(CORE))
-from ds_detect import SRC, check_cmd, deps, files, git, isolate_git, line, read, signals  # noqa: E402
+from ds_detect import SRC, TEXT, check_cmd, deps, files, git, isolate_git, line, read, shell_argv, signals  # noqa: E402
 
 PHASES = ("lean", "build", "safe", "surface", "ship")
 SEVS = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
@@ -208,7 +208,7 @@ def resume(root: Path, state: dict, text: str) -> dict:
     """Continue an open run: fetch, back onto the run's branch, what the open phase has done, whose files are dirty."""
     notes = [] if fetch(root) else ["decided: git fetch failed (offline or no remote) — resumed on local refs"]
     if state.get("branch") == BRANCH and git(root, "rev-parse", "--abbrev-ref", "HEAD").strip() != BRANCH:
-        r = subprocess.run(["git", "-C", str(root), "switch", BRANCH], capture_output=True, text=True, env=ENV,
+        r = subprocess.run(["git", "-C", str(root), "switch", BRANCH], capture_output=True, **TEXT, env=ENV,
                            timeout=60)
         notes.append(f"decided: switched back to {BRANCH} to resume" if r.returncode == 0 else
                      f"only-you: could not switch back to {BRANCH} ({r.stderr.strip()[-160:]}) — commit or stash, rerun")
@@ -261,7 +261,7 @@ def init(root: Path, words) -> dict:
             start = git(root, "rev-parse", "HEAD").strip()
         elif behind and ahead:
             mt = subprocess.run(["git", "-C", str(root), "merge-tree", "--write-tree", "--name-only", "HEAD", "@{u}"],
-                                capture_output=True, text=True, env=ENV, timeout=60)  # git >= 2.38; changes nothing
+                                capture_output=True, **TEXT, env=ENV, timeout=60)  # git >= 2.38; changes nothing
             clash = [ln for ln in mt.stdout.splitlines()[1:] if ln and not ln.startswith(("Auto-merging", "CONFLICT"))]
             notes.append(f"only-you: branch diverged (behind {behind}, ahead {ahead}) — audited without rebasing; "
                          "integrate with `git pull --rebase` when ready"
@@ -286,7 +286,7 @@ def init(root: Path, words) -> dict:
     if is_git and scope != "changed" and not w["dry"] and home != BRANCH:
         exists = bool(git(root, "rev-parse", "--verify", "--quiet", BRANCH))
         r = subprocess.run(["git", "-C", str(root), "switch", *([] if exists else ["-c"]), BRANCH],
-                           capture_output=True, text=True, env=ENV, timeout=60)
+                           capture_output=True, **TEXT, env=ENV, timeout=60)
         if r.returncode == 0:
             branch = BRANCH
             notes.append(f"decided: commits go to the local branch {BRANCH} ({'resumed' if exists else 'new'}); "
@@ -416,7 +416,7 @@ def checks(root: Path, which: str) -> dict:
     result = {}
     for step in [s.strip() for s in state["check"].split(" && ") if s.strip()]:
         try:
-            r = subprocess.run(step, shell=True, cwd=str(root), capture_output=True, text=True, env=ENV,
+            r = subprocess.run(shell_argv(step), cwd=str(root), capture_output=True, env=ENV, **TEXT,
                                timeout=STEP_TIMEOUT)
             result[step] = {"status": "pass" if r.returncode == 0 else "fail",
                             "tail": (r.stdout + r.stderr).strip()[-1500:]}
@@ -453,7 +453,7 @@ def probe(root: Path, argv: list) -> dict:
     elif shutil.which("unshare") and subprocess.run(["unshare", "-rn", "true"], capture_output=True).returncode == 0:
         wrap, how = ["unshare", "-rn"], "unshare: no network; writes outside the temp dir are not blocked"
     try:
-        r = subprocess.run(wrap + list(argv), cwd=str(root), capture_output=True, text=True, env=env,
+        r = subprocess.run(wrap + list(argv), cwd=str(root), capture_output=True, **TEXT, env=env,
                            stdin=subprocess.DEVNULL, timeout=PROBE_TIMEOUT)
         code, out, err = r.returncode, r.stdout, r.stderr
     except subprocess.TimeoutExpired:
@@ -505,12 +505,12 @@ def run_mech(root: Path, rid: str, cls: str, cmd: str, state) -> dict:
     own = cmd.startswith("{audit}")  # this script's checks print a verdict line either way; the exit code is the verdict
     cmd = cmd.replace("{base}", q((state or {}).get("base") or "HEAD")).replace(
         "{audit}", f'{q(sys.executable)} -B {q(str(HERE / "audit.py"))} --root {q(str(root))}')
-    tool = cmd.split()[0].strip('"')
+    tool = cmd.split()[0].strip("\"'")
     row = {"rule": rid, "class": cls, "cmd": cmd}
     if tool not in ("git", "grep", "test", "find", "for", "if", "while", "!") and not shutil.which(tool):
         return dict(row, status="tool absent")
     try:
-        r = subprocess.run(cmd, shell=True, cwd=str(root), capture_output=True, text=True, env=ENV,
+        r = subprocess.run(shell_argv(cmd), cwd=str(root), capture_output=True, env=ENV, **TEXT,
                            timeout=SCAN_TIMEOUT)
     except subprocess.TimeoutExpired:
         return dict(row, status="timeout")
@@ -606,7 +606,7 @@ def push(root: Path, state: dict) -> str:
         return "not pushed: no origin remote"
     try:
         r = subprocess.run(["git", "-C", str(root), "push", "--quiet", "-u", "origin", BRANCH], capture_output=True,
-                           text=True, env=ENV, timeout=120)
+                           **TEXT, env=ENV, timeout=120)
         ok, why = r.returncode == 0, r.stderr.strip()[-160:]
     except subprocess.TimeoutExpired:
         ok, why = False, "timeout"
@@ -1439,6 +1439,9 @@ def self_test() -> int:
         own = [run_mech(tmp, "T-05", "S", "{audit} contrast " + p, None)["status"] for p in ("000000 ffffff", "777777 888888")]
         loop = run_mech(tmp, "T-06", "T", "for n in a; do echo $n; done", None)["status"]
         expect(loop == "hit", f"a Mech command that opens with a shell keyword is called a missing tool: {loop}")
+        raw = run_mech(tmp, "T-07", "T", f"{shlex.quote(sys.executable)} -c \"import sys; sys.stdout.buffer.write(b'\\\\xff\\\\n')"
+                                         f"; sys.stderr.buffer.write(b'\\\\xfe'); sys.exit(2)\"", None)
+        expect(raw.get("status") == "hit", f"a Mech command printing non-UTF-8 bytes crashes or is lost: {raw}")
         expect(own == ["clean", "hit"], f"an {{audit}} check (lean-check) is judged by its output, not its exit code: {own}")
         expect("YAGNI" in rule_ids() and loads("ui≠none or api≠none", {"ui": {"value": "none"},
                                                                      "api": {"value": "rest"}})[0], "rule ids / loads")

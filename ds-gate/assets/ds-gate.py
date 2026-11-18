@@ -50,7 +50,7 @@ from pathlib import Path
 _HERE = Path(__file__).resolve().parent
 _CORE = next((d for d in (_HERE, _HERE.parent / "core", _HERE.parent.parent / "core") if (d / "ds_detect.py").is_file()), _HERE)
 sys.path.insert(0, str(_CORE))
-from ds_detect import check_cmd as detect, isolate_git  # noqa: E402
+from ds_detect import TEXT, check_cmd as detect, isolate_git, shell_argv  # noqa: E402
 
 WINDOWS = os.name == "nt"
 TAIL_CHARS = 4000
@@ -76,8 +76,7 @@ def load_json(path: Path):
 
 def git(args, cwd) -> str | None:
     try:
-        r = subprocess.run(["git", *args], cwd=str(cwd), capture_output=True, text=True, timeout=15,
-                           encoding="utf-8", errors="replace")
+        r = subprocess.run(["git", *args], cwd=str(cwd), capture_output=True, **TEXT, timeout=15)
     except (OSError, subprocess.SubprocessError):
         return None
     return r.stdout.strip() if r.returncode == 0 else None
@@ -87,23 +86,9 @@ def norm(p) -> str:
     return os.path.normcase(os.path.realpath(os.path.expandvars(os.path.expanduser(str(p)))))
 
 
-def find_bash() -> str | None:
-    if not WINDOWS:
-        return shutil.which("bash") or shutil.which("sh")
-    for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)"), os.environ.get("LOCALAPPDATA")):
-        if base:
-            for sub in ("Git/bin/bash.exe", "Programs/Git/bin/bash.exe"):
-                cand = Path(base) / sub
-                if cand.is_file():
-                    return str(cand)
-    found = shutil.which("bash")  # System32\bash.exe is the WSL launcher, not Git Bash
-    return found if found and "system32" not in found.lower() else None
-
-
 def run_shell(cmd: str, cwd: Path, timeout: float):
     """Run `cmd` through a POSIX shell (bash on Windows too). -> (exit_code | None on timeout, combined output)."""
-    shell = find_bash()
-    argv = [shell, "-c", cmd] if shell else (["cmd", "/c", cmd] if WINDOWS else ["/bin/sh", "-c", cmd])
+    argv = shell_argv(cmd)
     kw = {"start_new_session": True} if not WINDOWS else {}
     env = dict(os.environ, DS_QUALITY="1")
     try:
@@ -443,7 +428,7 @@ def self_test() -> int:
         old.rename(marker)
         marker.write_text(json.dumps({"command": "exit 5", "cache": False}))
         r = subprocess.run([sys.executable, __file__, "gate", "--exit2"], input=json.dumps({"cwd": str(repo)}),
-                           capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(repo)))
+                           capture_output=True, **TEXT, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(repo)))
         check("gate --exit2: block -> exit 2 + reason on stderr", r.returncode == 2 and "exit 5" in r.stderr and not r.stdout)
 
         # auto-fix at commit time: fully staged files fixed and re-staged; partly staged and unstaged files untouched
@@ -466,8 +451,8 @@ def self_test() -> int:
         (fx / "c.txt").write_text("v2\n")                      # unstaged only
         with contextlib.redirect_stderr(io.StringIO()):
             rc = run(["--staged", str(fx)])
-        staged_a = subprocess.run(["git", "show", ":a.txt"], cwd=fx, capture_output=True, text=True).stdout
-        staged_b = subprocess.run(["git", "show", ":b.txt"], cwd=fx, capture_output=True, text=True).stdout
+        staged_a = subprocess.run(["git", "show", ":a.txt"], cwd=fx, capture_output=True, **TEXT).stdout
+        staged_b = subprocess.run(["git", "show", ":b.txt"], cwd=fx, capture_output=True, **TEXT).stdout
         check("fix --staged: fully staged file fixed and re-staged", rc == 0 and staged_a == "v2\nFIXED\n")
         check("fix --staged: partly staged file untouched", staged_b == "v2\n" and (fx / "b.txt").read_text() == "v2\nunstaged\n")
         check("fix --staged: unstaged file untouched", (fx / "c.txt").read_text() == "v2\n")
