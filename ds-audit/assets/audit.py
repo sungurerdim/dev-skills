@@ -390,8 +390,9 @@ def resolve_check(root: Path) -> tuple:
             label = re.sub(r"`[^`]*`", "", ln).lower()
             ranks = [GATE_WORDS.index(w) for w in re.findall(r"\b(gate|check|lint|test)s?\b", label)]
             # the first code span that names something runnable (a tool on PATH or a file in the repo)
-            cmd = next((c for c in re.findall(r"`([^`]+)`", ln) if c.split()[0:1] and
-                        (shutil.which(c.split()[0]) or (root / c.split()[0]).is_file())), None)
+            # a span with a <placeholder> is a template the reader fills in, not a command to run
+            cmd = next((c for c in re.findall(r"`([^`]+)`", ln) if c.split()[0:1] and not re.search(r"<\w[^>]*>", c)
+                        and (shutil.which(c.split()[0]) or (root / c.split()[0]).is_file())), None)
             if ranks and cmd and (best is None or min(ranks) < best[0]):
                 best = (min(ranks), cmd, f"{doc}:{n}")
     if best:
@@ -1140,6 +1141,10 @@ def self_test() -> int:
                        "- Keep the CLI flags stable so that scripts keep working.\n")
         commit("init")
 
+        w("CLAUDE.md", "- Run one gate step: `git status --step <id>`\n")
+        expect("<id>" not in (resolve_check(tmp)[0] or ""), "a <placeholder> code span taken as the check command")
+        (tmp / "CLAUDE.md").unlink()
+
         doc = section(read(HERE.parent / "references" / "phases.md"), "Output — the ledger language")
         named = [c.strip().strip("`") for c in re.findall(r"^\| ([^|]+) \|", doc, re.M)][1:]  # past the header
         expect(named == list(COLS), f"phases.md ledger columns {named} differ from the script's {list(COLS)}")
@@ -1490,6 +1495,9 @@ def take(argv, flag, many=False):
 
 
 def main(argv) -> int:
+    for stream in (sys.stdout, sys.stderr):  # JSON carries non-ASCII; a Windows console codec cannot encode it
+        if hasattr(stream, "reconfigure"):  # a captured stream (self-test) is already text
+            stream.reconfigure(encoding="utf-8", errors="replace")
     argv = list(argv)
     root = Path(take(argv, "--root") or ".").resolve()
     depth = int(take(argv, "--depth") or 2)
