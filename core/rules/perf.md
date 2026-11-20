@@ -28,7 +28,7 @@ applies_when: ui≠none
 ### PRF-06 [CRITICAL] Resource not released
 - **Detect:** listeners, subscriptions, timers or observers with no removal on teardown (`addEventListener` without `removeEventListener`, an effect without cleanup, a controller without `dispose()`); files, sockets or connections opened outside the language's scoped form (Python `with`, Java try-with-resources, Kotlin `use`, C# `using`, Go `defer Close()`, JS `try/finally`, PHP `finally`; Rust RAII handles it); closures or long-lived objects holding short-lived UI objects strongly.
 - **Mech:** T `ruff check --select SIM115 --output-format concise .` · `git grep -nIE 'addEventListener\(|\.subscribe\(' -- ':!*test*' ':!*.md'`
-- **Fixture:** hit `src/a.js: window.addEventListener('resize', onResize)` · miss `src/b.js: onResize()`
+- **Fixture:** hit `src/a.js: window.addEventListener('resize', onResize)` · hit `src/c.py: f = open("data.txt")\nprint(f.read())` · miss `src/b.js: onResize()` · miss `src/d.py: with open("data.txt") as f:\n    print(f.read())`
 - **Fix:** release in the scoped form or the teardown hook of the framework; confirm with a heap snapshot or descriptor count over repeated mount/unmount or requests.
 - **Impact:** memory or descriptors grow with every cycle until the process slows, hits its limit and crashes.
 - **Source:** CWE-401; CWE-404.

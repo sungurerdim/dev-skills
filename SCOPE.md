@@ -17,8 +17,8 @@ Product: `ds-*/*.md` `core/*.md` `agents/*.md` — the skills' Markdown is the p
 | `scripts` | T1 | the only gate (`check.py`) and claude.ai packaging (`package.py`) | AGENTS.md Commands; README.md Install |
 | `evals` | T1 | scorer for skill-behaviour evals | AGENTS.md Commands; `evals/README.md` |
 
-Budget: units ≤ 9 · deps ≤ 0 · docs ≤ 82 KB · product ≤ 667 KB
+Budget: units ≤ 9 · deps ≤ 0 · docs ≤ 90 KB · product ≤ 667 KB
 
-Budget set to the `audit.py lean` budget line (2026-11-17): measured + 10 %; the zero-headroom budget turned lean-check red on the next doc commit, and the skills' Markdown now counts as product, not docs.
+Budget set to the `audit.py lean` budget line (2026-11-17): measured + 10 %; the zero-headroom budget turned lean-check red on the next doc commit, and the skills' Markdown now counts as product, not docs. Raised to 90 KB on 2026-11-20: the 3.1.0 changelog entry (each release adds one) took docs to 83 KB.
 
 Rules reviewed: 2026-11-17 (6b2e0df)

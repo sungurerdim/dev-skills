@@ -9,6 +9,12 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
   audit.py init [WORD ...]           start or resume a run: fetch, fast-forward, scope, signals, check command,
                                      phase plan; prints JSON (what runs next and why)
   audit.py checks baseline|now       run each step of the check command; record pass/fail/timeout per step
+  audit.py push off|on [WHY]         turn the review-branch push off (a project rule forbids pushing) or back on,
+                                     noted as decided: with WHY; the word `local` at init does the same
+  audit.py coverage [PHASE]          files each phase must read, how many are read, which are not (JSON)
+  audit.py groups PHASE [--lines N]  the phase's unread files packed into review groups of <= N lines (default 2500),
+                                     one per parallel reviewer
+  audit.py read PHASE FILE ...       mark files as read in full for PHASE (reviewers call it; safe in parallel)
   audit.py check CMD [WHY]           set the check command explicitly (one quoted argument; wins over marker, docs
                                      and defaults), noted as decided: with WHY
   audit.py probe -- CMD ...          run a project program isolated (kernel §3): temp HOME/XDG/CLAUDE_CONFIG_DIR/
@@ -27,10 +33,13 @@ people: self-contained, responsive, light/dark, printable), both git-excluded.
   audit.py rules [--since SHA] [--also PATH ...]   recorded rules with blame date, subject, absolute, reason, refs
   audit.py --self-test               prove every command on temp repos
 
-Global option: --root DIR (default: the current directory). Words: all, dry, ask, auto, a phase name, area words.
+Global option: --root DIR (default: the current directory). Words: all, dry, ask, auto, local, a phase name, area
+words. Every command that changes the state re-reads it under a lock first, so a long `checks` run never overwrites
+what another command recorded meanwhile.
 """
 from __future__ import annotations
 
+import contextlib
 import fnmatch
 import json
 import os
@@ -53,6 +62,9 @@ from ds_detect import SRC, TEXT, check_cmd, deps, files, git, isolate_git, line,
 PHASES = ("lean", "build", "safe", "surface", "ship")
 SEVS = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
 REPORT = Path("ds") / "audit" / "report.md"
+COVERAGE = REPORT.with_name("coverage.json")  # per run: files each phase must read and the ones read
+LOCK = REPORT.with_name(".lock")
+FLAGS = ("all", "dry", "ask", "auto", "local")
 BRANCH = "ds/audit"  # every commit of an all / phase / area run lands here; the owner reviews and merges it once
 STATE = re.compile(r"^<!-- ds-audit-state (.*) -->$", re.M)
 COLS = ("#", "Phase", "Sev", "Area", "Rule", "Where", "Finding", "Prevents", "Plan", "Disposition", "Commit")
@@ -149,6 +161,59 @@ def rows(text: str) -> list:
 NOTES_HINT = "(decided: … · only-you: … — one per line)"
 
 
+_HELD = {}  # lock depth per root in this process: a locked command may call another one
+
+
+@contextlib.contextmanager
+def locked(root: Path, wait: float = 60):
+    """One writer at a time across processes (parallel reviewers, a check running in the background). A lock older
+    than 10 minutes is a crashed command's and is taken over."""
+    key = str(root)
+    if _HELD.get(key):
+        _HELD[key] += 1
+        try:
+            yield
+        finally:
+            _HELD[key] -= 1
+        return
+    path = root / LOCK
+    path.parent.mkdir(parents=True, exist_ok=True)
+    deadline = time.time() + wait
+    while True:
+        try:
+            fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            try:
+                if time.time() - path.stat().st_mtime > 600:
+                    path.unlink()
+                    continue
+            except OSError:
+                continue
+            if time.time() > deadline:
+                raise SystemExit(f"audit.py: {path} held for {wait:.0f}s by another audit.py command — rerun")
+            time.sleep(0.05)
+    _HELD[key] = 1
+    try:
+        yield
+    finally:
+        _HELD.pop(key, None)
+        os.close(fd)
+        with contextlib.suppress(OSError):
+            path.unlink()
+
+
+def update(root: Path, change, note: str = ""):
+    """Re-read the state under the lock, apply `change(state)`, write it back: never a stale copy over newer work."""
+    with locked(root):
+        state, _ = load(root)
+        if not state:
+            raise SystemExit("audit.py: no run — start with `audit.py init`")
+        result = change(state)
+        save_state(root, state, note)
+        return state if result is None else result
+
+
 def save_state(root: Path, state: dict, note: str = ""):
     """Write the state back; `note` appends one Notes line (once, replacing the empty-section hint)."""
     _, text = load(root)
@@ -164,12 +229,26 @@ def save_state(root: Path, state: dict, note: str = ""):
 def parse_words(words) -> dict:
     flat = [w.lstrip("-") for arg in words for w in re.split(r"[,\s=]+", arg) if w.strip("-")]
     known = {r["word"] for r in area_table()}
-    out = {"all": "all" in flat, "dry": "dry" in flat, "ask": "ask" in flat, "auto": "auto" in flat,
+    out = {**{f: f in flat for f in FLAGS},
            "phases": [w for w in flat if w in PHASES], "areas": [w for w in flat if w in known and w not in PHASES],
            "path": next((w for w in flat if "/" in w or w == "."), None)}
-    out["unknown"] = [w for w in flat if w not in ("all", "dry", "ask", "auto") and w not in PHASES and w not in known
-                      and w != out["path"]]
+    out["unknown"] = [w for w in flat if w not in FLAGS and w not in PHASES and w not in known and w != out["path"]]
     return out
+
+
+def asked_words(w: dict) -> list:
+    """The request in one canonical form: two invocations asking the same thing compare equal."""
+    return ([f for f in FLAGS if w.get(f)] + sorted(set(w.get("phases", []))) + sorted(set(w.get("areas", [])))
+            + ([w["path"]] if w.get("path") else []))
+
+
+def run_words(state: dict) -> list:
+    """What the open run was asked (a state written before `asked` existed is rebuilt from its fields)."""
+    if "asked" in state:
+        return state["asked"]
+    words = state.get("words", {})
+    return asked_words({"all": state.get("scope") == "all", "dry": state.get("dry"), "ask": state.get("ask"),
+                        "auto": state.get("auto"), "phases": words.get("phases", []), "areas": words.get("areas", [])})
 
 
 def keep_previous(root: Path, old) -> None:
@@ -214,13 +293,17 @@ def resume(root: Path, state: dict, text: str) -> dict:
                      f"only-you: could not switch back to {BRANCH} ({r.stderr.strip()[-160:]}) — commit or stash, rerun")
     for n in notes:
         save_state(root, state, n)
+    asked = run_words(state)
+    notes.append(f"resumed the open run `/ds-audit {' '.join(asked)}` started "
+                 f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(state.get('started', 0)))}; "
+                 "a request with other words starts a new run instead")
     nxt = next(n for n in PHASES if state["phases"].get(n, {}).get("status") in ("pending", "running"))
     counts = {}
     for r in rows(text):
         if r["Phase"] == nxt:
             counts[r["Disposition"]] = counts.get(r["Disposition"], 0) + 1
     now, before = dirty_files(root), set(state.get("dirty", []))
-    return {"resume": True, "report": str(REPORT), "next": nxt, "plan": state["phases"], "signals": state["signals"],
+    return {"resume": True, "asked": asked, "report": str(REPORT), "next": nxt, "plan": state["phases"], "signals": state["signals"],
             "check": state["check"], "branch": git(root, "rev-parse", "--abbrev-ref", "HEAD").strip(),
             "open_phase": {"name": nxt, "rows": counts,
                            "commits": int(git(root, "rev-list", "--count", f"{state['start']}..HEAD").strip() or 0)
@@ -230,11 +313,24 @@ def resume(root: Path, state: dict, text: str) -> dict:
 
 
 def init(root: Path, words) -> dict:
+    with locked(root):
+        return _init(root, words)
+
+
+def _init(root: Path, words) -> dict:
     state, text = load(root)
     old = state
-    if state and any(p["status"] in ("pending", "running") for p in state["phases"].values()):
-        return resume(root, state, text)
     w = parse_words(words)
+    asked = asked_words(w)
+    superseded = ""
+    if state and any(p["status"] in ("pending", "running") for p in state["phases"].values()):
+        prev = run_words(state)
+        if not asked or asked == prev:  # no words, or the same words: continue where it stopped
+            return resume(root, state, text)
+        superseded = (f"decided: the open run `/ds-audit {' '.join(prev) or '(changed scope)'}` (started "
+                      f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(state.get('started', 0)))}) was not resumed, "
+                      f"because this request (`/ds-audit {' '.join(asked)}`) differs; its report is kept as "
+                      f"report-{state.get('started')}.md and its open rows are carried")
     if w["unknown"]:
         raise SystemExit(f"audit.py init: unknown word(s) {w['unknown']} — expected all, dry, ask, a phase "
                          f"({', '.join(PHASES)}) or an area word from core/rules/README.md")
@@ -242,7 +338,9 @@ def init(root: Path, words) -> dict:
         raise SystemExit("audit.py init: `ask` and `auto` exclude each other — `ask` asks every decision, "
                          "`auto` decides every one; pick one")
     is_git = bool(git(root, "rev-parse", "--git-dir"))
-    notes = []
+    notes = [superseded] if superseded else []
+    if w["local"]:
+        notes.append(f"decided: push off (`local`) — {BRANCH} stays on this machine; push it yourself when ready")
     if not is_git:
         w["dry"] = True
         notes.append("decided: no git repository — run is dry (no commits possible, no changed scope)")
@@ -310,7 +408,8 @@ def init(root: Path, words) -> dict:
         notes.append("decided: nothing changed — /ds-audit all audits the whole project")
         for p in plan.values():
             p["status"] = "skipped"
-    state = {"v": 1, "words": {k: w[k] for k in ("phases", "areas")}, "sig": sig, "start": start,
+    state = {"v": 1, "asked": asked, "push": not w["local"], "words": {k: w[k] for k in ("phases", "areas")},
+             "sig": sig, "start": start,
              "home": home, "branch": branch, "started": int(time.time()), "base": base, "scope": scope, "changed": changed,
              "dry": w["dry"], "ask": w["ask"], "auto": w["auto"], "carried": 0, "signals": line(sig), "check": cmd,
              "check_from": check_from, "checks": {}, "phases": plan,
@@ -323,8 +422,11 @@ def init(root: Path, words) -> dict:
     if text:
         keep_previous(root, old)
     write(root, state, findings=findings, notes="\n".join(notes))
+    cov = write_coverage(root, plan, scope, changed)
     nxt = next((n for n, p in plan.items() if p["status"] == "pending"), None)
-    return {"resume": False, "report": str(REPORT), "next": nxt, "scope": scope, "changed": len(changed),
+    return {"resume": False, "asked": asked, "report": str(REPORT), "next": nxt, "scope": scope,
+            "changed": len(changed), "push": state["push"],
+            "coverage": {p: len(c["files"]) for p, c in cov["phases"].items()},
             "carried_open": len(carried), "plan": plan, "signals": state["signals"], "check": cmd,
             "check_from": check_from, "notes": notes}
 
@@ -347,6 +449,11 @@ def make_plan(sig: dict, w: dict, scope: str, root: Path) -> dict:
 
 
 def set_signal(root: Path, key: str, value: str, reason: str = "") -> dict:
+    with locked(root):
+        return _set_signal(root, key, value, reason)
+
+
+def _set_signal(root: Path, key: str, value: str, reason: str = "") -> dict:
     state, _ = load(root)
     if not state:
         raise SystemExit("audit.py signal: no run — start with `audit.py init`")
@@ -372,6 +479,24 @@ def set_signal(root: Path, key: str, value: str, reason: str = "") -> dict:
 MARKERS = (".claude/ds-gate.json", ".claude/ds-quality.json")  # the ds-gate skill's marker, then its pre-rename name
 GATE_DOCS = ("AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md")
 GATE_WORDS = ("gate", "check", "lint", "test")  # earlier = stronger label
+SCRIPT_EXT = {".sh", ".bash", ".py", ".ps1", ".bat", ".cmd", ".js", ".mjs", ".cjs", ".ts", ".rb", ".pl"}
+RUNNERS = {"make", "just", "tox", "nox", "task", "rake", "ninja", "mage"}  # a bare runner name is a whole command
+
+
+def runnable(root: Path, span: str) -> bool:
+    """A code span is a command only if its first word runs: a program on PATH, or a script in the repository.
+    A document or data file named in prose (`STATUS.md`, `gate.json`) is not a command; neither is a bare program
+    name that needs arguments (`git`, `go`), nor a template with a <placeholder>."""
+    words = span.split()
+    if not words or re.search(r"<\w[^>]*>", span):
+        return False
+    first = words[0]
+    path = root / first
+    if path.is_file():
+        return path.suffix.lower() in SCRIPT_EXT or (not path.suffix and os.access(str(path), os.X_OK))
+    if "/" in first or "\\" in first or Path(first).suffix.lower() in DOC | {".json", ".yaml", ".yml", ".toml"}:
+        return False
+    return bool(shutil.which(first)) and (len(words) > 1 or first in RUNNERS)
 
 
 def resolve_check(root: Path) -> tuple:
@@ -389,10 +514,7 @@ def resolve_check(root: Path) -> tuple:
         for n, ln in enumerate(read(root / doc).splitlines(), 1):
             label = re.sub(r"`[^`]*`", "", ln).lower()
             ranks = [GATE_WORDS.index(w) for w in re.findall(r"\b(gate|check|lint|test)s?\b", label)]
-            # the first code span that names something runnable (a tool on PATH or a file in the repo)
-            # a span with a <placeholder> is a template the reader fills in, not a command to run
-            cmd = next((c for c in re.findall(r"`([^`]+)`", ln) if c.split()[0:1] and not re.search(r"<\w[^>]*>", c)
-                        and (shutil.which(c.split()[0]) or (root / c.split()[0]).is_file())), None)
+            cmd = next((c for c in re.findall(r"`([^`]+)`", ln) if runnable(root, c)), None)
             if ranks and cmd and (best is None or min(ranks) < best[0]):
                 best = (min(ranks), cmd, f"{doc}:{n}")
     if best:
@@ -402,12 +524,21 @@ def resolve_check(root: Path) -> tuple:
 
 
 def set_check(root: Path, cmd: str, reason: str = "") -> dict:
-    state, _ = load(root)
-    if not state:
-        raise SystemExit("audit.py check: no run — start with `audit.py init`")
-    state["check"], state["check_from"], state["checks"] = cmd, "explicit", {}  # an old baseline measured another command
-    save_state(root, state, f"decided: check command `{cmd}` · {reason or 'set explicitly'}; baseline re-measured")
+    def change(state):  # an old baseline measured another command
+        state["check"], state["check_from"], state["checks"] = cmd, "explicit", {}
+    update(root, change, f"decided: check command `{cmd}` · {reason or 'set explicitly'}; baseline re-measured")
     return {"check": cmd, "check_from": "explicit"}
+
+
+def set_push(root: Path, value: str, reason: str = "") -> dict:
+    if value not in ("on", "off"):
+        raise SystemExit("audit.py push: use `push off [WHY]` or `push on [WHY]`")
+
+    def change(state):
+        state["push"] = value == "on"
+    why = reason or ("set explicitly" if value == "on" else "the project does not allow pushing")
+    update(root, change, f"decided: push {value} · {why}")
+    return {"push": value == "on"}
 
 
 def checks(root: Path, which: str) -> dict:
@@ -423,8 +554,15 @@ def checks(root: Path, which: str) -> dict:
                             "tail": (r.stdout + r.stderr).strip()[-1500:]}
         except subprocess.TimeoutExpired:
             result[step] = {"status": "timeout", "tail": f"no result in {STEP_TIMEOUT}s"}
-    state["checks"][which] = {k: v["status"] for k, v in result.items()}
-    save_state(root, state)
+    ran = state["check"]
+
+    def change(fresh):  # steps can run for minutes: record only into the state as it is now, never the old copy
+        if fresh["check"] != ran:
+            return {"discarded": f"the check command changed to `{fresh['check']}` while `{ran}` ran — rerun"}
+        fresh["checks"][which] = {k: v["status"] for k, v in result.items()}
+    out = update(root, change)
+    if isinstance(out, dict) and "discarded" in out:
+        result["(not recorded)"] = {"status": "fail", "tail": out["discarded"]}
     return result
 
 
@@ -521,6 +659,143 @@ def run_mech(root: Path, rid: str, cls: str, cmd: str, state) -> dict:
     return dict(row, status="hit" if (r.returncode if own else lines) else "clean", hits=lines[:50], more=max(0, len(lines) - 50))
 
 
+# --- coverage ---------------------------------------------------------------------------------------------
+
+# what each phase must read in full: a phase is not done while one of its files is unread
+PHASE_KINDS = {"lean": ("rules", "code"), "build": ("code", "tests"), "safe": ("code", "config", "markup"),
+               "surface": ("code", "markup"), "ship": ("rules", "docs", "config")}
+MARKUP = {".html", ".htm", ".css", ".scss", ".sass", ".less", ".xml", ".xaml", ".jinja", ".j2", ".hbs", ".ejs",
+          ".erb", ".njk", ".twig", ".liquid", ".mustache", ".storyboard", ".xib"}
+LOCKFILE = re.compile(r"(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|go\.sum|"
+                      r"Cargo\.lock|poetry\.lock|uv\.lock|Pipfile\.lock|Gemfile\.lock|composer\.lock|pubspec\.lock|"
+                      r"Podfile\.lock|packages\.lock\.json|gradle\.lockfile|flake\.lock|mix\.lock)$|\.min\.(js|css)$|"
+                      r"\.map$")
+READ_MAX = 1 << 20  # a text file over 1 MiB is data or generated output, listed as skipped, never silently dropped
+GROUP_LINES = 2500  # one reviewer reads a group in full, with room left for the rule files and its findings
+
+
+def cov_kind(path: str, globs=()) -> str:
+    if RULE_FILES.search(path):
+        return "rules"
+    if any(fnmatch.fnmatch(path, g) for g in globs):
+        return "code"
+    ext = Path(path).suffix.lower()
+    return ("tests" if TEST.search(path) else "code" if ext in SRC else "markup" if ext in MARKUP
+            else "docs" if ext in DOC else "config")
+
+
+def write_coverage(root: Path, plan: dict, scope: str, changed: list) -> dict:
+    """The run's reading list: every file each pending phase must read (changed scope: the changed files only)."""
+    globs, need, skipped = product_globs(root), {}, {}
+    for n in (changed if scope == "changed" else files(root)):
+        f = root / n
+        if not f.is_file() or n.startswith("ds/audit/"):
+            continue
+        if LOCKFILE.search(n):
+            skipped[n] = "lockfile or generated"
+            continue
+        size = f.stat().st_size
+        with f.open("rb") as fh:
+            head = fh.read(8192)
+        if b"\0" in head:
+            continue  # binary: nothing to read
+        if size > READ_MAX:
+            skipped[n] = f"{size // 1024} KB: data or generated"
+            continue
+        need[n] = (cov_kind(n, globs), read(f).count("\n") + 1)
+    cov = {"phases": {p: {"files": {n: ln for n, (k, ln) in need.items() if k in PHASE_KINDS[p]}, "read": {}}
+                      for p, v in plan.items() if v["status"] == "pending"}, "skipped": skipped}
+    path = root / COVERAGE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cov, indent=0, ensure_ascii=False), encoding="utf-8")
+    return cov
+
+
+def load_coverage(root: Path) -> dict:
+    try:
+        return json.loads(read(root / COVERAGE) or "{}")
+    except ValueError:
+        return {}
+
+
+def coverage(root: Path, only: str = None) -> dict:
+    """{phase: required, read, unread (paths)}; a required file the run has since deleted no longer counts."""
+    out = {}
+    for p, c in load_coverage(root).get("phases", {}).items():
+        if only and p != only:
+            continue
+        need = [n for n in c["files"] if (root / n).is_file()]
+        unread = [n for n in need if n not in c["read"]]
+        out[p] = {"required": len(need), "read": len(need) - len(unread), "unread": unread,
+                  "lines_unread": sum(c["files"][n] for n in unread)}
+    return out
+
+
+def review_groups(root: Path, name: str, size: int = GROUP_LINES) -> list:
+    """The phase's unread files packed into groups of <= size lines, a directory kept together where it fits: one
+    group per reviewer, run in parallel. A single file over the size is a group of its own."""
+    cov = load_coverage(root).get("phases", {}).get(name)
+    if cov is None:
+        raise SystemExit(f"audit.py groups: '{name}' has no reading list in this run — phases with one: "
+                         f"{sorted(load_coverage(root).get('phases', {}))}")
+    by_unit = {}
+    for n in coverage(root, name)[name]["unread"]:
+        by_unit.setdefault(unit_of(n, 2), []).append(n)
+    groups, cur, cur_lines = [], [], 0
+
+    def flush():
+        nonlocal cur, cur_lines
+        if cur:
+            groups.append({"group": len(groups) + 1, "lines": cur_lines, "files": cur})
+        cur, cur_lines = [], 0
+    for unit in sorted(by_unit):
+        names = sorted(by_unit[unit])
+        lines = sum(cov["files"][n] for n in names)
+        if cur_lines + lines > size:
+            flush()
+        for n in names:
+            if cur_lines and cur_lines + cov["files"][n] > size:
+                flush()
+            cur.append(n)
+            cur_lines += cov["files"][n]
+    flush()
+    return groups
+
+
+def mark_read(root: Path, name: str, paths: list) -> dict:
+    """Record files a reviewer read in full. Safe from parallel reviewers: one locked read-modify-write each."""
+    with locked(root):
+        cov = load_coverage(root)
+        ph = cov.get("phases", {}).get(name)
+        if ph is None:
+            raise SystemExit(f"audit.py read: '{name}' has no reading list in this run")
+        marked, other, missing = [], [], []
+        for raw in paths:
+            n = Path(raw).as_posix()
+            if Path(raw).is_absolute():
+                try:
+                    n = Path(raw).resolve().relative_to(root).as_posix()
+                except ValueError:
+                    pass
+            n = n[2:] if n.startswith("./") else n
+            if not (root / n).is_file():
+                missing.append(raw)
+            elif n in ph["files"]:
+                ph["read"][n] = int(time.time())
+                marked.append(n)
+            else:
+                other.append(n)
+        (root / COVERAGE).write_text(json.dumps(cov, indent=0, ensure_ascii=False), encoding="utf-8")
+    left = coverage(root, name)[name]
+    out = {"phase": name, "marked": len(marked), "read": left["read"], "required": left["required"],
+           "unread": len(left["unread"])}
+    if other:
+        out["not_on_the_list"] = other  # read anyway; not required for this phase
+    if missing:
+        out["missing"] = missing
+    return out
+
+
 # --- validate ---------------------------------------------------------------------------------------------
 
 def validate(root: Path, core: Path = None) -> list:
@@ -569,12 +844,33 @@ def validate(root: Path, core: Path = None) -> list:
                 problems.append(f"row {n}: commit {c} is not after the run's start")
         if r["Disposition"] == "fixed" and state.get("dry"):
             problems.append(f"row {n}: fixed in a dry run")
+    for ln in section(text, "Notes").splitlines():
+        if ln.startswith("decide:") and not parse_decision(ln):
+            problems.append(f"Notes: '{ln[:70]}' must read `decide: {{question}} · options: {{a}}; {{b}}[; …] · "
+                            "recommend: {option} — {why}` (two or more options)")
     return problems
+
+
+DECIDE = re.compile(r"^decide:\s*(?P<q>.+?)\s+·\s+options:\s*(?P<o>.+?)\s+·\s+recommend:\s*(?P<r>\S.*)$")
+
+
+def parse_decision(ln: str):
+    """A Notes `decide:` line: a choice only the owner can make, with its options and the recommended one."""
+    m = DECIDE.match(ln.strip())
+    opts = [o.strip() for o in m.group("o").split(";") if o.strip()] if m else []
+    return {"question": m.group("q").strip(), "options": opts, "recommend": m.group("r").strip()} if len(opts) > 1 else None
 
 
 # --- phases and report ------------------------------------------------------------------------------------
 
-def phase(root: Path, name: str, status: str, reason: str = "") -> str:
+def phase(root: Path, name: str, status: str, reason: str = "") -> dict:
+    with locked(root):
+        state = _phase(root, name, status, reason)
+    return {"next": next((n for n, p in state["phases"].items() if p["status"] == "pending"), ""),
+            "push": push(root, state) if status == "done" else "not pushed: phase blocked"}
+
+
+def _phase(root: Path, name: str, status: str, reason: str = "") -> dict:
     state, text = load(root)
     if not state or name not in state["phases"]:
         raise SystemExit(f"audit.py phase: '{name}' is not in this run's plan {list((state or {}).get('phases', {}))}")
@@ -583,6 +879,10 @@ def phase(root: Path, name: str, status: str, reason: str = "") -> str:
         if (root / "SCOPE.md").is_file():  # a later phase's commits can breach the budget lean set; never silently
             bad += [f"lean-check: {p}" for p in lean_check(root, root / "SCOPE.md")]
         open_rows = [r["#"] for r in rows(text) if r["Phase"] == name and r["Disposition"] == "open"]
+        unread = coverage(root, name).get(name, {}).get("unread", [])
+        if unread:  # a phase that has not read its files has not audited them: never done, never WARN
+            bad.append(f"{len(unread)} file(s) not read yet ({', '.join(unread[:5])}{' …' if len(unread) > 5 else ''})"
+                       f" — `audit.py groups {name}`, review, `audit.py read {name} FILE…`")
         if bad or open_rows:
             raise SystemExit("audit.py phase: not done — " + "; ".join(bad + [f"open rows {open_rows}"] * bool(open_rows)))
     elif status != "blocked" or not reason:
@@ -594,8 +894,7 @@ def phase(root: Path, name: str, status: str, reason: str = "") -> str:
     if reason:
         state["phases"][name]["reason"] = reason
     save_state(root, state)
-    return {"next": next((n for n, p in state["phases"].items() if p["status"] == "pending"), ""),
-            "push": push(root, state) if status == "done" else "not pushed: phase blocked"}
+    return state
 
 
 def push(root: Path, state: dict) -> str:
@@ -603,6 +902,8 @@ def push(root: Path, state: dict) -> str:
     Returns what happened, for the caller to print: `pushed {branch} {sha}`, the refusal, or why nothing was pushed."""
     if state.get("branch") != BRANCH or state.get("dry"):
         return f"not pushed: the run commits on {state.get('branch')}{' (dry)' if state.get('dry') else ''}"
+    if not state.get("push", True):
+        return f"not pushed: push is off for this run ({BRANCH} stays local)"
     if "origin" not in git(root, "remote").split():
         return "not pushed: no origin remote"
     try:
@@ -613,14 +914,16 @@ def push(root: Path, state: dict) -> str:
         ok, why = False, "timeout"
     if ok:
         return f"pushed {BRANCH} {git(root, 'rev-parse', '--short', BRANCH).strip()}"
-    save_state(root, load(root)[0],
-               f"only-you: push of {BRANCH} refused ({why}) — fix the remote side, then `git push -u origin {BRANCH}`")
+    update(root, lambda s: None,
+           f"only-you: push of {BRANCH} refused ({why}) — fix the remote side, then `git push -u origin {BRANCH}`")
     return f"push refused: {why}"
 
 
-def status_of(state: dict, findings: list) -> str:
+def status_of(state: dict, findings: list, cov: dict = None) -> str:
     if any(p["status"] in ("pending", "running", "blocked") for p in state["phases"].values()):
         return "INCOMPLETE"
+    if any(c["unread"] for c in (cov or {}).values()):
+        return "INCOMPLETE"  # a file no one read is not audited, whatever the rows say
     open_ = [r for r in findings if not r["Disposition"].startswith(CLOSED)]
     base, now = state["checks"].get("baseline", {}), state["checks"].get("now", {})
     newly_red = [s for s, v in now.items() if v != "pass" and base.get(s) == "pass"]
@@ -671,11 +974,17 @@ def decided_rank(d: tuple) -> tuple:
 
 
 def report(root: Path) -> str:
+    with locked(root):
+        return _report(root)
+
+
+def _report(root: Path) -> str:
     state, text = load(root)
     if not state:
         raise SystemExit("audit.py report: no run — start with `audit.py init`")
     findings = rows(text)
-    status = status_of(state, findings)
+    cov = coverage(root)
+    status = status_of(state, findings, cov)
     minutes = max(1, round((time.time() - state["started"]) / 60))
     changes = change_rows(root, state["start"]) if state["start"] else {}
     got = {"file": sum(c["files"] for c in changes.values()), "insertion": sum(c["add"] for c in changes.values()),
@@ -686,6 +995,7 @@ def report(root: Path) -> str:
     notes = section(text, "Notes")
     decided = [(ln.startswith("decided!:"), ln.split(":", 1)[1].strip()) for ln in notes.splitlines()
                if ln.startswith(("decided:", "decided!:"))]
+    choices = [d for d in map(parse_decision, (ln for ln in notes.splitlines() if ln.startswith("decide:"))) if d]
     only_lines = []
     for item in [ln.split(":", 1)[1].strip() for ln in notes.splitlines() if ln.startswith("only-you:")] + [
             f"{r['Where']}: {r['Disposition'][len('only you can do ('):-1]}" for r in only]:
@@ -694,12 +1004,15 @@ def report(root: Path) -> str:
             only_lines.append(item)  # the same action from a Notes line and a row is listed once
     if state.get("branch") == BRANCH and commits not in ("", "0"):
         only_lines.append(f"review and merge {BRANCH}: `git diff {state['start'][:12]}...{BRANCH}` · "
-                          f"`git switch {state['home']}` · `git merge --ff-only {BRANCH}` · `git branch -d {BRANCH}` · "
-                          f"`git push origin --delete {BRANCH}` (or drop it all: `git branch -D {BRANCH}`)")
+                          f"`git switch {state['home']}` · `git merge --ff-only {BRANCH}` · `git branch -d {BRANCH}`"
+                          + (f" · `git push origin --delete {BRANCH}`" if state.get("push", True) else "")
+                          + f" (or drop it all: `git branch -D {BRANCH}`)")
     scope = f"changed: {len(state['changed'])} files" if state["scope"] == "changed" else state["scope"]
-    out = [f"ds-audit: {status} · {minutes} min · scope {scope} · findings {len(findings)} · fixed {len(fixed)} · "
-           f"open {len(open_)} · only-you {len(only)}",
-           f"Asked: /ds-audit {state['scope']}" + "".join(f" {k}" for k in ("dry", "ask", "auto") if state.get(k)), "",
+    need, got_read = sum(c["required"] for c in cov.values()), sum(c["read"] for c in cov.values())
+    unread = {p: c["unread"] for p, c in cov.items() if c["unread"]}
+    out = [f"ds-audit: {status} · {minutes} min · scope {scope} · read {got_read}/{need} · findings {len(findings)} · "
+           f"fixed {len(fixed)} · open {len(open_)} · only-you {len(only)} · decisions {len(choices)}",
+           "Asked: /ds-audit " + (" ".join(run_words(state)) or "(changed scope)"), "",
            "| Change | Files | Lines | Commits |", "|--------|------:|------:|--------:|",
            *([f"| {k} | {c['files']} | +{c['add']} −{c['del']} | {c['commits']} |" for k, c in changes.items()]
              or ["| code | 0 | +0 −0 | 0 |"]), ""]
@@ -717,6 +1030,9 @@ def report(root: Path) -> str:
     base, now = state["checks"].get("baseline", {}), state["checks"].get("now", {})
     effect = [f"{s}: {base.get(s, '—')} → {now.get(s, '—')}" for s in (base or now)]
     out += ["", "Effect: " + ("; ".join(effect) if effect else "no check ran")]
+    if unread:
+        out.append("Not read — INCOMPLETE: " + " · ".join(
+            f"{p} {len(u)} file(s): {', '.join(u[:3])}{' …' if len(u) > 3 else ''}" for p, u in unread.items()))
     if state.get("carried"):
         prior = [r for r in findings if int(r["#"]) <= state["carried"]]
         was = tally(prior)
@@ -732,15 +1048,24 @@ def report(root: Path) -> str:
         out += [f"- {x}" for x in only_lines[:CLOSING_ONLY]]
         if len(only_lines) > CLOSING_ONLY:
             out.append(f"+{len(only_lines) - CLOSING_ONLY} more in {REPORT} Notes and rows")
+    if choices:  # last and never cut: what the owner has to decide is what they came back for
+        out += ["", f"Decisions for you: {len(choices)}"]
+        for i, d in enumerate(choices, 1):
+            out += [f"{i}. {d['question']}", f"   Options: {' · '.join(d['options'])}",
+                    f"   Recommended: {d['recommend']}"]
     closing = "\n".join(out)
-    phases_md = "| Phase | Status | Areas |\n|---|---|---|\n" + "".join(
+    phases_md = "| Phase | Status | Read | Areas |\n|---|---|---|---|\n" + "".join(
         f"| {n} | {p['status']}{' — ' + p['reason'] if p.get('reason') else ''} | "
+        + (f"{cov[n]['read']}/{cov[n]['required']}" if n in cov else "—") + " | "
         + " · ".join(f"{a} {v}" for a, v in p["areas"].items()) + " |\n" for n, p in state["phases"].items())
+    skipped = load_coverage(root).get("skipped", {})
+    if skipped:
+        phases_md += "\nNot on the reading list: " + " · ".join(f"{n} ({why})" for n, why in sorted(skipped.items())) + "\n"
     phases_md += f"\n{state['signals']}\n"
     write(root, state, closing, phases_md, section(text, "Findings"), notes.strip())
     page = root / REPORT.with_suffix(".html")
     page.write_text(render_html(root, state, findings, status, minutes, got, commits, [d for _, d in decided],
-                                only_lines),
+                                only_lines, choices, cov),
                     encoding="utf-8")
     return closing
 
@@ -781,7 +1106,7 @@ overflow-wrap:anywhere}
 .ring text{fill:var(--ink);font-weight:800;font-size:22px}
 .status{font-size:16px;font-weight:800}.row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
 .note{font-size:11.5px;color:var(--ink-2);margin-top:4px}
-ul.plain{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px}
+ul.plain,ol.plain{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px}
 .phase{display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:700}
 .areas{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .wrap{overflow-x:auto}
@@ -814,7 +1139,7 @@ PHASE_BADGE = {"done": "b-ok", "pending": "b-mute", "running": "b-info", "blocke
 
 
 def render_html(root: Path, state: dict, findings: list, status: str, minutes: int, got: dict, commits: str,
-                decided: list, only_lines: list) -> str:
+                decided: list, only_lines: list, choices: list = (), cov: dict = None) -> str:
     from html import escape as e
     fixed, open_, only = (len(tally(findings)[k]) for k in ("fixed", "open", "only"))
     pct = round(100 * fixed / len(findings)) if findings else None
@@ -832,7 +1157,7 @@ def render_html(root: Path, state: dict, findings: list, status: str, minutes: i
         for s in (base or now)) or "<li>No check ran</li>"
     phases_html = "".join(
         f'<section class="card"><div class="phase">{e(n)} {badge(PHASE_BADGE.get(p["status"], "b-mute"), p["status"])}'
-        f'</div>{"<div class=note>" + e(p["reason"]) + "</div>" if p.get("reason") else ""}<div class="areas">'
+        f'</div>{"<div class=note>read " + str(cov[n]["read"]) + "/" + str(cov[n]["required"]) + " files</div>" if n in (cov or {}) else ""}{"<div class=note>" + e(p["reason"]) + "</div>" if p.get("reason") else ""}<div class="areas">'
         + "".join(badge("b-ok" if v in ("loads", "ran") else "b-mute", f"{a} {v}") for a, v in p["areas"].items())
         + "</div></section>" for n, p in state["phases"].items())
     order = sorted(findings, key=lambda r: (SEVS.index(r["Sev"]) if r["Sev"] in SEVS else 9,
@@ -847,6 +1172,13 @@ def render_html(root: Path, state: dict, findings: list, status: str, minutes: i
     findings_html = (f'<div class="wrap"><table><thead><tr><th>#</th><th>Severity</th><th>Where</th><th>Finding</th>'
                      f'<th>Prevents / gains</th><th>Outcome</th></tr></thead><tbody>{rows_html}</tbody></table></div>'
                      if findings else '<p class="note">No findings</p>')
+    cov = cov or {}
+    choices_html = "".join(
+        f"<li><strong>{e(d['question'])}</strong><div class=note>Options: {e(' · '.join(d['options']))}</div>"
+        f"<div>Recommended: {e(d['recommend'])}</div></li>" for d in choices)
+    choices_html = (f'<section class="card wide"><h2>Decisions for you ({len(choices)})</h2><ol class="plain">'
+                    f'{choices_html}</ol></section>' if choices else "")
+    read_html = " · ".join(f"{e(p)} {c['read']}/{c['required']}" for p, c in cov.items())
     lists = "".join(
         f'<section class="card"><h2>{title}</h2><ul class="plain">{"".join("<li>" + e(x) + "</li>" for x in items)}</ul></section>'
         for title, items in (("Decided without asking — say if wrong", decided), ("Only you can do", only_lines)) if items)
@@ -864,12 +1196,13 @@ def render_html(root: Path, state: dict, findings: list, status: str, minutes: i
 aria-label="{"No findings" if pct is None else f"{pct}% of findings fixed"}"><circle class="base" cx="50" cy="50" r="40"/>{ring}<text x="50" y="58"
 text-anchor="middle">{"–" if pct is None else f"{pct}%"}</text></svg><div><div class="status" style="color:{color}">{e(status)}</div>
 <div class="row">{badge("b-ok", f"{fixed} fixed")}{badge("b-warn", f"{open_} open")}{badge("b-info", f"{only} only you")}</div>
-<div class="note">{len(findings)} findings · code {got.get("file", 0)} files +{got.get("insertion", 0)} −{got.get("deletion", 0)} · {e(commits)} commits</div></div></div></section>
+<div class="note">{len(findings)} findings · read {e(read_html) or "—"} · code {got.get("file", 0)} files +{got.get("insertion", 0)} −{got.get("deletion", 0)} · {e(commits)} commits</div></div></div></section>
 <section class="card"><h2>Checks · baseline → now</h2><ul class="plain">{checks_html}</ul></section>
 </div>
 <div class="grid">{phases_html}</div>
 <section class="card wide"><h2>Findings</h2>{findings_html}</section>
 <div class="grid">{lists}</div>
+{choices_html}
 <section class="card wide"><h2>Signals</h2><pre>{e(state["signals"])}</pre></section>
 </div><script>{THEME_JS}</script></body></html>
 """
@@ -1280,6 +1613,23 @@ def self_test() -> int:
         origin = Path(tempfile.mkdtemp(prefix="ds-audit-origin-"))
         subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True, env=gitenv, capture_output=True)
         subprocess.run(["git", "-C", str(tmp), "remote", "add", "origin", str(origin)], check=True, env=gitenv)
+        cov = coverage(tmp, "lean")["lean"]
+        expect(cov["unread"] == ["AGENTS.md", "a/x.go", "cmd/app/main.go"] and cov["required"] == 3,
+               f"lean's reading list is not the rule files and code (tests, vendor out): {cov}")
+        expect(set(coverage(tmp, "build")["build"]["unread"]) == {"a/x.go", "a/x_test.go", "cmd/app/main.go"},
+               f"build's reading list is not code + tests: {coverage(tmp, 'build')}")
+        grp = review_groups(tmp, "lean", size=4)
+        expect([g["files"] for g in grp] == [["AGENTS.md"], ["a/x.go"], ["cmd/app/main.go"]]
+               and [g["files"] for g in review_groups(tmp, "lean")] == [["AGENTS.md", "a/x.go", "cmd/app/main.go"]],
+               f"review groups do not pack unread files by size: {grp}")
+        try:
+            phase(tmp, "lean", "done")
+            fails.append("phase done accepted a phase with unread files")
+        except SystemExit as e:
+            expect("not read" in str(e) and "groups lean" in str(e), f"phase done does not name the unread files: {e}")
+        mk = mark_read(tmp, "lean", ["AGENTS.md", "./a/x.go", str(tmp / "cmd/app/main.go"), "README.md", "zz.go"])
+        expect(mk["unread"] == 0 and mk["marked"] == 3 and mk.get("not_on_the_list") == ["README.md"]
+               and mk.get("missing") == ["zz.go"], f"read does not mark relative, ./ and absolute paths: {mk}")
         for p in state["phases"]:
             closed = phase(tmp, p, "blocked", "test") if p != "lean" else phase(tmp, p, "done")
             if p == "lean":
@@ -1297,6 +1647,12 @@ def self_test() -> int:
             p["status"] = "done"
         state["checks"] = {"baseline": {"go test": "pass"}, "now": {"go test": "pass"}}
         save_state(tmp, state)
+        mark_read(tmp, "build", ["a/x.go", "a/x_test.go"])
+        closing = report(tmp)
+        expect(closing.startswith("ds-audit: INCOMPLETE") and "Not read — INCOMPLETE: build 1 file(s): cmd/app/main.go"
+               in closing, f"report does not say INCOMPLETE and name the unread file when phases are done:\n{closing}")
+        for p, c in coverage(tmp).items():
+            mark_read(tmp, p, c["unread"])
         expect(report(tmp).startswith("ds-audit: FAIL"), "report FAIL on an open CRITICAL")
         write(tmp, state, findings=findings + good_row.replace("| f | p |", "| <script>x</script> | p |"))
         expect(report(tmp).startswith("ds-audit: OK"), "report OK when all fixed and checks hold")
@@ -1466,6 +1822,81 @@ def self_test() -> int:
         (tmp / REPORT).unlink()
         expect(init(tmp, ["a11y"])["plan"].get("surface", {}).get("areas", {}).get("a11y") == "loads",
                "a named area runs even when its signal says N/A")
+
+        def repo(prefix, body):
+            d = Path(tempfile.mkdtemp(prefix=prefix)).resolve()
+            subprocess.run(["git", "-C", str(d), "init", "-q"], check=True, env=gitenv, capture_output=True)
+            for rel, text in body.items():
+                (d / rel).parent.mkdir(parents=True, exist_ok=True)
+                (d / rel).write_text(text, encoding="utf-8")
+            for args in (["add", "-A"], ["commit", "-qm", "init"]):
+                subprocess.run(["git", "-C", str(d), *args], check=True, env=gitenv, capture_output=True)
+            return d
+
+        # a check running for minutes must not write back the state it read at its start
+        bg = repo("ds-audit-bg-", {"a.py": "x = 1\n"})
+        init(bg, ["all"])
+        set_check(bg, f"{shlex.quote(sys.executable)} -B {shlex.quote(str(HERE / 'audit.py'))} --root "
+                      f"{shlex.quote(str(bg))} phase build blocked closed-while-the-check-ran")
+        checks(bg, "baseline")
+        st = load(bg)[0]
+        expect(st["phases"]["build"]["status"] == "blocked" and "closed-while" in st["phases"]["build"].get("reason", "")
+               and len(st["checks"].get("baseline", {})) == 1,
+               f"checks overwrote a phase closed while it ran: build={st['phases']['build']} checks={st['checks']}")
+        shutil.rmtree(bg, ignore_errors=True)
+
+        # a document named in a prose line about checks is not the check command
+        doc = repo("ds-audit-doc-", {"STATUS.md": "# status\n", "AGENTS.md":
+                   "| Owner's preferences: who runs checks, batch size | `STATUS.md` \"Live configuration\" |\n"
+                   "- Tests: `git` is used for everything.\n"})
+        got = resolve_check(doc)
+        expect(got[0] != "STATUS.md" and got[0] != "git", f"check command taken from a prose line: {got}")
+        (doc / "check.sh").write_text("#!/bin/sh\ntrue\n", encoding="utf-8")
+        (doc / "AGENTS.md").write_text("- Run the gate before a commit: `./check.sh --all`\n", encoding="utf-8")
+        expect(resolve_check(doc)[0] == "./check.sh --all", f"a documented repo script is not the gate: "
+                                                            f"{resolve_check(doc)}")
+        shutil.rmtree(doc, ignore_errors=True)
+
+        # an open run is resumed only by the same words (or none); other words start a new run
+        old = repo("ds-audit-dry-", {"a.py": "x = 1\n"})
+        first = init(old, ["all", "dry"])
+        again = init(old, ["all"])
+        st, txt = load(old)
+        expect(not again["resume"] and not st["dry"] and st["asked"] == ["all"] and "was not resumed" in txt
+               and len(list((old / REPORT.parent).glob("report-*.md"))) == 1,
+               f"a new `all` silently resumed an open `all dry` run: first={first.get('asked')} again={again}")
+        expect(init(old, ["all"])["resume"] and init(old, [])["resume"], "the same words (or none) do not resume")
+        shutil.rmtree(old, ignore_errors=True)
+
+        # push off: the word `local` or `audit.py push off WHY`; no fake remote needed
+        loc = repo("ds-audit-local-", {"a.py": "x = 1\n"})
+        origin = Path(tempfile.mkdtemp(prefix="ds-audit-origin-"))
+        subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True, env=gitenv, capture_output=True)
+        subprocess.run(["git", "-C", str(loc), "remote", "add", "origin", str(origin)], check=True, env=gitenv)
+        res = init(loc, ["all", "local"])
+        for p, c in coverage(loc).items():
+            mark_read(loc, p, c["unread"])
+        closed = phase(loc, res["next"], "done")
+        expect(res["push"] is False and closed["push"].startswith("not pushed: push is off")
+               and not git(origin, "for-each-ref", "refs/heads"), f"`local` still pushed: {closed}")
+        set_push(loc, "on", "test")
+        nxt = phase(loc, closed["next"], "done")["push"]
+        expect(nxt.startswith(f"pushed {BRANCH}"), f"push on does not push again: {nxt}")
+        set_push(loc, "off", "AGENTS.md forbids pushing")
+        expect(load(loc)[0]["push"] is False and "decided: push off · AGENTS.md forbids pushing" in load(loc)[1],
+               "push off is not recorded with its reason")
+        shutil.rmtree(origin, ignore_errors=True)
+
+        # decisions for the owner: validated, listed last in the closing message with options and a recommendation
+        st, txt = load(loc)
+        good = "decide: keep the env-var secret policy? · options: keep; read from a vault · recommend: keep — no vault yet"
+        write(loc, st, findings=section(txt, "Findings"), notes=good + "\ndecide: should we? · options: yes")
+        expect(len([q for q in validate(loc) if "decide:" in q]) == 1, f"a decide: line without options passes: "
+                                                                      f"{validate(loc)}")
+        tail = report(loc).split("Decisions for you: 1")
+        expect(len(tail) == 2 and "Options: keep · read from a vault" in tail[1]
+               and "Recommended: keep — no vault yet" in tail[1], f"decisions are not listed last: {tail}")
+        shutil.rmtree(loc, ignore_errors=True)
     finally:
         if CORE != real_core:
             shutil.rmtree(CORE, ignore_errors=True)
@@ -1524,6 +1955,18 @@ def main(argv) -> int:
         return 0 if ratio >= 4.5 else 1
     elif cmd == "check" and rest:
         dump(set_check(root, rest[0], " ".join(rest[1:])))
+    elif cmd == "push" and rest:
+        dump(set_push(root, rest[0], " ".join(rest[1:])))
+    elif cmd == "coverage":
+        res = coverage(root, rest[0] if rest else None)
+        dump({p: dict(c, unread=c["unread"][:200], more=max(0, len(c["unread"]) - 200)) for p, c in res.items()})
+        return 0 if not any(c["unread"] for c in res.values()) else 1
+    elif cmd == "groups" and rest[:1] and rest[0] in PHASES:
+        dump(review_groups(root, rest[0], int(take(rest, "--lines") or GROUP_LINES)))
+    elif cmd == "read" and len(rest) >= 2 and rest[0] in PHASES:
+        res = mark_read(root, rest[0], rest[1:])
+        dump(res)
+        return 1 if res.get("missing") else 0
     elif cmd == "signal" and len(rest) >= 2:
         dump(set_signal(root, rest[0], rest[1], " ".join(rest[2:])))
     elif cmd == "validate":
