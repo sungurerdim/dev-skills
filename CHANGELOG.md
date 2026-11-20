@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.1.0] - 2026-11-20
+
+`/ds-audit all` now reads every file in scope, fixes every finding a test can prove, and ends with the owner's decisions.
+
+### Added
+
+- **Reading list per run** (`ds/audit/coverage.json`): every file each phase must read. `audit.py coverage`, `groups PHASE` (unread files in review groups of ≤ 2500 lines, one per parallel reviewer) and `read PHASE FILE…` (parallel-safe). `phase … done` refuses while a file is unread, and an unread file makes the run INCOMPLETE, not WARN; the closing message and `report.html` show read/required per phase and name the unread files.
+- **Decisions for you**: an owner-only choice is a `decide:` line with its question, two or more options and a recommendation; `validate` rejects one without options, and the closing message lists every decision last, uncut (kernel §4, §6).
+- **Push off without a fake remote**: the word `local`, or `audit.py push off WHY` once the project's rules forbid pushing; the merge commands then leave out the remote delete.
+
+### Changed
+
+- **Fix everything provable**: every finding whose fix a test or check can prove is applied, Category B included; `only you can do` is limited to the kernel §5 items. "Open an issue" and "needs discussion" are not dispositions. Reviewers have no cap on findings, files or lines, and reading never stops because findings dry up.
+
+### Fixed
+
+- `audit.py checks` no longer writes back the state it read before its steps ran: a phase closed while a long check ran stayed closed. Every state change now re-reads the state under a lock.
+- The check command is no longer taken from a document named in prose (`STATUS.md` on a "who runs checks" line): a code span counts only when its first word is a program on PATH with arguments, a known runner, or a script in the repository.
+- `audit.py init` resumes an open run only when asked with the same words or none; a different request (`all` after an open `all dry`) starts a new run, keeps the old report and carries its open rows.
+- ARC-06 and PRF-06 fixtures: the Python hits and misses are valid Python, so ruff's result is judged on the rule, not on a syntax error; PRF-06 gains a Python fixture for its ruff command.
+
 ## [3.0.0] - 2026-11-18
 
 Rebuilt from scratch around one decision order (question → reuse → delete → simplify → accelerate → automate) with one home for every rule. Measured on the files an install ships (`ds-*/`, `core/`, `agents/`): 199 files / 2.63 MB → 56 files / 1.04 MB; SKILL.md total 704 KB across 32 skills → 30 KB across 4; a `ds-audit` run loads 35 KB (SKILL.md, `phases.md`, `core/kernel.md`) before rules, which load only for areas whose project signal holds; rule headings 812 → 341, every one with a `Mech:` line.

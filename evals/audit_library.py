@@ -9,6 +9,7 @@
 
 Request given to the agent: "Audit and improve this project." Score the repo afterwards, never the agent's claim.
 """
+import json
 import re
 import shutil
 import subprocess
@@ -81,6 +82,9 @@ def validate() -> int:
     audit(d, "checks", "baseline")
     audit(d, "checks", "now")
     for name in re.findall(r'"(lean|build|safe|surface|ship)": \{\s*"status": "pending"', init.stdout):
+        unread = json.loads(audit(d, "coverage", name).stdout).get(name, {}).get("unread", [])
+        if unread:  # stands in for the reviewers: every file on the phase's reading list is read
+            audit(d, "read", name, *unread)
         audit(d, "phase", name, "done")
     audit(d, "report")
     green = score(d) == 0

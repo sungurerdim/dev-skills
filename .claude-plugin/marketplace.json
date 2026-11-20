@@ -5,7 +5,7 @@
     "url": "https://github.com/sungurerdim"
   },
   "description": "Agent Skills for shipping production-quality software: whole-project audit and fix, a machine-enforced quality gate, a hardened AI-dev rig, and fact-checked research briefs.",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "plugins": [
     {
       "name": "dev-skills",
@@ -13,7 +13,7 @@
       "strict": false,
       "displayName": "dev-skills",
       "description": "4 skills — ds-audit, ds-gate, ds-setup, ds-research — on one shared kernel and rule set; Markdown plus Python stdlib, no runtime dependencies.",
-      "version": "3.0.0",
+      "version": "3.1.0",
       "author": {
         "name": "sungurerdim",
         "url": "https://github.com/sungurerdim"

@@ -50,8 +50,9 @@ Optimizing or automating something that should not exist is the most expensive m
 - Report a finding only if it **breaks** something, **misleads** a reader (human or AI), or **costs more to keep than it gives**. Doubt → not reported.
 - Never flag: suppressions with a reason (`# noqa: X`, `eslint-disable` + rule), `_`-prefixed discards, type-only imports, platform guards, test fixtures, generated files. Read 3 lines of context before recording a pattern hit; hits inside comments or strings describing the pattern are not findings.
 - Same site from several rules → one finding, highest severity.
-- **Category A** (reversible, local, conforms to the agreed design) → apply. **Category B** (changes architecture, a public contract or promise, adds/removes a dependency, deletes) → decide by impact/effort/risk, apply when it passes, record the reasoning. Uncertain → B.
-- Disposition of every finding and planned check: `fixed` · `reverted (error)` · `skipped (concrete blocker)` · `not applicable (reason)` · `only you can do (exact action)`. Totals balance. "Pre-existing", "out of scope", "too hard", "later" are not blockers — name the contract, dependency or runtime uncertainty, or fix it.
+- **Category A** (reversible, local, conforms to the agreed design) → apply. **Category B** (changes architecture, a public contract or promise, adds/removes a dependency, deletes) → decide by impact/effort/risk, apply when it passes, record the reasoning. Uncertain → B. A fix a test or check can prove is applied, whatever its category.
+- Disposition of every finding and planned check: `fixed` · `reverted (error)` · `skipped (concrete blocker)` · `not applicable (reason)` · `only you can do (exact action)`. Totals balance. "Pre-existing", "out of scope", "too hard", "later", "open an issue", "needs discussion" are not blockers — name the contract, dependency or runtime uncertainty, or fix it.
+- `only you can do` is only for the §5 items. A choice only the owner can make — a policy, a public contract others depend on, a business or legal value — is an **owner decision**: the question, two or more options and the recommended one, listed under `Decisions for you` (§6). Nothing else is left to the owner.
 
 ## 5. Autonomy and its only exceptions
 
@@ -59,7 +60,7 @@ Optimizing or automating something that should not exist is the most expensive m
 
 Every decision is made from the evidence and recorded; the run does not stop to ask. `ask` turns each decision point into a question with a recommended option. A part whose subject is itself a human-only value (ds-audit `lean`: the project's scope and its recorded rules) asks when it is named or with `ask`; run unattended, its questions become `only you can do` with a recommendation. `auto` is the opposite of `ask`: every decision, these included, is taken from the project's stated purpose, the evidence and the named standards, recorded with its reason, and kept reversible (the skill says how); the never-performed list below still holds. These are never performed by a skill, in any mode — they are listed as `only you can do` with the exact command:
 
-- Publishing: `git push` (one exception: a skill's own review branch, ds-audit's `ds/audit`, pushed without force), opening/merging a PR, deploying to a shared environment, releasing, publishing to a registry or store.
+- Publishing: `git push` (one exception: a skill's own review branch, ds-audit's `ds/audit`, pushed without force unless the request or a project rule turns pushing off), opening/merging a PR, deploying to a shared environment, releasing, publishing to a registry or store.
 - Irreversible: force-push or history rewrite on a shared branch, deleting a remote branch/tag/resource, rotating or sending a real secret, `--no-verify`, `reset --hard` over work the run did not create.
 - Anything needing a value only a human has: a credential, a legal/business/financial decision, an account or console setting.
 
@@ -70,7 +71,7 @@ Committing locally is allowed and expected; publishing is not.
 - Nothing waits for input: non-interactive forms only (`git commit -m`, `--no-edit`, `GIT_EDITOR=true`, `GIT_PAGER=cat`, `CI=1`, a tool's `--yes` only for a step this file already allows); no editor, pager, prompt or watch mode.
 - Every command has a timeout; a hung or failed step is recorded as a blocker and the run continues with everything that does not depend on it.
 - Progress lives in the skill's state file (`ds/audit/report.md`, the ds-setup manifest, the ds-research artifact), so a run cut short by context or time resumes there instead of starting over.
-- Without `ask`, a run never ends on a question: open choices become `Decided without asking` or `Only you can do` in the closing message. Permission prompts of the host are the one wait a skill cannot remove; the ds-setup `perms` part allows all risk-free work so they do not occur.
+- Without `ask`, a run never ends on a question: open choices become `Decided without asking`, `Only you can do` or `Decisions for you` in the closing message. Permission prompts of the host are the one wait a skill cannot remove; the ds-setup `perms` part allows all risk-free work so they do not occur.
 
 ## 6. Closing message
 
@@ -93,9 +94,14 @@ Decided without asking — say if wrong: {count}
 - {decision · reason}
 Only you can do:
 - {exact action or command}
+
+Decisions for you: {count}
+1. {question}
+   Options: {a} · {b}
+   Recommended: {option} — {why}
 ```
 
-- **Readable on return: about 40 lines.** `Decided` gives the count and at most 5 consequential decisions (scope, branch, signals, cuts, rules, budget), one per line; the rest stay in the skill's file. Each `Only you can do` action appears once.
+- **Readable on return: about 40 lines.** `Decided` gives the count and at most 5 consequential decisions (scope, branch, signals, cuts, rules, budget), one per line; the rest stay in the skill's file. Each `Only you can do` action appears once. `Decisions for you` comes last and is never cut: every owner decision, each with its options and recommendation.
 
 - **Numbers are measured, never estimated.** Record `{start}` = `git rev-parse HEAD` and the start time in the first call; one row per kind of change in the repository — code, tests, docs, config, split by path — from `git diff --numstat {start}` (commits and uncommitted together) and the commits of `{start}..HEAD` touching that kind. Non-git changes (global configs, installed tools, generated files) get their own row from the skill's own record.
 - **Findings rows:** severity first, then fixed before open; at most 15, then `+{n} more in {file}`. `Where` = `file:line` or the item; `Outcome` = a kernel §4 disposition with the commit hash when fixed; `Prevents / gains` = what goes wrong without it, for whom, in plain words (or what is now faster, cheaper, clearer). A run with no findings says `No findings` instead of the table.

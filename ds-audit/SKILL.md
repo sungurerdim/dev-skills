@@ -1,12 +1,12 @@
 ---
 name: ds-audit
 description: Audit and improve a project to production quality in five phases — lean (cut what the purpose does not need, review recorded rules with the owner), build, safe, surface, ship — each mechanical first, with fixes committed locally and one report. Use to review and fix what the current branch changes (the default), for an end-to-end audit with `all` ("make this production ready", "this has grown too big"), or for a phase or named areas such as `lean` or `sec a11y`.
-argument-hint: '[all] [lean|build|safe|surface|ship] [rules|lean|sec|privacy|auth|api|db|arch|code|test|perf|web|a11y|ux|i18n|mobile|store|money|ci|ops|docs|repo ...] [dry] [ask|auto] [<path>]'
+argument-hint: '[all] [lean|build|safe|surface|ship] [rules|lean|sec|privacy|auth|api|db|arch|code|test|perf|web|a11y|ux|i18n|mobile|store|money|ci|ops|docs|repo ...] [dry] [ask|auto] [local] [<path>]'
 ---
 
 # /ds-audit
 
-Audit what the branch changes (or, with `all`, the whole project) phase by phase, fix what is safe, prove it with the project's own checks, and leave one report. Every step follows [kernel.md](../core/kernel.md) — read it first. The contract every phase shares — steps, ledger columns, lean procedure, error table — is [references/phases.md](references/phases.md); read it before the first phase.
+Audit what the branch changes (or, with `all`, the whole project) phase by phase, read every file in scope, fix every finding a test or check can prove, and leave one report that ends with the decisions only the owner can make. Every step follows [kernel.md](../core/kernel.md) — read it first. The contract every phase shares — steps, ledger columns, lean procedure, error table — is [references/phases.md](references/phases.md); read it before the first phase.
 
 ## Input
 
@@ -18,6 +18,7 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 | area words | Only those areas, each runnable alone, even where its signal says N/A ([rules/README.md](../core/rules/README.md)): `rules` `lean` `arch` `code` `test` `perf` `sec` `privacy` `auth` `api` `db` `web` `a11y` `ux` `i18n` `mobile` `store` `money` `ci` `ops` `docs` `repo` |
 | `dry` | Detect and plan only; no file changes, no commits, no branch |
 | `ask` | Each decision point becomes a question with a recommended option (kernel §5) |
+| `local` | No push: `ds/audit` stays on this machine (also `A push off WHY` once a project rule forbidding pushes is read) |
 | `auto` | No question at all, lean's included: every decision taken from purpose, evidence and standards, recorded as `decided:`; the review branch (below) makes it one review and one merge, or one branch delete |
 | `<path>` | One package of a monorepo; without it, each package with its own manifest is a unit |
 
@@ -29,7 +30,9 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 
 | Command | Does |
 |---------|------|
-| `A init [words]` | Fetch, fast-forward when safe, scope, signals, check command, phase plan; resumes an open run (back on `ds/audit`, the open phase's rows, run-written vs your uncommitted files) |
+| `A init [words]` | Fetch, fast-forward when safe, scope, signals, check command, phase plan, reading list; resumes an open run asked with the same words or none (back on `ds/audit`, the open phase's rows, run-written vs your uncommitted files); other words start a new run |
+| `A coverage [PHASE]` · `A groups PHASE` · `A read PHASE FILE…` | Reading list: read / unread per phase · unread files in review groups of ≤ 2500 lines · mark files read in full (parallel-safe) |
+| `A push off\|on [why]` | Turns the push of `ds/audit` off or on, noted as `decided:` |
 | `A signal KEY VALUE [why]` | Confirm or correct a judged signal (`?` in the Signals line); re-plans phases not started; notes it as `decided:` |
 | `A check "CMD" [why]` | Sets the check command explicitly, noted as `decided:` with the reason (init takes the ds-gate marker, else the gate the project's agent docs name, else stack defaults) |
 | `A checks baseline\|now` | Runs each check step, records pass / fail / timeout |
@@ -43,20 +46,20 @@ Audit what the branch changes (or, with `all`, the whole project) phase by phase
 
 ## Done when
 
-`A validate` green; every phase in the plan `done` (or `blocked` with a concrete reason, which makes the run INCOMPLETE); `A checks now` no redder than baseline, shown by its output; `A report` printed the closing message.
+`A validate` green; `A coverage` shows no unread file (any unread file makes the run INCOMPLETE, never WARN); every phase in the plan `done` (or `blocked` with a concrete reason, which makes the run INCOMPLETE); `A checks now` no redder than baseline, shown by its output; `A report` printed the closing message.
 
 ## Steps
 
-1. **Start** — `A init {words}`. Read its JSON: `next` phase, plan, signals, check command, notes. Read the project's rules in one batch (`AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, ADRs, specs); they override this file and the rule files where they differ.
+1. **Start** — `A init {words}`. Read its JSON: `next` phase, plan, signals, check command, reading list, notes. Read the project's rules in one batch (`AGENTS.md`, `CLAUDE.md`, `README*`, `CONTRIBUTING*`, ADRs, specs); they override this file and the rule files where they differ. A rule against pushing → `A push off "{file:line}"`.
 2. **Signals** — confirm every `?` value by reading the code it rests on; wrong → `A signal KEY VALUE`.
 3. **Baseline** — read the check command and `check_from` (kernel §3: never run what you have not read); wrong → `A check CMD`. Then `A checks baseline` once per run (a resumed run keeps its baseline).
-4. **Phases** — for the `next` phase and each after it, follow [phases.md](references/phases.md): inventory → detect → decide → apply → verify → `A phase {p} done`. One context runs them all; a subagent per phase only for `size=large` or a context running short (handoff in phases.md).
+4. **Phases** — for the `next` phase and each after it, follow [phases.md](references/phases.md): inventory → detect (every file read, by review groups in parallel, no cap on findings) → decide → apply → verify → `A phase {p} done`. One context runs them all; a subagent per phase only for `size=large` or a context running short (handoff in phases.md).
 5. **Report** — `A report`; print its closing message as the last output (kernel §6).
 
 ## Notes
 
-- `size=large` → order each phase's reading by hotspots (`git log --since=1.year --name-only --format=`, commits × size); stop an area when new findings stop appearing.
+- Reading is never sampled: few findings in a group is not a reason to stop; only `A groups {phase}` printing `[]` ends the reading.
 - No commit-time or stop-time gate in the project → a finding in the `ci` area; the `ds-gate` skill installs one. The budget in `SCOPE.md` can become a gate with `/ds-gate inv "audit.py lean-check passes"`.
 - The run leaves `ds/audit/report.md` (the ledger) and `ds/audit/report.html` (the same report for people: one self-contained page, any screen size, light/dark, printable), both git-excluded (a new run keeps the previous pair as `report-{started}.*`, one generation, and carries its open rows), plus what the owner keeps: commits, `SCOPE.md`, the `ds/audit` branch until merged.
-- **Branch**: `all`, phase and area runs commit on `ds/audit` (created or resumed by `A init`; your branch is not touched) and push it, without force, after each phase; changed-scope runs commit on the current branch and never push. Merging, PRs and deleting the branch are yours (the report prints the commands).
-- Publishing, other pushes, releases and anything needing a human-only value stay `Only you can do` with the exact command (kernel §5).
+- **Branch**: `all`, phase and area runs commit on `ds/audit` (created or resumed by `A init`; your branch is not touched) and push it, without force, after each phase unless push is off; changed-scope runs commit on the current branch and never push. Merging, PRs and deleting the branch are yours (the report prints the commands).
+- Publishing, other pushes, releases and anything needing a human-only value stay `Only you can do` with the exact command (kernel §5). A choice only the owner can make is a `decide:` line (options, recommendation); the closing message lists them last, all of them.
